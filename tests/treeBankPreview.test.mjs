@@ -6,6 +6,8 @@ import { captureVisibleTreeSnapshot } from '../services/treeSnapshot.ts';
 
 const parse = path => ts.createSourceFile(path, readFileSync(new URL(path, import.meta.url), 'utf8'),
   ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+// Use the mounted tree's real selector attributes, so the capture test catches
+// a broken integration even when toolbar SVG icons still exist.
 const visualizer = parse('../components/TreeVisualizer.tsx');
 const find = (root, predicate) => {
   if (predicate(root)) return root;

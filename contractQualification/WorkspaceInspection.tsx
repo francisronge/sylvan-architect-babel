@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TreeVisualizer from '../components/TreeVisualizer';
-import { buildDerivationCanvasData } from '../replay/replayCompiler';
+import { buildDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { prepareReplay } from '../replay/prepareReplay';
 import type { SyntaxNode } from '../types';
 import { diagnosticReplayStages, duplicateStageNodeIds, inspectionStageDisplay } from './diagnosticReplay';

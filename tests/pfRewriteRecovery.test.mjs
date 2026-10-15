@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { __test__ } from '../server/babelParser.js';
-import { buildTier2FacetEvidence, dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { buildTier2FacetEvidence } from '../replay/relations/relationEvidence.ts';
+import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { recoverPFRewrite } from '../replay/relations/pfRewrite.ts';
 
@@ -14,7 +15,7 @@ const dispatch = (r, currentForest = forest, priorForest) => dispatchRelationCla
 const stage = (r, workspaceForest = forest) => ({ statement: 'The authored state.', stageRecord: 'The exact authored relation.',
   relations: [r], workspaceForest: structuredClone(workspaceForest) });
 const compile = r => {
-  const bundle = __test__.normalizeParseBundle({ derivationStages: [stage(r)] }, 'xbar', 'go went they', 'grok', true);
+  const bundle = normalizeParseBundle({ derivationStages: [stage(r)] }, 'xbar', 'go went they', 'grok', true);
   return compileRelationRenderPlan(bundle.analyses[0].derivationStages).frames[0].items;
 };
 const rewrites = items => items.filter(item => item.tier2FacetId === 'pf.rewrite');

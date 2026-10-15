@@ -1,0 +1,568 @@
+{
+  "sentence": "Se vive bien aquí.",
+  "inputTokens": [
+    "Se",
+    "vive",
+    "bien",
+    "aquí"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "internalArgument": "p_pro",
+            "predicate": "p_v"
+          },
+          "relation": "lexical argument structure",
+          "values": {
+            "externalRole": "experiencer",
+            "internalRole": "theme",
+            "use": "transitive vivir, meaning experience"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "p_pro",
+            "predicate": "p_v"
+          },
+          "relation": "theta assignment",
+          "values": {
+            "reference": "discourse-recoverable experience or comparable entity",
+            "role": "theme"
+          }
+        },
+        {
+          "anchors": {
+            "modifiedDomain": "p_vp0",
+            "modifier": "p_bienp"
+          },
+          "relation": "manner modification",
+          "values": {
+            "interpretation": "the theme is experienced well"
+          }
+        },
+        {
+          "anchors": {
+            "modifiedDomain": "p_vp1",
+            "modifier": "p_aquip"
+          },
+          "relation": "locative modification",
+          "values": {
+            "interpretation": "the experiencing situation occurs here"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "p_infl"
+          },
+          "relation": "finite inflection specification",
+          "values": {
+            "number": "singular",
+            "person": "third",
+            "tense": "present"
+          }
+        }
+      ],
+      "stageRecord": "Spanish also permits transitive vivir in the sense of experiencing something. With a discourse-recoverable theme, the exact input can consequently mean that it is experienced well here. Unlike the ordinary impersonal reading, this reading requires an understood experience, life, or comparable theme; the sentence alone does not identify that referent. The silent referential NP is first placed as the complement of V and receives the internal theme theta-role there. No external argument NP is projected in this passive derivation. Bien modifies the experiencing event as a manner adjunct, and aquí is an outer locative VP adjunct. Finite I is specified as present and third-person singular. Se remains a separate clitic at this stage; passive Case absorption and suppression of the external argument will be established when it attaches to the finite verbal head.",
+      "statement": "Establish the transitive predicate underlying a context-dependent passive-se reading.",
+      "workspaceForest": [
+        {
+          "children": [],
+          "id": "p_se",
+          "label": "Cl",
+          "tokenIndex": 0,
+          "word": "Se"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "p_infl",
+                  "label": "I⁰",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "p_v",
+                                  "label": "V⁰",
+                                  "lineageId": "p_verb_chain",
+                                  "tokenIndex": 1,
+                                  "word": "vive"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "p_pro",
+                                  "label": "NP",
+                                  "lineageId": "p_theme_chain",
+                                  "silent": true,
+                                  "word": "pro"
+                                }
+                              ],
+                              "id": "p_vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "p_vp0",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "p_bien",
+                                  "label": "Adv⁰",
+                                  "tokenIndex": 2,
+                                  "word": "bien"
+                                }
+                              ],
+                              "id": "p_bienbar",
+                              "label": "Adv′"
+                            }
+                          ],
+                          "id": "p_bienp",
+                          "label": "AdvP"
+                        }
+                      ],
+                      "id": "p_vp1",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "p_aqui",
+                              "label": "Adv⁰",
+                              "tokenIndex": 3,
+                              "word": "aquí"
+                            }
+                          ],
+                          "id": "p_aquibar",
+                          "label": "Adv′"
+                        }
+                      ],
+                      "id": "p_aquip",
+                      "label": "AdvP"
+                    }
+                  ],
+                  "id": "p_vp2",
+                  "label": "VP"
+                }
+              ],
+              "id": "p_ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "p_ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingHead": "p_finite",
+            "movedHead": "p_v",
+            "trace": "p_vtrace"
+          },
+          "priorAnchors": {
+            "sourceHead": "p_v",
+            "targetInflection": "p_infl"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "chainType": "head movement",
+            "traceLicensing": "local binding and antecedent government"
+          }
+        },
+        {
+          "anchors": {
+            "clitic": "p_se",
+            "host": "p_finite",
+            "resultingHead": "p_complex"
+          },
+          "relation": "clitic attachment",
+          "values": {
+            "order": "clitic precedes finite verb"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "p_complex",
+            "passiveClitic": "p_se",
+            "predicate": "p_v",
+            "theme": "p_pro"
+          },
+          "relation": "passive formation",
+          "values": {
+            "bindingStatusOfClitic": "nonargumental; not a Principle A anaphor",
+            "externalArgument": "suppressed syntactically; implicit experiencer remains available",
+            "structuralAccusative": "absorbed",
+            "themeCase": "not yet licensed"
+          }
+        }
+      ],
+      "stageRecord": "Vive first raises from V to I and leaves a locally bound, antecedent-governed head trace. Se then attaches to the left of that finite head. In this passive analysis, attachment establishes the suppression of the external experiencer as a syntactic argument and the absorption of structural accusative Case. An implicit experiencer remains semantically available, but it is not an arbitrary subject NP. Se is therefore a passive clitic rather than a reflexive argument governed by Principle A. The theme remains in the complement position in this intermediate workspace: it has its theta-role but cannot receive structural accusative Case. Recording this state separately makes passive formation precede the theme's subsequent A-movement. The finite lexical word remains vive; abstract I has no independent phonological realization.",
+      "statement": "Form the finite passive-se head while leaving the theme in its original object position.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "p_se",
+                      "label": "Cl",
+                      "tokenIndex": 0,
+                      "word": "Se"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "p_v",
+                          "label": "V⁰",
+                          "lineageId": "p_verb_chain",
+                          "tokenIndex": 1,
+                          "word": "vive"
+                        },
+                        {
+                          "children": [],
+                          "id": "p_infl",
+                          "label": "I⁰",
+                          "silent": true
+                        }
+                      ],
+                      "id": "p_finite",
+                      "label": "I⁰"
+                    }
+                  ],
+                  "id": "p_complex",
+                  "label": "I⁰"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "p_vtrace",
+                                  "label": "V⁰",
+                                  "lineageId": "p_verb_chain",
+                                  "silent": true,
+                                  "word": "t"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "p_pro",
+                                  "label": "NP",
+                                  "lineageId": "p_theme_chain",
+                                  "silent": true,
+                                  "word": "pro"
+                                }
+                              ],
+                              "id": "p_vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "p_vp0",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "p_bien",
+                                  "label": "Adv⁰",
+                                  "tokenIndex": 2,
+                                  "word": "bien"
+                                }
+                              ],
+                              "id": "p_bienbar",
+                              "label": "Adv′"
+                            }
+                          ],
+                          "id": "p_bienp",
+                          "label": "AdvP"
+                        }
+                      ],
+                      "id": "p_vp1",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "p_aqui",
+                              "label": "Adv⁰",
+                              "tokenIndex": 3,
+                              "word": "aquí"
+                            }
+                          ],
+                          "id": "p_aquibar",
+                          "label": "Adv′"
+                        }
+                      ],
+                      "id": "p_aquip",
+                      "label": "AdvP"
+                    }
+                  ],
+                  "id": "p_vp2",
+                  "label": "VP"
+                }
+              ],
+              "id": "p_ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "p_ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingProjection": "p_ip",
+            "raisedSubject": "p_pro",
+            "trace": "p_nptrace"
+          },
+          "priorAnchors": {
+            "sourceArgument": "p_pro",
+            "sourceProjection": "p_vbar"
+          },
+          "relation": "passive A-movement",
+          "values": {
+            "chainType": "A-chain",
+            "motivation": "structural accusative is unavailable",
+            "thetaRole": "one theme role, assigned at the lower position"
+          }
+        },
+        {
+          "anchors": {
+            "binder": "p_pro",
+            "governingVerbalPosition": "p_vtrace",
+            "trace": "p_nptrace"
+          },
+          "relation": "NP-trace licensing",
+          "values": {
+            "binding": "locally A-bound",
+            "government": "lexically governed in the verbal complement position"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "p_complex",
+            "subject": "p_pro"
+          },
+          "relation": "subject Case and agreement",
+          "values": {
+            "agreement": "third-person singular with the theme subject",
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "licensingInflection": "p_complex",
+            "nullSubject": "p_pro"
+          },
+          "relation": "referential pro licensing",
+          "values": {
+            "formalLicensing": "Spanish finite null-subject licensing",
+            "identification": "a discourse-recoverable singular theme",
+            "interpretation": "referential, not arbitrary human"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "p_ip",
+            "complementizer": "p_c"
+          },
+          "relation": "clause typing",
+          "values": {
+            "force": "declarative"
+          }
+        }
+      ],
+      "stageRecord": "The silent theme moves from the previously displayed complement of V to the previously unoccupied Spec-IP. Its original position becomes an NP trace. This A-chain preserves the single theme theta-role assigned in the object position; Spec-IP contributes Case, not another theta-role. The subject binds its object trace within the clause, and the trace remains lexically governed by the verbal position, satisfying the requirements on an NP trace. Finite I assigns nominative Case to the raised subject and agrees with it in third-person singular. Spanish finite inflection formally licenses the null subject, while discourse must recover its reference. Unlike the impersonal analysis, the agreement here is with a referential singular theme, not an arbitrary human subject. A silent declarative C then embeds the completed IP. The four pronounced terminals are exactly Se, vive, bien, and aquí.",
+      "statement": "Raise and license the silent theme subject, completing the passive reading.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "p_c",
+                  "label": "C⁰",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "p_pro",
+                      "label": "NP",
+                      "lineageId": "p_theme_chain",
+                      "silent": true,
+                      "word": "pro"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "p_se",
+                              "label": "Cl",
+                              "tokenIndex": 0,
+                              "word": "Se"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "p_v",
+                                  "label": "V⁰",
+                                  "lineageId": "p_verb_chain",
+                                  "tokenIndex": 1,
+                                  "word": "vive"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "p_infl",
+                                  "label": "I⁰",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "p_finite",
+                              "label": "I⁰"
+                            }
+                          ],
+                          "id": "p_complex",
+                          "label": "I⁰"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "p_vtrace",
+                                          "label": "V⁰",
+                                          "lineageId": "p_verb_chain",
+                                          "silent": true,
+                                          "word": "t"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "p_nptrace",
+                                          "label": "NP",
+                                          "lineageId": "p_theme_chain",
+                                          "silent": true,
+                                          "word": "t"
+                                        }
+                                      ],
+                                      "id": "p_vbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "p_vp0",
+                                  "label": "VP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "p_bien",
+                                          "label": "Adv⁰",
+                                          "tokenIndex": 2,
+                                          "word": "bien"
+                                        }
+                                      ],
+                                      "id": "p_bienbar",
+                                      "label": "Adv′"
+                                    }
+                                  ],
+                                  "id": "p_bienp",
+                                  "label": "AdvP"
+                                }
+                              ],
+                              "id": "p_vp1",
+                              "label": "VP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "p_aqui",
+                                      "label": "Adv⁰",
+                                      "tokenIndex": 3,
+                                      "word": "aquí"
+                                    }
+                                  ],
+                                  "id": "p_aquibar",
+                                  "label": "Adv′"
+                                }
+                              ],
+                              "id": "p_aquip",
+                              "label": "AdvP"
+                            }
+                          ],
+                          "id": "p_vp2",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "p_ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "p_ip",
+                  "label": "IP"
+                }
+              ],
+              "id": "p_cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "p_cp",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

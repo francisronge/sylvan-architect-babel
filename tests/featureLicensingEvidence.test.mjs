@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { buildTier2FacetEvidence, dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
+import { buildTier2FacetEvidence } from '../replay/relations/relationEvidence.ts';
+import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { recoverNamedFeatureLicensing } from '../replay/relations/featureLicensingEvidence.ts';
-import { compileRelationRenderPlan, visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { collectionPlaque, featurePlaqueAssignment } from '../replay/relations/featureComposition.ts';
 import { preparePlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
 

@@ -5,7 +5,23 @@ export interface CategoryShape {
   compound: boolean;
 }
 
-const withoutFeatures = (label: string) => label.trim().replace(/(?:\s*\[[^\[\]]*\])+$/u, '').trim();
+const withoutFeatures = (label: string): string => {
+  const text = label.trim();
+  let end = text.length;
+  while (text[end - 1] === ']') {
+    let depth = 1, start = end - 1;
+    while (start > 0 && depth) {
+      const character = text[--start];
+      if (character === ']') depth++;
+      if (character === '[') depth--;
+    }
+    // Leave malformed notation uninterpreted instead of manufacturing a head.
+    if (depth) return text;
+    end = start;
+    while (end > 0 && /\s/u.test(text[end - 1])) end--;
+  }
+  return text.slice(0, end);
+};
 
 /** Read conventional category notation, keeping projection level separate from
  * explanatory annotations. The authored display label is never rewritten. */

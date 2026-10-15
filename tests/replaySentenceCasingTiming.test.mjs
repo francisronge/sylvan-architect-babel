@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyPreFrontingSentenceInitialCasing } from '../replay/replayCompiler.ts';
+import { applyPreFrontingSentenceInitialCasing } from '../replay/replayCasing.ts';
 
 const word = (id, surface) => ({ id, label: surface, word: surface });
 const subject = (surface = 'The', id = 'subject') => ({

@@ -4,7 +4,7 @@ import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
-import { getFrameRelations } from '../replay/replayCompiler.ts';
+import { getFrameRelations } from '../replay/frameRelations.ts';
 
 const example = () => ({
   relation: { relation: 'Open dependency', anchors: { lowerCopy: 'lower', traceWitness: 'lower', higherCopy: 'upper' } },

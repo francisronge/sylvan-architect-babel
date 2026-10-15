@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { completeTreeBankRequest } from "../services/treeBankStore.ts";
+import { completeTreeBankTransaction } from "../services/treeBankStore.ts";
+
+function completeTreeBankRequest(db, mode, operation) {
+  return completeTreeBankTransaction(db, ['treeBank'], mode, (tx, set, fail) => {
+    const request = operation(tx.objectStore('treeBank'));
+    request.onsuccess = () => set(request.result);
+    request.onerror = () => fail(request.error);
+  });
+}
 
 function database() {
   const request = { result: "saved-id" };

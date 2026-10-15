@@ -5,7 +5,7 @@ import { once } from 'node:events';
 import { Worker } from 'node:worker_threads';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildReplayPlaqueSchedule, buildStageLayoutGroups } from '../replay/stageCamera.ts';
-import { buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
+import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { measurePlaqueLayoutJob, runPlaqueLayoutJob } from '../replay/plaqueLayoutJob.ts';
 import { fallbackPlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
 

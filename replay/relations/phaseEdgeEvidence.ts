@@ -1,16 +1,23 @@
 import type { SyntaxNode } from '../../types.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
 import { scopeEvidence } from './evidenceScopes.ts';
-import { resolveOutcomeLiteral } from './outcomeResolver.ts';
-import { POSITIVE_OUTCOMES, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
-import { normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
+import { POSITIVE_OUTCOMES, resolveOutcomeLiteral } from './outcomeResolver.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import { isExplicitTier2Role, normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
+
+/** Bare "edge" has this concept only beside an authored phase or phase head;
+ * generic accessibility still needs the complete Transfer configuration. */
+export function explicitPhaseEdgeFields(evidence: Tier2FacetEvidence) {
+  return (evidence.authoredCurrentAnchors ?? []).filter(entry => entry.concepts.includes('phase.edge')
+    && (isExplicitTier2Role('phase.edge', entry.key) || ['edge', 'edge position'].includes(normalizeTier2Synonym(entry.key))));
+}
 
 /** An edge reached by a phrasal movement may be named in its landing-site
  * description. The exact phase head and its projection spine corroborate that
  * position; neither a category alone nor a future Transfer licenses the mark. */
 export function recoverPhaseEdge(evidence: Tier2FacetEvidence) {
-  if (evidence.currentAnchors['phase.edge']?.length || evidence.movement?.trajectoryKind !== 'phrasal') return [];
   const anchors = evidence.authoredCurrentAnchors ?? [];
+  if (explicitPhaseEdgeFields(evidence).length || evidence.movement?.trajectoryKind !== 'phrasal') return [];
   const heads = anchors.filter(entry => entry.concepts.includes('phase.head'));
   const edges = anchors.filter(entry => entry.concepts.includes('movement.landing')
     && entry.items.includes(evidence.movement!.targetNodeId));

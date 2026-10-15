@@ -1,24 +1,32 @@
-import { translateWorkspaceObstacles } from './workspaceObstacleTranslation.ts';
-import { composeWorkspaceObstacleBuffer, type WorkspaceObstacleBuffer } from './workspaceObstacleBuffer.ts';
-import { createWorkspaceContourPairPreparer, workspaceContourPairCollision, type WorkspaceContourPair } from './workspaceContourPairs.ts';
-import { neutralWorkspaceAttachments } from './workspaceNeutralAttachments.ts';
-import { workspaceReferenceRank } from './workspaceReferenceRank.ts';
-import { preservesLockedWorkspaceGap, type WorkspaceLockedGapReference } from './workspaceLockedGapPreference.ts';
-import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
-import { changesOwnedDisplayTerminal } from './workspaceDisplayTerminal.ts';
-import { movementReceivingHosts, extractionReceivingHosts } from './workspaceReceivingHost.ts';
-import { currentForkBranchesClear, currentForkBranchCollision } from './workspaceForkClearance.ts';
-import { workspaceClearanceObstructions, type WorkspaceGapRequest, type WorkspaceClearanceObstruction } from './workspacePairedClearance.ts';
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
+import type { CategoryTextMeasure } from './categoryTextLayout.ts';
+import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { authoredDisplayWord } from './displayWordMaterial.ts';
-import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
-import { plaqueBranchObstacles, type PlaqueRect } from './relations/plaquePlacement.ts';
 import { rigidMovementHosts } from './movementHostContinuity.ts';
-import type { CategoryTextMeasure } from './categoryTextLayout.ts';
+import { plaqueBranchObstacles, type PlaqueRect } from './relations/plaquePlacement.ts';
+import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
+import type { PlaybackStep } from './types.ts';
+import {
+  createWorkspaceContourPairPreparer,
+  workspaceContourPairCollision,
+  type WorkspaceContourPair
+} from './workspaceContourPairs.ts';
+import { changesOwnedDisplayTerminal } from './workspaceDisplayTerminal.ts';
+import { currentForkBranchCollision, currentForkBranchesClear } from './workspaceForkClearance.ts';
+import { preservesLockedWorkspaceGap, type WorkspaceLockedGapReference } from './workspaceLockedGapPreference.ts';
+import { neutralWorkspaceAttachments } from './workspaceNeutralAttachments.ts';
+import { composeWorkspaceObstacleBuffer, type WorkspaceObstacleBuffer } from './workspaceObstacleBuffer.ts';
+import {
+  workspaceClearanceObstructions,
+  type WorkspaceClearanceObstruction,
+  type WorkspaceGapRequest
+} from './workspacePairedClearance.ts';
+import { extractionReceivingHosts, movementReceivingHosts } from './workspaceReceivingHost.ts';
+import { workspaceReferenceRank } from './workspaceReferenceRank.ts';
+import { TREE_ROW_HEIGHT, TREE_SIBLING_GAP } from './treeSpacing.ts';
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 export type Point = {
   x: number;
@@ -29,6 +37,7 @@ type Composition = {
   inheritCurrentSlots?: boolean;
   preferred?: ContourSelection;
   baseline?: readonly ContourFrame[];
+  minimumSiblingGap?: number;
 };
 type CoordinateSnapshot = readonly (string | number | undefined)[];
 export type LifetimeContour = {
@@ -126,21 +135,25 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
       node.x = 0;
       node.y = 0;
       const id = getNodeId(node), children = (node.children ?? []).filter(child => current.has(child)).map(visit);
-      const owner = node.parent && current.has(node.parent) ? node.parent.data : undefined;
+      // The generated word already belongs to its exact authored head during
+      // lexical selection, even before that head's projection becomes visible.
+      const owner = node.parent && (current.has(node.parent) || step.replayUsesFutureLayoutScaffold)
+        ? node.parent.data : undefined;
       const word = authoredDisplayWord(node.data, owner);
       const ownSignature = JSON.stringify([word ?? node.data.label, word ?? node.data.word, node.data.silent]);
       const signature = JSON.stringify([word ?? node.data.label, word ?? node.data.word, node.data.silent, children.map(child => child.serial)]);
       const before = previous.get(id);
       const incarnation: Incarnation = before?.signature === signature ? before : { id, serial: serial++, first: index, last: index, signature, ownSignature, inheritedRows: before?.ownSignature === ownSignature ? before.inheritedRows : new Set(), node, children, ownInk: [], currentRanks: new Set(), predecessor: before, stationaryWitnessPairs, birthNodes: nodes, beforeNodes: previous, step, beforeHierarchy: previousHierarchy, hierarchy };
-      // A new movement wrapper may name the preceding complete fork. Retain
-      // its exact child slots, while keeping the two material lifetimes distinct.
+      // Movement can introduce a differently labelled projection around the
+      // preceding fork's children. Their ordered IDs carry its slots even when
+      // a child's material changes at the lower occurrence; its contour stays distinct.
       if (!before && node.parent && hierarchy.has(getNodeId(node.parent))) {
         const oldFork = previous.get(getNodeId(node.parent)), identity = step.replayKind === 'relation' && step.replayRelationIdentity;
         const key = identity && `${identity.stageIndex}:${identity.relationIndex}`;
         const currentSisters = (node.parent.children ?? []).filter(child => hierarchy.has(getNodeId(child)));
         const contains = (part: Incarnation, id: string): boolean => part.id === id || part.children.some(child => contains(child, id));
-        if (oldFork && oldFork.node.data.label === node.data.label && oldFork.node.data.word === node.data.word && oldFork.node.data.silent === node.data.silent
-          && oldFork.children.length === children.length && children.every((child, i) => child === oldFork.children[i])
+        if (oldFork && oldFork.children.length === children.length
+          && children.every((child, i) => child.id === oldFork.children[i].id)
           && currentSisters.length === 2 && currentWorkspaceMovements(step, previousHierarchy, hierarchy).some(link => key && link.authoredRelationKey === key
             && link.priorSourceNodeId && previous.has(link.priorSourceNodeId) && contains(oldFork, link.priorSourceNodeId)
             && link.witnessNodeId && contains(incarnation, link.witnessNodeId)
@@ -367,6 +380,7 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
     preferred: CoordinateSnapshot;
   }>();
   let previousInheritance: boolean | undefined;
+  let previousMinimumSiblingGap: number | undefined;
   const preferenceIds = new Map(parts.map(part => [part, [part.id, ...part.children.map(child => child.id)]]));
   // Re-read every consumed coordinate, including in-place Map edits. An
   // unchanged snapshot can be shared by the trial's immutable certificate.
@@ -401,6 +415,7 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
   const compositionSnapshots = new Map<readonly ContourFrame[], {
     inputs: typeof previousInputs;
     inheritance: typeof previousInheritance;
+    minimumSiblingGap: typeof previousMinimumSiblingGap;
     parts: Array<{ shape: LifetimeContour | undefined; fixedSlots: Incarnation['fixedSlots'] }>;
   }>();
   let completedFrames: readonly ContourFrame[] | undefined;
@@ -411,6 +426,7 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
       if (!snapshot) throw Error('Workspace composition baseline was not retained.');
       previousInputs = snapshot.inputs;
       previousInheritance = snapshot.inheritance;
+      previousMinimumSiblingGap = snapshot.minimumSiblingGap;
       parts.forEach((part, index) => {
         part.shape = snapshot.parts[index].shape;
         part.fixedSlots = snapshot.parts[index].fixedSlots;
@@ -430,6 +446,7 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
       };
       inputs.set(part.serial, value);
       return previousInheritance !== composition?.inheritCurrentSlots
+        || previousMinimumSiblingGap !== composition?.minimumSiblingGap
         || prior?.selected !== value.selected || prior?.preferred !== value.preferred;
     });
     const invalid = new Set<Incarnation>();
@@ -444,10 +461,11 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
     }
     previousInputs = inputs;
     previousInheritance = composition?.inheritCurrentSlots;
+    previousMinimumSiblingGap = composition?.minimumSiblingGap;
     function shape(part: Incarnation): LifetimeContour {
       if (part.shape)
         return part.shape;
-      const children = part.children.map(shape), childInk: PlaqueRect[] = [];
+      const children = part.children.map(shape);
       let members = new Map<string, Point>([[part.id, { x: 0, y: 0 }]]);
       let childSlots: readonly Point[] = [], childCenter = 0;
       const placeChildren = (slots: readonly Point[], center: number) => {
@@ -460,7 +478,7 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
       const lower = ownBottom.get(part)!;
       let childTop = 0;
       for (const child of children) childTop = Math.min(childTop, contourTop(child));
-      const rank = Math.max(220, lower - childTop + 16);
+      const rank = Math.max(TREE_ROW_HEIGHT, lower - childTop + 16);
       const fixedSlots = new Map<number, Point>();
       part.fixedSlots = fixedSlots;
       const supplied = composition?.preferred?.get(part.serial);
@@ -470,15 +488,11 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
       });
       if (!completePreferred) {
         const anchors: number[] = [];
-        for (const child of children) {
-          const boxes = translateWorkspaceObstacles(child.obstacles, 0, rank);
-          let x = anchors.length ? anchors.at(-1)! + 1 : 0;
-          for (const a of childInk)
-            for (const b of boxes)
-              if (Math.min(a.y + a.height, b.y + b.height) > Math.max(a.y, b.y))
-                x = Math.max(x, a.x + a.width - b.x + 16);
+        for (let index = 0; index < children.length; index++) {
+          let x = anchors.length ? anchors.at(-1)! + TREE_SIBLING_GAP : 0;
+          for (let prior = 0; prior < index; prior++)
+            x = Math.max(x, anchors[prior] + pair(children[prior], children[index]).separation);
           anchors.push(x);
-          childInk.push(...translateWorkspaceObstacles(boxes, x, 0));
         }
         const center = anchors.length ? (anchors[0] + anchors.at(-1)!) / 2 : 0;
         placeChildren(anchors.map(x => ({ x, y: rank })), center);
@@ -509,7 +523,8 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
         const separation = children.map(() => children.map(() => 0));
         for (let i = 0; i < children.length; i++)
           for (let j = i + 1; j < children.length; j++)
-            separation[i][j] = pair(children[i], children[j]).separation;
+            separation[i][j] = Math.max(pair(children[i], children[j]).separation,
+              (composition.minimumSiblingGap ?? 0) * (j - i));
         for (let distance = 2; distance < children.length; distance++)
           for (let i = 0; i + distance < children.length; i++) {
             const j = i + distance;
@@ -519,7 +534,8 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
         const alignment = [...locked].map(([index, point]) => point.x - ((preferred?.get(children[index].id)?.x ?? NaN) - (preferredRoot?.x ?? 0)));
         const preferredShift = alignment.length && alignment.every(dx => Number.isFinite(dx) && Math.abs(dx - alignment[0]) <= 1e-6) ? alignment[0] : 0;
         const preferredSlots = children.map((child, index) => locked.get(index)?.x ?? ((preferred?.get(child.id)?.x ?? NaN) - (preferredRoot?.x ?? 0) + preferredShift));
-        const clearAt = (slots: readonly number[]) => slots.every((value, index) => Number.isFinite(value) && (!index || value > slots[index - 1]))
+        const clearAt = (slots: readonly number[]) => slots.every((value, index) => Number.isFinite(value)
+          && (!index || value > slots[index - 1] && value - slots[index - 1] >= (composition.minimumSiblingGap ?? 0)))
           && children.every((left, i) => children.every((right, j) => j <= i || clearPair(left, right, slots[j] - slots[i])))
           && currentForkBranchesClear({ x: (slots[0] + slots.at(-1)!) / 2, y: 0 }, children.map((child, index) => ({ point: { x: slots[index], y: childRank }, obstacles: ink(child) })));
         const slots: number[] = clearAt(preferredSlots) ? preferredSlots : [];
@@ -728,7 +744,7 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
     // certificates avoids undoing the preceding rejected alternative first.
     retainBaseline: (result: readonly ContourFrame[]) => {
       if (completedFrames !== result) throw Error('Only the completed workspace composition can be retained.');
-      compositionSnapshots.set(result, { inputs: previousInputs, inheritance: previousInheritance,
+      compositionSnapshots.set(result, { inputs: previousInputs, inheritance: previousInheritance, minimumSiblingGap: previousMinimumSiblingGap,
         parts: parts.map(part => ({ shape: part.shape, fixedSlots: part.fixedSlots })) });
     },
     retainOnlyBaseline: (result: readonly ContourFrame[]) => {

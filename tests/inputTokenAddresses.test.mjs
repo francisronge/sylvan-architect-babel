@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { __test__ as parser, ParseApiError } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { parseModelJsonDetailed } from '../server/babelParser/modelJson.js';
+import { ParseApiError } from '../server/babelParser/error.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
 import { resolveSavedInputTokens, tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
-import { tokenizeReplaySentenceSurface } from '../replay/replayCompiler.ts';
 import { runQualificationAttempt, validateQualificationPlan } from '../contractQualification/run.js';
 import { buildCodexQualificationRequest } from '../contractQualification/codexOAuth.js';
 
@@ -46,7 +47,7 @@ test('normalization, saved snapshots and Replay retain supplied addresses withou
   const inputTokens = ['Mia’s', 'book'];
   const payload = payloadFor(inputTokens);
   t.mock.method(Intl, 'Segmenter', () => { throw new Error('Must use the sent token list'); });
-  const bundle = { ...parser.normalizeParseBundle(payload, 'xbar', sentence, 'fixture', true, { inputTokens }), sentence };
+  const bundle = { ...normalizeParseBundle(payload, 'xbar', sentence, 'fixture', true, { inputTokens }), sentence };
   inputTokens[0] = 'caller mutation';
   assert.deepEqual(bundle.inputTokens, ['Mia’s', 'book']);
   assert.deepEqual(bundle.analyses[0].derivationStages, payload.derivationStages);
@@ -54,7 +55,7 @@ test('normalization, saved snapshots and Replay retain supplied addresses withou
   const restored = loadTreeBankBundleSnapshot(snapshot);
   assert.deepEqual(restored.inputTokens, ['Mia’s', 'book']);
   assert.deepEqual(buildReplaySnapshotProjection(restored), buildReplaySnapshotProjection(bundle));
-  assert.deepEqual(tokenizeReplaySentenceSurface(sentence, restored.inputTokens), ['Mia’s', 'book']);
+  assert.deepEqual(resolveSavedInputTokens(sentence, restored.inputTokens), ['Mia’s', 'book']);
   snapshot.inputTokens[0] = 'snapshot mutation';
   assert.equal(restored.inputTokens[0], 'Mia’s');
 });
@@ -62,7 +63,7 @@ test('normalization, saved snapshots and Replay retain supplied addresses withou
 test('legacy records keep apostrophe-s addresses and exact authored syntax on reopen', () => {
   const sentence = 'Mia’s book';
   const inputTokens = ['Mia', "'s", 'book'];
-  const bundle = { ...parser.normalizeParseBundle(payloadFor(inputTokens), 'xbar', sentence, 'fixture', true, { inputTokens }), sentence };
+  const bundle = { ...normalizeParseBundle(payloadFor(inputTokens), 'xbar', sentence, 'fixture', true, { inputTokens }), sentence };
   const expected = buildReplaySnapshotProjection(bundle);
   delete bundle.inputTokens;
   const original = structuredClone(bundle);
@@ -95,7 +96,7 @@ test('written token addresses permit separate morphemes across scripts without d
     const stages = [{ statement: 'The authored association holds.', stageRecord: 'Written positions and syntax are distinct.',
       workspaceForest: [tree], realizations, relations: [] }];
     const original = structuredClone(stages);
-    const bundle = { ...parser.normalizeParseBundle({ derivationStages: stages }, framework, sentence, 'fixture', true, { inputTokens }), sentence };
+    const bundle = { ...normalizeParseBundle({ derivationStages: stages }, framework, sentence, 'fixture', true, { inputTokens }), sentence };
     const restored = loadTreeBankBundleSnapshot(createTreeBankBundleSnapshot(bundle));
     assert.deepEqual(restored.inputTokens, inputTokens);
     assert.deepEqual(restored.analyses[0].derivationStages[0].realizations, realizations);
@@ -120,9 +121,8 @@ test('Gemini and local normalization use the exact token list from their sent pr
     return JSON.stringify(payloadFor(tokens));
   };
   const routes = createParseRoutes({ ParseApiError,
-    normalizeParseBundle: parser.normalizeParseBundle,
-    parseModelJson: parser.parseModelJson,
-    parseModelJsonDetailed: parser.parseModelJsonDetailed,
+    normalizeParseBundle: normalizeParseBundle,
+    parseModelJsonDetailed: parseModelJsonDetailed,
     generateLocal: async ({ prompt }) => raw(prompt),
     generateGemini: async ({ contents }) => ({ text: raw(contents),
       candidates: [{ finishReason: 'STOP' }] })

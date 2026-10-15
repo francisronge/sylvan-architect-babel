@@ -1,5 +1,5 @@
 import type { DerivationOperation, DerivationStageRelation, ReplayDetailBlock } from '../types.ts';
-import type { PlaybackStep, ReplaySupportLine } from './replayCompiler.ts';
+import type { PlaybackStep, ReplaySupportLine } from './types.ts';
 
 /** Pure panel text and detail-block formatting; relation ownership stays in the compiler. */
 export const formatOperationLabel = (operation?: DerivationOperation): string => {

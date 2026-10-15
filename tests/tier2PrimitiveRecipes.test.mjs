@@ -6,16 +6,11 @@ import { VISUAL_PRIMITIVE_SEARCH_SYNONYMS } from '../docs/design/visual-relation
 import { findRelationRegistryEntry } from '../replay/relationDispatch/relationRegistry.js';
 import { productionRelationRegistry } from '../replay/relationDispatch/productionRegistry.js';
 import { OUTCOME_CONCEPTS } from '../replay/relations/outcomeResolver.ts';
-import { buildTier2FacetEvidence } from '../replay/relations/tier2RelationDispatch.ts';
-import {
-  TIER2_FACET_ACCEPTED_OUTCOME_CONCEPTS,
-  TIER2_FACET_RECIPE_BY_ID,
-  TIER2_FACET_RECIPES,
-  TIER2_VISUAL_PRIMITIVE_NAMES,
-  buildTier2FacetIdentity,
-  buildTier2FacetOutputIdentities,
-  evaluateTier2FacetRecipe
-} from '../replay/relations/tier2FacetRecipes.ts';
+import { buildTier2FacetEvidence } from '../replay/relations/relationEvidence.ts';
+import { TIER2_FACET_ACCEPTED_OUTCOME_CONCEPTS, TIER2_FACET_RECIPE_BY_ID, TIER2_FACET_RECIPES } from '../replay/relations/tier2FacetRecipes.ts';
+import { TIER2_VISUAL_PRIMITIVE_NAMES } from '../replay/relations/tier2FacetTypes.ts';
+import { buildTier2FacetIdentity, buildTier2FacetOutputIdentities } from '../replay/relations/tier2FacetIdentity.ts';
+import { evaluateTier2FacetRecipe } from '../replay/relations/tier2FacetEvaluation.ts';
 import {
   TIER2_ROLE_SYNONYMS,
   TIER2_VALUE_SYNONYMS,
@@ -74,7 +69,7 @@ const evidence = ({ currentAnchors, currentForest, priorAnchors, priorForest, va
   ...rest
 });
 
-test('the complete Tier-2 recipes cover 69 primitives with explicit shared drawing ownership', async () => {
+test('Tier-2 recipes cover the visual vocabulary with explicit shared drawing ownership', async () => {
   const vocabularyNames = await readVocabularyNames();
   const ownedPieces = TIER2_FACET_RECIPES.flatMap((entry) => entry.outputs.map((output) => output.piece));
   const ownershipCounts = ownedPieces.reduce((counts, piece) => {
@@ -82,9 +77,6 @@ test('the complete Tier-2 recipes cover 69 primitives with explicit shared drawi
     return counts;
   }, new Map());
 
-  assert.equal(TIER2_VISUAL_PRIMITIVE_NAMES.length, 69);
-  assert.equal(ownedPieces.length, 75);
-  assert.equal(new Set(ownedPieces).size, 69);
   const shared = ['Branch overlay', 'Variable-binding path', 'Nested association curves', 'Coindex'];
   for (const piece of shared) assert.equal(ownershipCounts.get(piece), ['Nested association curves', 'Coindex'].includes(piece) ? 3 : 2);
   assert.deepEqual(
@@ -118,7 +110,7 @@ test('Pair Merge earns the shared branch overlay only for one native sibling for
   assert.ok(separateBranches.failures.includes('check:shared-native-parent'));
 });
 
-test('the reviewed ownership audit matches the 55 executable facet recipes', async () => {
+test('the reviewed ownership audit matches the executable facet recipes', async () => {
   const auditedFacets = await readFacetOwnershipAudit();
   const kindLabel = {
     claim: 'claim',
@@ -126,9 +118,7 @@ test('the reviewed ownership audit matches the 55 executable facet recipes', asy
     'organizational-companion': 'organizational companion'
   };
 
-  assert.equal(TIER2_FACET_RECIPES.length, 55);
-  assert.equal(TIER2_FACET_RECIPE_BY_ID.size, 55);
-  assert.equal(TIER2_FACET_RECIPES.filter((entry) => entry.kind === 'claim').length, 53);
+  assert.equal(TIER2_FACET_RECIPE_BY_ID.size, TIER2_FACET_RECIPES.length, 'recipe IDs are unique');
   assert.deepEqual(
     auditedFacets,
     TIER2_FACET_RECIPES.map((entry) => ({

@@ -1,0 +1,1454 @@
+{
+  "sentence": "Ayşe’nin dün yazdığı mektubu Mehmet bugün okudu.",
+  "inputTokens": [
+    "Ayşe’nin",
+    "dün",
+    "yazdığı",
+    "mektubu",
+    "Mehmet",
+    "bugün",
+    "okudu"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "externalArgument": "relativeSubject",
+            "internalArgument": "relativeObject",
+            "predicate": "relativeVerb"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "externalRole": "Agent",
+            "internalRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "externalArgument": "matrixSubject",
+            "internalArgument": "matrixObject",
+            "predicate": "matrixVerb"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "externalRole": "Agent",
+            "internalRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "matrixInfl",
+            "nominal": "matrixSubject"
+          },
+          "relation": "Case licensing",
+          "values": {
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "matrixVerb",
+            "nominal": "matrixObject"
+          },
+          "relation": "Case licensing under government",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "relativeVerb",
+            "nominal": "relativeObject"
+          },
+          "relation": "Case licensing under government",
+          "values": {
+            "case": "abstract accusative"
+          }
+        }
+      ],
+      "stageRecord": "The analysis uses head-final X-bar structures and the traditional GB placement of external arguments in Spec-IP. Ayşe’nin is the genitive subject of the nominalized relative clause, not a possessor of the external noun. Dün adjoins to the relative VP and modifies the writing event. Yazdığı takes a silent NP operator as its object; this position will become the relative-clause gap. In the separate matrix IP, Mehmet is the subject, mektubu is the object of okudu, and bugün adjoins to the matrix VP. The matrix clause therefore starts in subject–object–verb order; the sentence-initial object will be derived by scrambling. The lexical words are entered already inflected: yazdığı contains the nominalizing participial morphology and third-person singular agreement, while mektubu contains accusative morphology. Their internal morphemes are not represented as separate terminals. Abstract I heads represent the corresponding inflectional features. Both verbs assign Agent and Theme roles. Matrix I licenses nominative on Mehmet, and each verb governs and licenses accusative on its object; the relative operator's case is abstract and unpronounced.",
+      "statement": "Establish the relative-clause and matrix-clause base structures.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "ayse",
+                      "label": "N⁰[genitive]",
+                      "tokenIndex": 0,
+                      "word": "Ayşe’nin"
+                    }
+                  ],
+                  "id": "relativeSubjectNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "relativeSubject",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "yesterday",
+                              "label": "Adv⁰",
+                              "tokenIndex": 1,
+                              "word": "dün"
+                            }
+                          ],
+                          "id": "yesterdayAdvBar",
+                          "label": "Adv′"
+                        }
+                      ],
+                      "id": "yesterdayAdvP",
+                      "label": "AdvP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "relativeOperatorN",
+                                      "label": "N⁰[Op]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "relativeOperatorNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "relativeObject",
+                              "label": "NP[null operator]",
+                              "lineageId": "relativeOperatorChain",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "relativeVerb",
+                              "label": "V⁰[participial, agreement:3sg]",
+                              "lineageId": "writeVerbChain",
+                              "tokenIndex": 2,
+                              "word": "yazdığı"
+                            }
+                          ],
+                          "id": "relativeVBar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "relativeCoreVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "relativeVP",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "relativeInfl",
+                  "label": "I⁰[nominalized, agreement:3sg]",
+                  "silent": true
+                }
+              ],
+              "id": "relativeIBar",
+              "label": "I′"
+            }
+          ],
+          "id": "relativeIP",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mehmet",
+                      "label": "N⁰",
+                      "tokenIndex": 4,
+                      "word": "Mehmet"
+                    }
+                  ],
+                  "id": "matrixSubjectNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "matrixSubject",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "today",
+                              "label": "Adv⁰",
+                              "tokenIndex": 5,
+                              "word": "bugün"
+                            }
+                          ],
+                          "id": "todayAdvBar",
+                          "label": "Adv′"
+                        }
+                      ],
+                      "id": "todayAdvP",
+                      "label": "AdvP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "letter",
+                                      "label": "N⁰[accusative]",
+                                      "tokenIndex": 3,
+                                      "word": "mektubu"
+                                    }
+                                  ],
+                                  "id": "letterNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "matrixObject",
+                              "label": "NP[accusative]",
+                              "lineageId": "matrixObjectChain"
+                            },
+                            {
+                              "children": [],
+                              "id": "matrixVerb",
+                              "label": "V⁰[past, agreement:3sg]",
+                              "lineageId": "readVerbChain",
+                              "tokenIndex": 6,
+                              "word": "okudu"
+                            }
+                          ],
+                          "id": "matrixVBar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "matrixCoreVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "matrixVP",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "matrixInfl",
+                  "label": "I⁰[past, agreement:3sg]",
+                  "silent": true
+                }
+              ],
+              "id": "matrixIBar",
+              "label": "I′"
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "host": "relativeInfl",
+            "landingHead": "relativeIComplex",
+            "raisedVerb": "relativeVerbRaised",
+            "trace": "relativeVerb"
+          },
+          "priorAnchors": {
+            "source": "relativeVerb",
+            "target": "relativeInfl"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "chainType": "head-movement chain"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "relativeIComplex",
+            "nominal": "relativeSubject"
+          },
+          "relation": "genitive Case licensing",
+          "values": {
+            "case": "genitive",
+            "licensingDomain": "nominalized relative IP"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "relativeIComplex",
+            "subject": "relativeSubject"
+          },
+          "relation": "Spec-head agreement",
+          "values": {
+            "features": "third-person singular"
+          }
+        }
+      ],
+      "stageRecord": "Yazdığı raises from the V position shown in the preceding workspace and adjoins to the relative I head. Its original position becomes an unpronounced verbal trace. This lexicalist GB analysis moves the already-inflected word rather than deriving its spelling by combining separately represented morphemes. The resulting I complex checks the participial and agreement features. Nominalized I licenses genitive on Ayşe’nin, and Spec-head agreement connects that subject to the third-person singular agreement of yazdığı. The operator remains in the object position: its subsequent A-bar movement has not yet occurred. The separate matrix IP is unchanged because relative-clause formation is still being completed.",
+      "statement": "Raise the relative verb to nominalized I and license its genitive subject.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "ayse",
+                      "label": "N⁰[genitive]",
+                      "tokenIndex": 0,
+                      "word": "Ayşe’nin"
+                    }
+                  ],
+                  "id": "relativeSubjectNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "relativeSubject",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "yesterday",
+                              "label": "Adv⁰",
+                              "tokenIndex": 1,
+                              "word": "dün"
+                            }
+                          ],
+                          "id": "yesterdayAdvBar",
+                          "label": "Adv′"
+                        }
+                      ],
+                      "id": "yesterdayAdvP",
+                      "label": "AdvP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "relativeOperatorN",
+                                      "label": "N⁰[Op]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "relativeOperatorNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "relativeObject",
+                              "label": "NP[null operator]",
+                              "lineageId": "relativeOperatorChain",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "relativeVerb",
+                              "label": "V⁰[t_V]",
+                              "lineageId": "writeVerbChain",
+                              "silent": true
+                            }
+                          ],
+                          "id": "relativeVBar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "relativeCoreVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "relativeVP",
+                  "label": "VP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "relativeVerbRaised",
+                      "label": "V⁰[participial, agreement:3sg]",
+                      "lineageId": "writeVerbChain",
+                      "tokenIndex": 2,
+                      "word": "yazdığı"
+                    },
+                    {
+                      "children": [],
+                      "id": "relativeInfl",
+                      "label": "I⁰[nominalized, agreement:3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "relativeIComplex",
+                  "label": "I⁰"
+                }
+              ],
+              "id": "relativeIBar",
+              "label": "I′"
+            }
+          ],
+          "id": "relativeIP",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mehmet",
+                      "label": "N⁰",
+                      "tokenIndex": 4,
+                      "word": "Mehmet"
+                    }
+                  ],
+                  "id": "matrixSubjectNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "matrixSubject",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "today",
+                              "label": "Adv⁰",
+                              "tokenIndex": 5,
+                              "word": "bugün"
+                            }
+                          ],
+                          "id": "todayAdvBar",
+                          "label": "Adv′"
+                        }
+                      ],
+                      "id": "todayAdvP",
+                      "label": "AdvP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "letter",
+                                      "label": "N⁰[accusative]",
+                                      "tokenIndex": 3,
+                                      "word": "mektubu"
+                                    }
+                                  ],
+                                  "id": "letterNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "matrixObject",
+                              "label": "NP[accusative]",
+                              "lineageId": "matrixObjectChain"
+                            },
+                            {
+                              "children": [],
+                              "id": "matrixVerb",
+                              "label": "V⁰[past, agreement:3sg]",
+                              "lineageId": "readVerbChain",
+                              "tokenIndex": 6,
+                              "word": "okudu"
+                            }
+                          ],
+                          "id": "matrixVBar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "matrixCoreVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "matrixVP",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "matrixInfl",
+                  "label": "I⁰[past, agreement:3sg]",
+                  "silent": true
+                }
+              ],
+              "id": "matrixIBar",
+              "label": "I′"
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingOccurrence": "relativeOperatorHigh",
+            "landingProjection": "relativeCP",
+            "trace": "relativeObject"
+          },
+          "priorAnchors": {
+            "source": "relativeObject"
+          },
+          "relation": "relative-operator movement",
+          "values": {
+            "chainType": "A-bar operator chain",
+            "index": "i"
+          }
+        },
+        {
+          "anchors": {
+            "binder": "relativeOperatorHigh",
+            "boundTrace": "relativeObject"
+          },
+          "relation": "A-bar binding",
+          "values": {
+            "index": "i"
+          }
+        },
+        {
+          "anchors": {
+            "governedTrace": "relativeObject",
+            "governor": "relativeVerb",
+            "verbalChainHead": "relativeVerbRaised"
+          },
+          "relation": "trace government",
+          "values": {
+            "licensing": "local government by the verbal chain"
+          }
+        }
+      ],
+      "stageRecord": "A silent relative C projects a head-final CP over the nominalized IP. The null operator moves from the previously established object position to Spec-CP, leaving an NP trace. The operator A-bar binds that trace, producing the open relative predicate ‘the entity that Ayşe wrote yesterday’. The Theme role and abstract object Case belong to the chain through its base position. The object trace remains locally governed by the verbal trace, which belongs to the V-to-I chain. Neither the operator nor C is pronounced. The matrix clause remains separate until this relative CP can be attached to its nominal head.",
+      "statement": "Form the relative CP by moving the null object operator.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "relativeOperatorN",
+                      "label": "N⁰[Op]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "relativeOperatorNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "relativeOperatorHigh",
+              "label": "NP[Op_i]",
+              "lineageId": "relativeOperatorChain",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "ayse",
+                              "label": "N⁰[genitive]",
+                              "tokenIndex": 0,
+                              "word": "Ayşe’nin"
+                            }
+                          ],
+                          "id": "relativeSubjectNBar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "relativeSubject",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "yesterday",
+                                      "label": "Adv⁰",
+                                      "tokenIndex": 1,
+                                      "word": "dün"
+                                    }
+                                  ],
+                                  "id": "yesterdayAdvBar",
+                                  "label": "Adv′"
+                                }
+                              ],
+                              "id": "yesterdayAdvP",
+                              "label": "AdvP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "relativeObject",
+                                      "label": "NP[t_i]",
+                                      "lineageId": "relativeOperatorChain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "relativeVerb",
+                                      "label": "V⁰[t_V]",
+                                      "lineageId": "writeVerbChain",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "relativeVBar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "relativeCoreVP",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "relativeVP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "relativeVerbRaised",
+                              "label": "V⁰[participial, agreement:3sg]",
+                              "lineageId": "writeVerbChain",
+                              "tokenIndex": 2,
+                              "word": "yazdığı"
+                            },
+                            {
+                              "children": [],
+                              "id": "relativeInfl",
+                              "label": "I⁰[nominalized, agreement:3sg]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "relativeIComplex",
+                          "label": "I⁰"
+                        }
+                      ],
+                      "id": "relativeIBar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "relativeIP",
+                  "label": "IP"
+                },
+                {
+                  "children": [],
+                  "id": "relativeC",
+                  "label": "C⁰[relative]",
+                  "silent": true
+                }
+              ],
+              "id": "relativeCBar",
+              "label": "C′"
+            }
+          ],
+          "id": "relativeCP",
+          "label": "CP[relative]"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mehmet",
+                      "label": "N⁰",
+                      "tokenIndex": 4,
+                      "word": "Mehmet"
+                    }
+                  ],
+                  "id": "matrixSubjectNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "matrixSubject",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "today",
+                              "label": "Adv⁰",
+                              "tokenIndex": 5,
+                              "word": "bugün"
+                            }
+                          ],
+                          "id": "todayAdvBar",
+                          "label": "Adv′"
+                        }
+                      ],
+                      "id": "todayAdvP",
+                      "label": "AdvP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "letter",
+                                      "label": "N⁰[accusative]",
+                                      "tokenIndex": 3,
+                                      "word": "mektubu"
+                                    }
+                                  ],
+                                  "id": "letterNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "matrixObject",
+                              "label": "NP[accusative]",
+                              "lineageId": "matrixObjectChain"
+                            },
+                            {
+                              "children": [],
+                              "id": "matrixVerb",
+                              "label": "V⁰[past, agreement:3sg]",
+                              "lineageId": "readVerbChain",
+                              "tokenIndex": 6,
+                              "word": "okudu"
+                            }
+                          ],
+                          "id": "matrixVBar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "matrixCoreVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "matrixVP",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "matrixInfl",
+                  "label": "I⁰[past, agreement:3sg]",
+                  "silent": true
+                }
+              ],
+              "id": "matrixIBar",
+              "label": "I′"
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "nominalHead": "letter",
+            "operator": "relativeOperatorHigh",
+            "relativeClause": "relativeCP",
+            "relativeGap": "relativeObject"
+          },
+          "relation": "relative-predicate identification",
+          "values": {
+            "index": "i",
+            "interpretation": "restrictive modification of the letter as the Theme of Ayşe's writing"
+          }
+        },
+        {
+          "anchors": {
+            "host": "matrixInfl",
+            "landingHead": "matrixIComplex",
+            "raisedVerb": "matrixVerbRaised",
+            "trace": "matrixVerb"
+          },
+          "priorAnchors": {
+            "source": "matrixVerb",
+            "target": "matrixInfl"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "chainType": "head-movement chain"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "matrixIComplex",
+            "subject": "matrixSubject"
+          },
+          "relation": "Spec-head agreement",
+          "values": {
+            "features": "third-person singular"
+          }
+        }
+      ],
+      "stageRecord": "The completed CP adjoins on the left of the object's N′, giving the prenominal restrictive relative Ayşe’nin dün yazdığı. Its operator variable is identified with the external nominal head mektubu. The external noun is not moved out of the relative clause: this is a head-external operator analysis. Its accusative Case comes from the matrix verb, independently of the relative object's abstract Case. After attachment, okudu raises from its previously shown V position to matrix I and leaves a verbal trace. The resulting inflectional head agrees with Mehmet and retains past tense. The entire modified object is still in the matrix verb's complement position, so this workspace explicitly supplies the source for the later object scrambling.",
+      "statement": "Attach the relative clause to the object noun and raise the matrix verb.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mehmet",
+                      "label": "N⁰",
+                      "tokenIndex": 4,
+                      "word": "Mehmet"
+                    }
+                  ],
+                  "id": "matrixSubjectNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "matrixSubject",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "today",
+                              "label": "Adv⁰",
+                              "tokenIndex": 5,
+                              "word": "bugün"
+                            }
+                          ],
+                          "id": "todayAdvBar",
+                          "label": "Adv′"
+                        }
+                      ],
+                      "id": "todayAdvP",
+                      "label": "AdvP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "relativeOperatorN",
+                                                  "label": "N⁰[Op]",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "relativeOperatorNBar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "relativeOperatorHigh",
+                                          "label": "NP[Op_i]",
+                                          "lineageId": "relativeOperatorChain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "ayse",
+                                                          "label": "N⁰[genitive]",
+                                                          "tokenIndex": 0,
+                                                          "word": "Ayşe’nin"
+                                                        }
+                                                      ],
+                                                      "id": "relativeSubjectNBar",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "relativeSubject",
+                                                  "label": "NP"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "yesterday",
+                                                                  "label": "Adv⁰",
+                                                                  "tokenIndex": 1,
+                                                                  "word": "dün"
+                                                                }
+                                                              ],
+                                                              "id": "yesterdayAdvBar",
+                                                              "label": "Adv′"
+                                                            }
+                                                          ],
+                                                          "id": "yesterdayAdvP",
+                                                          "label": "AdvP"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "relativeObject",
+                                                                  "label": "NP[t_i]",
+                                                                  "lineageId": "relativeOperatorChain",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "relativeVerb",
+                                                                  "label": "V⁰[t_V]",
+                                                                  "lineageId": "writeVerbChain",
+                                                                  "silent": true
+                                                                }
+                                                              ],
+                                                              "id": "relativeVBar",
+                                                              "label": "V′"
+                                                            }
+                                                          ],
+                                                          "id": "relativeCoreVP",
+                                                          "label": "VP"
+                                                        }
+                                                      ],
+                                                      "id": "relativeVP",
+                                                      "label": "VP"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "relativeVerbRaised",
+                                                          "label": "V⁰[participial, agreement:3sg]",
+                                                          "lineageId": "writeVerbChain",
+                                                          "tokenIndex": 2,
+                                                          "word": "yazdığı"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "relativeInfl",
+                                                          "label": "I⁰[nominalized, agreement:3sg]",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "relativeIComplex",
+                                                      "label": "I⁰"
+                                                    }
+                                                  ],
+                                                  "id": "relativeIBar",
+                                                  "label": "I′"
+                                                }
+                                              ],
+                                              "id": "relativeIP",
+                                              "label": "IP"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "relativeC",
+                                              "label": "C⁰[relative]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "relativeCBar",
+                                          "label": "C′"
+                                        }
+                                      ],
+                                      "id": "relativeCP",
+                                      "label": "CP[relative]"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "letter",
+                                          "label": "N⁰[accusative]",
+                                          "tokenIndex": 3,
+                                          "word": "mektubu"
+                                        }
+                                      ],
+                                      "id": "letterInnerNBar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "letterNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "matrixObject",
+                              "label": "NP[accusative]",
+                              "lineageId": "matrixObjectChain"
+                            },
+                            {
+                              "children": [],
+                              "id": "matrixVerb",
+                              "label": "V⁰[t_V]",
+                              "lineageId": "readVerbChain",
+                              "silent": true
+                            }
+                          ],
+                          "id": "matrixVBar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "matrixCoreVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "matrixVP",
+                  "label": "VP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "matrixVerbRaised",
+                      "label": "V⁰[past, agreement:3sg]",
+                      "lineageId": "readVerbChain",
+                      "tokenIndex": 6,
+                      "word": "okudu"
+                    },
+                    {
+                      "children": [],
+                      "id": "matrixInfl",
+                      "label": "I⁰[past, agreement:3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "matrixIComplex",
+                  "label": "I⁰"
+                }
+              ],
+              "id": "matrixIBar",
+              "label": "I′"
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingOccurrence": "matrixObjectHigh",
+            "landingProjection": "scrambledIP",
+            "trace": "matrixObject"
+          },
+          "priorAnchors": {
+            "source": "matrixObject"
+          },
+          "relation": "clause-peripheral object scrambling",
+          "values": {
+            "chainType": "A-bar scrambling chain",
+            "index": "j"
+          }
+        },
+        {
+          "anchors": {
+            "binder": "matrixObjectHigh",
+            "boundTrace": "matrixObject"
+          },
+          "relation": "A-bar binding",
+          "values": {
+            "index": "j"
+          }
+        },
+        {
+          "anchors": {
+            "governedTrace": "matrixObject",
+            "governor": "matrixVerb",
+            "verbalChainHead": "matrixVerbRaised"
+          },
+          "relation": "trace government",
+          "values": {
+            "licensing": "local government by the verbal chain"
+          }
+        }
+      ],
+      "stageRecord": "The entire accusative NP moves from the matrix complement position established in the preceding stage to a left-adjoined position on IP. The relative clause travels with its nominal head; no extraction from the relative clause occurs. An unpronounced NP trace remains as the matrix verb's complement. This analysis treats the clause-peripheral scrambling as an A-bar dependency, with the lower position preserving the object's Theme role and accusative licensing. Mehmet remains in Spec-IP, and bugün remains a matrix VP adjunct. The resulting pronounced order is exactly Ayşe’nin dün yazdığı mektubu Mehmet bugün okudu. The sentence means that Mehmet read today the letter that Ayşe wrote yesterday. The two temporal adverbs modify their respective writing and reading events; the structure does not impose a separate contrastive or topical discourse interpretation on the fronted object.",
+      "statement": "Scramble the complete object NP to the left edge and complete the sentence.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "relativeOperatorN",
+                                  "label": "N⁰[Op]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "relativeOperatorNBar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "relativeOperatorHigh",
+                          "label": "NP[Op_i]",
+                          "lineageId": "relativeOperatorChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "ayse",
+                                          "label": "N⁰[genitive]",
+                                          "tokenIndex": 0,
+                                          "word": "Ayşe’nin"
+                                        }
+                                      ],
+                                      "id": "relativeSubjectNBar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "relativeSubject",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "yesterday",
+                                                  "label": "Adv⁰",
+                                                  "tokenIndex": 1,
+                                                  "word": "dün"
+                                                }
+                                              ],
+                                              "id": "yesterdayAdvBar",
+                                              "label": "Adv′"
+                                            }
+                                          ],
+                                          "id": "yesterdayAdvP",
+                                          "label": "AdvP"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "relativeObject",
+                                                  "label": "NP[t_i]",
+                                                  "lineageId": "relativeOperatorChain",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "relativeVerb",
+                                                  "label": "V⁰[t_V]",
+                                                  "lineageId": "writeVerbChain",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "relativeVBar",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "relativeCoreVP",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "relativeVP",
+                                      "label": "VP"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "relativeVerbRaised",
+                                          "label": "V⁰[participial, agreement:3sg]",
+                                          "lineageId": "writeVerbChain",
+                                          "tokenIndex": 2,
+                                          "word": "yazdığı"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "relativeInfl",
+                                          "label": "I⁰[nominalized, agreement:3sg]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "relativeIComplex",
+                                      "label": "I⁰"
+                                    }
+                                  ],
+                                  "id": "relativeIBar",
+                                  "label": "I′"
+                                }
+                              ],
+                              "id": "relativeIP",
+                              "label": "IP"
+                            },
+                            {
+                              "children": [],
+                              "id": "relativeC",
+                              "label": "C⁰[relative]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "relativeCBar",
+                          "label": "C′"
+                        }
+                      ],
+                      "id": "relativeCP",
+                      "label": "CP[relative]"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "letter",
+                          "label": "N⁰[accusative]",
+                          "tokenIndex": 3,
+                          "word": "mektubu"
+                        }
+                      ],
+                      "id": "letterInnerNBar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "letterNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "matrixObjectHigh",
+              "label": "NP[accusative, scrambled]_j",
+              "lineageId": "matrixObjectChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "mehmet",
+                          "label": "N⁰",
+                          "tokenIndex": 4,
+                          "word": "Mehmet"
+                        }
+                      ],
+                      "id": "matrixSubjectNBar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "matrixSubject",
+                  "label": "NP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "today",
+                                  "label": "Adv⁰",
+                                  "tokenIndex": 5,
+                                  "word": "bugün"
+                                }
+                              ],
+                              "id": "todayAdvBar",
+                              "label": "Adv′"
+                            }
+                          ],
+                          "id": "todayAdvP",
+                          "label": "AdvP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "matrixObject",
+                                  "label": "NP[t_j]",
+                                  "lineageId": "matrixObjectChain",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [],
+                                  "id": "matrixVerb",
+                                  "label": "V⁰[t_V]",
+                                  "lineageId": "readVerbChain",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "matrixVBar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "matrixCoreVP",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "matrixVP",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "matrixVerbRaised",
+                          "label": "V⁰[past, agreement:3sg]",
+                          "lineageId": "readVerbChain",
+                          "tokenIndex": 6,
+                          "word": "okudu"
+                        },
+                        {
+                          "children": [],
+                          "id": "matrixInfl",
+                          "label": "I⁰[past, agreement:3sg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "matrixIComplex",
+                      "label": "I⁰"
+                    }
+                  ],
+                  "id": "matrixIBar",
+                  "label": "I′"
+                }
+              ],
+              "id": "matrixIP",
+              "label": "IP"
+            }
+          ],
+          "id": "scrambledIP",
+          "label": "IP"
+        }
+      ]
+    }
+  ]
+}

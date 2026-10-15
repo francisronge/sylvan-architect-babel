@@ -1,9 +1,10 @@
-import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createPrimitiveVisibility } from '../components/renderer/relationVisibility.ts';
+import assert from 'node:assert/strict';
 import test from 'node:test';
-import ts from 'typescript';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { anchorSetRailPaths, bindRelationPlanFrame, fitFallbackGeometry } from '../replay/relations/geometryBinding.ts';
+import { anchorSetRailPaths, fitFallbackGeometry } from '../replay/relations/fallbackGeometry.ts';
+import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 const node = id => ({ id, label: id });
 const stage = relations => ({ statement: 'Test', stageRecord: 'Test', relations, workspaceForest: [node('a'), node('b'), node('c')] });
@@ -265,20 +266,9 @@ test('Astra wh licensing draws C and adds its future operator only at the follow
 });
 
 test('the production reveal filter keeps neutral badges independent of hidden peers', () => {
-  const source = ts.createSourceFile('TreeVisualizer.tsx', fs.readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8'),
-    ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  let guard;
-  const find = node => {
-    if (ts.isVariableDeclaration(node) && node.name.getText(source) === 'primitiveWitnessesVisible') guard = node.initializer;
-    ts.forEachChild(node, find);
-  };
-  find(source);
-  assert(guard, 'exercise the guard actually used by production drawing');
-  const frames = [{ kind: 'fallback' }, { kind: 'coindex' }];
+  const frames = [{ kind: 'fallback' }, { kind: 'coindex', nodeIds: ['a', 'b'] }];
   const visible = new Set(['a']);
-  const reveal = new Function('frameItems', 'resolveOverlayAnchor', 'itemWitnessesVisible',
-    ts.transpile(`return ${guard.getText(source)};`, { target: ts.ScriptTarget.ES2023 }))(
-    frames, id => visible.has(id), () => false);
+  const reveal = createPrimitiveVisibility(frames, id => visible.has(id) ? {x: 0, y: 0} : null);
   assert.equal(reveal({ type: 'fallback-mark', itemIndex: 0, nodeId: 'a' }), true);
   assert.equal(reveal({ type: 'fallback-mark', itemIndex: 0, nodeId: 'b' }), false);
   assert.equal(reveal({ type: 'segment', itemIndex: 0, witnessNodeIds: ['a', 'b'] }), false);
@@ -341,7 +331,7 @@ test('a role placed above its node clears text height without drifting by its wi
 });
 
 test('straight connectors leave gaps around all crossed labels, including non-endpoints', async () => {
-  const { clearLabelPath } = await import('../replay/relations/geometryBinding.ts');
+  const { clearLabelPath } = await import('../replay/relations/fallbackGeometry.ts');
   const box = { x: 40, y: 40, width: 20, height: 20 };
   assert.equal(clearLabelPath({ x: 0, y: 0 }, { x: 100, y: 100 }, [box]),
     'M 0.0 0.0 L 40.0 40.0 M 60.0 60.0 L 100.0 100.0');

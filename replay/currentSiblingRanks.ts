@@ -16,7 +16,7 @@ const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => node.ancestors
  * stage-local and cross-stage reservations must preserve this current fork. */
 export function retainCurrentSiblingRanks(current: Scene & { coordinates: TreeCoordinateReservation },
   future: Scene, retained: ReadonlyMap<string, { x: number; y: number }> = new Map(),
-  relocated: ReadonlySet<string> = new Set(), pendingWrappers?: ReadonlySet<string>): void {
+  relocated: ReadonlySet<string> = new Set()): void {
   const { coordinates } = current;
   const visibleNodes = new Map([...current.nodes].filter(([id]) => current.visible.has(id)));
   current.nodes.forEach(parent => {
@@ -36,8 +36,8 @@ export function retainCurrentSiblingRanks(current: Scene & { coordinates: TreeCo
       const ancestry = other.ancestors().slice(1).filter(ancestor =>
         !ancestor.data.replayLayoutOnly && ancestor.data.replayOrigin?.kind !== 'workspace');
       const parentIndex = ancestry.findIndex(ancestor => getNodeId(ancestor) === getNodeId(parent));
-      if (parentIndex < 1 || (pendingWrappers
-        && !ancestry.slice(0, parentIndex).some(ancestor => pendingWrappers.has(getNodeId(ancestor))))) continue;
+      if (parentIndex < 1 || ancestry.slice(0, parentIndex).some(ancestor =>
+        current.visible.has(getNodeId(ancestor)))) continue;
       const delta = rank - coordinates.get(getNodeId(child))!.y;
       for (const descendant of visibleComponentNodes(child, visibleNodes)) {
         const id = getNodeId(descendant), point = coordinates.get(id);

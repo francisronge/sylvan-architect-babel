@@ -2,24 +2,25 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
-import { createServer } from 'vite';
+import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { __test__ } from '../../server/babelParser.js';
+import { normalizeParseBundle } from '../../server/babelParser/parseNormalization.js';
 import { prepareReplay } from '../../replay/prepareReplay.ts';
 import { closeoutPayload, closeoutSentence } from '../helpers/rendererCloseoutFixture.mjs';
+import { startBrowserTestServer } from '../helpers/browserTestServer.mjs';
+import { readTreeBankSnapshot } from '../helpers/browserTreeBank.mjs';
 
 test('the app preserves multiple roots, revised plaques and malformed relation evidence through save/reopen', async () => {
-  const bundle = __test__.normalizeParseBundle(closeoutPayload(), 'xbar', closeoutSentence, 'gpt', true);
+  const bundle = normalizeParseBundle(closeoutPayload(), 'xbar', closeoutSentence, 'gpt', true);
   const stages = bundle.analyses[0].derivationStages;
   const steps = prepareReplay({ sentence: closeoutSentence, derivationStages: stages, includePlayback: true }).playbackSteps;
   const moment = (stageIndex, relationIndex = 0) => steps.findIndex(step => step.replayRelationIdentity?.stageIndex === stageIndex
     && step.replayRelationIdentity?.relationIndex === relationIndex);
   const evidence = process.env.BABEL_CLOSEOUT_EVIDENCE;
   if (evidence) await mkdir(evidence, { recursive: true });
-  const server = await createServer({ root: new URL('../../', import.meta.url).pathname, server: { host: '127.0.0.1', port: 0 } });
+  const server = await startBrowserTestServer({ root: fileURLToPath(new URL('../../', import.meta.url)) });
   let browser;
   try {
-    await server.listen();
     browser = await chromium.launch({ headless: true });
     const report = [];
     for (const width of [1600, 390]) {
@@ -30,7 +31,7 @@ test('the app preserves multiple roots, revised plaques and malformed relation e
         page.on('pageerror', e => errors.push(String(e)));
         let calls = 0;
         await page.route('**/api/parse', route => { calls++; return route.fulfill({ json: bundle }); });
-        await page.goto(`http://127.0.0.1:${server.httpServer.address().port}`);
+        await page.goto(server.url);
         await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill(closeoutSentence);
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
         await page.locator('svg[data-babel-tree="true"] text').first().waitFor();
@@ -60,14 +61,14 @@ test('the app preserves multiple roots, revised plaques and malformed relation e
         assert(outlines.every(outline => outline.style === 'none' || outline.width === '0px'));
         await page.getByRole('button', { name: 'Save to Tree Bank', exact: true }).click();
         await page.getByRole('button', { name: 'Saved', exact: true }).waitFor();
-        const stored = await page.evaluate(() => new Promise((resolve, reject) => {
-          const request = indexedDB.open('sylvan-architect-babel');
-          request.onsuccess = () => { const db = request.result, query = db.transaction('treeBank').objectStore('treeBank').getAll();
-            query.onsuccess = () => { resolve(query.result); db.close(); }; query.onerror = () => reject(query.error); };
-          request.onerror = () => reject(request.error);
-        }));
-        assert.equal(stored.length, 1);
-        assert.deepEqual(stored[0].bundle.analyses[0].derivationStages, stages);
+        const stored = await readTreeBankSnapshot(page);
+        assert.equal(stored.savedWorks.length, 1);
+        assert.deepEqual(stored.treeBank, []);
+        const work = stored.savedWorks[0];
+        assert.equal(work.analysisIds.length, 1);
+        const record = stored.records.find(record => record.id === work.analysisIds[0]);
+        assert.equal(record.kind, 'analysis');
+        assert.deepEqual(record.payload.derivationStages, stages);
         await page.reload();
         await page.getByTitle('Open Tree Bank', { exact: true }).click();
         await page.getByRole('button', { name: 'Open Tree', exact: true }).click();
@@ -84,5 +85,8 @@ test('the app preserves multiple roots, revised plaques and malformed relation e
       } finally { await context.close(); }
     }
     if (evidence) await writeFile(path.join(evidence, 'app-verification.json'), JSON.stringify(report, null, 2));
-  } finally { await browser?.close(); await server.close(); }
+  } finally {
+    try { await browser?.close(); }
+    finally { await server.close(); }
+  }
 });

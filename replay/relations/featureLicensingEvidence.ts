@@ -1,6 +1,6 @@
-import { assignmentOutcomes, establishesAssignment } from './assignmentContinuity.ts';
 import { scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import { assignmentOutcomes, establishesAssignment } from './outcomeResolver.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
 
 /** A feature-licensing assertion can name its recipient by role. Direction

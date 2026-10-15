@@ -1,17 +1,14 @@
+import { materializeReplayPreterminals } from '../replay/replayCanvas.ts';
+import { buildMovementArrowsFromLinks } from '../replay/movementPresentation.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { hierarchy } from 'd3';
 
-import {
-  __TEST_ONLY__,
-  buildAuthoredRelationLinksForFrames,
-  buildDerivationReplaySnapshot,
-  buildReplaySupportLines,
-  buildResolvedLinkOperatorVariableIndexMap,
-  buildResolvedLinkTraceIndexMap
-} from '../replay/replayCompiler.ts';
+import { buildAuthoredRelationLinksForFrames } from '../replay/frameRelations.ts';
+import { buildDerivationReplaySnapshot } from '../replay/replayCanvas.ts';
+import { buildReplaySupportLines } from '../replay/replayPanel.ts';
+import { buildResolvedLinkOperatorVariableIndexMap, buildResolvedLinkTraceIndexMap } from '../replay/movementIndices.ts';
 
-const { materializeReplayPreterminals } = __TEST_ONLY__;
 
 test('preterminal expansion preserves category notation instead of treating it as word punctuation', () => {
   for (const [label, word] of [['√WALK', 'walk'], ['[PAST]', 'past'], ['V′', 'v']]) {
@@ -66,7 +63,7 @@ test('silent lexical material is muted without being rewritten as a trace', () =
 });
 
 test('synthetic replay terminals preserve authored lineage identity', () => {
-  const materialized = __TEST_ONLY__.materializeReplayPreterminals({
+  const materialized = materializeReplayPreterminals({
     id: 'd-copy',
     label: 'D',
     word: 'who',
@@ -150,9 +147,14 @@ test('a nonmovement relation cannot enter the movement-arrow builder', () => {
       }
     }
   }];
-  const links = buildAuthoredRelationLinksForFrames(frames, null, 0, forest);
+  const links = buildAuthoredRelationLinksForFrames({
+    frames,
+    replayPlan: null,
+    activeFrameIndex: 0,
+    forest
+  });
   const visibleNodes = hierarchy(forest[0]).descendants();
-  const arrows = __TEST_ONLY__.buildMovementArrowsFromLinks(
+  const arrows = buildMovementArrowsFromLinks(
     visibleNodes,
     links,
     new Map(),
@@ -225,14 +227,18 @@ test('a feature dependency survives replay without becoming a second movement ch
       }
     }
   ];
-  const authoredLinks = buildAuthoredRelationLinksForFrames(frames, null, 1, forest);
-  const snapshot = buildDerivationReplaySnapshot(
+  const authoredLinks = buildAuthoredRelationLinksForFrames({
+    frames,
+    replayPlan: null,
+    activeFrameIndex: 1,
+    forest
+  });
+  const snapshot = buildDerivationReplaySnapshot({
     forest,
-    1,
-    authoredLinks,
-    undefined,
-    undefined,
-    frames
+    activeFrameIndex: 1,
+    relationLinks: authoredLinks,
+    derivationFrames: frames
+  }
   );
   const movement = snapshot.relationLinks.find((link) => link.relation === 'AbarMove');
   const licensing = snapshot.relationLinks.find((link) => link.relation === 'Agree');
@@ -304,14 +310,18 @@ test('partial copy deletion does not rewrite the deleted lower material as a mov
       }
     }
   ];
-  const authoredLinks = buildAuthoredRelationLinksForFrames(frames, null, 1, forest);
-  const snapshot = buildDerivationReplaySnapshot(
+  const authoredLinks = buildAuthoredRelationLinksForFrames({
+    frames,
+    replayPlan: null,
+    activeFrameIndex: 1,
+    forest
+  });
+  const snapshot = buildDerivationReplaySnapshot({
     forest,
-    1,
-    authoredLinks,
-    undefined,
-    undefined,
-    frames
+    activeFrameIndex: 1,
+    relationLinks: authoredLinks,
+    derivationFrames: frames
+  }
   );
   const traceIndices = buildResolvedLinkTraceIndexMap(forest, snapshot.relationLinks, 1);
 
@@ -483,7 +493,12 @@ test('authored relation links preserve literal anchor roles and use shared linea
     }
   }];
 
-  const links = buildAuthoredRelationLinksForFrames(frames, null, 0, forest);
+  const links = buildAuthoredRelationLinksForFrames({
+    frames,
+    replayPlan: null,
+    activeFrameIndex: 0,
+    forest
+  });
   assert.equal(links.length, 1);
   assert.deepEqual(links[0].anchors, [
     { role: 'lowerCopy', nodeId: 'low_dp' },
@@ -505,11 +520,12 @@ test('authored relation links preserve literal anchor roles and use shared linea
     ...frames[0],
     workspaceForest: distinctForest
   }];
-  const [distinctLink] = buildAuthoredRelationLinksForFrames(
-    distinctFrames,
-    null,
-    0,
-    distinctForest
+  const [distinctLink] = buildAuthoredRelationLinksForFrames({
+    frames: distinctFrames,
+    replayPlan: null,
+    activeFrameIndex: 0,
+    forest: distinctForest
+  }
   );
   assert.equal(distinctLink.sourceNodeId, 'low_dp');
   assert.equal(distinctLink.targetNodeId, 'high_dp');
@@ -563,7 +579,12 @@ test('authored relation display indices are derived without prescribing index sy
     }
   }];
 
-  const links = buildAuthoredRelationLinksForFrames(frames, null, 0, forest);
+  const links = buildAuthoredRelationLinksForFrames({
+    frames,
+    replayPlan: null,
+    activeFrameIndex: 0,
+    forest
+  });
   assert.equal(links.length, 2);
   assert.equal(new Set(links.map((link) => link.relationIndex)).size, 2);
   links.forEach((link) => {

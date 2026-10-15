@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildTier2FacetEvidence, dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
+import { buildTier2FacetEvidence } from '../replay/relations/relationEvidence.ts';
+import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { compileTier2RelationOutputs } from '../replay/relations/tier2RenderPlanCompiler.ts';
 import { buildTier2SynonymIndex } from '../replay/relations/tier2Synonyms.ts';
@@ -117,7 +118,7 @@ test('distinct idiom groups and competing paired arrays are not silently concate
 
 test('different alias groups cannot earn one identity drawing or a partial rescue', () => {
   for (const copies of [['subject', 'extra'], ['b', 'a'], ['a', 'b', 'b']]) {
-    const anchors = { occurrences: ['a', 'b'], copies, accessibleSubject: 'controller' };
+    const anchors = { occurrences: ['a', 'b'], copies, phaseEdge: 'controller' };
     for (const entries of [Object.entries(anchors), Object.entries(anchors).reverse()]) {
       const relation = record(Object.fromEntries(entries));
       const result = inspect(relation);
@@ -161,8 +162,8 @@ test('conflicting lists stay separate in prior anchors and literal values too', 
   assert.deepEqual(evidence.authoredValues.map(entry => entry.items), [['Agent', 'Theme'], ['Goal', 'Source']]);
 });
 
-test('separately named accessible participants still earn their independent outlines', () => {
-  const result = inspect(record({ accessibleWhOccurrence: ['a', 'b'], accessibleSubject: 'subject' }));
+test('separately named explicit edges still earn their independent outlines', () => {
+  const result = inspect(record({ phaseEdge: ['a', 'b'], escapeHatch: 'subject' }));
   assert.deepEqual(result.dispatch.evidence.currentAnchors['phase.edge'], ['a', 'b', 'subject']);
   assert(result.facets.includes('phase.edge'));
   assert(result.dispatch.claims.every(claim => claim.tier === 2));
@@ -344,7 +345,7 @@ test('operator-variable roles do not also invent a second Binding claim', () => 
 });
 
 test('ambiguous binding meanings stay neutral while an independent outline and diagnostics survive', () => {
-  const relation = record({ binder: 'controller', variable: 'subject', domain: 'root', accessibleSubject: 'extra' });
+  const relation = record({ binder: 'controller', variable: 'subject', domain: 'root', phaseEdge: 'extra' });
   const result = inspect(relation);
   assert(!result.facets.includes('binding.dependency'));
   assert(!result.facets.includes('operator-binding'));

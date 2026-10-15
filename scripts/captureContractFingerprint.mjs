@@ -32,6 +32,9 @@ const explicitSections = {
     'server/babelParser/routeConfig.js',
     'server/babelParser/researchModelCatalog.js',
     'server/babelParser/modelRuntime.js',
+    'server/babelParser/providerTransport.js',
+    'server/babelParser/generationOutcome.js',
+    'server/babelParser/routeErrors.js',
     'server/babelParser/parseRoutes.js',
     'server/babelParser/generationRecord.js'
   ],
@@ -40,11 +43,18 @@ const explicitSections = {
     'scripts/runCodexQualification.mjs',
     'scripts/serveCodexQualification.mjs',
     'scripts/buildContractQualificationReview.mjs',
-    'scripts/captureReplayArtifact.mjs'
+    'scripts/captureReplayArtifact.mjs',
+    'scripts/browserSession.mjs',
+    'scripts/captureReadiness.mjs',
+    'scripts/buildReplayContactSheets.mjs',
+    'scripts/buildContractQualificationReviewRuntime.mjs',
+    'scripts/inlineWorkerPlugin.mjs'
   ],
   deterministicIngress: [
     'server/babelParser.js',
     'server/babelParser/derivationCompiler.js',
+    'server/babelParser/authoredWorkspace.js',
+    'server/babelParser/modelJson.js',
     'server/babelParser/nodePronunciation.js',
     'server/babelParser/error.js',
     'server/babelParser/inventionDetector.js',
@@ -189,7 +199,6 @@ try {
 }
 
 const untrackedAuditedPaths = execFileSync(
-  'git',
   ['ls-files', '--others', '--exclude-standard', '--', ...auditedSourcePaths],
   { cwd: repoRoot, encoding: 'utf8' }
 ).trim();

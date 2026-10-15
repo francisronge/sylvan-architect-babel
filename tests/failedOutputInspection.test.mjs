@@ -3,7 +3,7 @@ import test from 'node:test';
 import fs from 'node:fs';
 import { build } from 'esbuild';
 import { inspectFailedOutput, inspectFailedPayload, drawableInspectionForest } from '../services/failedOutputInspection.ts';
-import { __test__ as parser } from '../server/babelParser.js';
+import { inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
 import { createRawOutputArtifact, createFailure } from '../server/babelParser/validationErrors.js';
 import { createFailureRecord } from '../server/babelParser/failureRecord.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
@@ -24,7 +24,7 @@ for (const [label, stages] of [
     const payload = { analyses: [{ derivationStages: stages }] };
     const original = structuredClone(payload);
     const inspected = await inspectFailedOutput(raw(payload));
-    const expected = parser.inspectDerivationWorkspaces(stages, { analysisIndex: 0, sentence: '', fieldPath: '$.analyses[0]' });
+    const expected = inspectDerivationWorkspaces(stages, { analysisIndex: 0, sentence: '', fieldPath: '$.analyses[0]' });
     const actual = inspected.analyses[0].stages.map(({ drawingIssue, ...entry }) => entry);
     assert.deepEqual(actual, expected);
     assert.deepEqual(payload, original);
@@ -109,7 +109,7 @@ test('browser inspection dependency graph contains no Node or provider runtime',
   const result = await build({ entryPoints: ['services/failedOutputInspection.ts'], bundle: true, platform: 'browser', format: 'esm', write: false, metafile: true, logLevel: 'silent' });
   const paths = Object.keys(result.metafile.inputs);
   assert.ok(!paths.some(path => /contractQualification|parseRoutes|modelRuntime|routeConfig|validationErrors\.js/.test(path)));
-  assert.ok(paths.includes('server/babelParser/derivationCompiler.js'));
+  assert.ok(paths.includes('server/babelParser/authoredWorkspace.js'));
 });
 
 test('existing malformed Hindi output keeps all authored copies in app inspection', async () => {
@@ -156,7 +156,7 @@ test('a shallow raw reference chain stops before expanded depth becomes unsafe',
   assert.equal(analysis.replayStages, null);
   assert.deepEqual(analysis.authoredAnalysis, payload);
   assert.ok(analysis.stages[127].workspaceForest, 'preceding bounded authored states remain inspectable');
-  const serverInspection = parser.inspectDerivationWorkspaces(stages.slice(0, 130));
+  const serverInspection = inspectDerivationWorkspaces(stages.slice(0, 130));
   assert.ok(serverInspection[129].workspaceForest, 'ordinary server inspection remains uncapped by browser limits');
   assert.ok(serverInspection.every(entry => !entry.diagnostics.some(issue => issue.ruleId === 'INSPECTION_WORKSPACE_LIMIT')));
 });

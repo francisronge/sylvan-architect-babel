@@ -8,23 +8,19 @@ import {
   buildPublicFacetFixture
 } from './helpers/tier2PublicFixtures.mjs';
 
-import { __test__ } from '../server/babelParser.js';
+import { inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import {
   compileRelationRenderPlan
 } from '../replay/relations/renderPlanCompiler.ts';
-import {
-  TIER2_FACET_RECIPES,
-  TIER2_VISUAL_PRIMITIVE_NAMES,
-  buildTier2FacetIdentity,
-  buildTier2FacetOutputIdentities,
-  evaluateTier2FacetRecipe
-} from '../replay/relations/tier2FacetRecipes.ts';
-import {
-  buildTier2FacetEvidence,
-  dispatchRelationClaims
-} from '../replay/relations/tier2RelationDispatch.ts';
+import { TIER2_FACET_RECIPES } from '../replay/relations/tier2FacetRecipes.ts';
+import { TIER2_VISUAL_PRIMITIVE_NAMES } from '../replay/relations/tier2FacetTypes.ts';
+import { buildTier2FacetIdentity, buildTier2FacetOutputIdentities } from '../replay/relations/tier2FacetIdentity.ts';
+import { evaluateTier2FacetRecipe } from '../replay/relations/tier2FacetEvaluation.ts';
+import { buildTier2FacetEvidence } from '../replay/relations/relationEvidence.ts';
+import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileTier2RelationOutputs } from '../replay/relations/tier2RenderPlanCompiler.ts';
 import {
   TIER2_ROLE_SYNONYMS,
@@ -600,9 +596,9 @@ test('repeated occurrence IDs remain invalid even when a relation explicitly cla
     };
     const stages = [{ statement: 'Sharing control.', stageRecord: 'Duplicate topology is invalid.',
       relations: [fixture.relation], workspaceForest: fixture.currentForest }];
-    const inspected = __test__.inspectDerivationWorkspaces(stages);
+    const inspected = inspectDerivationWorkspaces(stages);
     assert.ok(inspected[0].anchorChecks.some(check => check.status === 'duplicate'), id);
-    assert.throws(() => __test__.normalizeParseBundle({ derivationStages: stages }, 'xbar', 'word', 'claude', true),
+    assert.throws(() => normalizeParseBundle({ derivationStages: stages }, 'xbar', 'word', 'claude', true),
       error => error.failure.ruleId === 'DERIVATION_WORKSPACE_VALID', id);
   }
 });
@@ -623,7 +619,7 @@ for (const framework of ['xbar', 'minimalism']) {
       const original = structuredClone(authored);
       let bundle;
       assert.doesNotThrow(() => {
-        bundle = __test__.normalizeParseBundle(authored, framework, sentence, 'grok', true);
+        bundle = normalizeParseBundle(authored, framework, sentence, 'grok', true);
       }, `${recipe.id} ${JSON.stringify(options ?? {})}: invalid public record`);
       const analysis = bundle.analyses[0];
       assert.deepEqual(authored, original, `${recipe.id}: normalization mutated authored evidence`);

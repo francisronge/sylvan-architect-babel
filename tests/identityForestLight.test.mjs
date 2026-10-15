@@ -1,9 +1,8 @@
+import { createIdentityForestLight } from '../components/renderer/identityLighting.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFileSync } from 'node:fs';
-import ts from 'typescript';
 import { identityLightSites, identityLightTargets, mergeIdentityOwners } from '../components/identityForestLight.ts';
-import { guardViewCallback, rethrowViewError } from '../components/viewErrorHandling.ts';
+import { rethrowViewError } from '../components/viewErrorHandling.ts';
 
 test('shared terminal ownership keeps both relation moments after repeated decoration', () => {
   const first = { stageIndex: 0, relationIndex: 1, relation: 'First chain' };
@@ -44,36 +43,25 @@ test('identity light follows actual terminal text and wordless witnesses through
 });
 
 test('production lighting stays idle and coalesces camera and resize invalidations', () => {
-  const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
-  const tree = ts.createSourceFile('TreeVisualizer.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  let initializer;
-  const visit = node => {
-    if (ts.isVariableDeclaration(node) && node.name.getText(tree) === 'startIdentityForestLight') initializer = node.initializer;
-    ts.forEachChild(node, visit);
-  };
-  visit(tree);
-  assert(initializer);
   const pending = new Map();
   let nextId = 0, paints = 0, resize;
   const context = new Proxy({}, { get: (_, key) => key === 'clearRect' ? () => paints++
     : key.startsWith('create') ? () => ({ addColorStop() {} }) : () => {} });
   const canvas = { style: {}, isConnected: true, getContext: () => context };
   const mount = { appendChild() {}, getBoundingClientRect: () => ({ width: 1200, height: 800, left: 0, top: 0 }) };
-  const svg = { querySelector: () => ({ getScreenCTM: () => ({ a: 1, b: 0 }) }) };
+  const svg = { querySelector: () => ({ getScreenCTM: () => ({ a: 1, b: 0 }) }), querySelectorAll: () => [] };
   const window = { devicePixelRatio: 1,
     requestAnimationFrame: fn => { pending.set(++nextId, fn); return nextId; } };
   const Observer = class { constructor(callback) { resize = callback; } observe() {} };
-  const start = new Function('containerRef', 'svgRef', 'identityForestLightFamilies', 'identityLightTargets',
-    'identityLightSites', 'document', 'window', 'ResizeObserver', 'guardViewCallback', 'reportViewError', ts.transpile(`
-      let forestLightFrame = null, forestLightCanvas = null, forestLightResize = null, refreshIdentityForestLight = null;
-      const start = ${initializer.getText(tree)};
-      start();
-      return () => refreshIdentityForestLight();
-    `, { target: ts.ScriptTarget.ES2023 }));
-  const refresh = start({ current: mount }, { current: svg }, [
-    { occurrencePools: [['word']], emphasis: 'active' }
-  ], identityLightTargets, () => [[{ x: 200, y: 300 }]], { createElement: () => canvas }, window, Observer,
-  guardViewCallback, rethrowViewError);
+  const previous = {document: globalThis.document, window: globalThis.window, ResizeObserver: globalThis.ResizeObserver};
+  globalThis.document = {createElement: () => canvas};
+  globalThis.window = window;
+  globalThis.ResizeObserver = Observer;
+  const light = createIdentityForestLight({container: mount, svg, identityForestLightFamilies: [
+    {occurrencePools: [['word']], emphasis: 'active'}
+  ], reportViewError: rethrowViewError});
+  light.start();
+  const refresh = light.refresh;
   assert.equal(paints, 1);
   assert.equal(pending.size, 0, 'a static identity frame schedules no recurring work');
   refresh(); refresh(); resize();
@@ -82,4 +70,5 @@ test('production lighting stays idle and coalesces camera and resize invalidatio
   pending.delete(id); callback();
   assert.equal(paints, 2);
   assert.equal(pending.size, 0, 'the repaint does not schedule another frame');
+  Object.assign(globalThis, previous);
 });

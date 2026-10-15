@@ -7,6 +7,7 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCamera.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
+import { retainedSubtreeMaterial } from '../replay/displayWordMaterial.ts';
 
 const branch = (id, children) => ({ id, label: 'XP', children });
 const leaf = id => ({ id, label: id });
@@ -29,10 +30,10 @@ function stepsFor(canvases) {
   }));
 }
 
-function positions(step, steps, size, stage = 0, direction = 'ltr', reserved = true) {
+function positions(step, steps, size, stage = 0, direction = 'ltr') {
   const root = d3.hierarchy(step.replayCanvasData);
   applyVizIds(root);
-  const coordinates = reserved ? buildStageCoordinateReservations(steps, stage, size).get(step.replayCanvasData) : undefined;
+  const coordinates = buildStageCoordinateReservations(steps, stage, size).get(step.replayCanvasData);
   layoutSyntaxTree(root, size, direction, coordinates, new Set(step.replayVisibleNodeIds));
   return new Map(root.descendants().map(node => [getNodeId(node), { x: node.x, y: node.y }]));
 }
@@ -84,10 +85,8 @@ const changes = [
 
 for (const [name, change] of changes) test(`${name} still invalidates unchanged-subtree retention`, () => {
   const canvases = textScenes(); change(canvases);
-  const steps = stepsFor(canvases), original = structuredClone(steps), size = [1200, 800];
-  const entry = positions(steps[0], steps, size, 0, 'ltr', false);
-  const reserved = positions(steps[1], steps, size);
-  assert.notEqual(reserved.get('d').y, entry.get('d').y,
+  const steps = stepsFor(canvases), original = structuredClone(steps);
+  assert.notEqual(retainedSubtreeMaterial(find(canvases[0], 'dp')), retainedSubtreeMaterial(find(canvases[1], 'dp')),
     'the authored occurrence must not be classified as unchanged by the display-only exception');
   assert.deepEqual(steps, original);
 });

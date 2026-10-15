@@ -1,13 +1,13 @@
-import React, { useMemo } from 'react';
 import { Scan } from 'lucide-react';
-import type { DerivationStage } from '../types';
+import React, { useMemo } from 'react';
+import { buildReplayPanelContent } from '../replay/replayPanel.ts';
 import {
   buildReplayDisplayDetailBlocks,
-  buildReplayPanelContent,
   formatReplayBlockLine,
-  formatReplayBlockTitle,
-  type PlaybackStep
-} from '../replay/replayCompiler.ts';
+  formatReplayBlockTitle
+} from '../replay/replayPanelFormatting.ts';
+import { type PlaybackStep } from '../replay/types.ts';
+import type { DerivationStage } from '../types';
 import RootLogo from './RootLogo';
 
 export interface ReplayPanelProps {

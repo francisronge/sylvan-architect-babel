@@ -55,6 +55,28 @@ test('one nominal concord claim owns one vine without a second generic connector
   assert.deepEqual(relation, before);
 });
 
+test('an independently proved containing nominal stays context under open field names', () => {
+  for (const key of ['caseDomain', 'featureDomain', 'nominalEnvelope']) {
+    const record = { ...relation, anchors: { ...relation.anchors, [key]: 'dp' } };
+    const original = structuredClone(record), result = dispatch(record);
+    const vine = items(record).find(item => item.linkStyle === 'feature-sharing');
+    assert.deepEqual(vine?.pairs, [{ fromNodeId: 'd', toNodeId: 'n' }]);
+    assert.deepEqual(result.evidenceCoverage.fields.find(field => field.key === key).unrecoveredItemIndices, [0]);
+    assert.deepEqual(record, original);
+  }
+  for (const anchors of [
+    { ...relation.anchors, controller: 'dp' },
+    { ...relation.anchors, source: 'dp' },
+    { ...relation.anchors, caseDomain: 'missing' },
+    { ...relation.anchors, caseDomain: ['dp', 'dp'] },
+    { ...relation.anchors, caseDomain: 'n' }
+  ]) assert(!recipes({ ...relation, anchors }).includes('feature-sharing'), JSON.stringify(anchors));
+  const record = { ...relation, anchors: { ...relation.anchors, caseDomain: 'other' } };
+  const currentForest = [...forest, { id: 'other', label: 'NP', children: [] }];
+  assert(!dispatchRelationClaims({ relation: record, currentForest, stageIndex: 0, relationIndex: 0 })
+    .facets.some(facet => facet.recipe.id === 'feature-sharing'));
+});
+
 test('failed nominal agreement keeps its outcome connector and cannot acquire a successful vine', () => {
   for (const status of ['failed', 'blocked', 'unlicensed']) {
     const record = { ...relation, values: { ...relation.values, status } };

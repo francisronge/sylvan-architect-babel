@@ -2143,8 +2143,8 @@
         }
       ],
       "expectedFinalGeometry": {
-        "1600x1100": "d59590ba55f7265c0002a9761e82d741d23f617347595ca885b6870aabdceda7",
-        "390x844": "d59590ba55f7265c0002a9761e82d741d23f617347595ca885b6870aabdceda7"
+        "1600x1100": "ad97da1b31e67717e66add7269eb60541b4d199ddab82b46d363a9e8b5b7a6a8",
+        "390x844": "ad97da1b31e67717e66add7269eb60541b4d199ddab82b46d363a9e8b5b7a6a8"
       }
     },
     {
@@ -3440,8 +3440,8 @@
         }
       ],
       "expectedFinalGeometry": {
-        "1600x1100": "9ff19fe0941acfb12df83576cbae9296a82bfbbcf78bd8e93f8c454e91829870",
-        "390x844": "9ff19fe0941acfb12df83576cbae9296a82bfbbcf78bd8e93f8c454e91829870"
+        "1600x1100": "5d93267da82a7d9d3e3df95806bb2d406f61147536814315dab2888c2d278d01",
+        "390x844": "5d93267da82a7d9d3e3df95806bb2d406f61147536814315dab2888c2d278d01"
       }
     },
     {
@@ -4751,8 +4751,8 @@
         }
       ],
       "expectedFinalGeometry": {
-        "1600x1100": "f2d85cbe68e06996d23bacf8709de72bffb390c00932fb39b3731a8a8d095834",
-        "390x844": "f2d85cbe68e06996d23bacf8709de72bffb390c00932fb39b3731a8a8d095834"
+        "1600x1100": "e4cdfd343bbe7914d9b6e1b031e301dcbe7132de819d732f6b8b34c56111f41a",
+        "390x844": "e4cdfd343bbe7914d9b6e1b031e301dcbe7132de819d732f6b8b34c56111f41a"
       }
     }
   ]

@@ -1,7 +1,7 @@
 import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
 import { scopeEvidence } from './evidenceScopes.ts';
-import { POSITIVE_OUTCOMES, type Tier2AuthoredEvidenceEntry, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
-import { relationAssertionFailure, resolveOutcomeLiteral } from './outcomeResolver.ts';
+import { POSITIVE_OUTCOMES, relationAssertionFailure, resolveOutcomeLiteral } from './outcomeResolver.ts';
+import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { normalizeTier2Synonym } from './tier2Synonyms.ts';
 
 const caseNames = new Set(['nominative', 'accusative', 'genitive', 'dative', 'ergative',

@@ -1,4 +1,4 @@
-import type { PlaybackStep } from './replayCompiler.ts';
+import type { PlaybackStep } from './types.ts';
 import type { CurrentWorkspaceTopology } from './workspaceReceivingHost.ts';
 
 /** A neutral rewrite can attach existing material without proving a linguistic

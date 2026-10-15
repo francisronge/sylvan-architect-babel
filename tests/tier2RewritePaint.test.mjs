@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { __test__ } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
 
@@ -15,7 +15,7 @@ const openRewrite = value => ({ relation: 'An authored realization mapping',
   anchors: { input: 'underlying', output: 'surface' }, values: { mapping: value } });
 const compile = relation => {
   const authored = record(relation);
-  const bundle = __test__.normalizeParseBundle(authored, 'xbar', 'go went', 'grok', true);
+  const bundle = normalizeParseBundle(authored, 'xbar', 'go went', 'grok', true);
   return compileRelationRenderPlan(bundle.analyses[0].derivationStages).frames[0].items;
 };
 const layout = item => preparePfPlaqueTextLayout(item.rows.map((row, rowIndex) => ({

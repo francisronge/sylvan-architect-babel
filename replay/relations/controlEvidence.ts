@@ -1,9 +1,9 @@
-import { establishesAssignment } from './assignmentContinuity.ts';
-import { scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
-import { isExplicitTier2Role, normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
 import type { SyntaxNode } from '../../types.ts';
+import { scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
 import type { RecoveredMovement } from './movementEvidence.ts';
+import { establishesAssignment } from './outcomeResolver.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import { isExplicitTier2Role, normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
 
 /** An asserted subject chain can name its finite controller independently of
  * its thematic occurrence. No endpoint is chosen from an unordered chain. */

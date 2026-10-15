@@ -1,0 +1,2741 @@
+[
+  {
+    "id": "sol-indonesian-applicative/0",
+    "source": {
+      "attempt": "sol-indonesian-applicative",
+      "bundleSha256": "eca7f1263dcfd18764c5cdaa0a13f5adc91537227a67937a0604b4c1e65da65d",
+      "analysisIndex": 0
+    },
+    "sentence": "Rina membacakan adiknya sebuah cerita.",
+    "framework": "minimalism",
+    "inputTokens": [
+      "Rina",
+      "membacakan",
+      "adiknya",
+      "sebuah",
+      "cerita"
+    ],
+    "derivationStages": [
+      {
+        "realizations": [
+          {
+            "nodeIds": [
+              "h_adik",
+              "h_nya"
+            ],
+            "tokenIndices": [
+              2
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "determiner": "h_sebuah",
+              "nominal": "h_cerita",
+              "phrase": "h_theme"
+            },
+            "relation": "indefinite determination",
+            "values": {
+              "interpretation": "one indefinite story"
+            }
+          },
+          {
+            "anchors": {
+              "possessedNominal": "h_sibling",
+              "possessiveHead": "h_nya",
+              "relationalNoun": "h_adik"
+            },
+            "relation": "possessive interpretation",
+            "values": {
+              "kinship": "younger sibling",
+              "possessor": "contextually resolved third person"
+            }
+          },
+          {
+            "anchors": {
+              "domain": "h_sibling",
+              "stem": "h_adik",
+              "suffix": "h_nya"
+            },
+            "relation": "nominal suffixal realization",
+            "values": {
+              "operation": "local morphological realization without syntactic movement",
+              "output": "adiknya"
+            }
+          }
+        ],
+        "stageRecord": "This analysis interprets adiknya as the beneficiary of Rina's reading event; the beneficiary may also be its audience. A high applicative will therefore attach above the lexical VP. Merge sebuah with cerita to form the indefinite theme nominal. Sebuah is retained as one lexical determiner containing its numeral-classifier information; the input does not require its internal morphological decomposition. Merge adik with possessive -nya to form adiknya. The possessive suffix introduces a third-person possessor whose reference can be Rina or another contextually identified individual; these referential possibilities do not change this structure. Establish the local suffixal realization of that nominal as token 2 without positing syntactic movement inside it. Baca, applicative -kan, and active verbal meN- remain separate morphological sources whose joint verbal realization has not yet been established. Rina is a proper-name nominal. Silent finite T and declarative C are also available. Projection labels identify the category of the labeling head, rather than pre-existing phrase-structure templates.",
+        "statement": "Establish the lexical workspace for an event-related benefactive applicative.",
+        "workspaceForest": [
+          {
+            "children": [],
+            "id": "h_rina_lower",
+            "label": "D: proper name",
+            "lineageId": "h_RINA",
+            "tokenIndex": 0,
+            "word": "Rina"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "h_sebuah",
+                "label": "D: indefinite numeral-classifier",
+                "tokenIndex": 3,
+                "word": "sebuah"
+              },
+              {
+                "children": [],
+                "id": "h_cerita",
+                "label": "N",
+                "tokenIndex": 4,
+                "word": "cerita"
+              }
+            ],
+            "id": "h_theme",
+            "label": "DP"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "h_adik",
+                "label": "N: relational kinship noun",
+                "word": "adik"
+              },
+              {
+                "children": [],
+                "id": "h_nya",
+                "label": "D: third-person possessive",
+                "word": "-nya"
+              }
+            ],
+            "id": "h_sibling",
+            "label": "DP"
+          },
+          {
+            "children": [],
+            "id": "h_baca_lower",
+            "label": "V",
+            "lineageId": "h_BACA",
+            "word": "baca"
+          },
+          {
+            "children": [],
+            "id": "h_kan_lower",
+            "label": "Appl: event-related benefactive",
+            "lineageId": "h_KAN",
+            "word": "-kan"
+          },
+          {
+            "children": [],
+            "id": "h_men",
+            "label": "v: active agentive",
+            "word": "meN-"
+          },
+          {
+            "children": [],
+            "id": "h_t",
+            "label": "T: finite, tense unspecified",
+            "silent": true
+          },
+          {
+            "children": [],
+            "id": "h_c",
+            "label": "C: declarative",
+            "silent": true
+          }
+        ]
+      },
+      {
+        "realizations": [
+          {
+            "nodeIds": [
+              "h_adik",
+              "h_nya"
+            ],
+            "tokenIndices": [
+              2
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "domain": "h_lexical_vp",
+              "predicate": "h_baca_lower",
+              "theme": "h_theme"
+            },
+            "relation": "theme interpretation",
+            "values": {
+              "role": "content read"
+            }
+          }
+        ],
+        "stageRecord": "Externally Merge baca with the already formed theme nominal. The resulting VP is labeled by V. This establishes cerita's nominal phrase as the content or theme of reading, not as a predicate of adiknya. The other lexical objects remain available, and the possessive nominal's established realization remains unchanged.",
+        "statement": "Build the reading predicate with its theme.",
+        "workspaceForest": [
+          {
+            "children": [],
+            "id": "h_rina_lower",
+            "label": "D: proper name",
+            "lineageId": "h_RINA",
+            "tokenIndex": 0,
+            "word": "Rina"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "h_baca_lower",
+                "label": "V",
+                "lineageId": "h_BACA",
+                "word": "baca"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "h_sebuah",
+                    "label": "D: indefinite numeral-classifier",
+                    "tokenIndex": 3,
+                    "word": "sebuah"
+                  },
+                  {
+                    "children": [],
+                    "id": "h_cerita",
+                    "label": "N",
+                    "tokenIndex": 4,
+                    "word": "cerita"
+                  }
+                ],
+                "id": "h_theme",
+                "label": "DP"
+              }
+            ],
+            "id": "h_lexical_vp",
+            "label": "VP"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "h_adik",
+                "label": "N: relational kinship noun",
+                "word": "adik"
+              },
+              {
+                "children": [],
+                "id": "h_nya",
+                "label": "D: third-person possessive",
+                "word": "-nya"
+              }
+            ],
+            "id": "h_sibling",
+            "label": "DP"
+          },
+          {
+            "children": [],
+            "id": "h_kan_lower",
+            "label": "Appl: event-related benefactive",
+            "lineageId": "h_KAN",
+            "word": "-kan"
+          },
+          {
+            "children": [],
+            "id": "h_men",
+            "label": "v: active agentive",
+            "word": "meN-"
+          },
+          {
+            "children": [],
+            "id": "h_t",
+            "label": "T: finite, tense unspecified",
+            "silent": true
+          },
+          {
+            "children": [],
+            "id": "h_c",
+            "label": "C: declarative",
+            "silent": true
+          }
+        ]
+      },
+      {
+        "realizations": [
+          {
+            "nodeIds": [
+              "h_adik",
+              "h_nya"
+            ],
+            "tokenIndices": [
+              2
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "applicativeHead": "h_kan_lower",
+              "appliedArgument": "h_sibling",
+              "domain": "h_appl_phrase",
+              "eventPredicate": "h_lexical_vp"
+            },
+            "relation": "high applicative interpretation",
+            "values": {
+              "attachment": "above lexical VP",
+              "role": "beneficiary of the reading event"
+            }
+          }
+        ],
+        "stageRecord": "Merge applicative -kan with the VP and then Merge adiknya at the edge of the resulting applicative projection. Both applications of Merge are binary, and Appl labels their results. The applied nominal is related to the reading event as its beneficiary, while the story retains its independently established theme relation to baca. This high attachment does not assert that the sibling acquires ownership of the story. An audience interpretation can accompany this benefactive structure without introducing another syntactic position.",
+        "statement": "Introduce the higher applied beneficiary.",
+        "workspaceForest": [
+          {
+            "children": [],
+            "id": "h_rina_lower",
+            "label": "D: proper name",
+            "lineageId": "h_RINA",
+            "tokenIndex": 0,
+            "word": "Rina"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "h_adik",
+                    "label": "N: relational kinship noun",
+                    "word": "adik"
+                  },
+                  {
+                    "children": [],
+                    "id": "h_nya",
+                    "label": "D: third-person possessive",
+                    "word": "-nya"
+                  }
+                ],
+                "id": "h_sibling",
+                "label": "DP"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "h_kan_lower",
+                    "label": "Appl: event-related benefactive",
+                    "lineageId": "h_KAN",
+                    "word": "-kan"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "h_baca_lower",
+                        "label": "V",
+                        "lineageId": "h_BACA",
+                        "word": "baca"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "h_sebuah",
+                            "label": "D: indefinite numeral-classifier",
+                            "tokenIndex": 3,
+                            "word": "sebuah"
+                          },
+                          {
+                            "children": [],
+                            "id": "h_cerita",
+                            "label": "N",
+                            "tokenIndex": 4,
+                            "word": "cerita"
+                          }
+                        ],
+                        "id": "h_theme",
+                        "label": "DP"
+                      }
+                    ],
+                    "id": "h_lexical_vp",
+                    "label": "VP"
+                  }
+                ],
+                "id": "h_appl_base",
+                "label": "ApplP"
+              }
+            ],
+            "id": "h_appl_phrase",
+            "label": "ApplP"
+          },
+          {
+            "children": [],
+            "id": "h_men",
+            "label": "v: active agentive",
+            "word": "meN-"
+          },
+          {
+            "children": [],
+            "id": "h_t",
+            "label": "T: finite, tense unspecified",
+            "silent": true
+          },
+          {
+            "children": [],
+            "id": "h_c",
+            "label": "C: declarative",
+            "silent": true
+          }
+        ]
+      },
+      {
+        "realizations": [
+          {
+            "nodeIds": [
+              "h_adik",
+              "h_nya"
+            ],
+            "tokenIndices": [
+              2
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "higherOccurrence": "h_baca_middle",
+              "lowerOccurrence": "h_baca_lower",
+              "resultingHead": "h_appl_head_lower",
+              "targetHead": "h_kan_lower"
+            },
+            "priorAnchors": {
+              "source": "h_baca_lower",
+              "target": "h_kan_lower"
+            },
+            "relation": "V-to-Appl head movement",
+            "values": {
+              "pronunciation": "lower V copy suppressed",
+              "representation": "copy"
+            }
+          }
+        ],
+        "stageRecord": "Using the V position already present inside VP, copy baca into the applicative head and suppress pronunciation of its lower occurrence. The higher complex head contains the verb followed by applicative -kan. This analysis commits to local head movement in the extended verbal projection, not movement of either object nominal. The intermediate complex head is recorded before it can move to v. Its full surface realization as membacakan is not yet established.",
+        "statement": "Raise the lexical verb to the high applicative head.",
+        "workspaceForest": [
+          {
+            "children": [],
+            "id": "h_rina_lower",
+            "label": "D: proper name",
+            "lineageId": "h_RINA",
+            "tokenIndex": 0,
+            "word": "Rina"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "h_adik",
+                    "label": "N: relational kinship noun",
+                    "word": "adik"
+                  },
+                  {
+                    "children": [],
+                    "id": "h_nya",
+                    "label": "D: third-person possessive",
+                    "word": "-nya"
+                  }
+                ],
+                "id": "h_sibling",
+                "label": "DP"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "h_baca_middle",
+                        "label": "V",
+                        "lineageId": "h_BACA",
+                        "word": "baca"
+                      },
+                      {
+                        "children": [],
+                        "id": "h_kan_lower",
+                        "label": "Appl: event-related benefactive",
+                        "lineageId": "h_KAN",
+                        "word": "-kan"
+                      }
+                    ],
+                    "id": "h_appl_head_lower",
+                    "label": "Appl: complex head",
+                    "lineageId": "h_APPL_HEAD"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "h_baca_lower",
+                        "label": "V",
+                        "lineageId": "h_BACA",
+                        "silent": true,
+                        "word": "baca"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "h_sebuah",
+                            "label": "D: indefinite numeral-classifier",
+                            "tokenIndex": 3,
+                            "word": "sebuah"
+                          },
+                          {
+                            "children": [],
+                            "id": "h_cerita",
+                            "label": "N",
+                            "tokenIndex": 4,
+                            "word": "cerita"
+                          }
+                        ],
+                        "id": "h_theme",
+                        "label": "DP"
+                      }
+                    ],
+                    "id": "h_lexical_vp",
+                    "label": "VP"
+                  }
+                ],
+                "id": "h_appl_base",
+                "label": "ApplP"
+              }
+            ],
+            "id": "h_appl_phrase",
+            "label": "ApplP"
+          },
+          {
+            "children": [],
+            "id": "h_men",
+            "label": "v: active agentive",
+            "word": "meN-"
+          },
+          {
+            "children": [],
+            "id": "h_t",
+            "label": "T: finite, tense unspecified",
+            "silent": true
+          },
+          {
+            "children": [],
+            "id": "h_c",
+            "label": "C: declarative",
+            "silent": true
+          }
+        ]
+      },
+      {
+        "realizations": [
+          {
+            "nodeIds": [
+              "h_v_head"
+            ],
+            "tokenIndices": [
+              1
+            ]
+          },
+          {
+            "nodeIds": [
+              "h_adik",
+              "h_nya"
+            ],
+            "tokenIndices": [
+              2
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "higherOccurrence": "h_appl_head_upper",
+              "lowerOccurrence": "h_appl_head_lower",
+              "resultingHead": "h_v_head",
+              "targetHead": "h_men"
+            },
+            "priorAnchors": {
+              "source": "h_appl_head_lower",
+              "target": "h_men"
+            },
+            "relation": "Appl-to-v head movement",
+            "values": {
+              "pronunciation": "lower complex head suppressed",
+              "representation": "copy"
+            }
+          },
+          {
+            "anchors": {
+              "agentiveHead": "h_men",
+              "domain": "h_v_phrase",
+              "externalArgument": "h_rina_lower"
+            },
+            "relation": "external argument interpretation",
+            "values": {
+              "role": "agent of reading"
+            }
+          },
+          {
+            "anchors": {
+              "activePrefix": "h_men",
+              "applicativeSuffix": "h_kan_upper",
+              "domain": "h_v_head",
+              "verbStem": "h_baca_upper"
+            },
+            "relation": "verbal morphological realization",
+            "values": {
+              "operation": "joint realization of the highest complex head",
+              "output": "membacakan",
+              "prefixAllomorph": "mem-"
+            }
+          }
+        ],
+        "stageRecord": "Merge active agentive v above ApplP. Copy the previously established complex applicative head into v, leaving its source occurrence silent. The highest head orders the active prefix before baca and -kan. Next Merge Rina as the external argument of v, establishing Rina as the reader; this subject position is distinct from the applied beneficiary. Finally establish the joint realization of meN-, baca, and -kan as membacakan, including the mem- allomorph of the active prefix before baca. This morphological realization does not fuse or replace the authored syntactic nodes. The retained applicative and V copies are unpronounced.",
+        "statement": "Build the active agentive layer and realize the verbal complex.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "h_rina_lower",
+                "label": "D: proper name",
+                "lineageId": "h_RINA",
+                "tokenIndex": 0,
+                "word": "Rina"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "h_men",
+                        "label": "v: active agentive",
+                        "word": "meN-"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "h_baca_upper",
+                            "label": "V",
+                            "lineageId": "h_BACA",
+                            "word": "baca"
+                          },
+                          {
+                            "children": [],
+                            "id": "h_kan_upper",
+                            "label": "Appl: event-related benefactive",
+                            "lineageId": "h_KAN",
+                            "word": "-kan"
+                          }
+                        ],
+                        "id": "h_appl_head_upper",
+                        "label": "Appl: complex head",
+                        "lineageId": "h_APPL_HEAD"
+                      }
+                    ],
+                    "id": "h_v_head",
+                    "label": "v: complex active head"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "h_adik",
+                            "label": "N: relational kinship noun",
+                            "word": "adik"
+                          },
+                          {
+                            "children": [],
+                            "id": "h_nya",
+                            "label": "D: third-person possessive",
+                            "word": "-nya"
+                          }
+                        ],
+                        "id": "h_sibling",
+                        "label": "DP"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "h_baca_middle",
+                                "label": "V",
+                                "lineageId": "h_BACA",
+                                "silent": true,
+                                "word": "baca"
+                              },
+                              {
+                                "children": [],
+                                "id": "h_kan_lower",
+                                "label": "Appl: event-related benefactive",
+                                "lineageId": "h_KAN",
+                                "silent": true,
+                                "word": "-kan"
+                              }
+                            ],
+                            "id": "h_appl_head_lower",
+                            "label": "Appl: complex head",
+                            "lineageId": "h_APPL_HEAD",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "h_baca_lower",
+                                "label": "V",
+                                "lineageId": "h_BACA",
+                                "silent": true,
+                                "word": "baca"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "h_sebuah",
+                                    "label": "D: indefinite numeral-classifier",
+                                    "tokenIndex": 3,
+                                    "word": "sebuah"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "h_cerita",
+                                    "label": "N",
+                                    "tokenIndex": 4,
+                                    "word": "cerita"
+                                  }
+                                ],
+                                "id": "h_theme",
+                                "label": "DP"
+                              }
+                            ],
+                            "id": "h_lexical_vp",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "h_appl_base",
+                        "label": "ApplP"
+                      }
+                    ],
+                    "id": "h_appl_phrase",
+                    "label": "ApplP"
+                  }
+                ],
+                "id": "h_v_base",
+                "label": "vP"
+              }
+            ],
+            "id": "h_v_phrase",
+            "label": "vP"
+          },
+          {
+            "children": [],
+            "id": "h_t",
+            "label": "T: finite, tense unspecified",
+            "silent": true
+          },
+          {
+            "children": [],
+            "id": "h_c",
+            "label": "C: declarative",
+            "silent": true
+          }
+        ]
+      },
+      {
+        "realizations": [
+          {
+            "nodeIds": [
+              "h_v_head"
+            ],
+            "tokenIndices": [
+              1
+            ]
+          },
+          {
+            "nodeIds": [
+              "h_adik",
+              "h_nya"
+            ],
+            "tokenIndices": [
+              2
+            ]
+          }
+        ],
+        "relations": [
+          {
+            "anchors": {
+              "domain": "h_tp",
+              "higherOccurrence": "h_rina_upper",
+              "licensingHead": "h_t",
+              "lowerOccurrence": "h_rina_lower"
+            },
+            "priorAnchors": {
+              "source": "h_rina_lower"
+            },
+            "relation": "subject Internal Merge and finite licensing",
+            "values": {
+              "pronunciation": "higher subject copy only",
+              "tense": "unspecified",
+              "trigger": "finite T subject-edge requirement"
+            }
+          },
+          {
+            "anchors": {
+              "clause": "h_cp",
+              "forceHead": "h_c",
+              "proposition": "h_tp"
+            },
+            "relation": "clause force",
+            "values": {
+              "force": "declarative"
+            }
+          }
+        ],
+        "stageRecord": "Merge silent finite T with vP, then internally Merge Rina from its previously recorded external-argument position to the subject edge of TP. The higher occurrence is pronounced and the lower occurrence is silent. This adopts a subject-edge requirement for T but does not infer overt agreement or a particular tense from the Indonesian sentence. The lower occurrence retains the agent interpretation established at vP. Merge silent declarative C to complete the clause. The resulting pronunciation is exactly Rina membacakan adiknya sebuah cerita: the verb's highest complex head supplies token 1, the possessive nominal supplies token 2, and the remaining overt terminals supply tokens 0, 3, and 4. The sentence-final punctuation is not an additional supplied token.",
+        "statement": "Complete the finite declarative benefactive clause.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "h_c",
+                "label": "C: declarative",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "h_rina_upper",
+                    "label": "D: proper name",
+                    "lineageId": "h_RINA",
+                    "tokenIndex": 0,
+                    "word": "Rina"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "h_t",
+                        "label": "T: finite, tense unspecified",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "h_rina_lower",
+                            "label": "D: proper name",
+                            "lineageId": "h_RINA",
+                            "silent": true,
+                            "word": "Rina"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "h_men",
+                                    "label": "v: active agentive",
+                                    "word": "meN-"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "h_baca_upper",
+                                        "label": "V",
+                                        "lineageId": "h_BACA",
+                                        "word": "baca"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "h_kan_upper",
+                                        "label": "Appl: event-related benefactive",
+                                        "lineageId": "h_KAN",
+                                        "word": "-kan"
+                                      }
+                                    ],
+                                    "id": "h_appl_head_upper",
+                                    "label": "Appl: complex head",
+                                    "lineageId": "h_APPL_HEAD"
+                                  }
+                                ],
+                                "id": "h_v_head",
+                                "label": "v: complex active head"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "h_adik",
+                                        "label": "N: relational kinship noun",
+                                        "word": "adik"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "h_nya",
+                                        "label": "D: third-person possessive",
+                                        "word": "-nya"
+                                      }
+                                    ],
+                                    "id": "h_sibling",
+                                    "label": "DP"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "h_baca_middle",
+                                            "label": "V",
+                                            "lineageId": "h_BACA",
+                                            "silent": true,
+                                            "word": "baca"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "h_kan_lower",
+                                            "label": "Appl: event-related benefactive",
+                                            "lineageId": "h_KAN",
+                                            "silent": true,
+                                            "word": "-kan"
+                                          }
+                                        ],
+                                        "id": "h_appl_head_lower",
+                                        "label": "Appl: complex head",
+                                        "lineageId": "h_APPL_HEAD",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "h_baca_lower",
+                                            "label": "V",
+                                            "lineageId": "h_BACA",
+                                            "silent": true,
+                                            "word": "baca"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "h_sebuah",
+                                                "label": "D: indefinite numeral-classifier",
+                                                "tokenIndex": 3,
+                                                "word": "sebuah"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "h_cerita",
+                                                "label": "N",
+                                                "tokenIndex": 4,
+                                                "word": "cerita"
+                                              }
+                                            ],
+                                            "id": "h_theme",
+                                            "label": "DP"
+                                          }
+                                        ],
+                                        "id": "h_lexical_vp",
+                                        "label": "VP"
+                                      }
+                                    ],
+                                    "id": "h_appl_base",
+                                    "label": "ApplP"
+                                  }
+                                ],
+                                "id": "h_appl_phrase",
+                                "label": "ApplP"
+                              }
+                            ],
+                            "id": "h_v_base",
+                            "label": "vP"
+                          }
+                        ],
+                        "id": "h_v_phrase",
+                        "label": "vP"
+                      }
+                    ],
+                    "id": "h_t_base",
+                    "label": "TP"
+                  }
+                ],
+                "id": "h_tp",
+                "label": "TP"
+              }
+            ],
+            "id": "h_cp",
+            "label": "CP"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "astra-romanian-dative/0",
+    "source": {
+      "attempt": "astra-romanian-dative",
+      "bundleSha256": "2c2f1478cccba96d142d87459d627dd2295314de618a8fc2e7b3cf12af492388",
+      "analysisIndex": 0
+    },
+    "sentence": "I-am dat Mariei o carte.",
+    "framework": "minimalism",
+    "inputTokens": [
+      "I",
+      "am",
+      "dat",
+      "Mariei",
+      "o",
+      "carte"
+    ],
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "determiner": "det",
+              "nominal": "theme",
+              "noun": "book"
+            },
+            "relation": "Determiner–noun agreement and restriction",
+            "values": {
+              "gender": "feminine",
+              "interpretation": "indefinite book",
+              "number": "singular"
+            }
+          },
+          {
+            "anchors": {
+              "associate": "mary",
+              "clitic": "cliticLow",
+              "complexNominal": "recipient"
+            },
+            "relation": "Clitic-doubling correspondence",
+            "values": {
+              "morphologicalCase": "dative",
+              "number": "singular",
+              "person": "third",
+              "reference": "shared"
+            }
+          }
+        ],
+        "stageRecord": "External Merge combines the determiner o with carte. The noun supplies the determiner's feminine singular agreement features, and the resulting D-labeled object denotes an indefinite book. Independently, Merge forms a complex dative nominal from the weak pronominal I and the proper-name nominal Mariei. In this implementation of clitic doubling, the two D objects share the recipient referent and third-person singular features; their shared nominal features label the complex object. The clitic remains an independently accessible minimal and maximal D object, permitting subsequent phrasal clitic displacement. Mariei is represented as an internally atomic proper-name nominal, and its inflected spelling is not decomposed. The initial capital in I does not make it the English first-person pronoun: here it is the Romanian third-person singular dative clitic. Its dative morphology and that of Mariei are present, but their licensing by an applicative head has not yet occurred. Labels on merged objects identify the features that project; they do not introduce an X-bar template.",
+        "statement": "Construct the indefinite theme and the doubled dative nominal.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "det",
+                "label": "D[indefinite; feminine; singular]",
+                "tokenIndex": 4,
+                "word": "o"
+              },
+              {
+                "children": [],
+                "id": "book",
+                "label": "N[feminine; singular]",
+                "tokenIndex": 5,
+                "word": "carte"
+              }
+            ],
+            "id": "theme",
+            "label": "D"
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "cliticLow",
+                "label": "D[clitic; third person; singular; dative]",
+                "lineageId": "dativeClitic",
+                "tokenIndex": 0,
+                "word": "I"
+              },
+              {
+                "children": [],
+                "id": "mary",
+                "label": "D[proper name; third person; singular; dative]",
+                "tokenIndex": 3,
+                "word": "Mariei"
+              }
+            ],
+            "id": "recipient",
+            "label": "D[third person; singular; dative]"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "applicative": "appl",
+              "recipient": "recipient",
+              "theme": "theme"
+            },
+            "relation": "Low-applicative thematic relation",
+            "values": {
+              "recipientRole": "prospective possessor",
+              "themeRole": "transferred entity"
+            }
+          },
+          {
+            "anchors": {
+              "argument": "recipient",
+              "associate": "mary",
+              "clitic": "cliticLow",
+              "licenser": "appl"
+            },
+            "relation": "Inherent dative licensing",
+            "values": {
+              "case": "dative"
+            }
+          },
+          {
+            "anchors": {
+              "complement": "applOuter",
+              "selector": "given"
+            },
+            "relation": "Verbal selection",
+            "values": {
+              "predicate": "give",
+              "selection": "recipient–theme applicative object"
+            }
+          },
+          {
+            "anchors": {
+              "caseGoal": "theme",
+              "licenser": "littleV",
+              "selectedPredicate": "verbObject"
+            },
+            "relation": "Transitive selection and structural case",
+            "values": {
+              "case": "accusative",
+              "intervention": "inherently licensed dative is inactive for structural accusative"
+            }
+          },
+          {
+            "anchors": {
+              "argument": "proLow",
+              "introducer": "littleV"
+            },
+            "relation": "External-argument thematic licensing",
+            "values": {
+              "thetaRole": "agent"
+            }
+          }
+        ],
+        "stageRecord": "A silent low applicative head first merges with the book nominal and then with the complex dative nominal. It establishes a prospective possession relation: the book is the theme and Maria is its intended recipient. The applicative licenses dative on the complex recipient, including the clitic and its full nominal associate. The participial verb dat then selects this applicative object, yielding the underlying order dat, recipient, theme. This low-applicative implementation treats Mariei as the recipient of giving, not as a genitive possessor inside o carte. A silent transitive v selects the verbal object and licenses accusative on the theme; the inherently licensed dative does not intervene for this structural-case dependency. Finally, a silent first-person pro externally merges with v's projection and receives the agent role. Romanian permits this unpronounced subject. Dat is introduced as a whole-word participial V, so this derivation does not posit an additional movement of a verbal stem to a participial affix.",
+        "statement": "Build the giving predicate with a recipient, a theme, and a silent external argument.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "proLow",
+                "label": "D[pro; first person; number unresolved]",
+                "lineageId": "subject",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "littleV",
+                    "label": "v[transitive; agentive]",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "given",
+                        "label": "V[participle]",
+                        "tokenIndex": 2,
+                        "word": "dat"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "cliticLow",
+                                "label": "D[clitic; third person; singular; dative]",
+                                "lineageId": "dativeClitic",
+                                "tokenIndex": 0,
+                                "word": "I"
+                              },
+                              {
+                                "children": [],
+                                "id": "mary",
+                                "label": "D[proper name; third person; singular; dative]",
+                                "tokenIndex": 3,
+                                "word": "Mariei"
+                              }
+                            ],
+                            "id": "recipient",
+                            "label": "D[third person; singular; dative]"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "appl",
+                                "label": "Appl[low; recipient; dative]",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "det",
+                                    "label": "D[indefinite; feminine; singular]",
+                                    "tokenIndex": 4,
+                                    "word": "o"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "book",
+                                    "label": "N[feminine; singular]",
+                                    "tokenIndex": 5,
+                                    "word": "carte"
+                                  }
+                                ],
+                                "id": "theme",
+                                "label": "D"
+                              }
+                            ],
+                            "id": "applInner",
+                            "label": "Appl"
+                          }
+                        ],
+                        "id": "applOuter",
+                        "label": "Appl"
+                      }
+                    ],
+                    "id": "verbObject",
+                    "label": "V[participle]"
+                  }
+                ],
+                "id": "vInner",
+                "label": "v"
+              }
+            ],
+            "id": "vOuter",
+            "label": "v"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "auxiliary": "aux",
+              "participialHead": "given",
+              "selectedDomain": "vOuter"
+            },
+            "relation": "Finite auxiliary selection",
+            "values": {
+              "construction": "Romanian compound past",
+              "selectedForm": "participle"
+            }
+          },
+          {
+            "anchors": {
+              "goal": "proLow",
+              "probe": "aux"
+            },
+            "relation": "Finite subject agreement and nominative licensing",
+            "values": {
+              "case": "nominative",
+              "number": "singular or plural; unresolved by the input",
+              "person": "first"
+            }
+          }
+        ],
+        "stageRecord": "The auxiliary am merges above the complete agentive predicate. It is represented as one finite T head carrying the auxiliary features of the Romanian compound past, and it selects the participial predicate headed by dat. Finite T then agrees with the accessible external argument pro and licenses its nominative case. Am is syncretic between first-person singular and first-person plural: the sentence can mean either 'I gave Maria a book' or 'We gave Maria a book.' These interpretations do not require different structures, so this derivation leaves the subject's number unresolved rather than duplicating an otherwise identical analysis. The subject remains in its previously established thematic position at this stage; agreement has not itself moved it.",
+        "statement": "Merge the finite compound-past auxiliary and establish subject agreement.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "aux",
+                "label": "T[finite auxiliary; first person; number unresolved]",
+                "tokenIndex": 1,
+                "word": "am"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "proLow",
+                    "label": "D[pro; first person; number unresolved]",
+                    "lineageId": "subject",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "littleV",
+                        "label": "v[transitive; agentive]",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "given",
+                            "label": "V[participle]",
+                            "tokenIndex": 2,
+                            "word": "dat"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "cliticLow",
+                                    "label": "D[clitic; third person; singular; dative]",
+                                    "lineageId": "dativeClitic",
+                                    "tokenIndex": 0,
+                                    "word": "I"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "mary",
+                                    "label": "D[proper name; third person; singular; dative]",
+                                    "tokenIndex": 3,
+                                    "word": "Mariei"
+                                  }
+                                ],
+                                "id": "recipient",
+                                "label": "D[third person; singular; dative]"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "appl",
+                                    "label": "Appl[low; recipient; dative]",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "det",
+                                        "label": "D[indefinite; feminine; singular]",
+                                        "tokenIndex": 4,
+                                        "word": "o"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "book",
+                                        "label": "N[feminine; singular]",
+                                        "tokenIndex": 5,
+                                        "word": "carte"
+                                      }
+                                    ],
+                                    "id": "theme",
+                                    "label": "D"
+                                  }
+                                ],
+                                "id": "applInner",
+                                "label": "Appl"
+                              }
+                            ],
+                            "id": "applOuter",
+                            "label": "Appl"
+                          }
+                        ],
+                        "id": "verbObject",
+                        "label": "V[participle]"
+                      }
+                    ],
+                    "id": "vInner",
+                    "label": "v"
+                  }
+                ],
+                "id": "vOuter",
+                "label": "v"
+              }
+            ],
+            "id": "tInner",
+            "label": "T"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landingOccurrence": "proHigh",
+              "resultingProjection": "tOuter",
+              "source": "proLow",
+              "trigger": "aux"
+            },
+            "relation": "Subject Internal Merge and EPP satisfaction",
+            "values": {
+              "dependency": "A-chain",
+              "pronunciation": "both occurrences silent",
+              "requirement": "finite subject edge"
+            }
+          }
+        ],
+        "stageRecord": "T's subject-edge requirement triggers Internal Merge of pro from the external-argument position shown in the preceding workspace. The new occurrence occupies the outer edge of the T-labeled object, while the lower occurrence remains in the agent position. Both occurrences are unpronounced because this is a null-pronominal chain, not an overt subject with an accidentally omitted spelling. Nominative and agreement were established with the lower occurrence before this movement. This analysis therefore commits to an EPP-satisfying subject chain even though no subject position is pronounced in the input.",
+        "statement": "Internally merge the silent subject at the finite clause edge.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "proHigh",
+                "label": "D[pro; first person; number unresolved]",
+                "lineageId": "subject",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "aux",
+                    "label": "T[finite auxiliary; first person; number unresolved]",
+                    "tokenIndex": 1,
+                    "word": "am"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "proLow",
+                        "label": "D[pro; first person; number unresolved]",
+                        "lineageId": "subject",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "littleV",
+                            "label": "v[transitive; agentive]",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "given",
+                                "label": "V[participle]",
+                                "tokenIndex": 2,
+                                "word": "dat"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "cliticLow",
+                                        "label": "D[clitic; third person; singular; dative]",
+                                        "lineageId": "dativeClitic",
+                                        "tokenIndex": 0,
+                                        "word": "I"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "mary",
+                                        "label": "D[proper name; third person; singular; dative]",
+                                        "tokenIndex": 3,
+                                        "word": "Mariei"
+                                      }
+                                    ],
+                                    "id": "recipient",
+                                    "label": "D[third person; singular; dative]"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "appl",
+                                        "label": "Appl[low; recipient; dative]",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "det",
+                                            "label": "D[indefinite; feminine; singular]",
+                                            "tokenIndex": 4,
+                                            "word": "o"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "book",
+                                            "label": "N[feminine; singular]",
+                                            "tokenIndex": 5,
+                                            "word": "carte"
+                                          }
+                                        ],
+                                        "id": "theme",
+                                        "label": "D"
+                                      }
+                                    ],
+                                    "id": "applInner",
+                                    "label": "Appl"
+                                  }
+                                ],
+                                "id": "applOuter",
+                                "label": "Appl"
+                              }
+                            ],
+                            "id": "verbObject",
+                            "label": "V[participle]"
+                          }
+                        ],
+                        "id": "vInner",
+                        "label": "v"
+                      }
+                    ],
+                    "id": "vOuter",
+                    "label": "v"
+                  }
+                ],
+                "id": "tInner",
+                "label": "T"
+              }
+            ],
+            "id": "tOuter",
+            "label": "T"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "fullAssociate": "mary",
+              "landingOccurrence": "cliticHigh",
+              "remnantRecipient": "recipient",
+              "source": "cliticLow",
+              "trigger": "clHead"
+            },
+            "relation": "Dative clitic Internal Merge",
+            "values": {
+              "doubling": "full dative nominal remains in the recipient position",
+              "landingSite": "outer edge of Cl",
+              "movementType": "phrasal clitic displacement"
+            }
+          },
+          {
+            "anchors": {
+              "pronouncedOccurrence": "cliticHigh",
+              "unpronouncedOccurrence": "cliticLow"
+            },
+            "priorAnchors": {
+              "previouslyPronouncedOccurrence": "cliticLow"
+            },
+            "relation": "Clitic-chain pronunciation",
+            "values": {
+              "lowerCopy": "suppressed",
+              "pronouncedCopy": "highest"
+            }
+          },
+          {
+            "anchors": {
+              "clitic": "cliticHigh",
+              "host": "aux"
+            },
+            "relation": "Clitic–auxiliary hosting",
+            "values": {
+              "orientation": "proclitic",
+              "orthographicSequence": "I-am",
+              "syntacticFusion": "none"
+            }
+          }
+        ],
+        "stageRecord": "A silent Cl head merges with the finite T object and attracts the weak dative D from the complex recipient nominal. Internal Merge places a new occurrence of that D at the outer edge of Cl, above the silent subject and the auxiliary. This is phrasal clitic displacement in the selected doubling analysis, not movement of Mariei and not base generation of an unrelated preverbal pronoun. The source occurrence is the clitic already visible inside the recipient nominal in every preceding workspace. Chain pronunciation now selects the high occurrence and suppresses the low one; Mariei remains pronounced in the applicative recipient position. The high clitic is prosodically dependent on am and precedes it, yielding the written clitic–auxiliary sequence I-am. Since the supplied tokenization separates I and am and both are intact syntactic terminals, no collective realization group or syntactic fusion is required. The resulting pronounced order is I, am, dat, Mariei, o, carte.",
+        "statement": "Displace the dative clitic to the preverbal clitic edge.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "cliticHigh",
+                "label": "D[clitic; third person; singular; dative]",
+                "lineageId": "dativeClitic",
+                "tokenIndex": 0,
+                "word": "I"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "clHead",
+                    "label": "Cl[dative-clitic edge]",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "proHigh",
+                        "label": "D[pro; first person; number unresolved]",
+                        "lineageId": "subject",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "aux",
+                            "label": "T[finite auxiliary; first person; number unresolved]",
+                            "tokenIndex": 1,
+                            "word": "am"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "proLow",
+                                "label": "D[pro; first person; number unresolved]",
+                                "lineageId": "subject",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "littleV",
+                                    "label": "v[transitive; agentive]",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "given",
+                                        "label": "V[participle]",
+                                        "tokenIndex": 2,
+                                        "word": "dat"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "cliticLow",
+                                                "label": "D[clitic; third person; singular; dative]",
+                                                "lineageId": "dativeClitic",
+                                                "silent": true,
+                                                "word": "I"
+                                              },
+                                              {
+                                                "children": [],
+                                                "id": "mary",
+                                                "label": "D[proper name; third person; singular; dative]",
+                                                "tokenIndex": 3,
+                                                "word": "Mariei"
+                                              }
+                                            ],
+                                            "id": "recipient",
+                                            "label": "D[third person; singular; dative]"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "appl",
+                                                "label": "Appl[low; recipient; dative]",
+                                                "silent": true
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "det",
+                                                    "label": "D[indefinite; feminine; singular]",
+                                                    "tokenIndex": 4,
+                                                    "word": "o"
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "id": "book",
+                                                    "label": "N[feminine; singular]",
+                                                    "tokenIndex": 5,
+                                                    "word": "carte"
+                                                  }
+                                                ],
+                                                "id": "theme",
+                                                "label": "D"
+                                              }
+                                            ],
+                                            "id": "applInner",
+                                            "label": "Appl"
+                                          }
+                                        ],
+                                        "id": "applOuter",
+                                        "label": "Appl"
+                                      }
+                                    ],
+                                    "id": "verbObject",
+                                    "label": "V[participle]"
+                                  }
+                                ],
+                                "id": "vInner",
+                                "label": "v"
+                              }
+                            ],
+                            "id": "vOuter",
+                            "label": "v"
+                          }
+                        ],
+                        "id": "tInner",
+                        "label": "T"
+                      }
+                    ],
+                    "id": "tOuter",
+                    "label": "T"
+                  }
+                ],
+                "id": "clInner",
+                "label": "Cl"
+              }
+            ],
+            "id": "clOuter",
+            "label": "Cl"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "finiteDomain": "clOuter",
+              "forceHead": "cHead",
+              "root": "cRoot"
+            },
+            "relation": "Root clause typing",
+            "values": {
+              "clauseStatus": "root",
+              "force": "declarative"
+            }
+          }
+        ],
+        "stageRecord": "A silent declarative C merges with the clitic-bearing finite clause and establishes its root declarative force. No interrogative dependency, auxiliary inversion, or further displacement is licensed by this input. The completed structure contains a first-person null agent, a dative-clitic chain doubling the recipient Mariei, and the indefinite accusative theme o carte. Its ordinary pronounced terminals account for all six supplied tokens exactly once. The sentence-final period marks the written declarative boundary and is not an additional token in the supplied list.",
+        "statement": "Complete the declarative root clause.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "cHead",
+                "label": "C[declarative]",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "cliticHigh",
+                    "label": "D[clitic; third person; singular; dative]",
+                    "lineageId": "dativeClitic",
+                    "tokenIndex": 0,
+                    "word": "I"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "clHead",
+                        "label": "Cl[dative-clitic edge]",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "proHigh",
+                            "label": "D[pro; first person; number unresolved]",
+                            "lineageId": "subject",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "aux",
+                                "label": "T[finite auxiliary; first person; number unresolved]",
+                                "tokenIndex": 1,
+                                "word": "am"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "proLow",
+                                    "label": "D[pro; first person; number unresolved]",
+                                    "lineageId": "subject",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "littleV",
+                                        "label": "v[transitive; agentive]",
+                                        "silent": true
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "given",
+                                            "label": "V[participle]",
+                                            "tokenIndex": 2,
+                                            "word": "dat"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "cliticLow",
+                                                    "label": "D[clitic; third person; singular; dative]",
+                                                    "lineageId": "dativeClitic",
+                                                    "silent": true,
+                                                    "word": "I"
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "id": "mary",
+                                                    "label": "D[proper name; third person; singular; dative]",
+                                                    "tokenIndex": 3,
+                                                    "word": "Mariei"
+                                                  }
+                                                ],
+                                                "id": "recipient",
+                                                "label": "D[third person; singular; dative]"
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "appl",
+                                                    "label": "Appl[low; recipient; dative]",
+                                                    "silent": true
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "id": "det",
+                                                        "label": "D[indefinite; feminine; singular]",
+                                                        "tokenIndex": 4,
+                                                        "word": "o"
+                                                      },
+                                                      {
+                                                        "children": [],
+                                                        "id": "book",
+                                                        "label": "N[feminine; singular]",
+                                                        "tokenIndex": 5,
+                                                        "word": "carte"
+                                                      }
+                                                    ],
+                                                    "id": "theme",
+                                                    "label": "D"
+                                                  }
+                                                ],
+                                                "id": "applInner",
+                                                "label": "Appl"
+                                              }
+                                            ],
+                                            "id": "applOuter",
+                                            "label": "Appl"
+                                          }
+                                        ],
+                                        "id": "verbObject",
+                                        "label": "V[participle]"
+                                      }
+                                    ],
+                                    "id": "vInner",
+                                    "label": "v"
+                                  }
+                                ],
+                                "id": "vOuter",
+                                "label": "v"
+                              }
+                            ],
+                            "id": "tInner",
+                            "label": "T"
+                          }
+                        ],
+                        "id": "tOuter",
+                        "label": "T"
+                      }
+                    ],
+                    "id": "clInner",
+                    "label": "Cl"
+                  }
+                ],
+                "id": "clOuter",
+                "label": "Cl"
+              }
+            ],
+            "id": "cRoot",
+            "label": "C"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "astra-swedish-passive/0",
+    "source": {
+      "attempt": "holdout2-swedish-recovered-run",
+      "bundleSha256": "fdc5fccfee50b0385d348aa364fb48cffe9cb6f5dc35c34ebe49d4e485015b5e",
+      "analysisIndex": 0
+    },
+    "sentence": "Boken blev läst av Sara.",
+    "framework": "xbar",
+    "inputTokens": [
+      "Boken",
+      "blev",
+      "läst",
+      "av",
+      "Sara"
+    ],
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "argument": "book",
+              "predicate": "read"
+            },
+            "relation": "theta-role assignment",
+            "values": {
+              "role": "Theme"
+            }
+          },
+          {
+            "anchors": {
+              "agent": "sara",
+              "agentPhrase": "agentPP",
+              "predicate": "read",
+              "preposition": "by"
+            },
+            "relation": "passive agent interpretation",
+            "values": {
+              "role": "Agent"
+            }
+          },
+          {
+            "anchors": {
+              "assigner": "by",
+              "recipient": "sara"
+            },
+            "relation": "prepositional Case assignment",
+            "values": {
+              "case": "oblique"
+            }
+          },
+          {
+            "anchors": {
+              "internalArgument": "book",
+              "passiveHead": "read"
+            },
+            "relation": "passive Case suppression",
+            "values": {
+              "effect": "Structural accusative is unavailable; the internal argument must obtain Case elsewhere."
+            }
+          }
+        ],
+        "stageRecord": "The sentence contains a Swedish bli-passive: läst is the passive participle, and av Sara identifies the reader. The participle first combines with Boken in its complement position, where the noun phrase receives the Theme role. The av-phrase is right-adjoined to the participial V′ and realizes the passive predicate's Agent; it is not an ordinary direct object. Passive participial morphology suppresses structural accusative assignment, so Boken cannot receive Case in this position. A classical GB analysis with NP arguments is adopted: Boken is an already inflected definite noun, and its suffix is not represented as a separate syntactic terminal. The finite passive auxiliary blev is introduced separately as a verbal head; its projection and subsequent raising are constructed in later stages.",
+        "statement": "Construct the passive predicate with its internal argument and agent phrase.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "read",
+                        "label": "V⁰[passive participle]",
+                        "tokenIndex": 2,
+                        "word": "läst"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "bookN",
+                                "label": "N⁰[definite, singular, common gender]",
+                                "tokenIndex": 0,
+                                "word": "Boken"
+                              }
+                            ],
+                            "id": "bookBar",
+                            "label": "N′"
+                          }
+                        ],
+                        "id": "book",
+                        "label": "NP",
+                        "lineageId": "book-chain"
+                      }
+                    ],
+                    "id": "partCoreBar",
+                    "label": "V′"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "by",
+                            "label": "P⁰",
+                            "tokenIndex": 3,
+                            "word": "av"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "saraN",
+                                    "label": "N⁰[proper name]",
+                                    "tokenIndex": 4,
+                                    "word": "Sara"
+                                  }
+                                ],
+                                "id": "saraBar",
+                                "label": "N′"
+                              }
+                            ],
+                            "id": "sara",
+                            "label": "NP"
+                          }
+                        ],
+                        "id": "agentPBar",
+                        "label": "P′"
+                      }
+                    ],
+                    "id": "agentPP",
+                    "label": "PP[passive agent]"
+                  }
+                ],
+                "id": "partAdjunctBar",
+                "label": "V′"
+              }
+            ],
+            "id": "partVP",
+            "label": "VP[passive participial]"
+          },
+          {
+            "children": [],
+            "id": "aux",
+            "label": "V⁰[passive auxiliary, finite past]",
+            "lineageId": "auxiliary-chain",
+            "tokenIndex": 1,
+            "word": "blev"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "selectedPredicate": "partVP",
+              "selector": "aux"
+            },
+            "relation": "auxiliary selection",
+            "values": {
+              "construction": "bli-passive"
+            }
+          },
+          {
+            "anchors": {
+              "landingOccurrence": "book",
+              "sourceTrace": "bookObjectTrace"
+            },
+            "priorAnchors": {
+              "sourceOccurrence": "book"
+            },
+            "relation": "A-movement",
+            "values": {
+              "destination": "Spec-IP",
+              "motivation": "Nominative Case and the subject requirement",
+              "source": "complement of the passive participle"
+            }
+          },
+          {
+            "anchors": {
+              "argumentPosition": "bookObjectTrace",
+              "chainHead": "book",
+              "predicate": "read"
+            },
+            "relation": "theta-role assignment",
+            "values": {
+              "role": "Theme"
+            }
+          },
+          {
+            "anchors": {
+              "licenser": "tense",
+              "recipient": "book"
+            },
+            "relation": "nominative Case licensing",
+            "values": {
+              "case": "nominative"
+            }
+          }
+        ],
+        "stageRecord": "The auxiliary selects the previously constructed participial VP and projects an upper VP. Abstract finite past I is then introduced above that VP. Boken moves from the participle's complement position to Spec-IP, leaving an NP trace in its original position. This is A-movement: the passive auxiliary introduces no competing external argument, and Spec-IP supplies no new theta role. The resulting chain retains the Theme role assigned at its foot, while finite I licenses nominative at its head. This satisfies the Case Filter and the requirement for a clausal subject. The analysis uses trace representations, not silent lexical copies. Blev remains in its verbal base position at this stage; the abstract I head is unpronounced and is not a separately pronounced tense suffix.",
+        "statement": "Project the auxiliary and finite clause, and raise Boken to the subject position.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "bookN",
+                        "label": "N⁰[definite, singular, common gender]",
+                        "tokenIndex": 0,
+                        "word": "Boken"
+                      }
+                    ],
+                    "id": "bookBar",
+                    "label": "N′"
+                  }
+                ],
+                "id": "book",
+                "label": "NP",
+                "lineageId": "book-chain"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "tense",
+                    "label": "I⁰[finite, past]",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "aux",
+                            "label": "V⁰[passive auxiliary, finite past]",
+                            "lineageId": "auxiliary-chain",
+                            "tokenIndex": 1,
+                            "word": "blev"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "read",
+                                        "label": "V⁰[passive participle]",
+                                        "tokenIndex": 2,
+                                        "word": "läst"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "bookObjectTraceLeaf",
+                                            "label": "t[NP]",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "bookObjectTrace",
+                                        "label": "NP",
+                                        "lineageId": "book-chain",
+                                        "silent": true
+                                      }
+                                    ],
+                                    "id": "partCoreBar",
+                                    "label": "V′"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "by",
+                                            "label": "P⁰",
+                                            "tokenIndex": 3,
+                                            "word": "av"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "saraN",
+                                                    "label": "N⁰[proper name]",
+                                                    "tokenIndex": 4,
+                                                    "word": "Sara"
+                                                  }
+                                                ],
+                                                "id": "saraBar",
+                                                "label": "N′"
+                                              }
+                                            ],
+                                            "id": "sara",
+                                            "label": "NP"
+                                          }
+                                        ],
+                                        "id": "agentPBar",
+                                        "label": "P′"
+                                      }
+                                    ],
+                                    "id": "agentPP",
+                                    "label": "PP[passive agent]"
+                                  }
+                                ],
+                                "id": "partAdjunctBar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "partVP",
+                            "label": "VP[passive participial]"
+                          }
+                        ],
+                        "id": "auxBar",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "auxVP",
+                    "label": "VP"
+                  }
+                ],
+                "id": "iBar",
+                "label": "I′"
+              }
+            ],
+            "id": "ip",
+            "label": "IP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landingHead": "finiteI",
+              "movedHead": "aux",
+              "sourceTrace": "auxTrace",
+              "target": "tense"
+            },
+            "priorAnchors": {
+              "sourceHead": "aux",
+              "target": "tense"
+            },
+            "relation": "V-to-I head movement",
+            "values": {
+              "effect": "The finite auxiliary occupies the inflectional head.",
+              "path": "V⁰ to I⁰"
+            }
+          },
+          {
+            "anchors": {
+              "caseLicenser": "finiteI",
+              "foot": "bookObjectTrace",
+              "head": "book",
+              "thetaAssigner": "read"
+            },
+            "relation": "A-chain",
+            "values": {
+              "case": "nominative",
+              "thetaRole": "Theme"
+            }
+          }
+        ],
+        "stageRecord": "Blev raises from the upper verbal head to finite I, leaving a head trace in the auxiliary VP. The resulting complex I head contains the overt, already inflected auxiliary and the silent abstract tense head. This explicitly adopts a V-to-I-to-C derivation of the Swedish finite verb rather than base-generating blev in C or skipping the intervening inflectional head. No morphological decomposition or additional surface realization is introduced: blev remains one whole-word terminal. The subject remains in Spec-IP, and its object trace remains inside the participial predicate.",
+        "statement": "Raise the finite passive auxiliary from V to I.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "bookN",
+                        "label": "N⁰[definite, singular, common gender]",
+                        "tokenIndex": 0,
+                        "word": "Boken"
+                      }
+                    ],
+                    "id": "bookBar",
+                    "label": "N′"
+                  }
+                ],
+                "id": "book",
+                "label": "NP",
+                "lineageId": "book-chain"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "aux",
+                        "label": "V⁰[passive auxiliary, finite past]",
+                        "lineageId": "auxiliary-chain",
+                        "tokenIndex": 1,
+                        "word": "blev"
+                      },
+                      {
+                        "children": [],
+                        "id": "tense",
+                        "label": "I⁰[finite, past]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "finiteI",
+                    "label": "I⁰[finite, past]",
+                    "lineageId": "finite-head-chain"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "auxTrace",
+                            "label": "V⁰[t]",
+                            "lineageId": "auxiliary-chain",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "read",
+                                        "label": "V⁰[passive participle]",
+                                        "tokenIndex": 2,
+                                        "word": "läst"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "bookObjectTraceLeaf",
+                                            "label": "t[NP]",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "bookObjectTrace",
+                                        "label": "NP",
+                                        "lineageId": "book-chain",
+                                        "silent": true
+                                      }
+                                    ],
+                                    "id": "partCoreBar",
+                                    "label": "V′"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "by",
+                                            "label": "P⁰",
+                                            "tokenIndex": 3,
+                                            "word": "av"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "saraN",
+                                                    "label": "N⁰[proper name]",
+                                                    "tokenIndex": 4,
+                                                    "word": "Sara"
+                                                  }
+                                                ],
+                                                "id": "saraBar",
+                                                "label": "N′"
+                                              }
+                                            ],
+                                            "id": "sara",
+                                            "label": "NP"
+                                          }
+                                        ],
+                                        "id": "agentPBar",
+                                        "label": "P′"
+                                      }
+                                    ],
+                                    "id": "agentPP",
+                                    "label": "PP[passive agent]"
+                                  }
+                                ],
+                                "id": "partAdjunctBar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "partVP",
+                            "label": "VP[passive participial]"
+                          }
+                        ],
+                        "id": "auxBar",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "auxVP",
+                    "label": "VP"
+                  }
+                ],
+                "id": "iBar",
+                "label": "I′"
+              }
+            ],
+            "id": "ip",
+            "label": "IP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landingHead": "finiteC",
+              "movedHead": "finiteI",
+              "sourceTrace": "iTrace",
+              "target": "cBase"
+            },
+            "priorAnchors": {
+              "sourceHead": "finiteI"
+            },
+            "relation": "I-to-C head movement",
+            "values": {
+              "motivation": "Matrix declarative verb-second requirement",
+              "path": "I⁰ to C⁰"
+            }
+          },
+          {
+            "anchors": {
+              "landingOccurrence": "book",
+              "sourceTrace": "bookSubjectTrace"
+            },
+            "priorAnchors": {
+              "sourceOccurrence": "book"
+            },
+            "relation": "A′-movement to the preverbal field",
+            "values": {
+              "destination": "Spec-CP",
+              "source": "Spec-IP"
+            }
+          },
+          {
+            "anchors": {
+              "casePosition": "bookSubjectTrace",
+              "finiteLicenser": "iTrace",
+              "pronouncedHead": "book",
+              "thetaAssigner": "read",
+              "thetaPosition": "bookObjectTrace"
+            },
+            "relation": "nominal chain interpretation",
+            "values": {
+              "case": "nominative",
+              "interpretation": "The book is the entity read.",
+              "thetaRole": "Theme"
+            }
+          },
+          {
+            "anchors": {
+              "highestHead": "finiteC",
+              "intermediateTrace": "iTrace",
+              "pronouncedVerb": "aux",
+              "verbalTrace": "auxTrace"
+            },
+            "relation": "finite head chain",
+            "values": {
+              "path": "V⁰–I⁰–C⁰"
+            }
+          },
+          {
+            "anchors": {
+              "agent": "sara",
+              "agentPhrase": "agentPP",
+              "caseAssigner": "by",
+              "predicate": "read"
+            },
+            "relation": "passive agent interpretation and Case",
+            "values": {
+              "case": "prepositionally licensed oblique",
+              "interpretation": "Sara is the reader.",
+              "thetaRole": "Agent"
+            }
+          },
+          {
+            "anchors": {
+              "clause": "cp"
+            },
+            "relation": "grammaticality judgment",
+            "values": {
+              "basis": "Passive theta-role distribution, nominal Case licensing, local movement chains, and matrix V2 order are satisfied.",
+              "judgment": "grammatical"
+            }
+          }
+        ],
+        "stageRecord": "A matrix declarative CP is projected above IP. The complex finite I head raises to C, leaving an I trace; Boken then moves from the already established Spec-IP position to Spec-CP, leaving a subject trace. This is the CP analysis of Swedish verb-second order: the initial subject occupies the preverbal field, and blev occupies C. The subject's A′-movement does not add a theta role or a new Case requirement; its nominative and Theme dependencies remain mediated by its A-position and original complement position. The head chain passes through I rather than crossing it, and the nominal dependency stays within one clause without crossing an island. The passive Agent is realized by av Sara, and läst is compatible with the singular common-gender subject. The completed structure therefore licenses the exact input as grammatical, meaning that the book was read by Sara. Subject-initial V2 is represented uniformly here; this does not require contrastive topic emphasis. The overt terminals, with all traces and abstract heads silent, yield Boken blev läst av Sara.",
+        "statement": "Complete the grammatical Swedish V2 declarative.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "bookN",
+                        "label": "N⁰[definite, singular, common gender]",
+                        "tokenIndex": 0,
+                        "word": "Boken"
+                      }
+                    ],
+                    "id": "bookBar",
+                    "label": "N′"
+                  }
+                ],
+                "id": "book",
+                "label": "NP",
+                "lineageId": "book-chain"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "aux",
+                            "label": "V⁰[passive auxiliary, finite past]",
+                            "lineageId": "auxiliary-chain",
+                            "tokenIndex": 1,
+                            "word": "blev"
+                          },
+                          {
+                            "children": [],
+                            "id": "tense",
+                            "label": "I⁰[finite, past]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "finiteI",
+                        "label": "I⁰[finite, past]",
+                        "lineageId": "finite-head-chain"
+                      },
+                      {
+                        "children": [],
+                        "id": "cBase",
+                        "label": "C⁰[declarative]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "finiteC",
+                    "label": "C⁰[V2]"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "bookSubjectTraceLeaf",
+                            "label": "t[NP]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "bookSubjectTrace",
+                        "label": "NP",
+                        "lineageId": "book-chain",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "iTrace",
+                            "label": "I⁰[t, finite]",
+                            "lineageId": "finite-head-chain",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "auxTrace",
+                                    "label": "V⁰[t]",
+                                    "lineageId": "auxiliary-chain",
+                                    "silent": true
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "read",
+                                                "label": "V⁰[passive participle]",
+                                                "tokenIndex": 2,
+                                                "word": "läst"
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "bookObjectTraceLeaf",
+                                                    "label": "t[NP]",
+                                                    "silent": true
+                                                  }
+                                                ],
+                                                "id": "bookObjectTrace",
+                                                "label": "NP",
+                                                "lineageId": "book-chain",
+                                                "silent": true
+                                              }
+                                            ],
+                                            "id": "partCoreBar",
+                                            "label": "V′"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "by",
+                                                    "label": "P⁰",
+                                                    "tokenIndex": 3,
+                                                    "word": "av"
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "saraN",
+                                                            "label": "N⁰[proper name]",
+                                                            "tokenIndex": 4,
+                                                            "word": "Sara"
+                                                          }
+                                                        ],
+                                                        "id": "saraBar",
+                                                        "label": "N′"
+                                                      }
+                                                    ],
+                                                    "id": "sara",
+                                                    "label": "NP"
+                                                  }
+                                                ],
+                                                "id": "agentPBar",
+                                                "label": "P′"
+                                              }
+                                            ],
+                                            "id": "agentPP",
+                                            "label": "PP[passive agent]"
+                                          }
+                                        ],
+                                        "id": "partAdjunctBar",
+                                        "label": "V′"
+                                      }
+                                    ],
+                                    "id": "partVP",
+                                    "label": "VP[passive participial]"
+                                  }
+                                ],
+                                "id": "auxBar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "auxVP",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "iBar",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "ip",
+                    "label": "IP"
+                  }
+                ],
+                "id": "cBar",
+                "label": "C′"
+              }
+            ],
+            "id": "cp",
+            "label": "CP[declarative]"
+          }
+        ]
+      }
+    ]
+  }
+]

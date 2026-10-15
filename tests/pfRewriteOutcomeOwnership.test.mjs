@@ -4,7 +4,7 @@ import { buildFacetFixture, buildPublicFacetFixture } from './helpers/tier2Publi
 import { TIER2_FACET_RECIPES } from '../replay/relations/tier2FacetRecipes.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { __test__ } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 
 const recipe = id => TIER2_FACET_RECIPES.find(recipe => recipe.id === id);
 const siblings = ['movement.path', 'movement.carrier', 'binding.dependency', 'locality.boundary',
@@ -62,7 +62,7 @@ for (const id of negativeSiblings) test(`public ${id} retains its blocked claim 
   const prior = [...(left.priorForest.length ? left.priorForest : left.currentForest),
     ...(right.priorForest.length ? right.priorForest : right.currentForest)];
   const authored = { derivationStages: [stage(prior), stage(fixture.currentForest, [fixture.relation])] };
-  const bundle = __test__.normalizeParseBundle(authored, 'xbar', `${leftPublic.sentence} ${rightPublic.sentence}`, 'grok', true);
+  const bundle = normalizeParseBundle(authored, 'xbar', `${leftPublic.sentence} ${rightPublic.sentence}`, 'grok', true);
   const items = compileRelationRenderPlan(bundle.analyses[0].derivationStages).frames[1].items;
   assert(items.some(item => item.tier2FacetId === id));
   const rewrite = items.filter(item => item.tier2FacetId === 'pf.rewrite');

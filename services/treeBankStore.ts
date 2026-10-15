@@ -1,6 +1,5 @@
 import {
   prepareTreeBankSave,
-  validateTreeBankRecord,
   validateTreeBankWork,
   validateTreeBankPreview,
   restoreTreeBankBundle,
@@ -84,25 +83,32 @@ function legacySummary(v: any): TreeBankEntrySummary {
     legacy: true,
   };
 }
+type TreeBankTransaction<T> = (
+  tx: IDBTransaction,
+  set: (value: T) => void,
+  fail: (error: unknown) => void,
+) => void;
+
 /** Request success is provisional until the transaction commits. */
-export function completeTreeBankRequest<T>(
+export function completeTreeBankTransaction<T>(
   db: IDBDatabase,
+  names: string[],
   mode: IDBTransactionMode,
-  operation: (s: IDBObjectStore) => IDBRequest<T>,
+  run: TreeBankTransaction<T>,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
-    let result: T;
+    let value: T;
     let failure: unknown;
-    let tx: IDBTransaction | undefined;
+    let tx: IDBTransaction;
     try {
       tx = db.transaction(
-        STORE,
+        names,
         mode,
         mode === "readwrite" ? { durability: "strict" } : undefined,
       );
       tx.oncomplete = () => {
         db.close();
-        resolve(result);
+        resolve(value);
       };
       tx.onabort = () => {
         db.close();
@@ -113,13 +119,18 @@ export function completeTreeBankRequest<T>(
       tx.onerror = () => {
         failure ||= tx.error;
       };
-      const r = operation(tx.objectStore(STORE));
-      r.onsuccess = () => {
-        result = r.result;
-      };
-      r.onerror = () => {
-        failure = r.error;
-      };
+      run(
+        tx,
+        (v) => {
+          value = v;
+        },
+        (e) => {
+          failure ||= e;
+          try {
+            tx.abort();
+          } catch {}
+        },
+      );
     } catch (e) {
       failure = e;
       if (tx) {
@@ -213,61 +224,8 @@ export function createTreeBankStore(
   const transaction = async <T>(
     names: string[],
     mode: IDBTransactionMode,
-    run: (
-      tx: IDBTransaction,
-      set: (v: T) => void,
-      fail: (e: unknown) => void,
-    ) => void,
-  ): Promise<T> => {
-    const db = await open();
-    return new Promise((resolve, reject) => {
-      let value: T;
-      let failure: unknown;
-      let tx: IDBTransaction;
-      try {
-        tx = db.transaction(
-          names,
-          mode,
-          mode === "readwrite" ? { durability: "strict" } : undefined,
-        );
-        tx.oncomplete = () => {
-          db.close();
-          resolve(value);
-        };
-        tx.onabort = () => {
-          db.close();
-          reject(
-            failure || tx.error || new Error("Tree Bank transaction aborted."),
-          );
-        };
-        tx.onerror = () => {
-          failure ||= tx.error;
-        };
-        run(
-          tx,
-          (v) => {
-            value = v;
-          },
-          (e) => {
-            failure ||= e;
-            try {
-              tx.abort();
-            } catch {}
-          },
-        );
-      } catch (e) {
-        failure = e;
-        if (tx) {
-          try {
-            tx.abort();
-            return;
-          } catch {}
-        }
-        db.close();
-        reject(e);
-      }
-    });
-  };
+    run: TreeBankTransaction<T>,
+  ): Promise<T> => completeTreeBankTransaction(await open(), names, mode, run);
   const all = (name: string) =>
     transaction<any[]>([name], "readonly", (tx, set) => {
       const r = tx.objectStore(name).getAll();
@@ -328,9 +286,6 @@ export function createTreeBankStore(
   };
   const saveTreeBankEntry = async (input: TreeBankSaveInput) => {
     const prepared = await prepareTreeBankSave(input);
-    await validateTreeBankWork(prepared.work);
-    for (const r of prepared.records) await validateTreeBankRecord(r);
-    if (prepared.preview) await validateTreeBankPreview(prepared.preview);
     await transaction<void>(
       ["records", "savedWorks", "previews", STORE],
       "readwrite",
@@ -418,8 +373,6 @@ export function createTreeBankStore(
       };
     }
     if (!data.work) throw new Error("Saved Tree Bank entry was not found.");
-    await validateTreeBankWork(data.work);
-    for (const r of data.records) await validateTreeBankRecord(r);
     const bundle = await restoreTreeBankBundle(data.work, data.records);
     return {
       entry: summary(data.work),

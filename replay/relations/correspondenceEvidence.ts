@@ -1,11 +1,11 @@
 import type { SyntaxNode } from '../../types.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
-import { establishesAssignment } from './assignmentContinuity.ts';
 import { scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import { establishesAssignment } from './outcomeResolver.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { isExplicitTier2Role, normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
 
-const correspondenceClaim = /^(?:(?:vp|np|dp|pp|cp|tp|ip|phrasal|predicate|nominal|right node raising|pf|gapping) )*(?:ellipsis|deletion|correspondence)(?: (?:licensing|antecedence|identity|alignment|structural identity))?$/u;
+const correspondenceClaim = /^(?:(?:vp|np|dp|pp|cp|tp|ip|phrasal|predicate|verbal|nominal|right node raising|pf|gapping) )*(?:ellipsis|deletion|correspondence)(?: (?:licensing|antecedence|identity|alignment|structural identity))?$/u;
 const antecedentRole = /^(?:antecedent(?: (?:[a-z]+p|domain|phrase|constituent))?|(?:overt )?identity source)$/u;
 const indexRows = (evidence: Tier2FacetEvidence) => (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('index'));
 
@@ -21,7 +21,7 @@ export function recoverEllipsisCorrespondence(evidence: Tier2FacetEvidence) {
   const sources = fields.filter(entry => antecedentRole.test(normalizeTier2Synonym(entry.key))
     || entry.concepts.includes('correspondence.source'));
   const targets = fields.filter(entry => isExplicitTier2Role('ellipsis.site', entry.key) || normalizeTier2Synonym(entry.key) === 'silent domain'
-    || entry.concepts.includes('correspondence.target'));
+    || entry.concepts.includes('correspondence.target') || normalizeTier2Synonym(entry.key) === 'target');
   if (sources.length !== 1 || targets.length !== 1 || sources[0] === targets[0]
     || sources[0].items.length !== 1 || targets[0].items.length !== 1
     || sources[0].items[0] === targets[0].items[0]) return [];
@@ -80,7 +80,10 @@ export function recoverRemnantCorrespondence(evidence: Tier2FacetEvidence) {
 export function recoverNamedEllipsisSite(evidence: Tier2FacetEvidence) {
   const clauses = relationLabelClauses(evidence.relationName).filter(clause => /\bellipsis\b/u.test(clause));
   if (clauses.length !== 1 || !correspondenceClaim.test(clauses[0]) || !establishesAssignment(evidence)) return [];
-  const sites = (evidence.authoredCurrentAnchors ?? []).filter(entry => normalizeTier2Synonym(entry.key) === 'silent domain');
+  const anchors = evidence.authoredCurrentAnchors ?? [];
+  const hasAntecedent = anchors.some(entry => antecedentRole.test(normalizeTier2Synonym(entry.key)) && entry.items.length === 1);
+  const sites = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'silent domain'
+    || hasAntecedent && normalizeTier2Synonym(entry.key) === 'target');
   if (sites.length !== 1 || sites[0].items.length !== 1 || !uniqueCurrentOwners(evidence, sites[0].items)) return [];
   return [scopeEvidence(evidence, 'ellipsis.site', [{ entry: sites[0], concept: 'ellipsis.site' }])];
 }

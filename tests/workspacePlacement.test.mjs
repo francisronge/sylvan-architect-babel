@@ -45,7 +45,7 @@ function scenario({ changedChild = false, ambiguous = false, attached = true, re
 for (const direction of ['ltr', 'rtl']) test(`${direction}: reservation translates the component's own geometry from first selection through attachment`, () => {
   const { steps, sizes, originals, baseline, positions } = scenario();
   const unchanged = JSON.stringify(steps), oldCoordinates = structuredClone(originals);
-  const plan = reserveWorkspaceAttachments(steps, sizes, direction, baseline);
+  const plan = reserveWorkspaceAttachments({ steps, sizes, direction, coordinatesForStage: baseline });
   const selection = positions(0, plan, direction), before = positions(1, plan, direction), after = positions(2, plan, direction);
   assert.deepEqual(selection.get('a'), before.get('a'), 'selection starts at its later location');
   assert.deepEqual(before.get('a'), after.get('lower'), 'old place belongs to the exact lower witness');
@@ -62,7 +62,7 @@ for (const direction of ['ltr', 'rtl']) test(`${direction}: reservation translat
   }
   assert.deepEqual(originals, oldCoordinates, 'baseline maps are immutable');
   assert.equal(JSON.stringify(steps), unchanged, 'visibility, records and timing are immutable');
-  assert.deepEqual(reserveWorkspaceAttachments([...steps].reverse(), new Map([...sizes].reverse()), direction, baseline),
+  assert.deepEqual(reserveWorkspaceAttachments({ steps: [...steps].reverse(), sizes: new Map([...sizes].reverse()), direction, coordinatesForStage: baseline }),
     plan, 'measurement order cannot change the plan');
 });
 
@@ -74,7 +74,7 @@ for (const [name, options] of [
 ]) test(`${name} rejects attachment reservation while keeping the independent workspace stable`, () => {
   const { steps, sizes, originals, baseline, positions } = scenario(options);
   const originalSteps = JSON.stringify(steps), originalCoordinates = structuredClone(originals);
-  const plan = reserveWorkspaceAttachments(steps, sizes, 'ltr', baseline);
+  const plan = reserveWorkspaceAttachments({ steps, sizes, direction: 'ltr', coordinatesForStage: baseline });
   const before = positions(1, plan, 'ltr'), after = positions(2, plan, 'ltr');
   const separate = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) > 1e-6;
   // Rejecting this correspondence must not prevent the general planner from

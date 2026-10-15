@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { __test__ } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { blockedCollectionCases, blockedCollectionStage } from './helpers/blockedCollectionFixtures.mjs';
 
 test('collection painter fixtures enter through canonical normalization and produce complete Replay', () => {
   for (const { id, relations } of blockedCollectionCases) {
     const input = { analyses: [{ derivationStages: [blockedCollectionStage(relations)] }] };
-    const bundle = __test__.normalizeParseBundle(input, 'minimalism', 'with children', 'fixture', true);
+    const bundle = normalizeParseBundle(input, 'minimalism', 'with children', 'fixture', true);
     assert.equal(bundle.analyses.length, 1, id);
     assert.equal(bundle.analyses[0].finalForest.length, 1, id);
     assert.equal(bundle.analyses[0].tree.id, 'root', id);

@@ -1,12 +1,15 @@
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
-import { cloneSyntaxTree, isSyntheticWorkspaceRootNode, isUnderTriangulation, markTriangulatedNodes } from './replayCompiler.ts';
+import { cloneSyntaxTree } from './syntaxForest.ts';
+import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
+import { isUnderTriangulation, markTriangulatedNodes } from './triangulation.ts';
 import { categoryTextLayout } from './categoryTextLayout.ts';
 import { buildStageCoordinateReservations } from './stageCoordinates.ts';
 import { buildReplayPlaqueSchedule, stageTreeLayoutSize, type StageLayoutInput, type MeasuredStageCoordinates, type ReplayPlaqueSchedule } from './stageCamera.ts';
 import type { TreeCoordinateReservation } from './treeLayout.ts';
-import { prepareStagePlaqueRequests } from './relations/plaquePlacement.ts';
+import { nativeRelationPlaqueRects, prepareStagePlaqueRequests } from './relations/plaquePlacement.ts';
+import { resolveDisplayedTrajectoryAttachments } from './relations/renderPlan.ts';
 import type { PlaqueTextMetrics, PlaqueTextStyle } from './relations/plaqueTextLayout.ts';
 import { collectTreeInkMeasurements, type TreeInkTextMetrics, type TreeInkTextStyle } from './treeInkGeometry.ts';
 import { treeLabelRunKey, type TreeLabelRuns, type TreeLabelBounds } from './treeLabelRuns.ts';
@@ -134,9 +137,13 @@ export function* measurePlaqueLayoutJob(input: StageLayoutInput): Generator<void
   // visibility, while a theta predicate follows the unpruned unary hierarchy.
   for (let stageIndex = 0; stageIndex < (snapshot.plan?.frames.length ?? 0); stageIndex++) {
     const steps = snapshot.steps.filter(step => step.replayFrameIndex === stageIndex && step.replayCanvasData);
-    const scenes = [...steps.map(step => ({ canvas: step.replayCanvasData!, visible: step.replayVisibleNodeIds })),
-      ...[...new Set(steps.map(step => step.replayCanvasData!)), snapshot.completedCanvas].map(canvas => ({ canvas, visible: undefined }))];
-    for (const { canvas, visible } of scenes) {
+    const scenes = [...steps.map(step => ({ canvas: step.replayCanvasData!, visible: step.replayVisibleNodeIds,
+      played: new Set((step.replayRelationLinks ?? []).flatMap(link => {
+        const [stage, relation] = String(link.authoredRelationKey ?? '').split(':').map(Number);
+        return stage === stageIndex && Number.isInteger(relation) ? [relation] : [];
+      })) })),
+      ...[...new Set(steps.map(step => step.replayCanvasData!)), snapshot.completedCanvas].map(canvas => ({ canvas, visible: undefined, played: null }))];
+    for (const { canvas, visible, played } of scenes) {
       assertCurrent();
       const root = d3.hierarchy(cloneSyntaxTree(canvas)!);
       applyVizIds(root);
@@ -144,7 +151,12 @@ export function* measurePlaqueLayoutJob(input: StageLayoutInput): Generator<void
       const ids = visible && new Set(visible);
       const nodes = root.descendants().filter(node => !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
         && (!ids || ids.has(getNodeId(node))));
-      prepareStagePlaqueRequests(snapshot.plan!.frames[stageIndex].items, nodes as d3.HierarchyPointNode<SyntaxNode>[], measurePlaqueText);
+      const byId = indexHierarchyNodesByIdAndAliases(nodes);
+      const items = snapshot.plan!.frames[stageIndex].items.map(item => resolveDisplayedTrajectoryAttachments(item,
+        id => byId.get(id)?.data, { stageIndex, playedRelationIndices: played }));
+      prepareStagePlaqueRequests(items, nodes as d3.HierarchyPointNode<SyntaxNode>[], measurePlaqueText);
+      nativeRelationPlaqueRects(items,
+        id => byId.has(id) ? { x: 0, y: 0, width: 1, height: 1 } : null, measurePlaqueText);
       assertCurrent();
       yield;
     }

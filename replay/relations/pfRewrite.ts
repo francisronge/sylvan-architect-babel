@@ -1,8 +1,13 @@
-import { establishesAssignment } from './assignmentContinuity.ts';
+import { exactRealizationGroup, sameRealizationMembers } from '../realizationGroups.ts';
 import { scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
-import { exactRealizationGroup } from '../realizationGroups.ts';
-import { readRewriteLiteral, authoredRewritePair, pfRewriteLabelDenial, ownedPFRewriteOutcomes } from './rewriteLiterals.ts';
-import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import { establishesAssignment } from './outcomeResolver.ts';
+import {
+  authoredRewritePair,
+  ownedPFRewriteOutcomes,
+  pfRewriteLabelDenial,
+  readRewriteLiteral
+} from './rewriteLiterals.ts';
+import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
 
 type RewriteInput = { entry: Tier2AuthoredEvidenceEntry; prior: boolean };
@@ -42,12 +47,16 @@ function recoverSurfaceCombination(evidence: Tier2FacetEvidence) {
   const denied = /\b(?:no|not|never|without|denied|rejected|failed|blocked|unlicensed|pending|unresolved|unestablished|required|requested|expected|possible|potential|hypothetical|whether|if|unless)\b/u;
   if (realization.length !== 1 || denied.test(realization[0])) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [], values = evidence.authoredValues ?? [];
-  const surfaces = values.filter(entry => normalizeTier2Synonym(entry.key) === 'surface combination' || entry.concepts.includes('pf.surface'));
+  const surfaces = values.filter(entry => ['surface', 'surface combination'].includes(normalizeTier2Synonym(entry.key)) || entry.concepts.includes('pf.surface'));
+  const sequence = surfaces.length === 1 && /^(?:surface|orthographic) sequence$/u.test(normalizeTier2Synonym(surfaces[0].key));
+  const morphology = sequence ? values.filter(entry => normalizeTier2Synonym(entry.key) === 'morphological sequence') : [];
   const links = values.filter(entry => normalizeTier2Synonym(entry.key) === 'linking segment');
   const outcomes = values.filter(entry => /^(?:realization|realisation) (?:outcome|status|result)$/u.test(normalizeTier2Synonym(entry.key))
     || clauses.length === 1 && (entry.concepts.includes('outcome')
       || /^(?:status|result|verdict|judgment)$/u.test(normalizeTier2Synonym(entry.key))));
-  if (surfaces.length !== 1 || links.length > 1 || [...surfaces, ...links].some(entry => entry.items.length !== 1 || !entry.items[0].trim())
+  if (surfaces.length !== 1 || links.length > 1 || surfaces[0].items.length < 1 || !sequence && surfaces[0].items.length !== 1
+    || [...surfaces, ...morphology].some(entry => !entry.items.length || entry.items.some(item => !item.trim()))
+    || links.some(entry => entry.items.length !== 1 || !entry.items[0].trim())
     || outcomes.some(entry => entry.items.some(item => denied.test(normalizeTier2Synonym(item))))
     || anchors.some(entry => entry.concepts.includes('rewrite.input') || entry.concepts.includes('pf.contributors'))) return [];
   const nodes = new Map<string, typeof evidence.currentForest[number]>();
@@ -55,21 +64,27 @@ function recoverSurfaceCombination(evidence: Tier2FacetEvidence) {
   evidence.currentForest.forEach(visit);
   if (!uniqueCurrentOwners(evidence, anchors.flatMap(entry => entry.items))) return [];
   const contains = (node: typeof evidence.currentForest[number], id: string): boolean => node.id === id || Boolean(node.children?.some(child => contains(child, id)));
+  const terminals = (node: typeof evidence.currentForest[number]): string[] => node.children?.length
+    ? node.children.flatMap(terminals) : [node.id];
   const groups = (evidence.currentRealizations ?? []).flatMap(group => {
-    if (!exactRealizationGroup(group.nodeIds, evidence.currentRealizations, evidence.currentForest)) return [];
+    if (!exactRealizationGroup(group.nodeIds, evidence.currentRealizations, evidence.currentForest)
+      || sequence && group.tokenIndices.length !== surfaces[0].items.length) return [];
     const owners = anchors.filter(entry => entry.items.length && entry.items.every(id => group.nodeIds.includes(id)));
     if (owners.flatMap(entry => entry.items).length !== group.nodeIds.length
       || !group.nodeIds.every(id => owners.some(entry => entry.items.includes(id)))) return [];
     // An explicitly anchored enclosing constituent is context, never another
     // output. Unrelated or competing participants cannot disappear from proof.
     const context = anchors.filter(entry => !owners.includes(entry));
-    if (context.some(entry => entry.concepts.includes('rewrite.output') || entry.items.length !== 1
-      || !group.nodeIds.some(id => contains(nodes.get(entry.items[0])!, id)))) return [];
+    const groupTerminals = group.nodeIds.flatMap(id => terminals(nodes.get(id)!));
+    if (context.some(entry => entry.items.length !== 1
+      || !group.nodeIds.some(id => contains(nodes.get(entry.items[0])!, id))
+      || entry.concepts.includes('rewrite.output')
+        && !sameRealizationMembers(terminals(nodes.get(entry.items[0])!), groupTerminals))) return [];
     return [{ group, owners }];
   });
   if (groups.length !== 1) return [];
   const scope = scopeEvidence(evidence, 'pf.structured', groups[0].owners.map(entry => ({ entry, concept: 'rewrite.output' })),
-    [...surfaces, ...links].map(entry => ({ entry, concept: 'pf.rows' })));
+    [...values.filter(entry => surfaces.includes(entry) || morphology.includes(entry)), ...links].map(entry => ({ entry, concept: 'pf.rows' })));
   scope.evidence.realizationGroupAnchorKeys = groups[0].owners.map(entry => entry.key);
   return [scope];
 }

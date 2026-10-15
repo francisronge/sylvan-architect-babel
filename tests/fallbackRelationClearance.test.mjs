@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { bindRelationPlanFrame, fitFallbackGeometry } from '../replay/relations/geometryBinding.ts';
+import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { fitFallbackGeometry } from '../replay/relations/fallbackGeometry.ts';
 import { strokeObstacleRects } from '../components/relationInkObstacles.ts';
 const overlaps = (a, b) => a.x < b.x+b.width && a.x+a.width > b.x && a.y < b.y+b.height && a.y+a.height > b.y;
 const roleBox = (m, s) => ({ x:m.x-(m.textWidth/2+4)*s,y:m.y-12*s,width:(m.textWidth+8)*s,height:24*s });

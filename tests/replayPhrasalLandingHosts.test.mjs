@@ -7,10 +7,8 @@ import test from 'node:test';
 import { build } from 'esbuild';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
-import {
-  adaptDerivationStagesForReplay,
-  buildPlaybackStepsFromDerivationFrames
-} from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
 import { registeredTrajectoryDisplayKind } from '../replay/relations/movementIdentities.ts';
 
 const repo = fileURLToPath(new URL('..', import.meta.url));
@@ -67,10 +65,11 @@ test('every Orchard phrasal movement creates a new landing host only in its rela
 
   for (const card of rawCases) {
     const stages = card.derivationStages || [];
-    const steps = buildPlaybackStepsFromDerivationFrames(
-      adaptDerivationStagesForReplay(stages),
-      card.sentence,
-      buildDerivationReplayPlan({ derivationStages: stages })
+    const steps = buildPlaybackStepsFromDerivationFrames({
+      frames: adaptDerivationStagesForReplay(stages),
+      sentence: card.sentence,
+      replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+    }
     );
 
     for (let stageIndex = 0; stageIndex < stages.length; stageIndex += 1) {

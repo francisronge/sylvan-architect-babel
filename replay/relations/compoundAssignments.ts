@@ -1,71 +1,7 @@
-import { assignmentOutcomes, establishesAssignment, type AssignmentScope } from './assignmentContinuity.ts';
-import { nativeThetaRoles, sameNameValueEntries, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
-import { buildTier2SynonymIndex, namedThematicRole, normalizeTier2Synonym, qualifiedAssignmentConcepts, relationRoleConcepts } from './tier2Synonyms.ts';
-import { scopeEvidence, type EvidenceScope } from './evidenceScopes.ts';
-import { categoryLabel } from '../categoryLabel.ts';
-
-const roleIndex = buildTier2SynonymIndex();
-
-/** Coordination can share an assignment noun: “object role and Case
- * assignment” asserts both. Separate clauses do not inherit that noun. */
-const assignmentClauses = (label: string | undefined): string[] => normalizeTier2Synonym(label ?? '')
-  .split(/\s*(?:[;,]|\bbut\b)\s*/u).flatMap(group => {
-    const clauses = group.split(/\s+and\s+/u);
-    const operation = / (assignment|introduction|licensing|valuation)$/u.exec(clauses.at(-1) ?? '')?.[1];
-    return clauses.map(clause => operation && /(?:^| )(?:role|case)$/u.test(clause) ? `${clause} ${operation}` : clause);
-  }).map(clause => clause.replace(/^(?:matrix|embedded|local) /u, ''));
-
-/** A typed thematic assignment keeps its own direction when Case properties
- * coexist. The scope binds authored fields; it does not rewrite the record. */
-export function recoverTypedAssignments(evidence: Tier2FacetEvidence): EvidenceScope[] {
-  if (!establishesAssignment(evidence)) return [];
-  const values = evidence.authoredValues ?? [];
-  const roles = values.filter(entry => entry.concepts.includes('role.label'));
-  if (roles.length !== 1 || roles[0].items.length !== 1 || !roles[0].items[0].trim()) return [];
-  const literal = normalizeTier2Synonym(roles[0].items[0]);
-  const clauses = assignmentClauses(evidence.relationName);
-  const thematic = (clause: string) => {
-    const match = /^([\p{L}\p{N}]+) role (?:assignment|introduction|licensing)$/u.exec(clause);
-    return /^(?:theta|thematic|θ)(?: role)? (?:assignment|introduction|licensing)$/u.test(clause)
-      || Boolean(match && (namedThematicRole(match[1]) || ['subject', 'object', 'external', 'internal'].includes(match[1]) || match[1] === literal));
-  };
-  const roleClauses = clauses.filter(clause => /(?:^| )(?:role|theta|thematic|θ)(?: |$)/u.test(clause));
-  if (roleClauses.length !== 1 || !thematic(roleClauses[0])) return [];
-  const anchors = evidence.authoredCurrentAnchors ?? [];
-  const occurrences = new Map<string, Array<{ node: (typeof evidence.currentForest)[number]; workspace: number; ancestors: string[] }>>();
-  const visit = (node: (typeof evidence.currentForest)[number], workspace: number, ancestors: string[]) => {
-    occurrences.set(node.id, [...(occurrences.get(node.id) ?? []), { node, workspace, ancestors }]);
-    node.children?.forEach(child => visit(child, workspace, [...ancestors, node.id]));
-  };
-  evidence.currentForest.forEach((node, workspace) => visit(node, workspace, []));
-  const occurrence = (id: string) => occurrences.get(id)?.length === 1 ? occurrences.get(id)![0] : undefined;
-  const targets = anchors.filter(entry => entry.concepts.includes('theta.arguments')
-    || qualifiedAssignmentConcepts(`theta ${entry.key}`).includes('theta.arguments')
-    || namedThematicRole(entry.key) || normalizeTier2Synonym(entry.key) === literal);
-  if (targets.length !== 1 || targets[0].items.length !== 1) return [];
-  const target = targets[0], targetOccurrence = occurrence(target.items[0]);
-  if (!targetOccurrence) return [];
-  const headSource = (entry: (typeof anchors)[number]) => {
-    const role = normalizeTier2Synonym(entry.key);
-    const predicateRole = role.endsWith(' head') && relationRoleConcepts(roleIndex, role.replace(/ head$/u, ' predicate')).includes('predicate');
-    if (role !== 'verb' && !predicateRole) return false;
-    const source = entry.items.length === 1 ? occurrence(entry.items[0]) : undefined;
-    // An anchored verbal or qualified predicative head supplies a source only
-    // in this typed assignment and in the recipient's current workspace.
-    return source && source.workspace === targetOccurrence.workspace
-      && !source.ancestors.includes(target.items[0])
-      && !/[′’']/u.test(source.node.label)
-      && /^(?:V|v|Voice|Appl|P|A|N)$/u.test(categoryLabel(source.node.label));
-  };
-  const sources = anchors.filter(entry => entry.concepts.includes('predicate')
-    || qualifiedAssignmentConcepts(`theta ${entry.key}`).includes('predicate') || headSource(entry));
-  if (sources.length !== 1 || sources[0].items.length !== 1 || sources[0].items[0] === target.items[0]
-    || !occurrence(sources[0].items[0])) return [];
-  const source = sources[0];
-  return [scopeEvidence(evidence, 'theta-grid', [
-    { entry: source, concept: 'predicate' }, { entry: target, concept: 'theta.arguments' }
-  ], [{ entry: roles[0], concept: 'role.label' }])];
-}
+import type { AssignmentScope } from './assignmentContinuity.ts';
+import { assignmentOutcomes, establishesAssignment } from './outcomeResolver.ts';
+import { nativeThetaRoles, sameNameValueEntries } from './tier2EvidenceQueries.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 
 /** Split ordered assignment lists only when their explicit roles, paired values
  * and unique structural grouping independently agree. Array length is not proof. */

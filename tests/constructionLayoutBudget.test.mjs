@@ -70,7 +70,7 @@ test('a shallow pending wrapper cannot compress an unchanged deeper sister in th
   }
 });
 
-test('a detached hidden wrapper cannot alter the completed clause horizontal spacing', () => {
+test('a temporary construction container changes no intrinsic or retained subtree proportions', () => {
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/wrapper-contour-reservation.json', import.meta.url)));
   const steps = prepareReplay({ ...record, includePlayback: true }).playbackSteps;
   const final = steps.at(-1);
@@ -82,15 +82,29 @@ test('a detached hidden wrapper cannot alter the completed clause horizontal spa
     const actual = buildStageCoordinateReservations(steps, 1, size, sizeFor, direction).get(final.replayCanvasData);
     const local = buildStageCoordinateReservations(steps, 1, size, undefined, direction).get(final.replayCanvasData);
     const expected = buildStageCoordinateReservations([final], 1, size).get(final.replayCanvasData);
-    const actualRoot = actual.get(final.replayCanvasData.id), expectedRoot = expected.get(final.replayCanvasData.id);
-    for (const [id, point] of actual) {
+    for (const [id] of actual) {
       assert(Math.abs(local.get(id).x - expected.get(id).x) < 1e-8,
         `${id}: the temporary construction container must not change completed stage-local coordinates`);
-      // A complete component may change its canvas origin to stay continuous.
-      // The camera follows that rigid translation; its internal spacing cannot change.
-      assert(Math.abs((point.x - actualRoot.x) - (expected.get(id).x - expectedRoot.x)) < 1e-8,
-        `${id}: attachment reservation must preserve completed horizontal spacing`);
     }
+    // Joining forks may need room for earlier, still separate inputs. Compare
+    // the retained components themselves, rather than a new parent's spacing
+    // against a drawing that never contained those construction clearances.
+    const initial = steps.find(step => step.replayKind === 'macro');
+    const before = buildStageCoordinateReservations(steps, 0, sizeFor(0), sizeFor, direction).get(initial.replayCanvasData);
+    const finalAuthored = new Map(d3.hierarchy(record.derivationStages.at(-1).workspaceForest[0]).descendants().map(node => [node.data.id, node.data]));
+    let retained = 0;
+    for (const component of record.derivationStages[0].workspaceForest) {
+      if (JSON.stringify(component) !== JSON.stringify(finalAuthored.get(component.id))) continue;
+      retained++;
+      for (const node of d3.hierarchy(component).descendants()) {
+        const id = node.data.id, a = before.get(id), b = actual.get(id);
+        assert(Math.abs(a.x - before.get(component.id).x - (b.x - actual.get(component.id).x)) < 1e-8,
+          `${id}: the complete retained component keeps its horizontal shape`);
+        assert(Math.abs(a.y - before.get(component.id).y - (b.y - actual.get(component.id).y)) < 1e-8,
+          `${id}: the complete retained component keeps its vertical shape`);
+      }
+    }
+    assert(retained >= 3, 'the guard must exercise complete independent inputs');
   }
 });
 

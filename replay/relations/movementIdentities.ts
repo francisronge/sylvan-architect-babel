@@ -22,10 +22,10 @@
  *   identities, not patterns — a new coinage falls to the neutral fallback.
  */
 
-import {
-  findRelationRegistryEntry,
-  productionRelationRegistry
-} from '../relationDispatch/index.js';
+
+import { findRelationRegistryEntry } from '../relationDispatch/relationRegistry.js';
+
+import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
 import {
   PRODUCTION_RENDER_FAMILIES,
   TRAJECTORY_SOURCE_ROLES,

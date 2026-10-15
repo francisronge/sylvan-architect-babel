@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { categoryTextLayout } from '../replay/categoryTextLayout.ts';
-import { authoredDeterminerHasNominalComplement, isPhrasalReplayMovement } from '../replay/replayCompiler.ts';
+import { authoredDeterminerHasNominalComplement } from '../replay/replayCasing.ts';
+import { isPhrasalReplayMovement } from '../replay/movementLinks.ts';
 
 test('long categories wrap to measured width without losing text or changing short notation', () => {
   const measure = s => [...s].length * 20;

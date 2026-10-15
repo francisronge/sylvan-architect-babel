@@ -3,7 +3,8 @@ import test from 'node:test';
 
 import { collectDerivationStageRecords } from '../derivationNotes.js';
 import { createTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
-import { adaptDerivationStagesForReplay, buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 
 test('an explicitly empty workspace is not replaced by the previous stage', () => {
   const stages = [

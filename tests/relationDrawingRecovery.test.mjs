@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
-import { compileRelationRenderPlan, visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 
 const leaf = (id, label = 'N', extra = {}) => ({ id, label, word: id, ...extra });

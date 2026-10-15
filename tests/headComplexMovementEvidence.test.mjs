@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { prepareReplay } from '../replay/prepareReplay.ts';
 import { readCategoryLabel } from '../replay/categoryLabel.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
@@ -44,6 +45,44 @@ test('a uniquely prior-bound head complex keeps nested members as context for on
   assert(!result.claims.some(claim => claim.tier === 3 && claim.consumedEvidence.some(field =>
     field.field === 'anchors' && /(?:Verb|Tense)Occurrence/u.test(field.key))));
   assert.deepEqual(input, original);
+});
+
+test('current whole-head endpoints and carried members identify the preceding source without prior anchors', () => {
+  const input = nestedComplex(), original = structuredClone(input);
+  delete input.relation.priorAnchors;
+  const movement = recover(input).movement;
+  assert.equal(movement?.priorSourceNodeId, 'low');
+  assert.equal(movement?.targetNodeId, 'high');
+  assert.equal(movement?.trajectoryKind, 'head');
+  assert.equal(dispatch(input).facets.filter(f => f.recipe.id === 'movement.path').length, 1);
+  const stages = [input.priorForest, input.currentForest].map((workspaceForest, i) => ({
+    statement: '', stageRecord: '', workspaceForest, relations: i ? [input.relation] : [] }));
+  const steps = prepareReplay({ derivationStages: stages, sentence: '', includePlayback: true }).playbackSteps;
+  const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1);
+  assert(moment > 0);
+  for (const step of steps.slice(0, moment)) {
+    for (const id of ['high', 'highV', 'highT']) assert(!step.replayVisibleNodeIds.includes(id), id);
+  }
+  for (const id of ['high', 'highV', 'highT']) assert(steps[moment].replayVisibleNodeIds.includes(id), id);
+  assert.equal(steps[moment].replayRelationLinks.filter(l => l.authoredRelationKey === '1:0').length, 1);
+  delete original.relation.priorAnchors;
+  assert.deepEqual(input, original);
+});
+
+test('current complex endpoints cannot conceal competing sources or invalid carried members', () => {
+  for (const mutate of [
+    i => { find(i.currentForest, 'high').children.reverse(); },
+    i => { find(i.currentForest, 'highV').lineageId = 'unrelated'; },
+    i => { find(i.currentForest, 'lowT').lineageId = 'unrelated'; },
+    i => { i.currentForest.push(structuredClone(find(i.currentForest, 'highV'))); },
+    i => { i.relation.priorAnchors = { source: 'lowV' }; },
+    i => { i.relation.anchors.lowerHeadOccurrence = ['low', 'low']; },
+    i => { i.relation.anchors.higherHeadOccurrence = ['high', 'high']; },
+    i => { i.relation.anchors.lowerOccurrence = 'other'; i.priorForest.push(head('other', 'V', 'other')); i.currentForest.push(head('other', 'V', 'other')); }
+  ]) {
+    const input = nestedComplex(); delete input.relation.priorAnchors; mutate(input);
+    assert.equal(recover(input).movement, undefined, mutate.toString());
+  }
 });
 
 test('nested head evidence cannot collapse competing, reordered, missing or duplicated members', () => {
@@ -206,4 +245,84 @@ test('intact head assemblies compare authored fields independently of JSON prope
     ? Object.fromEntries(Object.entries(value).reverse().map(([key, item]) => [key, reorder(item)])) : value;
   input.currentForest = reorder(input.currentForest);
   assert.equal(recover(input).movement?.targetNodeId, 'new');
+});
+
+test('one whole-head trace can replace a complex while exact carried members remain movement context', () => {
+  const fixture = () => {
+    const input = nestedComplex();
+    find(input.currentForest, 'domain').children = [{ id: 'low', label: 'T⁰ [trace]', lineageId: 'finite', silent: true }];
+    input.relation.anchors = { sourceTrace: 'low', raisedFiniteHead: 'high', raisedVerb: 'highV', landingHead: 'complex' };
+    input.relation.priorAnchors = { sourceFiniteHead: 'low', sourceVerb: 'lowV' };
+    return input;
+  };
+  const input = fixture(), original = structuredClone(input);
+  const movement = recover(input).movement;
+  assert.equal(movement?.sourceNodeId, 'low');
+  assert.equal(movement?.targetNodeId, 'high');
+  assert(movement.context.some(c => c.nodeId === 'highV' && c.kind === 'head-member'));
+  assert.equal(dispatch(input).facets.filter(f => f.recipe.id === 'movement.path').length, 1);
+  assert.deepEqual(input, original);
+  for (const mutate of [
+    i => { find(i.currentForest, 'highV').word = 'changed'; },
+    i => { find(i.currentForest, 'highV').lineageId = 'different'; },
+    i => { find(i.currentForest, 'high').children.reverse(); },
+    i => { i.currentForest.push(structuredClone(find(i.currentForest, 'highV'))); },
+    i => { delete find(i.priorForest, 'low').lineageId; },
+    i => { find(i.currentForest, 'low').label = 'TP'; }
+  ]) {
+    const i = fixture(); mutate(i);
+    assert.equal(recover(i).movement, undefined, mutate.toString());
+  }
+});
+
+const carriedAssembly = () => {
+  const input = displacedAssembly();
+  input.currentForest[0].children[1].children[1].id = 'foot';
+  input.relation.anchors = { firstObject: 'new', secondObject: 'foot', landingHead: 'receiving', member: 'carried' };
+  input.relation.priorAnchors = { previousAssembly: 'old', previousMember: 'carried', previousReceiver: 'host' };
+  return input;
+};
+
+test('an intact moved assembly disambiguates an anchored carried member in a renamed parent', () => {
+  const input = carriedAssembly(), original = structuredClone(input);
+  const movement = recover(input).movement;
+  assert.equal(movement?.priorSourceNodeId, 'old');
+  assert.equal(movement?.sourceNodeId, 'foot');
+  assert.equal(movement?.targetNodeId, 'new');
+  assert.equal(movement?.trajectoryKind, 'head');
+  assert.equal(dispatch(input).facets.filter(f => f.recipe.id === 'movement.path').length, 1);
+  const stages = [input.priorForest, input.currentForest].map((workspaceForest, i) => ({
+    statement: '', stageRecord: '', workspaceForest, relations: i ? [input.relation] : [] }));
+  const replay = prepareReplay({ derivationStages: stages, sentence: 'stem', includePlayback: true });
+  const moment = replay.playbackSteps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1);
+  assert(moment > 0);
+  const before = replay.playbackSteps[moment - 1], after = replay.playbackSteps[moment];
+  assert(before.replayVisibleNodeIds.includes('old'));
+  assert(before.replayVisibleNodeIds.includes('carried'));
+  assert(!before.replayVisibleNodeIds.includes('new'));
+  assert(!before.replayVisibleNodeIds.includes('foot'));
+  assert(after.replayVisibleNodeIds.includes('new'));
+  assert(after.replayVisibleNodeIds.includes('foot'));
+  assert(after.replayVisibleNodeIds.includes('carried'));
+  assert.equal(after.replayRelationLinks.filter(l => l.authoredRelationKey === '1:0').length, 1);
+  assert.deepEqual(input, original);
+  const reverse = value => Array.isArray(value) ? value.map(reverse) : value && typeof value === 'object'
+    ? Object.fromEntries(Object.entries(value).reverse().map(([key, v]) => [key, reverse(v)])) : value;
+  assert.equal(recover(reverse(input)).movement?.targetNodeId, 'new');
+});
+
+test('carried-member context requires the intact assembly proof and cannot erase an explicit source', () => {
+  for (const mutate of [
+    i => { find(i.currentForest, 'new').children.reverse(); },
+    i => { find(i.currentForest, 'carried').word = 'changed'; },
+    i => { find(i.currentForest, 'foot').lineageId = 'unrelated'; },
+    i => { i.currentForest.push(structuredClone(find(i.currentForest, 'carried'))); },
+    i => { i.relation.priorAnchors.source = 'carried'; },
+    i => { delete i.relation.anchors.landingHead; },
+    i => { i.relation.priorAnchors.previousAssembly = ['old', 'old']; },
+    i => { find(i.currentForest, 'receiving').label = 'CP'; }
+  ]) {
+    const input = carriedAssembly(); mutate(input);
+    assert.equal(recover(input).movement, undefined, mutate.toString());
+  }
 });

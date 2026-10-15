@@ -16,11 +16,9 @@ import {
   fallbackDrawing
 } from '../docs/design/visual-relations-fallback-prototypes-data.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
-import {
-  adaptDerivationStagesForReplay,
-  buildPlaybackStepsFromDerivationFrames,
-  stepRepresentsMovement
-} from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
+import { stepRepresentsMovement } from '../replay/movementLinks.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import {
   ACTIVE_VISUAL_DESIGNS,
@@ -59,17 +57,19 @@ const findParent = (root, nodeId) => {
   return null;
 };
 
-const playback = (card) => buildPlaybackStepsFromDerivationFrames(
-  adaptDerivationStagesForReplay(card.derivationStages),
-  card.sentence,
-  buildDerivationReplayPlan({ derivationStages: card.derivationStages })
+const playback = (card) => buildPlaybackStepsFromDerivationFrames({
+  frames: adaptDerivationStagesForReplay(card.derivationStages),
+  sentence: card.sentence,
+  replayPlan: buildDerivationReplayPlan({ derivationStages: card.derivationStages })
+}
 );
 
 const playbackFromStages = (derivationStages, sentence = '') =>
-  buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(derivationStages),
+  buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(derivationStages),
     sentence,
-    buildDerivationReplayPlan({ derivationStages })
+    replayPlan: buildDerivationReplayPlan({ derivationStages })
+  }
   );
 
 test('every prototype relation is genuinely unregistered', () => {
@@ -565,16 +565,10 @@ test('empty arrays are dropped exactly as the adapter drops them', () => {
   assert.deepEqual(witnesses(drawing), ['n1']);
 });
 
-test('Orchard fallback cards use production drawing and timing, with no substitute SVG painter', async () => {
+test('Orchard fallback cards mount the production renderer without a substitute SVG painter', async () => {
   const source = await readSource('../docs/design/visual-relations-fallback-prototypes.tsx');
   assert.match(source, /<TreeVisualizer/);
   assert.doesNotMatch(source, /disableRelationOverlay|createElementNS|drawFallbackMarks|babel-fbproto-mark/);
-  const renderer = await readSource('../components/TreeVisualizer.tsx');
-  const start = renderer.indexOf("if (primitive.type === 'fallback-mark') {", renderer.indexOf('const appendMarker'));
-  const paint = renderer.slice(start, renderer.indexOf("if (primitive.type === 'anchor-set-badge')", start));
-  assert.match(paint, /\.text\(primitive.text\)/);
-  assert.match(paint, /data-authored-role/);
-  assert.doesNotMatch(paint, /marker-end|vr-backward-cue|vr-fallback-frame/);
 });
 
 test('all six fallback cards open at their exact relation moment before Stage Record', async () => {

@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { __test__ } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { isPlanItemRevealed } from '../replay/relations/renderPlanCompiler.ts';
+import { isPlanItemRevealed } from '../replay/relations/renderPlan.ts';
 import { closeoutPayload, closeoutSentence } from './helpers/rendererCloseoutFixture.mjs';
 
 test('changed same-anchor claims retain distinct Replay moments and replacement values beside a malformed relation', () => {
   const raw = closeoutPayload(), original = structuredClone(raw);
-  const bundle = __test__.normalizeParseBundle(raw, 'xbar', closeoutSentence, 'gpt', true);
+  const bundle = normalizeParseBundle(raw, 'xbar', closeoutSentence, 'gpt', true);
   const analysis = bundle.analyses[0];
   assert.deepEqual(raw, original);
   assert.deepEqual(analysis.derivationStages.at(-1).workspaceForest.map(node => node.id), ['abandoned', 'clause']);

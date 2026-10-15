@@ -3,13 +3,10 @@ import test from 'node:test';
 import * as d3 from 'd3';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
-import {
-  adaptDerivationStagesForReplay,
-  applyVizIds,
-  buildPlaybackStepsFromDerivationFrames,
-  getNodeId,
-  isPronouncedHierLeaf
-} from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
+import { isPronouncedHierLeaf } from '../replay/syntaxForest.ts';
+import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { stageTreeLayoutSize } from '../replay/stageCamera.ts';
 
 const leaf = (id, label, word, extra = {}) => ({
@@ -30,7 +27,11 @@ const node = (id, label, children, extra = {}) => ({
 const compile = (stages, sentence) => {
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  return buildPlaybackStepsFromDerivationFrames(frames, sentence, replayPlan);
+  return buildPlaybackStepsFromDerivationFrames({
+    frames,
+    sentence,
+    replayPlan
+  });
 };
 
 const findNode = (root, targetNodeId) => {

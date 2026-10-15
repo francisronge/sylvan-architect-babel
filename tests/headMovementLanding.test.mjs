@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { compileRelationRenderPlan, resolveDisplayedTrajectoryAttachments } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { resolveDisplayedTrajectoryAttachments } from '../replay/relations/renderPlan.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 
 const record = JSON.parse(fs.readFileSync(new URL('../fixtures/visual-relations/successive-head-movement.json', import.meta.url)));

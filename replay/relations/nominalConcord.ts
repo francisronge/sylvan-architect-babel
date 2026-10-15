@@ -1,6 +1,6 @@
 import type { SyntaxNode } from '../../types.ts';
 import { categoryLabel } from '../categoryLabel.ts';
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
 
 const nominalRoles = new Map([
@@ -31,7 +31,25 @@ export function directedNominalConcordMembers(evidence: ConcordEvidence) {
 function concordMembers(evidence: ConcordEvidence, directed: boolean) {
   if (relationLabelClauses(evidence.relationName).some(clause => /\bnominal concord\b/u.test(clause)
     && /\b(?:no|not|without|denied|rejected|required|requested|expected|possible|potential|hypothetical|pending|unresolved|if|unless|whether)\b/u.test(clause))) return [];
+  const paths = new Map<string, SyntaxNode[][]>();
+  const visit = (node: SyntaxNode, ancestors: SyntaxNode[]) => {
+    const path = [...ancestors, node];
+    if (node.id) paths.set(node.id, [...(paths.get(node.id) ?? []), path]);
+    node.children?.forEach(child => visit(child, path));
+  };
+  evidence.currentForest.forEach(node => visit(node, []));
   let entries = evidence.authoredCurrentAnchors ?? [];
+  const namedMembers = entries.filter(entry => nominalRoles.has(normalizeTier2Synonym(entry.key)));
+  // A separately anchored containing nominal supplies context, not another
+  // bearer. Directional fields cannot be discarded through containment.
+  const containers = !directed && namedMembers.length >= 2 ? entries.filter(entry => !entry.concepts.length
+    && !namedMembers.includes(entry) && entry.items.length === 1 && paths.get(entry.items[0])?.length === 1
+    && ['NP', 'DP', 'KP'].includes(memberCategory(paths.get(entry.items[0])![0].at(-1)!))
+    && namedMembers.every(member => member.items.length > 0 && member.items.every(id => id !== entry.items[0]
+      && paths.get(id)?.length === 1 && paths.get(id)![0].some(node => node.id === entry.items[0])))) : [];
+  const context = !directed ? entries.filter(entry => containers.includes(entry)
+    || /^(?:modified projection|modifier phrase)$/u.test(normalizeTier2Synonym(entry.key))) : [];
+  entries = entries.filter(entry => !context.includes(entry));
   const inventory = entries.filter(entry => normalizeTier2Synonym(entry.key) === 'agreeing items');
   const nominal = entries.filter(entry => normalizeTier2Synonym(entry.key) === 'nominal');
   const explicitInventory = !directed && normalizeTier2Synonym(evidence.relationName) === 'nominal concord'
@@ -46,13 +64,17 @@ function concordMembers(evidence: ConcordEvidence, directed: boolean) {
   if (!(directed ? directedInventory : named || explicitInventory)) return [];
   const features = evidence.authoredValues?.filter(entry => entry.concepts.includes('feature.rows')) ?? [];
   if (!features.length || features.some(entry => !entry.items.length || entry.items.some(value => !value.trim()))) return [];
-  const paths = new Map<string, SyntaxNode[][]>();
-  const visit = (node: SyntaxNode, ancestors: SyntaxNode[]) => {
-    const path = [...ancestors, node];
-    if (node.id) paths.set(node.id, [...(paths.get(node.id) ?? []), path]);
-    node.children?.forEach(child => visit(child, path));
-  };
-  evidence.currentForest.forEach(node => visit(node, []));
+  for (const entry of context) {
+    if (containers.includes(entry)) continue;
+    if (entry.items.length !== 1 || paths.get(entry.items[0])?.length !== 1) return [];
+    const node = paths.get(entry.items[0])![0].at(-1)!;
+    const projection = normalizeTier2Synonym(entry.key) === 'modified projection';
+    const covered = entries.filter(member => (projection ? ['adjective', 'noun', 'nominal head'] : ['adjective'])
+      .includes(normalizeTier2Synonym(member.key)));
+    if (!(projection ? ['N', 'NP', 'D', 'DP', 'K', 'KP'] : ['A', 'AP', 'Adj', 'AdjP']).includes(memberCategory(node))
+      || !covered.length || !covered.every(member => member.items.every(id => paths.get(id)?.length === 1
+        && paths.get(id)![0].some(ancestor => ancestor === node)))) return [];
+  }
   const members = entries.flatMap(entry => entry.items);
   if (members.length < 2 || new Set(members).size !== members.length) return [];
   for (const entry of entries) {

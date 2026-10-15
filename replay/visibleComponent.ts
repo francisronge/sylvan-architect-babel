@@ -16,3 +16,18 @@ export function visibleComponentNodes<N extends d3.HierarchyNode<SyntaxNode>>(
   }
   return result;
 }
+
+/** Current connectivity excludes future layout scaffolding and the canvas root. */
+export function visibleParentId<N extends d3.HierarchyNode<SyntaxNode>>(
+  node: N, nodes: ReadonlyMap<string, N>
+): string | undefined {
+  const parent = node.parent;
+  return parent && nodes.has(getNodeId(parent)) && parent.data.replayOrigin?.kind !== 'workspace'
+    && !parent.data.replayLayoutOnly ? getNodeId(parent) : undefined;
+}
+
+export function visibleChildIds<N extends d3.HierarchyNode<SyntaxNode>>(
+  node: N, nodes: ReadonlyMap<string, N>
+): string[] {
+  return (node.children ?? []).filter(child => nodes.has(getNodeId(child))).map(getNodeId);
+}

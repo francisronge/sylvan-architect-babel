@@ -1,8 +1,23 @@
 import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
-import { buildTier2SynonymIndex, relationRoleConcepts, normalizeTier2Synonym, isCovertMovementDescription, isUnestablishedCovertMovementDescription } from './tier2Synonyms.ts';
 import { isMovementIdentity, movementIdentityKind } from './movementIdentities.ts';
+import {
+  containsOccurrence as contains,
+  indexMovementOccurrences,
+  hasMovementPriorIdentity,
+  sameMovementSourceSlot,
+  retainedSourceContainer,
+  sourceOccurrencePair,
+  resolveMovementSourceAnchors
+} from './movementSourceEvidence.ts';
 import { hasUnestablishedCovertMovementOutcome } from './outcomeResolver.ts';
+import {
+  buildTier2SynonymIndex,
+  isCovertMovementDescription,
+  isUnestablishedCovertMovementDescription,
+  normalizeTier2Synonym,
+  relationRoleConcepts
+} from './tier2Synonyms.ts';
 
 export interface RecoveredMovement {
   /** The actual preceding occurrence; its ID may persist at either current endpoint. */
@@ -15,7 +30,7 @@ export interface RecoveredMovement {
   roles: Record<string, string[]>;
   /** Exact prior fields whose occurrences were verified for this movement. */
   priorAnchorKeys?: string[];
-  /** Verified preceding containers remain context, not source occurrences. */
+  /** Verified preceding containers or carried members remain context, not source occurrences. */
   priorContextKeys?: string[];
   /** Exact authored fields verified as structural context, not extra dependencies. */
   context?: Array<{ key: string; nodeId: string; kind: MovementContextKind }>;
@@ -56,6 +71,9 @@ const memberAtPath = (root: SyntaxNode, path: readonly number[]): SyntaxNode | u
 const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly SyntaxNode[] = []): boolean => {
   const landing = parent.children?.find(node => node.id === landingId);
   const siblings = (parent.children || []).filter(node => node.id !== landingId);
+  const containsLowerOccurrence = (node: SyntaxNode): boolean => Boolean(landing?.lineageId
+    && node.id !== landing.id && node.lineageId === landing.lineageId)
+    || Boolean(node.children?.some(containsLowerOccurrence));
   if (readCategoryLabel(parent.label)?.kind !== 'head' || readCategoryLabel(landing?.label)?.kind !== 'head') return false;
   if (parent.children?.length === 1 && parent.children[0].id === landingId) {
     const landing = parent.children[0];
@@ -66,42 +84,70 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
     // A previously built host remains the same head when another head adjoins;
     // its internal clitic or inflection structure need not be flat.
     if (onlyExponents(siblings[0])) return true;
-    const containsLowerOccurrence = (node: SyntaxNode): boolean => Boolean(landing?.lineageId
-      && node.id !== landing.id && node.lineageId === landing.lineageId)
-      || Boolean(node.children?.some(containsLowerOccurrence));
     // A bare-labelled clause can also persist unchanged. When it contains the
     // lower occurrence, its identity does not establish a separate head host.
     return !containsLowerOccurrence(siblings[0])
       && JSON.stringify(uniqueNode(previous, siblings[0].id)) === JSON.stringify(siblings[0]);
   }
   const before = uniqueNode(previous, parent.id);
-  // A retained inflectional head may acquire one moved member alongside several
-  // already authored exponents. Exact ordered companions establish that landing.
-  return siblings.length > 1 && readCategoryLabel(landing?.label)?.kind === 'head'
-    && siblings.every(node => readCategoryLabel(node.label)?.kind === 'head')
+  // A retained head may acquire a moved member beside its unchanged authored
+  // head contents. The receiver identity and ordered contents establish the
+  // host without requiring those contents to repeat the receiver category.
+  return siblings.length > 0 && readCategoryLabel(landing?.label)?.kind === 'head'
+    && siblings.every(node => readCategoryLabel(node.label)?.kind === 'head'
+      && !node.children?.length && !containsLowerOccurrence(node))
     && Boolean(before && readCategoryLabel(before.label)?.kind === 'head'
       && headCategory(before) === headCategory(parent)
-      && !uniqueNode(previous, landingId)
-      && JSON.stringify(before.children) === JSON.stringify(siblings));
+      && sameAuthoredValue(before.children, siblings));
 };
 
-const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode): boolean => {
+type MovementOccurrences = ReturnType<typeof indexMovementOccurrences>;
+type MovementWorkspaces = { current: MovementOccurrences; prior: MovementOccurrences };
+
+const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: SyntaxNode,
+  workspaces?: MovementWorkspaces): boolean => {
   const targetCategory = readCategoryLabel(target.label), parentCategory = readCategoryLabel(parent.label);
-  return parentCategory?.kind !== 'head' && targetCategory?.kind === 'head' && onlyExponents(target)
-    && targetCategory.head === parentCategory?.head
-    && (parent.children ?? []).filter(child => child.id !== target.id)
-      .every(child => ['bar', 'phrase'].includes(readCategoryLabel(child.label)?.kind ?? ''));
+  if (targetCategory?.kind !== 'head' || targetCategory.head !== parentCategory?.head) return false;
+  const sisters = (parent.children ?? []).filter(child => child.id !== target.id);
+  if (parentCategory.kind !== 'head') return onlyExponents(target)
+    && sisters.every(child => ['bar', 'phrase'].includes(readCategoryLabel(child.label)?.kind ?? ''));
+  // Bare labels do not distinguish a projecting node from its lexical head.
+  // A new matching parent is a head projection only when its other child is
+  // the preceding complement, unchanged except for the proved lower occurrence.
+  if (!workspaces || !before || parentCategory.compound || sisters.length !== 1
+    || target.children?.length || !target.word?.trim()
+    || before.children?.length || !before.word?.trim()
+    || readCategoryLabel(before.label)?.kind !== 'head') return false;
+  const { current, prior } = workspaces, complement = sisters[0];
+  if (current.duplicates.has(parent.id) || current.duplicates.has(complement.id)
+    || prior.nodes.has(parent.id) || prior.nodes.has(target.id) && target.id !== before.id
+    || !complement.children?.length || prior.duplicates.has(complement.id)) return false;
+  const oldComplement = prior.nodes.get(complement.id);
+  if (!oldComplement || !contains(oldComplement, before.id)) return false;
+  const complementIds: string[] = [];
+  const collect = (node: SyntaxNode) => { complementIds.push(node.id); node.children?.forEach(collect); };
+  collect(complement);
+  const pair = sourceOccurrencePair(current, prior, before.id, [target.id, ...complementIds]);
+  if (!pair || pair.landing.id !== target.id || !contains(complement, pair.source.id)) return false;
+  const retained = (node: SyntaxNode, old: SyntaxNode): boolean => {
+    if (node.id === pair.source.id && old.id === before.id) return true;
+    if (current.duplicates.has(node.id) || prior.duplicates.has(old.id)) return false;
+    const { children = [], ...fields } = node, { children: oldChildren = [], ...oldFields } = old;
+    return sameAuthoredValue(fields, oldFields) && children.length === oldChildren.length
+      && children.every((child, index) => retained(child, oldChildren[index]));
+  };
+  return retained(complement, oldComplement);
 };
 
 type PriorSourcePosition = { node?: SyntaxNode; parent?: SyntaxNode };
 
-// A nested head assembly retains a lexical host at each branching level.
+// A nested head assembly retains a matching head host at each branching level.
 // Merely having bare labels throughout a clause does not satisfy that shape.
 const isHeadAssembly = (node: SyntaxNode): boolean => {
   if (readCategoryLabel(node.label)?.kind !== 'head') return false;
   const children = node.children ?? [];
   return children.every(isHeadAssembly) && (children.length < 2
-    || children.some(child => !child.children?.length && headCategory(child) === headCategory(node)));
+    || children.some(child => headCategory(child) === headCategory(node)));
 };
 
 const hasAssembledMemberWitness = (source: SyntaxNode, sisters: readonly SyntaxNode[]): boolean => {
@@ -115,7 +161,8 @@ const hasAssembledMemberWitness = (source: SyntaxNode, sisters: readonly SyntaxN
 };
 
 const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly SyntaxNode[] = [],
-  priorSource: PriorSourcePosition = {}): 'head' | 'phrasal' | undefined => {
+  priorSource: PriorSourcePosition = {}, workspaces?: MovementWorkspaces,
+  headContext = false): 'head' | 'phrasal' | undefined => {
   const shape = readCategoryLabel(target.label);
   const oldShape = readCategoryLabel(priorSource.node?.label), oldParent = readCategoryLabel(priorSource.parent?.label);
   // A flat receiving head also selects ordinary phrases. A branching bare
@@ -131,9 +178,13 @@ const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly
       : Boolean(priorSource.node && (hasAssembledMemberWitness(priorSource.node, oldSisters)
         || onlyExponents(priorSource.node) && oldSisters.length
           && oldSisters.every(child => child.children?.length && headCategory(child) && headCategory(child) !== oldShape.head))));
+  // Bare nominal phrases can share this assembly shape. Only an explicitly
+  // anchored, verified receiving head licenses the additional head reading.
   const headUnit = !target.children?.length || Boolean(target.word?.trim()) || shape?.compound
+    || Boolean(headContext && priorSource.node?.children?.length && headCategory(priorSource.node) === headCategory(target)
+      && isHeadAssembly(priorSource.node) && isHeadAssembly(target))
     || /^[A-Za-z][A-Za-z]*(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u.test(target.label) || projectedSource;
-  if (headUnit && parent && (isHeadComplex(parent, target.id, previous) || isProjectedHead(parent, target))) return 'head';
+  if (headUnit && parent && (isHeadComplex(parent, target.id, previous) || isProjectedHead(parent, target, priorSource.node, workspaces))) return 'head';
   const parentCategory = readCategoryLabel(parent?.label);
   const specifier = parentCategory && parent?.children?.some(n => n.id !== target.id
     && headCategory(n) === parentCategory.head && !onlyExponents(n));
@@ -174,6 +225,8 @@ export interface MovementEvidenceResult {
 const vocabulary = buildTier2SynonymIndex();
 const hasRole = (key: string, concept: string) => relationRoleConcepts(vocabulary, key).includes(concept);
 const genericRoles = new Set(['source', 'sources', 'origin', 'origins', 'from', 'target', 'targets', 'to', 'destination', 'destinations', 'landing', 'landings', 'landing site', 'landing sites', 'filler', 'fillers', 'operator', 'operators', 'head', 'heads', 'variable', 'variables', 'real gap', 'real gaps']);
+const sourceContainerRole = (key: string): boolean => /^(?:(?:prior|movement) )?(?:source|lower|base|intermediate) (?:[a-z]+ )?(?:clauses?|phrases?|constituents?|objects?|[a-z]+p)$/u.test(normalizeTier2Synonym(key));
+const sourceComplexRole = (key: string): boolean => /^(?:(?:prior|movement) )?(?:source|lower|base|intermediate) (?:head )?complex$/u.test(normalizeTier2Synonym(key));
 
 // Recover occurrence identity from the anchored objects, never a shared descendant
 // or the relation's title. The result is renderer evidence, not authored syntax.
@@ -187,39 +240,9 @@ export function recoverMovementEvidence(
   const covertOutcomeUnestablished = covertDescription && hasUnestablishedCovertMovementOutcome(relation.values);
   if (isUnestablishedCovertMovementDescription(relation.relation) || covertOutcomeUnestablished)
     return fail('MOVEMENT_NOT_ESTABLISHED', 'The covert operation is denied or provisional; its endpoints do not establish an ordinary movement instead.');
-  const index = (roots: readonly SyntaxNode[]) => {
-    const nodes = new Map<string, SyntaxNode>();
-    const parents = new Map<string, SyntaxNode>();
-    const duplicates = new Set<string>();
-    const visit = (n: SyntaxNode, parent?: SyntaxNode) => {
-      if (nodes.has(n.id)) duplicates.add(n.id);
-      nodes.set(n.id, n);
-      if (parent) parents.set(n.id, parent);
-      (n.children || []).forEach(c => visit(c, n));
-    };
-    roots.forEach(n => visit(n));
-    return { nodes, parents, duplicates };
-  };
-  const current = index(forest);
-  const prior = index(previous);
-  const samePriorSlot = (sourceId: string, priorId: string): boolean => {
-    const oldParent = prior.parents.get(priorId);
-    const lowerParent = current.parents.get(sourceId);
-    if (!oldParent || !lowerParent || prior.duplicates.has(oldParent.id) || current.duplicates.has(lowerParent.id)) return false;
-    const slot = oldParent.children!.findIndex(n => n.id === priorId);
-    if (slot !== lowerParent.children!.findIndex(n => n.id === sourceId)) return false;
-    if (oldParent.id === lowerParent.id) return true;
-    // Rebuilt projections may have fresh IDs. The unchanged ordered sisters
-    // can still locate the source slot, without equating the parent identities.
-    // Unary shells, surviving competing parents and changed sisters prove less.
-    return !current.nodes.has(oldParent.id) && !prior.nodes.has(lowerParent.id)
-      && oldParent.label === lowerParent.label
-      && oldParent.children!.length > 1 && oldParent.children!.length === lowerParent.children!.length
-      && oldParent.children!.every((sibling, i) => i === slot || (
-        !prior.duplicates.has(sibling.id) && !current.duplicates.has(sibling.id)
-        && JSON.stringify(sibling) === JSON.stringify(lowerParent.children![i])
-      ));
-  };
+  const current = indexMovementOccurrences(forest), prior = indexMovementOccurrences(previous);
+  const samePriorSlot = (sourceId: string, priorId: string): boolean =>
+    sameMovementSourceSlot(current, prior, sourceId, priorId);
   const entries = Object.entries(relation.anchors || {}).map(([key, value]) => ({
     authoredKey: key, key: normalizeTier2Synonym(key), ids: Array.isArray(value) ? value : [value]
   }));
@@ -254,16 +277,39 @@ export function recoverMovementEvidence(
       }
     }
   }
-  // A source occurrence and its containing head complex are not two sources.
-  // Keep only the occurrence when every other reference proves its exact complex.
+  // Containment does not identify the moving unit: a member may leave its
+  // complex, or the whole complex may carry that member. Choose the uniquely
+  // witnessed root pair first, then verify every additional prior participant.
   if (explicitPriorSources.length > 1) {
-    const occurrences = explicitPriorSources.filter(id => explicitPriorSources.every(otherId => id === otherId
-      || movementContextFailure(previous, id, otherId, 'head-complex') === undefined));
-    if (occurrences.length === 1) explicitPriorSources = occurrences;
+    const pairs = new Map(explicitPriorSources.map(id => [id, sourceOccurrencePair(current, prior, id, anchored)]));
+    const occurrences = explicitPriorSources.filter(id => {
+      const pair = pairs.get(id), before = prior.nodes.get(id);
+      if (!pair || !before) return false;
+      return explicitPriorSources.every(otherId => {
+        if (otherId === id) return true;
+        const path = headMemberPath(before, otherId), member = prior.nodes.get(otherId);
+        if (path?.length && member?.lineageId && !prior.duplicates.has(otherId)) {
+          const carried = memberAtPath(pair.landing, path);
+          return Boolean(carried && !current.duplicates.has(carried.id)
+            && carried.lineageId === member.lineageId && headMemberPath(pair.landing, carried.id)?.length);
+        }
+        const fields = Object.entries(relation.priorAnchors ?? {}).filter(([key, value]) => hasRole(key, 'movement.source')
+          && [value].flat().includes(otherId));
+        return !pairs.get(otherId) && fields.every(([key]) => sourceContainerRole(key)
+          ? retainedSourceContainer(current, prior, otherId, id, pair.source.id, true)
+          : sourceComplexRole(key) && movementContextFailure(previous, id, otherId, 'head-complex') === undefined);
+      });
+    });
+    if (occurrences.length === 1) {
+      Object.entries(relation.priorAnchors ?? {}).forEach(([key, value]) => {
+        const ids = Array.isArray(value) ? value : [value];
+        if (ids.length === 1 && ids[0] !== occurrences[0] && explicitPriorSources.includes(ids[0])) priorCarrierKeys.add(key);
+      });
+      explicitPriorSources = occurrences;
+    }
   }
-  const contains = (n: SyntaxNode, id: string): boolean => n.id === id || (n.children || []).some(c => contains(c, id));
   let sources = pick('movement.source');
-  const witnesses = pick('movement.witness');
+  let witnesses = pick('movement.witness');
   if (!sources.length) sources = witnesses;
   let targets = pick('movement.landing');
   const sourceMembers = new Set<string>(), landingMembers = new Set<string>();
@@ -279,7 +325,6 @@ export function recoverMovementEvidence(
   // A source phrase may contain the moving occurrence. It is context only
   // when a separate lineage-matched pair proves the exact preceding source
   // slot. Another occurrence or an unrelated phrase remains a competing source.
-  const sourceContainerRole = (key: string): boolean => /^(?:(?:prior|movement) )?(?:source|lower|base|intermediate) (?:[a-z]+ )?(?:clauses?|phrases?|constituents?|[a-z]+p)$/.test(normalizeTier2Synonym(key));
   const sourceContainerPresent = entries.some(e => sourceContainerRole(e.key))
     || Object.keys(relation.priorAnchors ?? {}).some(sourceContainerRole);
   const independentPairs = (sourceContainerPresent ? [...new Set([...structuralPriorSources, ...anchored])] : []).flatMap(priorId => {
@@ -291,12 +336,12 @@ export function recoverMovementEvidence(
       return targetId !== sourceId && target?.lineageId === before.lineageId && !current.duplicates.has(targetId)
         && !contains(current.nodes.get(sourceId)!, targetId) && !contains(target, sourceId)
         && entries.some(e => e.ids.length === 1 && e.ids[0] === targetId && hasRole(e.key, 'movement.landing'))
-        && Boolean(landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) }));
+        && Boolean(landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) }, { current, prior }));
     }).map(targetId => ({ priorId, sourceId, targetId })));
   });
   if (independentPairs.length === 1) {
     const pair = independentPairs[0], lineage = prior.nodes.get(pair.priorId)!.lineageId;
-    const containingSource = (id: string, sourceId: string, indexed: ReturnType<typeof index>): boolean => {
+    const containingSource = (id: string, sourceId: string, indexed: ReturnType<typeof indexMovementOccurrences>): boolean => {
       const container = indexed.nodes.get(id);
       return Boolean(container && id !== sourceId && !indexed.duplicates.has(id)
         && container.lineageId !== lineage && contains(container, sourceId));
@@ -309,14 +354,12 @@ export function recoverMovementEvidence(
       || entries.some(e => hasRole(e.key, 'movement.source') && e.ids.includes(id) && !sourceContainerRole(e.key)));
     if (!sources.length) sources = witnesses;
   }
-  const priorSources = explicitPriorSources.length ? explicitPriorSources : structuralPriorSources;
-  const priorSource = priorSources.length === 1 ? priorSources[0] : undefined;
   // Moving an intact head assembly into an explicitly named receiving head
   // establishes its endpoints even when their authored field names are open.
   // Identity alone is insufficient: preserve every field and child, retain the
   // exact lower slot, and require a new, uniquely anchored adjunction landing.
-  const hasPreservedHeadAdjunction = (): boolean => {
-    const before = priorSource ? prior.nodes.get(priorSource) : undefined;
+  const hasPreservedHeadAdjunction = (priorId: string): boolean => {
+    const before = prior.nodes.get(priorId);
     if (!before?.lineageId || !before.children?.length || !isHeadAssembly(before)
       || prior.duplicates.has(before.id)
       || !Object.values(relation.priorAnchors ?? {}).some(value =>
@@ -344,6 +387,51 @@ export function recoverMovementEvidence(
     });
     return landings.length === 1;
   };
+  // A carried head can occupy a matching slot inside a renamed moving
+  // assembly. Only the intact whole-head proof may make it prior context;
+  // unrelated or explicitly competing source claims still remain ambiguous.
+  const assembledSources = structuralPriorSources.filter(hasPreservedHeadAdjunction);
+  if (assembledSources.length === 1) {
+    const assembly = prior.nodes.get(assembledSources[0])!;
+    structuralPriorSources = structuralPriorSources.filter(id => id === assembly.id
+      || !headMemberPath(assembly, id)?.length);
+  }
+  // Current root endpoints can establish their preceding assembly without a
+  // redundant prior anchor. Every other named source must be a carried head
+  // member in the same ordered position, not a competing moving occurrence.
+  if (!explicitPriorSources.length && !structuralPriorSources.length && sources.length > 1) {
+    structuralPriorSources = sources.filter(id => {
+      const before = prior.nodes.get(id), pair = sourceOccurrencePair(current, prior, id, anchored);
+      if (!before || !isHeadAssembly(before) || !pair || pair.source.id !== id
+        || !targets.includes(pair.landing.id)
+        || landingKind(pair.landing, current.parents.get(pair.landing.id), previous,
+          { node: before, parent: prior.parents.get(id) }, { current, prior }) !== 'head') return false;
+      return sources.every(memberId => {
+        if (memberId === id) return true;
+        const path = headMemberPath(before, memberId), lower = path && memberAtPath(pair.source, path);
+        const upper = path && memberAtPath(pair.landing, path), member = prior.nodes.get(memberId);
+        return Boolean(path?.length && member?.lineageId && lower?.id === memberId
+          && !prior.duplicates.has(memberId) && !current.duplicates.has(memberId)
+          && upper && !current.duplicates.has(upper.id)
+          && headMemberPath(pair.source, memberId)?.length && headMemberPath(pair.landing, upper.id)?.length
+          && lower.lineageId === member.lineageId && upper.lineageId === member.lineageId);
+      });
+    });
+  }
+  const priorSources = explicitPriorSources.length ? explicitPriorSources : structuralPriorSources;
+  const priorSource = priorSources.length === 1 ? priorSources[0] : undefined;
+  const sourcePair = priorSource ? sourceOccurrencePair(current, prior, priorSource, anchored) : undefined;
+  const sourceContainers = anchored.filter(id => entries.filter(entry => entry.ids.includes(id)
+    && hasRole(entry.key, 'movement.source')).every(entry => sourceContainerRole(entry.key)));
+  const sourceAnchors = sourcePair && priorSource
+    ? resolveMovementSourceAnchors(current, prior, priorSource, sourcePair.source,
+      anchored, sources, witnesses, sourceContainers) : undefined;
+  if (sourcePair && sourceAnchors) {
+    sources = [sourcePair.source.id];
+    witnesses = sourceAnchors.witnesses;
+    structurallyBound = true;
+  }
+
   // An asserted covert operation permits structural endpoint recovery without
   // prescribed participant names. The checks below still require shared root
   // lineage, an exact preceding source slot and a distinct new landing.
@@ -351,23 +439,16 @@ export function recoverMovementEvidence(
     || explicitPriorSources.length === 1
     || structuralPriorSources.length === 1 && entries.some(e => e.key === 'landing' && e.ids.length === 1)
     || entries.some(e => !genericRoles.has(e.key) && ['movement.source', 'movement.witness', 'movement.landing'].some(concept => hasRole(e.key, concept)))
-    || hasPreservedHeadAdjunction();
-  // A named preceding complex fixes the moving unit. Its explicitly anchored
+    || Boolean(priorSource && hasPreservedHeadAdjunction(priorSource));
+  // A proved preceding complex fixes the moving unit. Its explicitly anchored
   // lexical member can describe the lower copy without becoming a competing
   // whole source. Every member must retain its exact position and lineage.
-  if (explicitPriorSources.length === 1 && priorSource && sources.includes(priorSource)
+  if (priorSource && sources.includes(priorSource)
     && samePriorSlot(priorSource, priorSource)) {
     const before = prior.nodes.get(priorSource), lower = current.nodes.get(priorSource);
     const sameMember = (id: string) => {
       if (!before || !lower || prior.duplicates.has(id) || current.duplicates.has(id)) return false;
-      const path = (node: SyntaxNode, target: string): number[] | undefined => {
-        if (node.id === target) return [];
-        for (const [index, child] of (node.children ?? []).entries()) {
-          const tail = path(child, target);
-          if (tail) return [index, ...tail];
-        }
-      };
-      const oldPath = path(before, id), newPath = path(lower, id);
+      const oldPath = headMemberPath(before, id), newPath = headMemberPath(lower, id);
       return Boolean(oldPath?.length && newPath?.length && JSON.stringify(oldPath) === JSON.stringify(newPath)
         && prior.nodes.get(id)?.lineageId && prior.nodes.get(id)?.lineageId === current.nodes.get(id)?.lineageId);
     };
@@ -379,10 +460,11 @@ export function recoverMovementEvidence(
   }
   // In a successive step, only the anchored occurrence occupying this source's
   // preceding slot is its new lower witness. Older copies stay separate evidence.
-  const onlyEarlierChainSources = sources.length > 0 && sources.every(id => id !== priorSource
-    && current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource ?? '')?.lineageId
-    && JSON.stringify(current.nodes.get(id)) === JSON.stringify(prior.nodes.get(id))
-    && samePriorSlot(id, id));
+  const isEarlierChainOccurrence = (id: string): boolean => Boolean(priorSource && id !== priorSource
+    && !current.duplicates.has(id) && !prior.duplicates.has(id)
+    && current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource)?.lineageId
+    && sameAuthoredValue(current.nodes.get(id), prior.nodes.get(id)) && samePriorSlot(id, id));
+  const onlyEarlierChainSources = sources.length > 0 && sources.every(isEarlierChainOccurrence);
   if ((!sources.length || onlyEarlierChainSources) && priorSource && canBindStructuralEndpoints) {
     const lower = anchored.filter(id => current.nodes.get(id)?.lineageId
       && current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource)?.lineageId && samePriorSlot(id, priorSource));
@@ -416,16 +498,27 @@ export function recoverMovementEvidence(
       if (!path?.length) return false;
       const oldMember = memberAtPath(before, path), lowerMember = memberAtPath(source, path);
       const member = current.nodes.get(memberId);
+      const lowerMemberMatches = lowerMember?.lineageId === oldMember?.lineageId
+        && lowerMember && !current.duplicates.has(lowerMember.id) && headMemberPath(source, lowerMember.id)?.length;
+      // An authored trace can stand for the whole complex without copying its
+      // internal heads. The exact prior root pair and unchanged carried member
+      // then provide the evidence that a lower member copy would have supplied.
+      const wholeHeadTrace = !source.children?.length && sourcePair?.source.id === source.id
+        && sourcePair.landing.id === rootId && [before, source, root].every(node => readCategoryLabel(node.label)?.kind === 'head')
+        && oldMember && member && sameAuthoredValue({ ...oldMember, id: member.id }, member);
       return Boolean(oldMember?.lineageId && member?.lineageId === oldMember.lineageId
-        && lowerMember?.lineageId === oldMember.lineageId && !prior.duplicates.has(oldMember.id)
-        && !current.duplicates.has(lowerMember.id)
-        && headMemberPath(before, oldMember.id)?.length && headMemberPath(source, lowerMember.id)?.length);
+        && !prior.duplicates.has(oldMember.id) && headMemberPath(before, oldMember.id)?.length
+        && (lowerMemberMatches || wholeHeadTrace));
     };
     // A phrase's target head may remain in place or project beside the landing.
     // Leave that field unclaimed after proving the phrase's lineage and exact
     // preceding slot; it establishes no additional movement endpoint.
     const isHeadParticipantRole = (key: string): boolean => key === 'target'
-      || /^(?:movement )?(?:target|landing) (?:[a-z]+ )*head$/.test(key);
+      || /^(?:movement )?(?:target|landing|higher|upper|raised|moved) (?:[a-z]+ )*head$/.test(key);
+    // The exact preceding root pair can identify an openly named landing even
+    // when the directional field names its parent rather than the occurrence.
+    const identifiesLanding = (id: string): boolean => targets.includes(id)
+      || sourcePair?.source.id === sources[0] && sourcePair.landing.id === id;
     const isPhrasalHeadParticipant = (occurrence: string, id: string): boolean => {
       const target = current.nodes.get(occurrence), head = current.nodes.get(id);
       const precedingId = prior.nodes.has(sources[0]) ? sources[0] : priorSource;
@@ -446,14 +539,16 @@ export function recoverMovementEvidence(
         return false;
       };
       const precedingHead = prior.nodes.get(id);
-      return Boolean(target && head && targets.includes(occurrence)
+      const landingParent = current.parents.get(occurrence);
+      return Boolean(target && head && identifiesLanding(occurrence)
         && !current.duplicates.has(id) && !prior.duplicates.has(id)
         && !current.duplicates.has(sources[0]) && !current.duplicates.has(occurrence)
         && before?.lineageId && before.lineageId === lineage && !prior.duplicates.has(before.id)
         && precedingId && samePriorSlot(sources[0], precedingId)
-        && landingKind(target, current.parents.get(occurrence), previous, { node: before, parent: prior.parents.get(precedingId ?? '') }) === 'phrasal'
+        && landingKind(target, current.parents.get(occurrence), previous, { node: before, parent: prior.parents.get(precedingId ?? '') }, { current, prior }) === 'phrasal'
         && readCategoryLabel(head.label)?.kind === 'head' && !head.children?.length
         && head.lineageId !== lineage
+        && landingParent && contains(landingParent, id)
         && (!precedingHead || sameAuthoredValue(precedingHead, head))
         && (precedingHead && samePriorSlot(id, id) || projectsBesideLanding())
         && entries.some(e => e.ids.length === 1 && e.ids[0] === id && isHeadParticipantRole(e.key))
@@ -493,7 +588,7 @@ export function recoverMovementEvidence(
           || target.lineageId !== source.lineageId || contains(source, targetId) || contains(target, sourceId)) continue;
         const priorId = prior.nodes.has(sourceId) ? sourceId : priorSource || targetId;
         const before = prior.nodes.get(priorId);
-        if (!before || before.lineageId !== source.lineageId || prior.duplicates.has(priorId)
+        if (!before || !hasMovementPriorIdentity(current, prior, sourceId, priorId)
           || explicitPriorSources.some(id => id !== priorId)) continue;
         if (!samePriorSlot(sourceId, priorId)) continue;
         if (priorId === sourceId && prior.nodes.has(targetId)) continue;
@@ -502,7 +597,7 @@ export function recoverMovementEvidence(
         // a unique, explicitly witnessed successive movement ambiguous.
         if (targetId !== priorId && samePriorSlot(targetId, targetId)
           && JSON.stringify(prior.nodes.get(targetId)) === JSON.stringify(target)) continue;
-        const kind = landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) });
+        const kind = landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) }, { current, prior });
         const expectedKind = movementIdentityKind(relation.relation);
         if (!kind || (expectedKind && expectedKind !== kind)) continue;
         pairs.push({ source: sourceId, target: targetId });
@@ -552,18 +647,27 @@ export function recoverMovementEvidence(
     return fail('MOVEMENT_LINEAGE_UNPROVEN', `${sourceId} and ${targetId} do not share an explicit root lineage. Shared descendants are not enough.`);
   }
   if (contains(source, targetId) || contains(target, sourceId)) return fail('MOVEMENT_ENDPOINT_CONTAINMENT', 'One endpoint contains the other; they do not identify two separate occurrences.');
-  const witnessId = witnesses[0] || sourceId;
+  // An unchanged older foot may be cited alongside this hop. Only a unique
+  // source-slot/landing pair can bind the new witness instead; the older foot
+  // remains separate authored evidence.
+  const olderWitness = witnesses.length === 1 && sourcePair?.source.id === sourceId
+    && sourcePair.landing.id === targetId && isEarlierChainOccurrence(witnesses[0]);
+  const witnessId = olderWitness ? sourceId : witnesses[0] || sourceId;
   if (current.duplicates.has(witnessId)) return fail('MOVEMENT_ENDPOINTS_AMBIGUOUS', `Witness ${witnessId} occurs more than once.`);
   if (!contains(source, witnessId)) return fail('MOVEMENT_WITNESS_OUTSIDE_SOURCE', `${witnessId} is not within source ${sourceId}.`);
   const precedingId = prior.nodes.has(sourceId) ? sourceId : priorSource || targetId;
+  const headContext = entries.some(entry => entry.ids.length === 1
+    && (hasRole(entry.key, 'movement.host') || hasRole(entry.key, 'movement.complex') || entry.key === 'host')
+    && movementContextFailure(forest, targetId, entry.ids[0],
+      hasRole(entry.key, 'movement.complex') ? 'head-complex' : 'head-landing', previous) === undefined);
   const kind = landingKind(target, current.parents.get(targetId), previous,
-    { node: prior.nodes.get(precedingId), parent: prior.parents.get(precedingId) });
+    { node: prior.nodes.get(precedingId), parent: prior.parents.get(precedingId) }, { current, prior }, headContext);
   if (!kind) return fail('MOVEMENT_CONTEXT_UNRESOLVED', `The anchored structure does not establish a supported head or phrasal landing for ${targetId}.`);
   const priorCandidates = prior.nodes.has(sourceId) ? [sourceId]
     : [...new Set(priorSources.length ? priorSources : [targetId])];
   const priorSourceId = priorCandidates.length === 1 ? priorCandidates[0] : '';
   const before = prior.nodes.get(priorSourceId);
-  if (!before || prior.duplicates.has(priorSourceId) || before.lineageId !== source.lineageId) {
+  if (!before || !hasMovementPriorIdentity(current, prior, sourceId, priorSourceId)) {
     return fail('MOVEMENT_PRIOR_SOURCE_UNPROVEN', `${sourceId} has no unique occurrence with matching lineage in the preceding stage.`);
   }
   if (explicitPriorSources.some(id => id !== priorSourceId)) {

@@ -5,9 +5,30 @@ import { once } from 'node:events';
 import { Worker } from 'node:worker_threads';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildReplayPlaqueSchedule, buildStageLayoutGroups, selectReplayPlaqueLayout } from '../replay/stageCamera.ts';
-import { buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
+import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { measurePlaqueLayoutJob, runPlaqueLayoutJob } from '../replay/plaqueLayoutJob.ts';
 import { fallbackPlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
+
+test('native plaque measurement follows authored lexical aliases through worker serialization', () => {
+  const tree = { id: 'root', label: 'NP', children: [
+    { id: 'adjective', label: 'A', children: [{ id: 'a', label: 'new', word: 'new', tokenIndex: 0 }] },
+    { id: 'nominal', label: 'N', children: [{ id: 'n', label: 'books', word: 'books', tokenIndex: 1 }] }
+  ] };
+  const record = { sentence: 'new books', derivationStages: [{ statement: 'Build the NP.',
+    stageRecord: 'The lexical bearers share number.', workspaceForest: [tree],
+    relations: [{ relation: 'FeatureSharing', anchors: { bearers: ['a', 'n'] }, values: { feature: 'plural' } }] }] };
+  const prepared = prepareReplay({ ...record, includePlayback: true });
+  const input = { steps: prepared.playbackSteps, stageIndex: 0, plan: prepared.relationRenderPlan,
+    completedCanvas: buildRenderableDerivationCanvasData([tree]), width: 1600, height: 1000,
+    measurePlaqueText: fallbackPlaqueTextMeasure };
+  const iterator = measurePlaqueLayoutJob(input);
+  let next = iterator.next(); while (!next.done) next = iterator.next();
+  const job = structuredClone(next.value);
+  assert(job.plaques.size > 0, 'authored IDs resolve to the stable lexical display aliases during probing');
+  assert.doesNotThrow(() => runPlaqueLayoutJob(job));
+  job.plaques.clear();
+  assert.throws(() => runPlaqueLayoutJob(job), /Missing measured text/, 'missing native metrics cannot silently use fallback ink');
+});
 
 test('measurement captures a plaque predicate before and after its head becomes complex', () => {
   const actor = { id: 'actor', label: 'DP', word: 'Mia' };
@@ -41,6 +62,10 @@ test('serialized allocation preserves measured text, all future reservations and
     kind: 'node-plaque', plaqueStyle: 'realization', anchorNodeIds: ['vm', 'im'],
     rows: [{ label: 'surfaceForm', value: '샀다' }], realizationRowKinds: ['literal'],
     relationRef: { stageIndex, relationIndex: 91 }
+  }, {
+    kind: 'node-plaque', plaqueStyle: 'feature', anchorNodeIds: ['vm'],
+    rows: [{ label: 'clauseType', value: 'direct constituent question' }],
+    relationRef: { stageIndex, relationIndex: 92 }
   }));
   const input = { steps: replay.playbackSteps, stageIndex: 0, plan: replay.relationRenderPlan,
     width: 1596, height: 1016, layoutGroups: buildStageLayoutGroups(replay.playbackSteps, replay.replayDerivationFrames),

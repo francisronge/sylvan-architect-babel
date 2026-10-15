@@ -165,16 +165,8 @@ body,
 }
 
 @keyframes float-spore {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.35;
-  }
-  90% {
-    opacity: 0.35;
-  }
+  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0; }
+  10%, 90% { opacity: 0.35; }
   100% {
     transform: translate3d(var(--spore-drift, 80px), -120vh, 0) scale(0.6);
     opacity: 0;
@@ -183,10 +175,7 @@ body,
 
 @media (prefers-reduced-motion: reduce) {
   .babel-preparation-mark { animation-duration: 1ms; }
-  .spore {
-    animation: none;
-    opacity: 0.12;
-  }
+  .spore { animation: none; opacity: 0.12; }
 }
 
 .serif {

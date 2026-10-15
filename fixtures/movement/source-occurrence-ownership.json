@@ -1,0 +1,2001 @@
+[
+  {
+    "id": "sol-danish-active/0",
+    "sentence": "Børnene dansede rundt i ring.",
+    "inputTokens": [
+      "Børnene",
+      "dansede",
+      "rundt",
+      "i",
+      "ring"
+    ],
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "configurationNoun": "a1_nr",
+              "subjectNoun": "a1_ns"
+            },
+            "relation": "Nominal interpretation and morphological packaging",
+            "values": {
+              "configurationFeatures": "bare singular nominal licensed in the conventional spatial expression i ring",
+              "subjectFeatures": "definite plural; definiteness and number are packaged in the whole-word noun"
+            }
+          },
+          {
+            "anchors": {
+              "complement": "a1_npr",
+              "preposition": "a1_p"
+            },
+            "relation": "Prepositional complement licensing",
+            "values": {
+              "case": "oblique",
+              "thetaRole": "spatial configuration"
+            }
+          },
+          {
+            "anchors": {
+              "modifiedProjection": "a1_vbar0",
+              "modifier": "a1_advp",
+              "resultingProjection": "a1_vbar1"
+            },
+            "relation": "Independent directional modification",
+            "values": {
+              "attachment": "right adjunction to V′",
+              "interpretation": "rundt independently characterizes the dancing as movement around"
+            }
+          },
+          {
+            "anchors": {
+              "modifiedProjection": "a1_vbar1",
+              "modifier": "a1_pp",
+              "resultingProjection": "a1_vbar2"
+            },
+            "relation": "Independent configuration modification",
+            "values": {
+              "attachment": "right adjunction to V′",
+              "interpretation": "i ring independently specifies a circular configuration for the dancing event"
+            }
+          }
+        ],
+        "stageRecord": "On this reading, rundt modifies the dancing event independently of i ring: the children danced around, and their dancing took place in a circular configuration. The intransitive verb projects V′ without an object. An AdvP headed by rundt right-adjoins to that projection; the PP i ring then right-adjoins to the resulting V′. The two modifiers therefore have distinct attachment sites, rather than forming a constituent together. The preposition i takes the bare NP ring as its complement, assigns it a spatial configuration role, and licenses its oblique Case. The conventional expression i ring permits this bare singular nominal. The analysis uses the NP version of X-bar Theory: the definite plural morphology of Børnene remains within its whole-word noun terminal, without a separate determiner terminal or suffix decomposition. The subject NP is present as a separate workspace object but has not yet received its clausal position.",
+        "statement": "Construct the predicate with two independently attached modifiers and introduce the subject nominal.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "a1_ns",
+                    "label": "N⁰",
+                    "tokenIndex": 0,
+                    "word": "Børnene"
+                  }
+                ],
+                "id": "a1_nbars",
+                "label": "N′"
+              }
+            ],
+            "id": "a1_nps",
+            "label": "NP",
+            "lineageId": "a1_subject"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "a1_v",
+                            "label": "V⁰",
+                            "lineageId": "a1_dance",
+                            "tokenIndex": 1,
+                            "word": "dansede"
+                          }
+                        ],
+                        "id": "a1_vbar0",
+                        "label": "V′"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "a1_adv",
+                                "label": "Adv⁰",
+                                "tokenIndex": 2,
+                                "word": "rundt"
+                              }
+                            ],
+                            "id": "a1_advbar",
+                            "label": "Adv′"
+                          }
+                        ],
+                        "id": "a1_advp",
+                        "label": "AdvP"
+                      }
+                    ],
+                    "id": "a1_vbar1",
+                    "label": "V′"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "a1_p",
+                            "label": "P⁰",
+                            "tokenIndex": 3,
+                            "word": "i"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "a1_nr",
+                                    "label": "N⁰",
+                                    "tokenIndex": 4,
+                                    "word": "ring"
+                                  }
+                                ],
+                                "id": "a1_nbarr",
+                                "label": "N′"
+                              }
+                            ],
+                            "id": "a1_npr",
+                            "label": "NP"
+                          }
+                        ],
+                        "id": "a1_pbar",
+                        "label": "P′"
+                      }
+                    ],
+                    "id": "a1_pp",
+                    "label": "PP"
+                  }
+                ],
+                "id": "a1_vbar2",
+                "label": "V′"
+              }
+            ],
+            "id": "a1_vp",
+            "label": "VP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "lexicalVerb": "a1_v",
+              "predicate": "a1_vp",
+              "subject": "a1_nps"
+            },
+            "relation": "External theta-role assignment",
+            "values": {
+              "argumentStructure": "intransitive; no internal object",
+              "basePosition": "Spec-IP",
+              "thetaRole": "Agent"
+            }
+          },
+          {
+            "anchors": {
+              "finiteInflection": "a1_tense",
+              "subject": "a1_nps"
+            },
+            "relation": "Nominative Case licensing",
+            "values": {
+              "case": "nominative"
+            }
+          },
+          {
+            "anchors": {
+              "inflection": "a1_tense",
+              "verb": "a1_v"
+            },
+            "relation": "Finite inflectional licensing",
+            "values": {
+              "features": "finite past",
+              "morphologicalTreatment": "dansede remains one whole-word terminal"
+            }
+          }
+        ],
+        "stageRecord": "The VP combines with finite past I to form I′, and the previously separate NP Børnene occupies Spec-IP. This adopts the classical GB implementation in which the external argument is generated in Spec-IP, rather than first occupying a VP-internal position. The intransitive predicate assigns its external Agent role to this NP through the subject-predicate relation. Finite I then licenses nominative Case on the subject. I bears finite past features matching the inflection already present in the whole-word terminal dansede; the verb has not yet moved out of V. The abstract inflectional terminal is unpronounced and does not independently realize any input token.",
+        "statement": "Establish the subject-predicate relation and the finite IP.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "a1_ns",
+                        "label": "N⁰",
+                        "tokenIndex": 0,
+                        "word": "Børnene"
+                      }
+                    ],
+                    "id": "a1_nbars",
+                    "label": "N′"
+                  }
+                ],
+                "id": "a1_nps",
+                "label": "NP",
+                "lineageId": "a1_subject"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "a1_tense",
+                        "label": "I⁰ [finite, past]",
+                        "lineageId": "a1_inflection",
+                        "silent": true
+                      }
+                    ],
+                    "id": "a1_i",
+                    "label": "I⁰",
+                    "lineageId": "a1_finite_head",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "a1_v",
+                                    "label": "V⁰",
+                                    "lineageId": "a1_dance",
+                                    "tokenIndex": 1,
+                                    "word": "dansede"
+                                  }
+                                ],
+                                "id": "a1_vbar0",
+                                "label": "V′"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "a1_adv",
+                                        "label": "Adv⁰",
+                                        "tokenIndex": 2,
+                                        "word": "rundt"
+                                      }
+                                    ],
+                                    "id": "a1_advbar",
+                                    "label": "Adv′"
+                                  }
+                                ],
+                                "id": "a1_advp",
+                                "label": "AdvP"
+                              }
+                            ],
+                            "id": "a1_vbar1",
+                            "label": "V′"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "a1_p",
+                                    "label": "P⁰",
+                                    "tokenIndex": 3,
+                                    "word": "i"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "a1_nr",
+                                            "label": "N⁰",
+                                            "tokenIndex": 4,
+                                            "word": "ring"
+                                          }
+                                        ],
+                                        "id": "a1_nbarr",
+                                        "label": "N′"
+                                      }
+                                    ],
+                                    "id": "a1_npr",
+                                    "label": "NP"
+                                  }
+                                ],
+                                "id": "a1_pbar",
+                                "label": "P′"
+                              }
+                            ],
+                            "id": "a1_pp",
+                            "label": "PP"
+                          }
+                        ],
+                        "id": "a1_vbar2",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "a1_vp",
+                    "label": "VP"
+                  }
+                ],
+                "id": "a1_ibar",
+                "label": "I′"
+              }
+            ],
+            "id": "a1_ip",
+            "label": "IP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "inflection": "a1_tense",
+              "landingHead": "a1_i",
+              "raisedVerb": "a1_vi",
+              "sourceTrace": "a1_v"
+            },
+            "priorAnchors": {
+              "sourceVerb": "a1_v",
+              "targetHead": "a1_i"
+            },
+            "relation": "V-to-I head movement",
+            "values": {
+              "chainInterpretation": "the raised verb licenses its V trace; the lexical predicate retains its theta position",
+              "locality": "V moves to the immediately higher I head",
+              "movementType": "head adjunction",
+              "pronunciation": "only the raised verbal occurrence is pronounced"
+            }
+          }
+        ],
+        "stageRecord": "The verb moves from its previously represented V position and adjoins to I, forming a complex inflectional head. Its lexical position becomes an unpronounced V trace, while the occurrence inside I pronounces dansede. This is the first step of the successive head-movement derivation adopted for Danish main-clause V2. V-to-I connects adjacent heads and leaves the verbal theta configuration in its original VP position. The subject remains in Spec-IP, and both predicate modifiers remain at their original attachment sites.",
+        "statement": "Raise the finite verb from V to I.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "a1_ns",
+                        "label": "N⁰",
+                        "tokenIndex": 0,
+                        "word": "Børnene"
+                      }
+                    ],
+                    "id": "a1_nbars",
+                    "label": "N′"
+                  }
+                ],
+                "id": "a1_nps",
+                "label": "NP",
+                "lineageId": "a1_subject"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "a1_vi",
+                        "label": "V⁰",
+                        "lineageId": "a1_dance",
+                        "tokenIndex": 1,
+                        "word": "dansede"
+                      },
+                      {
+                        "children": [],
+                        "id": "a1_tense",
+                        "label": "I⁰ [finite, past]",
+                        "lineageId": "a1_inflection",
+                        "silent": true
+                      }
+                    ],
+                    "id": "a1_i",
+                    "label": "I⁰",
+                    "lineageId": "a1_finite_head"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "a1_v",
+                                    "label": "t_V",
+                                    "lineageId": "a1_dance",
+                                    "silent": true
+                                  }
+                                ],
+                                "id": "a1_vbar0",
+                                "label": "V′"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "a1_adv",
+                                        "label": "Adv⁰",
+                                        "tokenIndex": 2,
+                                        "word": "rundt"
+                                      }
+                                    ],
+                                    "id": "a1_advbar",
+                                    "label": "Adv′"
+                                  }
+                                ],
+                                "id": "a1_advp",
+                                "label": "AdvP"
+                              }
+                            ],
+                            "id": "a1_vbar1",
+                            "label": "V′"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "a1_p",
+                                    "label": "P⁰",
+                                    "tokenIndex": 3,
+                                    "word": "i"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "a1_nr",
+                                            "label": "N⁰",
+                                            "tokenIndex": 4,
+                                            "word": "ring"
+                                          }
+                                        ],
+                                        "id": "a1_nbarr",
+                                        "label": "N′"
+                                      }
+                                    ],
+                                    "id": "a1_npr",
+                                    "label": "NP"
+                                  }
+                                ],
+                                "id": "a1_pbar",
+                                "label": "P′"
+                              }
+                            ],
+                            "id": "a1_pp",
+                            "label": "PP"
+                          }
+                        ],
+                        "id": "a1_vbar2",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "a1_vp",
+                    "label": "VP"
+                  }
+                ],
+                "id": "a1_ibar",
+                "label": "I′"
+              }
+            ],
+            "id": "a1_ip",
+            "label": "IP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landingHead": "a1_c",
+              "lowerVerbTrace": "a1_v",
+              "pronouncedVerb": "a1_vc",
+              "raisedInflectionalHead": "a1_ic",
+              "sourceTrace": "a1_i"
+            },
+            "priorAnchors": {
+              "sourceHead": "a1_i",
+              "sourceVerbOccurrence": "a1_vi"
+            },
+            "relation": "I-to-C head movement",
+            "values": {
+              "headChain": "V–I–C",
+              "locality": "I moves to the immediately higher C head",
+              "movementType": "head adjunction",
+              "pronunciation": "the verbal occurrence in C is pronounced; both lower head positions are traces",
+              "traceLicensing": "the raised head licenses the I trace, continuing the chain to the V trace"
+            }
+          },
+          {
+            "anchors": {
+              "clause": "a1_cp",
+              "raisedSubject": "a1_npsc",
+              "subjectTrace": "a1_nps"
+            },
+            "priorAnchors": {
+              "sourceSubject": "a1_nps"
+            },
+            "relation": "Subject A-bar movement",
+            "values": {
+              "chainInterpretation": "Agent and nominative Case are retained through the lower position",
+              "landingPosition": "Spec-CP",
+              "sourcePosition": "Spec-IP",
+              "traceLicensing": "the Spec-IP trace is antecedent-governed by the subject in Spec-CP"
+            }
+          },
+          {
+            "anchors": {
+              "clause": "a1_cp",
+              "finiteHead": "a1_c",
+              "preverbalConstituent": "a1_npsc"
+            },
+            "relation": "Root declarative V2 configuration",
+            "values": {
+              "clauseType": "root declarative",
+              "linearRequirement": "one constituent in Spec-CP precedes the finite verb in C",
+              "modifierReading": "rundt and i ring independently modify the dancing predicate"
+            }
+          }
+        ],
+        "stageRecord": "A root CP is projected over the existing IP. The complex I head moves from its established position to C, leaving an I trace; the raised complex head contains the pronounced verb and the unpronounced inflectional features. Independently, Børnene moves from its established Spec-IP position to Spec-CP, leaving an NP trace. These movements have independent sources in the preceding workspace and require no intervening derivational state. The head chain proceeds through V, I, and C without skipping an intervening head. The subject's A-bar chain retains its Agent interpretation and nominative Case through the lower Spec-IP position; its trace is antecedent-governed by the raised subject. Root C licenses the finite verb, and Spec-CP supplies the single preverbal constituent required by Danish V2. The completed order is Børnene dansede rundt i ring. The two postverbal modifiers remain structurally separate, and neither is analyzed as a selected object or a resultative particle.",
+        "statement": "Complete the Danish V2 clause with independent predicate modifiers.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "a1_nsc",
+                        "label": "N⁰",
+                        "tokenIndex": 0,
+                        "word": "Børnene"
+                      }
+                    ],
+                    "id": "a1_nbarsc",
+                    "label": "N′"
+                  }
+                ],
+                "id": "a1_npsc",
+                "label": "NP",
+                "lineageId": "a1_subject"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "a1_vc",
+                            "label": "V⁰",
+                            "lineageId": "a1_dance",
+                            "tokenIndex": 1,
+                            "word": "dansede"
+                          },
+                          {
+                            "children": [],
+                            "id": "a1_tensec",
+                            "label": "I⁰ [finite, past]",
+                            "lineageId": "a1_inflection",
+                            "silent": true
+                          }
+                        ],
+                        "id": "a1_ic",
+                        "label": "I⁰",
+                        "lineageId": "a1_finite_head"
+                      },
+                      {
+                        "children": [],
+                        "id": "a1_cbase",
+                        "label": "C⁰ [root, declarative]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "a1_c",
+                    "label": "C⁰"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "a1_nps",
+                        "label": "NP trace",
+                        "lineageId": "a1_subject",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "a1_i",
+                            "label": "t_I",
+                            "lineageId": "a1_finite_head",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "a1_v",
+                                            "label": "t_V",
+                                            "lineageId": "a1_dance",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "a1_vbar0",
+                                        "label": "V′"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "a1_adv",
+                                                "label": "Adv⁰",
+                                                "tokenIndex": 2,
+                                                "word": "rundt"
+                                              }
+                                            ],
+                                            "id": "a1_advbar",
+                                            "label": "Adv′"
+                                          }
+                                        ],
+                                        "id": "a1_advp",
+                                        "label": "AdvP"
+                                      }
+                                    ],
+                                    "id": "a1_vbar1",
+                                    "label": "V′"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "a1_p",
+                                            "label": "P⁰",
+                                            "tokenIndex": 3,
+                                            "word": "i"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "a1_nr",
+                                                    "label": "N⁰",
+                                                    "tokenIndex": 4,
+                                                    "word": "ring"
+                                                  }
+                                                ],
+                                                "id": "a1_nbarr",
+                                                "label": "N′"
+                                              }
+                                            ],
+                                            "id": "a1_npr",
+                                            "label": "NP"
+                                          }
+                                        ],
+                                        "id": "a1_pbar",
+                                        "label": "P′"
+                                      }
+                                    ],
+                                    "id": "a1_pp",
+                                    "label": "PP"
+                                  }
+                                ],
+                                "id": "a1_vbar2",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "a1_vp",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "a1_ibar",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "a1_ip",
+                    "label": "IP"
+                  }
+                ],
+                "id": "a1_cbar",
+                "label": "C′"
+              }
+            ],
+            "id": "a1_cp",
+            "label": "CP"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "astra-danish-impersonal/0",
+    "sentence": "Der blev danset rundt i ring.",
+    "inputTokens": [
+      "Der",
+      "blev",
+      "danset",
+      "rundt",
+      "i",
+      "ring"
+    ],
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "complement": "ringPP",
+              "directionalHead": "roundHead"
+            },
+            "relation": "path specification",
+            "values": {
+              "interpretation": "a circular path"
+            }
+          },
+          {
+            "anchors": {
+              "governor": "iHead",
+              "nominal": "ringNP"
+            },
+            "relation": "prepositional government and Case",
+            "values": {
+              "Case": "oblique",
+              "nominalForm": "bare singular"
+            }
+          },
+          {
+            "anchors": {
+              "adjunct": "roundAdvP",
+              "modifiedProjection": "baseVP"
+            },
+            "relation": "event modification",
+            "values": {
+              "semanticRole": "path"
+            }
+          },
+          {
+            "anchors": {
+              "auxiliary": "auxLow",
+              "complement": "fullVP",
+              "participle": "danceHead"
+            },
+            "relation": "passive auxiliary selection",
+            "values": {
+              "morphologicalTreatment": "lexically supplied inflected forms",
+              "tense": "past",
+              "voice": "passive"
+            }
+          },
+          {
+            "anchors": {
+              "expletive": "subjectLow",
+              "predicate": "danceHead"
+            },
+            "relation": "impersonal passive theta configuration",
+            "values": {
+              "accusativeObject": "none",
+              "expletiveThetaRole": "none",
+              "externalArgument": "suppressed syntactically; implicit dancer retained"
+            }
+          },
+          {
+            "anchors": {
+              "finiteHead": "auxLow",
+              "subject": "subjectLow"
+            },
+            "relation": "finite expletive licensing",
+            "values": {
+              "Case": "formal nominative",
+              "position": "Spec-IP",
+              "reference": "nonreferential"
+            }
+          }
+        ],
+        "stageRecord": "This analysis takes Der as a nonreferential expletive and rundt i ring as one constituent specifying a circular path. Within that constituent, the directional adverb rundt takes the PP i ring as its path specification. The preposition i governs the bare nominal ring and licenses its oblique Case; the articleless NP is appropriate to this Danish expression. The resulting AdvP adjoins to VP and modifies the dancing event. The finite passive auxiliary blev is base-generated in I and selects the participial VP headed by danset. Both inflected words enter in their supplied lexical forms; no affix movement is posited. Danish permits an impersonal passive of this intransitive activity verb: passive suppresses the external theta-position while retaining an implicit dancer, and there is no object requiring accusative Case. Der is therefore merged directly in Spec-IP, receives no theta-role, and satisfies the overt subject requirement under finite I. Its formal nominative licensing does not imply visible Case inflection. This is the pre-V2 workspace, not yet the completed root-clause analysis.",
+        "statement": "Establish an impersonal passive with expletive Der and a single complex path adjunct.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "derLow",
+                        "label": "N⁰ [expletive]",
+                        "tokenIndex": 0,
+                        "word": "Der"
+                      }
+                    ],
+                    "id": "subjectNbar",
+                    "label": "N′"
+                  }
+                ],
+                "id": "subjectLow",
+                "label": "NP",
+                "lineageId": "expletive"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "auxLow",
+                    "label": "I⁰ [finite passive auxiliary]",
+                    "lineageId": "auxiliary",
+                    "tokenIndex": 1,
+                    "word": "blev"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "danceHead",
+                                "label": "V⁰ [passive participle]",
+                                "tokenIndex": 2,
+                                "word": "danset"
+                              }
+                            ],
+                            "id": "vbar",
+                            "label": "V′"
+                          }
+                        ],
+                        "id": "baseVP",
+                        "label": "VP"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "roundHead",
+                                "label": "Adv⁰ [directional]",
+                                "tokenIndex": 3,
+                                "word": "rundt"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "iHead",
+                                        "label": "P⁰",
+                                        "tokenIndex": 4,
+                                        "word": "i"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "ringHead",
+                                                "label": "N⁰",
+                                                "tokenIndex": 5,
+                                                "word": "ring"
+                                              }
+                                            ],
+                                            "id": "ringNbar",
+                                            "label": "N′"
+                                          }
+                                        ],
+                                        "id": "ringNP",
+                                        "label": "NP"
+                                      }
+                                    ],
+                                    "id": "ringPbar",
+                                    "label": "P′"
+                                  }
+                                ],
+                                "id": "ringPP",
+                                "label": "PP"
+                              }
+                            ],
+                            "id": "roundAdvbar",
+                            "label": "Adv′"
+                          }
+                        ],
+                        "id": "roundAdvP",
+                        "label": "AdvP"
+                      }
+                    ],
+                    "id": "fullVP",
+                    "label": "VP"
+                  }
+                ],
+                "id": "ibar",
+                "label": "I′"
+              }
+            ],
+            "id": "ip",
+            "label": "IP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landing": "auxHigh",
+              "trace": "auxLow"
+            },
+            "priorAnchors": {
+              "source": "auxLow"
+            },
+            "relation": "I-to-C head movement",
+            "values": {
+              "chainType": "head chain",
+              "locality": "no intervening head"
+            }
+          },
+          {
+            "anchors": {
+              "clause": "cp",
+              "finiteHead": "auxHigh"
+            },
+            "relation": "root V2 head licensing",
+            "values": {
+              "clauseType": "declarative",
+              "prefieldStatus": "not yet filled"
+            }
+          }
+        ],
+        "stageRecord": "A root CP is projected above the existing IP. The already present finite auxiliary blev moves from I to C, leaving an unpronounced head trace in I. This local movement crosses no intervening head and establishes the finite head of the Danish V2 clause. The auxiliary's selection and finite-subject licensing remain mediated by its chain through the lower I position. Spec-CP is still unfilled, so the expletive remains in its previously established subject position at this intermediate stage.",
+        "statement": "Move the finite passive auxiliary from I to C.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "auxHigh",
+                    "label": "C⁰ [finite auxiliary]",
+                    "lineageId": "auxiliary",
+                    "tokenIndex": 1,
+                    "word": "blev"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "derLow",
+                                "label": "N⁰ [expletive]",
+                                "tokenIndex": 0,
+                                "word": "Der"
+                              }
+                            ],
+                            "id": "subjectNbar",
+                            "label": "N′"
+                          }
+                        ],
+                        "id": "subjectLow",
+                        "label": "NP",
+                        "lineageId": "expletive"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "auxLow",
+                            "label": "t [I⁰]",
+                            "lineageId": "auxiliary",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "danceHead",
+                                        "label": "V⁰ [passive participle]",
+                                        "tokenIndex": 2,
+                                        "word": "danset"
+                                      }
+                                    ],
+                                    "id": "vbar",
+                                    "label": "V′"
+                                  }
+                                ],
+                                "id": "baseVP",
+                                "label": "VP"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "roundHead",
+                                        "label": "Adv⁰ [directional]",
+                                        "tokenIndex": 3,
+                                        "word": "rundt"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "iHead",
+                                                "label": "P⁰",
+                                                "tokenIndex": 4,
+                                                "word": "i"
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "id": "ringHead",
+                                                        "label": "N⁰",
+                                                        "tokenIndex": 5,
+                                                        "word": "ring"
+                                                      }
+                                                    ],
+                                                    "id": "ringNbar",
+                                                    "label": "N′"
+                                                  }
+                                                ],
+                                                "id": "ringNP",
+                                                "label": "NP"
+                                              }
+                                            ],
+                                            "id": "ringPbar",
+                                            "label": "P′"
+                                          }
+                                        ],
+                                        "id": "ringPP",
+                                        "label": "PP"
+                                      }
+                                    ],
+                                    "id": "roundAdvbar",
+                                    "label": "Adv′"
+                                  }
+                                ],
+                                "id": "roundAdvP",
+                                "label": "AdvP"
+                              }
+                            ],
+                            "id": "fullVP",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "ibar",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "ip",
+                    "label": "IP"
+                  }
+                ],
+                "id": "cbar",
+                "label": "C′"
+              }
+            ],
+            "id": "cp",
+            "label": "CP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landing": "subjectHigh",
+              "sourcePosition": "subjectLow",
+              "trace": "subjectTrace"
+            },
+            "priorAnchors": {
+              "source": "subjectLow"
+            },
+            "relation": "expletive prefield movement",
+            "values": {
+              "chainType": "A-bar chain",
+              "thetaStatus": "non-thematic throughout",
+              "traceLicensing": "local antecedent government"
+            }
+          },
+          {
+            "anchors": {
+              "clause": "cp",
+              "finiteHead": "auxHigh",
+              "prefield": "subjectHigh",
+              "subjectPosition": "subjectLow"
+            },
+            "relation": "completed root V2 configuration",
+            "values": {
+              "clauseType": "declarative",
+              "prefieldStatus": "filled by the expletive subject"
+            }
+          }
+        ],
+        "stageRecord": "The expletive NP moves from the previously represented Spec-IP to Spec-CP, leaving an NP trace in its subject position. This is A-bar displacement to the V2 prefield, not movement from a thematic argument position and not evidence that Der is referential. The landing NP antecedent-governs its local subject trace, and the chain retains the finite licensing established at Spec-IP. With Der in Spec-CP and blev in C, the V2 configuration is complete. The pronounced yield is exactly Der blev danset rundt i ring. On this reading, the sentence reports an unspecified dancing event along a circular path; Der does not independently locate it.",
+        "statement": "Complete the expletive-first V2 clause with a constituent path expression.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "derHigh",
+                        "label": "N⁰ [expletive]",
+                        "tokenIndex": 0,
+                        "word": "Der"
+                      }
+                    ],
+                    "id": "subjectHighNbar",
+                    "label": "N′"
+                  }
+                ],
+                "id": "subjectHigh",
+                "label": "NP",
+                "lineageId": "expletive"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "auxHigh",
+                    "label": "C⁰ [finite auxiliary]",
+                    "lineageId": "auxiliary",
+                    "tokenIndex": 1,
+                    "word": "blev"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "subjectTrace",
+                            "label": "t [NP]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "subjectLow",
+                        "label": "NP",
+                        "lineageId": "expletive",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "auxLow",
+                            "label": "t [I⁰]",
+                            "lineageId": "auxiliary",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "danceHead",
+                                        "label": "V⁰ [passive participle]",
+                                        "tokenIndex": 2,
+                                        "word": "danset"
+                                      }
+                                    ],
+                                    "id": "vbar",
+                                    "label": "V′"
+                                  }
+                                ],
+                                "id": "baseVP",
+                                "label": "VP"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "roundHead",
+                                        "label": "Adv⁰ [directional]",
+                                        "tokenIndex": 3,
+                                        "word": "rundt"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "iHead",
+                                                "label": "P⁰",
+                                                "tokenIndex": 4,
+                                                "word": "i"
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "id": "ringHead",
+                                                        "label": "N⁰",
+                                                        "tokenIndex": 5,
+                                                        "word": "ring"
+                                                      }
+                                                    ],
+                                                    "id": "ringNbar",
+                                                    "label": "N′"
+                                                  }
+                                                ],
+                                                "id": "ringNP",
+                                                "label": "NP"
+                                              }
+                                            ],
+                                            "id": "ringPbar",
+                                            "label": "P′"
+                                          }
+                                        ],
+                                        "id": "ringPP",
+                                        "label": "PP"
+                                      }
+                                    ],
+                                    "id": "roundAdvbar",
+                                    "label": "Adv′"
+                                  }
+                                ],
+                                "id": "roundAdvP",
+                                "label": "AdvP"
+                              }
+                            ],
+                            "id": "fullVP",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "ibar",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "ip",
+                    "label": "IP"
+                  }
+                ],
+                "id": "cbar",
+                "label": "C′"
+              }
+            ],
+            "id": "cp",
+            "label": "CP"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "astra-danish-impersonal/2",
+    "sentence": "Der blev danset rundt i ring.",
+    "inputTokens": [
+      "Der",
+      "blev",
+      "danset",
+      "rundt",
+      "i",
+      "ring"
+    ],
+    "derivationStages": [
+      {
+        "relations": [
+          {
+            "anchors": {
+              "complement": "ringPP",
+              "directionalHead": "roundHead"
+            },
+            "relation": "path specification",
+            "values": {
+              "interpretation": "a circular path"
+            }
+          },
+          {
+            "anchors": {
+              "governor": "iHead",
+              "nominal": "ringNP"
+            },
+            "relation": "prepositional government and Case",
+            "values": {
+              "Case": "oblique",
+              "nominalForm": "bare singular"
+            }
+          },
+          {
+            "anchors": {
+              "adjunct": "roundAdvP",
+              "modifiedProjection": "baseVP"
+            },
+            "relation": "event modification",
+            "values": {
+              "semanticRole": "path"
+            }
+          },
+          {
+            "anchors": {
+              "adjunct": "locLow",
+              "modifiedProjection": "pathVP"
+            },
+            "relation": "locative event modification",
+            "values": {
+              "interpretation": "at that place",
+              "lexicalReading": "locative, potentially stressed Der"
+            }
+          },
+          {
+            "anchors": {
+              "auxiliary": "auxLow",
+              "complement": "fullVP",
+              "participle": "danceHead"
+            },
+            "relation": "passive auxiliary selection",
+            "values": {
+              "morphologicalTreatment": "lexically supplied inflected forms",
+              "tense": "past",
+              "voice": "passive"
+            }
+          },
+          {
+            "anchors": {
+              "expletive": "nullSubject",
+              "predicate": "danceHead"
+            },
+            "relation": "impersonal passive theta configuration",
+            "values": {
+              "accusativeObject": "none",
+              "expletiveThetaRole": "none",
+              "externalArgument": "suppressed syntactically; implicit dancer retained"
+            }
+          },
+          {
+            "anchors": {
+              "finiteHead": "auxLow",
+              "subject": "nullSubject"
+            },
+            "relation": "finite null-expletive licensing",
+            "values": {
+              "Case": "formal nominative",
+              "constructionalRequirement": "locative prefield configuration still to be established",
+              "reference": "nonreferential"
+            }
+          }
+        ],
+        "stageRecord": "The spelling also supports stressed, locative Der, meaning 'at that place', rather than the unstressed expletive. This analysis commits to the Danish impersonal-passive construction in which an overt expletive can be absent when a locative occupies the prefield. In a GB representation retaining Spec-IP, that absence is represented by a silent nonreferential expletive, not by a referential null subject. First, rundt takes i ring as its PP path specification. The preposition governs the bare NP ring and licenses oblique Case. This complete directional AdvP adjoins to the dancing VP. Locative Der is separately merged as an outer VP adjunct, where it specifies the location of the event and provides the source for later fronting. Finite blev is generated in I and selects the passive participial VP headed by danset; the supplied inflected forms are lexical terminals. Impersonal passive suppresses the external theta-position but retains an implicit dancer. The silent expletive in Spec-IP has no theta-role and receives formal finite-subject licensing. Its omission will be constructionally licensed by the locative prefield configuration, which has not yet been derived.",
+        "statement": "Establish the locative-Der reading with a complex path adjunct and a silent expletive subject.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "proHead",
+                    "label": "pro [nonreferential expletive]",
+                    "silent": true
+                  }
+                ],
+                "id": "nullSubject",
+                "label": "NP [expletive]",
+                "silent": true
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "auxLow",
+                    "label": "I⁰ [finite passive auxiliary]",
+                    "lineageId": "auxiliary",
+                    "tokenIndex": 1,
+                    "word": "blev"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "danceHead",
+                                    "label": "V⁰ [passive participle]",
+                                    "tokenIndex": 2,
+                                    "word": "danset"
+                                  }
+                                ],
+                                "id": "vbar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "baseVP",
+                            "label": "VP"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "roundHead",
+                                    "label": "Adv⁰ [directional]",
+                                    "tokenIndex": 3,
+                                    "word": "rundt"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "iHead",
+                                            "label": "P⁰",
+                                            "tokenIndex": 4,
+                                            "word": "i"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "ringHead",
+                                                    "label": "N⁰",
+                                                    "tokenIndex": 5,
+                                                    "word": "ring"
+                                                  }
+                                                ],
+                                                "id": "ringNbar",
+                                                "label": "N′"
+                                              }
+                                            ],
+                                            "id": "ringNP",
+                                            "label": "NP"
+                                          }
+                                        ],
+                                        "id": "ringPbar",
+                                        "label": "P′"
+                                      }
+                                    ],
+                                    "id": "ringPP",
+                                    "label": "PP"
+                                  }
+                                ],
+                                "id": "roundAdvbar",
+                                "label": "Adv′"
+                              }
+                            ],
+                            "id": "roundAdvP",
+                            "label": "AdvP"
+                          }
+                        ],
+                        "id": "pathVP",
+                        "label": "VP"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "derLow",
+                                "label": "Adv⁰ [locative]",
+                                "tokenIndex": 0,
+                                "word": "Der"
+                              }
+                            ],
+                            "id": "locBar",
+                            "label": "Adv′"
+                          }
+                        ],
+                        "id": "locLow",
+                        "label": "AdvP [locative]",
+                        "lineageId": "locative"
+                      }
+                    ],
+                    "id": "fullVP",
+                    "label": "VP"
+                  }
+                ],
+                "id": "ibar",
+                "label": "I′"
+              }
+            ],
+            "id": "ip",
+            "label": "IP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landing": "auxHigh",
+              "trace": "auxLow"
+            },
+            "priorAnchors": {
+              "source": "auxLow"
+            },
+            "relation": "I-to-C head movement",
+            "values": {
+              "chainType": "head chain",
+              "locality": "no intervening head"
+            }
+          },
+          {
+            "anchors": {
+              "clause": "cp",
+              "finiteHead": "auxHigh"
+            },
+            "relation": "root V2 head licensing",
+            "values": {
+              "clauseType": "declarative",
+              "prefieldStatus": "not yet filled"
+            }
+          }
+        ],
+        "stageRecord": "A root CP is projected, and the finite auxiliary moves from its established I position to C. Its silent I trace maintains the connection to the selected passive VP and the finite subject position. This local head movement establishes the finite component of V2 without moving either the locative or the silent expletive. Der is still an overt VP adjunct in this intermediate workspace, and Spec-CP remains unfilled.",
+        "statement": "Move blev to C before fronting the locative.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "auxHigh",
+                    "label": "C⁰ [finite auxiliary]",
+                    "lineageId": "auxiliary",
+                    "tokenIndex": 1,
+                    "word": "blev"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "proHead",
+                            "label": "pro [nonreferential expletive]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "nullSubject",
+                        "label": "NP [expletive]",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "auxLow",
+                            "label": "t [I⁰]",
+                            "lineageId": "auxiliary",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "danceHead",
+                                            "label": "V⁰ [passive participle]",
+                                            "tokenIndex": 2,
+                                            "word": "danset"
+                                          }
+                                        ],
+                                        "id": "vbar",
+                                        "label": "V′"
+                                      }
+                                    ],
+                                    "id": "baseVP",
+                                    "label": "VP"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "roundHead",
+                                            "label": "Adv⁰ [directional]",
+                                            "tokenIndex": 3,
+                                            "word": "rundt"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "iHead",
+                                                    "label": "P⁰",
+                                                    "tokenIndex": 4,
+                                                    "word": "i"
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "ringHead",
+                                                            "label": "N⁰",
+                                                            "tokenIndex": 5,
+                                                            "word": "ring"
+                                                          }
+                                                        ],
+                                                        "id": "ringNbar",
+                                                        "label": "N′"
+                                                      }
+                                                    ],
+                                                    "id": "ringNP",
+                                                    "label": "NP"
+                                                  }
+                                                ],
+                                                "id": "ringPbar",
+                                                "label": "P′"
+                                              }
+                                            ],
+                                            "id": "ringPP",
+                                            "label": "PP"
+                                          }
+                                        ],
+                                        "id": "roundAdvbar",
+                                        "label": "Adv′"
+                                      }
+                                    ],
+                                    "id": "roundAdvP",
+                                    "label": "AdvP"
+                                  }
+                                ],
+                                "id": "pathVP",
+                                "label": "VP"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "derLow",
+                                        "label": "Adv⁰ [locative]",
+                                        "tokenIndex": 0,
+                                        "word": "Der"
+                                      }
+                                    ],
+                                    "id": "locBar",
+                                    "label": "Adv′"
+                                  }
+                                ],
+                                "id": "locLow",
+                                "label": "AdvP [locative]",
+                                "lineageId": "locative"
+                              }
+                            ],
+                            "id": "fullVP",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "ibar",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "ip",
+                    "label": "IP"
+                  }
+                ],
+                "id": "cbar",
+                "label": "C′"
+              }
+            ],
+            "id": "cp",
+            "label": "CP"
+          }
+        ]
+      },
+      {
+        "relations": [
+          {
+            "anchors": {
+              "landing": "locHigh",
+              "sourcePosition": "locLow",
+              "trace": "locTrace"
+            },
+            "priorAnchors": {
+              "source": "locLow"
+            },
+            "relation": "locative A-bar movement",
+            "values": {
+              "chainType": "adjunct A-bar chain",
+              "interpretationSite": "VP-adjoined source position",
+              "traceLicensing": "local antecedent government"
+            }
+          },
+          {
+            "anchors": {
+              "clause": "cp",
+              "finiteHead": "auxHigh",
+              "prefield": "locHigh"
+            },
+            "relation": "completed root V2 configuration",
+            "values": {
+              "clauseType": "declarative",
+              "prefieldStatus": "filled by the locative adjunct"
+            }
+          },
+          {
+            "anchors": {
+              "finiteHead": "auxHigh",
+              "locativePrefield": "locHigh",
+              "passivePredicate": "danceHead",
+              "subject": "nullSubject"
+            },
+            "relation": "constructional null-expletive licensing",
+            "values": {
+              "construction": "locative-fronted Danish impersonal passive",
+              "constructionalRequirement": "satisfied",
+              "nullCategory": "nonreferential expletive, not referential pro-drop"
+            }
+          }
+        ],
+        "stageRecord": "The previously represented locative AdvP Der moves from its VP-adjoined position to Spec-CP, leaving a silent adjunct trace. The resulting local A-bar chain connects the pronounced locative to its event-modifying position and antecedent-governs the trace; no island is crossed. Der in the prefield and blev in C complete the root V2 configuration. This locative-fronted impersonal passive licenses the silent nonreferential subject in Spec-IP; Der itself is not that subject and has no nominative dependency. The final yield is exactly the input. The reading is that at the indicated place there was dancing along a circular path, with rundt i ring remaining a single path constituent.",
+        "statement": "Complete locative fronting and license the silent impersonal subject.",
+        "workspaceForest": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "derHigh",
+                        "label": "Adv⁰ [locative]",
+                        "tokenIndex": 0,
+                        "word": "Der"
+                      }
+                    ],
+                    "id": "locHighBar",
+                    "label": "Adv′"
+                  }
+                ],
+                "id": "locHigh",
+                "label": "AdvP [locative]",
+                "lineageId": "locative"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "auxHigh",
+                    "label": "C⁰ [finite auxiliary]",
+                    "lineageId": "auxiliary",
+                    "tokenIndex": 1,
+                    "word": "blev"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "proHead",
+                            "label": "pro [nonreferential expletive]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "nullSubject",
+                        "label": "NP [expletive]",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "auxLow",
+                            "label": "t [I⁰]",
+                            "lineageId": "auxiliary",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "danceHead",
+                                            "label": "V⁰ [passive participle]",
+                                            "tokenIndex": 2,
+                                            "word": "danset"
+                                          }
+                                        ],
+                                        "id": "vbar",
+                                        "label": "V′"
+                                      }
+                                    ],
+                                    "id": "baseVP",
+                                    "label": "VP"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "roundHead",
+                                            "label": "Adv⁰ [directional]",
+                                            "tokenIndex": 3,
+                                            "word": "rundt"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "iHead",
+                                                    "label": "P⁰",
+                                                    "tokenIndex": 4,
+                                                    "word": "i"
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "ringHead",
+                                                            "label": "N⁰",
+                                                            "tokenIndex": 5,
+                                                            "word": "ring"
+                                                          }
+                                                        ],
+                                                        "id": "ringNbar",
+                                                        "label": "N′"
+                                                      }
+                                                    ],
+                                                    "id": "ringNP",
+                                                    "label": "NP"
+                                                  }
+                                                ],
+                                                "id": "ringPbar",
+                                                "label": "P′"
+                                              }
+                                            ],
+                                            "id": "ringPP",
+                                            "label": "PP"
+                                          }
+                                        ],
+                                        "id": "roundAdvbar",
+                                        "label": "Adv′"
+                                      }
+                                    ],
+                                    "id": "roundAdvP",
+                                    "label": "AdvP"
+                                  }
+                                ],
+                                "id": "pathVP",
+                                "label": "VP"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "locTrace",
+                                    "label": "t [AdvP]",
+                                    "silent": true
+                                  }
+                                ],
+                                "id": "locLow",
+                                "label": "AdvP [locative]",
+                                "lineageId": "locative",
+                                "silent": true
+                              }
+                            ],
+                            "id": "fullVP",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "ibar",
+                        "label": "I′"
+                      }
+                    ],
+                    "id": "ip",
+                    "label": "IP"
+                  }
+                ],
+                "id": "cbar",
+                "label": "C′"
+              }
+            ],
+            "id": "cp",
+            "label": "CP"
+          }
+        ]
+      }
+    ]
+  }
+]

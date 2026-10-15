@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import { dispatchStageRelations } from '../replay/relations/tier2RelationDispatch.ts';
-import { compileRelationRenderPlan, planItemRelationRefs } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 
 const stage = (workspaceForest, relations) => ({ statement: '', stageRecord: '', workspaceForest, relations });

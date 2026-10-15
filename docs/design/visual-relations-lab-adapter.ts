@@ -1,8 +1,6 @@
+import { productionRelationRegistry } from '../../replay/relationDispatch/productionRegistry.js';
+import { findRelationRegistryEntry } from '../../replay/relationDispatch/relationRegistry.js';
 import type { DerivationStage, SyntaxNode } from '../../types.ts';
-import {
-  findRelationRegistryEntry,
-  productionRelationRegistry
-} from '../../replay/relationDispatch/index.js';
 import {
   MIN_CROSSING_SEPARATION,
   allocateSpanLanes,
@@ -14,10 +12,10 @@ import {
   enclosureRect,
   findBoundaryCrossings,
   findBoundaryExit,
+  isOrthogonalPath,
   orientPathFromOrigin,
   orthogonalTrajectory,
   orthogonalTrajectoryPoints,
-  isOrthogonalPath,
   planAnchorSetLayout,
   polygonArea,
   polygonContainsPoint,
@@ -26,6 +24,14 @@ import {
   trajectoryControlY
 } from './visual-relations-geometry.ts';
 
+export type {
+  AnchorSetBadge,
+  AnchorSetLayout,
+  AnchorSetLayoutInput,
+  AnchorSetRail,
+  Point,
+  Rect
+} from './visual-relations-geometry.ts';
 export {
   MIN_CROSSING_SEPARATION,
   allocateSpanLanes,
@@ -36,26 +42,15 @@ export {
   ellipseContainsRect,
   enclosureRect,
   findBoundaryCrossings,
-  findBoundaryExit,
-  orientPathFromOrigin,
+  findBoundaryExit, isOrthogonalPath, orientPathFromOrigin,
   orthogonalTrajectory,
-  orthogonalTrajectoryPoints,
-  isOrthogonalPath,
-  planAnchorSetLayout,
+  orthogonalTrajectoryPoints, planAnchorSetLayout,
   polygonArea,
   polygonContainsPoint,
   rectCorners,
   rectsOverlap,
   trajectoryControlY
 };
-export type {
-  AnchorSetBadge,
-  AnchorSetLayout,
-  AnchorSetLayoutInput,
-  AnchorSetRail,
-  Point,
-  Rect
-} from './visual-relations-geometry.ts';
 
 type OpenRecord = Record<string, any>;
 

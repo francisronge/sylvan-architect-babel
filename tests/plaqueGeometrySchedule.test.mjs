@@ -2,16 +2,26 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import {
-  buildReplayPlaqueSchedule, buildStageCameraBounds, buildStageLayoutGroups, measureStagePlaqueSpace, selectReplayPlaqueLayout
+  buildReplayPlaqueSchedule,
+  buildStageCameraBounds,
+  buildStageLayoutGroups,
+  measureStagePlaqueSpace,
+  selectReplayPlaqueLayout
 } from '../replay/stageCamera.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { planItemRelationRefs } from '../replay/relations/renderPlanCompiler.ts';
+import { persistentCaseMovement } from './helpers/persistentCaseMovement.mjs';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
 import {
-  caseAssignmentClears, caseAssignmentSource, collectionPlaqueClears, plaqueIdentity,
-  plaquesOverlap, projectPlaqueLayout
+  caseAssignmentClears,
+  caseAssignmentSource,
+  collectionPlaqueClears,
+  plaqueIdentity,
+  plaquesOverlap,
+  projectPlaqueLayout
 } from '../replay/relations/plaquePlacement.ts';
 
 const capturedMetrics = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/workspace-font-metrics.json', import.meta.url)));
+const obsoletePocket = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/obsolete-plaque-pockets.json', import.meta.url)));
 const categoryMetrics = new Map(capturedMetrics.categories), inkMetrics = new Map(capturedMetrics.treeInk);
 const metric = (values, key) => {
   assert(values.has(key), `the regression has a captured production font measurement for ${key}`);
@@ -67,6 +77,52 @@ const positions = scene => new Map(scene.nodes.map(node => [node.__vizId ?? node
 const layoutAt = (schedule, input, stepIndex) =>
   selectReplayPlaqueLayout(schedule, input.steps[stepIndex].replayFrameIndex, stepIndex);
 const pocket = box => [box.x - box.attachmentX, box.y - box.attachmentY, box.width, box.height];
+
+test('persistent Case has a pocket before, during and after an exact occurrence replacement', () => {
+  for (const exact of [false, true]) for (const direction of ['ltr', 'rtl']) {
+    const input = persistentCaseMovement(exact), original = JSON.stringify(input);
+    const replay = prepareReplay({ ...input, includePlayback: true }), steps = replay.playbackSteps;
+    const schedule = buildReplayPlaqueSchedule({ steps, stageIndex: 0, plan: replay.relationRenderPlan,
+      completedCanvas: steps.at(-1).replayCanvasData, width: 1200, height: 900, direction,
+      layoutGroups: buildStageLayoutGroups(steps, input.derivationStages) });
+    const moment = steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1);
+    const waiting = steps.flatMap((step, index) => step.replayFrameIndex === 1 && index < moment ? [index] : []);
+    assert(waiting.length > 0, 'ordinary C construction precedes movement');
+    for (const index of [waiting[0] - 1, ...waiting, moment, steps.length - 1]) {
+      const stage = steps[index].replayFrameIndex;
+      for (const kind of ['case-assignment', 'theta-grid']) {
+        const owner = replay.relationRenderPlan.frames[stage].items.findIndex(item =>
+          item.pathStyle === kind || item.plaqueStyle === kind);
+        assert(owner >= 0);
+        const placement = selectReplayPlaqueLayout(schedule, stage, index).get(owner);
+        assert(placement, `Tier ${exact ? 1 : 2}, ${direction}, frame ${index + 1}: the established ${kind} plaque persists`);
+        assert.equal(placement.attachmentNodeId, stage === 0 || index < moment ? 'verb' : 'lower');
+      }
+    }
+    assert.equal(JSON.stringify(input), original);
+  }
+});
+
+for (const [width, direction] of [[1600, 'ltr'], [390, 'rtl']]) {
+  test(`${width}px ${direction}: an abandoned grid pocket cannot push persistent Case below its subtree`, () => {
+    const replay = prepareReplay({ ...obsoletePocket, includePlayback: true });
+    const steps = replay.playbackSteps;
+    const input = { steps, stageIndex: 0, completedCanvas: steps.at(-1).replayCanvasData,
+      plan: replay.relationRenderPlan, width, height: 1000, direction,
+      layoutGroups: buildStageLayoutGroups(steps, obsoletePocket.derivationStages) };
+    const original = JSON.stringify(input);
+    const schedule = buildReplayPlaqueSchedule(input);
+    const caseBox = stageIndex => {
+      const index = input.plan.frames[stageIndex].items.findIndex(item =>
+        item.pathStyle === 'case-assignment' && item.fromNodeId === 'v');
+      return schedule.stages[stageIndex].get(index);
+    };
+    assert.equal(caseBox(2).location, 'local');
+    assert.deepEqual(pocket(caseBox(3)), pocket(caseBox(2)), 'the replacement pocket persists through later construction');
+    assertClearScenes(input, schedule);
+    assert.equal(JSON.stringify(input), original, 'allocation changes no syntax, claims, timing or tree coordinates');
+  });
+}
 
 function auxiliaryCaseStages() {
   const node = (id, label, children = [], properties = {}) => ({ id, label, children, ...properties });

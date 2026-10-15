@@ -1,0 +1,1335 @@
+{
+  "sentence": "É importante os alunos chegarem cedo.",
+  "inputTokens": [
+    "É",
+    "importante",
+    "os",
+    "alunos",
+    "chegarem",
+    "cedo"
+  ],
+  "derivationStages": [
+    {
+      "relations": [],
+      "stageRecord": "The analysis uses Bare Phrase Structure: merged objects inherit the category of their projecting head, without predefined phrase templates or bar levels. The evaluative adjective takes the infinitival proposition as its complement; that proposition is the semantic subject of the evaluation. The matrix clause has a silent, nonreferential expletive. Chegar is treated as unaccusative, so os alunos will originate as its internal argument rather than as an agent introduced by little v. The supplied words are retained as whole-word lexical terminals: chegarem is the personal-infinitive form, and É is the finite copular form. Silent T heads represent their grammatical features without requiring a separate morphological segmentation of either word. The silent infinitival C will identify a propositional infinitival clause, while the two silent little-v heads provide nonagentive verbal structure.",
+      "statement": "Select the lexical and functional objects for the finite evaluative clause and its personal-infinitival clause.",
+      "workspaceForest": [
+        {
+          "children": [],
+          "id": "determinerLower",
+          "label": "D[definite,plural]",
+          "lineageId": "determinerChain",
+          "tokenIndex": 2,
+          "word": "os"
+        },
+        {
+          "children": [],
+          "id": "nounLower",
+          "label": "N[plural]",
+          "lineageId": "nounChain",
+          "tokenIndex": 3,
+          "word": "alunos"
+        },
+        {
+          "children": [],
+          "id": "arrivalLower",
+          "label": "V[unaccusative,personal-infinitive]",
+          "lineageId": "arrivalChain",
+          "tokenIndex": 4,
+          "word": "chegarem"
+        },
+        {
+          "children": [],
+          "id": "early",
+          "label": "Adv",
+          "tokenIndex": 5,
+          "word": "cedo"
+        },
+        {
+          "children": [],
+          "id": "important",
+          "label": "A[evaluative]",
+          "tokenIndex": 1,
+          "word": "importante"
+        },
+        {
+          "children": [],
+          "id": "copulaLower",
+          "label": "V[copular]",
+          "lineageId": "copulaChain",
+          "tokenIndex": 0,
+          "word": "É"
+        },
+        {
+          "children": [],
+          "id": "embeddedLittleV",
+          "label": "v[nonagentive]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "infinitivalT",
+          "label": "T[personal-infinitive]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "infinitivalC",
+          "label": "C[infinitival,declarative]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "matrixLittleV",
+          "label": "v[nonagentive]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "finiteT",
+          "label": "T[present,indicative]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "expletiveLower",
+          "label": "D[expletive]",
+          "lineageId": "expletiveChain",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "studentsLower",
+            "predicate": "arrivalLower"
+          },
+          "relation": "Internal-argument interpretation",
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "modifiedDomain": "arrivalVP",
+            "modifier": "early"
+          },
+          "relation": "Event modification",
+          "values": {
+            "interpretation": "The arrival occurs early."
+          }
+        },
+        {
+          "anchors": {
+            "goal": "studentsLower",
+            "probe": "infinitivalT"
+          },
+          "relation": "Personal-infinitival Agree and Case licensing",
+          "values": {
+            "case": "nominative",
+            "number": "plural",
+            "person": "third"
+          }
+        }
+      ],
+      "stageRecord": "First, the definite determiner merges with alunos, forming the plural nominal argument. Chegarem merges with that nominal as its internal argument and assigns it the Theme role: the students are the entities arriving. Cedo then adjoins to the resulting V object and modifies the arrival event, not the matrix evaluation. Nonagentive little v merges above this structure, and infinitival T merges above little v. T agrees with the accessible nominal argument, obtaining third-person plural features and licensing its nominative Case. This is the personal-infinitive configuration that permits the overt subject os alunos; an obligatorily controlled, uninflected infinitive is not assumed.",
+      "statement": "Build the embedded verbal domain and establish personal-infinitival agreement.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "infinitivalT",
+              "label": "T[personal-infinitive]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "embeddedLittleV",
+                  "label": "v[nonagentive]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "arrivalLower",
+                          "label": "V[unaccusative,personal-infinitive]",
+                          "lineageId": "arrivalChain",
+                          "tokenIndex": 4,
+                          "word": "chegarem"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "determinerLower",
+                              "label": "D[definite,plural]",
+                              "lineageId": "determinerChain",
+                              "tokenIndex": 2,
+                              "word": "os"
+                            },
+                            {
+                              "children": [],
+                              "id": "nounLower",
+                              "label": "N[plural]",
+                              "lineageId": "nounChain",
+                              "tokenIndex": 3,
+                              "word": "alunos"
+                            }
+                          ],
+                          "id": "studentsLower",
+                          "label": "D",
+                          "lineageId": "studentsChain"
+                        }
+                      ],
+                      "id": "arrivalVP",
+                      "label": "V"
+                    },
+                    {
+                      "children": [],
+                      "id": "early",
+                      "label": "Adv",
+                      "tokenIndex": 5,
+                      "word": "cedo"
+                    }
+                  ],
+                  "id": "modifiedArrival",
+                  "label": "V"
+                }
+              ],
+              "id": "embeddedVDomain",
+              "label": "v"
+            }
+          ],
+          "id": "embeddedTCore",
+          "label": "T"
+        },
+        {
+          "children": [],
+          "id": "important",
+          "label": "A[evaluative]",
+          "tokenIndex": 1,
+          "word": "importante"
+        },
+        {
+          "children": [],
+          "id": "copulaLower",
+          "label": "V[copular]",
+          "lineageId": "copulaChain",
+          "tokenIndex": 0,
+          "word": "É"
+        },
+        {
+          "children": [],
+          "id": "infinitivalC",
+          "label": "C[infinitival,declarative]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "matrixLittleV",
+          "label": "v[nonagentive]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "finiteT",
+          "label": "T[present,indicative]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "expletiveLower",
+          "label": "D[expletive]",
+          "lineageId": "expletiveChain",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complexHead": "infinitivalHead",
+            "higherOccurrence": "arrivalHigher",
+            "lowerOccurrence": "arrivalLower",
+            "target": "infinitivalT"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "arrivalLower"
+          },
+          "relation": "Embedded head movement",
+          "values": {
+            "dependency": "V-to-T",
+            "pronouncedOccurrence": "higher"
+          }
+        }
+      ],
+      "stageRecord": "The embedded verb internally merges with infinitival T from the V position shown in the preceding workspace. In the nonagentive verbal domain adopted here, little v has no independent attracting head feature, so the verb raises directly to T. The resulting complex head connects the infinitival verb with the T that has already agreed with os alunos. The higher verb occurrence is pronounced as chegarem; the lower occurrence retains its lexical content but is silent. This is head movement, not the introduction of another arrival predicate. The nominal argument remains in its original position at this stage, keeping head movement distinct from the subsequent subject movement.",
+      "statement": "Raise the personal-infinitive verb to embedded T.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "arrivalHigher",
+                  "label": "V[unaccusative,personal-infinitive]",
+                  "lineageId": "arrivalChain",
+                  "tokenIndex": 4,
+                  "word": "chegarem"
+                },
+                {
+                  "children": [],
+                  "id": "infinitivalT",
+                  "label": "T[personal-infinitive]",
+                  "silent": true
+                }
+              ],
+              "id": "infinitivalHead",
+              "label": "T"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "embeddedLittleV",
+                  "label": "v[nonagentive]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "arrivalLower",
+                          "label": "V[unaccusative,personal-infinitive]",
+                          "lineageId": "arrivalChain",
+                          "silent": true,
+                          "word": "chegarem"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "determinerLower",
+                              "label": "D[definite,plural]",
+                              "lineageId": "determinerChain",
+                              "tokenIndex": 2,
+                              "word": "os"
+                            },
+                            {
+                              "children": [],
+                              "id": "nounLower",
+                              "label": "N[plural]",
+                              "lineageId": "nounChain",
+                              "tokenIndex": 3,
+                              "word": "alunos"
+                            }
+                          ],
+                          "id": "studentsLower",
+                          "label": "D",
+                          "lineageId": "studentsChain"
+                        }
+                      ],
+                      "id": "arrivalVP",
+                      "label": "V"
+                    },
+                    {
+                      "children": [],
+                      "id": "early",
+                      "label": "Adv",
+                      "tokenIndex": 5,
+                      "word": "cedo"
+                    }
+                  ],
+                  "id": "modifiedArrival",
+                  "label": "V"
+                }
+              ],
+              "id": "embeddedVDomain",
+              "label": "v"
+            }
+          ],
+          "id": "embeddedTCore",
+          "label": "T"
+        },
+        {
+          "children": [],
+          "id": "important",
+          "label": "A[evaluative]",
+          "tokenIndex": 1,
+          "word": "importante"
+        },
+        {
+          "children": [],
+          "id": "copulaLower",
+          "label": "V[copular]",
+          "lineageId": "copulaChain",
+          "tokenIndex": 0,
+          "word": "É"
+        },
+        {
+          "children": [],
+          "id": "infinitivalC",
+          "label": "C[infinitival,declarative]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "matrixLittleV",
+          "label": "v[nonagentive]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "finiteT",
+          "label": "T[present,indicative]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "expletiveLower",
+          "label": "D[expletive]",
+          "lineageId": "expletiveChain",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "higherOccurrence": "studentsHigher",
+            "landingDomain": "embeddedSubjectT",
+            "licensingHead": "infinitivalT",
+            "lowerOccurrence": "studentsLower"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "studentsLower"
+          },
+          "relation": "Embedded subject movement",
+          "values": {
+            "pronouncedOccurrence": "higher",
+            "trigger": "subject-position requirement"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "infinitivalClause",
+            "clauseHead": "infinitivalC",
+            "tenseHead": "infinitivalT"
+          },
+          "relation": "Infinitival clause typing",
+          "values": {
+            "clauseType": "declarative personal infinitive"
+          }
+        }
+      ],
+      "stageRecord": "Os alunos internally merges at the edge of the embedded T object from the internal-argument position already present in the preceding workspace. This satisfies the subject-position requirement of personal-infinitival T and produces the order os alunos chegarem cedo. The higher nominal occurrence is pronounced, while the lower nominal and its terminals are silent copies. The Theme interpretation and nominative licensing remain connected to the lower argument occurrence established earlier. Silent infinitival C then merges with the completed T object, identifying a declarative infinitival proposition. No overt complementizer or controlled PRO is inserted: the overt plural nominal is the infinitival subject.",
+      "statement": "Raise the embedded subject and complete the infinitival proposition.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "infinitivalC",
+              "label": "C[infinitival,declarative]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "determinerHigher",
+                      "label": "D[definite,plural]",
+                      "lineageId": "determinerChain",
+                      "tokenIndex": 2,
+                      "word": "os"
+                    },
+                    {
+                      "children": [],
+                      "id": "nounHigher",
+                      "label": "N[plural]",
+                      "lineageId": "nounChain",
+                      "tokenIndex": 3,
+                      "word": "alunos"
+                    }
+                  ],
+                  "id": "studentsHigher",
+                  "label": "D",
+                  "lineageId": "studentsChain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "arrivalHigher",
+                          "label": "V[unaccusative,personal-infinitive]",
+                          "lineageId": "arrivalChain",
+                          "tokenIndex": 4,
+                          "word": "chegarem"
+                        },
+                        {
+                          "children": [],
+                          "id": "infinitivalT",
+                          "label": "T[personal-infinitive]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "infinitivalHead",
+                      "label": "T"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "embeddedLittleV",
+                          "label": "v[nonagentive]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "arrivalLower",
+                                  "label": "V[unaccusative,personal-infinitive]",
+                                  "lineageId": "arrivalChain",
+                                  "silent": true,
+                                  "word": "chegarem"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "determinerLower",
+                                      "label": "D[definite,plural]",
+                                      "lineageId": "determinerChain",
+                                      "silent": true,
+                                      "word": "os"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "nounLower",
+                                      "label": "N[plural]",
+                                      "lineageId": "nounChain",
+                                      "silent": true,
+                                      "word": "alunos"
+                                    }
+                                  ],
+                                  "id": "studentsLower",
+                                  "label": "D",
+                                  "lineageId": "studentsChain",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "arrivalVP",
+                              "label": "V"
+                            },
+                            {
+                              "children": [],
+                              "id": "early",
+                              "label": "Adv",
+                              "tokenIndex": 5,
+                              "word": "cedo"
+                            }
+                          ],
+                          "id": "modifiedArrival",
+                          "label": "V"
+                        }
+                      ],
+                      "id": "embeddedVDomain",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "embeddedTCore",
+                  "label": "T"
+                }
+              ],
+              "id": "embeddedSubjectT",
+              "label": "T"
+            }
+          ],
+          "id": "infinitivalClause",
+          "label": "C"
+        },
+        {
+          "children": [],
+          "id": "important",
+          "label": "A[evaluative]",
+          "tokenIndex": 1,
+          "word": "importante"
+        },
+        {
+          "children": [],
+          "id": "copulaLower",
+          "label": "V[copular]",
+          "lineageId": "copulaChain",
+          "tokenIndex": 0,
+          "word": "É"
+        },
+        {
+          "children": [],
+          "id": "matrixLittleV",
+          "label": "v[nonagentive]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "finiteT",
+          "label": "T[present,indicative]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "expletiveLower",
+          "label": "D[expletive]",
+          "lineageId": "expletiveChain",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "predicate": "important",
+            "proposition": "infinitivalClause"
+          },
+          "relation": "Evaluative propositional selection",
+          "values": {
+            "interpretation": "The proposition that the students arrive early is important.",
+            "syntacticStatus": "adjectival complement"
+          }
+        },
+        {
+          "anchors": {
+            "adjectivalPredicate": "evaluativeA",
+            "copula": "copulaLower"
+          },
+          "relation": "Copular predication",
+          "values": {
+            "function": "verbal support for adjectival predication"
+          }
+        },
+        {
+          "anchors": {
+            "associatedProposition": "infinitivalClause",
+            "expletive": "expletiveLower",
+            "predicate": "important"
+          },
+          "relation": "Expletive association",
+          "values": {
+            "referentialStatus": "nonreferential",
+            "thetaStatus": "no thematic role"
+          }
+        },
+        {
+          "anchors": {
+            "finiteVerb": "copulaLower",
+            "goal": "expletiveLower",
+            "probe": "finiteT"
+          },
+          "relation": "Finite Agree and Case licensing",
+          "values": {
+            "case": "nominative",
+            "mood": "indicative",
+            "number": "singular",
+            "person": "third",
+            "tense": "present"
+          }
+        }
+      ],
+      "stageRecord": "Importante merges with the infinitival clause as its propositional complement: what is evaluated as important is the students' arriving early. This analysis therefore generates the postadjectival clause in place rather than moving it rightward from a previously occupied matrix subject position. The copula merges with the resulting A object, providing the verbal support for adjectival predication. Nonagentive matrix little v merges above the copular domain, and the silent expletive merges at its edge without receiving a thematic role. Finite T then merges above this domain and agrees with the expletive in third-person singular, licensing its nominative Case. Matrix singular agreement consequently does not target the embedded plural subject. The clause expresses a present-tense evaluation, whereas the embedded arrival has infinitival rather than independent finite tense.",
+      "statement": "Build the matrix evaluative predicate and establish finite agreement.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "finiteT",
+              "label": "T[present,indicative]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "expletiveLower",
+                  "label": "D[expletive]",
+                  "lineageId": "expletiveChain",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "matrixLittleV",
+                      "label": "v[nonagentive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "copulaLower",
+                          "label": "V[copular]",
+                          "lineageId": "copulaChain",
+                          "tokenIndex": 0,
+                          "word": "É"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "important",
+                              "label": "A[evaluative]",
+                              "tokenIndex": 1,
+                              "word": "importante"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "infinitivalC",
+                                  "label": "C[infinitival,declarative]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "determinerHigher",
+                                          "label": "D[definite,plural]",
+                                          "lineageId": "determinerChain",
+                                          "tokenIndex": 2,
+                                          "word": "os"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "nounHigher",
+                                          "label": "N[plural]",
+                                          "lineageId": "nounChain",
+                                          "tokenIndex": 3,
+                                          "word": "alunos"
+                                        }
+                                      ],
+                                      "id": "studentsHigher",
+                                      "label": "D",
+                                      "lineageId": "studentsChain"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "arrivalHigher",
+                                              "label": "V[unaccusative,personal-infinitive]",
+                                              "lineageId": "arrivalChain",
+                                              "tokenIndex": 4,
+                                              "word": "chegarem"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "infinitivalT",
+                                              "label": "T[personal-infinitive]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "infinitivalHead",
+                                          "label": "T"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "embeddedLittleV",
+                                              "label": "v[nonagentive]",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "arrivalLower",
+                                                      "label": "V[unaccusative,personal-infinitive]",
+                                                      "lineageId": "arrivalChain",
+                                                      "silent": true,
+                                                      "word": "chegarem"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "determinerLower",
+                                                          "label": "D[definite,plural]",
+                                                          "lineageId": "determinerChain",
+                                                          "silent": true,
+                                                          "word": "os"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "nounLower",
+                                                          "label": "N[plural]",
+                                                          "lineageId": "nounChain",
+                                                          "silent": true,
+                                                          "word": "alunos"
+                                                        }
+                                                      ],
+                                                      "id": "studentsLower",
+                                                      "label": "D",
+                                                      "lineageId": "studentsChain",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "arrivalVP",
+                                                  "label": "V"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "early",
+                                                  "label": "Adv",
+                                                  "tokenIndex": 5,
+                                                  "word": "cedo"
+                                                }
+                                              ],
+                                              "id": "modifiedArrival",
+                                              "label": "V"
+                                            }
+                                          ],
+                                          "id": "embeddedVDomain",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "embeddedTCore",
+                                      "label": "T"
+                                    }
+                                  ],
+                                  "id": "embeddedSubjectT",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "infinitivalClause",
+                              "label": "C"
+                            }
+                          ],
+                          "id": "evaluativeA",
+                          "label": "A"
+                        }
+                      ],
+                      "id": "copularVP",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "matrixVCore",
+                  "label": "v"
+                }
+              ],
+              "id": "matrixVDomain",
+              "label": "v"
+            }
+          ],
+          "id": "matrixTCore",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complexHead": "finiteHead",
+            "higherOccurrence": "copulaHigher",
+            "lowerOccurrence": "copulaLower",
+            "target": "finiteT"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "copulaLower"
+          },
+          "relation": "Matrix head movement",
+          "values": {
+            "dependency": "V-to-T",
+            "pronouncedOccurrence": "higher"
+          }
+        }
+      ],
+      "stageRecord": "The copula internally merges with finite T from the verbal position established in the preceding workspace. As in the embedded nonagentive domain, little v has no independent head-attracting feature in this analysis. The higher copular occurrence is pronounced as É, and its lower occurrence is silent. The resulting complex T head places the finite copula before importante and the infinitival proposition. Because É is retained as a whole-word terminal, this movement requires no realization group combining separate morphological terminals.",
+      "statement": "Raise the finite copula to matrix T.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "copulaHigher",
+                  "label": "V[copular]",
+                  "lineageId": "copulaChain",
+                  "tokenIndex": 0,
+                  "word": "É"
+                },
+                {
+                  "children": [],
+                  "id": "finiteT",
+                  "label": "T[present,indicative]",
+                  "silent": true
+                }
+              ],
+              "id": "finiteHead",
+              "label": "T"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "expletiveLower",
+                  "label": "D[expletive]",
+                  "lineageId": "expletiveChain",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "matrixLittleV",
+                      "label": "v[nonagentive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "copulaLower",
+                          "label": "V[copular]",
+                          "lineageId": "copulaChain",
+                          "silent": true,
+                          "word": "É"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "important",
+                              "label": "A[evaluative]",
+                              "tokenIndex": 1,
+                              "word": "importante"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "infinitivalC",
+                                  "label": "C[infinitival,declarative]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "determinerHigher",
+                                          "label": "D[definite,plural]",
+                                          "lineageId": "determinerChain",
+                                          "tokenIndex": 2,
+                                          "word": "os"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "nounHigher",
+                                          "label": "N[plural]",
+                                          "lineageId": "nounChain",
+                                          "tokenIndex": 3,
+                                          "word": "alunos"
+                                        }
+                                      ],
+                                      "id": "studentsHigher",
+                                      "label": "D",
+                                      "lineageId": "studentsChain"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "arrivalHigher",
+                                              "label": "V[unaccusative,personal-infinitive]",
+                                              "lineageId": "arrivalChain",
+                                              "tokenIndex": 4,
+                                              "word": "chegarem"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "infinitivalT",
+                                              "label": "T[personal-infinitive]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "infinitivalHead",
+                                          "label": "T"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "embeddedLittleV",
+                                              "label": "v[nonagentive]",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "arrivalLower",
+                                                      "label": "V[unaccusative,personal-infinitive]",
+                                                      "lineageId": "arrivalChain",
+                                                      "silent": true,
+                                                      "word": "chegarem"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "determinerLower",
+                                                          "label": "D[definite,plural]",
+                                                          "lineageId": "determinerChain",
+                                                          "silent": true,
+                                                          "word": "os"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "nounLower",
+                                                          "label": "N[plural]",
+                                                          "lineageId": "nounChain",
+                                                          "silent": true,
+                                                          "word": "alunos"
+                                                        }
+                                                      ],
+                                                      "id": "studentsLower",
+                                                      "label": "D",
+                                                      "lineageId": "studentsChain",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "arrivalVP",
+                                                  "label": "V"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "early",
+                                                  "label": "Adv",
+                                                  "tokenIndex": 5,
+                                                  "word": "cedo"
+                                                }
+                                              ],
+                                              "id": "modifiedArrival",
+                                              "label": "V"
+                                            }
+                                          ],
+                                          "id": "embeddedVDomain",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "embeddedTCore",
+                                      "label": "T"
+                                    }
+                                  ],
+                                  "id": "embeddedSubjectT",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "infinitivalClause",
+                              "label": "C"
+                            }
+                          ],
+                          "id": "evaluativeA",
+                          "label": "A"
+                        }
+                      ],
+                      "id": "copularVP",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "matrixVCore",
+                  "label": "v"
+                }
+              ],
+              "id": "matrixVDomain",
+              "label": "v"
+            }
+          ],
+          "id": "matrixTCore",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "higherOccurrence": "expletiveHigher",
+            "landingDomain": "matrixSubjectT",
+            "licensingHead": "finiteT",
+            "lowerOccurrence": "expletiveLower"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "expletiveLower"
+          },
+          "relation": "Matrix subject movement",
+          "values": {
+            "pronunciation": "both occurrences are silent",
+            "trigger": "subject-position requirement"
+          }
+        }
+      ],
+      "stageRecord": "The silent expletive internally merges at the matrix T edge from its previously established position at the edge of little v. This satisfies the matrix subject-position requirement without moving os alunos out of the infinitival clause. Both expletive occurrences remain unpronounced. The completed derivation thus distinguishes matrix third-person singular agreement from embedded third-person plural agreement, and it interprets cedo inside the arrival predicate. Pronouncing only the designated higher verbal and nominal occurrences yields exactly É importante os alunos chegarem cedo. The final period is sentence punctuation, not an additional item in the supplied token list.",
+      "statement": "Complete the matrix subject configuration and the analysis of the sentence.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "expletiveHigher",
+              "label": "D[expletive]",
+              "lineageId": "expletiveChain",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "copulaHigher",
+                      "label": "V[copular]",
+                      "lineageId": "copulaChain",
+                      "tokenIndex": 0,
+                      "word": "É"
+                    },
+                    {
+                      "children": [],
+                      "id": "finiteT",
+                      "label": "T[present,indicative]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "finiteHead",
+                  "label": "T"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "expletiveLower",
+                      "label": "D[expletive]",
+                      "lineageId": "expletiveChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "matrixLittleV",
+                          "label": "v[nonagentive]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "copulaLower",
+                              "label": "V[copular]",
+                              "lineageId": "copulaChain",
+                              "silent": true,
+                              "word": "É"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "important",
+                                  "label": "A[evaluative]",
+                                  "tokenIndex": 1,
+                                  "word": "importante"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "infinitivalC",
+                                      "label": "C[infinitival,declarative]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "determinerHigher",
+                                              "label": "D[definite,plural]",
+                                              "lineageId": "determinerChain",
+                                              "tokenIndex": 2,
+                                              "word": "os"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "nounHigher",
+                                              "label": "N[plural]",
+                                              "lineageId": "nounChain",
+                                              "tokenIndex": 3,
+                                              "word": "alunos"
+                                            }
+                                          ],
+                                          "id": "studentsHigher",
+                                          "label": "D",
+                                          "lineageId": "studentsChain"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "arrivalHigher",
+                                                  "label": "V[unaccusative,personal-infinitive]",
+                                                  "lineageId": "arrivalChain",
+                                                  "tokenIndex": 4,
+                                                  "word": "chegarem"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "infinitivalT",
+                                                  "label": "T[personal-infinitive]",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "infinitivalHead",
+                                              "label": "T"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "embeddedLittleV",
+                                                  "label": "v[nonagentive]",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "arrivalLower",
+                                                          "label": "V[unaccusative,personal-infinitive]",
+                                                          "lineageId": "arrivalChain",
+                                                          "silent": true,
+                                                          "word": "chegarem"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "determinerLower",
+                                                              "label": "D[definite,plural]",
+                                                              "lineageId": "determinerChain",
+                                                              "silent": true,
+                                                              "word": "os"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "nounLower",
+                                                              "label": "N[plural]",
+                                                              "lineageId": "nounChain",
+                                                              "silent": true,
+                                                              "word": "alunos"
+                                                            }
+                                                          ],
+                                                          "id": "studentsLower",
+                                                          "label": "D",
+                                                          "lineageId": "studentsChain",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "arrivalVP",
+                                                      "label": "V"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "early",
+                                                      "label": "Adv",
+                                                      "tokenIndex": 5,
+                                                      "word": "cedo"
+                                                    }
+                                                  ],
+                                                  "id": "modifiedArrival",
+                                                  "label": "V"
+                                                }
+                                              ],
+                                              "id": "embeddedVDomain",
+                                              "label": "v"
+                                            }
+                                          ],
+                                          "id": "embeddedTCore",
+                                          "label": "T"
+                                        }
+                                      ],
+                                      "id": "embeddedSubjectT",
+                                      "label": "T"
+                                    }
+                                  ],
+                                  "id": "infinitivalClause",
+                                  "label": "C"
+                                }
+                              ],
+                              "id": "evaluativeA",
+                              "label": "A"
+                            }
+                          ],
+                          "id": "copularVP",
+                          "label": "V"
+                        }
+                      ],
+                      "id": "matrixVCore",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "matrixVDomain",
+                  "label": "v"
+                }
+              ],
+              "id": "matrixTCore",
+              "label": "T"
+            }
+          ],
+          "id": "matrixSubjectT",
+          "label": "T"
+        }
+      ]
+    }
+  ]
+}

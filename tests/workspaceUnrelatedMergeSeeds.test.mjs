@@ -33,7 +33,7 @@ function seeds({ reverse = false, operation = 'ExternalMerge', target = 'joining
 
 test('the joining attachment is reserved before the maximal unrelated component', () => {
   assert.deepEqual(seeds(), [
-    { index: 1, rootId: 'host', attachment: true },
+    { index: 1, rootId: 'host', attachment: 'shape' },
     { index: 1, rootId: 'peer', unrelated: true },
   ]);
 });

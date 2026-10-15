@@ -6,17 +6,13 @@ import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { startReplayPreparation } from '../replay/replayWorkerClient.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
-import {
-  adaptDerivationStagesForReplay,
-  applyPreFrontingSentenceInitialCasing,
-  buildAuthoredRelationLinksForFrames,
-  buildMovementChainIndexCatalogueForFrames,
-  buildPlaybackStepsFromDerivationFrames,
-  buildResolvedLinkTraceIndexMap,
-  createFrameRelationResolver,
-  decoratePlaybackStepsWithTraceIndices,
-  hidePendingInflSpecifierWrappersInStep
-} from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { applyPreFrontingSentenceInitialCasing } from '../replay/replayCasing.ts';
+import { buildAuthoredRelationLinksForFrames, buildMovementChainIndexCatalogueForFrames, createFrameRelationResolver } from '../replay/frameRelations.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
+import { buildResolvedLinkTraceIndexMap } from '../replay/movementIndices.ts';
+import { decoratePlaybackStepsWithTraceIndices } from '../replay/movementPresentation.ts';
+import { hidePendingInflSpecifierWrappersInStep } from '../replay/playbackVisibility.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 
 const saved = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
@@ -37,13 +33,33 @@ test('preparation consumers share frozen relation recovery without mutating it',
     const snapshot = structuredClone(relations);
     const shared = index => relations[index];
     const final = frames.length - 1;
-    assert.deepEqual(buildAuthoredRelationLinksForFrames(frames, plan, final,
-      frames[final].workspaceForest, Infinity, shared),
-      buildAuthoredRelationLinksForFrames(frames, plan, final, frames[final].workspaceForest));
+    assert.deepEqual(buildAuthoredRelationLinksForFrames({
+      frames,
+      replayPlan: plan,
+      activeFrameIndex: final,
+      forest: frames[final].workspaceForest,
+      currentFrameRelationLimit: Infinity,
+      frameRelations: shared
+    }),
+      buildAuthoredRelationLinksForFrames({
+        frames,
+        replayPlan: plan,
+        activeFrameIndex: final,
+        forest: frames[final].workspaceForest
+      }));
     assert.deepEqual(buildMovementChainIndexCatalogueForFrames(frames, plan, shared),
       buildMovementChainIndexCatalogueForFrames(frames, plan));
-    assert.deepEqual(buildPlaybackStepsFromDerivationFrames(frames, 'Which book did John buy?', plan, undefined, shared),
-      buildPlaybackStepsFromDerivationFrames(frames, 'Which book did John buy?', plan));
+    assert.deepEqual(buildPlaybackStepsFromDerivationFrames({
+      frames,
+      sentence: 'Which book did John buy?',
+      replayPlan: plan,
+      frameRelations: shared
+    }),
+      buildPlaybackStepsFromDerivationFrames({
+        frames,
+        sentence: 'Which book did John buy?',
+        replayPlan: plan
+      }));
     assert.deepEqual(relations, snapshot);
   }
 });

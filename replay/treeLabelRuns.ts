@@ -1,19 +1,27 @@
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import { isReplayDisplayChild } from './displayIdentity.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
+import { applyVizIds, getNodeId, isReplayDisplayChild } from './displayIdentity.ts';
 import type { PreparedReplay } from './prepareReplay.ts';
+import { resolveUniqueDisplayTerminal } from './relations/trajectoryAttachment.ts';
+import { visiblePlanFrameItems } from './relations/relationFrame.ts';
+import { planItemDependencyNodeIds, resolveDisplayedTrajectoryAttachments } from './relations/renderPlan.ts';
+import { buildResolvedLinkOperatorVariableIndexMap, buildResolvedLinkRawTraceAliasMap, buildResolvedLinkTraceIndexMap, resolveLexicalMovementTraceDisplayIndex, resolveTraceIndexFromNodeContext } from './movementIndices.ts';
+import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
 import {
-  applyVizIds, getNodeId, indexHierarchyNodesByIdAndAliases, resolveLeafSurface, isDisplayTerminalSurface,
-  isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf, shouldExpandPreterminalLeaf,
-  isTraceLike, isNullLike, extractMovementIndex, extractDisplayedSubscriptIndex, normalizeTraceIndexForDisplay,
-  resolveTraceIndexFromNodeContext, resolveLexicalMovementTraceDisplayIndex,
-  formatIndexedSurfaceForDisplayValue, formatAuthoredWitnessSurface,
-  buildResolvedLinkTraceIndexMap, buildResolvedLinkOperatorVariableIndexMap, buildResolvedLinkRawTraceAliasMap,
-  type HierNode
-} from './replayCompiler.ts';
-import { resolveUniqueDisplayTerminal } from './relations/geometryBinding.ts';
-import { visiblePlanFrameItems, planItemDependencyNodeIds, resolveDisplayedTrajectoryAttachments } from './relations/renderPlanCompiler.ts';
+  extractDisplayedSubscriptIndex,
+  extractMovementIndex,
+  formatAuthoredWitnessSurface,
+  formatIndexedSurfaceForDisplayValue,
+  isDisplayTerminalNode,
+  isNullLike,
+  isTraceLike,
+  isWordlessCategoryLeaf,
+  normalizeTraceIndexForDisplay,
+  resolveLeafSurface,
+  shouldExpandPreterminalLeaf
+} from './replaySurfaceNotation.ts';
+import { type HierNode } from './types.ts';
 
 export type TreeLabelIndex = { text: string; mode: 'identity' | 'theta' };
 export type TreeLabelRuns = {
@@ -45,7 +53,7 @@ export type StagedTerminalContext = {
 export function stagedTerminalText(node: HierNode, context: StagedTerminalContext): string {
   const surface = resolveLeafSurface(node).trim();
   const inherited = resolveTraceIndexFromNodeContext(node, context.traceIndices);
-  const movement = resolveLexicalMovementTraceDisplayIndex(node, surface, inherited);
+  const movement = resolveLexicalMovementTraceDisplayIndex(surface, inherited);
   if (movement) return formatIndexedSurfaceForDisplayValue(surface, movement);
   if ((node.data as SyntaxNode & { ghost?: boolean }).ghost === true) return surface;
   const rawAlias = extractMovementIndex(surface);
@@ -84,7 +92,7 @@ export function thetaLabelState(label: TreeLabelState, index: string): TreeLabel
 export function identityLabelTarget(anchor: HierNode | undefined, anchorId?: string): {node: HierNode;labelId:string;kind:'category'|'terminal';ambiguityCount?:number} | undefined {
   if (!anchor) return;
   const resolution = resolveUniqueDisplayTerminal(anchor, node => node.children || [],
-    node => !node.children?.length && isDisplayTerminalSurface(resolveLeafSurface(node)));
+    node => isDisplayTerminalNode(node.data));
   const terminal = resolution.terminal;
   return {node:terminal || anchor,labelId:terminal ? getNodeId(terminal) : anchorId || getNodeId(anchor),
     kind:terminal?'terminal':'category',ambiguityCount:resolution.reason === 'ambiguous' ? resolution.count : undefined};
@@ -162,7 +170,7 @@ export function treeLabelRunsForStep(
       const inherited = resolveTraceIndexFromNodeContext(node, context.traceIndices);
       const raw = extractMovementIndex(text);
       const alias = raw ? context.rawTraceAliases.get(raw.trim().toLowerCase()) : undefined;
-      const index = resolveLexicalMovementTraceDisplayIndex(node, text, inherited)
+      const index = resolveLexicalMovementTraceDisplayIndex(text, inherited)
         || ((isTraceLike(text) || isNullLike(text) && (inherited || alias))
           ? normalizeTraceIndexForDisplay(inherited || alias || raw) : '');
       return textContent(label) === (isTraceLike(text) ? formatAuthoredWitnessSurface(text, index)

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildQualificationAnalysisEvidence } from '../contractQualification/review.js';
-import { compileRelationRenderPlan, planItemRelationRefs } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
 
 const stage = (workspaceForest, relations, realizations) => ({
   statement: 'Completed authored state.',

@@ -1,14 +1,11 @@
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import type { ParseBundle, SurfaceRealization } from '../types.ts';
-import { cloneRealizations } from './realizationReplay.ts';
-import { collectPronouncedTerminalSequence } from './pronouncedTerminals.ts';
 import { finalForestForAnalysis } from './finalForest.ts';
-import {
-  adaptDerivationStagesForReplay,
-  buildPlaybackStepsFromDerivationFrames,
-  type DerivationReplayPlan,
-  type PlaybackStep
-} from './replayCompiler.ts';
+import { collectPronouncedTerminalSequence } from './pronouncedTerminals.ts';
+import { cloneRealizations } from './realizationReplay.ts';
+import { adaptDerivationStagesForReplay } from './authoredFrames.ts';
+import { buildPlaybackStepsFromDerivationFrames } from './replayCompiler.ts';
+import { type DerivationReplayPlan, type PlaybackStep } from './types.ts';
 
 export interface ReplayStepProjection {
   operation: string;
@@ -60,11 +57,12 @@ export const buildReplayPlayback = (bundle: ParseBundle): ReplayPlayback => {
     || collectPronouncedTerminalSequence(finalForestForAnalysis(analysis)).join(' ');
   const frames = adaptDerivationStagesForReplay(derivationStages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages }) as DerivationReplayPlan;
-  const steps = buildPlaybackStepsFromDerivationFrames(
+  const steps = buildPlaybackStepsFromDerivationFrames({
     frames,
     sentence,
     replayPlan,
-    bundle.inputTokens
+    inputTokens: bundle.inputTokens
+  }
   );
 
   return { sentence, steps };

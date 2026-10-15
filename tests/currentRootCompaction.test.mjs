@@ -10,6 +10,7 @@ import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
 import { compactCurrentRootForks } from '../replay/currentRootCompaction.ts';
+import { TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/compact-current-root.json', import.meta.url))).cases;
 function setup(record, width, height, direction) {
@@ -19,7 +20,9 @@ function setup(record, width, height, direction) {
   const points = new Map();
   for (const [stage, size] of sizes) for (const [canvas, coords] of buildStageCoordinateReservations(steps, stage, size,
     stage => sizes.get(stage), direction)) points.set(canvas, coords);
-  const baseline = reserveWorkspaceAttachments(steps, sizes, direction, () => { throw new Error('the existing plan should be cached'); });
+  const baseline = reserveWorkspaceAttachments({ steps, sizes, direction, minimumSiblingGap: TREE_SIBLING_GAP,
+    coordinatesForStage: () => { throw new Error('the existing plan should be cached'); } });
+  const compacted = compactCurrentRootForks(steps, sizes, baseline);
   const render = (step, coordinates = points) => {
     const root = d3.hierarchy(step.replayCanvasData); applyVizIds(root);
     const visible = new Set(step.replayVisibleNodeIds);
@@ -27,7 +30,7 @@ function setup(record, width, height, direction) {
       coordinates.get(step.replayCanvasData), visible).descendants().filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly);
   };
   const at = (number, coordinates = points) => new Map(render(steps[number - 1], coordinates).map(node => [getNodeId(node), node]));
-  return { steps, sizes, points, baseline, render, at };
+  return { steps, sizes, points, baseline, compacted, render, at };
 }
 const close = (a, b, message) => assert(Math.abs(a - b) < 1e-6, `${message}: ${a} versus ${b}`);
 const examples = [
@@ -38,8 +41,8 @@ const examples = [
 for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
   for (const example of examples) test(`${width}px ${direction}: ${example.key} opens landing space at movement, not construction`, () => {
     const record = records.find(record => record.key === example.key), original = JSON.stringify(record);
-    const { steps, points, baseline, render, at } = setup(record, width, height, direction);
-    const before = at(example.frame), wide = at(example.frame, baseline), movement = at(example.frame + 1);
+    const { steps, points, baseline, compacted, render, at } = setup(record, width, height, direction);
+    const before = at(example.frame, compacted), wide = at(example.frame, baseline), movement = at(example.frame + 1, compacted);
     const oldGap = Math.abs(wide.get(example.head).x - wide.get(example.host).x);
     const gap = Math.abs(before.get(example.head).x - before.get(example.host).x);
     if (example.head === 'had') assert(gap < oldGap - 100, `a material reserved gap is removed: ${oldGap} -> ${gap}`);
@@ -53,7 +56,7 @@ for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of
       close(before.get(id).y, wide.get(id).y, `${id} retains its existing rank`);
     }
     for (let index = 0; index < example.frame; index++) {
-      const frame = at(index + 1), old = at(index + 1, baseline);
+      const frame = at(index + 1, compacted), old = at(index + 1, baseline);
       for (const id of members) if (frame.has(id) && old.has(id)) {
         close(frame.get(id).x - old.get(id).x, delta, `${id}: construction frame ${index + 1} uses the same translation`);
         close(frame.get(id).y, old.get(id).y, 'ordinary selection and merge keep existing vertical geometry');
@@ -74,7 +77,7 @@ for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of
     }
     assert.equal(JSON.stringify(record), original, 'authored stages, order, and pronunciation are untouched');
     for (let index = example.frame; index < steps.length; index++) {
-      assert.deepEqual(points.get(steps[index].replayCanvasData), baseline.get(steps[index].replayCanvasData),
+      assert.deepEqual(compacted.get(steps[index].replayCanvasData), baseline.get(steps[index].replayCanvasData),
         'movement and later coordinates keep their established layout');
     }
   });

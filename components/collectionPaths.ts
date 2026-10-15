@@ -1,6 +1,6 @@
 import { featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
-import { planItemRelationRefs, type RelationPlanItem } from '../replay/relations/renderPlanCompiler.ts';
 import type { PlaqueRect } from '../replay/relations/plaquePlacement.ts';
+import { planItemRelationRefs, type RelationPlanItem } from '../replay/relations/renderPlan.ts';
 
 type CollectionItem = Extract<RelationPlanItem, { kind: 'directed-path' }>;
 export type CollectionPath = { d: string; item: CollectionItem; failureCue?: string[] | false };

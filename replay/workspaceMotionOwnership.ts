@@ -1,7 +1,11 @@
-import { neutralWorkspaceAttachments } from './workspaceNeutralAttachments.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
 import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
-import { movementReceivingHosts, extractionReceivingHosts, type CurrentWorkspaceTopology } from './workspaceReceivingHost.ts';
+import type { PlaybackStep } from './types.ts';
+import { neutralWorkspaceAttachments } from './workspaceNeutralAttachments.ts';
+import {
+  extractionReceivingHosts,
+  movementReceivingHosts,
+  type CurrentWorkspaceTopology
+} from './workspaceReceivingHost.ts';
 
 export type WorkspaceMotionView = CurrentWorkspaceTopology & {
   ids(): Iterable<string>;

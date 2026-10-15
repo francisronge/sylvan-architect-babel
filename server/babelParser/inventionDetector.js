@@ -357,8 +357,3 @@ export const assertNoDeterministicLinguisticInvention = (input) => {
     );
   }
 };
-
-export const DECLARED_PRESENTATION_TRANSFORMS = Object.freeze({
-  replayOperations: Array.from(DECLARED_REPLAY_OPERATIONS).sort(),
-  generatedDisplayOriginKinds: ['word', 'lexical']
-});

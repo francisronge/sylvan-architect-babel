@@ -1,6 +1,6 @@
-import { establishesAssignment } from './assignmentContinuity.ts';
 import { scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import { establishesAssignment } from './outcomeResolver.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { normalizeTier2Synonym } from './tier2Synonyms.ts';
 
 const relativeInterpretation = (label: string) => /^(?:(?:restrictive|nonrestrictive|externally headed|internally headed) )?relative(?: head)? (?:interpretation|abstraction|restriction)$/u.test(label);

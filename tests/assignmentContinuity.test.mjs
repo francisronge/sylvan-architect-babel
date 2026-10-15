@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { dispatchStageRelations } from '../replay/relations/tier2RelationDispatch.ts';
-import { compileRelationRenderPlan, planItemRelationRefs } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 
 const n = (id, children = [], fields = {}) => ({ id, label: id, children, ...fields });

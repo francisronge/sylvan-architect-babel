@@ -16,7 +16,7 @@ test('every external provider reports timeout precisely without retrying or norm
   let calls = 0;
   const generate = async () => { calls++; throw Object.assign(new Error('Generation timed out'), { code: 'PROVIDER_TIMEOUT' }); };
   const unexpected = () => assert.fail('Timeouts must not parse or normalize an analysis');
-  const routes = createParseRoutes({ ParseApiError, normalizeParseBundle: unexpected, parseModelJson: unexpected,
+  const routes = createParseRoutes({ ParseApiError, normalizeParseBundle: unexpected, parseModelJsonDetailed: unexpected,
     generateOpenAI: generate, generateClaude: generate, generateKimi: generate, generateGrok: generate });
   for (const modelId of GENERATION_MODEL_IDS) {
     const before = calls;

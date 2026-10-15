@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as d3 from 'd3';
-import { applyVizIds, getNodeId, isUnderTriangulation } from '../replay/replayCompiler.ts';
+import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
+import { isUnderTriangulation } from '../replay/triangulation.ts';
 import { plaqueTreeObstacles } from '../replay/relations/plaquePlacement.ts';
 import { treeInkObstacles } from '../replay/treeInkGeometry.ts';
 import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';

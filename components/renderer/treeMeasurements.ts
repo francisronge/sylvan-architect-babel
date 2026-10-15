@@ -1,0 +1,235 @@
+import * as d3 from 'd3';
+import { getNodeId, isReplayDisplayChild } from '../../replay/displayIdentity.ts';
+import { type HierNode } from '../../replay/types.ts';
+import { type SyntaxNode } from '../../types.ts';
+import type { DrawingLayer } from './drawingContext.ts';
+export const labelBelongsToNode = (element: SVGGraphicsElement, id: string): boolean => {
+  const node = d3.select<SVGGraphicsElement, HierNode>(element).datum();
+  return element.getAttribute('data-category-node-id') === id
+    || element.getAttribute('data-node-id') === id
+    || Boolean(node?.data && (node.data.aliasIds?.includes(id) || isReplayDisplayChild(node.data, id)));
+};
+export const measureTreeGraphics = (
+  g: DrawingLayer,
+  elements: SVGGraphicsElement[]
+): { x: number; y: number; width: number; height: number } | null => {
+  const treeMatrix = g.node()?.getCTM();
+  if (!treeMatrix || elements.length === 0) return null;
+  const intoTreeSpace = treeMatrix.inverse();
+  const points: DOMPoint[] = [];
+  elements.forEach((element) => {
+    const elementMatrix = element.getCTM();
+    if (!elementMatrix) return;
+    const box = element.getBBox();
+    if (!box.width && !box.height) return;
+    [
+      [box.x, box.y],
+      [box.x + box.width, box.y],
+      [box.x + box.width, box.y + box.height],
+      [box.x, box.y + box.height]
+    ].forEach(([x, y]) => {
+      points.push(
+        new DOMPoint(x, y)
+          .matrixTransform(elementMatrix)
+          .matrixTransform(intoTreeSpace)
+      );
+    });
+  });
+  if (points.length === 0) return null;
+  const xs = points.map((point) => point.x);
+  const ys = points.map((point) => point.y);
+  return {
+    x: Math.min(...xs),
+    y: Math.min(...ys),
+    width: Math.max(...xs) - Math.min(...xs),
+    height: Math.max(...ys) - Math.min(...ys)
+  };
+};
+
+interface TreeMeasurementsContext {
+  g: DrawingLayer;
+  overlayNodeById: Map<string, d3.HierarchyPointNode<SyntaxNode>>;
+  measureGraphicsElementsInTreeSpace: (elements: SVGGraphicsElement[]) => { x: number; y: number; width: number; height: number; } | null;
+}
+export function createTreeMeasurements({ g, overlayNodeById, measureGraphicsElementsInTreeSpace }: TreeMeasurementsContext) {
+  const measuredShellBottom = (
+    nodeId: string,
+    fallback: d3.HierarchyPointNode<SyntaxNode>
+  ): { x: number; y: number } => {
+    const categoryLabel = g.selectAll<SVGTextElement, HierNode>('.category-label')
+      .filter((candidate) => getNodeId(candidate) === nodeId)
+      .node();
+    const space = g.node();
+    const matrix = space?.getScreenCTM();
+    if (categoryLabel && matrix) {
+      const rect = categoryLabel.getBoundingClientRect();
+      if (rect.width || rect.height) {
+        const point = new DOMPoint(rect.left + rect.width / 2, rect.bottom)
+          .matrixTransform(matrix.inverse());
+        return { x: point.x, y: point.y + 6 };
+      }
+    }
+    return { x: fallback.x, y: fallback.y + 6 };
+  };
+  const measuredShellTop = (
+    nodeId: string,
+    fallback: d3.HierarchyPointNode<SyntaxNode>
+  ): { x: number; y: number } => {
+    const categoryLabel = g.selectAll<SVGTextElement, HierNode>('.category-label')
+      .filter((candidate) => getNodeId(candidate) === nodeId)
+      .node();
+    const space = g.node();
+    const matrix = space?.getScreenCTM();
+    if (categoryLabel && matrix) {
+      const rect = categoryLabel.getBoundingClientRect();
+      if (rect.width || rect.height) {
+        const point = new DOMPoint(rect.left + rect.width / 2, rect.top)
+          .matrixTransform(matrix.inverse());
+        return { x: point.x, y: point.y - 8 };
+      }
+    }
+    return { x: fallback.x, y: fallback.y - 8 };
+  };
+  const measuredTerminalBottom = (
+    terminal: d3.HierarchyPointNode<SyntaxNode>
+  ): { x: number; y: number } => {
+    const terminalId = getNodeId(terminal as unknown as HierNode);
+    const terminalLabel = g.selectAll<SVGTextElement, HierNode>('.terminal-label')
+      .filter(function exactTerminal(candidate) {
+        return getNodeId(candidate) === terminalId
+          || this.getAttribute('data-node-id') === terminalId;
+      })
+      .node();
+    const space = g.node();
+    const matrix = space?.getScreenCTM();
+    if (terminalLabel && matrix) {
+      const rect = terminalLabel.getBoundingClientRect();
+      if (rect.width || rect.height) {
+        const point = new DOMPoint(rect.left + rect.width / 2, rect.bottom)
+          .matrixTransform(matrix.inverse());
+        return { x: point.x, y: point.y + 6 };
+      }
+    }
+    return { x: terminal.x, y: terminal.y + 140 };
+  };
+  const measuredTreeTextTopY = (): number => {
+    const space = g.node();
+    const matrix = space?.getScreenCTM();
+    if (!matrix) return -90;
+    const inverse = matrix.inverse();
+    const tops = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
+      .nodes()
+      .map((label) => label.getBoundingClientRect())
+      .filter((rect) => rect.width || rect.height)
+      .map((rect) => new DOMPoint(rect.left, rect.top).matrixTransform(inverse).y);
+    return d3.min(tops) ?? -90;
+  };
+  const measuredTerminalSubtreeRectNow = (nodeId: string) => {
+    const anchor = overlayNodeById.get(nodeId);
+    if (!anchor) return null;
+    const subtreeIds = new Set(
+      anchor.descendants().map((candidate) => getNodeId(candidate as unknown as HierNode))
+    );
+    const labels = g.selectAll<SVGTextElement, HierNode>('.terminal-label')
+      .filter((candidate) => subtreeIds.has(getNodeId(candidate)))
+      .nodes();
+    return measureGraphicsElementsInTreeSpace(labels);
+  };
+  const measuredTreeLabelRectNow = (nodeId: string, subtree: boolean) => {
+    const anchor = overlayNodeById.get(nodeId);
+    if (!anchor) return null;
+    const nodeIds = new Set(
+      (subtree ? anchor.descendants() : [anchor])
+        .map((candidate) => getNodeId(candidate as unknown as HierNode))
+    );
+    const labels = g.selectAll<SVGTextElement, HierNode>(
+      subtree ? '.category-label, .terminal-label' : '.category-label'
+    )
+      .filter((candidate) => nodeIds.has(getNodeId(candidate)))
+      .nodes();
+    return measureGraphicsElementsInTreeSpace(labels);
+  };
+  const exactScreenTreeLabelRectNow = (nodeId: string, subtree: boolean) => {
+    const anchor = subtree ? overlayNodeById.get(nodeId) : null;
+    const nodeIds = new Set([
+      nodeId,
+      ...(anchor
+        ? anchor.descendants().map((candidate) => getNodeId(candidate as unknown as HierNode))
+        : [])
+    ]);
+    const labels = g.selectAll<SVGTextElement, HierNode>(
+      subtree ? '.category-label, .terminal-label' : '.category-label'
+    )
+      .filter(function exactAuthoredNodeLabel() {
+        return [...nodeIds].some((candidateId) =>
+          labelBelongsToNode(this, candidateId));
+      })
+      .nodes();
+    return measureScreenGraphics(g, labels);
+  };
+  const exactScreenDirectTreeLabelRectNow = (nodeId: string) => {
+    const labels = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
+      .filter(function exactAuthoredDirectNodeLabel() {
+        return labelBelongsToNode(this, String(nodeId));
+      })
+      .nodes();
+    return measureScreenGraphics(g, labels);
+  };
+  const exactScreenTreeLabelRectForNodeIdsNow = (nodeIds: string[]) => {
+    const expandedNodeIds = new Set<string>();
+    nodeIds.forEach((nodeId) => {
+      expandedNodeIds.add(nodeId);
+      overlayNodeById.get(nodeId)?.descendants().forEach((candidate) => {
+        expandedNodeIds.add(getNodeId(candidate as unknown as HierNode));
+      });
+    });
+    const labels = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
+      .filter(function exactAuthoredSubtrees() {
+        return [...expandedNodeIds].some((candidateId) =>
+          labelBelongsToNode(this, candidateId));
+      })
+      .nodes();
+    return measureScreenGraphics(g, labels);
+  };
+  return {
+    measuredShellBottom,
+    measuredShellTop,
+    measuredTerminalBottom,
+    measuredTreeTextTopY,
+    measuredTerminalSubtreeRectNow,
+    measuredTreeLabelRectNow,
+    exactScreenTreeLabelRectNow,
+    exactScreenDirectTreeLabelRectNow,
+    exactScreenTreeLabelRectForNodeIdsNow
+  };
+}
+
+/** Convert viewport glyph bounds back to the tree group after fitting or manual zoom. */
+export function measureScreenGraphics(g: DrawingLayer, labels: SVGGraphicsElement[]) {
+  const matrix = g.node()?.getScreenCTM();
+  if (!matrix || labels.length === 0) return null;
+  const inverse = matrix.inverse();
+  const points: DOMPoint[] = [];
+  labels.forEach((label) => {
+    const rect = label.getBoundingClientRect();
+    if (!rect.width && !rect.height) return;
+    [
+      [rect.left, rect.top],
+      [rect.right, rect.top],
+      [rect.right, rect.bottom],
+      [rect.left, rect.bottom]
+    ].forEach(([x, y]) => {
+      points.push(new DOMPoint(x, y).matrixTransform(inverse));
+    });
+  });
+  if (points.length === 0) return null;
+  const xs = points.map((point) => point.x);
+  const ys = points.map((point) => point.y);
+  return {
+    x: Math.min(...xs),
+    y: Math.min(...ys),
+    width: Math.max(...xs) - Math.min(...xs),
+    height: Math.max(...ys) - Math.min(...ys)
+
+  };
+}

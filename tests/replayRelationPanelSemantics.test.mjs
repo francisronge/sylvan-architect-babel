@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  adaptDerivationStagesForReplay,
-  buildPlaybackStepsFromDerivationFrames,
-  buildReplaySupportLines,
-  stepRepresentsMovement
-} from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
+import { buildReplaySupportLines } from '../replay/replayPanel.ts';
+import { stepRepresentsMovement } from '../replay/movementLinks.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 
 const leaf = (id, label, word) => ({ id, label, word, children: [] });
@@ -167,7 +165,10 @@ test('compiled OperatorVariableBinding Replay preserves authored participant rol
   }];
   const frames = adaptDerivationStagesForReplay(stages);
   const plan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(frames, undefined, plan);
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames,
+    replayPlan: plan
+  });
   const relation = steps.find((step) => (
     step.replayKind === 'relation' && step.operation === 'OperatorVariableBinding'
   ));
@@ -290,7 +291,10 @@ test('one-anchor deletion evidence survives alongside an earlier movement relati
   ];
   const frames = adaptDerivationStagesForReplay(stages);
   const plan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(frames, undefined, plan);
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames,
+    replayPlan: plan
+  });
   const deletion = steps.find((step) => (
     step.replayKind === 'relation' && step.operation === 'EllipsisDeletion'
   ));

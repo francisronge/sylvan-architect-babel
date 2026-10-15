@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { __test__ } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
 import { collectNodeReferencesById } from '../server/babelParser/treeBasics.js';
 
 const leaf = (id, fields = {}) => ({ id, label: 'N', children: [], word: 'Mia', ...fields });
@@ -11,7 +12,7 @@ const stage = (tree) => ({
   relations: [],
   workspaceForest: [tree]
 });
-const normalize = (derivationStages) => __test__.normalizeParseBundle(
+const normalize = (derivationStages) => normalizeParseBundle(
   { derivationStages }, 'xbar', 'Mia', 'gpt', true
 );
 
@@ -30,7 +31,7 @@ test('node collection follows roots and children without promoting retained meta
 test('metadata-only IDs cannot supply earlier subtree references in normalization or inspection', () => {
   const stages = [stage(leaf('real', { metadata: leaf('metadata-only') })), stage({ refId: 'metadata-only' })];
   const original = structuredClone(stages);
-  const inspected = __test__.inspectDerivationWorkspaces(stages, { sentence: 'Mia' });
+  const inspected = inspectDerivationWorkspaces(stages, { sentence: 'Mia' });
   const diagnostic = inspected[1].diagnostics[0];
   assert.equal(diagnostic.ruleId, 'DERIVATION_WORKSPACE_VALID');
   assert.throws(() => normalize(stages), (error) => {

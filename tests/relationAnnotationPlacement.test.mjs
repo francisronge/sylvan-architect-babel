@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { bindRelationPlanFrame, fitFallbackGeometry } from '../replay/relations/geometryBinding.ts';
+import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { fitFallbackGeometry } from '../replay/relations/fallbackGeometry.ts';
 import { headTrajectoryAttachment } from '../replay/relations/trajectoryAttachment.ts';
 
 const stage = (workspaceForest, relations = []) => ({ statement: '', stageRecord: '', workspaceForest, relations });

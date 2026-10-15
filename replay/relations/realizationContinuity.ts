@@ -1,6 +1,6 @@
 import type { DerivationStage } from '../../types.ts';
 import { exactRealizationGroup, sameRealizationMembers } from '../realizationGroups.ts';
-import type { NodePlaquePlanItem, RelationPlanItem } from './renderPlanCompiler.ts';
+import type { NodePlaquePlanItem, RelationPlanItem } from './renderPlan.ts';
 
 /** Link explicit group transfers to their still-live PF claims, including across unaltered stages. */
 export function realizationPlatePredecessors(

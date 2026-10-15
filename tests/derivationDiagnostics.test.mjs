@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
 
-import { __test__, ParseApiError } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { normalizeDerivationStagesToDerivationFrames, inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
+import { parseModelJsonDetailed } from '../server/babelParser/modelJson.js';
+import { ParseApiError } from '../server/babelParser/error.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { formatApiError } from '../server/parseApi.js';
 import { runQualificationAttempt } from '../contractQualification/run.js';
@@ -18,7 +21,7 @@ const stage = (workspaceForest, relations = []) => ({
   workspaceForest
 });
 const relation = (id, values) => ({ relation: 'Authored relation', anchors: { witness: id }, values });
-const normalize = (payload) => __test__.normalizeParseBundle(payload, 'xbar', 'Mia', 'claude', true);
+const normalize = (payload) => normalizeParseBundle(payload, 'xbar', 'Mia', 'claude', true);
 const attempt = {
   id: 'diagnostic-regression',
   request: { sentence: 'Mia', framework: 'xbar' },
@@ -114,7 +117,7 @@ test('a complete final tree cannot conceal a discarded earlier stage', () => {
       return true;
     });
     assert.deepEqual(payload, original);
-    assert.throws(() => __test__.normalizeDerivationStagesToDerivationFrames(payload.derivationStages), ParseApiError);
+    assert.throws(() => normalizeDerivationStagesToDerivationFrames(payload.derivationStages), ParseApiError);
   }
 });
 
@@ -238,7 +241,7 @@ test('a genuine missing subtree reference reports the original node path', () =>
 test('inspection retains broken workspaces and blocks later expansion rather than using stale history', () => {
   const stages = [stage([node('n')]), stage([{ refId: 'missing' }]), stage([{ refId: 'n' }])];
   const original = structuredClone(stages);
-  const result = __test__.inspectDerivationWorkspaces(stages);
+  const result = inspectDerivationWorkspaces(stages);
   assert.equal(result.length, 3);
   assert.equal(result[0].workspaceForest[0].id, 'n');
   assert.equal(result[1].workspaceForest, null);
@@ -292,8 +295,8 @@ test('the generation route preserves every raw stage and diagnostic without a re
   try {
     const routes = createParseRoutes({
       ParseApiError,
-      normalizeParseBundle: __test__.normalizeParseBundle,
-      parseModelJsonDetailed: __test__.parseModelJsonDetailed,
+      normalizeParseBundle: normalizeParseBundle,
+      parseModelJsonDetailed: parseModelJsonDetailed,
       generateOpenAI: async () => {
         calls += 1;
         return { text: raw, status: 'completed', candidates: [{ finishReason: 'COMPLETED' }] };
@@ -330,7 +333,7 @@ test('optional node diagnostics preserve malformed fields and unfamiliar metadat
       unfamiliar: { id: 'not-a-syntax-node', label: 'N', children: [] } };
     const payload = { derivationStages: [stage([{ id: 'p', label: 'NP', children: [authored] }]), stage([node('final')])] };
     const original = structuredClone(payload);
-    const result = __test__.inspectDerivationWorkspaces(payload.derivationStages);
+    const result = inspectDerivationWorkspaces(payload.derivationStages);
     const issue = result[0].diagnostics.find((diagnostic) => diagnostic.ruleId === 'DERIVATION_NODE_OPTIONAL_FIELD');
     assert.equal(issue.fieldPath, `$.derivationStages[0].workspaceForest[0].children[0]${suffix}`);
     assert.deepEqual(issue.offendingValue, observed);
@@ -358,7 +361,7 @@ test('anchor inspection checks every array item in the exact current or immediat
     }])
   ];
   const original = structuredClone(stages);
-  const result = __test__.inspectDerivationWorkspaces(stages);
+  const result = inspectDerivationWorkspaces(stages);
   assert.deepEqual(result[0].anchorChecks.map(({ status }) => status), ['future-only', 'current-only']);
   assert.equal(result[0].anchorChecks[1].requiredStageIndex, -1);
   assert.deepEqual(result[1].anchorChecks.map(({ nodeId, status, carried }) => [nodeId, status, carried]), [
@@ -384,7 +387,7 @@ test('duplicate IDs remain inspectable and anchor ambiguity points to direct and
   const stages = [stage([{ id: 'parent', label: 'NP', children: [node('n')] }]),
     stage([node('n'), { refId: 'parent' }], [{ relation: 'Open', anchors: { witness: ['n', 'parent'] } }]),
     stage([{ refId: 'parent' }])];
-  const inspected = __test__.inspectDerivationWorkspaces(stages);
+  const inspected = inspectDerivationWorkspaces(stages);
   assert.equal(inspected[1].workspaceForest.length, 2);
   assert.equal(inspected[1].diagnostics[0].fieldPath, '$.derivationStages[1].workspaceForest[1].refId');
   assert.equal(inspected[1].anchorChecks[0].status, 'duplicate');
@@ -412,7 +415,7 @@ test('identical duplicate bodies preserve later inspection without resolving ear
   stage([{ refId: 'parent' }], [{ relation: 'Open claim', anchors: { witness: 'branch' }, priorAnchors: { witness: 'branch' } }]),
   stage([{ id: 'final', label: 'TP', children: [{ refId: 'parent' }] }])];
   const original = structuredClone(stages);
-  const inspected = __test__.inspectDerivationWorkspaces(stages);
+  const inspected = inspectDerivationWorkspaces(stages);
   assert.deepEqual(inspected[1].workspaceForest, [branch, parent]);
   assert.equal(inspected[1].diagnostics.filter(({ ruleId }) => ruleId === 'DERIVATION_WORKSPACE_VALID').length, 2);
   assert.ok(inspected[1].diagnostics.some(({ ruleId }) => ruleId === 'DERIVATION_TOKEN_INDEX_UNIQUE'));
@@ -442,7 +445,7 @@ test('conflicting duplicate bodies block later references instead of choosing a 
     const stages = [stage([branch]), stage([branch, conflicting]),
       stage([{ refId: 'branch' }]), stage([{ refId: 'leaf' }])];
     const original = structuredClone(stages);
-    const inspected = __test__.inspectDerivationWorkspaces(stages);
+    const inspected = inspectDerivationWorkspaces(stages);
     assert.deepEqual(inspected[1].workspaceForest, [branch, conflicting]);
     assert.equal(inspected[2].workspaceForest, null);
     assert.equal(inspected[2].blockedByStageIndex, 1);
@@ -456,7 +459,7 @@ test('inspection collects independent malformed fields across all original stage
   const stages = [stage([node('n')], [{ relation: 3, anchors: { witness: ['n', 4, ''] },
     priorAnchors: { witness: [null] }, values: { notation: ['x', 8, ['nested']] } }]),
   { ...stage([{ refId: 'n' }], [relation('n', ['wh'])]), stageRecord: false }];
-  const inspected = __test__.inspectDerivationWorkspaces(stages);
+  const inspected = inspectDerivationWorkspaces(stages);
   assert.deepEqual(inspected.flatMap(({ diagnostics }) => diagnostics)
     .filter(({ processingStep }) => processingStep === 'stage-shape').map(({ fieldPath }) => fieldPath), [
     '$.derivationStages[0].relations[0].relation',
@@ -538,10 +541,10 @@ test('the full final forest is preserved for convergence review without enforcin
     { id: 'wordless1', label: 'T', children: [] }, { id: 'wordless2', label: 'C', children: [] }] };
   const payload = { derivationStages: [stage([tree, { id: 'extra', label: 'D', children: [] }])] };
   const original = structuredClone(payload);
-  const normalized = __test__.normalizeParseBundle(payload, 'minimalism', 'Mia', 'claude', true);
+  const normalized = normalizeParseBundle(payload, 'minimalism', 'Mia', 'claude', true);
   assert.equal(normalized.analyses[0].tree.children.length, 3);
   assert.equal(normalized.analyses[0].derivationStages[0].workspaceForest.length, 2);
-  const [inspection] = __test__.inspectDerivationWorkspaces(payload.derivationStages);
+  const [inspection] = inspectDerivationWorkspaces(payload.derivationStages);
   const issue = inspection.diagnostics.find(({ ruleId }) => ruleId === 'DERIVATION_FINAL_WORKSPACE_MULTIPLE_ROOTS');
   assert.equal(issue.processingStep, 'workspace-interpretation');
   assert.deepEqual(issue.offendingValue, ['p', 'extra']);
@@ -551,7 +554,7 @@ test('the full final forest is preserved for convergence review without enforcin
 
 test('duplicate carried token indexes and missing required node fields retain their authored locations and values', () => {
   const stages = [stage([{ id: 'p', label: 'NP', children: [node('n')] }]), stage([node('other'), { refId: 'p' }])];
-  const inspection = __test__.inspectDerivationWorkspaces(stages);
+  const inspection = inspectDerivationWorkspaces(stages);
   const issue = inspection[1].diagnostics.find(({ ruleId }) => ruleId === 'DERIVATION_TOKEN_INDEX_UNIQUE');
   assert.equal(issue.fieldPath, '$.derivationStages[1].workspaceForest[1].refId');
   assert.equal(issue.offendingValue, 'p');

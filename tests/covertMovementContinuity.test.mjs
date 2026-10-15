@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { adaptDerivationStagesForReplay, getFrameRelations } from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { getFrameRelations } from '../replay/frameRelations.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 
 const load = name => JSON.parse(readFileSync(new URL(`../fixtures/replay-regressions/${name}.json`, import.meta.url)));

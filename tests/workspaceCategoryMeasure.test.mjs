@@ -20,7 +20,8 @@ function forest() {
 for (const direction of ['ltr', 'rtl']) test(`${direction}: planner uses the painter measurement and invalidates settled-font geometry`, () => {
   const { canvas, steps } = forest(), saved = JSON.stringify(steps), size = [500, 500];
   let conservativeCalls = 0, settledCalls = 0;
-  const conservative = text => { conservativeCalls++; return [...text].length * 25; };
+  const conservative = text => { conservativeCalls++; return [...text].length * 60; };
+  const fallback = text => [...text].length * 25;
   const settled = text => { settledCalls++; return [...text].length * 10; };
   assert.notEqual(categoryTextLayout(canvas.children[0].label, conservative).lines.length,
     categoryTextLayout(canvas.children[0].label, settled).lines.length);
@@ -31,7 +32,7 @@ for (const direction of ['ltr', 'rtl']) test(`${direction}: planner uses the pai
   assert.deepEqual(plan(settled), after);
   assert.equal(settledCalls, calls, 'the same settled font reuses its cached geometry');
   assert.deepEqual(plan(conservative), before, 'font-specific plans cannot contaminate one another');
-  assert.deepEqual(plan(undefined), before, 'Node callers preserve the existing fallback');
+  assert.deepEqual(plan(undefined), plan(fallback), 'Node callers preserve the existing fallback');
   assert(conservativeCalls && settledCalls);
 
   const root = d3.hierarchy(canvas); applyVizIds(root);

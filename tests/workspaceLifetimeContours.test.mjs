@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildWorkspaceLifetimeContours, workspaceLifetimeContourCoordinates, prepareWorkspaceLifetimeContours } from '../replay/workspaceLifetimeContours.ts';
 import { cubicIntersectsRect } from '../replay/relations/curveClearance.ts';
+import { TREE_ROW_HEIGHT } from '../replay/treeSpacing.ts';
 const atom = (id, word = id) => ({ id, label: 'N', word });
 const fork = (id, ...children) => ({ id, label: 'P', children });
 const forest = (...children) => ({ id: 'workspace', label: 'Workspace', replayOrigin: { kind: 'workspace' }, children });
@@ -16,6 +17,21 @@ test('an invisible owner cannot normalize a separate visible word workspace', ()
   assert.notEqual(hidden[0].nodes.get('word').incarnation, hidden[1].nodes.get('word').incarnation);
   const connected = buildWorkspaceLifetimeContours([step(a), step(b)]);
   assert.equal(connected[0].nodes.get('word').incarnation, connected[1].nodes.get('word').incarnation);
+});
+test('construction scaffolding proves the same generated word before and after projection', () => {
+  const canvas = spelling => ({ id: 'owner', label: 'V', word: 'Bought', children: [
+    { id: 'word', label: spelling, word: spelling, replayOrigin: { kind: 'word', ownerId: 'owner' } }
+  ] });
+  const selected = { ...step(canvas('bought'), ['word']), replayUsesFutureLayoutScaffold: true,
+    operation: 'LexicalSelect', targetNodeId: 'word' };
+  const projected = { ...step(canvas('Bought')), operation: 'Project', targetNodeId: 'owner', sourceNodeIds: ['word'] };
+  const frames = buildWorkspaceLifetimeContours([selected, projected]);
+  assert.equal(frames[0].nodes.get('word').incarnation, frames[1].nodes.get('word').incarnation);
+  assert(!frames[0].nodes.has('owner'), 'identity does not reveal the future head');
+  const unrelated = structuredClone(selected);
+  unrelated.replayCanvasData.children[0].replayOrigin.ownerId = 'different';
+  const separate = buildWorkspaceLifetimeContours([unrelated, projected]);
+  assert.notEqual(separate[0].nodes.get('word').incarnation, separate[1].nodes.get('word').incarnation);
 });
 const round = n => Math.round(n * 1e8) / 1e8;
 const relative = (shape, id) => [round(shape.members.get(id).x), round(shape.members.get(id).y)];
@@ -45,7 +61,7 @@ function geometry(frames) { for (const shape of new Set(frames.flatMap(f => [...
         }
 } }
 test('complete unchanged child shape survives new outside material and rigid attachment', () => { const old = fork('np', atom('d', 'the'), fork('nbar', atom('n', 'painting'), fork('cp', atom('c', 'that'), atom('v', 'fell')))); const steps = [step(old), step(forest(old, atom('t', 'was'))), step(fork('tp', old, atom('t', 'was')))]; const before = JSON.stringify(steps); const frames = buildWorkspaceLifetimeContours(steps); assert.equal(frames[0].nodes.get('np'), frames[1].nodes.get('np')); assert.equal(frames[1].nodes.get('np'), frames[2].nodes.get('np')); geometry(frames); assert.equal(JSON.stringify(steps), before); });
-test('a new parent does not lend its rank to the current fork', () => { const a = atom('a'), b = atom('b'); const frames = buildWorkspaceLifetimeContours([step(fork('p', a, b)), step(fork('p', fork('wrapper', a, b)))]); const early = frames[0].nodes.get('p'), late = frames[1].nodes.get('p'); assert.notEqual(early, late); assert.equal(early.members.has('wrapper'), false); assert.equal(early.members.get('a').y, 220); assert.equal(late.members.get('a').y, 440); assert.equal(frames[0].nodes.get('a'), frames[1].nodes.get('a')); geometry(frames); });
+test('a new parent does not lend its rank to the current fork', () => { const a = atom('a'), b = atom('b'); const frames = buildWorkspaceLifetimeContours([step(fork('p', a, b)), step(fork('p', fork('wrapper', a, b)))]); const early = frames[0].nodes.get('p'), late = frames[1].nodes.get('p'); assert.notEqual(early, late); assert.equal(early.members.has('wrapper'), false); assert.equal(early.members.get('a').y, TREE_ROW_HEIGHT); assert.equal(late.members.get('a').y, 2 * TREE_ROW_HEIGHT); assert.equal(frames[0].nodes.get('a'), frames[1].nodes.get('a')); geometry(frames); });
 test('unavailable workspace material supplies no current spacing', () => { const current = fork('p', atom('a'), atom('b')); const future = fork('future', atom('large', 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'), atom('other')); const frames = buildWorkspaceLifetimeContours([step(current), step(forest(current, future), ids(current))]); assert.equal(frames[0].nodes.get('p'), frames[1].nodes.get('p')); assert.deepEqual([...workspaceLifetimeContourCoordinates(frames).get(frames[1].step.replayCanvasData).keys()].sort(), ids(current).sort()); geometry(frames); });
 test('changed current child list begins a new incarnation without rescaling retained children', () => { const left = fork('left', atom('l1'), atom('l2')); const right = fork('right', atom('r1')); const frames = buildWorkspaceLifetimeContours([step(fork('p', left, right)), step(fork('p', left, fork('right', atom('r1'), atom('r2'))))]); assert.notEqual(frames[0].nodes.get('p'), frames[1].nodes.get('p')); assert.equal(frames[0].nodes.get('left'), frames[1].nodes.get('left')); assert.notEqual(frames[0].nodes.get('right'), frames[1].nodes.get('right')); geometry(frames); });
 test('one lifetime reserves its maximum exact label footprint before first display', () => { const a = atom('a'), b = atom('b'), c0 = fork('p', a, b), c1 = structuredClone(c0), steps = [step(c0), step(c1)]; const labels = new Map([[c0, new Map([['a', [{ kind: 'terminal', width: 170 }]]])], [c1, new Map([['a', [{ kind: 'terminal', width: 570 }]]])]]); const frames = buildWorkspaceLifetimeContours(steps, undefined, undefined, labels, run => ({ x: -run.width / 2, y: 65, width: run.width, height: 110 })); assert.equal(frames[0].nodes.get('p'), frames[1].nodes.get('p')); const aShape = frames[0].nodes.get('a'); assert.ok(aShape.obstacles.some(r => r.width >= 570)); const p = frames[0].nodes.get('p'); assert.ok(p.members.get('b').x - p.members.get('a').x >= 376); geometry(frames); });
@@ -80,6 +96,53 @@ function preferredComposition(steps, alter) {
     alter?.(initial, preferred);
     return buildWorkspaceLifetimeContours(steps, undefined, undefined, undefined, undefined, undefined, { inheritCurrentSlots: true, preferred });
 }
+function movementProjection(control) {
+    const source = atom('source', 'moving phrase'), peer = fork('peer', atom('peerA'), atom('peerB'));
+    const host = fork('host', source, peer), head = atom('head');
+    const before = { ...fork('outer', host, head), label: 'TP' };
+    const wrapper = { ...fork('wrapper', fork('host', { ...source, silent: true }, peer), head), label: 'T' };
+    const after = { ...fork('outer', atom('landing', 'moving phrase'), wrapper), label: 'TP' };
+    if (control === 'different-parent') after.id = 'other';
+    if (control === 'reordered-children') wrapper.children.reverse();
+    if (control === 'different-child') wrapper.children[1] = { ...head, id: 'different' };
+    const next = { ...step(after), replayKind: 'relation', replayRelationIdentity: { stageIndex: 1, relationIndex: 0 },
+        replayRelationLinks: [{ authoredRelationKey: '1:0', renderFamily: 'trajectory', movementTransition: true,
+            priorSourceNodeId: 'source', witnessNodeId: 'source', targetNodeId: 'landing' }] };
+    const link = next.replayRelationLinks[0];
+    if (control === 'stale-claim') link.authoredRelationKey = '0:0';
+    if (control === 'unproved-movement') link.movementTransition = false;
+    if (control === 'structural-step') next.replayKind = 'micro';
+    if (control === 'landing-is-witness') link.witnessNodeId = 'landing';
+    if (control === 'missing-source') link.priorSourceNodeId = 'missing';
+    const steps = [step(before), next];
+    return preferredComposition(steps, (initial, preferred) => {
+        const old = preferred.get(initial[0].nodes.get('outer').incarnation);
+        old.get('host').x = -1800;
+        old.get('head').x = 1800;
+        const current = preferred.get(initial[1].nodes.get('wrapper').incarnation);
+        current.get('host').x = -800;
+        const second = current.get('head') ?? current.get('different');
+        second.x = 800;
+    });
+}
+test('a movement projection inherits the preceding fork slots across changed lower material and projection label', () => {
+    const frames = movementProjection(), before = frames[0].nodes.get('outer'), wrapper = frames[1].nodes.get('wrapper');
+    for (const id of ['host', 'peer', 'peerA', 'peerB', 'head'])
+        assert.deepEqual(relative(wrapper, id), relative(before, id), `${id} retains the old fork's relative slot`);
+    assert.notEqual(frames[0].nodes.get('host'), frames[1].nodes.get('host'), 'changed material retains its distinct contour');
+    assert.notEqual(frames[0].nodes.get('source'), frames[1].nodes.get('source'));
+    assert.equal(frames[0].nodes.get('peer'), frames[1].nodes.get('peer'));
+    geometry(frames);
+});
+for (const control of ['different-parent', 'different-child']) test(`a ${control} cannot inherit the preceding movement fork`, () => {
+    const frames = movementProjection(control), before = frames[0].nodes.get('outer'), wrapper = frames[1].nodes.get('wrapper');
+    assert.notDeepEqual(relative(wrapper, 'host'), relative(before, 'host'));
+    geometry(frames);
+});
+for (const control of ['reordered-children', 'stale-claim', 'unproved-movement', 'structural-step', 'landing-is-witness', 'missing-source'])
+    test(`movement projection slot inheritance rejects ${control}`, () => {
+        assert.throws(() => movementProjection(control), /Incompatible current slots/);
+    });
 function receivingHostSteps(options = {}) {
     const host = fork('host', atom('hostWord', 'file'));
     const before = fork('p', host, atom('source', 'the source'), atom('bystander'));
@@ -104,7 +167,7 @@ test('owning movement may translate a rigid receiving host under its new wrapper
     assert.equal(frames[0].nodes.get('host'), frames[1].nodes.get('host'));
     assert.deepEqual(relative(frames[0].nodes.get('host'), 'hostWord'), relative(frames[1].nodes.get('host'), 'hostWord'));
     const before = frames[0].nodes.get('p'), after = frames[1].nodes.get('p');
-    assert.equal(after.members.get('host').y, before.members.get('host').y + 220);
+    assert.equal(after.members.get('host').y, before.members.get('host').y + TREE_ROW_HEIGHT);
     assert.equal(after.members.get('source').y, before.members.get('source').y);
     assert.equal(after.members.get('wrapper').y, before.members.get('host').y);
     assert.equal(JSON.stringify(steps), input);
@@ -178,10 +241,10 @@ test('free preferred slots align to the locked witness coordinate origin', () =>
 test('a changed parent may sit above a retained complete fork without borrowing its rank', () => {
     const a = atom('a'), b = atom('b'), steps = [step(fork('p', a, b)), step(fork('p', fork('wrapper', a, b)))];
     const frames = preferredComposition(steps), old = frames[0].nodes.get('p'), next = frames[1].nodes.get('p');
-    assert.equal(old.members.get('a').y, 220);
-    assert.equal(next.members.get('wrapper').y, 220);
+    assert.equal(old.members.get('a').y, TREE_ROW_HEIGHT);
+    assert.equal(next.members.get('wrapper').y, TREE_ROW_HEIGHT);
     for (const id of ['a', 'b']) {
-        assert.equal(next.members.get(id).y - 220, old.members.get(id).y);
+        assert.equal(next.members.get(id).y - TREE_ROW_HEIGHT, old.members.get(id).y);
         assert.equal(next.members.get(id).x, old.members.get(id).x);
     }
     geometry(frames);
@@ -200,7 +263,7 @@ function ordinaryWrapperFrames(options = {}) {
 test('actual ordinary merge may attach each complete source rigidly beneath its new parent', () => {
     const frames = ordinaryWrapperFrames(), before = frames[0].nodes.get('p'), after = frames[1].nodes.get('p');
     assert.equal(frames[0].nodes.get('host'), frames[1].nodes.get('host'));
-    assert.equal(after.members.get('host').y, before.members.get('host').y + 220);
+    assert.equal(after.members.get('host').y, before.members.get('host').y + TREE_ROW_HEIGHT);
     assert.equal(after.members.get('bystander').y, before.members.get('bystander').y);
     geometry(frames);
 });
@@ -331,7 +394,7 @@ test('composition certificates preserve numeric fallback and selected-coordinate
     const preferred = new Map([[root.incarnation, points]]);
     const first = compose(undefined, { inheritCurrentSlots: true, preferred })[0].nodes.get('p');
     for (const x of [-0, 0, NaN, Infinity, -Infinity]) {
-        points.set('a', { x, y: 220 });
+        points.set('a', { x, y: TREE_ROW_HEIGHT });
         const current = compose(undefined, { inheritCurrentSlots: true, preferred })[0].nodes.get('p');
         assert.deepEqual(current.members, first.members);
         assert.equal(Object.is(current.members.get('a').x, 0), true);

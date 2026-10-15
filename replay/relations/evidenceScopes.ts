@@ -1,6 +1,6 @@
-import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence, Tier2FacetId } from './tier2FacetRecipes.ts';
-import { normalizeTier2Synonym } from './tier2Synonyms.ts';
 import type { SyntaxNode } from '../../types.ts';
+import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence, Tier2FacetId } from './tier2FacetTypes.ts';
+import { normalizeTier2Synonym } from './tier2Synonyms.ts';
 
 /** Exact authored owners must occur once in the current workspace. */
 export function uniqueCurrentOwners(evidence: Pick<Tier2FacetEvidence, 'currentForest'>, ids: readonly string[]): boolean {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { EventEmitter, getEventListeners } from 'node:events';
 import test from 'node:test';
 import { parseFromBodyWithProviders, parseFromRequest } from '../server/parseApi.js';
-import { runWithTransportRetries, withTimeout } from '../server/babelParser/modelRuntime.js';
+import { runWithTransportRetries, withTimeout } from '../server/babelParser/providerTransport.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { ParseApiError } from '../server/babelParser/error.js';
 
@@ -122,7 +122,7 @@ test('legacy Gemini, OpenAI and Claude routes propagate cancellation without nor
   let calls = 0, attemptSignal;
   const generate = ({ abortSignal }) => { calls++; attemptSignal = abortSignal; return new Promise(() => {}); };
   const unexpected = () => assert.fail('Cancelled work must not be normalized');
-  const routes = createParseRoutes({ ParseApiError, normalizeParseBundle: unexpected, parseModelJson: unexpected,
+  const routes = createParseRoutes({ ParseApiError, normalizeParseBundle: unexpected, parseModelJsonDetailed: unexpected,
     generateGemini: generate, generateOpenAI: generate, generateClaude: generate });
   for (const [method, route] of [['parseSentenceWithGemini', 'gemini'], ['parseSentenceWithOpenAI', 'gpt'], ['parseSentenceWithClaude', 'claude']]) {
     const controller = new AbortController(), before = calls;

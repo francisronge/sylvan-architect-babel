@@ -1,0 +1,825 @@
+{
+  "sentence": "Mari loeb uut ajalehte.",
+  "inputTokens": [
+    "Mari",
+    "loeb",
+    "uut",
+    "ajalehte"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "modifiedProjection": "nInner",
+            "modifier": "ap"
+          },
+          "relation": "adjectival modification",
+          "values": {
+            "interpretation": "a newspaper that is new"
+          }
+        },
+        {
+          "anchors": {
+            "adjective": "a",
+            "noun": "n"
+          },
+          "relation": "nominal concord",
+          "values": {
+            "case": "partitive",
+            "number": "singular"
+          }
+        },
+        {
+          "anchors": {
+            "adjective": "a",
+            "objectHead": "n",
+            "subjectHead": "m",
+            "verb": "v"
+          },
+          "relation": "lexical morphological specifications",
+          "values": {
+            "adjective": "partitive singular",
+            "objectHead": "partitive singular",
+            "subjectHead": "proper name; nominative singular",
+            "verb": "present indicative active; third-person singular"
+          }
+        }
+      ],
+      "stageRecord": "Mari is a nominative proper-name NP. Uut ajalehte is an NP whose noun is modified by an AP adjoined to N′; Estonian does not require an overt article here, so no determiner projection is stipulated. First, the AP establishes an intersective modifier relation with the nominal projection: the newspaper is new. Second, uut agrees with ajalehte in singular number and partitive case. Finally, the lexical forms establish the morphological specifications: Mari is nominative singular, uut and ajalehte are partitive singular, and loeb is the present indicative active third-person singular form of lugema. The verb is entered as the whole inflected word loeb; this analysis does not split its surface spelling into separate terminals. These objects are not yet combined into a clause, and the object's morphological partitive has not yet received its syntactic licensing.",
+      "statement": "Establish the nominal constituents and the inflected lexical verb.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "m",
+                  "label": "N",
+                  "tokenIndex": 0,
+                  "word": "Mari"
+                }
+              ],
+              "id": "mNBar",
+              "label": "N′"
+            }
+          ],
+          "id": "mNP",
+          "label": "NP",
+          "lineageId": "subject"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a",
+                          "label": "A",
+                          "tokenIndex": 2,
+                          "word": "uut"
+                        }
+                      ],
+                      "id": "aBar",
+                      "label": "A′"
+                    }
+                  ],
+                  "id": "ap",
+                  "label": "AP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "n",
+                      "label": "N",
+                      "tokenIndex": 3,
+                      "word": "ajalehte"
+                    }
+                  ],
+                  "id": "nInner",
+                  "label": "N′"
+                }
+              ],
+              "id": "nOuter",
+              "label": "N′"
+            }
+          ],
+          "id": "oNP",
+          "label": "NP"
+        },
+        {
+          "children": [],
+          "id": "v",
+          "label": "V",
+          "lineageId": "lexicalVerb",
+          "tokenIndex": 1,
+          "word": "loeb"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "internalArgument": "oNP",
+            "predicate": "v"
+          },
+          "relation": "internal-argument selection and theta assignment",
+          "values": {
+            "selectedCategory": "NP",
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "caseLicensor": "v",
+            "object": "oNP"
+          },
+          "relation": "partitive object-case licensing",
+          "values": {
+            "aspectualContribution": "the reading event is not asserted to exhaust a bounded whole object",
+            "case": "partitive"
+          }
+        },
+        {
+          "anchors": {
+            "externalArgument": "mNP",
+            "predicate": "v"
+          },
+          "relation": "external theta assignment",
+          "values": {
+            "basePosition": "Spec-VP",
+            "thetaRole": "Agent"
+          }
+        }
+      ],
+      "stageRecord": "The verb first combines with uut ajalehte as its NP complement, establishing the verb's internal-argument selection and assigning that NP the Theme role. The nominal partitive is then licensed as the object case of this reading predicate: the sentence presents newspaper-reading without asserting a bounded, completed reading of the entire newspaper. Partitive case does not itself decide between an ongoing and a habitual interpretation, so those interpretations do not require separate syntactic analyses. Mari is subsequently merged in Spec-VP and receives the external Agent role. This adopts a VP-internal subject analysis: the position shown here is the subject's theta position, not its final surface position. The adjective remains inside the object NP and is not a secondary predicate.",
+      "statement": "Build the predicate and establish its argument and object-case relations.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "m",
+                      "label": "N",
+                      "tokenIndex": 0,
+                      "word": "Mari"
+                    }
+                  ],
+                  "id": "mNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "mNP",
+              "label": "NP",
+              "lineageId": "subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "v",
+                  "label": "V",
+                  "lineageId": "lexicalVerb",
+                  "tokenIndex": 1,
+                  "word": "loeb"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a",
+                                  "label": "A",
+                                  "tokenIndex": 2,
+                                  "word": "uut"
+                                }
+                              ],
+                              "id": "aBar",
+                              "label": "A′"
+                            }
+                          ],
+                          "id": "ap",
+                          "label": "AP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "n",
+                              "label": "N",
+                              "tokenIndex": 3,
+                              "word": "ajalehte"
+                            }
+                          ],
+                          "id": "nInner",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "nOuter",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "oNP",
+                  "label": "NP"
+                }
+              ],
+              "id": "vBar",
+              "label": "V′"
+            }
+          ],
+          "id": "vp",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "finiteHead": "iBase",
+            "lexicalVerb": "v",
+            "prospectiveSubject": "mNP"
+          },
+          "relation": "finite inflectional licensing requirements",
+          "values": {
+            "agreement": "third-person singular",
+            "subjectRequirement": "a nominative NP in Spec-IP",
+            "tense": "present",
+            "verbRequirement": "the finite lexical verb raises to I"
+          }
+        }
+      ],
+      "stageRecord": "An abstract finite I selects the VP, producing an IP whose subject specifier is not yet filled. I supplies the clause's present-tense and third-person singular agreement specifications and requires a nominative subject in its specifier. Its features are compatible with the already inflected lexical verb loeb. I is unpronounced as an independent terminal: the analysis treats loeb as a preinflected word that will raise to the functional head, rather than deriving its spelling through affix attachment. Neither the subject nor the verb moves at this stage. Consequently, the workspace explicitly retains Mari in Spec-VP and loeb in V, the sources for the next stage's movements.",
+      "statement": "Introduce finite I above the VP while preserving both movement sources.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "iBase",
+                  "label": "I",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "m",
+                              "label": "N",
+                              "tokenIndex": 0,
+                              "word": "Mari"
+                            }
+                          ],
+                          "id": "mNBar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "mNP",
+                      "label": "NP",
+                      "lineageId": "subject"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v",
+                          "label": "V",
+                          "lineageId": "lexicalVerb",
+                          "tokenIndex": 1,
+                          "word": "loeb"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "a",
+                                          "label": "A",
+                                          "tokenIndex": 2,
+                                          "word": "uut"
+                                        }
+                                      ],
+                                      "id": "aBar",
+                                      "label": "A′"
+                                    }
+                                  ],
+                                  "id": "ap",
+                                  "label": "AP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "n",
+                                      "label": "N",
+                                      "tokenIndex": 3,
+                                      "word": "ajalehte"
+                                    }
+                                  ],
+                                  "id": "nInner",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "nOuter",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "oNP",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "vBar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "iBar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "inflectionalHead": "iBase",
+            "landingHead": "iRaised",
+            "movedVerb": "v",
+            "sourceTrace": "vTrace"
+          },
+          "priorAnchors": {
+            "sourceVerb": "v",
+            "targetInflection": "iBase"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "movementType": "head adjunction",
+            "pronunciation": "only the raised lexical verb is pronounced"
+          }
+        },
+        {
+          "anchors": {
+            "landingProjection": "ip",
+            "raisedSubject": "mNP",
+            "sourceTrace": "mTraceVP"
+          },
+          "priorAnchors": {
+            "sourceProjection": "vp",
+            "sourceSubject": "mNP"
+          },
+          "relation": "subject A-movement",
+          "values": {
+            "sourcePosition": "Spec-VP",
+            "targetPosition": "Spec-IP",
+            "thetaRolePreservation": "the chain retains its single Agent role"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "iRaised",
+            "inflectionalFeatures": "iBase",
+            "subject": "mNP"
+          },
+          "relation": "nominative case and subject agreement",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative",
+            "licensingConfiguration": "Spec-IP with finite I"
+          }
+        }
+      ],
+      "stageRecord": "First, loeb raises from the previously represented V position and adjoins to I. A silent V trace replaces it inside V′, while the overt verb retains its lexical spelling and token association in the resulting complex I head. This head movement establishes the finite verb's relation to I without introducing a second pronounced copy. Second, Mari raises from the previously represented Spec-VP position to Spec-IP, leaving a silent NP trace in its theta position. This A-movement satisfies I's subject requirement. Third, the Spec-IP relation licenses Mari's nominative case and establishes third-person singular subject–verb agreement. The subject receives no additional theta role in Spec-IP; its chain retains the Agent role assigned in Spec-VP. The verb's trace preserves the predicate's relation to its object and its previously established partitive-case licensing.",
+      "statement": "Raise the verb to I and the subject to Spec-IP.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "m",
+                      "label": "N",
+                      "tokenIndex": 0,
+                      "word": "Mari"
+                    }
+                  ],
+                  "id": "mNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "mNP",
+              "label": "NP",
+              "lineageId": "subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "v",
+                      "label": "V",
+                      "lineageId": "lexicalVerb",
+                      "tokenIndex": 1,
+                      "word": "loeb"
+                    },
+                    {
+                      "children": [],
+                      "id": "iBase",
+                      "label": "I",
+                      "silent": true
+                    }
+                  ],
+                  "id": "iRaised",
+                  "label": "I",
+                  "lineageId": "finiteHead"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mTraceVP",
+                      "label": "NP trace",
+                      "lineageId": "subject",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vTrace",
+                          "label": "V trace",
+                          "lineageId": "lexicalVerb",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "a",
+                                          "label": "A",
+                                          "tokenIndex": 2,
+                                          "word": "uut"
+                                        }
+                                      ],
+                                      "id": "aBar",
+                                      "label": "A′"
+                                    }
+                                  ],
+                                  "id": "ap",
+                                  "label": "AP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "n",
+                                      "label": "N",
+                                      "tokenIndex": 3,
+                                      "word": "ajalehte"
+                                    }
+                                  ],
+                                  "id": "nInner",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "nOuter",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "oNP",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "vBar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "iBar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "clause": "cp",
+            "clauseHead": "cBase"
+          },
+          "relation": "root declarative clause typing",
+          "values": {
+            "clauseType": "matrix declarative",
+            "structuralRequirement": "finite head in C and one preverbal constituent in Spec-CP"
+          }
+        },
+        {
+          "anchors": {
+            "clauseHead": "cBase",
+            "landingHead": "cRaised",
+            "movedFiniteHead": "iRaised",
+            "sourceTrace": "iTrace"
+          },
+          "priorAnchors": {
+            "sourceFiniteHead": "iRaised"
+          },
+          "relation": "I-to-C head movement",
+          "values": {
+            "headMovementPath": "V to I to C",
+            "movementType": "head adjunction",
+            "pronunciation": "loeb is pronounced within the complex C head"
+          }
+        },
+        {
+          "anchors": {
+            "landingProjection": "cp",
+            "preposedSubject": "mNP",
+            "sourceTrace": "mTraceIP"
+          },
+          "priorAnchors": {
+            "sourceProjection": "ip",
+            "sourceSubject": "mNP"
+          },
+          "relation": "subject preposing to the V2 field",
+          "values": {
+            "interpretiveCommitment": "subject-initial order without obligatory contrastive topicality",
+            "movementType": "A′-movement",
+            "sourcePosition": "Spec-IP",
+            "targetPosition": "Spec-CP"
+          }
+        },
+        {
+          "anchors": {
+            "caseLicensingHead": "iBase",
+            "chainOccurrences": [
+              "mNP",
+              "mTraceIP",
+              "mTraceVP"
+            ]
+          },
+          "relation": "completed subject chain",
+          "values": {
+            "chainOccurrences": [
+              "pronounced occurrence in Spec-CP",
+              "nominative-licensing intermediate position in Spec-IP",
+              "Agent theta position in Spec-VP"
+            ],
+            "chainStatus": "one argument with one theta role and nominative case"
+          }
+        },
+        {
+          "anchors": {
+            "finiteOccurrences": [
+              "iRaised",
+              "iTrace"
+            ],
+            "lexicalOccurrences": [
+              "v",
+              "vTrace"
+            ],
+            "object": "oNP"
+          },
+          "relation": "completed finite head chain",
+          "values": {
+            "finiteOccurrences": [
+              "finite I complex adjoined to C",
+              "silent trace in I"
+            ],
+            "lexicalOccurrences": [
+              "pronounced lexical verb inside the raised finite complex",
+              "silent trace in V"
+            ],
+            "locality": "successive head movement through I",
+            "preservedObjectRelation": "Theme complement with licensed partitive case"
+          }
+        },
+        {
+          "anchors": {
+            "referentialExpression": "mNP"
+          },
+          "relation": "Binding Theory status",
+          "values": {
+            "bindingCategory": "R-expression",
+            "principle": "Principle C",
+            "status": "not bound by a coindexed c-commanding antecedent"
+          }
+        }
+      ],
+      "stageRecord": "The completed clause adopts the standard CP treatment of Estonian matrix verb-second order. First, a declarative C is introduced above IP, establishing an unpronounced clause-typing head with a finite-head requirement and a preverbal specifier position. Second, the complex I head established in the preceding stage raises to C, leaving a silent I trace; because V had already raised to I, the finite verb reaches C through the intervening head rather than skipping I. Third, Mari moves from the previously represented Spec-IP position to Spec-CP, leaving a second NP trace. This A′ step supplies the subject as the initial constituent in the V2 clause; it does not force a contrastive-topic interpretation. The resulting subject chain connects Spec-CP, Spec-IP, and Spec-VP, preserving nominative licensing at the intermediate position and the Agent role at the lowest position. The finite head chain connects C, I, and V, preserving the lexical predicate's relation to the partitive object. Finally, Mari is an R-expression with no coindexed c-commanding antecedent, so Principle C is satisfied. There are no pronouns or anaphors requiring a separate Principle A or B dependency. The only pronounced terminals, in tree order, are Mari, loeb, uut, and ajalehte. The original sentence's final period is not a supplied input token and is not represented as a syntactic terminal.",
+      "statement": "Complete the subject-initial Estonian V2 declarative.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "m",
+                      "label": "N",
+                      "tokenIndex": 0,
+                      "word": "Mari"
+                    }
+                  ],
+                  "id": "mNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "mNP",
+              "label": "NP",
+              "lineageId": "subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v",
+                          "label": "V",
+                          "lineageId": "lexicalVerb",
+                          "tokenIndex": 1,
+                          "word": "loeb"
+                        },
+                        {
+                          "children": [],
+                          "id": "iBase",
+                          "label": "I",
+                          "silent": true
+                        }
+                      ],
+                      "id": "iRaised",
+                      "label": "I",
+                      "lineageId": "finiteHead"
+                    },
+                    {
+                      "children": [],
+                      "id": "cBase",
+                      "label": "C",
+                      "silent": true
+                    }
+                  ],
+                  "id": "cRaised",
+                  "label": "C"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mTraceIP",
+                      "label": "NP trace",
+                      "lineageId": "subject",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "iTrace",
+                          "label": "I trace",
+                          "lineageId": "finiteHead",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "mTraceVP",
+                              "label": "NP trace",
+                              "lineageId": "subject",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vTrace",
+                                  "label": "V trace",
+                                  "lineageId": "lexicalVerb",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "a",
+                                                  "label": "A",
+                                                  "tokenIndex": 2,
+                                                  "word": "uut"
+                                                }
+                                              ],
+                                              "id": "aBar",
+                                              "label": "A′"
+                                            }
+                                          ],
+                                          "id": "ap",
+                                          "label": "AP"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "n",
+                                              "label": "N",
+                                              "tokenIndex": 3,
+                                              "word": "ajalehte"
+                                            }
+                                          ],
+                                          "id": "nInner",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "nOuter",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "oNP",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "vBar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "vp",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "iBar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "ip",
+                  "label": "IP"
+                }
+              ],
+              "id": "cBar",
+              "label": "C′"
+            }
+          ],
+          "id": "cp",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

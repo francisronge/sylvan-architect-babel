@@ -53,9 +53,14 @@ const sourceSurfaces = Object.freeze([
   'server/babelParser/prompts.js',
   'server/babelParser/routeConfig.js',
   'server/babelParser/modelRuntime.js',
+  'server/babelParser/providerTransport.js',
+  'server/babelParser/generationOutcome.js',
+  'server/babelParser/routeErrors.js',
   'server/babelParser/parseRoutes.js',
   'server/babelParser/parseNormalization.js',
   'server/babelParser/derivationCompiler.js',
+  'server/babelParser/authoredWorkspace.js',
+  'server/babelParser/modelJson.js',
   'server/babelParser/nodePronunciation.js',
   'server/babelParser/inventionDetector.js',
   'server/babelParser/surfaceTokens.js',
@@ -156,16 +161,22 @@ async function loadBaselineModules() {
   const [
     replayPlanModule,
     replaySnapshotModule,
-    parserModule
+    normalizationModule,
+    derivationModule,
+    jsonModule
   ] = await Promise.all([
     import(pathToFileURL(path.join(repoRoot, 'derivationReplayPlan.js')).href),
     import(pathToFileURL(path.join(repoRoot, 'replay', 'replaySnapshot.ts')).href),
-    import(pathToFileURL(path.join(repoRoot, 'server', 'babelParser.js')).href)
+    import(pathToFileURL(path.join(repoRoot, 'server', 'babelParser', 'parseNormalization.js')).href),
+    import(pathToFileURL(path.join(repoRoot, 'server', 'babelParser', 'derivationCompiler.js')).href),
+    import(pathToFileURL(path.join(repoRoot, 'server', 'babelParser', 'modelJson.js')).href)
   ]);
   return {
     buildDerivationReplayPlan: replayPlanModule.buildDerivationReplayPlan,
     buildReplaySnapshotProjection: replaySnapshotModule.buildReplaySnapshotProjection,
-    parserTest: parserModule.__test__
+    normalizeParseBundle: normalizationModule.normalizeParseBundle,
+    normalizeDerivationStagesToDerivationFrames: derivationModule.normalizeDerivationStagesToDerivationFrames,
+    parseModelJson: jsonModule.parseModelJson
   };
 }
 
@@ -220,12 +231,12 @@ const describeStageCompilerProbe = ({
   expectedFlag,
   mutation,
   mutate,
-  parserTest
+  normalizeDerivationStagesToDerivationFrames
 }) => {
   const stage = makeMinimalStage();
   mutate(stage);
   const integrityFlags = [];
-  const frames = parserTest.normalizeDerivationStagesToDerivationFrames(
+  const frames = normalizeDerivationStagesToDerivationFrames(
     [stage],
     { integrityFlags }
   );
@@ -247,7 +258,9 @@ async function buildSemanticBaseline(packetDir) {
   const {
     buildDerivationReplayPlan,
     buildReplaySnapshotProjection,
-    parserTest
+    normalizeParseBundle,
+    normalizeDerivationStagesToDerivationFrames,
+    parseModelJson
   } = await loadBaselineModules();
   const rawFixtureDir = path.join(repoRoot, 'fixtures', 'raw');
   const normalizedFixtureDir = path.join(repoRoot, 'fixtures', 'normalized');
@@ -265,7 +278,7 @@ async function buildSemanticBaseline(packetDir) {
     const normalizedFixtureBytes = readBytes(normalizedFixturePath);
     const replaySnapshotBytes = readBytes(replaySnapshotPath);
     const rawFixture = JSON.parse(rawFixtureBytes.toString('utf8'));
-    const compiledBundle = stripVolatileProvenance(parserTest.normalizeParseBundle(
+    const compiledBundle = stripVolatileProvenance(normalizeParseBundle(
       clone(rawFixture.payload),
       rawFixture.framework,
       rawFixture.sentence,
@@ -312,7 +325,7 @@ async function buildSemanticBaseline(packetDir) {
     readBytes(path.join(rawFixtureDir, fixtureNames[0])).toString('utf8')
   );
   const normalizeMalformed = (payload, sentence = malformedSource.sentence) =>
-    parserTest.normalizeParseBundle(
+    normalizeParseBundle(
       payload,
       malformedSource.framework,
       sentence,
@@ -320,7 +333,7 @@ async function buildSemanticBaseline(packetDir) {
       true,
       { payloadIntegrityFlags: [] }
     );
-  const minimalNormalize = (stage) => parserTest.normalizeParseBundle(
+  const minimalNormalize = (stage) => normalizeParseBundle(
     { derivationStages: [stage] },
     'xbar',
     'Mia',
@@ -332,10 +345,10 @@ async function buildSemanticBaseline(packetDir) {
   const behaviorProbes = {
     malformedPayloads: {
       invalidJson: describeFailure(() =>
-        parserTest.parseModelJson('{"derivationStages":')
+        parseModelJson('{"derivationStages":')
       ),
       topLevelArray: describeFailure(() =>
-        parserTest.parseModelJson(JSON.stringify([malformedSource.payload]))
+        parseModelJson(JSON.stringify([malformedSource.payload]))
       ),
       tokenMismatch: describeFailure(() =>
         normalizeMalformed(clone(malformedSource.payload), 'Different input.')
@@ -370,7 +383,7 @@ async function buildSemanticBaseline(packetDir) {
         mutate: (stage) => {
           delete stage.statement;
         },
-        parserTest
+        normalizeDerivationStagesToDerivationFrames
       }),
       missingWorkspaceForestValue: describeStageCompilerProbe({
         expectedFlag: 'workspace_forest_missing_on_derivation_stage:d1',
@@ -378,7 +391,7 @@ async function buildSemanticBaseline(packetDir) {
         mutate: (stage) => {
           stage.workspaceForest = undefined;
         },
-        parserTest
+        normalizeDerivationStagesToDerivationFrames
       }),
       unexpectedStageFieldContract: describeStageCompilerProbe({
         expectedFlag: 'derivation_stage_contract_fields_invalid:d1',
@@ -386,7 +399,7 @@ async function buildSemanticBaseline(packetDir) {
         mutate: (stage) => {
           stage.unexpected = 'not part of the contract';
         },
-        parserTest
+        normalizeDerivationStagesToDerivationFrames
       }),
       emptyStatementValue: describeStageCompilerProbe({
         expectedFlag: 'statement_missing_on_derivation_stage:d1',
@@ -394,7 +407,7 @@ async function buildSemanticBaseline(packetDir) {
         mutate: (stage) => {
           stage.statement = '';
         },
-        parserTest
+        normalizeDerivationStagesToDerivationFrames
       }),
       validMinimalStage: describeFailure(() => minimalNormalize(makeMinimalStage()))
     }

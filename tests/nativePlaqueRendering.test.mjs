@@ -1,42 +1,37 @@
+import * as d3 from 'd3';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import test from 'node:test';
-import ts from 'typescript';
-import * as d3 from 'd3';
-import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
+import test, { after } from 'node:test';
+import { createBindingRefinements } from '../components/renderer/bindingRefinements.ts';
+import { createFittedCamera } from '../components/renderer/cameraFitting.ts';
+import { createCaseFeatureDrawing } from '../components/renderer/caseFeatureDrawing.ts';
+import { drawFallbackMark } from '../components/renderer/fallbackDrawing.ts';
+import { createPlaqueDrawing } from '../components/renderer/plaqueDrawing.ts';
+import { createPlaqueRefinements } from '../components/renderer/plaqueRefinements.ts';
+import { withPlaqueTextMeasure } from '../components/renderer/plaqueText.ts';
+import { createRelationOwnership, decorateRelationElement } from '../components/renderer/relationOwnership.ts';
+import { createShapeDrawing } from '../components/renderer/shapeDrawing.ts';
+import { alignReplayUnaryTerminalLeaves, appendOverlayMarker, hasTreeGapNotation } from '../components/renderer/treeNotation.ts';
+import { applyVizIds } from '../replay/displayIdentity.ts';
+import { caseFeatureComposition, featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
+import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { featureCollectionPlaquePath } from '../replay/relations/overlayGeometry.ts';
+import {
+  placeStagePlaques,
+  prepareCollectionPlaqueSpace,
+  prepareStagePlaqueRequests,
+  projectPlaqueLayout
+} from '../replay/relations/plaquePlacement.ts';
+import { prepareCasePlaqueRows, preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
-import { compileRelationRenderPlan, planItemRelationRefs, planItemsShareAuthoredStage } from '../replay/relations/renderPlanCompiler.ts';
 import { buildStagePlaqueLayout, treeLayoutSize } from '../replay/stageCamera.ts';
-import { projectPlaqueLayout, placeStagePlaques, prepareStagePlaqueRequests, prepareCollectionPlaqueSpace, caseAssignmentSource } from '../replay/relations/plaquePlacement.ts';
-import { collectionPathAttachment, coalesceCollectionPaths } from '../components/collectionPaths.ts';
-import { applyVizIds, buildRenderableDerivationCanvasData, isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf } from '../replay/replayCompiler.ts';
-import { caseFeatureComposition, collectionAssignment, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from '../replay/relations/featureComposition.ts';
-import { prepareCasePlaqueRows, preparePfPlaqueTextLayout, reservePlaqueViewport } from '../replay/relations/plaqueTextLayout.ts';
-import { appendPlaqueContent } from '../components/plaqueViewport.ts';
-import { featureCollectionPlaquePath, caseAssignmentPlaquePath, placeStackedRect } from '../replay/relations/overlayGeometry.ts';
-import { bindRelationPlanFrame, FALLBACK_ROLE_STYLE } from '../replay/relations/geometryBinding.ts';
-import { isTraceLike, formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue } from '../replay/replayCompiler.ts';
 import { blockedCollectionCases, blockedCollectionStage } from './helpers/blockedCollectionFixtures.mjs';
+import { createCameraHarness } from './helpers/cameraHarness.mjs';
+import { createSvgDom, descendants, matches, select } from './helpers/svgDom.mjs';
 
-const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
-const parsed = ts.createSourceFile('TreeVisualizer.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-const findNode = (predicate) => {
-  let found;
-  const visit = node => {
-    if (predicate(node)) found = node;
-    ts.forEachChild(node, visit);
-  };
-  visit(parsed);
-  assert.ok(found, 'the production painter must exist');
-  return found;
-};
-const productionFunction = (name, dependencies = {}) => {
-  const node = findNode(node => (ts.isVariableDeclaration(node) || ts.isFunctionExpression(node))
-    && node.name?.getText(parsed) === name);
-  const body = ts.isVariableDeclaration(node) ? node.initializer : node;
-  return new Function(...Object.keys(dependencies), ts.transpile(`return (${body.getText(parsed)});`,
-    { target: ts.ScriptTarget.ES2023 }))(...Object.values(dependencies));
-};
 const graphemes = text => Array.from(new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(text),
   ({ segment }) => segment);
 const measureText = (text, style) => ({
@@ -45,96 +40,16 @@ const measureText = (text, style) => ({
   descent: style.fontSize * 0.2
 });
 
-// Run the production painter without a browser. Font rasterization and camera behavior are integration checks.
-class Element {
-  constructor(tag, attrs = {}) {
-    this.tag = tag;
-    this.attrs = attrs;
-    this.styles = {};
-    this.children = [];
-    this.text = '';
-  }
-  get textContent() { return this.text + this.children.map(child => child.textContent).join(''); }
-  get tagName() { return this.tag; }
-  get classList() { return { contains: value => (this.attrs.class ?? '').split(' ').includes(value) }; }
-  getAttribute(name) { return this.attrs[name] ?? null; }
-  setAttribute(name, value) { this.attrs[name] = String(value); }
-  cloneNode() { return new Element(this.tag, { ...this.attrs }); }
-  hasAttribute(name) { return Object.hasOwn(this.attrs, name); }
-  get dataset() { return Object.fromEntries(Object.entries(this.attrs)
-    .filter(([name]) => name.startsWith('data-'))
-    .map(([name, value]) => [name.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase()), value])); }
-  getScreenCTM() { return { d: 1 }; }
-  get parentElement() { return this.parent; }
-  closest(selector) { return matches(this, selector) ? this : this.parent?.closest(selector) ?? null; }
-  getBoundingClientRect() { return { left: 0, top: 0, right: 1600, bottom: 1100, width: 1600, height: 1100 }; }
-  metrics() {
-    return measureText(this.textContent, {
-      fontSize: parseFloat(this.styles['font-size'] || 28),
-      letterSpacing: parseFloat(this.styles['letter-spacing'] || 0)
-    });
-  }
-  getBBox() {
-    const { width, ascent, descent } = this.metrics();
-    return { x: 0, y: -ascent, width, height: ascent + descent };
-  }
-  getComputedTextLength() { return this.metrics().width; }
-  getTotalLength() { return 100; }
-  getPointAtLength(length) {
-    const points = this.attrs.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
-    const t = length / 100, u = 1 - t;
-    return { x: u ** 3 * points[0] + 3 * u ** 2 * t * points[2] + 3 * u * t ** 2 * points[4] + t ** 3 * points[6],
-      y: u ** 3 * points[1] + 3 * u ** 2 * t * points[3] + 3 * u * t ** 2 * points[5] + t ** 3 * points[7] };
-  }
-}
-const descendants = node => node.children.flatMap(child => [child, ...descendants(child)]);
-const matches = (node, selector) => selector.split(',').some(part => part.trim() === '*'
-  || (node.attrs.class || '').split(' ').includes(part.trim().replace(/^\./, '')));
-class Selection {
-  constructor(nodes) { this.items = nodes; }
-  node() { return this.items[0] || null; }
-  empty() { return this.items.length === 0; }
-  nodes() { return this.items; }
-  datum() { return this.node()?.datum; }
-  append(tag) {
-    return new Selection(this.items.map(parent => {
-      const node = new Element(tag);
-      node.parent = parent;
-      parent.children.push(node);
-      return node;
-    }));
-  }
-  attr(name, value) {
-    if (arguments.length === 1) return this.node()?.getAttribute(name);
-    this.items.forEach(node => {
-      const result = typeof value === 'function' ? value.call(node, node.datum) : value;
-      if (result === null) delete node.attrs[name];
-      else node.attrs[name] = String(result);
-    });
-    return this;
-  }
-  on(name, handler) { this.items.forEach(node => { (node.handlers ??= {})[name] = handler; }); return this; }
-  style(name, value) { this.items.forEach(node => node.styles[name] = value); return this; }
-  text(value) { this.items.forEach(node => { node.text = String(value); node.children = []; }); return this; }
-  selectAll(selector) { return new Selection(this.items.flatMap(descendants).filter(node => matches(node, selector))); }
-  select(selector) { return new Selection(this.items.flatMap(descendants).filter(node => matches(node, selector)).slice(0, 1)); }
-  insert(tag) { return this.append(tag); }
-  each(callback) { this.items.forEach(node => callback.call(node, node.datum)); return this; }
-  filter(callback) { return new Selection(this.items.filter(node => callback.call(node, node.datum))); }
-  remove() {
-    this.items.forEach(node => node.parent.children.splice(node.parent.children.indexOf(node), 1));
-    return this;
-  }
-}
-const select = node => new Selection([node]);
+const { Element, restore } = createSvgDom(measureText);
+after(restore);
 
 test('the production Control connector lays out without a domain rectangle', () => {
   const layer = new Element('g');
   const path = select(layer).append('path').attr('class', 'babel-control-dependency')
     .attr('data-control-controller', 'controller').attr('data-control-controllee', 'subject');
   const rects = { controller: { x: 100, y: 100, width: 40, height: 30 }, subject: { x: 300, y: 300, width: 40, height: 30 } };
-  const refine = productionFunction('refineControlRelation', {
-    d3: { select }, measuredTerminalSubtreesRect: () => null, measuredSubtreeRect: () => null,
+  const { refineControlRelation: refine } = createBindingRefinements({
+    measuredTerminalSubtreesRect: () => null, measuredSubtreeRect: () => null,
     measuredAcceptedAnchorRect: id => rects[id]
   });
   refine.call(layer);
@@ -150,16 +65,14 @@ test('the production idiom underlines belong to their chunks, not to the optiona
   const layer = host.append('g').attr('class', 'babel-idiom-chunk-relation-layer');
   for (const [i, id] of ['a', 'b', 'unrelated'].entries()) {
     const terminal = select(root).append('text').attr('class', 'terminal-label').attr('data-node-id', id).node();
-    terminal.datum = { id };
+    terminal.datum = { __vizId: id, data: { id } };
     terminal.getBoundingClientRect = () => ({ left: i * 100, right: i * 100 + 40, top: 100, bottom: 120 });
     if (id !== 'unrelated') host.append('g').attr('class', 'vr-idiom-chunk-anchor').attr('data-idiom-chunk', id);
   }
-  const refine = productionFunction('refineIdiomChunkRelation', {
-    d3: { select }, g: select(root), measuredSubtreeRect: () => null,
-    labelBelongsToNode: productionFunction('labelBelongsToNode', { d3: { select }, isReplayDisplayChild }),
+  const { refineIdiomChunkRelation: refine } = createBindingRefinements({
+    g: select(root), measuredSubtreeRect: () => null,
     treeMatrix: { inverse: () => ({}) },
-    DOMPoint: class { constructor(x, y) { this.x = x; this.y = y; } matrixTransform() { return this; } },
-    postFitNodeById: new Map(['a', 'b'].map(id => [id, { descendants: () => [{ id }] }])), getNodeId: n => n.id
+    postFitNodeById: new Map(['a', 'b'].map(id => [id, { descendants: () => [{ __vizId: id, data: { id } }] }]))
   });
   refine.call(layer.node());
   assert.deepEqual(layer.selectAll('.babel-idiom-chunk-underline').nodes().map(n => n.attrs.d),
@@ -167,15 +80,8 @@ test('the production idiom underlines belong to their chunks, not to the optiona
   assert(layer.select('.babel-idiom-domain-bracket').empty());
 });
 
-const drawPlaqueText = productionFunction('drawPlaqueText');
-const withPlaqueTextMeasure = productionFunction('withPlaqueTextMeasure');
-const drawPlaqueDependencyPath = productionFunction('drawPlaqueDependencyPath', {
-  d3, markerScale: 1, activeDerivationFrameIndex: 0, relationEmphasisForItem: () => null,
-  decorateRelationElement(element, item) {
-    element.attrs['data-vr-stage-index'] = String(item.relationRef.stageIndex);
-    element.attrs['data-vr-relation-index'] = String(item.relationRef.relationIndex);
-    element.attrs['data-vr-owner-refs'] = planItemRelationRefs(item).map(r => `${r.stageIndex}:${r.relationIndex}`).join(' ');
-  }
+const { drawPlaqueDependencyPath } = createCaseFeatureDrawing({
+  markerScale: 1, activeDerivationFrameIndex: 0, relationEmphasisForItem: () => null, decorateRelationElement
 });
 
 test('deferred Case composition cannot give its owner to a blocked collector group', () => {
@@ -183,9 +89,8 @@ test('deferred Case composition cannot give its owner to a blocked collector gro
   const collector = { kind: 'directed-path', pathStyle: 'case-agree', outcome: 'blocked',
     fromNodeId: 'head', toNodeId: 'goal', relationRef: { stageIndex: 0, relationIndex: 2 } };
   const caseOwner = { ...collector, pathStyle: 'case-assignment', relationRef: { stageIndex: 0, relationIndex: 0 } };
-  const queue = productionFunction('queueAcceptedRelationDraw', {
+  const { queueAcceptedRelationDraw: queue } = createRelationOwnership({
     g: select(root), deferredAcceptedRelationDraws: deferred,
-    decorateRelationElement(element, item) { element.attrs['data-vr-owner-refs'] = `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`; }
   });
   const previous = globalThis.SVGElement; globalThis.SVGElement = Element;
   try {
@@ -199,8 +104,6 @@ test('deferred Case composition cannot give its owner to a blocked collector gro
   } finally { globalThis.SVGElement = previous; }
 });
 
-const plaqueBranch = findNode(node => ts.isIfStatement(node)
-  && node.expression.getText(parsed) === "primitive.type === 'plaque'");
 const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageIndex) => {
   const root = new Element('g');
   const host = select(root);
@@ -210,36 +113,33 @@ const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageInd
     return node ? { x: node.x - 40, y: node.y - 30, width: 80, height: 60 } : null;
   };
   const dependencies = {
-    primitive, planItem: item, frameItems: items, host, g: host, emphasis: null,
-    planItemsShareAuthoredStage, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow,
-    featureCollectionPlaquePath, collectionPathAttachment, coalesceCollectionPaths, decorateRelationElement() {}, relationEmphasisForItem: () => null,
+    frameItems: items, g: host,
     drawPlaqueDependencyPath,
-    replayPlaqueLayout: layout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent,
+    replayPlaqueLayout: layout,
     queueAcceptedRelationDraw: (_item, _emphasis, draw) => queued.push(draw),
     measuredTerminalSubtreeRectNow: rectFor, measuredTreeLabelRectNow: rectFor,
     ensureFeatureRelationLayer: () => host,
     revealedItemIndices: new Set(items.map((_, index) => index)),
-    resolveOverlayAnchor: id => nodes.get(id), getNodeId: node => node.__vizId ?? node.data.id
+    resolveOverlayAnchor: id => nodes.get(id)
   };
-  new Function(...Object.keys(dependencies), ts.transpile(plaqueBranch.getText(parsed),
-    { target: ts.ScriptTarget.ES2023 }))(...Object.values(dependencies));
+  createPlaqueDrawing(dependencies).drawPlaque(primitive, item, host, null);
   queued.forEach(draw => draw());
   if (primitive.plaqueStyle === 'feature') {
     const before = svgSnapshot(root);
-    const refine = productionFunction('refineFeaturePlaques', {
-      g: host, d3: { select },
+    const { refineFeaturePlaques: refine } = createPlaqueRefinements({
+      g: host,
       measuredTerminalSubtreesRect: () => { throw Error('Accepted plaque must not be repositioned from screen measurements'); }
     });
     refine();
     assert.deepEqual(svgSnapshot(root), before, 'deferred refinement must not move an accepted plaque');
   }
   if (primitive.plaqueStyle === 'realization') {
-    const painter = productionFunction('renderPfRealizationPlate', {
-      d3: { select }, svg: select(new Element('svg')),
+    const { renderPfRealizationPlate: painter } = createPlaqueRefinements({
+      svg: select(new Element('svg')),
       playedRelationIndices: played, activeDerivationFrameIndex: stageIndex,
       measuredTerminalSubtreesRect: ids => rectFor(ids[0]), measuredShellRect: rectFor,
       measuredTerminalRect: () => null, unionRects: rects => rects[0],
-      replayPlaqueLayout: layout, withPlaqueTextMeasure, preparePfPlaqueTextLayout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent
+      replayPlaqueLayout: layout
     });
     host.selectAll('.babel-pf-relation-layer').each(painter);
   }
@@ -251,26 +151,20 @@ const svgSnapshot = node => ({ tag: node.tag, attrs: node.attrs, styles: node.st
 function drawCasePlaque(item, placement, assigner, frameItems = [item], revealed = frameItems.map((_, i) => i)) {
   const root = new Element('g');
   const dependencies = {
-    frameItems, caseFeatureComposition, planItemRelationRefs,
-    prepareCasePlaqueRows, featureCollectionPlaquePath, collectionPathAttachment, coalesceCollectionPaths,
-    drawPlaqueDependencyPath,
+    frameItems,
     renderedCaseCompositions: new Set(), revealedItemIndices: new Set(revealed),
     ensureAgreementCaseRelationLayer: () => select(root),
     measuredTerminalSubtreeRectNow: () => assigner, measuredTreeLabelRectNow: () => assigner,
     markPreterminalLensNode() {}, replayPlaqueLayout: new Map([[0, placement]]),
-    decorateRelationElement() {}, relationEmphasisForItem: () => null,
-    activeDerivationFrameIndex: 0, caseAssignmentPlaquePath, caseAssignmentSource,
+    decorateRelationElement, relationEmphasisForItem: () => null,
+    activeDerivationFrameIndex: 0,
     overlayNodeById: new Map([[item.fromNodeId, d3.hierarchy({ id: item.fromNodeId, label: 'V' })]]),
-    getNodeId: node => node.data.id
   };
-  productionFunction('drawCaseFeatureComposition', dependencies)(0);
+  createCaseFeatureDrawing({ ...dependencies, markerScale: 1 }).drawCaseFeatureComposition(0);
   return root;
 }
 
 test('derived failed collection cues survive binding and every native collection paint route', () => {
-  const unpairedBranch = findNode(node => ts.isIfStatement(node)
-    && node.expression.getText(parsed).includes("primitive.shapeStyle === 'case-assignment'")
-    && node.expression.getText(parsed).includes("primitive.shapeStyle === 'case-agree'"));
   for (const fixture of blockedCollectionCases) {
     const stage = blockedCollectionStage(fixture.relations), plan = compileRelationRenderPlan([stage]), items = plan.frames[0].items;
     const tree = d3.tree().size([1200, 900])(d3.hierarchy(stage.workspaceForest[0]));
@@ -296,10 +190,11 @@ test('derived failed collection cues survive binding and every native collection
     if (fixture.id === 'unpaired') {
       assert.equal(request, undefined);
       const root = new Element('g'), primitive = bound.primitives.find(p => p.type === 'shape-path');
-      const dependencies = { primitive, planItem: items[primitive.itemIndex], emphasis: null, frameItems: items,
-        collectionAssignment, collectionPlaque, drawPlaqueDependencyPath, drawCaseFeatureComposition() { throw Error('Unpaired path acquired Case'); },
-        queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(), ensureAgreementCaseRelationLayer: () => select(root), acceptedAnchorRect: () => null };
-      new Function(...Object.keys(dependencies), ts.transpile(unpairedBranch.getText(parsed), { target: ts.ScriptTarget.ES2023 }))(...Object.values(dependencies));
+      const dependencies = { frameItems: items,
+        drawPlaqueDependencyPath, drawCaseFeatureComposition() { throw Error('Unpaired path acquired Case'); },
+        queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(), ensureAgreementCaseRelationLayer: () => select(root) };
+      createShapeDrawing({ ...dependencies, measuredTreeLabelRectNow: () => null, measuredTerminalSubtreeRectNow: () => null })
+        .drawShapePath(primitive, items[primitive.itemIndex], select(root), null);
       painted = root;
     } else {
       const placement = prepareCollectionPlaqueSpace(tree.descendants()).attach({ ...request, x: 0, y: 0 });
@@ -492,10 +387,7 @@ for (const record of savedPlaqueRecords) {
         const tree = d3.tree().size(treeLayoutSize(root.descendants().length, root.height, width, height))
           .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
         const visible = new Set(step.replayVisibleNodeIds);
-        productionFunction('alignReplayUnaryTerminalLeaves', {
-          replayVisibleNodeIdSet: visible, getNodeId: node => node.__vizId ?? node.data.id,
-          isSyntheticWorkspaceRootNode, isWordlessCategoryLeaf
-        })(tree);
+        alignReplayUnaryTerminalLeaves(tree, visible);
         const nodes = new Map(tree.descendants().map(node => [node.__vizId ?? node.data.id, node]));
         const layout = projectPlaqueLayout(allocations[stageIndex], id => nodes.get(id) ?? null);
         const played = new Set(steps.slice(0, stepIndex + 1).flatMap(previous =>
@@ -544,20 +436,15 @@ const drawPf = ({ rows, kinds = [], refs = [], played = null, stage = 0, zoom = 
     class: 'babel-pf-relation-layer', 'data-pf-targets': '["head"]',
     'data-pf-rows': JSON.stringify(rows), 'data-pf-row-kinds': JSON.stringify(kinds), 'data-pf-row-refs': JSON.stringify(refs)
   });
+  layer.getScreenCTM = () => ({ a: zoom, b: 0, d: zoom, inverse() { return { a: 1 / zoom, d: 1 / zoom }; } });
   const fullLayout = preparePfPlaqueTextLayout(rows.map((row, index) => ({ ...row, kind: kinds[index] || 'literal', rowIndex: index })), { measureText });
   const target = { x: 600, y: 400, width: 80, height: 60 };
-  const draw = productionFunction('renderPfRealizationPlate', {
-    d3: { select }, svg: select(svgRoot), g: select(new Element('g')),
+  const { renderPfRealizationPlate: draw } = createPlaqueRefinements({
+    svg: select(svgRoot), g: select(new Element('g')),
     playedRelationIndices: played, activeDerivationFrameIndex: stage,
     measuredTerminalSubtreesRect: () => target, measuredShellRect: () => target,
     measuredTerminalRect: () => null, unionRects: rects => rects[0],
-    treeMatrix: { inverse: () => ({ scale: 1 / zoom }) },
-    DOMPoint: class {
-      constructor(x, y) { this.x = x; this.y = y; }
-      matrixTransform(matrix) { return { x: this.x * matrix.scale, y: this.y * matrix.scale }; }
-    },
     replayPlaqueLayout: new Map([[0, { x: 700, y: 550, location: 'below', domainId: 'head', ...(fullLayout.overflow ? { scrollHeight: fullLayout.height } : {}) }]]),
-    withPlaqueTextMeasure, preparePfPlaqueTextLayout, drawPlaqueText, reservePlaqueViewport, appendPlaqueContent
   });
   draw.call(layer);
   assert.equal(svgRoot.children.length, 0, 'temporary measuring text is removed');
@@ -695,10 +582,6 @@ test('PF column spacing and line height contain indivisible glyphs and unusually
   assert.ok(layout.rows[0].ruleY + 2 < input.y - 60, 'final-row rule must stay above the text ink');
 });
 
-const gapBranch = findNode(node => ts.isIfStatement(node)
-  && node.expression.getText(parsed) === "primitive.badgeStyle === 'gap-notation' && primitive.reuseExistingNotation");
-const drawGap = new Function('host', 'primitive', ts.transpile(
-  `${gapBranch.getText(parsed)}\nreturn 'draw-extra-label';`, { target: ts.ScriptTarget.ES2023 }));
 const gapPredicate = labels => {
   const root = new Element('g');
   for (const { text, kind = 'category', id = 'lower', original, index, replayOrigin } of labels) {
@@ -709,10 +592,7 @@ const gapPredicate = labels => {
     label.datum = { data: { id, replayOrigin } };
     root.children.push(label);
   }
-  const predicate = productionFunction('hasExistingGapNotation', {
-    g: select(root), isTraceLike, formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue,
-    labelBelongsToNode: productionFunction('labelBelongsToNode', { d3: { select }, isReplayDisplayChild })
-  });
+  const predicate = (nodeId, text) => hasTreeGapNotation(select(root), nodeId, text);
   return { root, predicate };
 };
 const badgeOwner = (relationIndex = 0) => ({
@@ -732,7 +612,10 @@ const gapLabels = (labels, notation, nodeId = 'lower', familyId = 'tier2.gap-not
   const bound = bindGapItems([gapItem(notation, nodeId, familyId)], predicate);
   assert.deepEqual(bound.failed, []);
   const host = new Element('g');
-  const result = drawGap(select(host), bound.primitives[0]);
+  const primitive = bound.primitives[0];
+  const { drawTextBadge } = createPlaqueDrawing({ appendMarker: () => select(host).append('g') });
+  drawTextBadge(primitive, gapItem(notation, nodeId, familyId), select(host), null);
+  const result = host.children.length ? 'draw-extra-label' : undefined;
   assert.equal(root.textContent, before, 'reuse must never replace authored occurrence notation');
   return { result, host };
 };
@@ -778,23 +661,49 @@ test('gap notation reuses its owned display word even when its allocated ID coll
   }
 });
 
+const fittedCamera = (root, { data, manualCameraRef, fitFallbackOverlays }) => {
+  const harness = createCameraHarness(Element, {
+    width: 1600, height: 1100, data, manual: manualCameraRef, signature: 'stage'
+  });
+  const { applyFittedCamera } = createFittedCamera({ session: harness.session, layout: {
+    g: select(root), stagePlaqueContainmentBounds: null, stageFitContainmentBounds: null,
+    fitLeft: 40, fitRight: 1560, fitTop: 100, fitBottom: 700, fitFallbackOverlays
+  } });
+  return transform => harness.run(() => applyFittedCamera(transform));
+};
+
+test('an unchanged Replay frame retains its accepted fit after font-driven repaint', () => {
+  const data = {}, auto = { current: null };
+  const harness = createCameraHarness(Element, { width: 386, height: 840, data, step: 44, animated: true, auto });
+  const bounds = { minX: 236.43835616438298, maxX: 7108.4766380730125,
+    minY: -159.23809523809496, maxY: 3294.9523809523807 };
+  const layout = { g: harness.group, stagePlaqueContainmentBounds: bounds, stageFitContainmentBounds: bounds,
+    fitLeft: 16, fitRight: 370, fitTop: 78.5, fitBottom: 550 };
+  const retained = d3.zoomIdentity.translate(3.82032715060123, 222.4364835268697).scale(0.05151310069560331);
+  const recentered = retained.translate(0, 214.47619047619048);
+  const fit = transform => harness.run(() => createFittedCamera({ session: harness.session, layout }).applyFittedCamera(transform));
+  fit(retained);
+  harness.session.activeStepIndex = 45;
+  assert.equal(fit(recentered).y, retained.y, 'adjacent construction retains the accepted camera');
+  assert.equal(fit(recentered).y, retained.y, 'a late font completion cannot recenter that same frame');
+  harness.session.fitRevision++;
+  assert.equal(fit(recentered).y, recentered.y, 'an explicit Fit is still honored');
+  harness.session.fitRevision++;
+  harness.session.activeStepIndex = 46;
+  fit(retained);
+  layout.completedReplayStep = 46;
+  assert.equal(fit(recentered).y, recentered.y, 'the completed Replay can release its final fit');
+});
+
 test('stacked linguistic notation keeps automatic-fit size and spacing through manual zoom and redraw', () => {
   const root = new Element('g');
-  const appendMarker = productionFunction('appendMarker', { primitiveHost: select(root), markerScale: 2, badgeGap: 46 });
+  const appendMarker = (x, y, treeNotation, stackIndex) => appendOverlayMarker(select(root), x, y, 2, 46, treeNotation, stackIndex);
   const notation = appendMarker(100, 200, true).node();
   const second = appendMarker(192, 200, true, 1).node();
   const locator = appendMarker(100, 240).node();
   const manualCameraRef = { current: null };
   const data = {};
-  let camera;
-  const fit = productionFunction('applyFittedCamera', {
-    autoCameraRef: { current: null }, animated: false, fitRevision: 0, activeStepIndex: 0,
-    cameraAnimationRef: { current: null }, svg: { attr() {} },
-    animateFittedCamera: transform => { camera = transform; },
-    g: select(root), manualCameraRef, data, derivationStagesSignature: 'stage',
-    containerWidth: 1600, containerHeight: 1100, stagePlaqueContainmentBounds: null, stageCameraBounds: null,
-    d3, fitFallbackOverlays: undefined, applyCameraTransform: transform => { camera = transform; }
-  });
+  const fit = fittedCamera(root, { manualCameraRef, data });
   const automatic = d3.zoomIdentity.scale(0.5);
   fit(automatic);
   assert.equal(notation.attrs.transform, 'translate(100,200) scale(2)');
@@ -804,9 +713,9 @@ test('stacked linguistic notation keeps automatic-fit size and spacing through m
   manualCameraRef.current = { data, signature: 'stage', width: 1600, height: 1100,
     transform: d3.zoomIdentity.translate(20, 30).scale(2) };
   // The geometry binder observes the retained manual zoom during a redraw.
-  const redraw = productionFunction('appendMarker', { primitiveHost: select(root), markerScale: 0.5, badgeGap: 46 });
+  const redraw = (x, y, treeNotation, stackIndex) => appendOverlayMarker(select(root), x, y, 0.5, 46, treeNotation, stackIndex);
   const redrawnSecond = redraw(123, 200, true, 1).node();
-  fit(automatic);
+  const camera = fit(automatic);
   assert.equal(camera.k, 2);
   assert.equal(notation.attrs.transform, 'translate(100,200) scale(2)',
     'redrawing under manual zoom must not shrink notation back to screen size');
@@ -815,15 +724,11 @@ test('stacked linguistic notation keeps automatic-fit size and spacing through m
 });
 
 test('fallback role and authored array position share one tree coordinate group', () => {
-  const branch = findNode(node => ts.isIfStatement(node)
-    && node.expression.getText(parsed) === "primitive.type === 'fallback-mark'");
   for (const frame of ['circle', 'box']) {
     const root = new Element('g');
     const primitive = { type: 'fallback-mark', nodeId: 'owned', x: 100, y: 200,
       stackIndex: 1, frame, instance: 2, numeral: 3, backward: true, role: 'members', text: 'members[3]' };
-    const groups = new Map();
-    new Function('primitive', 'host', 'markerScale', 'fallbackMarkGroups', 'FALLBACK_ROLE_STYLE', ts.transpile(branch.getText(parsed),
-      { target: ts.ScriptTarget.ES2023 }))(primitive, select(root), 2, groups, FALLBACK_ROLE_STYLE);
+    const drawn = drawFallbackMark(select(root), primitive, 2);
     const marker = root.children[0];
     assert.equal(marker.attrs.class, 'vr-fallback-mark');
     assert.equal(marker.attrs.transform, 'translate(100,200) scale(2)');
@@ -831,27 +736,20 @@ test('fallback role and authored array position share one tree coordinate group'
       [['text', 'members[3]']]);
     assert.equal(marker.attrs['data-authored-role'], 'members');
     assert.ok(marker.children.every(child => child.attrs.transform === undefined));
-    assert.ok(groups.has(primitive), 'Fit targets this exact owned group');
+    assert.equal(drawn.node(), marker, 'Fit receives this exact owned group');
   }
   const data = {};
   const manualCameraRef = { current: null };
   const fitScales = [];
   const fitViewports = [];
-  let camera;
-  const fit = productionFunction('applyFittedCamera', {
-    autoCameraRef: { current: null }, animated: false, fitRevision: 0, activeStepIndex: 0,
-    cameraAnimationRef: { current: null }, svg: { attr() {} },
-    animateFittedCamera: transform => { camera = transform; },
-    g: select(new Element('g')), manualCameraRef, data, derivationStagesSignature: 'stage',
-    containerWidth: 1600, containerHeight: 1100, stagePlaqueContainmentBounds: null, stageCameraBounds: null,
-    fitLeft: 40, fitRight: 1560, fitTop: 100, fitBottom: 700,
-    d3, fitFallbackOverlays: (scale, viewport) => { fitScales.push(scale); fitViewports.push(viewport); },
-    applyCameraTransform: transform => { camera = transform; }
+  const fit = fittedCamera(new Element('g'), {
+    manualCameraRef, data,
+    fitFallbackOverlays: (scale, viewport) => { fitScales.push(scale); fitViewports.push(viewport); }
   });
   fit(d3.zoomIdentity.scale(0.5));
   manualCameraRef.current = { data, signature: 'stage', width: 1600, height: 1100,
     transform: d3.zoomIdentity.translate(20, 30).scale(2) };
-  fit(d3.zoomIdentity.scale(0.5));
+  const camera = fit(d3.zoomIdentity.scale(0.5));
   assert.equal(camera.k, 2);
   assert.deepEqual(fitScales, [0.5, 0.5], 'the allocation uses automatic Fit even under a retained manual camera');
   assert.deepEqual(fitViewports, Array(2).fill({ x: 80, y: 200, width: 3040, height: 1200 }),

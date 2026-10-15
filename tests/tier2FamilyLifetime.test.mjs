@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { TIER2_FACET_RECIPES } from '../replay/relations/tier2FacetRecipes.ts';
-import { compileRelationRenderPlan, planItemRelationRefs, visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { buildPublicFacetFixture } from './helpers/tier2PublicFixtures.mjs';
 

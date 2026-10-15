@@ -1,4 +1,4 @@
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { normalizeTier2Synonym } from './tier2Synonyms.ts';
 
 const mappingLabel = /^(?:(?:an?|the|authored|explicit|local|morphological|pf) )*(?:realization|realisation|exponence|vocabulary insertion|spell out|pf) (?:mapping|rewrite)(?: rule)?$/u;

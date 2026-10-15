@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { collectionPathAttachment, coalesceCollectionPaths } from '../components/collectionPaths.ts';
 import { featureRowKey } from '../replay/relations/featureComposition.ts';
-import { planItemRelationRefs } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
 
 const claim = (value, relationIndex = 0) => ({ kind: 'directed-path', pathStyle: 'case-agree',
   fromNodeId: 'possessive', toNodeId: 'nominal', featureRow: { label: 'features', value },

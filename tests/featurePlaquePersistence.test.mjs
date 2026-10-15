@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  compileRelationRenderPlan, planItemOwnsRelationMoment, planItemRelationRefs, visiblePlanFrameItems
-} from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemOwnsRelationMoment, planItemRelationRefs } from '../replay/relations/renderPlan.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 
 const agreement = { relation: 'Agree', anchors: { probe: 'tFinite', goal: 'dLower' }, values: { person: 'third', number: 'plural' } };
 const forest = (label, ids = {}) => [{ id: 'clause', label: 'TP', children: [

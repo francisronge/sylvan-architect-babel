@@ -1,8 +1,8 @@
-import { establishesAssignment } from './assignmentContinuity.ts';
-import { scopeEvidence, uniqueCurrentOwners, type EvidenceScope } from './evidenceScopes.ts';
-import { normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
 import { categoryLabel } from '../categoryLabel.ts';
+import { scopeEvidence, uniqueCurrentOwners, type EvidenceScope } from './evidenceScopes.ts';
+import { establishesAssignment } from './outcomeResolver.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import { isPredicationDescription, normalizeTier2Synonym } from './tier2Synonyms.ts';
 
 /** Qualified predication roles identify an asserted interpretation without
  * treating its contextual nominal head or embedded variable as another end. */
@@ -55,15 +55,14 @@ export function recoverPredication(evidence: Tier2FacetEvidence): EvidenceScope[
   if (!establishesAssignment(evidence)) return [];
   const qualified = recoverQualifiedPredication(evidence);
   if (qualified.length) return qualified;
-  const clauses = relationLabelClauses(evidence.relationName).filter(clause => /\b(?:predication|predicative)\b/u.test(clause));
-  if (clauses.length !== 1 || /\b(?:no|not|without|possible|potential|hypothetical|pending|unresolved|failed|blocked|unlicensed)\b/u.test(clauses[0])
-    || !(/^(?:[\p{L}]+ )?predication(?: (?:relation|dependency))?$/u.test(clauses[0])
-      || /^predicative (?:subject|object) role$/u.test(clauses[0]))) return [];
+  if (!isPredicationDescription(evidence.relationName)) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [];
-  const predicates = anchors.filter(entry => entry.concepts.includes('predicate'));
+  const predicates = anchors.filter(entry => entry.concepts.includes('predicate')
+    || /^(?:predicated )?property$/u.test(normalizeTier2Synonym(entry.key)));
   const predicands = anchors.filter(entry => entry.concepts.includes('predicand')
     || /^(?:bearer|recipient)$/u.test(normalizeTier2Synonym(entry.key)));
-  if (predicates.length !== 1 || predicands.length !== 1 || predicates[0].items.length !== 1 || predicands[0].items.length !== 1) return [];
+  if (predicates.length !== 1 || predicands.length !== 1 || predicates[0].items.length !== 1 || predicands[0].items.length !== 1
+    || !uniqueCurrentOwners(evidence, [...predicates[0].items, ...predicands[0].items])) return [];
   return [scopeEvidence(evidence, 'predication.dependency', [
     { entry: predicates[0], concept: 'predicate' }, { entry: predicands[0], concept: 'predicand' }
   ])];

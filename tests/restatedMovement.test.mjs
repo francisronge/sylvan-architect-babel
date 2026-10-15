@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { planItemRelationRefs, isPlanItemRevealed } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemRelationRefs, isPlanItemRevealed } from '../replay/relations/renderPlan.ts';
 
 const saved = JSON.parse(readFileSync(new URL('../fixtures/movement/restated-chains.json', import.meta.url)));
 for (const record of saved) test(`${record.name}: movement and its later chain description share one curve`, () => {

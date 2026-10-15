@@ -1,5 +1,5 @@
-import type { NodePlaquePlanItem, PlanRelationRef, RelationPlanItem } from './renderPlanCompiler.ts';
-import { planItemRelationRefs } from './renderPlanCompiler.ts';
+import type { NodePlaquePlanItem, PlanRelationRef, RelationPlanItem } from './renderPlan.ts';
+import { planItemRelationRefs } from './renderPlan.ts';
 
 type Grid = NodePlaquePlanItem & { thetaRoles: NonNullable<NodePlaquePlanItem['thetaRoles']> };
 const isGrid = (item: RelationPlanItem): item is Grid => item.kind === 'node-plaque'

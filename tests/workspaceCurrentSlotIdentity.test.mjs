@@ -30,12 +30,20 @@ function wrapperFixture(options={}){
  const next=step(b);next.operation='movement';next.replayKind=options.structural?'micro':'relation';next.replayRelationIdentity={stageIndex:1,relationIndex:0};next.replayRelationLinks=[{renderFamily:options.nonmovement?'authored-anchor-link':'trajectory',authoredRelationKey:options.stale?'0:0':'1:0',priorSourceNodeId:options.sourceOutside?'outside':'lower',witnessNodeId:options.witnessOutside?'otherLower':'lower',targetNodeId:'high'}];
  const steps=[step(a),next];const setup=prepare(steps,(frames,preferred)=>{const p=preferred.get(frames[0].nodes.get('p').incarnation);p.set('head',{x:-600,y:300});p.set('body',{x:600,y:300});const w=preferred.get(frames[1].nodes.get('wrapper').incarnation);w.set('head',{x:-300,y:300});w.set('body',{x:300,y:300});});return {steps,...setup};
 }
-test('current owned wrapper inherits the complete unchanged old fork',()=>{
- const f=wrapperFixture(),input=JSON.stringify(f.steps),frames=f.compose(undefined,{inheritCurrentSlots:true,preferred:f.preferred});const before=frames[0].nodes.get('p'),wrapper=frames[1].nodes.get('wrapper');
- for(const child of before.children){assert.equal(child,frames[1].nodes.get(child.id));assert.deepEqual(before.members.get(child.id),wrapper.members.get(child.id));}
- assert.notEqual(before.incarnation,wrapper.incarnation);assert.equal(rigidPoseGraph(frames).conflicts.length,0);assert.equal(JSON.stringify(f.steps),input);
+for (const option of ['unchanged', 'label', 'changedChild']) test(`current owned wrapper retains the old fork slots across ${option} material`, () => {
+ const f = wrapperFixture({ [option]: true }), input = JSON.stringify(f.steps);
+ const frames = f.compose(undefined, { inheritCurrentSlots: true, preferred: f.preferred });
+ const before = frames[0].nodes.get('p'), wrapper = frames[1].nodes.get('wrapper');
+ for (const child of before.children) {
+  assert.deepEqual(before.members.get(child.id), wrapper.members.get(child.id));
+  if (option === 'changedChild' && child.id === 'body') assert.notEqual(child, frames[1].nodes.get(child.id));
+  else assert.equal(child, frames[1].nodes.get(child.id));
+ }
+ assert.notEqual(before.incarnation, wrapper.incarnation);
+ assert.equal(rigidPoseGraph(frames).conflicts.length, 0);
+ assert.equal(JSON.stringify(f.steps), input);
 });
-for(const option of ['stale','structural','nonmovement','label','reorder','extra','changedChild','wrongParent','existing','sourceOutside','witnessOutside'])test(`wrapper cannot inherit an old fork through ${option}`,()=>{const f=wrapperFixture({[option]:true});assert.throws(()=>f.compose(undefined,{inheritCurrentSlots:true,preferred:f.preferred}));});
+for(const option of ['stale','structural','nonmovement','reorder','extra','wrongParent','existing','sourceOutside','witnessOutside'])test(`wrapper cannot inherit an old fork through ${option}`,()=>{const f=wrapperFixture({[option]:true});assert.throws(()=>f.compose(undefined,{inheritCurrentSlots:true,preferred:f.preferred}));});
 
 test('topology-stable shell may recenter around its owned changing descendant while bystanders stay fixed',()=>{
  const forest=children=>({id:'forest',label:'Workspace',replayOrigin:{kind:'workspace'},children});

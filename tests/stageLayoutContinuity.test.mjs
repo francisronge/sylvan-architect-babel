@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import * as d3 from 'd3';
 import { buildStageLayoutGroups, stageTreeLayoutSize, buildStageCameraBounds, buildStagePlaqueLayout } from '../replay/stageCamera.ts';
-import { buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
+import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 

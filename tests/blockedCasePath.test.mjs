@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { __test__ as parser } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { TIER2_FACET_RECIPES } from '../replay/relations/tier2FacetRecipes.ts';
 import { buildPublicFacetFixture } from './helpers/tier2PublicFixtures.mjs';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
-import { visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 
 const recipe = TIER2_FACET_RECIPES.find(recipe => recipe.id === 'feature.dependency');
 const point = id => ({ x: id.length * 17, y: [...id].reduce((total, character) => total + character.codePointAt(0), 0) });
@@ -18,7 +18,7 @@ for (const framework of ['xbar', 'minimalism']) {
       delete relation.values['feature.rows'];
       relation.values = { ...relation.values, 'case.literal': 'nominative', outcome };
       const original = structuredClone(fixture.derivationStages);
-      const bundle = parser.normalizeParseBundle({ derivationStages: fixture.derivationStages }, framework,
+      const bundle = normalizeParseBundle({ derivationStages: fixture.derivationStages }, framework,
         fixture.sentence, 'grok', true);
       const replay = prepareReplay({ sentence: fixture.sentence, inputTokens: bundle.inputTokens,
         derivationStages: bundle.analyses[0].derivationStages, includePlayback: true });

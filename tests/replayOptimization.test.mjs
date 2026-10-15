@@ -1,14 +1,10 @@
+import { collectVisibleReplayOvertTokenCounts } from '../replay/playbackVisibility.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  applyPreFrontingSentenceInitialCasing,
-  hasDeterminerNominalComplement,
-  maybeLowercaseSentenceInitialFunctionSurface,
-  __TEST_ONLY__
-} from '../replay/replayCompiler.ts';
+import { applyPreFrontingSentenceInitialCasing, hasDeterminerNominalComplement, maybeLowercaseSentenceInitialFunctionSurface } from '../replay/replayCasing.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 
-const counts = (tree, ids) => __TEST_ONLY__.collectVisibleReplayOvertTokenCounts({
+const counts = (tree, ids) => collectVisibleReplayOvertTokenCounts({
   replayCanvasData: tree, replayVisibleNodeIds: ids
 });
 const leaf = (id, word = 'the') => ({ id, label: word, word });

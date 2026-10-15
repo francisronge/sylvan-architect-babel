@@ -1,5 +1,5 @@
 import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
+import type { PlaybackStep } from './types.ts';
 export type CurrentWorkspaceTopology = {
   has(id: string): boolean;
   parent(id: string): string | undefined;
@@ -46,16 +46,47 @@ export function movementReceivingHosts(
   step: PlaybackStep, before: CurrentWorkspaceTopology, current: CurrentWorkspaceTopology,
   sameTopology: (id: string) => boolean
 ): ReadonlySet<string> {
-  const result = new Set<string>();
+  return new Set(movementReceivingAttachments(step, before, current, sameTopology).map(item => item.host));
+}
+
+/** Share the exact replaced child slot with geometry planning. The wrapper is
+ * new at this movement; the host already occupied its outer parent slot. */
+export function movementReceivingAttachments(
+  step: PlaybackStep, before: CurrentWorkspaceTopology, current: CurrentWorkspaceTopology,
+  sameTopology: (id: string) => boolean
+): readonly { host: string; wrapper: string }[] {
+  const result: { host: string; wrapper: string }[] = [];
   for (const link of currentWorkspaceMovements(step, before, current)) {
     for (let owner = current.parent(link.targetNodeId); owner && !before.has(owner); owner = current.parent(owner)) {
       const hosts = current.children(owner).filter(id => before.has(id)
         && before.parent(id) === current.parent(owner));
       if (hosts.length > 1) break;
       if (!hosts.length) continue;
-      if (sameTopology(hosts[0])) result.add(hosts[0]);
+      if (sameTopology(hosts[0]) && !result.some(item => item.host === hosts[0]))
+        result.push({ host: hosts[0], wrapper: owner });
       break;
     }
   }
   return result;
+}
+
+/** An ordinary merge can wrap one current child with detached inputs. The
+ * retained child owns the same outer slot; relation names supply no permission. */
+export function constructionReceivingAttachments(
+  step: PlaybackStep, before: CurrentWorkspaceTopology, current: CurrentWorkspaceTopology,
+  sameTopology: (id: string) => boolean
+): readonly { host: string; wrapper: string }[] {
+  const wrapper = step.targetNodeId, sources = step.sourceNodeIds ?? [];
+  // Future layout metadata does not establish a current receiving boundary.
+  if (step.replayKind !== 'micro' || step.operation !== 'ExternalMerge'
+    || !wrapper || !current.has(wrapper) || before.has(wrapper)) return [];
+  const owner = current.parent(wrapper), children = current.children(wrapper);
+  if (!owner || !before.has(owner) || children.length < 2 || sources.length !== children.length
+    || new Set(sources).size !== sources.length || !children.every(id => before.has(id) && sources.includes(id))) return [];
+  const hosts = children.filter(id => before.parent(id) === owner);
+  if (hosts.length !== 1 || !sameTopology(hosts[0])
+    || children.some(id => id !== hosts[0] && before.parent(id) !== undefined)) return [];
+  const host = hosts[0], priorPeers = before.children(owner), nextPeers = current.children(owner);
+  return priorPeers.length === nextPeers.length
+    && priorPeers.every((id, i) => (id === host ? wrapper : id) === nextPeers[i]) ? [{ host, wrapper }] : [];
 }

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { dispatchRelationClaims, buildTier2FacetEvidence } from '../replay/relations/tier2RelationDispatch.ts';
+import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
+import { buildTier2FacetEvidence } from '../replay/relations/relationEvidence.ts';
 import { TIER2_VALUE_SYNONYMS } from '../replay/relations/tier2Synonyms.ts';
 
 const leaf = id => ({ id, label: 'X', word: id });

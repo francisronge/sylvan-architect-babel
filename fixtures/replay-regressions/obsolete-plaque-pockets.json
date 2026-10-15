@@ -1,0 +1,883 @@
+{
+  "sentence": "Ces lettres, Léa les a envoyées à Paul.",
+  "inputTokens": [
+    "Ces",
+    "lettres",
+    "Léa",
+    "les",
+    "a",
+    "envoyées",
+    "à",
+    "Paul"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "goal": "pp",
+            "theme": "object",
+            "verb": "v"
+          },
+          "relation": "lexical selection and internal theta-role assignment",
+          "values": {
+            "complementOrder": "direct-object DP precedes Goal PP",
+            "thetaRoles": [
+              "Theme",
+              "Goal"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "dependent": "paul",
+            "governor": "p"
+          },
+          "relation": "prepositional government and Case licensing",
+          "values": {
+            "case": "oblique"
+          }
+        },
+        {
+          "anchors": {
+            "dependent": "object",
+            "governor": "v"
+          },
+          "relation": "verbal government and Case licensing",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "determiner": "ces",
+            "noun": "lettres"
+          },
+          "relation": "demonstrative-nominal concord",
+          "values": {
+            "gender": "feminine",
+            "number": "plural"
+          }
+        }
+      ],
+      "stageRecord": "",
+      "statement": "Current syntax and relations.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "ces",
+              "label": "D",
+              "tokenIndex": 0,
+              "word": "Ces"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "lettres",
+                      "label": "N[feminine plural]",
+                      "tokenIndex": 1,
+                      "word": "lettres"
+                    }
+                  ],
+                  "id": "topicnbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "topicnp",
+              "label": "NP"
+            }
+          ],
+          "id": "topic",
+          "label": "DP"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "subjectd",
+              "label": "D",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "lea",
+                      "label": "N[proper name]",
+                      "tokenIndex": 2,
+                      "word": "Léa"
+                    }
+                  ],
+                  "id": "subjectnbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "subjectnp",
+              "label": "NP"
+            }
+          ],
+          "id": "subject",
+          "label": "DP"
+        },
+        {
+          "children": [],
+          "id": "aux",
+          "label": "I[finite auxiliary; present; third-person singular]",
+          "tokenIndex": 4,
+          "word": "a"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "v",
+                  "label": "V[envoyer; participle; agreement unvalued]"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "clitic",
+                      "label": "D[object clitic; feminine plural]",
+                      "lineageId": "object-clitic",
+                      "tokenIndex": 3,
+                      "word": "les"
+                    }
+                  ],
+                  "id": "object",
+                  "label": "DP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "p",
+                          "label": "P",
+                          "tokenIndex": 6,
+                          "word": "à"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "pauld",
+                              "label": "D",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "pauln",
+                                      "label": "N[proper name]",
+                                      "tokenIndex": 7,
+                                      "word": "Paul"
+                                    }
+                                  ],
+                                  "id": "paulnbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "paulnp",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "paul",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "pbar",
+                      "label": "P′"
+                    }
+                  ],
+                  "id": "pp",
+                  "label": "PP"
+                }
+              ],
+              "id": "vbar",
+              "label": "V′"
+            }
+          ],
+          "id": "vp",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "predicate": "vp",
+            "subject": "subject",
+            "verb": "v"
+          },
+          "relation": "external theta-role assignment through predication",
+          "values": {
+            "subjectPosition": "base-generated Spec-IP",
+            "thetaRole": "Agent"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "aux",
+            "subject": "subject"
+          },
+          "relation": "finite subject licensing",
+          "values": {
+            "case": "nominative",
+            "number": "singular",
+            "person": "third"
+          }
+        },
+        {
+          "anchors": {
+            "auxiliary": "aux",
+            "complement": "vp",
+            "participle": "v"
+          },
+          "relation": "auxiliary selection",
+          "values": {
+            "construction": "passé composé",
+            "selectedForm": "past participle"
+          }
+        }
+      ],
+      "stageRecord": "",
+      "statement": "Current syntax and relations.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "ces",
+              "label": "D",
+              "tokenIndex": 0,
+              "word": "Ces"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "lettres",
+                      "label": "N[feminine plural]",
+                      "tokenIndex": 1,
+                      "word": "lettres"
+                    }
+                  ],
+                  "id": "topicnbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "topicnp",
+              "label": "NP"
+            }
+          ],
+          "id": "topic",
+          "label": "DP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "subjectd",
+                  "label": "D",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "lea",
+                          "label": "N[proper name]",
+                          "tokenIndex": 2,
+                          "word": "Léa"
+                        }
+                      ],
+                      "id": "subjectnbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "subjectnp",
+                  "label": "NP"
+                }
+              ],
+              "id": "subject",
+              "label": "DP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "aux",
+                  "label": "I[finite auxiliary; present; third-person singular]",
+                  "tokenIndex": 4,
+                  "word": "a"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v",
+                          "label": "V[envoyer; participle; agreement unvalued]"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "clitic",
+                              "label": "D[object clitic; feminine plural]",
+                              "lineageId": "object-clitic",
+                              "tokenIndex": 3,
+                              "word": "les"
+                            }
+                          ],
+                          "id": "object",
+                          "label": "DP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "p",
+                                  "label": "P",
+                                  "tokenIndex": 6,
+                                  "word": "à"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "pauld",
+                                      "label": "D",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "pauln",
+                                              "label": "N[proper name]",
+                                              "tokenIndex": 7,
+                                              "word": "Paul"
+                                            }
+                                          ],
+                                          "id": "paulnbar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "paulnp",
+                                      "label": "NP"
+                                    }
+                                  ],
+                                  "id": "paul",
+                                  "label": "DP"
+                                }
+                              ],
+                              "id": "pbar",
+                              "label": "P′"
+                            }
+                          ],
+                          "id": "pp",
+                          "label": "PP"
+                        }
+                      ],
+                      "id": "vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "host": "aux",
+            "landingHead": "complexi",
+            "movedHead": "clitic",
+            "sourceDP": "object",
+            "trace": "clitictrace"
+          },
+          "priorAnchors": {
+            "host": "aux",
+            "sourceDP": "object",
+            "sourceHead": "clitic"
+          },
+          "relation": "object-clitic head movement and chain formation",
+          "values": {
+            "chainIndex": "i",
+            "movement": "D-to-I left adjunction",
+            "traceInterpretation": "Theme and accusative licensing retained at the object position"
+          }
+        },
+        {
+          "anchors": {
+            "controller": "clitic",
+            "lowerOccurrence": "clitictrace",
+            "participle": "v"
+          },
+          "priorAnchors": {
+            "unvaluedParticiple": "v"
+          },
+          "relation": "preceding-object participial agreement and realization",
+          "values": {
+            "agreementEnvironment": "avoir with a preceding accusative object clitic",
+            "gender": "feminine",
+            "number": "plural",
+            "surfaceForm": "envoyées"
+          }
+        }
+      ],
+      "stageRecord": "",
+      "statement": "Current syntax and relations.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "ces",
+              "label": "D",
+              "tokenIndex": 0,
+              "word": "Ces"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "lettres",
+                      "label": "N[feminine plural]",
+                      "tokenIndex": 1,
+                      "word": "lettres"
+                    }
+                  ],
+                  "id": "topicnbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "topicnp",
+              "label": "NP"
+            }
+          ],
+          "id": "topic",
+          "label": "DP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "subjectd",
+                  "label": "D",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "lea",
+                          "label": "N[proper name]",
+                          "tokenIndex": 2,
+                          "word": "Léa"
+                        }
+                      ],
+                      "id": "subjectnbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "subjectnp",
+                  "label": "NP"
+                }
+              ],
+              "id": "subject",
+              "label": "DP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "clitic",
+                      "label": "D[object clitic; feminine plural]",
+                      "lineageId": "object-clitic",
+                      "tokenIndex": 3,
+                      "word": "les"
+                    },
+                    {
+                      "children": [],
+                      "id": "aux",
+                      "label": "I[finite auxiliary; present; third-person singular]",
+                      "tokenIndex": 4,
+                      "word": "a"
+                    }
+                  ],
+                  "id": "complexi",
+                  "label": "I"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v",
+                          "label": "V[participle; feminine plural]",
+                          "tokenIndex": 5,
+                          "word": "envoyées"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "clitictrace",
+                              "label": "D trace",
+                              "lineageId": "object-clitic",
+                              "silent": true
+                            }
+                          ],
+                          "id": "object",
+                          "label": "DP",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "p",
+                                  "label": "P",
+                                  "tokenIndex": 6,
+                                  "word": "à"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "pauld",
+                                      "label": "D",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "pauln",
+                                              "label": "N[proper name]",
+                                              "tokenIndex": 7,
+                                              "word": "Paul"
+                                            }
+                                          ],
+                                          "id": "paulnbar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "paulnp",
+                                      "label": "NP"
+                                    }
+                                  ],
+                                  "id": "paul",
+                                  "label": "DP"
+                                }
+                              ],
+                              "id": "pbar",
+                              "label": "P′"
+                            }
+                          ],
+                          "id": "pp",
+                          "label": "PP"
+                        }
+                      ],
+                      "id": "vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "clause": "cp",
+            "lowerOccurrence": "clitictrace",
+            "resumptive": "clitic",
+            "topic": "topic"
+          },
+          "relation": "local A-prime topic-resumption dependency",
+          "values": {
+            "bindingCondition": "topic antecedent lies outside the clitic's local IP domain",
+            "dependency": "clitic left dislocation",
+            "index": "i",
+            "interpretation": "the clitic denotes the letters identified by the topic",
+            "topicPosition": "base-generated Spec-CP"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "cp",
+            "complementizer": "c"
+          },
+          "relation": "declarative clause typing",
+          "values": {
+            "clauseType": "declarative",
+            "complementizerRealization": "silent"
+          }
+        }
+      ],
+      "stageRecord": "",
+      "statement": "Current syntax and relations.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "ces",
+                  "label": "D",
+                  "tokenIndex": 0,
+                  "word": "Ces"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "lettres",
+                          "label": "N[feminine plural]",
+                          "tokenIndex": 1,
+                          "word": "lettres"
+                        }
+                      ],
+                      "id": "topicnbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "topicnp",
+                  "label": "NP"
+                }
+              ],
+              "id": "topic",
+              "label": "DP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "c",
+                  "label": "C[declarative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "subjectd",
+                          "label": "D",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "lea",
+                                  "label": "N[proper name]",
+                                  "tokenIndex": 2,
+                                  "word": "Léa"
+                                }
+                              ],
+                              "id": "subjectnbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "subjectnp",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "subject",
+                      "label": "DP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "clitic",
+                              "label": "D[object clitic; feminine plural]",
+                              "lineageId": "object-clitic",
+                              "tokenIndex": 3,
+                              "word": "les"
+                            },
+                            {
+                              "children": [],
+                              "id": "aux",
+                              "label": "I[finite auxiliary; present; third-person singular]",
+                              "tokenIndex": 4,
+                              "word": "a"
+                            }
+                          ],
+                          "id": "complexi",
+                          "label": "I"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "v",
+                                  "label": "V[participle; feminine plural]",
+                                  "tokenIndex": 5,
+                                  "word": "envoyées"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "clitictrace",
+                                      "label": "D trace",
+                                      "lineageId": "object-clitic",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "object",
+                                  "label": "DP",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "p",
+                                          "label": "P",
+                                          "tokenIndex": 6,
+                                          "word": "à"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "pauld",
+                                              "label": "D",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "pauln",
+                                                      "label": "N[proper name]",
+                                                      "tokenIndex": 7,
+                                                      "word": "Paul"
+                                                    }
+                                                  ],
+                                                  "id": "paulnbar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "paulnp",
+                                              "label": "NP"
+                                            }
+                                          ],
+                                          "id": "paul",
+                                          "label": "DP"
+                                        }
+                                      ],
+                                      "id": "pbar",
+                                      "label": "P′"
+                                    }
+                                  ],
+                                  "id": "pp",
+                                  "label": "PP"
+                                }
+                              ],
+                              "id": "vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "vp",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "ip",
+                  "label": "IP"
+                }
+              ],
+              "id": "cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "cp",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

@@ -48,9 +48,16 @@ path; denied, competing and unresolved references remain neutral.
   containing `nominal`. Every listed item must resolve uniquely to a nominal,
   adjective, determiner or quantifier within that domain. The enclosing nominal
   remains context; it does not become another sharing member.
+  A separately named, untyped containing nominal is also context when its unique
+  NP, DP or KP contains every named member. Its field remains neutral. Containment
+  cannot discard a declared source/controller or an unresolved participant.
 - Separately named idiom components can earn underlines without an authored
   domain bracket. Ordinary verb and noun references plus explanatory prose do
   not establish an idiom claim.
+  An asserted idiomatic-interpretation relation may name its components by
+  ordinary syntactic roles. One uniquely resolved enclosing domain and at least
+  two disjoint, uniquely resolved participants establish the existing grouping.
+  Unrelated, overlapping or competing participants remain neutral.
 - An explicit binder and anaphor can earn the existing binding connection
   without supplying a domain circle. A negative outcome blocks that smaller
   claim; a malformed exact registered Binding claim remains malformed.
@@ -191,6 +198,10 @@ present. An ordered surface sequence may use one exact realization group; its
 nonempty pieces must correspond in count to that group's token positions.
 Ordered surface-token and input-token fields use this same association proof.
 The field spelling cannot replace a missing, partial or competing group.
+An orthographic-token field qualifies in an asserted realization claim. To own
+Replay timing, its ordered array must match the exact input tokens at that
+group's positions. An unrelated semantic claim sharing the same noun does not
+compete with this complete proof; conflicting realization claims still do.
 
 Explicit absence and pending status remain distinct from a failed attempt.
 Agreement or binding that is not established cannot earn a successful-looking
@@ -219,6 +230,9 @@ A chain claim may recover the exact shared-lineage occurrences even when other
 contextual participants have no lineage. A preceding complex explicitly named
 as the movement source remains the moving unit when an additional anchor names
 one of its members; the member's position and lineage must both be verified.
+A leaf trace may represent that whole complex. The verified whole-head occurrence
+pair and exact carried-member identity do not require the trace to repeat the
+complex's internal children. A member alone cannot establish the whole movement.
 
 ## Public records and shared occurrences
 
@@ -233,11 +247,14 @@ parents or predicate domains can establish sharing through a relation. Repeating
 the same occurrence ID under two parents is invalid and is not required for the
 shared-structure drawings. Shared lineage alone is insufficient.
 
-A movement relation may supply several sources and one landing. Each source must
-match exactly one preceding occurrence through the existing movement checks, and
-the matches must be distinct. Array order supplies no association. Preserve
+A movement relation may supply several sources and either one shared landing or
+an inventory of independent landings. Each source must match exactly one preceding
+occurrence and landing through the existing movement checks. Preceding-source
+matches must be distinct; independent landings require a complete bijection.
+Array order supplies no association. Preserve
 authored witnesses, context, routing and outcome for each recovered path. All
-paths owned by that relation appear together; a source whose movement already
+paths, landings and their smallest necessary attachment parents appear at the
+same authored relation moment; a source whose movement already
 happened is not restored to its earlier form by a later shared claim.
 
 ## Shared role interpretation
@@ -348,9 +365,13 @@ literal role is preserved; generic assignment language alone supplies no theta
 meaning.
 
 An explicit complement can receive a typed theta role when it is the named
-assigner's actual sister. A named predicate and its lexical verb are not two
-assigners when a unique same-category projection spine proves their connection;
-the verb remains context. Explicit internal/external argument interpretations
+assigner's actual sister. A named predicate and one separately named lexical
+head are not two assigners when a unique same-category projection spine proves
+their connection; the head remains context. Duplicate predicate-role fields,
+embedded heads and branching head spines do not supply that proof. An explicit
+assigner still owns assignment over its contextual predicate projection.
+Predication qualifications preserve the complete asserted role assignment.
+Explicit internal/external argument interpretations
 can supply their stated role through an independently named assigning head.
 Missing, competing, denied and provisional evidence stays unresolved.
 
@@ -555,7 +576,10 @@ A phrasal landing can establish a phase edge when the record explicitly names
 the phase head and edge location, and the exact landing lies on that head's
 projection spine. This adds the existing edge outline alongside movement. It
 does not establish Transfer or a whole phase domain. Transfer keeps ownership
-of an edge already included in its drawing.
+of an edge already included in its drawing, identified by exact occurrence IDs
+even when another claim uses different field names. Generic accessibility alone
+does not establish a phase edge; it may support a complete Transfer configuration.
+An independent explicit edge remains separate from incidental accessible participants.
 
 Recovered quantifier raising uses the same optional scope box as Orchard. An
 explicit scope domain or scope host must contain the lower/source occurrence;
@@ -571,6 +595,10 @@ An explicit ellipsis antecedent or overt
 identity source paired with one elided domain similarly establishes the existing
 correspondence curve. Silence is established separately; counterpart recovery
 does not invent deletion or pair unordered lists.
+Within an asserted, explicitly qualified ellipsis claim, an ordinary scalar
+`target` can identify the elided domain when one exact antecedent is supplied.
+The ghosting recipe still requires authored silence; correspondence alone does
+not establish deletion. Other licensing and contrast claims remain inspectable.
 Explicit PF and LF occurrence lists pair by unique exact root lineage. An
 ambiguous lineage family remains neutral without suppressing independent,
 uniquely paired families. Denied or provisional correspondence earns no curve;
@@ -620,8 +648,11 @@ the role alone establishes neither assignment nor value.
 An explicit contributor list and one surface-form value can use the existing
 PF plate when the list exactly matches one current realization group. Partial
 matches, competing exact matches or overlapping token spans stay neutral.
-The value key `surface` has that meaning only in an asserted realization claim
-with an explicit contributor list. It remains neutral in other descriptions.
+The value key `surface` has that meaning in an asserted realization claim when
+its anchored participants exactly establish one current realization group.
+An explicit contributor-role list is sufficient but not required. Missing,
+partial, competing or merely incidental participants do not establish ownership;
+the value remains neutral in other descriptions.
 A contributor may also participate in another group's distinct tokens.
 Every contributor anchors the plate; its geometric reference does not identify
 a linguistic source. The
@@ -634,7 +665,9 @@ When every member of an exact realization group is explicitly anchored, the
 complete group owns its surface row even if one participant is also recognized
 as a stem. A stem role cannot reduce that established group to one contributor.
 An explicitly anchored containing constituent may instead own the exact group,
-provided every named contributor resolves inside it. An asserted realization or
+provided every named contributor resolves inside it and the relation explicitly
+identifies contributors or asserts their realization association. Containment
+alone cannot promote incidental participant mentions. An asserted realization or
 contraction can name its literal spelling as output, form, input word or input
 spelling. A separate realization description remains a literal row rather than
 a second spelling. Incomplete, competing, denied and provisional groups do not
@@ -642,6 +675,13 @@ earn the collective plate.
 An exact prior contributor block can prove the corresponding previous group
 over the same input positions, regardless of its authored role spelling. Both
 groups must resolve uniquely and have no competing or overlapping association.
+
+One relation may own several separate input associations. A named contributor
+inventory and token literal with the same field qualifier can establish each
+association against its exact authored realization group and input positions.
+Qualifiers remain open. All named pairs must be unique and match; malformed,
+denied or competing claims cannot gain priority. This proves Replay timing,
+without inventing a combined PF plate or changing the neutral relation claim.
 
 An anchored rewrite earns native input/arrow/output columns only from an
 unambiguous typed arrow row, or explicit input/output scalar fields belonging
@@ -778,7 +818,10 @@ by searching every workspace for the lineage.
 
 Previous-stage references are not automatically current-stage drawing roles. A
 movement's prior source can identify its current lower endpoint when that exact
-ID uniquely persists in both stages with matching root lineage. A replaced ID
+ID uniquely persists in both stages with matching root lineage. When lineage is
+first declared as copying begins, the same unique ID in its exact preceding slot
+also proves continuity. Conflicting prior lineage or a lineage already assigned
+to another prior object rejects that proof. A replaced ID
 additionally needs a unique anchored lower occurrence in the exact preceding
 slot, with matching root lineage. Missing or ambiguous evidence does
 not authorize a search for another occurrence. Production Tier-1 `priorAnchors` remains an open literal block. A Tier-2 facet keeps
@@ -851,6 +894,11 @@ retains the exact preceding slot, and a unique new landing preserves every
 authored field and ordered child except the root ID. The landing must adjoin at
 an explicitly named, structurally verified receiving head or head complex.
 Object property order is irrelevant; child order and authored content are not.
+When that complete adjunction proof is unique, a separately anchored prior head
+member remains context for the assembly. Its matching slot inside a renamed
+assembly must not compete with the proved whole source. Explicit competing
+source roles, changed members and additional independent roots still refuse
+recovery. This distinction uses the intact assembly, not anchor spelling.
 
 For an independently proved phrasal movement, a named target or landing head
 can remain neutral context when it projects beside the landing. The landing
@@ -902,6 +950,17 @@ with a new ID can prove that slot only when the old parent is absent, the new
 parent did not previously exist, and its label, arity and every ordered sister
 subtree are unchanged. A unary shell or an ambiguous sister cannot prove this.
 No search by word spelling or unanchored lineage substitutes a different ID.
+A head complex and its contained member are distinguished by the uniquely
+corroborated root pair. A carried member must retain its exact head-member path
+and lineage at the landing; containment alone cannot select the moving unit.
+Current whole-head endpoints can establish the preceding complex without a
+redundant prior anchor when the lower root retains its exact source slot and
+every separately named source member has the same ordered head path and lineage
+in both copies. Explicit prior sources and independent competing endpoints still
+take precedence; this proof does not discard them.
+A separately authored trace inside the lower occurrence remains its witness,
+not a replacement for the source root. Independent competing sources remain
+ambiguous.
 Replay restores the complete prior occurrence before movement. When undoing that
 movement leaves an enclosing container identical to its preceding form except
 for its ID, Replay also retains that preceding container until the movement
@@ -924,6 +983,14 @@ A waiting unary root projection can also be withheld until an exact persistent
 phrase attaches through a neutral relation's existing current/prior ownership.
 Earlier relations referencing that projection prevent deferral. This changes
 display timing only; it does not earn a movement drawing or rewrite the stage.
+
+A neutral relation's unique anchored copy pair owns both current occurrences
+when its explicit preceding source and exact lower slot prove their identity.
+The lower fields and new upper copy change together at that relation moment,
+even if category evidence cannot establish a trajectory kind. Independent
+context and separately recovered sibling claims retain their own timing. If a
+later relation owns the upper copy's realization, its preceding word and token
+address remain until that later moment.
 
 Movement indices identify connected established occurrences, not relation-list
 positions. A complete history catalogue resolves links against their own stages

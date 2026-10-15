@@ -1,17 +1,28 @@
-import { layoutSyntaxTree } from '../replay/treeLayout.ts';
-import { treeInkObstacles } from '../replay/treeInkGeometry.ts';
-import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
+import * as d3 from 'd3';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import test from 'node:test';
-import * as d3 from 'd3';
-import ts from 'typescript';
+import test, { after } from 'node:test';
+import { fitTreeCamera } from '../components/renderer/frameCamera.ts';
 import { availableTreeViewport } from '../components/treeViewport.ts';
-import { STAGE_CAMERA_PADDING, buildStageCameraBounds, buildStagePlaqueLayout, stageTreeLayoutSize, treeLayoutSize } from '../replay/stageCamera.ts';
-import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
-import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { applyVizIds } from '../replay/displayIdentity.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
-import { applyVizIds, buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
+import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
+import {
+  buildStageCameraBounds,
+  buildStagePlaqueLayout,
+  stageTreeLayoutSize,
+  treeLayoutSize
+} from '../replay/stageCamera.ts';
+import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
+import { treeInkObstacles } from '../replay/treeInkGeometry.ts';
+import { layoutSyntaxTree } from '../replay/treeLayout.ts';
+import { createCameraHarness } from './helpers/cameraHarness.mjs';
+import { createSvgDom } from './helpers/svgDom.mjs';
+
+const { Element, restore } = createSvgDom();
+after(restore);
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
 
@@ -58,18 +69,6 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction o
   });
 }
 
-const renderer = ts.createSourceFile('TreeVisualizer.tsx', fs.readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8'),
-  ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-let fitFunction;
-let treeLayoutFunction;
-const findFit = node => {
-  if (ts.isVariableDeclaration(node) && node.name.getText(renderer) === 'fitToRenderedBounds') fitFunction = node.initializer;
-  if (ts.isVariableDeclaration(node) && node.name.getText(renderer) === 'treeLayout') treeLayoutFunction = node.initializer;
-  ts.forEachChild(node, findFit);
-};
-findFit(renderer);
-assert(fitFunction, 'test must execute the actual production camera fit');
-assert(treeLayoutFunction, 'test must execute the actual production tree layout');
 const productionTreeLayout = (canvas, width, height, stageSize = null, steps = []) => {
   const root = d3.hierarchy(canvas);
   applyVizIds(root);
@@ -77,10 +76,8 @@ const productionTreeLayout = (canvas, width, height, stageSize = null, steps = [
   const current = steps.find(step => step.replayCanvasData === canvas);
   const reserved = current ? buildStageCoordinateReservations(steps, current.replayFrameIndex, [innerWidth, innerHeight],
     index => stageTreeLayoutSize(steps, index, width, height)).get(canvas) : undefined;
-  const layout = new Function('layoutSyntaxTree', 'treeDirection', 'innerWidth', 'innerHeight', 'stageCoordinates', 'replayVisibleNodeIdSet', ts.transpile(`return ${treeLayoutFunction.getText(renderer)};`,
-    { target: ts.ScriptTarget.ES2023 }))(layoutSyntaxTree, 'ltr', innerWidth, innerHeight, reserved,
-      current?.replayVisibleNodeIds ? new Set(current.replayVisibleNodeIds) : undefined);
-  return layout(root);
+  return layoutSyntaxTree(root, [innerWidth, innerHeight], 'ltr', reserved,
+    current?.replayVisibleNodeIds ? new Set(current.replayVisibleNodeIds) : undefined);
 };
 
 test('Astra did subtree remains stationary throughout the authored Wh-Agree stage', () => {
@@ -117,13 +114,13 @@ test('Astra did subtree remains stationary throughout the authored Wh-Agree stag
     // relation. Its fit can differ from the preceding stage; Replay within it cannot.
     const bounds = buildStageCameraBounds({ steps, stageIndex: 6, width, height,
       plan: compileRelationRenderPlan(record.derivationStages), completedCanvas: steps.find(step => step.replayFrameIndex === 6 && step.replayKind === 'macro').replayCanvasData });
-    const viewport = availableTreeViewport(width, height, { headerBottom: 100, panelTop: height - 230 });
-    const camera = fit(bounds, viewport, width);
+    const uiBounds = { headerBottom: 100, panelTop: height - 230 };
+    const camera = fit(bounds, width, height, uiBounds);
     const maximumLayoutShiftAtCurrentFit = Math.max(...current.map((point, index) => Math.hypot(point.x - original[index].x, point.y - original[index].y) * camera.k));
     assert(maximumLayoutShiftAtCurrentFit < 6, 'the geometry adjustment, excluding the stage camera change, stays below six fitted pixels');
     const previousBounds = buildStageCameraBounds({ steps, stageIndex: 5, width, height,
       plan: compileRelationRenderPlan(record.derivationStages), completedCanvas: before.replayCanvasData });
-    const previousCamera = fit(previousBounds, viewport, width);
+    const previousCamera = fit(previousBounds, width, height, uiBounds);
     const maximumFullScreenShift = Math.max(...current.map(point => {
       const old = original.find(candidate => candidate.id === point.id);
       const from = previousCamera.apply([old.x, old.y]), to = camera.apply([point.x, point.y]);
@@ -157,14 +154,14 @@ for (const record of records) {
     assert(checked > 0, 'fixture must exercise multiple fallback marks');
   });
 }
-const fit = (bounds, viewport, width) => {
-  let result;
-  const dependencies = { d3, STAGE_CAMERA_PADDING, stageCameraBounds: bounds, derivationFrameFitNodes: [{}], overlayFitBounds: null,
-    fitLeft: viewport.left, fitRight: viewport.right, fitTop: viewport.top, fitBottom: viewport.bottom,
-    minimumInitialScale: width < 500 ? 0.02 : 0.06, applyFittedCamera: transform => { result = transform; } };
-  const run = new Function(...Object.keys(dependencies), ts.transpile(`return (${fitFunction.getText(renderer)})();`,
-    { target: ts.ScriptTarget.ES2023 }));
-  assert.equal(run(...Object.values(dependencies)), true);
+const fit = (bounds, width, height, uiBounds) => {
+  const harness = createCameraHarness(Element, { width, height });
+  const result = harness.run(() => fitTreeCamera({ session: harness.session, layout: {
+    relationRenderPlan: null, activeDerivationFrameIndex: 0, uiBounds,
+    stageCameraBounds: bounds, stagePlaqueContainmentBounds: null,
+    g: harness.group, derivationFrameFitNodes: [{}], overlayFitBounds: null, visibleNodes: []
+  } }));
+  assert(result, 'the actual camera fit must apply a transform');
   return result;
 };
 for (const record of records) {
@@ -181,8 +178,9 @@ for (const record of records) {
         assert(Object.values(bounds).every(Number.isFinite));
         assert.deepEqual(buildStageCameraBounds({ ...input, steps: [...steps].reverse() }), bounds);
         const stageSteps = steps.filter(step => step.replayFrameIndex === stageIndex);
-        const viewport = availableTreeViewport(width, height, { headerBottom: 100, panelTop: height - 230 });
-        const camera = fit(bounds, viewport, width);
+        const uiBounds = { headerBottom: 100, panelTop: height - 230 };
+        const viewport = availableTreeViewport(width, height, uiBounds);
+        const camera = fit(bounds, width, height, uiBounds);
         for (const x of [bounds.minX, bounds.maxX]) for (const y of [bounds.minY, bounds.maxY]) {
           const [screenX, screenY] = camera.apply([x, y]);
           assert(screenX >= viewport.left && screenX <= viewport.right, 'production fit must stay inside horizontal viewport');
@@ -265,8 +263,9 @@ for (const record of records) {
         minX: d3.min(visible, node => node.x), maxX: d3.max(visible, node => node.x),
         minY: d3.min(visible, node => node.y), maxY: d3.max(visible, node => node.y + (node.children?.length ? 0 : 130))
       });
-      const viewport = availableTreeViewport(width, height, { headerBottom: 100, panelTop: height - 230 });
-      const camera = fit(bounds, viewport, width);
+      const uiBounds = { headerBottom: 100, panelTop: height - 230 };
+      const viewport = availableTreeViewport(width, height, uiBounds);
+      const camera = fit(bounds, width, height, uiBounds);
       const midpoint = camera.apply([(bounds.minX + bounds.maxX) / 2, (bounds.minY + bounds.maxY) / 2]);
       assert(Math.abs(midpoint[0] - (viewport.left + viewport.right) / 2) < 1e-8);
       assert(Math.abs(midpoint[1] - (viewport.top + viewport.bottom) / 2) < 1e-8);
@@ -326,8 +325,9 @@ for (const [width, height] of [[390, 844], [1600, 1100]]) {
       const reservations = buildStageCoordinateReservations(steps, 0, size, () => size, direction);
       const bounds = buildStageCameraBounds({ steps, stageIndex: 0, completedCanvas, plan: null, width, height, direction,
         coordinates: new Map([[0, reservations]]) });
-      const viewport = availableTreeViewport(width, height, { headerBottom: 70, panelTop: height - 260 });
-      const fitted = fit(bounds, viewport, width);
+      const uiBounds = { headerBottom: 70, panelTop: height - 260 };
+      const viewport = availableTreeViewport(width, height, uiBounds);
+      const fitted = fit(bounds, width, height, uiBounds);
       for (const step of steps) {
         const root = d3.hierarchy(step.replayCanvasData);applyVizIds(root);
         const tree = layoutSyntaxTree(root, size, direction, reservations.get(step.replayCanvasData), new Set(step.replayVisibleNodeIds));
@@ -376,8 +376,9 @@ test('stage camera contains styled-label ink beyond the ordinary font envelope',
   const measureTreeLabel = () => ({ x: -310, y: 70, width: 1190, height: 460 });
   const bounds = buildStageCameraBounds({ steps, stageIndex: 0, completedCanvas: steps.at(-1).replayCanvasData,
     plan: null, width, height, treeLabelRuns, measureTreeLabel, coordinates: new Map([[0, reservations]]) });
-  const viewport = availableTreeViewport(width, height, { headerBottom: 70, panelTop: 584 });
-  const fitted = fit(bounds, viewport, width);
+  const uiBounds = { headerBottom: 70, panelTop: 584 };
+  const viewport = availableTreeViewport(width, height, uiBounds);
+  const fitted = fit(bounds, width, height, uiBounds);
   const step = steps.at(-1), root = d3.hierarchy(step.replayCanvasData);applyVizIds(root);
   const tree = layoutSyntaxTree(root, size, 'ltr', reservations.get(step.replayCanvasData), new Set(step.replayVisibleNodeIds));
   const terminal = tree.descendants().find(n => (n.__vizId ?? n.data.id) === 'noun::__leaf');assert(terminal);

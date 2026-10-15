@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import {
   diagnosticFinalStage,
   diagnosticReplayStages,

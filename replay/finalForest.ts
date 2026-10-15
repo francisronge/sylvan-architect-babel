@@ -1,5 +1,5 @@
 import type { ParseResult, SyntaxNode } from '../types.ts';
-import { buildDerivationCanvasData } from './replayCompiler.ts';
+import { buildDerivationCanvasData } from './replayCanvas.ts';
 
 /** Old saved results have only `tree`; current results retain every final root. */
 export const finalForestForAnalysis = (analysis?: ParseResult | null): SyntaxNode[] => (

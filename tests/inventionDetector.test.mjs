@@ -1,3 +1,4 @@
+import { materializeReplayPreterminals } from '../replay/replayCanvas.ts';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -6,12 +7,9 @@ import { fileURLToPath } from 'node:url';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
-import {
-  __TEST_ONLY__,
-  adaptDerivationStagesForReplay,
-  buildAuthoredRelationLinksForFrames
-} from '../replay/replayCompiler.ts';
-import { __test__ } from '../server/babelParser.js';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildAuthoredRelationLinksForFrames } from '../replay/frameRelations.ts';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import {
   assertNoDeterministicLinguisticInvention,
   detectDeterministicLinguisticInvention
@@ -21,7 +19,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const rawFixtureDir = path.join(repoRoot, 'fixtures', 'raw');
 const clone = (value) => structuredClone(value);
 
-const normalize = (payload, sentence) => __test__.normalizeParseBundle(
+const normalize = (payload, sentence) => normalizeParseBundle(
   payload,
   'xbar',
   sentence,
@@ -45,11 +43,12 @@ const buildRenderedRelationLinks = (analysis, replayPlan) => {
   const forest = activeFrameIndex >= 0
     ? frames[activeFrameIndex].workspaceForest
     : [];
-  return buildAuthoredRelationLinksForFrames(
+  return buildAuthoredRelationLinksForFrames({
     frames,
     replayPlan,
     activeFrameIndex,
     forest
+  }
   );
 };
 
@@ -280,7 +279,7 @@ test('compiler keeps an invalid anchor-value alias as neutral raw evidence', () 
 
 test('renderer expands authored lexical preterminals but never materializes an unauthored null', () => {
   const bareHead = { id: 't', label: 'T', children: [] };
-  assert.deepEqual(__TEST_ONLY__.materializeReplayPreterminals(bareHead), bareHead);
+  assert.deepEqual(materializeReplayPreterminals(bareHead), bareHead);
 
   const overtHead = {
     id: 'v',
@@ -288,7 +287,7 @@ test('renderer expands authored lexical preterminals but never materializes an u
     word: 'laughed',
     children: []
   };
-  const rendered = __TEST_ONLY__.materializeReplayPreterminals(overtHead);
+  const rendered = materializeReplayPreterminals(overtHead);
   assert.equal(rendered.label, 'V');
   assert.equal(rendered.children[0].label, 'laughed');
   assert.equal(rendered.children[0].id, 'v::__leaf');

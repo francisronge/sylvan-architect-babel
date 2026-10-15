@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import {
-  compileRelationRenderPlan, isPlanItemRevealed, planItemDependencyNodeIds,
-  projectVisibleAnchorSetOrganization
-} from '../replay/relations/renderPlanCompiler.ts';
-import { bindRelationPlanFrame, fitFallbackGeometry } from '../replay/relations/geometryBinding.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { isPlanItemRevealed, planItemDependencyNodeIds } from '../replay/relations/renderPlan.ts';
+import { projectVisibleAnchorSetOrganization } from '../replay/relations/relationFrame.ts';
+import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { fitFallbackGeometry } from '../replay/relations/fallbackGeometry.ts';
 
 const examples = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/pf-correspondence-evidence.json', import.meta.url)))
   .examples.filter(example => example.id.includes('spanish'));

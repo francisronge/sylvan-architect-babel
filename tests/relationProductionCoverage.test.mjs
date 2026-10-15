@@ -1,14 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  findRelationRegistryEntry,
-  productionRelationRegistry
-} from '../replay/relationDispatch/index.js';
-import {
-  compileRelationRenderPlan,
-  visiblePlanFrameItems
-} from '../replay/relations/renderPlanCompiler.ts';
+import { findRelationRegistryEntry } from '../replay/relationDispatch/relationRegistry.js';
+import { productionRelationRegistry } from '../replay/relationDispatch/productionRegistry.js';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { PRODUCTION_RENDER_FAMILIES } from '../replay/relations/renderFamilies.ts';
 
 /**

@@ -1,4 +1,5 @@
-import type { SurfaceRealization, SyntaxNode } from '../types.ts';
+import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '../types.ts';
+import { normalizeTier2Synonym } from './relations/tier2Synonyms.ts';
 
 export const sameRealizationMembers = <T extends string | number>(left: readonly T[], right: readonly T[]): boolean =>
   left.length === right.length && new Set(left).size === left.length
@@ -25,4 +26,35 @@ export function exactRealizationGroup(
     || group.tokenIndices.some(index => !Number.isInteger(index) || index < 0)
     || groups.some(other => other !== group && other.tokenIndices.some(index => group.tokenIndices.includes(index)))) return undefined;
   return group;
+}
+
+/** A shared field qualifier binds an exact contributor inventory to its input
+ * literal. Qualifiers are open; neither word concatenation nor prose supplies
+ * a missing association. All named pairs must agree with the authored groups. */
+export function namedInputRealizationGroups(
+  relation: DerivationStageRelation, groups: readonly SurfaceRealization[],
+  forest: readonly SyntaxNode[], inputTokens: readonly string[] = []
+): SurfaceRealization[] {
+  const anchors = Object.entries(relation.anchors ?? {});
+  const tokens = new Map<string, string[]>();
+  for (const [key, value] of Object.entries(relation.values ?? {})) {
+    const qualifier = /^(.+?) (?:input )?tokens?$/u.exec(normalizeTier2Synonym(key))?.[1];
+    if (!qualifier) continue;
+    if (tokens.has(qualifier) || typeof value !== 'string' && !Array.isArray(value)) return [];
+    const pieces = typeof value === 'string' ? [value] : value;
+    if (!pieces.length || pieces.some(piece => typeof piece !== 'string' || !piece)) return [];
+    tokens.set(qualifier, pieces as string[]);
+  }
+  const result: SurfaceRealization[] = [], qualifiers = new Set<string>();
+  for (const [key, ids] of anchors) {
+    const qualifier = /^(.+) contributors?$/u.exec(normalizeTier2Synonym(key))?.[1];
+    if (!qualifier || qualifiers.has(qualifier) || !Array.isArray(ids)) return [];
+    qualifiers.add(qualifier);
+    const group = exactRealizationGroup(ids, groups, forest), literal = tokens.get(qualifier);
+    if (!group || !literal || result.includes(group)) return [];
+    const positions = [...group.tokenIndices].sort((a, b) => a - b);
+    if (literal.length !== positions.length || positions.some((position, i) => literal[i] !== inputTokens[position])) return [];
+    result.push(group);
+  }
+  return result.length && qualifiers.size === tokens.size ? result : [];
 }

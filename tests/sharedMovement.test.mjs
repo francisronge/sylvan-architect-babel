@@ -165,3 +165,78 @@ test('one source may retain its ID at the shared landing while both prior positi
   assert.equal(after.get('raisedCoordination').children[1].id, 'objectN');
   assert.equal(playback.steps[at].replayRelationLinks.filter(l => l.renderFamily === 'trajectory').length, 2);
 });
+
+const independentMovements = kinds => {
+  const prior = kinds.map((kind, i) => ({ id: `domain-${i}`, label: 'TP', children: [
+    { id: `tense-${i}`, label: 'T⁰', silent: true },
+    { id: `predicate-${i}`, label: 'VP', children: [
+      { id: `low-${i}`, label: kind === 'head' ? 'V⁰' : 'DP', lineageId: `chain-${i}`,
+        ...(kind === 'head' ? { word: `word-${i}` } : { children: [{ id: `noun-${i}`, label: 'N', word: `word-${i}` }] }) },
+      { id: `other-${i}`, label: kind === 'head' ? 'DP' : 'V⁰', word: `other-${i}` }
+    ] }
+  ] }));
+  const current = structuredClone(prior).map((domain, i) => {
+    const lower = domain.children[1].children[0];
+    lower.silent = true;
+    const upper = { ...structuredClone(prior[i].children[1].children[0]), id: `high-${i}` };
+    if (upper.children) upper.children[0].id = `high-noun-${i}`;
+    if (kinds[i] === 'head') {
+      domain.children[0] = { id: `attachment-${i}`, label: 'T⁰', children: [upper, domain.children[0]] };
+      return domain;
+    }
+    return { id: `attachment-${i}`, label: 'TP', children: [upper, domain] };
+  });
+  return { sentence: 'Independent dependencies', analyses: [{ derivationStages: [
+    { statement: 'Establish the sources', stageRecord: 'Each source is present in its own clause.', relations: [], workspaceForest: prior },
+    { statement: 'Move together', stageRecord: 'Each dependency is established at one simultaneous moment.', workspaceForest: current,
+      relations: [{ relation: 'An unfamiliar dependency', anchors: { lowerOccurrences: kinds.map((_, i) => `low-${i}`),
+        higherOccurrences: kinds.map((_, i) => `high-${i}`).reverse() },
+        priorAnchors: { sources: kinds.map((_, i) => `low-${i}`).reverse() } }] }
+  ] }] };
+};
+
+for (const kinds of [['phrasal', 'phrasal', 'phrasal'], ['head', 'head'], ['head', 'phrasal']])
+test(`independent ${kinds.join('/')} movements share one atomic moment with independently reordered endpoints`, () => {
+  const response = independentMovements(kinds), original = structuredClone(response);
+  const stages = response.analyses[0].derivationStages;
+  const dispatch = dispatchStageRelations(stages)[1][0];
+  const paths = dispatch.facets.filter(f => f.recipe.id === 'movement.path');
+  assert.equal(paths.length, kinds.length);
+  for (let i = 0; i < kinds.length; i++) {
+    const movement = paths.find(f => f.evidence.movement.sourceNodeId === `low-${i}`).evidence.movement;
+    assert.equal(movement.targetNodeId, `high-${i}`);
+    assert.equal(movement.trajectoryKind, kinds[i]);
+  }
+  for (const key of ['lowerOccurrences', 'higherOccurrences'])
+    assert.deepEqual(dispatch.evidenceCoverage.fields.find(f => f.field === 'anchors' && f.key === key).unrecoveredItemIndices, []);
+  const playback = buildReplayPlayback(response);
+  const moments = playback.steps.filter(s => s.replayRelationIdentity?.stageIndex === 1);
+  assert.equal(moments.length, 1);
+  const at = playback.steps.indexOf(moments[0]), before = playback.steps[at - 1], after = moments[0];
+  for (let i = 0; i < kinds.length; i++) {
+    assert(!before.replayVisibleNodeIds.includes(`high-${i}`));
+    assert(!before.replayVisibleNodeIds.includes(`attachment-${i}`));
+    assert.equal(nodes([before.replayCanvasData]).get(`low-${i}`).silent, undefined);
+    assert(after.replayVisibleNodeIds.includes(`high-${i}`));
+    assert(after.replayVisibleNodeIds.includes(`attachment-${i}`));
+    assert.equal(nodes([after.replayCanvasData]).get(`low-${i}`).silent, true);
+  }
+  assert.equal(after.replayRelationLinks.filter(l => l.renderFamily === 'trajectory').length, kinds.length);
+  assert.deepEqual(response, original);
+});
+
+test('independent movement lists reject partial proof, ambiguous lineages, duplicates and unrelated context', () => {
+  for (const mutate of [
+    stages => { stages[1].relations[0].priorAnchors.sources.pop(); },
+    stages => { stages[1].relations[0].anchors.higherOccurrences[1] = 'high-1'; },
+    stages => { delete nodes(stages[1].workspaceForest).get('high-1').lineageId; },
+    stages => { nodes(stages[1].workspaceForest).get('high-1').lineageId = 'chain-0'; },
+    stages => { stages[1].workspaceForest.push(structuredClone(nodes(stages[1].workspaceForest).get('high-1'))); },
+    stages => { stages[1].relations[0].anchors.traceWitness = 'other-0'; },
+    stages => { stages[1].relations[0].relation = 'HeadMove'; }
+  ]) {
+    const response = independentMovements(['phrasal', 'phrasal']), stages = response.analyses[0].derivationStages;
+    mutate(stages);
+    assert(!dispatchStageRelations(stages)[1][0].facets.some(f => f.recipe.id === 'movement.path'), mutate.toString());
+  }
+});

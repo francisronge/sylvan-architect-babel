@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
-import { adaptDerivationStagesForReplay, buildAuthoredRelationLinksForFrames, buildReplayPanelContent, getFrameRelations } from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildAuthoredRelationLinksForFrames, getFrameRelations } from '../replay/frameRelations.ts';
+import { buildReplayPanelContent } from '../replay/replayPanel.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 
 const records = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
@@ -120,7 +122,13 @@ test('an unlabelled relation cannot shift the following relation onto a sibling 
   const frames = adaptDerivationStagesForReplay(record.derivationStages);
   const plan = buildDerivationReplayPlan(record);
   for (const limit of [0, 1, 2]) {
-    const links = buildAuthoredRelationLinksForFrames(frames, plan, 0, stage.workspaceForest, limit);
+    const links = buildAuthoredRelationLinksForFrames({
+      frames,
+      replayPlan: plan,
+      activeFrameIndex: 0,
+      forest: stage.workspaceForest,
+      currentFrameRelationLimit: limit
+    });
     assert.deepEqual(links.map(link => link.authoredRelationIndex), Array.from({ length: limit }, (_, i) => i + 1));
   }
 });

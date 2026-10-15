@@ -1,11 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  dispatchRelationClaimBatch,
-  dispatchRelationClaims
-} from '../replay/relations/tier2RelationDispatch.ts';
-import { createRelationRegistry } from '../replay/relationDispatch/index.js';
+import { dispatchRelationClaimBatch, dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
+import { createRelationRegistry } from '../replay/relationDispatch/relationRegistry.js';
 
 const leaf = (id, word, extras = {}) => ({ id, label: 'X', word, ...extras });
 const node = (id, label, children = [], extras = {}) => ({ id, label, children, ...extras });

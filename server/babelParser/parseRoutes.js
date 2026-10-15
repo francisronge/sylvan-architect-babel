@@ -1,3 +1,4 @@
+import { attachGenerationFailureEvidence, classifyGeminiRouteError, classifyProviderRouteError } from './routeErrors.js';
 import { GoogleGenAI } from '@google/genai';
 import { attachAggregateParseTokenCounts } from './provenance.js';
 import { buildGenerationRecord } from './generationRecord.js';
@@ -15,11 +16,11 @@ import {
   OPENAI_MODEL,
   getRemainingRequestBudgetMs,
   localRouteUnavailableMessage,
+  routeUnavailableMessage,
   resolveModelTimeoutMs,
   resolveRequestTimeoutMs,
   resolveRouteMaxOutputTokens,
   resolveRouteTemperature,
-  routeUnavailableMessage,
   normalizeProviderReasoningEffort
 } from './routeConfig.js';
 import {
@@ -29,263 +30,25 @@ import {
   buildOpenAIRequestBody,
   buildKimiRequestBody,
   buildGrokRequestBody,
-  assertGenerationComplete,
-  buildGenerationOutcome,
   generateAnthropicStructuredContent,
   generateOpenAIStructuredContent,
   generateKimiStructuredContent,
   generateGrokStructuredContent,
   generateStructuredContent,
   generateStructuredLocalContent,
-  getErrorMeta,
-  isNetworkTransportError,
   resolveLocalMaxOutputTokens,
-  runWithTransportRetries,
-  summarizeErrorForLog,
-  summarizeGeneration,
-  withTimeout,
   writeDebugModelPayload
 } from './modelRuntime.js';
+import { getErrorMeta, isNetworkTransportError, runWithTransportRetries, summarizeErrorForLog, withTimeout } from './providerTransport.js';
+import { assertGenerationComplete, buildGenerationOutcome, summarizeGeneration } from './generationOutcome.js';
 import {
   createRawOutputArtifact,
   withFailureDetails
 } from './validationErrors.js';
 
-const getProviderAttemptDetails = (error) => ({
-  ...(error?.providerRunId ? { providerRunId: error.providerRunId } : {}),
-  ...(Array.isArray(error?.providerAttempts) ? { providerAttempts: error.providerAttempts } : {})
-});
-
-export const attachGenerationFailureEvidence = ({
-  error,
-  ParseApiError,
-  generationRecord,
-  rawText
-}) => {
-  if (!generationRecord || !(error instanceof ParseApiError)) return error;
-  const details = error.details && typeof error.details === 'object'
-    ? error.details
-    : {};
-  return new ParseApiError(
-    error.code,
-    error.message,
-    error.status,
-    {
-      ...details,
-      generationRecord,
-      rawOutputArtifact: details.rawOutputArtifact || createRawOutputArtifact(rawText)
-    }
-  );
-};
-
-export const classifyGeminiRouteError = ({
-  error,
-  ParseApiError,
-  modelRoute = 'gemini',
-  model
-}) => {
-  if (error instanceof ParseApiError) {
-    return error;
-  }
-
-  const { msg, haystack, statusCode } = getErrorMeta(error);
-  const providerMessage = String(msg || '').trim() || undefined;
-  const providerAttemptDetails = getProviderAttemptDetails(error);
-
-  if (
-    haystack.includes('api key expired') ||
-    haystack.includes('api_key_expired') ||
-    haystack.includes('invalid api key') ||
-    haystack.includes('api_key_invalid') ||
-    haystack.includes('unauthenticated') ||
-    haystack.includes('permission_denied') ||
-    statusCode === 401 ||
-    statusCode === 403
-  ) {
-    return new ParseApiError('API_KEY_INVALID', 'Server API key is invalid or expired.', 500, providerAttemptDetails);
-  }
-
-  if (haystack.includes('resource_exhausted') || haystack.includes('quota') || statusCode === 429) {
-    return new ParseApiError('GEMINI_QUOTA', 'Rate limit or quota reached for this server key.', 429, providerAttemptDetails);
-  }
-
-  if (
-    statusCode === 404 ||
-    (haystack.includes('model') && (
-      haystack.includes('not found') ||
-      haystack.includes('not available') ||
-      haystack.includes('unsupported')
-    ))
-  ) {
-    return new ParseApiError('MODEL_UNAVAILABLE', 'Requested model is unavailable for this project/key.', 503, providerAttemptDetails);
-  }
-
-  if (haystack.includes('invalid_argument') || statusCode === 400) {
-    return new ParseApiError('INVALID_REQUEST', 'Request was rejected by Gemini (invalid argument).', 400, providerAttemptDetails);
-  }
-
-  if (
-    statusCode === 408 ||
-    haystack.includes('timed out') ||
-    haystack.includes('timeout') ||
-    haystack.includes('aborterror')
-  ) {
-    return new ParseApiError(
-      'GEMINI_TIMEOUT',
-      `Gemini parse timed out before ${model || 'the model'} returned a result.`,
-      504,
-      { ...providerAttemptDetails, ...(providerMessage ? { providerMessage } : {}) }
-    );
-  }
-
-  if (
-    statusCode === 503 ||
-    haystack.includes('service unavailable') ||
-    haystack.includes('backend error')
-  ) {
-    return new ParseApiError(
-      'GEMINI_UNAVAILABLE',
-      routeUnavailableMessage(modelRoute),
-      503,
-      providerAttemptDetails
-    );
-  }
-
-  if (isNetworkTransportError(error)) {
-    return new ParseApiError(
-      'GEMINI_TRANSPORT',
-      `Gemini transport failed before ${model || 'the model'} returned a result.`,
-      502,
-      { ...providerAttemptDetails, ...(providerMessage ? { providerMessage } : {}) }
-    );
-  }
-
-  return new ParseApiError('PARSE_FAILED', msg || 'Syntactic parsing failed.', 500, providerAttemptDetails);
-};
-
-const classifyProviderRouteError = ({
-  error,
-  ParseApiError,
-  providerLabel,
-  model
-}) => {
-  if (error instanceof ParseApiError) {
-    return error;
-  }
-
-  const { msg, haystack, statusCode } = getErrorMeta(error);
-  const providerMessage = String(msg || '').trim();
-  const providerAttemptDetails = getProviderAttemptDetails(error);
-  if (error?.code === 'credit_balance_exhausted' || error?.code === 'insufficient_quota') {
-    return new ParseApiError(
-      'PROVIDER_QUOTA',
-      error.code === 'credit_balance_exhausted'
-        ? `${providerLabel} API credits are exhausted. Add credits to the API account to continue.`
-        : `${providerLabel} API quota is exhausted. Check the API account's billing and usage limits.`,
-      429,
-      {
-        provider: providerLabel,
-        model,
-        ...providerAttemptDetails,
-        providerMessage: providerMessage || null,
-        providerErrorCode: error.code
-      }
-    );
-  }
-  if (error?.completedStopState) {
-    return new ParseApiError(
-      'INCOMPLETE_GENERATION',
-      `${providerLabel} completed with ${error.finishReason || 'a failed stop state'} and no valid generation.`,
-      502,
-      withFailureDetails({
-        provider: providerLabel,
-        model,
-        providerMessage: providerMessage || null,
-        finishReason: error.finishReason || null,
-        ...providerAttemptDetails
-      }, {
-        failureClass: 'incomplete_generation',
-        ruleId: 'GENERATION_COMPLETED_STOP_FAILURE',
-        fieldPath: '$',
-        offendingValue: error.finishReason || providerMessage || null
-      }, error.responseBody || '')
-    );
-  }
-  if (
-    haystack.includes('api key expired') ||
-    haystack.includes('invalid api key') ||
-    haystack.includes('unauthorized') ||
-    haystack.includes('unauthenticated') ||
-    haystack.includes('permission') ||
-    statusCode === 401 ||
-    statusCode === 403
-  ) {
-    return new ParseApiError('API_KEY_INVALID', `${providerLabel} API key is invalid or lacks required permissions.`, 500, {
-      provider: providerLabel,
-      model,
-      ...providerAttemptDetails,
-      providerMessage: providerMessage || null
-    });
-  }
-  if (haystack.includes('quota') || haystack.includes('rate limit') || statusCode === 429) {
-    return new ParseApiError('PROVIDER_QUOTA', `Rate limit or quota reached for ${providerLabel}.`, 429, {
-      provider: providerLabel,
-      model,
-      ...providerAttemptDetails,
-      providerMessage: providerMessage || null
-    });
-  }
-  if (
-    statusCode === 404 ||
-    (haystack.includes('model') && (
-      haystack.includes('not found') ||
-      haystack.includes('not available') ||
-      haystack.includes('unsupported')
-    ))
-  ) {
-    return new ParseApiError('MODEL_UNAVAILABLE', `${providerLabel} model is unavailable for this key or endpoint.`, 503, {
-      provider: providerLabel,
-      model,
-      ...providerAttemptDetails,
-      providerMessage: providerMessage || null
-    });
-  }
-  if (statusCode === 400 || haystack.includes('invalid')) {
-    return new ParseApiError('INVALID_REQUEST', `${providerLabel} rejected the request.`, 400, {
-      provider: providerLabel,
-      model,
-      ...providerAttemptDetails,
-      providerMessage: providerMessage || null
-    });
-  }
-  if (error?.code === 'PROVIDER_TIMEOUT' || statusCode === 408 || statusCode === 504
-    || haystack.includes('timed out') || haystack.includes('timeout')) {
-    return new ParseApiError('PROVIDER_TIMEOUT', `${providerLabel} timed out before a result was received.`, 504, {
-      provider: providerLabel,
-      model,
-      ...providerAttemptDetails,
-      providerMessage: providerMessage || null
-    });
-  }
-  if (isNetworkTransportError(error)) {
-    return new ParseApiError('PROVIDER_UNAVAILABLE', `${providerLabel} transport failed before the model returned a result.`, 503, {
-      provider: providerLabel,
-      model,
-      ...providerAttemptDetails,
-      providerMessage: providerMessage || null
-    });
-  }
-  return new ParseApiError('PARSE_FAILED', providerMessage || `${providerLabel} parsing failed.`, 500, {
-    provider: providerLabel,
-    model,
-    ...providerAttemptDetails
-  });
-};
-
 export const createParseRoutes = ({
   ParseApiError,
   normalizeParseBundle,
-  parseModelJson,
   parseModelJsonDetailed,
   generateLocal = generateStructuredLocalContent,
   generateGemini = generateStructuredContent,
@@ -458,6 +221,109 @@ export const createParseRoutes = ({
     });
   };
 
+  const processGeneratedPayload = ({
+    generationMeta,
+    generationRecord,
+    framework,
+    sentence,
+    modelRoute,
+    model,
+    inputTokens,
+    primaryDebugPayloadPath
+  }) => {
+    let payload;
+    let payloadIntegrityFlags = [];
+    let payloadRepairDiagnostics = [];
+    const jsonProcessing = { repairDiagnostics: [] };
+    generationRecord.processing = { json: jsonProcessing };
+    const jsonStartedAt = performance.now();
+
+    try {
+      const parsedPayload = parseModelJsonDetailed(generationMeta.rawText);
+      payload = parsedPayload.payload;
+      payloadIntegrityFlags = Array.isArray(parsedPayload.integrityFlags)
+        ? parsedPayload.integrityFlags
+        : [];
+      payloadRepairDiagnostics = Array.isArray(parsedPayload.repairDiagnostics)
+        ? parsedPayload.repairDiagnostics
+        : [];
+      jsonProcessing.repairDiagnostics = payloadRepairDiagnostics;
+      if (parsedPayload.jsonDiagnostic) jsonProcessing.diagnostic = parsedPayload.jsonDiagnostic;
+    } catch (error) {
+      jsonProcessing.repairDiagnostics = error.details?.payloadRepairDiagnostics || [];
+      if (error.details?.jsonDiagnostic) jsonProcessing.diagnostic = error.details.jsonDiagnostic;
+      const debugPayloadPath = modelRoute !== 'gemini' || (error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE')
+        ? writeDebugModelPayload({
+            stage: modelRoute === 'gemini' ? 'json-parse' : `${modelRoute}-json-parse`,
+            model,
+            sentence,
+            rawText: generationMeta.rawText
+          })
+        : null;
+      throw augmentModelPayloadFailure({
+        error,
+        stage: 'json-parse',
+        model,
+        generationMeta,
+        debugPayloadPath
+      });
+    } finally {
+      jsonProcessing.durationMs = performance.now() - jsonStartedAt;
+    }
+
+    const normalizationProcessing = {};
+    generationRecord.processing.normalization = normalizationProcessing;
+    const normalizationStartedAt = performance.now();
+    let normalized;
+    try {
+      normalized = normalizeParseBundle(
+        payload,
+        framework,
+        sentence,
+        modelRoute,
+        true,
+        { inputTokens, payloadIntegrityFlags, payloadRepairDiagnostics }
+      );
+      if (normalized?.analyses?.[0]) {
+        normalized = mapBundleAnalyses(
+          normalized,
+          (analysis) =>
+            attachPrimaryParseProvenance(
+              analysis,
+              generationMeta,
+              primaryDebugPayloadPath ? { primaryDebugPayloadPath } : {}
+            )
+        );
+      }
+    } catch (error) {
+      if (error.failure) normalizationProcessing.failure = error.failure;
+      const debugPayloadPath = writeDebugModelPayload({
+        stage: modelRoute === 'gemini' ? 'normalization' : `${modelRoute}-normalization`,
+        model,
+        sentence,
+        rawText: generationMeta.rawText
+      });
+      let payloadPreview = '<unserializable>';
+      try {
+        payloadPreview = JSON.stringify(payload).slice(0, 320);
+      } catch {
+        // keep fallback preview
+      }
+      throw augmentModelPayloadFailure({
+        error,
+        stage: 'normalization',
+        model,
+        generationMeta,
+        payloadPreview,
+        debugPayloadPath,
+        payloadRepairDiagnostics
+      });
+    } finally {
+      normalizationProcessing.durationMs = performance.now() - normalizationStartedAt;
+    }
+    return normalized;
+  };
+
   const parseSentenceWithLocalModel = async (sentence, framework = 'xbar') => {
     // The local runtime is its own route; provenance must not claim Gemini.
     const promptRoute = 'local';
@@ -512,9 +378,7 @@ export const createParseRoutes = ({
         });
       }
 
-      const parsedPayload = parseModelJsonDetailed
-        ? parseModelJsonDetailed(rawText)
-        : { payload: parseModelJson(rawText), integrityFlags: [], repairDiagnostics: [] };
+      const parsedPayload = parseModelJsonDetailed(rawText);
       payloadRepairDiagnostics = Array.isArray(parsedPayload.repairDiagnostics)
         ? parsedPayload.repairDiagnostics
         : [];
@@ -705,104 +569,16 @@ export const createParseRoutes = ({
         rawText: generationMeta.rawText
       });
 
-      let payload;
-      let payloadIntegrityFlags = [];
-      let payloadRepairDiagnostics = [];
-      const jsonProcessing = { repairDiagnostics: [] };
-      generationRecord.processing = { json: jsonProcessing };
-      const jsonStartedAt = performance.now();
-      try {
-        const parsedPayload = parseModelJsonDetailed
-          ? parseModelJsonDetailed(generationMeta.rawText)
-          : { payload: parseModelJson(generationMeta.rawText), integrityFlags: [], repairDiagnostics: [] };
-        payload = parsedPayload.payload;
-        payloadIntegrityFlags = Array.isArray(parsedPayload.integrityFlags)
-          ? parsedPayload.integrityFlags
-          : [];
-        payloadRepairDiagnostics = Array.isArray(parsedPayload.repairDiagnostics)
-          ? parsedPayload.repairDiagnostics
-          : [];
-        jsonProcessing.repairDiagnostics = payloadRepairDiagnostics;
-        if (parsedPayload.jsonDiagnostic) jsonProcessing.diagnostic = parsedPayload.jsonDiagnostic;
-      } catch (error) {
-        jsonProcessing.repairDiagnostics = error.details?.payloadRepairDiagnostics || [];
-        if (error.details?.jsonDiagnostic) jsonProcessing.diagnostic = error.details.jsonDiagnostic;
-        if (error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE') {
-          const debugPayloadPath = writeDebugModelPayload({
-            stage: 'json-parse',
-            model: selectedModel,
-            sentence,
-            rawText: generationMeta.rawText
-          });
-          throw augmentModelPayloadFailure({
-            error,
-            stage: 'json-parse',
-            model: selectedModel,
-            generationMeta,
-            debugPayloadPath
-          });
-        }
-        throw augmentModelPayloadFailure({
-          error,
-          stage: 'json-parse',
-          model: selectedModel,
-          generationMeta,
-          debugPayloadPath: null
-        });
-      } finally {
-        jsonProcessing.durationMs = performance.now() - jsonStartedAt;
-      }
-
-      const normalizationProcessing = {};
-      generationRecord.processing.normalization = normalizationProcessing;
-      const normalizationStartedAt = performance.now();
-      let normalized;
-      try {
-        normalized = normalizeParseBundle(
-          payload,
-          framework,
-          sentence,
-          normalizedModelRoute,
-          true,
-          { inputTokens, payloadIntegrityFlags, payloadRepairDiagnostics }
-        );
-        if (normalized?.analyses?.[0]) {
-          normalized = mapBundleAnalyses(
-            normalized,
-            (analysis) =>
-              attachPrimaryParseProvenance(
-                analysis,
-                generationMeta,
-                primaryDebugPayloadPath ? { primaryDebugPayloadPath } : {}
-              )
-          );
-        }
-      } catch (error) {
-        if (error.failure) normalizationProcessing.failure = error.failure;
-        const debugPayloadPath = writeDebugModelPayload({
-          stage: 'normalization',
-          model: selectedModel,
-          sentence,
-          rawText: generationMeta.rawText
-        });
-        let payloadPreview = '<unserializable>';
-        try {
-          payloadPreview = JSON.stringify(payload).slice(0, 320);
-        } catch {
-          // keep fallback preview
-        }
-        throw augmentModelPayloadFailure({
-          error,
-          stage: 'normalization',
-          model: selectedModel,
-          generationMeta,
-          payloadPreview,
-          debugPayloadPath,
-          payloadRepairDiagnostics
-        });
-      } finally {
-        normalizationProcessing.durationMs = performance.now() - normalizationStartedAt;
-      }
+      const normalized = processGeneratedPayload({
+        generationMeta,
+        generationRecord,
+        framework,
+        sentence,
+        modelRoute: normalizedModelRoute,
+        model: selectedModel,
+        inputTokens,
+        primaryDebugPayloadPath
+      });
 
       return {
         ...normalized,
@@ -963,96 +739,16 @@ export const createParseRoutes = ({
         sentence,
         rawText: generationMeta.rawText
       });
-      let payload;
-      let payloadIntegrityFlags = [];
-      let payloadRepairDiagnostics = [];
-      const jsonProcessing = { repairDiagnostics: [] };
-      generationRecord.processing = { json: jsonProcessing };
-      const jsonStartedAt = performance.now();
-
-      try {
-        const parsedPayload = parseModelJsonDetailed
-          ? parseModelJsonDetailed(generationMeta.rawText)
-          : { payload: parseModelJson(generationMeta.rawText), integrityFlags: [], repairDiagnostics: [] };
-        payload = parsedPayload.payload;
-        payloadIntegrityFlags = Array.isArray(parsedPayload.integrityFlags)
-          ? parsedPayload.integrityFlags
-          : [];
-        payloadRepairDiagnostics = Array.isArray(parsedPayload.repairDiagnostics)
-          ? parsedPayload.repairDiagnostics
-          : [];
-        jsonProcessing.repairDiagnostics = payloadRepairDiagnostics;
-        if (parsedPayload.jsonDiagnostic) jsonProcessing.diagnostic = parsedPayload.jsonDiagnostic;
-      } catch (error) {
-        jsonProcessing.repairDiagnostics = error.details?.payloadRepairDiagnostics || [];
-        if (error.details?.jsonDiagnostic) jsonProcessing.diagnostic = error.details.jsonDiagnostic;
-        const debugPayloadPath = writeDebugModelPayload({
-          stage: `${modelRoute}-json-parse`,
-          model: selectedModel,
-          sentence,
-          rawText: generationMeta.rawText
-        });
-        throw augmentModelPayloadFailure({
-          error,
-          stage: 'json-parse',
-          model: selectedModel,
-          generationMeta,
-          debugPayloadPath
-        });
-      } finally {
-        jsonProcessing.durationMs = performance.now() - jsonStartedAt;
-      }
-
-      const normalizationProcessing = {};
-      generationRecord.processing.normalization = normalizationProcessing;
-      const normalizationStartedAt = performance.now();
-      let normalized;
-      try {
-        normalized = normalizeParseBundle(
-          payload,
-          framework,
-          sentence,
-          modelRoute,
-          true,
-          { inputTokens, payloadIntegrityFlags, payloadRepairDiagnostics }
-        );
-        if (normalized?.analyses?.[0]) {
-          normalized = mapBundleAnalyses(
-            normalized,
-            (analysis) =>
-              attachPrimaryParseProvenance(
-                analysis,
-                generationMeta,
-                primaryDebugPayloadPath ? { primaryDebugPayloadPath } : {}
-              )
-          );
-        }
-      } catch (error) {
-        if (error.failure) normalizationProcessing.failure = error.failure;
-        const debugPayloadPath = writeDebugModelPayload({
-          stage: `${modelRoute}-normalization`,
-          model: selectedModel,
-          sentence,
-          rawText: generationMeta.rawText
-        });
-        let payloadPreview = '<unserializable>';
-        try {
-          payloadPreview = JSON.stringify(payload).slice(0, 320);
-        } catch {
-          // keep fallback preview
-        }
-        throw augmentModelPayloadFailure({
-          error,
-          stage: 'normalization',
-          model: selectedModel,
-          generationMeta,
-          payloadPreview,
-          debugPayloadPath,
-          payloadRepairDiagnostics
-        });
-      } finally {
-        normalizationProcessing.durationMs = performance.now() - normalizationStartedAt;
-      }
+      const normalized = processGeneratedPayload({
+        generationMeta,
+        generationRecord,
+        framework,
+        sentence,
+        modelRoute,
+        model: selectedModel,
+        inputTokens,
+        primaryDebugPayloadPath
+      });
 
       return {
         ...normalized,

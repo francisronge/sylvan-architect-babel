@@ -1,0 +1,373 @@
+{
+  "sentence": "Se vive bien aquí.",
+  "inputTokens": [
+    "Se",
+    "vive",
+    "bien",
+    "aquí"
+  ],
+  "framework": "xbar",
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "i_pro",
+            "predicate": "i_v"
+          },
+          "relation": "theta assignment",
+          "values": {
+            "interpretation": "arbitrary human",
+            "role": "external participant in living"
+          }
+        },
+        {
+          "anchors": {
+            "predicate": "i_v"
+          },
+          "relation": "lexical argument structure",
+          "values": {
+            "internalArgument": "none",
+            "use": "intransitive vivir"
+          }
+        },
+        {
+          "anchors": {
+            "modifiedDomain": "i_vp0",
+            "modifier": "i_bienp"
+          },
+          "relation": "manner modification",
+          "values": {
+            "interpretation": "living well"
+          }
+        },
+        {
+          "anchors": {
+            "modifiedDomain": "i_vp1",
+            "modifier": "i_aquip"
+          },
+          "relation": "locative modification",
+          "values": {
+            "interpretation": "the living situation occurs here"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "i_infl"
+          },
+          "relation": "finite inflection specification",
+          "values": {
+            "number": "singular",
+            "person": "third",
+            "tense": "present"
+          }
+        }
+      ],
+      "stageRecord": "On the ordinary impersonal reading, the sentence means that people in general live well here. Vivir is intransitive: its external argument is the silent arbitrary-human subject in the specifier of IP, and it selects no object. This analysis uses the classical GB placement of the external argument in Spec-IP rather than a VP-internal subject position. The verb assigns that subject its external theta-role. Bien is a manner adjunct to VP; aquí is a second, outer VP adjunct locating the living situation. Neither adverb is a selected argument. The abstract finite I bears present-tense, third-person singular features. Se is initially a separate clitic awaiting attachment to the finite head; its arbitrary-subject licensing relation is not yet established. The lexical terminal vive already has its supplied whole-word form, so the abstract inflectional head does not introduce a separately pronounced suffix.",
+      "statement": "Establish the intransitive predicate and an arbitrary human subject for the impersonal reading.",
+      "workspaceForest": [
+        {
+          "children": [],
+          "id": "i_se",
+          "label": "Cl",
+          "tokenIndex": 0,
+          "word": "Se"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "i_pro",
+              "label": "NP",
+              "silent": true,
+              "word": "pro"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "i_infl",
+                  "label": "I⁰",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "i_v",
+                                  "label": "V⁰",
+                                  "lineageId": "i_verb_chain",
+                                  "tokenIndex": 1,
+                                  "word": "vive"
+                                }
+                              ],
+                              "id": "i_vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "i_vp0",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "i_bien",
+                                  "label": "Adv⁰",
+                                  "tokenIndex": 2,
+                                  "word": "bien"
+                                }
+                              ],
+                              "id": "i_bienbar",
+                              "label": "Adv′"
+                            }
+                          ],
+                          "id": "i_bienp",
+                          "label": "AdvP"
+                        }
+                      ],
+                      "id": "i_vp1",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "i_aqui",
+                              "label": "Adv⁰",
+                              "tokenIndex": 3,
+                              "word": "aquí"
+                            }
+                          ],
+                          "id": "i_aquibar",
+                          "label": "Adv′"
+                        }
+                      ],
+                      "id": "i_aquip",
+                      "label": "AdvP"
+                    }
+                  ],
+                  "id": "i_vp2",
+                  "label": "VP"
+                }
+              ],
+              "id": "i_ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "i_ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingHead": "i_finite",
+            "movedHead": "i_v",
+            "trace": "i_vtrace"
+          },
+          "priorAnchors": {
+            "sourceHead": "i_v",
+            "targetInflection": "i_infl"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "chainType": "head movement",
+            "traceLicensing": "local binding and antecedent government"
+          }
+        },
+        {
+          "anchors": {
+            "clitic": "i_se",
+            "host": "i_finite",
+            "resultingHead": "i_complex"
+          },
+          "relation": "clitic attachment",
+          "values": {
+            "order": "clitic precedes finite verb"
+          }
+        },
+        {
+          "anchors": {
+            "identifyingClitic": "i_se",
+            "licensingInflection": "i_complex",
+            "subject": "i_pro"
+          },
+          "relation": "impersonal pro licensing",
+          "values": {
+            "agreement": "third-person singular impersonal form",
+            "bindingStatusOfClitic": "nonargumental; not a Principle A anaphor",
+            "case": "nominative",
+            "subjectInterpretation": "arbitrary human"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "i_ip",
+            "complementizer": "i_c"
+          },
+          "relation": "clause typing",
+          "values": {
+            "force": "declarative"
+          }
+        }
+      ],
+      "stageRecord": "Vive raises from the previously displayed V position to finite I, leaving a silent head trace. The raised verb locally binds and antecedent-governs that trace, satisfying the ECP for the head-movement chain. Se then attaches on the left of the resulting finite head, producing the order Se vive without changing either terminal's whole-word realization. The impersonal clitic identifies the silent subject as arbitrary human, while finite I formally licenses pro and assigns it nominative Case. Third-person singular is the impersonal agreement form, not agreement with a covert plural noun phrase. Se is a nonargumental impersonal clitic in this analysis, not a referential reflexive NP, so it does not introduce a Principle A anaphor or an additional theta-role. Finally, a silent declarative C takes the completed IP as its complement. The resulting tree accounts for all four input tokens and retains the manner and locative adjuncts in their established positions.",
+      "statement": "Complete the finite impersonal clause through verb raising, clitic attachment, and null-subject licensing.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "i_c",
+                  "label": "C⁰",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "i_pro",
+                      "label": "NP",
+                      "silent": true,
+                      "word": "pro"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "i_se",
+                              "label": "Cl",
+                              "tokenIndex": 0,
+                              "word": "Se"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "i_v",
+                                  "label": "V⁰",
+                                  "lineageId": "i_verb_chain",
+                                  "tokenIndex": 1,
+                                  "word": "vive"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "i_infl",
+                                  "label": "I⁰",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "i_finite",
+                              "label": "I⁰"
+                            }
+                          ],
+                          "id": "i_complex",
+                          "label": "I⁰"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "i_vtrace",
+                                          "label": "V⁰",
+                                          "lineageId": "i_verb_chain",
+                                          "silent": true,
+                                          "word": "t"
+                                        }
+                                      ],
+                                      "id": "i_vbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "i_vp0",
+                                  "label": "VP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "i_bien",
+                                          "label": "Adv⁰",
+                                          "tokenIndex": 2,
+                                          "word": "bien"
+                                        }
+                                      ],
+                                      "id": "i_bienbar",
+                                      "label": "Adv′"
+                                    }
+                                  ],
+                                  "id": "i_bienp",
+                                  "label": "AdvP"
+                                }
+                              ],
+                              "id": "i_vp1",
+                              "label": "VP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "i_aqui",
+                                      "label": "Adv⁰",
+                                      "tokenIndex": 3,
+                                      "word": "aquí"
+                                    }
+                                  ],
+                                  "id": "i_aquibar",
+                                  "label": "Adv′"
+                                }
+                              ],
+                              "id": "i_aquip",
+                              "label": "AdvP"
+                            }
+                          ],
+                          "id": "i_vp2",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "i_ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "i_ip",
+                  "label": "IP"
+                }
+              ],
+              "id": "i_cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "i_cp",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

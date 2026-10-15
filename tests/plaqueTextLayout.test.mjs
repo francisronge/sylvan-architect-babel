@@ -8,7 +8,8 @@ import {
   preparePfPlaqueTextLayout,
   prepareThetaGridTextLayout
 } from '../replay/relations/plaqueTextLayout.ts';
-import { bindRelationPlanFrame, boundOverlayBounds } from '../replay/relations/geometryBinding.ts';
+import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { boundOverlayBounds } from '../replay/relations/geometryBounds.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 
 const segments = (text) => Array.from(new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(text),

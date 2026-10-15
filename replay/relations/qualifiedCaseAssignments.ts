@@ -1,12 +1,12 @@
-import { establishesAssignment, type AssignmentScope } from './assignmentContinuity.ts';
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
-import { isExplicitTier2Role, normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
-import { buildTier2FacetEvidence } from './relationEvidence.ts';
 import type { DerivationStageRelation } from '../../types.ts';
-import { scopeEvidence, uniqueCurrentOwners, type EvidenceScope } from './evidenceScopes.ts';
-import { relationAssertionFailure, relationLabelOutcome } from './outcomeResolver.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
+import type { AssignmentScope } from './assignmentContinuity.ts';
+import { scopeEvidence, uniqueCurrentOwners, type EvidenceScope } from './evidenceScopes.ts';
 import { hasIndependentCaseEndpoints } from './featureEvidence.ts';
+import { establishesAssignment, relationAssertionFailure, relationLabelOutcome } from './outcomeResolver.ts';
+import { buildTier2FacetEvidence } from './relationEvidence.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import { isExplicitTier2Role, normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
 
 const conventionalCases = new Set(['nominative', 'accusative', 'genitive', 'dative', 'ergative',
   'absolutive', 'instrumental', 'locative', 'oblique', 'vocative']);

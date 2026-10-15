@@ -1,6 +1,6 @@
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
-import { buildTier2SynonymIndex, normalizeTier2Synonym, relationRoleConcepts } from './tier2Synonyms.ts';
 import { isUnestablishedOutcomeLiteral, normalizeOutcomeLiteral } from './outcomeResolver.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import { buildTier2SynonymIndex, normalizeTier2Synonym, relationRoleConcepts } from './tier2Synonyms.ts';
 
 const synonyms = buildTier2SynonymIndex();
 

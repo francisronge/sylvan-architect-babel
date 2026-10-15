@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  compileRelationRenderPlan,
-  planItemRelationRefs,
-  visiblePlanFrameItems
-} from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { compileTier2RelationOutputs } from '../replay/relations/tier2RenderPlanCompiler.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';

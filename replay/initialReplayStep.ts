@@ -1,4 +1,4 @@
-import type { PlaybackStep } from './replayCompiler.ts';
+import type { PlaybackStep } from './types.ts';
 
 /** Restore a bounded saved frame, or locate an explicitly requested authored moment. */
 export const initialReplayStepIndex = (
@@ -15,3 +15,14 @@ export const initialReplayStepIndex = (
     && step.replayRelationIdentity?.relationIndex === relation.relationIndex);
   return Math.max(0, index);
 };
+
+/** Reset playback when its source or start request changes. Static and empty
+ * views stay at frame zero and cannot autoplay. */
+export const replayStartState = ({ animated, autoPlay, stepCount, initialStepIndex }: {
+  animated: boolean;
+  autoPlay: boolean;
+  stepCount: number;
+  initialStepIndex: number;
+}): { stepIndex: number; isPlaying: boolean } => !animated || stepCount === 0
+  ? { stepIndex: 0, isPlaying: false }
+  : { stepIndex: initialStepIndex, isPlaying: autoPlay };

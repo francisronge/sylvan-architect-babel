@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  adaptDerivationStagesForReplay,
-  buildAuthoredRelationLinksForFrames,
-  buildMovementArrowsFromLinks,
-  getNodeId
-} from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildAuthoredRelationLinksForFrames } from '../replay/frameRelations.ts';
+import { buildMovementArrowsFromLinks } from '../replay/movementPresentation.ts';
+import { getNodeId } from '../replay/displayIdentity.ts';
 import {
   MOVEMENT_OPERATION_IDENTITIES,
   isMovementIdentity,
@@ -203,11 +201,12 @@ test('Replay relation links share production endpoint roles and keep unknown Mov
   };
   const frames = adaptDerivationStagesForReplay([stage]);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: [stage] });
-  const links = buildAuthoredRelationLinksForFrames(
+  const links = buildAuthoredRelationLinksForFrames({
     frames,
     replayPlan,
-    0,
+    activeFrameIndex: 0,
     forest
+  }
   );
 
   assert.equal(links[0].renderFamily, 'trajectory');

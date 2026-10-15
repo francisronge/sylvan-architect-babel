@@ -4,15 +4,11 @@ import * as d3 from 'd3';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import {
-  adaptDerivationStagesForReplay,
-  applyPreFrontingSentenceInitialCasing,
-  applyVizIds,
-  buildMovementArrowsFromLinks,
-  buildMovementCopyTraceIndexByTerminalId,
-  buildPlaybackStepsFromDerivationFrames,
-  resolveLexicalMovementTraceDisplayIndex
-} from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { applyPreFrontingSentenceInitialCasing } from '../replay/replayCasing.ts';
+import { buildMovementArrowsFromLinks, buildMovementCopyTraceIndexByTerminalId } from '../replay/movementPresentation.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
+import { applyVizIds } from '../replay/displayIdentity.ts';
 
 const clone = (value) => structuredClone(value);
 
@@ -79,28 +75,6 @@ const node = (id, label, children, extra = {}) => ({
   label,
   children,
   ...extra
-});
-
-test('established movement indices apply to overt and silent occurrences without changing pronunciation', () => {
-  const overtRoot = d3.hierarchy(node('dp_overt', 'DP', [
-    leaf('d_overt', 'D', 'keoi')
-  ]));
-  const silentRoot = d3.hierarchy(node('dp_silent', 'DP', [
-    leaf('d_silent', 'D', 'which')
-  ], { silent: true }));
-
-  assert.equal(
-    resolveLexicalMovementTraceDisplayIndex(overtRoot.leaves()[0], 'keoi', '1'),
-    '1',
-    'a pronounced occurrence can show its chain membership'
-  );
-  assert.equal(
-    resolveLexicalMovementTraceDisplayIndex(silentRoot.leaves()[0], 'which', '1'),
-    '1',
-    'a silent lexical occurrence can show the same chain membership'
-  );
-  assert.equal(overtRoot.leaves()[0].data.silent, undefined);
-  assert.equal(silentRoot.data.silent, true);
 });
 
 // Replay may give a pronounced leaf a stable synthetic id and keep the
@@ -353,10 +327,11 @@ test('phrasal movement reveals the complete landing and lower traces in one rela
 
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(
+  const steps = buildPlaybackStepsFromDerivationFrames({
     frames,
-    'Which book did John buy',
+    sentence: 'Which book did John buy',
     replayPlan
+  }
   );
   const stageOneSteps = steps.filter((step) =>
     String(step.replayProgressLabel || '').startsWith('Stage 1/2')
@@ -463,10 +438,11 @@ test('a later movement stage preserves the preceding source subtree until the re
       workspaceForest: [finalTree]
     }
   ];
-  const steps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(stages),
-    'Read did',
-    buildDerivationReplayPlan({ derivationStages: stages })
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    sentence: 'Read did',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+  }
   );
   const stageTwoSteps = steps.filter((step) =>
     String(step.replayProgressLabel || '').startsWith('Stage 2/2')
@@ -538,10 +514,11 @@ test('ParasiticGap moves the complete real-gap phrase once at its exact relation
     workspaceForest: [finalTree]
   }];
 
-  const steps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(stages),
-    'Which article did file without',
-    buildDerivationReplayPlan({ derivationStages: stages })
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    sentence: 'Which article did file without',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+  }
   );
   const relationIndex = steps.findIndex((step) => step.replayKind === 'relation');
   assert.ok(relationIndex > 0);
@@ -614,10 +591,11 @@ test('Replay keeps gap-only ParasiticGap non-trajectory beside an explicit AbarM
     workspaceForest: [finalTree]
   }];
 
-  const steps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(stages),
-    'Which did file without',
-    buildDerivationReplayPlan({ derivationStages: stages })
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    sentence: 'Which did file without',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+  }
   );
   const parasiticFrame = steps.find((step) => (
     step.replayKind === 'relation'
@@ -676,10 +654,11 @@ test('AcrossTheBoardMovement withholds one shared landing and restores every low
     workspaceForest: [finalTree]
   }];
 
-  const steps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(stages),
-    'Who did praise and thank',
-    buildDerivationReplayPlan({ derivationStages: stages })
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    sentence: 'Who did praise and thank',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+  }
   );
   const relationIndex = steps.findIndex((step) => step.replayKind === 'relation');
   assert.ok(relationIndex > 0);
@@ -741,10 +720,11 @@ test('SidewardMovement atomically transfers the complete phrase between workspac
     }],
     workspaceForest: finalForest
   }];
-  const steps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(stages),
-    'A tamer stood and stroked',
-    buildDerivationReplayPlan({ derivationStages: stages })
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    sentence: 'A tamer stood and stroked',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+  }
   );
   const relationIndex = steps.findIndex((step) => step.operation === 'SidewardMovement');
   assert.ok(relationIndex > 0);
@@ -798,10 +778,11 @@ test('a one-stage OperatorVariableBinding waits for complete syntax and changes 
 
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(
+  const steps = buildPlaybackStepsFromDerivationFrames({
     frames,
-    'Who did leave',
+    sentence: 'Who did leave',
     replayPlan
+  }
   );
   const relationIndex = steps.findIndex((step) => step.replayKind === 'relation');
   assert.ok(relationIndex > 0);
@@ -883,10 +864,11 @@ test('head movement starts with the auxiliary in T and creates its C occurrence 
 
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(
+  const steps = buildPlaybackStepsFromDerivationFrames({
     frames,
-    'Did Noa leave',
+    sentence: 'Did Noa leave',
     replayPlan
+  }
   );
   const stageOneSteps = steps.filter((step) =>
     String(step.replayProgressLabel || '').startsWith('Stage 1/2')
@@ -976,10 +958,11 @@ test('ordered phrase and head movements do not leak the later head trace into ea
 
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(
+  const steps = buildPlaybackStepsFromDerivationFrames({
     frames,
-    'What did Mia see',
+    sentence: 'What did Mia see',
     replayPlan
+  }
   );
   const phraseMoveIndex = steps.findIndex((step) => step.operation === 'AbarMove');
   const headMoveIndex = steps.findIndex((step) => step.operation === 'HeadMove');
@@ -1060,7 +1043,11 @@ test('a non-movement relation waits for its exact new anchor and never reveals s
 
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(frames, 'Mia saw Noa', replayPlan);
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames,
+    sentence: 'Mia saw Noa',
+    replayPlan
+  });
   const stageTwoSteps = steps.filter((step) =>
     String(step.replayProgressLabel || '').startsWith('Stage 2/2')
   );
@@ -1118,10 +1105,11 @@ test('a later PF relation owns the tree change at its exact authored moment', ()
     }
   ];
 
-  const steps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(stages),
-    'Mia went',
-    buildDerivationReplayPlan({ derivationStages: stages })
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    sentence: 'Mia went',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+  }
   );
   const firstRelation = steps.find((step) => (
     step.replayKind === 'relation'
@@ -1187,10 +1175,11 @@ test('a persistent projected ancestor never reveals later descendants ahead of t
     }
   ];
 
-  const steps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(stages),
-    'that Mia saw Noa',
-    buildDerivationReplayPlan({ derivationStages: stages })
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    sentence: 'that Mia saw Noa',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+  }
   );
   const stageTwoSteps = steps.filter((step) =>
     String(step.replayProgressLabel || '').startsWith('Stage 2/2')
@@ -1288,10 +1277,11 @@ test('A-movement folds a complete phrasal landing before a following identity mo
 
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(
+  const steps = buildPlaybackStepsFromDerivationFrames({
     frames,
-    'The book was read',
+    sentence: 'The book was read',
     replayPlan
+  }
   );
   const casedSteps = applyPreFrontingSentenceInitialCasing(steps, 'The book was read');
   const baseStageSteps = casedSteps.filter((step) =>
@@ -1423,10 +1413,11 @@ test('AMove builds the chain before AntiLocality judges it without changing synt
 
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(
+  const steps = buildPlaybackStepsFromDerivationFrames({
     frames,
-    'A package arrived',
+    sentence: 'A package arrived',
     replayPlan
+  }
   );
   const movementIndex = steps.findIndex((step) => step.operation === 'AMove');
   const judgmentIndex = steps.findIndex((step) => step.operation === 'AntiLocality');
@@ -1502,10 +1493,11 @@ test('AbarMove builds the chain before Intervention judges it without changing s
       workspaceForest: [finalTree]
     }
   ];
-  const steps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(stages),
-    'What do which student bought',
-    buildDerivationReplayPlan({ derivationStages: stages })
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    sentence: 'What do which student bought',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+  }
   );
   const movementIndex = steps.findIndex((step) => step.operation === 'AbarMove');
   const interventionIndex = steps.findIndex((step) => step.operation === 'Intervention');
@@ -1606,10 +1598,11 @@ test('AbarMove builds the copy chain before LF Reconstruction selects its interp
       workspaceForest: [finalTree]
     }
   ];
-  const steps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(stages),
-    'Which did file',
-    buildDerivationReplayPlan({ derivationStages: stages })
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    sentence: 'Which did file',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+  }
   );
   const movementIndex = steps.findIndex((step) => step.operation === 'AbarMove');
   const reconstructionIndex = steps.findIndex((step) => step.operation === 'LFReconstruction');
@@ -1652,7 +1645,11 @@ test('repeated lexical surfaces keep distinct selection microsteps by node ident
   }];
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(frames, 'the the', replayPlan);
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames,
+    sentence: 'the the',
+    replayPlan
+  });
   const selectedTargets = steps
     .filter((step) => step.replayKind === 'micro' && step.operation === 'LexicalSelect')
     .map((step) => step.targetNodeId);
@@ -1686,10 +1683,11 @@ test('relation-owned PF and Fission outputs appear in their relation frames, nev
       workspaceForest: [pfOutput]
     }
   ];
-  const pfSteps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(pfStages),
-    'went',
-    buildDerivationReplayPlan({ derivationStages: pfStages })
+  const pfSteps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(pfStages),
+    sentence: 'went',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: pfStages })
+  }
   );
   const pfStageTwo = pfSteps.filter((step) =>
     String(step.replayProgressLabel || '').startsWith('Stage 2/2')
@@ -1724,10 +1722,11 @@ test('relation-owned PF and Fission outputs appear in their relation frames, nev
       workspaceForest: [fissionOutput]
     }
   ];
-  const fissionSteps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(fissionStages),
-    '-su -e',
-    buildDerivationReplayPlan({ derivationStages: fissionStages })
+  const fissionSteps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(fissionStages),
+    sentence: '-su -e',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: fissionStages })
+  }
   );
   const fissionStageTwo = fissionSteps.filter((step) =>
     String(step.replayProgressLabel || '').startsWith('Stage 2/2')

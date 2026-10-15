@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { __test__ as parser } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
-import { visiblePlanFrameItems, planItemRelationRefs } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
 import { TIER2_FACET_RECIPES } from '../replay/relations/tier2FacetRecipes.ts';
 import { buildPublicFacetFixture } from './helpers/tier2PublicFixtures.mjs';
 
@@ -18,7 +19,7 @@ for (const framework of ['xbar', 'minimalism']) for (const [name, options, kind]
       const relation = derivationStages[relationStageIndex].relations[0];
       relation.values.outcome = outcome;
       const original = structuredClone(derivationStages);
-      const bundle = parser.normalizeParseBundle({ derivationStages }, framework, sentence, 'grok', true);
+      const bundle = normalizeParseBundle({ derivationStages }, framework, sentence, 'grok', true);
       const replay = prepareReplay({ sentence, inputTokens: bundle.inputTokens, derivationStages: bundle.analyses[0].derivationStages, includePlayback: true });
       const moment = replay.playbackSteps.find(step => step.replayRelationIdentity?.stageIndex === relationStageIndex && step.replayRelationIdentity.relationIndex === 0);
       assert(moment, outcome);
