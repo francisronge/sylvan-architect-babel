@@ -39,6 +39,11 @@ const validateFile = (filePath) => {
         errors.push(`${prefix}: derivationStages must be a nonempty array`);
         return;
       }
+      if (stages.some(stage => Array.isArray(stage?.realizations) && stage.realizations.length > 0)
+        && typeof sentence !== 'string' && !Array.isArray(inputTokens)) {
+        errors.push(`${prefix}: realizations require the original sentence or inputTokens to verify exact token positions`);
+        return;
+      }
       // The parser owns stage shape, realizations, reference expansion and exact
       // anchor resolution. The CLI only assigns verification severity to its diagnostics.
       const inspected = inspectDerivationWorkspaces(stages, {

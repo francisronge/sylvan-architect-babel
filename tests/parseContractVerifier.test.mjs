@@ -164,3 +164,15 @@ test('the CLI preserves explicit input-token boundaries ahead of sentence tokeni
     assert.doesNotMatch(result.output, /warning:/);
   }
 });
+
+
+test('the CLI cannot certify realization positions without original input context', () => {
+  for (const wrap of [analysis => analysis, analysis => ({ analyses: [analysis] }),
+    analysis => ({ response: { analyses: [analysis] } }), analysis => ({ bundle: { analyses: [analysis] } })]) {
+    const completed = stage();
+    completed.realizations = [{ nodeIds: ['mia'], tokenIndices: [999] }];
+    const result = runVerifier(wrap({ derivationStages: [completed] }));
+    assert.equal(result.status, 1, result.output);
+    assert.match(result.output, /realizations require the original sentence or inputTokens/);
+  }
+});

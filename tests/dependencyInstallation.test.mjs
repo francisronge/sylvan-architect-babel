@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { spawnSync } from 'node:child_process';
 import { verifyDependencyInstallation } from '../scripts/verifyDependencyInstallation.mjs';
 
 const write = async (root, file, value) => {
@@ -31,5 +32,31 @@ test('Doctor checks real transitive manifests and required closure rather than t
     await write(root, 'node_modules/child/package.json', child); hidden.packages['node_modules/child'] = child;
     await write(root, 'node_modules/.package-lock.json', hidden);
     assert.equal((await verifyDependencyInstallation(root)).installedPackages, 2, 'repaired dependency closure passes');
+  } finally { await fs.rm(root, { recursive: true, force: true }); }
+});
+
+
+test('Doctor writes a receipt when Playwright and installed dependencies are missing', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'babel-missing-browser-doctor-'));
+  try {
+    await fs.mkdir(path.join(root, 'scripts'));
+    for (const name of ['verifyBabelEnvironment.mjs', 'browserSuites.mjs', 'replayCorpusInputs.mjs', 'verifyDependencyInstallation.mjs']) {
+      await fs.copyFile(new URL(`../scripts/${name}`, import.meta.url), path.join(root, 'scripts', name));
+    }
+    for (const name of ['package.json', 'package-lock.json']) {
+      await fs.copyFile(new URL(`../${name}`, import.meta.url), path.join(root, name));
+    }
+    const output = path.join(root, 'doctor.json');
+    const result = spawnSync(process.execPath, [path.join(root, 'scripts/verifyBabelEnvironment.mjs'),
+      '--browser', 'chromium', '--out', output], { cwd: root, encoding: 'utf8', timeout: 10000 });
+    assert.ifError(result.error);
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    const receipt = JSON.parse(await fs.readFile(output, 'utf8'));
+    assert.equal(receipt.ok, false);
+    assert.equal(receipt.checks.find(check => check.name === 'Dependency identity').passed, false);
+    const browser = receipt.checks.find(check => check.name === 'chromium runtime');
+    assert.equal(browser.passed, false);
+    assert.match(browser.detail, /Cannot find package 'playwright'/);
+    assert.match(result.stdout, /FAIL chromium runtime/);
   } finally { await fs.rm(root, { recursive: true, force: true }); }
 });

@@ -3,7 +3,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
-import { chromium, webkit } from 'playwright';
 import { browserSuite } from './browserSuites.mjs';
 import { loadCorpusManifest } from './replayCorpusInputs.mjs';
 import { verifyDependencyInstallation } from './verifyDependencyInstallation.mjs';
@@ -28,7 +27,8 @@ await check('Default corpus inputs', async () => {
 const requested = values.browser ? [values.browser] : ['chromium', 'webkit'];
 for (const engine of requested) await check(`${engine} runtime`, async () => {
   if (!['chromium', 'webkit'].includes(engine)) throw Error(`Unknown browser ${engine}. Use chromium or webkit.`);
-  const executable = { chromium, webkit }[engine].executablePath();
+  const browsers = await import('playwright');
+  const executable = browsers[engine].executablePath();
   await fs.access(executable);
   return executable;
 });
