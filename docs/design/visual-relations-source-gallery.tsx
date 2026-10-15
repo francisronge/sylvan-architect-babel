@@ -207,6 +207,7 @@ export const visualSourceImagePaths = [
   'visual-relations-assets/source-recovery-2026-10-01/jou-2026-case-stacking-example125.png',
   'visual-relations-assets/source-recovery-2026-10-01/jou-2026-case-stacking-example126.png',
   'visual-relations-assets/source-recovery-2026-10-01/pdt-coreference-overlay-cmpr9413-006.png',
+  'visual-relations-assets/source-recovery-2026-10-14/murphy-remnant-example5.png',
   'visual-relations-assets/umass-syntax-workshop.jpg',
   'visual-relations-assets/villata-relativized-minimality-schemas.png',
   'visual-relations-assets/vp-ellipsis-shaded.jpg',
