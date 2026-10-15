@@ -1,9 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import {
-  TIER2_FACET_RECIPES,
-  TIER2_VISUAL_PRIMITIVE_NAMES
-} from '../../replay/relations/tier2FacetRecipes.ts';
+import { TIER2_FACET_RECIPES } from '../../replay/relations/tier2FacetRecipes.ts';
+import { TIER2_VISUAL_PRIMITIVE_NAMES } from '../../replay/relations/tier2FacetTypes.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { compileRelationRenderPlan } from '../../replay/relations/renderPlanCompiler.ts';
 import {

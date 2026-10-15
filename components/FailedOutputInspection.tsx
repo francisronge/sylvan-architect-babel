@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import AsyncTreeVisualizer from './AsyncTreeVisualizer';
 import ViewErrorBoundary from './ViewErrorBoundary';
 import type { ParseFailure, RawOutputArtifact } from '../types';
-import { buildDerivationCanvasData } from '../replay/replayCompiler';
+import { buildDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { inspectionStageDisplay } from '../replay/diagnosticReplay';
 import { drawableInspectionForest, inspectFailedOutput, type FailedOutputInspection as InspectionRecord } from '../services/failedOutputInspection';
 

@@ -5,7 +5,7 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildReplayPlaqueSchedule, buildStageLayoutGroups, measureStagePlaqueSpace, selectReplayPlaqueLayout } from '../replay/stageCamera.ts';
 import { bindingDomainTreeRect, bindingDomainEllipse, bindingDomainPlaques } from '../replay/relations/bindingDomainGeometry.ts';
 import { projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
-import { indexHierarchyNodesByIdAndAliases } from '../replay/replayCompiler.ts';
+import { indexHierarchyNodesByIdAndAliases } from '../replay/replayCanvas.ts';
 
 const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/review-workspace-boundaries.json', import.meta.url)))
   .cases.find(record => record.key === 'fresh/korean-particles/0');

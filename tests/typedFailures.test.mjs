@@ -2,16 +2,12 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-import { __test__, ParseApiError } from '../server/babelParser.js';
-import {
-  attachGenerationFailureEvidence,
-  createParseRoutes
-} from '../server/babelParser/parseRoutes.js';
-import {
-  assertGenerationComplete,
-  buildGenerationOutcome,
-  summarizeGeneration
-} from '../server/babelParser/modelRuntime.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { parseModelJson } from '../server/babelParser/modelJson.js';
+import { ParseApiError } from '../server/babelParser/error.js';
+import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
+import { attachGenerationFailureEvidence } from '../server/babelParser/routeErrors.js';
+import { assertGenerationComplete, buildGenerationOutcome, summarizeGeneration } from '../server/babelParser/generationOutcome.js';
 import {
   PROVIDER_OUTPUT_ALLOWANCE_POLICIES,
   resolveRouteMaxOutputTokens
@@ -50,7 +46,7 @@ const buildMinimalPayload = () => ({
   ]
 });
 
-const normalize = (payload, sentence = 'Mia') => __test__.normalizeParseBundle(
+const normalize = (payload, sentence = 'Mia') => normalizeParseBundle(
   payload,
   'xbar',
   sentence,
@@ -249,7 +245,7 @@ expectTypedFailure({
 test('transport JSON rejection preserves typed failure and downloadable raw bytes', () => {
   const raw = '\uFEFF  \nnot-json-\u0000-🙂  \n';
   assert.throws(
-    () => __test__.parseModelJson(raw),
+    () => parseModelJson(raw),
     (error) => {
       assert.equal(error.failure.class, FAILURE_CLASSES.TRANSPORT_SERIALIZATION);
       assert.equal(error.failure.ruleId, 'TRANSPORT_JSON_OBJECT');
@@ -396,7 +392,6 @@ test('provider route failures retain a request receipt without calling another m
       normalizeParseBundle: () => {
         throw new Error('normalization should not run');
       },
-      parseModelJson: JSON.parse,
       parseModelJsonDetailed: (rawText) => ({ payload: JSON.parse(rawText), integrityFlags: [] }),
       generateOpenAI: async () => {
         const error = new Error('provider rejected the request body');
@@ -445,7 +440,7 @@ test('native OpenAI quota failures reach the public error without a replacement 
           const routes = createParseRoutes({
             ParseApiError,
             normalizeParseBundle: () => assert.fail('Quota failures must not reach normalization'),
-            parseModelJson: () => assert.fail('Quota failures must not be parsed as analyses')
+            parseModelJsonDetailed: () => assert.fail('Quota failures must not be parsed as analyses')
           });
 
           await assert.rejects(() => routes.parseSentenceWithOpenAI('Mia'), (error) => {
@@ -494,7 +489,7 @@ test('native OpenAI generic failed and cancelled responses remain incomplete gen
         const routes = createParseRoutes({
           ParseApiError,
           normalizeParseBundle: () => assert.fail('Stopped responses must not reach normalization'),
-          parseModelJson: () => assert.fail('Stopped responses must not be parsed as analyses')
+          parseModelJsonDetailed: () => assert.fail('Stopped responses must not be parsed as analyses')
         });
 
         await assert.rejects(() => routes.parseSentenceWithOpenAI('Mia'), (error) => {
@@ -527,7 +522,6 @@ test('unexpected normalization crashes remain deterministic engine failures', as
       normalizeParseBundle: () => {
         throw new Error('private normalization implementation detail');
       },
-      parseModelJson: JSON.parse,
       parseModelJsonDetailed: (rawText) => ({ payload: JSON.parse(rawText), integrityFlags: [] }),
       generateOpenAI: async () => ({
         text: '{}',

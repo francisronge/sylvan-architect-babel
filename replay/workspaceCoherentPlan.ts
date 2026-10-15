@@ -1,45 +1,53 @@
-import { earlierWorkspaceForks, prepareWorkspaceHistoryGuard, WORKSPACE_HISTORY_EVALUATION_LIMIT } from './workspaceHistoryRefinement.ts';
-import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
-import { workspaceVisualScore, compareWorkspaceVisualScores, workspaceGapProposals, adjustWorkspaceGapPreference, workspaceRealizedGap, workspaceFinalWidth, keepsWorkspaceFinalWidth, keepsWorkspaceFinalExtent, workspaceVisualSummary, type WorkspaceVisualSummary, type WorkspaceVisualScore } from './workspaceVisualScore.ts';
-import { withinWorkspaceVisualPreference } from './workspaceVisualPreference.ts';
-import { workspaceNativeVerticalReference, matchesWorkspaceNativeVerticalReference } from './workspaceNativeVerticalReference.ts';
-import { currentForkBranchesClear } from './workspaceForkClearance.ts';
-import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
 import { getNodeId } from './displayIdentity.ts';
 import type { TreeCoordinateReservation, TreeDirection } from './treeLayout.ts';
-import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
-import { treeInkObstacles, prepareTreeInkSubtrees, type TreeInkTextMeasure } from './treeInkGeometry.ts';
-import type { CategoryTextMeasure } from './categoryTextLayout.ts';
-import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
-import { cubicIntersectsRect } from './relations/curveClearance.ts';
-import { WorkspaceContourClearanceError, prepareWorkspaceLifetimeContours, workspaceContourCandidates, type Point, type ContourFrame } from './workspaceLifetimeContours.ts';
+import { WORKSPACE_ALTERNATE_SEED_LIMIT, workspaceAlternateSeeds } from './workspaceAlternateSeeds.ts';
+import {
+  evaluateWorkspaceClearance,
+  WORKSPACE_INITIAL_CLEARANCE_CORRECTIONS,
+  WORKSPACE_SEED_CLEARANCE_CORRECTIONS
+} from './workspaceClearancePreference.ts';
+import {
+  earlierWorkspaceForks,
+  prepareWorkspaceHistoryGuard,
+  WORKSPACE_HISTORY_EVALUATION_LIMIT
+} from './workspaceHistoryRefinement.ts';
+import {
+  prepareWorkspaceLifetimeContours,
+  workspaceContourCandidates,
+  WorkspaceContourClearanceError,
+  type ContourFrame,
+  type Point
+} from './workspaceLifetimeContours.ts';
+import {
+  matchesWorkspaceNativeVerticalReference,
+  workspaceNativeVerticalReference
+} from './workspaceNativeVerticalReference.ts';
+import { pairedWorkspaceClearance, WORKSPACE_PAIRED_EVALUATION_LIMIT } from './workspacePairedClearance.ts';
 import { rigidPoseGraph } from './workspacePoseGraph.ts';
 import { placeRigidGroups } from './workspacePosePlacement.ts';
-import { pairedWorkspaceClearance, WORKSPACE_PAIRED_EVALUATION_LIMIT } from './workspacePairedClearance.ts';
-import { workspaceAlternateSeeds, WORKSPACE_ALTERNATE_SEED_LIMIT } from './workspaceAlternateSeeds.ts';
-import { evaluateWorkspaceClearance, WORKSPACE_INITIAL_CLEARANCE_CORRECTIONS, WORKSPACE_SEED_CLEARANCE_CORRECTIONS } from './workspaceClearancePreference.ts';
-type Node = d3.HierarchyPointNode<SyntaxNode>;
+import {
+  validateWorkspacePlacement,
+  type WorkspacePlanMeasurements,
+  type WorkspacePlanRender,
+  type WorkspacePlanScene
+} from './workspacePlanValidation.ts';
+import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
+import { withinWorkspaceVisualPreference } from './workspaceVisualPreference.ts';
+import {
+  adjustWorkspaceGapPreference,
+  compareWorkspaceVisualScores,
+  keepsWorkspaceFinalExtent,
+  keepsWorkspaceFinalWidth,
+  workspaceFinalWidth,
+  workspaceGapProposals,
+  workspaceRealizedGap,
+  workspaceVisualScore,
+  workspaceVisualSummary,
+  type WorkspaceVisualScore,
+  type WorkspaceVisualSummary
+} from './workspaceVisualScore.ts';
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
-type Scene = {
-  step: PlaybackStep;
-  canvas: SyntaxNode;
-  size: [
-    number,
-    number
-  ];
-  currentRowHeight?: number;
-  nodes: Map<string, Node>;
-  coordinates: TreeCoordinateReservation;
-};
-type Render = (scene: Scene, coordinates: TreeCoordinateReservation) => Node[];
-type Measurements = {
-  measureCategoryText?: CategoryTextMeasure;
-  measureTreeInk?: TreeInkTextMeasure;
-  treeLabelRuns?: PreparedTreeLabelRuns;
-  measureTreeLabel?: TreeLabelMeasure;
-};
 type Reflow = {
   index: number;
   rootId: string;
@@ -78,7 +86,14 @@ export type CoherentWorkspaceResult = {
 /** A whole-analysis alternative for observed unchanged-component reflow. Valid plans
 * return by identity. New plans use complete material lifetimes and are either
 * accepted together or rejected without modifying the accepted reservations. */
-export function planCoherentWorkspace(scenes: readonly Scene[], baseline: Reservations, direction: TreeDirection, render: Render, metrics: Measurements = {}): CoherentWorkspaceResult {
+export function planCoherentWorkspace({ scenes, baseline, direction, render, metrics = {}, minimumSiblingGap = 0 }: {
+  scenes: readonly WorkspacePlanScene[];
+  baseline: Reservations;
+  direction: TreeDirection;
+  render: WorkspacePlanRender;
+  metrics?: WorkspacePlanMeasurements;
+  minimumSiblingGap?: number;
+}): CoherentWorkspaceResult {
   const started = performance.now();
   const reflows = workspaceContinuityReflows(scenes, baseline, render);
   const detected = performance.now();
@@ -91,7 +106,7 @@ export function planCoherentWorkspace(scenes: readonly Scene[], baseline: Reserv
   const references = new Map(scenes.map((scene, index) => [scene.canvas, new Map(originals[index].map(node => [getNodeId(node), {
         x: direction === 'rtl' ? -node.x : node.x, y: node.y
       }]))]));
-  const referenceFrames = scenes.map((scene, index) => ({ nodes: originals[index].map(node => ({ id: getNodeId(node), x: direction === 'rtl' ? -node.x : node.x, y: node.y })) }));
+  const referenceFrames = originals.map(nodes => ({ nodes: nodes.map(node => ({ id: getNodeId(node), x: direction === 'rtl' ? -node.x : node.x, y: node.y })) }));
   const last = new Map(referenceFrames.at(-1)!.nodes.map(node => [node.id, node]));
   const originalFinalWidth = workspaceFinalWidth(last);
   const compose = prepareWorkspaceLifetimeContours(steps, metrics.measureCategoryText, metrics.measureTreeInk, metrics.treeLabelRuns, metrics.measureTreeLabel, direction, references, new Map(scenes.flatMap(scene =>
@@ -122,7 +137,8 @@ export function planCoherentWorkspace(scenes: readonly Scene[], baseline: Reserv
     // without disturbing the composer's state for the next genuine trial.
     if (limit && gapTrial && compose.preservesLockedGap(gapTrial.frames, preferences, gapTrial)) return undefined;
     try {
-      const frames = compose(undefined, { inheritCurrentSlots: true, preferred: preferences, baseline: gapTrial?.frames ?? baseline });
+      const frames = compose(undefined, { inheritCurrentSlots: true, minimumSiblingGap,
+        preferred: preferences, baseline: gapTrial?.frames ?? baseline });
       const score = workspaceVisualScore(frames.at(-1)!, last);
       if (!score || (limit && (!keepsWorkspaceFinalExtent(score, limit) || compareWorkspaceVisualScores(score, limit) >= 0)))
         return undefined;
@@ -186,53 +202,9 @@ export function planCoherentWorkspace(scenes: readonly Scene[], baseline: Reserv
   // Keep every placement-accepted state until the renderer has validated it.
   // Refinement is monotone in visual preference, so the newest state is first.
   const finishPlan = ({ candidate: best, placement }: typeof acceptedPlans[number]): CoherentWorkspaceResult => {
-    const coordinates = new Map(baseline);
-    const perCanvas = new Map<SyntaxNode, TreeCoordinateReservation>();
-    for (const [index, scene] of scenes.entries()) {
-      const next = new Map(baseline.get(scene.canvas)!);
-      for (const [id, p] of placement.coordinates[index])
-        next.set(id, { x: direction === 'rtl' ? scene.size[0] + p.x : p.x, y: p.y });
-      const prior = perCanvas.get(scene.canvas);
-      if (prior && [...next].some(([id, p]) => Math.hypot(p.x - prior.get(id)!.x, p.y - prior.get(id)!.y) > 1e-6))
-        return failed('temporal-constraints', 'Shared canvas requires different coordinates.');
-      perCanvas.set(scene.canvas, next);
-      coordinates.set(scene.canvas, next);
-    }
-    for (const [index, scene] of scenes.entries()) {
-      const nodes = new Map(render(scene, coordinates.get(scene.canvas)!).filter(node => !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace').map(node => [getNodeId(node), node]));
-      const expected = placement.coordinates[index], groups: Node[][] = [[...nodes.values()].filter(node => !node.parent || !nodes.has(getNodeId(node.parent)))];
-      for (const node of nodes.values()) {
-        const point = expected.get(getNodeId(node));
-        if (!point || Math.hypot(node.x - (direction === 'rtl' ? -point.x : point.x), node.y - point.y) > 1e-6)
-          return failed('render-validation', `Parent recentering at frame ${index + 1}.`);
-        const children = (node.children ?? []).filter(child => nodes.has(getNodeId(child)));
-        if (children.some(child => child.y <= node.y) || children.slice(1).some((child, i) => Math.abs(child.y - children[i].y) > 1e-6 || (direction === 'rtl' ? child.x >= children[i].x : child.x <= children[i].x)))
-          return failed('render-validation', `Current rank or order at frame ${index + 1}.`);
-        if (children.length > 1)
-          groups.push(children);
-      }
-      const footprints = prepareTreeInkSubtrees(nodes, metrics.measureCategoryText, metrics.measureTreeInk,
-        true, metrics.treeLabelRuns?.get(scene.canvas), metrics.measureTreeLabel);
-      for (const parent of nodes.values()) {
-        const children = (parent.children ?? []).filter(child => nodes.has(getNodeId(child)));
-        if (children.length < 2) continue;
-        if (!currentForkBranchesClear(parent, children.map(child => ({ point: child, obstacles: footprints(child).map(rect => ({ ...rect, x: rect.x - child.x, y: rect.y - child.y })) }))))
-          return failed('render-validation', `Current fork branch crosses child ink at frame ${index + 1}.`);
-      }
-      const indexes = new Map<Node, ReturnType<typeof verticalObstacleIndex<ReturnType<typeof treeInkObstacles>[number]>>>();
-      for (const roots of groups)
-        for (let i = 0; i < roots.length; i++)
-          for (let j = i + 1; j < roots.length; j++) {
-            let query = indexes.get(roots[j]);
-            if (!query) indexes.set(roots[j], query = verticalObstacleIndex(footprints(roots[j])));
-            for (const a of footprints(roots[i]))
-              if (query(a, b => Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) > 1e-6
-                && Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) > 1e-6
-                && (!a.curve || cubicIntersectsRect(a.curve, b, a.curvePadding))
-                && (!b.curve || cubicIntersectsRect(b.curve, a, b.curvePadding))))
-                return failed('render-validation', `Current ink overlap at frame ${index + 1}.`);
-          }
-    }
+    const validation = validateWorkspacePlacement({ scenes, baseline, direction, placement, render, metrics });
+    if (validation.valid === false) return failed(validation.reason, validation.detail);
+    const coordinates = validation.coordinates;
     const before = referenceFrames.at(-1)!.nodes, after = [...placement.coordinates.at(-1)!.values()];
     diagnostic.status = 'resolved';
     diagnostic.finalDeviation = { maxX: best.score.maxX,

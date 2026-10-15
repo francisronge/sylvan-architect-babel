@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { getFrameRelations } from '../replay/replayCompiler.ts';
+import { getFrameRelations } from '../replay/frameRelations.ts';
 
 const saved = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/unproven-second-landing.json', import.meta.url)));
 const nodes = forest => forest.flatMap(n => [n, ...nodes(n.children ?? [])]);

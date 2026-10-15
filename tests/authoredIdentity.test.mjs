@@ -1,17 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as d3 from 'd3';
-import { __test__ as parser } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
-import { indexHierarchyNodesByIdAndAliases } from '../replay/replayCompiler.ts';
+import { indexHierarchyNodesByIdAndAliases } from '../replay/replayCanvas.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
-import { compileRelationRenderPlan, planItemDependencyNodeIds } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemDependencyNodeIds } from '../replay/relations/renderPlan.ts';
 import { compileLargeAnchorSets } from '../replay/relations/largeAnchorSets.ts';
 import { fallbackDrawing } from '../replay/relations/fallbackTopology.ts';
 
 const leaf = (id, word) => ({ id, label: 'D', word, children: [] });
 const state = (workspaceForest, relations = []) => ({ statement: 'An authored state.', stageRecord: 'Identity control.', relations, workspaceForest });
-const normalize = stages => parser.normalizeParseBundle({ derivationStages: stages }, 'minimalism', 'Mia herself', 'fixture', true).analyses[0];
+const normalize = stages => normalizeParseBundle({ derivationStages: stages }, 'minimalism', 'Mia herself', 'fixture', true).analyses[0];
 
 test('normalization, references and inspection keep distinct whitespace-bearing IDs', () => {
   const forest = [{ id: ' root ', label: 'TP', children: [leaf('a', 'Mia'), leaf(' a ', 'herself')] }];
@@ -19,7 +21,7 @@ test('normalization, references and inspection keep distinct whitespace-bearing 
   const stages = [state(forest, [relation]), state([{ refId: ' root ' }], [relation])];
   const result = normalize(stages);
   assert.deepEqual(result.derivationStages[1].workspaceForest[0].children.map(node => [node.id, node.word]), [['a', 'Mia'], [' a ', 'herself']]);
-  assert.deepEqual(parser.inspectDerivationWorkspaces(stages, { sentence: 'Mia herself' }).map(stage => stage.diagnostics), [[], []]);
+  assert.deepEqual(inspectDerivationWorkspaces(stages, { sentence: 'Mia herself' }).map(stage => stage.diagnostics), [[], []]);
   const mismatched = structuredClone(stages);
   mismatched[1].workspaceForest[0].refId = 'root';
   assert.throws(() => normalize(mismatched), error => error.failure?.offendingValue === 'root' && /no earlier stage defines/.test(error.message));
@@ -42,7 +44,7 @@ test('relation recognition and plan dependencies require exact anchored IDs', ()
     const mismatched = dispatchRelationClaims({ relation, currentForest: forest, stageIndex: 0, relationIndex: 0 });
     if (relationName !== 'Binding') assert(!mismatched.claims.some(claim => claim.tier < 3));
     assert(!compileRelationRenderPlan(stages).frames[0].items.some(item => item.kind === 'binding-domain'));
-    assert(parser.inspectDerivationWorkspaces(stages, { sentence: 'Mia herself' })[0].diagnostics.some(issue => issue.offendingValue === 'a'));
+    assert(inspectDerivationWorkspaces(stages, { sentence: 'Mia herself' })[0].diagnostics.some(issue => issue.offendingValue === 'a'));
   }
 });
 

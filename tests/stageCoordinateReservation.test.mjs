@@ -6,7 +6,7 @@ import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import { retainCurrentSiblingRanks, retainCurrentUnaryRank } from '../replay/currentSiblingRanks.ts';
-import { buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
+import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { buildStageCameraBounds, buildReplayPlaqueLayouts, measureStagePlaqueSpace, stageTreeLayoutSize } from '../replay/stageCamera.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';

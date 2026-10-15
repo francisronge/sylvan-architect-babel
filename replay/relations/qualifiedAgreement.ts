@@ -1,12 +1,22 @@
-import { establishesAssignment } from './assignmentContinuity.ts';
-import { normalizeTier2Synonym, relationLabelClauses, namedThematicRole, isDefaultAgreementLiteral, isExplicitTier2Role } from './tier2Synonyms.ts';
-import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetRecipes.ts';
-import { resolveOutcomeLiteral, relationAssertionFailure, relationLabelOutcome } from './outcomeResolver.ts';
-import { featureParticipantName, participantProperties, scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
 import { categoryLabel, readCategoryLabel } from '../categoryLabel.ts';
-import { hasIndependentCaseEndpoints } from './featureEvidence.ts';
-import { nominalConcordMembers } from './nominalConcord.ts';
+import { featureParticipantName, participantProperties, scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
 import { explicitCoreferenceParticipants } from './explicitCoreference.ts';
+import { hasIndependentCaseEndpoints } from './featureEvidence.ts';
+import { directedNominalConcordMembers, nominalConcordMembers } from './nominalConcord.ts';
+import {
+  establishesAssignment,
+  relationAssertionFailure,
+  relationLabelOutcome,
+  resolveOutcomeLiteral
+} from './outcomeResolver.ts';
+import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import {
+  isDefaultAgreementLiteral,
+  isExplicitTier2Role,
+  namedThematicRole,
+  normalizeTier2Synonym,
+  relationLabelClauses
+} from './tier2Synonyms.ts';
 
 const featureProperties = new Set(['features', 'feature bundle', 'agreement specification', 'agreement', 'number', 'person', 'gender']);
 const contextualParticipant = (key: string) => /\b(?:controlled|mediator|intermediary|intervener|possible|potential|hypothetical)\b/u
@@ -158,13 +168,34 @@ export function recoverQualifiedNominalConcord(evidence: Tier2FacetEvidence) {
     || !agreementAssertion(evidence) || relationAssertionFailure(evidence.relationName, 'agreement')
     || !establishesAssignment(evidence)) return [];
   const rows = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('feature.rows')
-    || entry.concepts.includes('case.literal') || /^(?:definiteness|noun class)$/u.test(normalizeTier2Synonym(entry.key)));
-  if (!rows.some(entry => !entry.concepts.includes('feature.rows')) || rows.some(entry => !entry.items.length || entry.items.some(item => !item.trim()))) return [];
+    || entry.concepts.includes('case.literal') || /^(?:morphological case|definiteness|noun class)$/u.test(normalizeTier2Synonym(entry.key)));
+  if (!rows.length || rows.some(entry => !entry.items.length || entry.items.some(item => !item.trim()))) return [];
   const typed = rows.map(entry => ({ ...entry, concepts: ['feature.rows'] }));
   const members = nominalConcordMembers({ ...evidence, authoredValues: typed });
-  if (!members.length) return [];
-  return [scopeEvidence(evidence, 'feature-sharing', members.map(entry => ({ entry, concept: 'feature.bearers' })),
+  if (members.length) return [scopeEvidence(evidence, 'feature-sharing', members.map(entry => ({ entry, concept: 'feature.bearers' })),
     rows.map(entry => ({ entry, concept: 'feature.rows' })))];
+  const anchors = evidence.authoredCurrentAnchors ?? [];
+  const controllers = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'controller');
+  const targets = anchors.filter(entry => /^agreeing (?:adjective|determiner)$/u.test(normalizeTier2Synonym(entry.key)));
+  if (anchors.length !== 2 || controllers.length !== 1 || targets.length !== 1) return [];
+  const targetCategories = new Map([
+    ['agreeing adjective', ['A', 'AP', 'Adj', 'AdjP']], ['agreeing determiner', ['D', 'DP', 'Det', 'DetP']]
+  ]).get(normalizeTier2Synonym(targets[0].key))!;
+  const targetNodes: typeof evidence.currentForest[number][] = [];
+  const visit = (node: typeof evidence.currentForest[number]) => {
+    if (targets[0].items.includes(node.id)) targetNodes.push(node); node.children?.forEach(visit);
+  };
+  evidence.currentForest.forEach(visit);
+  if (targetNodes.length !== targets[0].items.length || targetNodes.some(node =>
+    !targetCategories.includes(categoryLabel(node.label).replace(/(?:\^?0|⁰)$/u, '')))) return [];
+  // The qualified target retains its authored field. The nominal membership
+  // proof checks categories, one shared domain and absence of embedded clauses.
+  const directed = directedNominalConcordMembers({ ...evidence, authoredValues: typed,
+    authoredCurrentAnchors: [controllers[0], { ...targets[0], key: 'targets' }] });
+  if (!directed.length) return [];
+  return [scopeEvidence(evidence, 'feature.dependency', [
+    { entry: controllers[0], concept: 'feature.source' }, { entry: targets[0], concept: 'feature.target' }
+  ], rows.map(entry => ({ entry, concept: 'feature.rows' })))];
 }
 
 /** An explicit controller can supply one bundle to several named agreement

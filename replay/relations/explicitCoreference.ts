@@ -1,9 +1,9 @@
 import type { SyntaxNode } from '../../types.ts';
 import { categoryLabel, readCategoryLabel } from '../categoryLabel.ts';
 import { scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
-import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import { establishesAssignment } from './outcomeResolver.ts';
+import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
-import { establishesAssignment } from './assignmentContinuity.ts';
 
 export type ExplicitCoreferenceParticipants = {
   participants: readonly Tier2AuthoredEvidenceEntry[];

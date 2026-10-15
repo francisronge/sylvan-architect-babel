@@ -2,18 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { hierarchy } from 'd3';
 
-import {
-  compileRelationRenderPlan,
-  planItemOwnsRelationMoment,
-  visiblePlanFrameItems
-} from '../replay/relations/renderPlanCompiler.ts';
-import {
-  adaptDerivationStagesForReplay,
-  applyVizIds,
-  buildPlaybackStepsFromDerivationFrames,
-  indexHierarchyNodesByIdAndAliases,
-  isDisplayTerminalSurface
-} from '../replay/replayCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemOwnsRelationMoment } from '../replay/relations/renderPlan.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
+import { indexHierarchyNodesByIdAndAliases } from '../replay/replayCanvas.ts';
+import { applyVizIds } from '../replay/displayIdentity.ts';
+import { isDisplayTerminalNode } from '../replay/replaySurfaceNotation.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 
@@ -34,10 +30,10 @@ const forest = () => [node('root_fr', 'TP', [
 ])];
 
 test('trace t is display-terminal material even though T is a head category', () => {
-  assert.equal(isDisplayTerminalSurface('t'), true);
-  assert.equal(isDisplayTerminalSurface('t1'), true);
-  assert.equal(isDisplayTerminalSurface('T'), false);
-  assert.equal(isDisplayTerminalSurface('TP'), false);
+  assert.equal(isDisplayTerminalNode({ label: 't' }), true);
+  assert.equal(isDisplayTerminalNode({ label: 't1' }), true);
+  assert.equal(isDisplayTerminalNode({ label: 'T' }), false);
+  assert.equal(isDisplayTerminalNode({ label: 'TP' }), false);
 });
 
 test('hierarchy relation lookup accepts unique authored aliases and rejects ambiguous aliases', () => {
@@ -215,7 +211,10 @@ test('anchor availability never reorders authored relation moments', () => {
   ], [rootA, rootB])];
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(frames, undefined, replayPlan);
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames,
+    replayPlan
+  });
   const played = steps
     .filter((step) => step.replayKind === 'relation')
     .map((step) => step.replayRelationIdentity);
@@ -253,10 +252,10 @@ test('sequential relation entries get separate Replay frames while one multi-anc
   ], shared)];
   const sequentialFrames = adaptDerivationStagesForReplay(sequentialStages);
   const sequentialPlan = buildDerivationReplayPlan({ derivationStages: sequentialStages });
-  const sequentialSteps = buildPlaybackStepsFromDerivationFrames(
-    sequentialFrames,
-    undefined,
-    sequentialPlan
+  const sequentialSteps = buildPlaybackStepsFromDerivationFrames({
+    frames: sequentialFrames,
+    replayPlan: sequentialPlan
+  }
   );
   const relationFrames = sequentialSteps.filter((step) => step.replayKind === 'relation');
   assert.deepEqual(
@@ -277,10 +276,10 @@ test('sequential relation entries get separate Replay frames while one multi-anc
   }], shared)];
   const simultaneousFrames = adaptDerivationStagesForReplay(simultaneousStages);
   const simultaneousPlan = buildDerivationReplayPlan({ derivationStages: simultaneousStages });
-  const simultaneousSteps = buildPlaybackStepsFromDerivationFrames(
-    simultaneousFrames,
-    undefined,
-    simultaneousPlan
+  const simultaneousSteps = buildPlaybackStepsFromDerivationFrames({
+    frames: simultaneousFrames,
+    replayPlan: simultaneousPlan
+  }
   );
   const simultaneousRelationFrames = simultaneousSteps.filter((step) => step.replayKind === 'relation');
   assert.equal(simultaneousRelationFrames.length, 1, 'one simultaneous relation entry is one Replay frame');
@@ -308,10 +307,10 @@ test('structural relation roles use authored node categories in Replay details',
   }], improperForest)];
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const relationFrame = buildPlaybackStepsFromDerivationFrames(
+  const relationFrame = buildPlaybackStepsFromDerivationFrames({
     frames,
-    undefined,
     replayPlan
+  }
   ).find((step) => step.replayKind === 'relation');
   const block = relationFrame?.detailBlocks?.find((candidate) => candidate.title === 'Relations');
 
@@ -459,7 +458,7 @@ test('Control accepts extra context but a missing domain stays one malformed Tie
 });
 
 test('the ghost lens presentation is real: active glows below pronounced, quiet recedes below neutral', async () => {
-  const { ghostLensPresentation } = await import('../replay/relations/geometryBinding.ts');
+  const { ghostLensPresentation } = await import('../replay/relations/authoredSilence.ts');
   const active = ghostLensPresentation('active');
   const neutral = ghostLensPresentation(null);
   const quiet = ghostLensPresentation('quiet');
@@ -657,7 +656,10 @@ const deletionStages = (silent) => {
 const assertStageTwoReachable = (stages) => {
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(frames, undefined, replayPlan);
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames,
+    replayPlan
+  });
   const stageTwoMacro = steps.find((step) =>
     step.replayKind === 'macro' && Number(step.visualFrameIndex) === 1);
   assert.ok(stageTwoMacro, 'the deletion-only stage owns a reachable Stage Record state');
@@ -876,7 +878,10 @@ test('a relation moment in a node-returning stage survives the overt-material gu
   ];
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(frames, undefined, replayPlan);
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames,
+    replayPlan
+  });
   const stageThreeMoments = steps.filter((step) =>
     step.replayKind === 'relation' && step.replayRelationIdentity?.stageIndex === 2);
   assert.equal(stageThreeMoments.length, 1,
@@ -898,7 +903,7 @@ test('a relation moment in a node-returning stage survives the overt-material gu
  * ------------------------------------------------------------------ */
 
 test('each authored relation yields exactly one genuine relation moment with its exact identity', async () => {
-  const { isAuthoredRelationReplayMoment } = await import('../replay/replayCompiler.ts');
+  const { isAuthoredRelationReplayMoment } = await import('../replay/playbackVisibility.ts');
   const shared = forest();
   const stages = [
     stage([
@@ -909,7 +914,10 @@ test('each authored relation yields exactly one genuine relation moment with its
   ];
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(frames, undefined, replayPlan);
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames,
+    replayPlan
+  });
   const genuine = steps.filter(isAuthoredRelationReplayMoment);
   assert.deepEqual(
     genuine.map((step) => [step.replayRelationIdentity.stageIndex, step.replayRelationIdentity.relationIndex]),
@@ -924,8 +932,7 @@ test('each authored relation yields exactly one genuine relation moment with its
 });
 
 test('a synthetic pre-movement landing merge is structurally identified and cannot count as a played relation', async () => {
-  const { insertPreMovementLandingMergeSteps, isAuthoredRelationReplayMoment } =
-    await import('../replay/replayCompiler.ts');
+  const { insertPreMovementLandingMergeSteps, isAuthoredRelationReplayMoment } = await import('../replay/playbackVisibility.ts');
   const canvas = node('root_lm', 'TP', [
     node('land_parent_lm', 'CP', [node('land_lm', 'XP', [leaf('land_lm_l', 'X', 'x')])])
   ]);
@@ -965,8 +972,7 @@ test('a synthetic pre-movement landing merge is structurally identified and cann
 });
 
 test('a generic preserveReplayStep flag alone cannot authorize an invalid overt-material jump', async () => {
-  const { removeInvalidReplayVisibilityTransitions, isAuthoredRelationReplayMoment } =
-    await import('../replay/replayCompiler.ts');
+  const { removeInvalidReplayVisibilityTransitions, isAuthoredRelationReplayMoment } = await import('../replay/playbackVisibility.ts');
   const canvas = node('root_pg', 'TP', [
     node('dp_pg', 'DP', [leaf('dp_pg_l', 'D', 'kai')]),
     node('vp_pg', 'VP', [leaf('vp_pg_l', 'V', 'ran')])
@@ -1411,7 +1417,7 @@ test('three overlapping links take three distinct lane Ys spaced by the lane gap
  * ------------------------------------------------------------------ */
 
 test('overlay bounds include only pre-fit organizational primitives', async () => {
-  const { boundOverlayBounds } = await import('../replay/relations/geometryBinding.ts');
+  const { boundOverlayBounds } = await import('../replay/relations/geometryBounds.ts');
   const positions = new Map([
     ['a_fr', { x: 100, y: 100 }], ['b_fr', { x: 700, y: 100 }],
     ['c_fr', { x: 400, y: 100 }], ['root_fr', { x: 400, y: 0 }],
@@ -1482,7 +1488,7 @@ test('overlay bounds include only pre-fit organizational primitives', async () =
 const aliasAnchorsFor = (low, witness, high) => ({ lowerCopy: low, traceWitness: witness, pronouncedCopy: high });
 
 test('very wide and fanned trajectories remain exact post-fit paths without camera bounds', async () => {
-  const { boundOverlayBounds } = await import('../replay/relations/geometryBinding.ts');
+  const { boundOverlayBounds } = await import('../replay/relations/geometryBounds.ts');
   const wideTree = node('cp_w', 'CP', [
     node('dp_hi_w', 'DP', [leaf('d_hi_w', 'D', 'what')]),
     node('tp_w', 'TP', [
@@ -1518,7 +1524,7 @@ test('very wide and fanned trajectories remain exact post-fit paths without came
 });
 
 test('authored path labels remain post-fit regardless of their length', async () => {
-  const { boundOverlayBounds } = await import('../replay/relations/geometryBinding.ts');
+  const { boundOverlayBounds } = await import('../replay/relations/geometryBounds.ts');
   const positions = new Map([
     ['a_fr', { x: 0, y: 100 }], ['b_fr', { x: 100, y: 100 }],
     ['c_fr', { x: 900, y: 100 }], ['site_fr', { x: 1000, y: 100 }]
@@ -1552,7 +1558,7 @@ test('authored path labels remain post-fit regardless of their length', async ()
 });
 
 test('a left-edge TransferDomain label and a long index are fully inside the bounds', async () => {
-  const { boundOverlayBounds } = await import('../replay/relations/geometryBinding.ts');
+  const { boundOverlayBounds } = await import('../replay/relations/geometryBounds.ts');
   const positions = new Map([
     ['a_fr', { x: 0, y: 100 }], ['b_fr', { x: 200, y: 100 }],
     ['root_fr', { x: 100, y: 0 }], ['c_fr', { x: 400, y: 100 }]
@@ -1587,7 +1593,7 @@ test('a left-edge TransferDomain label and a long index are fully inside the bou
 });
 
 test('composite indices stay post-fit and never resize the tree', async () => {
-  const { boundOverlayBounds } = await import('../replay/relations/geometryBinding.ts');
+  const { boundOverlayBounds } = await import('../replay/relations/geometryBounds.ts');
   // Long lineage keys produce long composite display indices only through
   // authored data; simulate by binding frames whose chain index strings
   // differ in length via increasing chain counts on the same rightmost node.
@@ -1626,7 +1632,7 @@ test('composite indices stay post-fit and never resize the tree', async () => {
  * ------------------------------------------------------------------ */
 
 test('terminal resolution: anchor-terminal, unique, none, and ambiguous cases', async () => {
-  const { resolveUniqueDisplayTerminal } = await import('../replay/relations/geometryBinding.ts');
+  const { resolveUniqueDisplayTerminal } = await import('../replay/relations/trajectoryAttachment.ts');
   const terminal = (id) => ({ id, word: id, children: [] });
   const wrap = (id, children) => ({ id, children });
   const childrenOf = (n) => n.children || [];

@@ -1,15 +1,17 @@
-import {identityLabelTarget,thetaLabelTarget,identityIndexAction,thetaLabelBase,treeLabelIndexAttributes} from '../replay/treeLabelRuns.ts';
-import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import test from 'node:test';
-import ts from 'typescript';
 import { hierarchy } from 'd3';
-import { __test__ } from '../server/babelParser.js';
+import assert from 'node:assert/strict';
+import test, { after } from 'node:test';
+import { createBindingDrawing } from '../components/renderer/bindingDrawing.ts';
+import { acceptedRelationDrawingKey, relationLayerKey } from '../components/renderer/relationOwnership.ts';
+import { createThetaDrawing } from '../components/renderer/thetaDrawing.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { compileRelationRenderPlan, planItemRelationRefs } from '../replay/relations/renderPlanCompiler.ts';
-import { bindRelationPlanFrame, boundOverlayBounds } from '../replay/relations/geometryBinding.ts';
-import { extractDisplayedSubscriptIndex, extractMovementIndex } from '../replay/replayCompiler.ts';
-import { mergeIdentityOwners } from '../components/identityForestLight.ts';
+import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { boundOverlayBounds } from '../replay/relations/geometryBounds.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { extractDisplayedSubscriptIndex, extractMovementIndex } from '../replay/replaySurfaceNotation.ts';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { createSvgDom, descendants, select } from './helpers/svgDom.mjs';
 
 const leaf = (id, word = id) => ({ id, label: 'N', word, children: [] });
 const forest = [{ id: 'root', label: 'XP', children: [leaf('alpha'), leaf('beta'), leaf('unrelated')] }];
@@ -23,7 +25,7 @@ test('public canonical and recovered identity retain the authored coindex throug
   for (const name of ['Identity', 'An unfamiliar identity assertion']) {
     const authored = { derivationStages: [stage([relation(name)])] };
     const before = structuredClone(authored);
-    const bundle = __test__.normalizeParseBundle(authored, 'xbar', 'alpha beta unrelated', 'grok', true);
+    const bundle = normalizeParseBundle(authored, 'xbar', 'alpha beta unrelated', 'grok', true);
     const prepared = prepareReplay({ derivationStages: bundle.analyses[0].derivationStages,
       sentence: 'alpha beta unrelated', includePlayback: true });
     const plan = prepared.relationRenderPlan;
@@ -59,68 +61,41 @@ test('conflicting and empty authored identity indices remain neutral instead of 
   }
 });
 
-// Execute the production identity block. Browser evidence remains responsible for font pixels.
-const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
-const parsed = ts.createSourceFile('TreeVisualizer.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-let identityBranch, thetaCallback;
-const visit = node => {
-  if (ts.isIfStatement(node) && node.expression.getText(parsed) === "primitive.type === 'identity-lens'") identityBranch = node.thenStatement;
-  if (ts.isFunctionExpression(node) && node.name?.getText(parsed) === 'appendThetaIndex') thetaCallback = node;
-  ts.forEachChild(node, visit);
-};
-visit(parsed);
-assert(identityBranch);
-class Element {
-  constructor(tag, attrs = {}, text = '', datum) { this.tag = tag; this.attrs = attrs; this.text = text; this.datum = datum; this.children = []; }
-  get textContent() { return this.text + this.children.map(child => child.textContent).join(''); }
-  setAttribute(name, value) { this.attrs[name] = String(value); }
-  getAttribute(name) { return this.attrs[name] ?? null; }
-  appendChild(child) { this.children.push(child); }
-}
-const descendants = node => node.children.flatMap(child => [child, ...descendants(child)]);
-class Selection {
-  constructor(nodes) { this.items = nodes; }
-  node() { return this.items[0] ?? null; }
-  nodes() { return this.items; }
-  size() { return this.items.length; }
-  append(tag) { return new Selection(this.items.map(parent => { const node = new Element(tag); parent.children.push(node); return node; })); }
-  attr(name, value) { if (arguments.length === 1) return this.node()?.getAttribute(name); this.items.forEach(node => { node.attrs[name] = String(value); }); return this; }
-  text(value) { this.items.forEach(node => { node.text = String(value); node.children = []; }); return this; }
-  classed(name, enabled) { this.items.forEach(node => { const classes = new Set((node.attrs.class || '').split(' ').filter(Boolean)); enabled ? classes.add(name) : classes.delete(name); node.attrs.class = [...classes].join(' '); }); return this; }
-  selectAll(selector) { return new Selection(this.items.flatMap(descendants).filter(node => selector.split(',').some(part => (node.attrs.class || '').split(' ').includes(part.trim().slice(1))))); }
-  filter(fn) { return new Selection(this.items.filter(node => fn.call(node, node.datum))); }
-  each(fn) { this.items.forEach(node => fn.call(node, node.datum)); return this; }
-}
-const select = node => new Selection([node]);
+const { Element, restore } = createSvgDom();
+after(restore);
 function painter(workspace = forest) {
   const root = new Element('g');
   const nodes = new Map(workspace.flatMap(tree => hierarchy(tree).descendants()).map(node => [node.data.id, node]));
   for (const node of nodes.values()) {
     const word = Boolean(node.data.word);
-    root.children.push(new Element('text', { class: word ? 'terminal-label' : 'category-label', 'data-default-label': word ? node.data.word : node.data.label,
-      [word ? 'data-node-id' : 'data-category-node-id']: node.data.id }, word ? node.data.word : node.data.label, node));
+    const label = new Element('text', { class: word ? 'terminal-label' : 'category-label', 'data-default-label': word ? node.data.word : node.data.label,
+      [word ? 'data-node-id' : 'data-category-node-id']: node.data.id }, node);
+    label.text = word ? node.data.word : node.data.label;
+    root.appendChild(label);
   }
   for (const node of nodes.values()) node.__vizId = node.data.id;
   const owners = new Map(), lights = [], decorations = new Map();
-  const dependencies = { identityLabelTarget, thetaLabelTarget, identityIndexAction, thetaLabelBase, treeLabelIndexAttributes, terminalAmbiguities: new Map(),
-    g: select(root), d3: { select }, resolveOverlayAnchor: id => nodes.get(id),
-    getNodeId: node => node.data.id,
-    labelBelongsToNode: (element, id) => element.getAttribute('data-node-id') === id || element.getAttribute('data-category-node-id') === id,
-    extractDisplayedSubscriptIndex, mergeIdentityOwners, planItemRelationRefs,
+  const dependencies = { terminalAmbiguities: new Map(),
+    g: select(root), resolveOverlayAnchor: id => nodes.get(id),
     identityTerminalOwners: owners, identityForestLightFamilies: lights,
     decorateRelationElement: (element, item) => decorations.set(element, item), relationEmphasisForItem: () => null,
-    markIdentityLensOccurrences() {}, emphasis: null
+    markIdentityLensOccurrences() {}
   };
-  const draw = new Function(...Object.keys(dependencies), 'primitive', 'planItem',
-    ts.transpile(identityBranch.getText(parsed), { target: ts.ScriptTarget.ES2023 }));
-  const drawTheta = new Function(...Object.keys(dependencies), 'role', 'rowOwner', 'roleIsEntirelyTraces',
-    ts.transpile(`return (${thetaCallback.getText(parsed)});`, { target: ts.ScriptTarget.ES2023 }));
+  const draw = createBindingDrawing(dependencies).drawIdentityLens;
+  const theta = (id, index, item, deferred) => {
+    const grid = { ...item, kind: 'node-plaque', familyId: 'theta.grid', plaqueStyle: 'theta-grid',
+      anchorNodeIds: [id], thetaRoles: [{ nodeId: id, label: 'Theme', index }] };
+    const context = { ...dependencies, relationLayerKey, acceptedRelationDrawingKey,
+      scheduledAcceptedPfRelations: new Set(), frameItems: [grid],
+      svg: select(new Element('svg')), replayPlaqueLayout: new Map([[0, { x: 400, y: 500 }]]),
+      queueAcceptedRelationDraw: (_item, _emphasis, callback) => deferred ? deferred.push(callback) : callback() };
+    return createThetaDrawing(context).scheduleAcceptedThetaGrid(grid, null);
+  };
   return { root, lights, decorations,
-    drawTheta: (id, index, item) => drawTheta(...Object.values(dependencies), { index }, item, false)
-      .call(root.children.find(label => label.attrs['data-node-id'] === id)),
-    draw: item => draw(...Object.values(dependencies), {
-    type: 'identity-lens', nodeIds: item.nodeIds, index: item.index, itemIndex: 0
-  }, item) };
+    drawTheta: (id, index, item) => theta(id, index, item),
+    queueTheta: (id, index, item, deferred) => theta(id, index, item, deferred),
+    draw: item => draw({ type: 'identity-lens', nodeIds: item.nodeIds, index: item.index, itemIndex: 0 },
+      item, select(root), null) };
 }
 const marks = root => descendants(root).filter(element => (element.attrs.class || '').split(' ').includes('babel-identity-index'));
 
@@ -202,7 +177,7 @@ test('the public identity atlas literal words retain two coindices through norma
   const authored = { derivationStages: [{ ...stage([relation('UnknownFacet:identity.occurrences', { index: '1' }, ids)]),
     workspaceForest: [{ id: 'root_identity.occurrences', label: 'XP', children: ids.map(id => leaf(id)) }] }] };
   const before = structuredClone(authored);
-  const bundle = __test__.normalizeParseBundle(authored, 'xbar', ids.join(' '), 'grok', true);
+  const bundle = normalizeParseBundle(authored, 'xbar', ids.join(' '), 'grok', true);
   const stages = bundle.analyses[0].derivationStages;
   const plan = prepareReplay({ derivationStages: stages, sentence: ids.join(' '), includePlayback: true }).relationRenderPlan;
   const [item] = identityItems(plan);
@@ -274,39 +249,19 @@ test('the later production Theta callback preserves identity notation and shares
 });
 
 test('the production Theta scheduler defers its index until after inline identity in either authored order', () => {
-  const initializer = name => {
-    let result;
-    const find = node => {
-      if (ts.isVariableDeclaration(node) && node.name.getText(parsed) === name) result = node.initializer;
-      ts.forEachChild(node, find);
-    };
-    find(parsed);
-    assert(result, `${name} must be the production scheduling function`);
-    return result.getText(parsed);
-  };
   const identity = identityItems(compileRelationRenderPlan([stage([relation()])]))[0];
   const theta = { ...identity, familyId: 'theta.grid', relationRef: { ...identity.relationRef, relationIndex: 2 } };
   for (const order of [[theta, identity], [identity, theta]]) {
     const paint = painter(), deferred = [];
-    const queueAcceptedRelationDraw = new Function('deferredAcceptedRelationDraws',
-      ts.transpile(`return (${initializer('queueAcceptedRelationDraw')});`, { target: ts.ScriptTarget.ES2023 }))(deferred);
-    const key = item => JSON.stringify(item.relationRef);
-    const schedule = new Function('scheduledAcceptedPfRelations', 'relationLayerKey', 'acceptedRelationDrawingKey', 'queueAcceptedRelationDraw',
-      ts.transpile(`return (${initializer('scheduleAcceptedThetaGrid')});`, { target: ts.ScriptTarget.ES2023 }))(
-        new Set(), key, key, queueAcceptedRelationDraw);
     for (const item of order) {
-      if (!schedule(item, null)) paint.draw(item);
+      if (item.familyId === 'theta.grid') paint.queueTheta('alpha', 'k', item, deferred);
+      else paint.draw(item);
     }
     const alpha = paint.root.children.find(label => label.attrs['data-node-id'] === 'alpha');
     assert.equal(deferred.length, 1, 'production scheduling queues Theta instead of drawing it inline');
     assert.deepEqual(alpha.children.map(span => span.textContent), ['k']);
-    // Exercise the actual index callback inside the deferred Theta work.
-    paint.drawTheta('alpha', 'k', theta);
+    deferred.forEach(draw => draw());
     assert.deepEqual(alpha.children.map(span => span.textContent), ['k']);
     assert.deepEqual(planItemRelationRefs(paint.decorations.get(alpha.children[0])).map(ref => ref.relationIndex), [0, 2]);
   }
-  assert(source.indexOf('deferredAcceptedRelationDraws.forEach((draw) => draw())') > identityBranch.end,
-    'deferred drawing is flushed after the inline identity block');
-  assert(source.indexOf("svg.selectAll('*').remove()") < identityBranch.pos,
-    'each render rebuilds labels rather than retaining a previously painted Theta span');
 });

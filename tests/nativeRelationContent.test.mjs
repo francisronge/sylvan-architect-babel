@@ -1,26 +1,28 @@
-import {thetaLabelTarget,thetaLabelBase,treeLabelIndexAttributes} from '../replay/treeLabelRuns.ts';
-import { dependentCaseStatePlaques } from '../replay/relations/markGeometry.ts';
-import postcss from 'postcss';
-import assert from 'node:assert/strict';
-import { isReplayDisplayChild } from '../replay/displayIdentity.ts';
-import { readFileSync } from 'node:fs';
-import test from 'node:test';
-import ts from 'typescript';
 import { hierarchy } from 'd3';
-import {
-  compileRelationRenderPlan,
-  resolveDisplayedTrajectoryAttachments
-} from '../replay/relations/renderPlanCompiler.ts';
-import { nativeLinearizationPlateHeight, prepareNativePlaqueContent } from '../replay/relations/nativeDrawingContent.ts';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test, { after } from 'node:test';
+import postcss from 'postcss';
+import { createLinearizationDrawing } from '../components/renderer/linearizationDrawing.ts';
+import { createRealizationDrawing } from '../components/renderer/realizationDrawing.ts';
+import { acceptedRelationDrawingKey, relationLayerKey } from '../components/renderer/relationOwnership.ts';
+import { createScopeDrawing } from '../components/renderer/scopeDrawing.ts';
+import { createShapeDrawing } from '../components/renderer/shapeDrawing.ts';
+import { createSharingDrawing } from '../components/renderer/sharingDrawing.ts';
+import { createThetaDrawing } from '../components/renderer/thetaDrawing.ts';
+import { labelBelongsToNode } from '../components/renderer/treeMeasurements.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
-import { planAnchorSetLayout } from '../replay/relations/overlayGeometry.ts';
-import { availableTreeViewport, linearizationViewport } from '../components/treeViewport.ts';
-import { detachedPlaqueOrigin } from '../components/detachedPlaquePlacement.ts';
+import { nativeLinearizationPlateHeight, prepareNativePlaqueContent } from '../replay/relations/nativeDrawingContent.ts';
+import { thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
+import { resolveDisplayedTrajectoryAttachments } from '../replay/relations/renderPlan.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { buildStagePlaqueLayout } from '../replay/stageCamera.ts';
-import { buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
-import { wrapPlaqueText, prepareThetaGridTextLayout } from '../replay/relations/plaqueTextLayout.ts';
-import { thetaGridPredicateLabel } from '../replay/relations/plaquePlacement.ts';
+import { createSvgDom, descendants, matches, select } from './helpers/svgDom.mjs';
+
+const { Element, restore } = createSvgDom();
+after(restore);
 
 test('theta grids label their exact predicate instead of choosing a word from a branching phrase', () => {
   const word = { id: 'word', label: 'V', word: 'read', children: [] };
@@ -36,23 +38,9 @@ test('theta grids label their exact predicate instead of choosing a word from a 
   assert.equal(thetaGridPredicateLabel(hierarchy({ label: 'V trace', children: [] })), 'V trace');
 });
 
-const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
-const parsed = ts.createSourceFile('TreeVisualizer.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-const declaration = (name) => {
-  let found;
-  const visit = (node) => {
-    if (ts.isVariableDeclaration(node) && node.name.getText(parsed) === name) found = node.initializer;
-    ts.forEachChild(node, visit);
-  };
-  visit(parsed);
-  assert.ok(found, `${name} must be the production drawing function`);
-  return ts.transpile(`const draw = ${found.getText(parsed)};`, { target: ts.ScriptTarget.ES2023 });
-};
-
 test('label ownership follows exact IDs and derived provenance, never an authored prefix', () => {
-  const matches = new Function('d3', 'isReplayDisplayChild', `${declaration('labelBelongsToNode')} return draw;`)(
-    { select: element => ({ datum: () => element.datum }) }, isReplayDisplayChild);
-  const label = data => ({ datum: { data }, getAttribute: name => name === 'data-node-id' ? data.id : null });
+  const matches = labelBelongsToNode;
+  const label = data => ({ __data__: { data }, getAttribute: name => name === 'data-node-id' ? data.id : null });
   const authored = label({ id: 'head::__leaf', label: 'N' });
   assert.equal(matches(authored, 'head'), false);
   assert.equal(matches(authored, 'head::__leaf'), true);
@@ -61,71 +49,6 @@ test('label ownership follows exact IDs and derived provenance, never an authore
   assert.equal(matches(generated, 'head::__leaf'), false);
   assert.equal(matches(label({ id: 'display', label: 'read', aliasIds: ['authored-word'] }), 'authored-word'), true);
 });
-
-// Execute the production drawing function with a minimal SVG/selection double.
-// Browser checks verify geometry and styling.
-class Element {
-  constructor(tag, attrs = {}, datum) {
-    this.tag = tag;
-    this.attrs = attrs;
-    this.datum = datum;
-    this.children = [];
-    this.textContent = '';
-    this.rect = { left: 0, top: 0, right: 50, bottom: 30, width: 50, height: 30 };
-  }
-  getAttribute(name) { return this.attrs[name] ?? null; }
-  setAttribute(name, value) { this.attrs[name] = String(value); }
-  getBoundingClientRect() { return this.rect; }
-  getScreenCTM() { return { a: 1, b: 0, inverse() { return this; } }; }
-  appendChild(node) { node.parentNode = this; this.children.push(node); }
-  insertBefore(node, before) {
-    node.parentNode = this;
-    const index = this.children.indexOf(before);
-    this.children.splice(index < 0 ? this.children.length : index, 0, node);
-  }
-}
-const descendants = (node) => node.children.flatMap((child) => [child, ...descendants(child)]);
-const matches = (node, selector) => selector.split(',').some((part) =>
-  part.trim().split('.').filter(Boolean).every((name) => (node.attrs.class || '').split(' ').includes(name)));
-class Selection {
-  constructor(nodes) { this.items = nodes; }
-  node() { return this.items[0] || null; }
-  nodes() { return this.items; }
-  datum() { return this.node()?.datum; }
-  append(tag) {
-    return new Selection(this.items.map((parent) => {
-      const node = new Element(tag);
-      parent.appendChild(node);
-      return node;
-    }));
-  }
-  attr(name, value) {
-    if (arguments.length === 1) return this.node()?.getAttribute(name);
-    this.items.forEach((node) => value === null ? delete node.attrs[name] : node.setAttribute(name, value));
-    return this;
-  }
-  style() { return this; }
-  text(value) {
-    this.items.forEach((node) => { node.textContent = String(value); node.children = []; });
-    return this;
-  }
-  classed(name, enabled) {
-    this.items.forEach((node) => {
-      const classes = new Set((node.attrs.class || '').split(' ').filter(Boolean));
-      enabled ? classes.add(name) : classes.delete(name);
-      node.attrs.class = [...classes].join(' ');
-    });
-    return this;
-  }
-  selectAll(selector) { return new Selection(this.items.flatMap(descendants).filter((node) => matches(node, selector))); }
-  select(selector) { return new Selection(this.selectAll(selector).items.slice(0, 1)); }
-  filter(callback) { return new Selection(this.items.filter((node, index) => callback.call(node, node.datum, index))); }
-  each(callback) { this.items.forEach((node, index) => callback.call(node, node.datum, index)); return this; }
-  remove() {
-    this.items.forEach((node) => { if (node.parentNode) node.parentNode.children = node.parentNode.children.filter((child) => child !== node); });
-    return this;
-  }
-}
 
 const forest = [{ id: 'root', label: 'DP', children: [{ id: 'mid', label: 'NP', children: [
   { id: 'a', label: 'N', word: 'Mia', tokenIndex: 0, children: [] }
@@ -142,6 +65,7 @@ function drawNative(name, items, workspaceForest = forest, drawItems = items, ov
   const treeData = hierarchy(workspaceForest[0]);
   const byId = new Map(treeData.descendants().map((node) => [node.data.id, node]));
   treeData.descendants().forEach((node, index) => {
+    node.__vizId = node.data.id;
     for (const kind of ['category', ...(node.data.word ? ['terminal'] : [])]) {
       const label = new Element('text', { class: `${kind}-label`,
         [kind === 'category' ? 'data-category-node-id' : 'data-node-id']: node.data.id }, node);
@@ -152,53 +76,41 @@ function drawNative(name, items, workspaceForest = forest, drawItems = items, ov
       root.appendChild(label);
     }
   });
-  const g = new Selection([root]);
+  const g = select(root);
   const svgElement = new Element('svg');
   svgElement.rect = { left: 0, top: 0, right: 1600, bottom: 1100, width: 1600, height: 1100 };
-  const dependencies = { thetaLabelTarget, thetaLabelBase, treeLabelIndexAttributes,
-    g, svg: new Selection([svgElement]), frameItems: guarded(items), drawItems: guarded(drawItems), treeData,
+  const dependencies = {
+    g, svg: select(svgElement), frameItems: guarded(items), treeData,
     overlayNodeById: byId, resolveOverlayAnchor: (id) => byId.get(id),
     replayPlaqueLayout: new Map(items.map((_, index) => [index,
       { x: 400, y: 500 + index * 150, width: 430, height: 126, location: 'local', domainId: 'root' }])),
-    relationLayerKey: (item) => `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`,
-    dependentCaseStatePlaques, detachedPlaqueOrigin, deferredRelationCamera: null,
-    wrapPlaqueText, prepareThetaGridTextLayout, thetaGridPredicateLabel,
-    drawPlaqueText: new Function(`${declaration('drawPlaqueText')} return draw;`)(),
-    withPlaqueTextMeasure: (_svg, useMeasure) => useMeasure(text => ({ width: [...text].length * 4.2 })),
+    relationLayerKey,
+    deferredRelationCamera: null,
     queueAcceptedRelationDraw: (_item, _emphasis, callback) => callback(),
     decorateRelationElement() {},
     measureGraphicsElementsInTreeSpace: elements => elements.length ? ({ x: 0, y: 0, width: 260, height: 280 }) : null,
     exactScreenTreeLabelRectNow: () => ({ x: 0, y: 0, width: 260, height: 280 }),
     exactScreenDirectTreeLabelRectNow: () => ({ x: 0, y: 0, width: 50, height: 30 }),
     exactScreenTreeLabelRectForNodeIdsNow: () => ({ x: 0, y: 0, width: 260, height: 280 }),
-    getNodeId: (node) => node.data.id, isReplayDisplayChild,
     markPreterminalLensNode() {}, markSubtreeLensNodes() {},
     isDisplayTerminalNode: (node) => Boolean(node.data.word),
-    resolveLeafSurface: (node) => node.data.word || node.data.label,
-    isTraceLike: () => false,
-    isNullLike: (value) => value === '∅',
     fitDeferredOverlayToCompactViewport() {},
-    planAnchorSetLayout, nativeLinearizationPlateHeight,
-    getComputedStyle: () => ({ display: 'block', visibility: 'visible', opacity: '1' }),
-    containerWidth: 1600, containerRef: { current: null }, uiBounds: {}, availableTreeViewport, linearizationViewport,
-    d3: { select: (node) => new Selection([node]) },
-    document: { createElementNS: (_namespace, tag) => new Element(tag) },
-    DOMPoint: class {
-      constructor(x, y) { this.x = x; this.y = y; }
-      matrixTransform() { return this; }
-    },
+    containerWidth: 1600, containerRef: { current: null }, uiBounds: {},
     ...overrides
   };
-  const run = new Function(...Object.keys(dependencies), `
-    const scheduledAcceptedPfRelations = new Set();
-    const scheduledAcceptedSharingRelations = new Set();
-    let scopeInformationPathLayer = null, scopeInformationMarkLayer = null;
-    const labelBelongsToNode = (() => { ${declaration('labelBelongsToNode')} return draw; })();
-    const acceptedRelationDrawingKey = (() => { ${declaration('acceptedRelationDrawingKey')} return draw; })();
-    ${declaration(name)}
-    for (const item of drawItems) draw(item, null);
-  `);
-  run(...Object.values(dependencies));
+  const context = { ...dependencies, labelBelongsToNode, acceptedRelationDrawingKey,
+    scheduledAcceptedPfRelations: new Set(), identityTerminalOwners: new Map(),
+    relationEmphasisForItem: () => null, getDeferredRelationCamera: () => dependencies.deferredRelationCamera };
+  const factories = {
+    scheduleAcceptedScopeInformationRelation: createScopeDrawing,
+    scheduleAcceptedSharingRelation: createSharingDrawing,
+    scheduleAcceptedThetaGrid: createThetaDrawing,
+    scheduleAcceptedCyclicLinearization: createLinearizationDrawing,
+    scheduleAcceptedPfRelation: createRealizationDrawing,
+    scheduleAcceptedPfMorphologyRelation: createRealizationDrawing
+  };
+  const draw = factories[name](context)[name];
+  for (const item of guarded(drawItems)) draw(item, null);
   return (className) => descendants(root).filter((node) => matches(node, `.${className}`));
 }
 
@@ -393,15 +305,6 @@ test('native cyclic comparison does not depend on a large-array rail', () => {
 });
 
 test('native dependent-case elbow uses the prepared step, including the unchanged absent-step default', () => {
-  let branch;
-  const visit = (node) => {
-    if (ts.isIfStatement(node) && node.expression.getText(parsed) === "primitive.shapeStyle === 'dependent-case'") {
-      branch = node.thenStatement;
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(parsed);
-  assert.ok(branch);
   const elbows = [];
   for (const stepValue of ['1', ['1'], '2', undefined]) {
     const plan = compile({ relation: 'DependentCase', anchors: { searcher: 'a', licensee: 'mid' },
@@ -412,13 +315,11 @@ test('native dependent-case elbow uses the prepared step, including the unchange
     assert.ok(primitive);
     const root = new Element('g');
     const rectFor = (id) => ({ x: id === 'a' ? 100 : 350, y: id === 'a' ? 100 : 280, width: 50, height: 30 });
-    const dependencies = { thetaLabelTarget, thetaLabelBase, treeLabelIndexAttributes, planItem: guarded([item])[0], primitive, emphasis: null, opacity: null,
-      dependentCaseStatePlaques,
-    queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(),
-      acceptedAnchorRect: rectFor, acceptedTerminalRect: rectFor,
-      ensureAgreementCaseRelationLayer: () => new Selection([root]), markPreterminalLensNode() {} };
-    new Function(...Object.keys(dependencies), ts.transpile(branch.getText(parsed), { target: ts.ScriptTarget.ES2023 }))
-      (...Object.values(dependencies));
+    const dependencies = {
+      queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(),
+      ensureAgreementCaseRelationLayer: () => select(root), markPreterminalLensNode() {} };
+    createShapeDrawing({ ...dependencies, measuredTreeLabelRectNow: rectFor, measuredTerminalSubtreeRectNow: rectFor })
+      .drawShapePath(primitive, guarded([item])[0], select(root), null);
     const nodes = descendants(root);
     assert.deepEqual(nodes.filter((node) => node.tag === 'text').map((node) => node.textContent), ['UNM', 'ACC']);
     elbows.push(nodes.find((node) => node.attrs.class === 'babel-dependent-case-elbow').attrs.d);
@@ -461,8 +362,7 @@ test('native theta reserves and paints the same content-sized grid for both tier
     const gridIndex = items.findIndex(item => item.plaqueStyle === 'theta-grid');
     assert(gridIndex >= 0);
     const box = layout.get(gridIndex);
-    const svg = drawNative('scheduleAcceptedThetaGrid', items, forest, items, { replayPlaqueLayout: layout,
-      withPlaqueTextMeasure: (_svg, useMeasure) => useMeasure(measureText) });
+    const svg = drawNative('scheduleAcceptedThetaGrid', items, forest, items, { replayPlaqueLayout: layout });
     const shell = svg('babel-theta-grid-shell')[0];
     assert(Math.abs(Number(shell.attrs.width) - box.width) < 0.051);
     assert.equal(Number(shell.attrs.height), box.height);
@@ -570,7 +470,7 @@ test('a morphology panel uses the destination camera while the visible camera is
     } };
   } });
   const drawing = drawNative('scheduleAcceptedPfMorphologyRelation', plan.frames[0].items, forest,
-    plan.frames[0].items, { svg: new Selection([svgElement]), deferredRelationCamera: { x: 90, y: 70, k: 0.5 } });
+    plan.frames[0].items, { svg: select(svgElement), deferredRelationCamera: { x: 90, y: 70, k: 0.5 } });
   assert.deepEqual(calls, [['translate', 90, 70], ['scale', 0.5]]);
   assert.equal(drawing('babel-pf-morphology-shell').length, 1);
 });
@@ -647,29 +547,20 @@ test('native Tier2 PF regrouping draws authored partitions while syntax stays un
 });
 
 test('native cyclic badges preserve authored labels without doubling the cycle prefix', () => {
-  let branch;
-  const visit = node => {
-    if (!branch && ts.isIfStatement(node)
-      && node.expression.getText(parsed).includes("primitive.shapeStyle === 'agree-multiple'")) branch = node;
-    ts.forEachChild(node, visit);
-  };
-  visit(parsed);
-  assert.ok(branch);
-  const code = ts.transpile(branch.getText(parsed), { target: ts.ScriptTarget.ES2023 });
   for (const [cycle, expected] of [['1', 'C1'], ['C1', 'C1'], ['first pass', 'first pass']]) {
     const root = new Element('g');
-    const layer = new Selection([root]);
+    const layer = select(root);
     const item = { kind: 'directed-path', fromNodeId: 'probe', toNodeId: 'goal', label: cycle,
       secondaryLabel: 'licensed' };
-    const dependencies = { thetaLabelTarget, thetaLabelBase, treeLabelIndexAttributes,
-      primitive: { type: 'shape-path', shapeStyle: 'agree-cyclic', itemIndex: 0, badge: { text: cycle } },
-      planItem: item, queueAcceptedRelationDraw: (_item, _emphasis, callback) => callback(),
-      emphasis: null, opacity: null, activeDerivationFrameIndex: 0, refValue: () => cycle, frameItems: [item],
-      acceptedAnchorRect: id => id === 'probe'
-        ? { x: 0, y: 0, width: 50, height: 30 } : { x: 200, y: 100, width: 50, height: 30 },
+    const primitive = { type: 'shape-path', shapeStyle: 'agree-cyclic', itemIndex: 0, badge: { text: cycle } };
+    const anchorRect = id => id === 'probe'
+      ? { x: 0, y: 0, width: 50, height: 30 } : { x: 200, y: 100, width: 50, height: 30 };
+    createShapeDrawing({
+      queueAcceptedRelationDraw: (_item, _emphasis, callback) => callback(),
+      activeDerivationFrameIndex: 0, frameItems: [item],
+      measuredTreeLabelRectNow: anchorRect, measuredTerminalSubtreeRectNow: anchorRect,
       ensureAgreementCaseRelationLayer: () => layer
-    };
-    new Function(...Object.keys(dependencies), code)(...Object.values(dependencies));
+    }).drawShapePath(primitive, item, layer, null);
     assert.deepEqual(descendants(root).filter(node => matches(node, '.babel-relation-index'))
       .map(node => node.textContent), [expected]);
   }

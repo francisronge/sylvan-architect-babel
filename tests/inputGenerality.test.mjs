@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { __test__ } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import {
   caseSurfaceInitial,
   normalizeSurfaceToken,
   tokenizeSentenceSurfaceOrder
 } from '../server/babelParser/surfaceTokens.js';
-import { maybeLowercaseSentenceInitialFunctionSurface, normalizeToken, tokenizeReplaySentenceSurface } from '../replay/replayCompiler.ts';
+import { maybeLowercaseSentenceInitialFunctionSurface } from '../replay/replayCasing.ts';
+import { normalizeToken } from '../replay/syntaxForest.ts';
+import { resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 
 const cases = [
   {
@@ -85,7 +87,7 @@ const cases = [
 test('parser and replay tokenizers preserve general input surfaces identically', () => {
   for (const fixture of cases) {
     const parserTokens = tokenizeSentenceSurfaceOrder(fixture.input);
-    const replayTokens = tokenizeReplaySentenceSurface(fixture.input, parserTokens);
+    const replayTokens = resolveSavedInputTokens(fixture.input, parserTokens);
     assert.deepEqual(parserTokens, fixture.expected, fixture.name);
     assert.deepEqual(replayTokens, fixture.expected, `${fixture.name} replay`);
     assert.deepEqual(replayTokens, parserTokens, `${fixture.name} parser/replay parity`);
@@ -165,7 +167,7 @@ test('emoji survives the complete final-stage alignment path', () => {
       }
     ]
   };
-  const bundle = __test__.normalizeParseBundle(
+  const bundle = normalizeParseBundle(
     payload,
     'xbar',
     '🙂',
@@ -199,7 +201,7 @@ test('symbol alignment still rejects a different authored surface', () => {
     ]
   };
   assert.throws(
-    () => __test__.normalizeParseBundle(
+    () => normalizeParseBundle(
       payload,
       'xbar',
       '🙂',

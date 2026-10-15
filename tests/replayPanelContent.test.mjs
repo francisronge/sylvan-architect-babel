@@ -2,16 +2,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { spaceAuthoredName } from '../replay/displayText.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
+import { buildReplayPanelContent, buildReplaySupportLines } from '../replay/replayPanel.ts';
 import {
-  adaptDerivationStagesForReplay,
-  buildPlaybackStepsFromDerivationFrames,
-  buildReplayPanelContent,
-  buildReplaySupportLines,
   formatOperationLabel,
   formatPlaybackOperationTitle,
   formatReplayBlockLine,
   formatReplayBlockTitle
-} from '../replay/replayCompiler.ts';
+} from '../replay/replayPanelFormatting.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 
@@ -295,7 +294,10 @@ test('the saved Astra licensing conflict remains stored without appearing in the
   const record = saved.find(record => record.name === 'astra-xbar');
   const stages = record.derivationStages;
   const plan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(adaptDerivationStagesForReplay(stages), undefined, plan);
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    replayPlan: plan
+  });
   const licensing = steps.find(step => step.replayRelationIdentity?.stageIndex === 4 && step.replayRelationIdentity?.relationIndex === 0);
   assert.match(licensing.movementDiagnostics.join('\n'), /Stage 5, relation 1 \(wh licensing\) requires frontedNP before relation 2/);
   assert.equal(buildReplayPanelContent(licensing, stages).supportLines.some(line => line.label === 'Audit'), false);
@@ -304,7 +306,10 @@ for (const record of saved) {
   test(`${record.name}: every compiled relation panel resolves the full original without changing Replay`, () => {
     const stages = freeze(structuredClone(record.derivationStages));
     const plan = buildDerivationReplayPlan({ derivationStages: stages });
-    const steps = buildPlaybackStepsFromDerivationFrames(adaptDerivationStagesForReplay(stages), undefined, plan);
+    const steps = buildPlaybackStepsFromDerivationFrames({
+      frames: adaptDerivationStagesForReplay(stages),
+      replayPlan: plan
+    });
     const before = JSON.stringify(steps);
     const relationSteps = steps.filter(item => item.replayKind === 'relation');
     assert(relationSteps.length > 0);

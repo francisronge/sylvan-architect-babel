@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildTier2FacetEvidence } from '../replay/relations/relationEvidence.ts';
 import { recoverResultAssignments } from '../replay/relations/resultAssignments.ts';
-import { evaluateTier2FacetRecipe, TIER2_FACET_RECIPE_BY_ID } from '../replay/relations/tier2FacetRecipes.ts';
+import { evaluateTier2FacetRecipe } from '../replay/relations/tier2FacetEvaluation.ts';
+import { TIER2_FACET_RECIPE_BY_ID } from '../replay/relations/tier2FacetRecipes.ts';
 
 const forest = [{ id: 'clause', label: 'TP', children: [
   { id: 'finite', label: 'T[present, finite]', word: 'works' },

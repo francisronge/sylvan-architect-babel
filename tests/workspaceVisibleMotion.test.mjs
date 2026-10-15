@@ -52,7 +52,7 @@ for (const direction of ['ltr', 'rtl']) for (const relationName of ['PFRealizati
     const { steps, coordinates, canvases } = shorteningScenario(relationName, persistentTrajectory);
     const original = JSON.stringify(steps), savedCoordinates = structuredClone(coordinates);
     const size = [2200, 1000];
-    const result = reserveWorkspaceAttachments(steps, new Map([[0, size]]), direction, () => coordinates);
+    const result = reserveWorkspaceAttachments({ steps, sizes: new Map([[0, size]]), direction, coordinatesForStage: () => coordinates });
     const point = (frame, id) => {
       const step = steps[frame], root = d3.hierarchy(step.replayCanvasData);
       applyVizIds(root);

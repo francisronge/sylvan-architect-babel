@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
-import { adaptDerivationStagesForReplay, buildReplayPanelContent } from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildReplayPanelContent } from '../replay/replayPanel.ts';
 import { buildReplayPlayback, buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { attachReplayRealizations, resolveRealizationChanges } from '../replay/realizationReplay.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
@@ -117,6 +119,114 @@ test('ambiguous realization descriptions never win by wording or list order', ()
   }
 });
 
+const namedAssociationStages = () => [stage(), stage([
+  group(['root', 'past'], [0]), group(['other'], [1])
+], [
+  { relation: 'Nominal selection', anchors: { selector: 'root', restriction: 'past' } },
+  { relation: 'Collective input realization', anchors: { firstContributors: ['root', 'past'], secondContributors: ['other'] },
+    values: { firstToken: 'walked', secondToken: 'again' } }
+])];
+
+test('separate named contributor inventories and exact input literals own one simultaneous association moment', () => {
+  const stages = namedAssociationStages(), original = structuredClone(stages);
+  const steps = play(stages, ['walked', 'again']);
+  const [selection, association] = moments(steps, 1);
+  assert.deepEqual(selection.replayRealizations, []);
+  assert.deepEqual(association.replayRealizations, stages[1].realizations);
+  assert(!steps.some(step => step.replayRealizationDiagnostics?.length));
+  assert.deepEqual(stages, original);
+  stages[1].relations[1].values = { firstInputTokens: ['walked'], secondInputToken: 'again' };
+  assert.deepEqual(moments(play(stages, ['walked', 'again']), 1)[1].replayRealizations, stages[1].realizations);
+});
+
+const literalInventoryStages = () => [stage(undefined, [], [
+  node('inflected', [node('root'), node('past')]),
+  node('possessed', [node('stem'), node('possessor')]), node('outside')
+]), stage([group(['inflected'], [0]), group(['stem', 'possessor'], [1])], [
+  { relation: 'Possessive complementation and Case', anchors: { nominal: 'stem', possessor: 'possessor' } },
+  { relation: 'Lexical morphological realization',
+    anchors: { verb: 'root', inflection: 'past', nominal: 'stem', possessor: 'possessor' },
+    values: { inflectedWord: 'walked', possessiveWord: 'hers' } }
+], [node('inflected', [node('root'), node('past')]),
+  node('possessed', [node('stem'), node('possessor')]), node('outside')])];
+
+test('a complete literal output inventory owns its exact carrier and contributor groups together', () => {
+  for (const tokens of [['walked', 'hers'], ['اشتراه', 'أخاها']]) {
+    const stages = literalInventoryStages(), original = structuredClone(stages);
+    stages[1].relations[1].values = { inflectedWord: tokens[0], possessiveWord: tokens[1] };
+    const frames = adaptDerivationStagesForReplay(stages);
+    const changes = resolveRealizationChanges(frames[0], frames[1], 1, tokens);
+    assert.deepEqual(changes.map(change => change.relationIndex), [1, 1]);
+    const [context, owner] = moments(play(stages, tokens), 1);
+    assert.deepEqual(context.replayRealizations, []);
+    assert.deepEqual(owner.replayRealizations, stages[1].realizations);
+    assert(!owner.replayRealizationDiagnostics?.length);
+    assert.deepEqual(stages[0], original[0]);
+    assertPreservedResidual(stages, 1, 1, 'inflectedWord');
+  }
+});
+
+test('literal inventories cannot fill missing, competing, denied or qualified associations', () => {
+  for (const mutate of [
+    stages => { delete stages[1].relations[1].anchors.inflection; },
+    stages => { stages[1].relations[1].anchors.context = 'outside'; },
+    stages => { stages[1].relations[1].anchors.context = 'root'; },
+    stages => { stages[1].relations[1].values.possessiveWord = 'wrong'; },
+    stages => { stages[1].relations[1].values.possessiveWord = 'walked'; },
+    stages => { stages[1].relations[1].relation = 'Hypothetical lexical morphological realization'; },
+    stages => { stages[1].relations[1].values.status = 'failed'; },
+    stages => { stages[1].relations.push(structuredClone(stages[1].relations[1])); },
+    stages => { stages[1].relations[1].anchors.firstContributors = ['root']; },
+    stages => { stages[1].relations[1].values.firstToken = 'hers'; }
+  ]) {
+    const stages = literalInventoryStages(); mutate(stages);
+    const frames = adaptDerivationStagesForReplay(stages);
+    const change = resolveRealizationChanges(frames[0], frames[1], 1, ['walked', 'hers'])[0];
+    assert.equal(change.relationIndex, null, mutate.toString());
+  }
+});
+
+test('an inflected-head carrier corroborates its complete contributor group at the PF moment', () => {
+  const currentForest = [node('complex', [node('root'), node('past')])];
+  const stages = [stage(undefined, [], currentForest), stage([group()], [
+    { relation: 'V-to-I head movement and trace licensing', anchors: { movedHead: 'root', tenseHead: 'past' } },
+    { relation: 'Past-tense inflected realization',
+      anchors: { inflectedHead: 'complex', verbalContributor: 'root', tenseContributor: 'past' },
+      values: { surfaceRealization: 'walked', morphophonology: 'The explanation remains literal.' } }
+  ], currentForest)];
+  const original = structuredClone(stages), frames = adaptDerivationStagesForReplay(stages);
+  assert.equal(resolveRealizationChanges(frames[0], frames[1], 1, ['walked'])[0].relationIndex, 1);
+  assert.deepEqual(moments(play(stages, ['walked']), 1)[1].replayRealizations, stages[1].realizations);
+  assert.deepEqual(stages, original);
+  assertPreservedResidual(stages, 1, 1, 'morphophonology');
+  for (const mutate of [
+    s => { s[1].workspaceForest[0].children.push(node('extra')); },
+    s => { delete s[1].relations[1].anchors.tenseContributor; },
+    s => { s[1].relations[1].relation = 'Possible past-tense inflected realization'; }
+  ]) {
+    const bad = structuredClone(stages); mutate(bad);
+    const badFrames = adaptDerivationStagesForReplay(bad);
+    assert.notEqual(resolveRealizationChanges(badFrames[0], badFrames[1], 1, ['walked'])[0].relationIndex, 1);
+  }
+});
+
+test('named input associations do not override conflicting, repeated or mismatched evidence', () => {
+  for (const mutate of [
+    s => { s[1].relations[1].values.firstToken = 'again'; },
+    s => { s[1].relations[1].values.firstToken = ['walked', 'again']; },
+    s => { s[1].relations[1].anchors.firstContributors = ['root', 'root']; },
+    s => { s[1].relations[1].anchors.secondContributors = ['other', 'past']; },
+    s => { s[1].relations[1].values['first token'] = 'walked'; },
+    s => { s[1].relations[1].relation = 'Hypothetical collective input realization'; },
+    s => { s[1].relations.push(structuredClone(s[1].relations[1])); }
+  ]) {
+    const stages = namedAssociationStages(); mutate(stages);
+    const frames = adaptDerivationStagesForReplay(stages);
+    const change = resolveRealizationChanges(frames[0], frames[1], 1, ['walked', 'again'])[0];
+    assert.notEqual(change.relationIndex, 1, mutate.toString());
+  }
+});
+
 test('a stem change and its input-token association remain distinct claims with explicit timing evidence', () => {
   const beforeForest = [{ id: 'root', label: 'V', word: '書く' }, { id: 'past', label: 'T', word: 'た' }];
   const afterForest = [{ id: 'root', label: 'V', word: '書い' }, { id: 'past', label: 'T', word: 'た' }];
@@ -137,6 +247,54 @@ test('a stem change and its input-token association remain distinct claims with 
   assert.deepEqual(moments(steps, 1)[1].replayRealizations, stages[1].realizations);
   assert.deepEqual(completion(steps, 1).replayRealizations, stages[1].realizations);
   assert.deepEqual(stages, before);
+});
+
+test('an exact orthographic token sequence owns a lexical association despite shared semantic anchors', () => {
+  for (const tokens of [['school', 'child'], ['học', 'sinh']]) {
+    for (const reverse of [false, true]) {
+      const currentForest = [{ id: 'noun', label: 'N', word: tokens.join(' ') },
+        { id: 'number', label: 'Num', word: 'three' }];
+      const lexical = { relation: 'Lexical realization', anchors: { lexicalNoun: 'noun' },
+        values: { lexeme: tokens.join(' '), orthographicTokens: tokens } };
+      const semantic = { relation: 'Numeral quantification',
+        anchors: { nominalRestrictor: 'noun', numeral: 'number' }, values: { cardinality: 'three' } };
+      const relations = reverse ? [semantic, lexical] : [lexical, semantic];
+      const stages = [stage([group(['noun'], [1, 2])], relations, currentForest)];
+      const original = structuredClone(stages), frames = adaptDerivationStagesForReplay(stages);
+      const [change] = resolveRealizationChanges(undefined, frames[0], 0, ['three', ...tokens]);
+      assert.equal(change.relationIndex, relations.indexOf(lexical));
+      assert.equal(change.diagnostic, undefined);
+      const steps = play(stages, ['three', ...tokens]);
+      const relationMoments = moments(steps, 0);
+      assert.deepEqual(relationMoments[relations.indexOf(lexical)].replayRealizations, stages[0].realizations);
+      if (reverse) assert.deepEqual(relationMoments[0].replayRealizations, []);
+      assert.deepEqual(stages, original);
+      assertPreservedResidual(stages, 0, relations.indexOf(lexical), 'lexeme');
+    }
+  }
+});
+
+test('orthographic sequences do not resolve conflicting, unestablished or mismatched associations', () => {
+  const currentForest = [{ id: 'noun', label: 'N', word: 'school child' }];
+  const lexical = { relation: 'Lexical realization', anchors: { lexicalNoun: 'noun' },
+    values: { orthographicTokens: ['school', 'child'] } };
+  for (const variant of [
+    { ...lexical, values: { orthographicTokens: ['child', 'school'] } },
+    { ...lexical, values: { orthographicTokens: ['school'] } },
+    { ...lexical, relation: 'Pending lexical realization' },
+    { ...lexical, values: { ...lexical.values, status: 'failed' } },
+    lexical
+  ]) {
+    const competitor = variant === lexical ? structuredClone(lexical)
+      : { relation: 'Nominal interpretation', anchors: { nominal: 'noun' }, values: { kind: 'student' } };
+    const stages = [stage([group(['noun'], [0, 1])], [variant, competitor], currentForest)];
+    const frames = adaptDerivationStagesForReplay(stages);
+    const [change] = resolveRealizationChanges(undefined, frames[0], 0, ['school', 'child']);
+    assert.equal(change.relationIndex, null);
+    assert.match(change.diagnostic, /REALIZATION_AMBIGUOUS_OWNER/);
+    assert(moments(play(stages, ['school', 'child']), 0).every(step => !step.replayRealizations.length));
+    assert.deepEqual(completion(play(stages, ['school', 'child']), 0).replayRealizations, stages[0].realizations);
+  }
 });
 
 test('realizations survive stage, frame and snapshot projections without mutating the authored record', () => {
@@ -275,11 +433,10 @@ test('an exact collective PF owner is not made ambiguous by Case claims sharing 
   }
 });
 
-test('collective PF ownership keeps competing PF claims and unproved participant roles ambiguous', () => {
-  for (const mode of ['second PF', 'unknown role', 'unrecovered PF value', 'no PF literal', 'wrong group']) {
+test('collective PF ownership keeps competing or incomplete PF claims ambiguous', () => {
+  for (const mode of ['second PF', 'unrecovered PF value', 'no PF literal', 'wrong group']) {
     const stages = collectivePFStages(), current = stages[1];
     if (mode === 'second PF') current.relations.push(structuredClone(current.relations[0]));
-    if (mode === 'unknown role') current.relations[1].anchors.additionalParticipant = 'root';
     if (mode === 'unrecovered PF value') current.relations[1].values = { surfaceWord: 'another form' };
     if (mode === 'no PF literal') delete current.relations[0].values;
     if (mode === 'wrong group') current.realizations = [group(['root'])];
@@ -571,9 +728,8 @@ test('neutral residual prose does not invent PF ownership for recovered non-PF p
   }
 });
 
-test('unknown relevant roles and malformed exact claims still compete with a proved PF association', () => {
+test('malformed exact claims and explicit competing pronunciation still block a proved association', () => {
   for (const [index, mutate] of [
-    relation => { relation.anchors.unexplainedParticipant = ['lower', 'upper']; },
     relation => { relation.relation = 'Agree'; relation.anchors = { probe: 'lower', extraContext: 'upper' }; },
     relation => { relation.values = { inputTokens: ['wrong', 'tokens'] }; },
     relation => { relation.anchors.pronounced = 'lower'; }
@@ -695,26 +851,27 @@ test('an exact retained receiving head and its prior occurrence are context of t
   }
 });
 
-test('receiving-head continuity rejects changed identity, structure, slot, competing hosts and unknown participants', () => {
-  const currentHead = stages => stages[1].workspaceForest[0].children[1].children[1];
-  for (const [index, mutate] of [
-    stages => { currentHead(stages).lineageId = 'different-host'; },
-    stages => { currentHead(stages).tokenIndex = 1; },
-    stages => { currentHead(stages).silent = true; },
-    stages => { currentHead(stages).label = 'I⁰ [changed]'; },
-    stages => { currentHead(stages).children = [{ id: 'extra', label: 'I⁰' }]; },
-    stages => { stages[0].workspaceForest[0].children.reverse(); },
-    stages => { stages[0].workspaceForest.push(structuredClone(stages[0].workspaceForest[0].children[1])); },
-    stages => { stages[1].workspaceForest[0].children[1].children.push({ id: 'otherHost', label: 'I⁰' }); },
+test('shared receiving-head references do not compete with a complete PF owner', () => {
+  for (const mutate of [
     stages => { stages[1].relations[0].anchors.unexplained = ['verbHigh', 'tense']; },
     stages => { stages[1].relations[0].anchors.unexplained = 'tense'; },
-    stages => { stages[1].relations[0].priorAnchors.unexplained = 'tense'; },
-    stages => { stages[1].workspaceForest[0].lineageId = 'different-parent'; },
+    stages => { stages[1].relations[0].priorAnchors.unexplained = 'tense'; }
+  ]) {
+    const stages = receivingHostStages(); mutate(stages);
+    const original = structuredClone(stages), frames = adaptDerivationStagesForReplay(stages);
+    assert.equal(resolveRealizationChanges(frames[0], frames[1], 1)[0].relationIndex, 1);
+    assert.deepEqual(stages, original);
+  }
+});
+
+test('extra PF contributors and explicit competing receiving-head assertions remain ambiguous', () => {
+  for (const mutate of [
+    stages => { stages[1].workspaceForest[0].children[1].children.push({ id: 'otherHost', label: 'I⁰' }); },
     stages => { stages[1].relations[0].values = { pronunciation: 'another independently asserted association' }; }
-  ].entries()) {
+  ]) {
     const stages = receivingHostStages(); mutate(stages);
     const frames = adaptDerivationStagesForReplay(stages);
-    assert.equal(resolveRealizationChanges(frames[0], frames[1], 1)[0].relationIndex, null, `receiving host control ${index}`);
+    assert.equal(resolveRealizationChanges(frames[0], frames[1], 1)[0].relationIndex, null);
   }
 });
 
@@ -854,4 +1011,109 @@ test('literal association scope rejects absent, mismatched, overlapping or ambig
   data.tokens.splice(1, 0, 'unrelated');
   data.stages[1].realizations = [group(['verb'], [0, 2]), group(['neg'], [3, 4])];
   assert.equal(negativeAssociation(data.stages, data.tokens).relationIndex, null, 'nonconsecutive token positions');
+});
+
+test('proved association evidence outranks shared participants without changing neutral claims or relation order', () => {
+  for (const reversed of [false, true]) {
+    const stages = collectivePFStages();
+    stages[1].relations[1] = { relation: 'An unfamiliar semantic dependency',
+      anchors: { openParticipantRole: ['root', 'past'] }, values: { interpretation: 'the authored interpretation' } };
+    if (reversed) stages[1].relations.reverse();
+    const original = structuredClone(stages), frames = adaptDerivationStagesForReplay(stages);
+    const owner = reversed ? 1 : 0, context = reversed ? 0 : 1;
+    assert.equal(resolveRealizationChanges(frames[0], frames[1], 1)[0].relationIndex, owner);
+    assertPreservedResidual(stages, 1, context, 'interpretation');
+    const steps = play(stages), ordered = moments(steps, 1);
+    assert.deepEqual(ordered.map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
+    assert.deepEqual(ordered[owner].replayRealizations, stages[1].realizations);
+    if (reversed) assert.deepEqual(ordered[context].replayRealizations, []);
+    assert.deepEqual(geometry(steps), play(stages.map(({ realizations, ...rest }) => rest)));
+    assert.deepEqual(stages, original);
+  }
+  const stages = pronunciationStages();
+  stages[1].relations[0].anchors.unexplainedParticipant = ['lower', 'upper'];
+  const frames = adaptDerivationStagesForReplay(stages);
+  assert.equal(resolveRealizationChanges(frames[0], frames[1], 1, ['a', 'b'])[0].relationIndex, 1);
+});
+
+const groupKeyForTest = group => JSON.stringify([[...group.nodeIds].sort(), [...group.tokenIndices].sort((a, b) => a - b)]);
+const applicativeRecord = JSON.parse(readFileSync(new URL('../fixtures/movement/displayed-endpoints.json', import.meta.url)))
+  .find(record => record.id === 'sol-indonesian-applicative/0');
+const applicativeStages = () => structuredClone(applicativeRecord.derivationStages);
+const allNodes = forest => forest.flatMap(function visit(node) { return [node, ...(node.children ?? []).flatMap(visit)]; });
+
+test('a lower-copy suppression assertion does not own a separate higher-head word association', () => {
+  for (const pronunciation of ['lower complex head suppressed', 'lower complex V suppressed', 'lower copy suppressed', 'lower occurrence suppressed']) {
+    const stages = pronunciation === 'lower copy suppressed'
+      ? JSON.parse(JSON.stringify(applicativeStages()).replaceAll('h_', 'renamed_')) : applicativeStages();
+    stages[4].relations[0].values.pronunciation = pronunciation;
+    const original = structuredClone(stages), frames = adaptDerivationStagesForReplay(stages);
+    assert.equal(resolveRealizationChanges(undefined, frames[0], 0, applicativeRecord.inputTokens)[0].relationIndex, 2);
+    assert.equal(resolveRealizationChanges(frames[3], frames[4], 4, applicativeRecord.inputTokens)[0].relationIndex, 2);
+    assertPreservedResidual(stages, 4, 0, 'pronunciation');
+    const steps = play(stages, applicativeRecord.inputTokens), ordered = moments(steps, 4);
+    assert.deepEqual(ordered.map(step => step.replayRelationIdentity.relationIndex), [0, 1, 2]);
+    assert.deepEqual(ordered[0].replayRealizations, stages[3].realizations);
+    assert.deepEqual(ordered[1].replayRealizations, stages[3].realizations);
+    assert.deepEqual(ordered[2].replayRealizations.map(groupKeyForTest).sort(), stages[4].realizations.map(groupKeyForTest).sort());
+    assert.equal(ordered[2].replayRealizationDiagnostics, undefined);
+    assert.deepEqual(geometry(steps), play(stages.map(({ realizations, ...rest }) => rest), applicativeRecord.inputTokens));
+    assert.deepEqual(stages, original);
+  }
+});
+
+test('lower-copy scope requires a complete assertion, proved movement, exact silence and disjoint association domains', () => {
+  for (const [description, mutate] of [
+    ['negated', stages => { stages[4].relations[0].values.pronunciation = 'lower complex head not suppressed'; }],
+    ['conditional', stages => { stages[4].relations[0].values.pronunciation = 'lower complex head suppressed if licensed'; }],
+    ['mixed', stages => { stages[4].relations[0].values.pronunciation = 'lower complex head suppressed; higher head pronounced'; }],
+    ['list', stages => { stages[4].relations[0].values.pronunciation = ['lower complex head suppressed']; }],
+    ['no movement', stages => { delete stages[4].relations[0].anchors.lowerOccurrence; delete stages[4].relations[0].priorAnchors; }],
+    ['not silent', stages => {
+      allNodes(stages[4].workspaceForest).filter(node => ['h_appl_head_lower', 'h_baca_middle', 'h_kan_lower'].includes(node.id))
+        .forEach(node => { delete node.silent; });
+    }],
+    ['duplicate lower', stages => {
+      stages[4].workspaceForest.push(structuredClone(allNodes(stages[4].workspaceForest).find(node => node.id === 'h_appl_head_lower')));
+    }],
+    ['retired lower association', stages => {
+      stages[3].realizations.push(group(['h_appl_head_lower'], [1]));
+      stages[4].relations[2].priorAnchors = { priorComplex: 'h_appl_head_lower' };
+    }]
+  ]) {
+    const stages = applicativeStages(); mutate(stages);
+    const frames = adaptDerivationStagesForReplay(stages);
+    const change = resolveRealizationChanges(frames[3], frames[4], 4, applicativeRecord.inputTokens)
+      .find(change => change.after.some(group => group.tokenIndices.includes(1)));
+    assert.equal(change.relationIndex, null, description);
+    assert.match(change.diagnostic, /REALIZATION_AMBIGUOUS_OWNER/, description);
+  }
+});
+
+test('PF ownership compares complete occurrence domains across wrapper and contributor notation', () => {
+  const makeStages = members => {
+    const syntax = [{ id: 'head', label: 'I⁰', children: [
+      { id: 'stem', label: 'V⁰', word: 'walk' }, { id: 'suffix', label: 'I⁰', word: '-ed' }
+    ] }];
+    return [stage(undefined, [], syntax), stage([group(members)], [
+      { relation: 'Morphological realization', anchors: { domain: 'head', stem: 'stem', suffix: 'suffix' },
+        values: { surfaceWord: 'walked' } },
+      { relation: 'An open semantic dependency', anchors: { participants: members }, values: { interpretation: 'an authored claim' } }
+    ], syntax)];
+  };
+  for (const members of [['head'], ['stem', 'suffix'], ['suffix', 'stem']]) {
+    const stages = makeStages(members), frames = adaptDerivationStagesForReplay(stages);
+    assert.equal(resolveRealizationChanges(frames[0], frames[1], 1)[0].relationIndex, 0, members.join(','));
+    assertPreservedResidual(stages, 1, 1, 'interpretation');
+  }
+  for (const [description, mutate] of [
+    ['unsupported overlapping group', stages => { stages[1].realizations = [group(['head', 'stem'])]; stages[1].relations[1].anchors.participants = ['head', 'stem']; }],
+    ['extra output leaf', stages => { stages[1].workspaceForest[0].children.push({ id: 'extra', label: 'I⁰' }); stages[1].relations[0].anchors.output = 'head'; }],
+    ['duplicate occurrence', stages => { stages[1].workspaceForest.push(structuredClone(stages[1].workspaceForest[0].children[0])); }],
+    ['missing contributor', stages => { stages[1].workspaceForest[0].children.pop(); }]
+  ]) {
+    const stages = makeStages(['stem', 'suffix']); mutate(stages);
+    const frames = adaptDerivationStagesForReplay(stages);
+    assert.equal(resolveRealizationChanges(frames[0], frames[1], 1)[0].relationIndex, null, description);
+  }
 });

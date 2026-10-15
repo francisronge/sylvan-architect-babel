@@ -1,8 +1,7 @@
 import type { SyntaxNode } from '../../types.ts';
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import { establishesAssignment, relationAssertionFailure } from './outcomeResolver.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { normalizeTier2Synonym } from './tier2Synonyms.ts';
-import { establishesAssignment } from './assignmentContinuity.ts';
-import { relationAssertionFailure } from './outcomeResolver.ts';
 
 /** Correspondence between explicitly pronounced and interpreted occurrences is
  * paired by exact root lineage. An ambiguous family stays neutral without

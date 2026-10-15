@@ -4,7 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { __test__ } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const rawDir = path.join(repoRoot, 'fixtures', 'raw');
@@ -35,7 +35,7 @@ for (const fixtureName of fixtureNames) {
   test(`normalizes ${fixtureName} to its committed snapshot`, () => {
     const fixture = JSON.parse(fs.readFileSync(path.join(rawDir, fixtureName), 'utf8'));
     const expected = JSON.parse(fs.readFileSync(path.join(normalizedDir, fixtureName), 'utf8'));
-    const actual = __test__.normalizeParseBundle(
+    const actual = normalizeParseBundle(
       fixture.payload,
       fixture.framework,
       fixture.sentence,

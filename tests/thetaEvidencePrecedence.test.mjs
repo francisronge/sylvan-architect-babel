@@ -79,6 +79,66 @@ test('a complete explicit role survives a separate predication qualification', (
   assert.deepEqual(roles(relation), [{ nodeId: 'agent', label: 'Agent' }]);
 });
 
+const projectionForest = [{ id: 'clause', label: 'TP', children: [
+  { id: 'subject', label: 'DP', word: 'Nora' },
+  { id: 'modal', label: 'V', word: 'might' },
+  { id: 'projection', label: 'VP', children: [
+    { id: 'object', label: 'DP', word: 'the letter' },
+    { id: 'bar', label: 'V′', children: [{ id: 'head', label: 'V', word: 'write' }] }
+  ] }
+] }];
+const projectionAssignment = { relation: 'External theta-role assignment by predication',
+  anchors: { predicate: 'projection', lexicalPredicate: 'head', subject: 'subject' },
+  values: { thetaRole: 'Agent', interpretation: 'The lexical predicate supplies the external role.' } };
+const projectionPlan = (relation = projectionAssignment, currentForest = projectionForest) => compileRelationRenderPlan([
+  { statement: '', stageRecord: '', workspaceForest: currentForest, relations: [relation] }
+]).frames[0].items;
+
+test('a predicate projection owns its assignment when its lexical head is uniquely corroborated', () => {
+  for (const qualification of ['', ' by predication', ' through predication']) {
+    for (const contextRole of ['verb', 'lexicalVerb', 'lexicalHead', 'lexicalPredicate']) {
+      const relation = { ...projectionAssignment, relation: `External theta-role assignment${qualification}`,
+        anchors: { predicate: 'projection', [contextRole]: 'head', subject: 'subject' } };
+      const original = structuredClone(relation), items = projectionPlan(relation);
+      const grid = items.find(item => item.plaqueStyle === 'theta-grid');
+      assert.deepEqual(grid?.anchorNodeIds, ['projection']);
+      assert.deepEqual(grid?.thetaRoles.map(({ nodeId, label }) => ({ nodeId, label })), [{ nodeId: 'subject', label: 'Agent' }]);
+      assert(items.some(item => item.kind === 'fallback' && item.relationRef.anchors[contextRole] === 'head'), 'head context stays inspectable');
+      assert.deepEqual(relation, original);
+    }
+    const assigned = projectionPlan({ ...projectionAssignment, relation: `External theta-role assignment${qualification}`,
+      anchors: { assigner: 'head', predicate: 'projection', subject: 'subject' } });
+    assert.deepEqual(assigned.find(item => item.plaqueStyle === 'theta-grid')?.anchorNodeIds, ['head'], 'the explicitly assigning head owns the grid');
+  }
+});
+
+test('projection context cannot hide a competing predicate or an ambiguous head spine', () => {
+  const alternatives = [
+    { relation: { ...projectionAssignment, anchors: { ...projectionAssignment.anchors, lexicalPredicate: 'modal' } } },
+    { relation: { ...projectionAssignment, anchors: { ...projectionAssignment.anchors, lexicalPredicate: 'bar' } } },
+    { relation: { ...projectionAssignment, anchors: { ...projectionAssignment.anchors, lexicalPredicate: ['head', 'modal'] } } },
+    { relation: { ...projectionAssignment, anchors: { ...projectionAssignment.anchors, verb: 'head' } } },
+    { forest: [{ ...projectionForest[0], children: [...projectionForest[0].children, { id: 'head', label: 'V', word: 'read' }] }] },
+    { forest: [{ ...projectionForest[0], children: projectionForest[0].children.map(node => node.id !== 'projection' ? node :
+      { ...node, children: [...node.children, { id: 'secondHead', label: 'V', word: 'read' }] }) }] },
+    { forest: [{ ...projectionForest[0], children: projectionForest[0].children.map(node => node.id !== 'projection' ? node :
+      { ...node, children: [{ id: 'embedded', label: 'CP', children: node.children }] }) }] }
+  ];
+  for (const alternative of alternatives) assert(!projectionPlan(alternative.relation, alternative.forest)
+    .some(item => item.plaqueStyle === 'theta-grid'), JSON.stringify(alternative));
+});
+
+test('projection corroboration preserves provisional, denied and malformed claims', () => {
+  for (const prefix of ['no', 'pending', 'possible', 'unresolved', 'failed'])
+    assert(!projectionPlan({ ...projectionAssignment, relation: `${prefix} ${projectionAssignment.relation}` })
+      .some(item => item.plaqueStyle === 'theta-grid'), prefix);
+  for (const status of ['pending', 'failed', ['licensed', 'failed']])
+    assert(!projectionPlan({ ...projectionAssignment, values: { ...projectionAssignment.values, status } })
+      .some(item => item.plaqueStyle === 'theta-grid'), JSON.stringify(status));
+  assert(!projectionPlan({ ...projectionAssignment, relationContractFailure: { code: 'test-malformed' } })
+    .some(item => item.plaqueStyle === 'theta-grid'));
+});
+
 test('inventory precedence preserves denial, provisional and competing-outcome boundaries', () => {
   for (const record of [inventory, paired, { ...inventory, relation: 'give theta-role assignment' }]) {
     for (const modifier of ['no', 'not', 'without', 'possible', 'potential', 'hypothetical', 'pending', 'unresolved', 'unestablished', 'failed', 'blocked', 'unlicensed'])

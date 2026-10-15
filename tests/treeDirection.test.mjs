@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
+import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 
 const forest = [{ id: 'ip', label: 'IP', children: [

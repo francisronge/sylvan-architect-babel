@@ -1,51 +1,56 @@
-import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import test from 'node:test';
-import ts from 'typescript';
 import * as d3 from 'd3';
-import { categoryTextLayout } from '../replay/categoryTextLayout.ts';
+import assert from 'node:assert/strict';
+import test, { after } from 'node:test';
+import { paintSyntaxTree } from '../components/renderer/syntaxDrawing.ts';
+import { applyVizIds } from '../replay/displayIdentity.ts';
+import { createSvgDom, select } from './helpers/svgDom.mjs';
 
-// Exercise the renderer's actual path expression, including any label-dependent
-// endpoint adjustment, so a tall label cannot silently reshape a native branch.
-const source = ts.createSourceFile('TreeVisualizer.tsx',
-  fs.readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8'),
-  ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-let pathExpression;
-function visit(node) {
-  if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)
-    && node.expression.name.text === 'attr' && node.arguments[0]?.text === 'd'
-    && node.expression.expression.getText(source).includes(".attr('class', 'branch')")) {
-    assert.equal(pathExpression, undefined, 'one native branch path authority');
-    pathExpression = node.arguments[1].getText(source);
-  }
-  ts.forEachChild(node, visit);
+const { Element, restore } = createSvgDom();
+after(restore);
+
+function render(label, x = 400) {
+  const canvas = { id: 'root', label: 'XP', children: [{ id: 'child', label }] };
+  const tree = d3.hierarchy(canvas);
+  applyVizIds(tree);
+  tree.x = 0; tree.y = 0;
+  tree.children[0].x = x; tree.children[0].y = 180;
+  const root = new Element('g');
+  paintSyntaxTree({
+    treeData: tree, rootHierarchy: tree, clonedCanvasData: canvas, g: select(root),
+    playbackSteps: [], animated: false, activeStepIndex: 0, replayVisibleNodeIdSet: null,
+    traceDisplayIndexByNodeId: new Map(), traceDisplayFrame: null,
+    traceDisplayRelationLinks: [], traceDisplayFrameIndex: 0, usesDerivationFrames: false,
+    activeDerivationArrowLinks: [], terminalMorphRef: { current: new Map() },
+    firstSentenceReplayToken: '', firstSentenceReplayDisplayToken: '',
+    disableRelationOverlay: false, relationRenderPlan: null,
+    measureCategoryText: text => [...text].length * 25, currentReplayStep: null,
+    pendingPhraseFrontingSourceNodeIds: new Set(), getReplayTokenIndex: () => undefined,
+    hasDerivationFrames: false
+  });
+  return { root, tree };
 }
-visit(source);
-assert(pathExpression, 'renderer native branch path');
-const measure = text => [...text].length * 25;
-const code = ts.transpile(`const path = ${pathExpression};`, { target: ts.ScriptTarget.ESNext });
-const draw = new Function('d3', 'categoryTextLayout', 'measureCategoryText', `${code}\nreturn path;`)(d3, categoryTextLayout, measure);
+
+const labels = ['I', 'I[finite, present, perfect, third-person singular]', 'I[' + 'long feature, '.repeat(12) + ']'];
 
 test('wrapped categories preserve the original downward branch instead of moving its endpoint upward', () => {
   const native = d3.linkVertical().x(d => d.x).y(d => d.y);
-  for (const label of ['I', 'I[finite, present, perfect, third-person singular]', 'I[' + 'long feature, '.repeat(12) + ']']) {
-    for (const x of [-400, 400]) {
-      const link = { source: { x: 0, y: 0 }, target: { x, y: 180, data: { label } } };
-      assert.equal(draw(link), native(link), label);
-    }
+  for (const label of labels) for (const x of [-400, 400]) {
+    const { root, tree } = render(label, x);
+    const paths = select(root).selectAll('.branch').nodes();
+    assert.equal(paths.length, 1);
+    assert.equal(paths[0].getAttribute('d'), native(tree.links()[0]), label);
   }
 });
 
-
-test('multiline category labels cannot mask the entire incoming branch', () => {
-  const branchMasks = [];
-  const visitMasks = node => {
-    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)
-      && node.expression.name.text === 'attr' && node.arguments[0]?.text === 'mask'
-      && node.expression.expression.getText(source).includes("selectAll('.branch')")) branchMasks.push(node);
-    ts.forEachChild(node, visitMasks);
-  };
-  visitMasks(source);
-  assert.equal(branchMasks.length, 0, 'native branches must remain visible between the label glyphs');
-  assert.match(source.text, /style\('paint-order', 'stroke'\)/, 'text retains its local readability halo');
+test('multiline category labels retain a local readability halo without masking incoming branches', () => {
+  const { root } = render(labels.at(-1));
+  const branch = select(root).select('.branch').node();
+  assert.equal(branch.getAttribute('mask'), null);
+  assert.equal(branch.style.getPropertyValue('mask'), '');
+  const category = select(root).selectAll('.category-label').nodes().find(label =>
+    label.getAttribute('data-category-node-id') === 'child');
+  assert(category.children.length > 1, 'the fixture must wrap onto several lines');
+  assert.equal(category.style.getPropertyValue('paint-order'), 'stroke');
+  assert.equal(category.style.getPropertyValue('stroke'), '#020806');
+  assert.equal(category.style.getPropertyValue('stroke-width'), '10px');
 });

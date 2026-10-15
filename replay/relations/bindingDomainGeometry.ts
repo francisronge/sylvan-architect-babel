@@ -1,9 +1,9 @@
 import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from '../categoryTextLayout.ts';
-import { isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf } from '../replayCompiler.ts';
+import { isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf } from '../replaySurfaceNotation.ts';
 import type { Rect } from './overlayGeometry.ts';
-import type { RelationPlanItem } from './renderPlanCompiler.ts';
+import type { RelationPlanItem } from './renderPlan.ts';
 
 /** Keep the accepted ellipse unless it includes syntax outside its authored domain.
  * The constrained variant fits actual member ink rather than empty rectangle corners. */

@@ -1,5 +1,10 @@
-import { planItemRelationRefs, planItemsShareAuthoredStage, type DirectedPathPlanItem,
-  type NodePlaquePlanItem, type RelationPlanItem } from './renderPlanCompiler.ts';
+import {
+  planItemRelationRefs,
+  planItemsShareAuthoredStage,
+  type DirectedPathPlanItem,
+  type NodePlaquePlanItem,
+  type RelationPlanItem
+} from './renderPlan.ts';
 
 type Entry<T> = { item: T; index: number };
 export type FeatureRow = { label: string; value: string };

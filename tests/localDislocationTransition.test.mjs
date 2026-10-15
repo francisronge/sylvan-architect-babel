@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { __test__ } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 
@@ -16,7 +16,7 @@ test('first-stage explicit PF partitions draw the same lanes in native and open 
     const r = relation(name);
     const authored = { derivationStages: [{ statement: 'PF groups the sequence.',
       stageRecord: 'The authored PF partitions differ.', relations: [r], workspaceForest: forest }] };
-    const bundle = __test__.normalizeParseBundle(authored, 'xbar', 'a b c', 'grok', true);
+    const bundle = normalizeParseBundle(authored, 'xbar', 'a b c', 'grok', true);
     const items = compileRelationRenderPlan(bundle.analyses[0].derivationStages).frames[0].items;
     const lanes = items.filter(item => item.familyId === 'pf.local-dislocation');
     assert.equal(lanes.length, 1, name);

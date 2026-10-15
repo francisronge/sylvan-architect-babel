@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { bindRelationRoles } from '../replay/relationDispatch/roleBinding.js';
-import { productionRelationRegistry } from '../replay/relationDispatch/index.js';
+import { productionRelationRegistry } from '../replay/relationDispatch/productionRegistry.js';
 import { PRODUCTION_RENDER_FAMILIES, PRODUCTION_SCALAR_VALUE_KEYS } from '../replay/relations/renderFamilies.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';

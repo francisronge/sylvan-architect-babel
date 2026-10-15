@@ -8,21 +8,19 @@ import { build } from 'esbuild';
 import * as d3 from 'd3';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
+import { applyPreFrontingSentenceInitialCasing, maybeLowercaseSentenceInitialFunctionSurface } from '../replay/replayCasing.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
+import { buildReplaySupportLines } from '../replay/replayPanel.ts';
+import { buildResolvedLinkTraceIndexMap } from '../replay/movementIndices.ts';
+import { collectPronouncedLeafNodeIdsInOrder } from '../replay/syntaxForest.ts';
+import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import {
-  applyPreFrontingSentenceInitialCasing,
-  adaptDerivationStagesForReplay,
-  applyVizIds,
   buildTraceDisplayLabel,
-  buildPlaybackStepsFromDerivationFrames,
-  buildReplaySupportLines,
-  buildResolvedLinkTraceIndexMap,
-  collectPronouncedLeafNodeIdsInOrder,
   formatAuthoredWitnessSurface,
-  getNodeId,
   isDisplayTraceLabel,
-  isTraceLike,
-  maybeLowercaseSentenceInitialFunctionSurface
-} from '../replay/replayCompiler.ts';
+  isTraceLike
+} from '../replay/replaySurfaceNotation.ts';
 
 const repo = fileURLToPath(new URL('..', import.meta.url));
 
@@ -58,10 +56,11 @@ const loadAtlasCases = async (t) => {
 };
 
 const playback = (card) => applyPreFrontingSentenceInitialCasing(
-  buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(card.derivationStages || []),
-    card.sentence,
-    buildDerivationReplayPlan({ derivationStages: card.derivationStages || [] })
+  buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(card.derivationStages || []),
+    sentence: card.sentence,
+    replayPlan: buildDerivationReplayPlan({ derivationStages: card.derivationStages || [] })
+  }
   ),
   card.sentence
 );

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isWordlessCategoryLeaf, buildRenderableCommittedCanvasData } from '../replay/replayCompiler.ts';
+import { isWordlessCategoryLeaf, isDisplayTerminalNode } from '../replay/replaySurfaceNotation.ts';
+import { buildRenderableCommittedCanvasData } from '../replay/replayCanvas.ts';
 
 test('wordless category leaves retain category identity regardless of silence', () => {
   for (const label of ['C', 'T', 'I', 'v', 'D', 'N', 'DP']) {
@@ -40,4 +41,16 @@ test('lexical content, traces and nulls do not acquire wordless-category styling
   assert.equal(tree.label, 'N');
   assert.equal(tree.children[0].word, 'book');
   assert.equal(isWordlessCategoryLeaf(tree.children[0]), false);
+});
+
+
+test('terminal identity follows authored words, not category-shaped spelling', () => {
+  for (const word of ['I', 'A', 'P', 'DP', 't', 'unknown']) for (const silent of [true, false]) {
+    assert.equal(isDisplayTerminalNode({ label: 'D', word, silent }), true, word);
+    assert.equal(isDisplayTerminalNode({ label: word, children: [{ label: 'N', word: 'child' }] }), false);
+  }
+  for (const label of ['I', 'A', 'P', 'DP', 'unfamiliar category', 't[NP]']) {
+    assert.equal(isDisplayTerminalNode({ label }), false, label);
+  }
+  for (const label of ['t', 't1', '∅']) assert.equal(isDisplayTerminalNode({ label }), true, label);
 });

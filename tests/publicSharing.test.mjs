@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { __test__ } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
-import { visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 
 const sentence = 'Mia bought and Leo read books';
@@ -21,7 +21,7 @@ const stage = (relation, workspaceForest = forest()) => ({ statement: 'The objec
 const allNodes = tree => [tree, ...(tree.children ?? []).flatMap(allNodes)];
 const normalizedReplay = (relation, framework) => {
   const authored = { derivationStages: [stage(relation)] }, before = structuredClone(authored);
-  const bundle = __test__.normalizeParseBundle(authored, framework, sentence, 'grok', true);
+  const bundle = normalizeParseBundle(authored, framework, sentence, 'grok', true);
   assert.deepEqual(authored, before, 'normalization cannot rewrite the sharing analysis');
   const analysis = bundle.analyses[0];
   assert.deepEqual(analysis.derivationStages[0].relations, [relation]);

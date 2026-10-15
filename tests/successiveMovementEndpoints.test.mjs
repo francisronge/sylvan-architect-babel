@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { compileRelationRenderPlan, resolveDisplayedTrajectoryAttachments } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { resolveDisplayedTrajectoryAttachments } from '../replay/relations/renderPlan.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 
 const saved = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/holdout-transitions.json', import.meta.url)))
@@ -146,4 +147,60 @@ test('generic plural participants do not turn concord into malformed movement', 
   assert.deepEqual(recoverMovementEvidence(relation, forest), { diagnostics: [] });
   const declared = { ...relation, relation: 'AbarMove', anchors: { source: 'noun', targets: ['determiner', 'adjective'] } };
   assert.equal(recoverMovementEvidence(declared, forest).failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED');
+});
+
+test('an older chain foot is not the witness of a uniquely proved successive move', () => {
+  for (const renamed of [false, true]) {
+    const input = successiveUnfamiliarRoles();
+    input.relation.anchors = { intermediateTrace: 'new-copy', objectTrace: 'old-copy', matrixOperator: 'mover', landingClause: 'root' };
+    if (renamed) {
+      for (const forest of [input.before, input.after]) for (const node of index(forest).values()) {
+        node.id = `renamed-${node.id}`;
+        if (node.lineageId) node.lineageId = `renamed-${node.lineageId}`;
+      }
+      for (const field of ['anchors', 'priorAnchors']) for (const key of Object.keys(input.relation[field]))
+        input.relation[field][key] = `renamed-${input.relation[field][key]}`;
+    }
+    const original = structuredClone(input), prefix = renamed ? 'renamed-' : '';
+    const result = recoverMovementEvidence(input.relation, input.after, input.before);
+    assert.deepEqual([result.movement?.priorSourceNodeId, result.movement?.sourceNodeId,
+      result.movement?.targetNodeId, result.movement?.witnessNodeId],
+    ['mover', 'new-copy', 'mover', 'new-copy'].map(id => prefix + id));
+    assert(!Object.hasOwn(result.movement.roles, 'object trace'), 'the older foot remains separate authored evidence');
+    assert.deepEqual(input, original);
+  }
+});
+
+test('a cited older foot requires unchanged syntax, identity, and position', () => {
+  for (const mutate of [
+    input => { index(input.after).get('old-copy').word = 'changed'; },
+    input => { input.after.push(index(input.after).get('predicate').children.shift()); },
+    input => { input.after.push(structuredClone(index(input.after).get('old-copy'))); },
+    input => { index(input.after).get('old-copy').lineageId = 'different-chain'; },
+    input => { input.relation.anchors.objectTrace = ['old-copy', 'old-copy']; },
+    input => { delete input.relation.anchors.intermediateTrace; },
+    input => { input.relation.priorAnchors.sourceOccurrence = ['mover', 'mover']; }
+  ]) {
+    const input = successiveUnfamiliarRoles();
+    input.relation.anchors = { intermediateTrace: 'new-copy', objectTrace: 'old-copy', matrixOperator: 'mover', landingClause: 'root' };
+    mutate(input);
+    assert.equal(recoverMovementEvidence(input.relation, input.after, input.before).movement, undefined);
+  }
+});
+
+test('the earlier arrow transfers at the new hop even when that claim also cites the chain foot', () => {
+  const input = stages();
+  input[2].relations[0].anchors = {
+    intermediateTrace: 'tEdge', objectTrace: 'tObject', matrixOperator: 'wh', landingClause: 'mCP'
+  };
+  const original = structuredClone(input), plan = compileRelationRenderPlan(input);
+  const [earlier, later] = arrows(plan, 2), nodes = index(input[2].workspaceForest);
+  assert.deepEqual(endpoints([earlier, later]), [['tObject', 'tEdge'], ['tEdge', 'wh']]);
+  const at = played => resolveDisplayedTrajectoryAttachments(earlier,
+    id => nodes.get(id), { stageIndex: 2, playedRelationIndices: played });
+  assert.equal(at(new Set()).targetNodeId, 'wh');
+  assert.equal(at(new Set([0])).targetNodeId, 'tEdge');
+  assert.equal(at(null).targetNodeId, 'tEdge');
+  assert.equal(at(new Set()).targetNodeId, 'wh', 'rewind restores the earlier landing');
+  assert.deepEqual(input, original);
 });

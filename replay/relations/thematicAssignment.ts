@@ -1,8 +1,16 @@
-import { establishesAssignment } from './assignmentContinuity.ts';
-import { participantName, scopeEvidence, uniqueCurrentOwners, type EvidenceScope } from './evidenceScopes.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
-import { namedThematicRole, normalizeTier2Synonym, relationLabelClauses, thematicIntroducer, thematicSlotQualifier, qualifiedAssignmentConcepts } from './tier2Synonyms.ts';
-import { independentThetaArgumentFields, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import { participantName, scopeEvidence, uniqueCurrentOwners, type EvidenceScope } from './evidenceScopes.ts';
+import { establishesAssignment } from './outcomeResolver.ts';
+import { independentThetaArgumentFields } from './tier2EvidenceQueries.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import {
+  namedThematicRole,
+  normalizeTier2Synonym,
+  qualifiedAssignmentConcepts,
+  relationLabelClauses,
+  thematicIntroducer,
+  thematicSlotQualifier
+} from './tier2Synonyms.ts';
 
 /** A typed role assignment owns its literal and exact endpoints independently
  * of a sibling Case property. Unresolved typed claims must not fall back to a
@@ -11,7 +19,8 @@ export function typedThematicAssignment(evidence: Tier2FacetEvidence): {
   applies: boolean; scope?: EvidenceScope;
 } {
   const values = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('role.label'));
-  const clauses = relationLabelClauses(evidence.relationName).filter(clause => /\brole\b/u.test(clause));
+  const clauses = relationLabelClauses(evidence.relationName).filter(clause => /\brole\b/u.test(clause))
+    .map(clause => clause.replace(/ (?:by|through) predication$/u, ''));
   const licensingClauses = relationLabelClauses(evidence.relationName).filter(clause => /\b(?:argument|clitic) licensing\b/u.test(clause));
   const typedLicensing = licensingClauses.length === 1
     && /^(?:(?:subject|object|internal|external) )?(?:argument|clitic) licensing$/u.test(licensingClauses[0]);
@@ -46,29 +55,37 @@ export function typedThematicAssignment(evidence: Tier2FacetEvidence): {
     || participantName(entry.key) === 'predicate'
     || /^assigning (?:verb|head)$/u.test(normalizeTier2Synonym(entry.key))
     || /^(?:predicate|lexical predicate|assigner|source|introducer|verb|(?:active|passive|agentive|causative|applicative|verbal|nominal|adjectival) head)$/u.test(normalizeTier2Synonym(entry.key))));
-  const explicitPredicates = sources.filter(entry => normalizeTier2Synonym(entry.key) === 'predicate' && entry.items.length === 1);
   const nodes = evidence.currentForest.flatMap(function visit(node): typeof evidence.currentForest {
     return [node, ...(node.children ?? []).flatMap(visit)];
   });
-  // A named predicate can include its lexical head as context. Only the
-  // exact, unique projection spine proves that the extra verb is not another
-  // assigner. Competing predicates and embedded verbs remain ambiguous.
-  if (explicitPredicates.length === 1) {
-    const predicate = explicitPredicates[0];
-    sources = sources.filter(entry => {
-      if (normalizeTier2Synonym(entry.key) !== 'verb' || entry.items.length !== 1
-        || !uniqueCurrentOwners(evidence, [...predicate.items, ...entry.items])) return true;
-      let node = nodes.find(n => n.id === predicate.items[0]);
-      const head = readCategoryLabel(node?.label)?.head;
-      if (!head || node?.id === entry.items[0]) return true;
-      while (node?.children?.length) {
-        const spine = node.children.filter(child => readCategoryLabel(child.label)?.head === head);
-        if (spine.length !== 1) return true;
-        node = spine[0];
-        if (node.id === entry.items[0]) return Boolean(node.children?.length);
-      }
-      return true;
-    });
+  // A phrase and its lexical head describe one predicate only when the exact
+  // unique projection spine connects them. Unrelated context remains a
+  // competing source, even when its role name suggests a predicate.
+  const containsLexicalHead = (projectionId: string, headId: string): boolean => {
+    if (!uniqueCurrentOwners(evidence, [projectionId, headId])) return false;
+    let node = nodes.find(n => n.id === projectionId);
+    const head = readCategoryLabel(node?.label)?.head;
+    if (!head) return false;
+    while (node?.children?.length) {
+      const spine = node.children.filter(child => readCategoryLabel(child.label)?.head === head);
+      if (spine.length !== 1) return false;
+      node = spine[0];
+      if (node.id === headId) return !node.children?.length;
+    }
+    return false;
+  };
+  const assigningSources = sources.filter(entry => !entry.concepts.includes('predicate.context'));
+  if (assigningSources.length === 1 && assigningSources[0].items.length === 1) sources = sources.filter(entry =>
+    !entry.concepts.includes('predicate.context') || entry.items.length !== 1
+    || !containsLexicalHead(entry.items[0], assigningSources[0].items[0]));
+  const explicitPredicates = sources.filter(entry => normalizeTier2Synonym(entry.key) === 'predicate' && entry.items.length === 1);
+  const lexicalContexts = sources.filter(entry => /^(?:verb|lexical (?:verb|head|predicate))$/u.test(normalizeTier2Synonym(entry.key)));
+  if (explicitPredicates.length === 1 && lexicalContexts.length === 1 && lexicalContexts[0].items.length === 1) {
+    const context = lexicalContexts[0];
+    const shape = readCategoryLabel(nodes.find(node => node.id === context.items[0])?.label);
+    if (containsLexicalHead(explicitPredicates[0].items[0], context.items[0])
+      && (normalizeTier2Synonym(context.key) === 'verb' || shape?.kind === 'head' && !shape.compound))
+      sources = sources.filter(entry => entry !== context);
   }
   const complementSister = (entry: typeof anchors[number]): boolean => normalizeTier2Synonym(entry.key) === 'complement'
     && sources.length === 1 && sources[0].items.length === 1 && entry.items.length === 1

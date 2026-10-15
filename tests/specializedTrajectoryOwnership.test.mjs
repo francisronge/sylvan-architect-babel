@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { adaptDerivationStagesForReplay, getFrameRelations } from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { getFrameRelations } from '../replay/frameRelations.ts';
 import { currentWorkspaceMovements } from '../replay/currentWorkspaceMovements.ts';
 
 const leaf = (id, label, word, extra = {}) => ({ id, label, word, ...extra });

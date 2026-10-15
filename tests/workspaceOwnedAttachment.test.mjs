@@ -16,7 +16,7 @@ function fixture({direction='ltr',deform=true,prefix='',material=false,kind='tra
   return {scenes,baseline:new Map(canvases.map((x,i)=>[x,points[i]])),render,direction,id};
 }
 for(const direction of ['ltr','rtl'])for(const prefix of ['','opaque/'])test(`owned complete subtree keeps internal contour (${direction}, ${prefix})`,()=>{
- const f=fixture({direction,prefix}),original=JSON.stringify(f.scenes.map(s=>s.canvas));const result=planCoherentWorkspace(f.scenes,f.baseline,direction,f.render);
+ const f=fixture({direction,prefix}),original=JSON.stringify(f.scenes.map(s=>s.canvas));const result=planCoherentWorkspace({ scenes: f.scenes, baseline: f.baseline, direction, render: f.render });
  assert.equal(result.diagnostic.status,'resolved',JSON.stringify(result.diagnostic));assert.ok(result.diagnostic.reflows.some(x=>x.kind==='unchanged-subtree-shape'));
  const [a,b]=f.scenes.map(s=>new Map(f.render(s,result.coordinates.get(s.canvas)).map(n=>[getNodeId(n),n])));
  const ar=a.get(f.id('source')),br=b.get(f.id('source'));
@@ -25,7 +25,7 @@ for(const direction of ['ltr','rtl'])for(const prefix of ['','opaque/'])test(`ow
  assert.equal(JSON.stringify(f.scenes.map(s=>s.canvas)),original);
 });
 for(const options of [{deform:false},{material:true}])test(`no owned complete-shape defect preserves accepted map ${JSON.stringify(options)}`,()=>{
- const f=fixture(options);const fail=()=>{throw Error('unnecessary metric work');};const result=planCoherentWorkspace(f.scenes,f.baseline,f.direction,f.render,{measureCategoryText:fail,measureTreeInk:fail,measureTreeLabel:fail});
+ const f=fixture(options);const fail=()=>{throw Error('unnecessary metric work');};const result=planCoherentWorkspace({ scenes: f.scenes, baseline: f.baseline, direction: f.direction, render: f.render, metrics: {measureCategoryText:fail,measureTreeInk:fail,measureTreeLabel:fail} });
  assert.equal(result.coordinates,f.baseline);assert.equal(result.diagnostic.status,'unchanged');assert.equal(result.diagnostic.evaluations,0);
 });
 test('exhausted backward clearance budget returns the accepted plan unchanged',()=>{
@@ -44,13 +44,13 @@ test('exhausted backward clearance budget returns the accepted plan unchanged',(
   scene.nodes=new Map(f.render(scene,scene.coordinates).map(n=>[getNodeId(n),n]));
  }
  const prior=JSON.stringify([...f.baseline].map(([canvas,points])=>[canvas,[...points]]));
- const result=planCoherentWorkspace(f.scenes,f.baseline,f.direction,f.render,{treeLabelRuns:labels,measureTreeLabel:run=>({x:-run.width/2,y:-40,width:run.width,height:55})});
+ const result=planCoherentWorkspace({ scenes: f.scenes, baseline: f.baseline, direction: f.direction, render: f.render, metrics: {treeLabelRuns:labels,measureTreeLabel:run=>({x:-run.width/2,y:-40,width:run.width,height:55})} });
  assert.equal(result.diagnostic.status,'infeasible');assert.equal(result.diagnostic.corrections,8);assert.equal(result.coordinates,f.baseline);
  assert.equal(JSON.stringify([...f.baseline].map(([canvas,points])=>[canvas,[...points]])),prior);
 });
 
 for(const options of [{kind:'authored-anchor-link'},{key:'0:0'}])test(`unowned reparented shape is detected without granting motion ${JSON.stringify(options)}`,()=>{
- const f=fixture(options),result=planCoherentWorkspace(f.scenes,f.baseline,f.direction,f.render);
+ const f=fixture(options),result=planCoherentWorkspace({ scenes: f.scenes, baseline: f.baseline, direction: f.direction, render: f.render });
  assert.ok(result.diagnostic.reflows.some(x=>x.kind==='unchanged-subtree-shape'));
  if(result.diagnostic.status==='resolved'){
   const [a,b]=f.scenes.map(s=>new Map(f.render(s,result.coordinates.get(s.canvas)).map(n=>[getNodeId(n),n])));

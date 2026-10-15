@@ -1,16 +1,66 @@
-import { buildTier2FacetEvidence } from './relationEvidence.ts';
-export { buildTier2FacetEvidence } from './relationEvidence.ts';
-import { createAssignmentContext, rememberAssignments, rememberAssignmentMovement, type AssignmentContext, type AssignmentScope } from './assignmentContinuity.ts';
-import { nativeThetaAssignments } from './compoundAssignments.ts';
+import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '../../types.ts';
+import { readCategoryLabel } from '../categoryLabel.ts';
+import { sameRealizationMembers } from '../realizationGroups.ts';
+import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
+import { dispatchRelation } from '../relationDispatch/relationDispatch.js';
+import { findRelationRegistryEntry } from '../relationDispatch/relationRegistry.js';
+import { createAssignmentContext, rememberAssignmentMovement, rememberAssignments } from './assignmentContinuity.ts';
+import {
+  authoredEvidenceItems,
+  authoredEvidenceReferences,
+  describeEvidenceCoverage,
+  primaryClaimIdentity,
+  removeConsumedEvidence
+} from './claimEvidenceOwnership.ts';
 import { recoverRelationScopes } from './claimRecovery.ts';
-import { typedThematicAssignment, typedInterpretiveRoles } from './thematicAssignment.ts';
+import { nativeThetaAssignments } from './compoundAssignments.ts';
+import {
+  beginControlStage,
+  createControlContext,
+  recoverControllerChainControl,
+  rememberControlClaim,
+  rememberControlMovement
+} from './controlEvidence.ts';
+import { scopeEvidence } from './evidenceScopes.ts';
 import { typedFocusAssociation } from './focusAssociationEvidence.ts';
 import { typedInterpretedBinding } from './interpretedBindingEvidence.ts';
 import { nominalConcordMembers } from './nominalConcord.ts';
-import { recoverParticipantProperties, recoverPairedCaseProperties, recoverNamedArgumentProperties } from './participantProperties.ts';
-import { scopeEvidence } from './evidenceScopes.ts';
-import { createControlContext, beginControlStage, rememberControlClaim, rememberControlMovement, recoverControllerChainControl, type ControlContext } from './controlEvidence.ts';
-import { readCategoryLabel } from '../categoryLabel.ts';
+import { POSITIVE_OUTCOMES, resolveOutcomeLiteral } from './outcomeResolver.ts';
+import { explicitPhaseEdgeFields } from './phaseEdgeEvidence.ts';
+import {
+  recoverNamedArgumentProperties,
+  recoverPairedCaseProperties,
+  recoverParticipantProperties
+} from './participantProperties.ts';
+import type {
+  ExclusiveRelationBatchDispatchInput,
+  ExclusiveRelationDispatchInput,
+  RecoveredClaim,
+  RecoveredEvidenceReference,
+  RelationClaimDispatch,
+  RelationClaimDispatchEntry,
+  Tier1RecoveredClaim,
+  Tier2CollisionDiagnostic,
+  Tier2EvaluatedFacet,
+  Tier2RecoveredClaim,
+  Tier2ResolvedFacet,
+  Tier3RecoveredClaim
+} from './relationClaims.ts';
+import { buildTier2FacetEvidence } from './relationEvidence.ts';
+import { PRODUCTION_RENDER_FAMILIES } from './renderFamilies.ts';
+import { typedInterpretiveRoles, typedThematicAssignment } from './thematicAssignment.ts';
+import { indexTier2Forests, type Tier2ForestIndexes } from './tier2EvidenceQueries.ts';
+import { evaluateTier2FacetRecipe } from './tier2FacetEvaluation.ts';
+import { buildTier2FacetIdentity, buildTier2FacetOutputIdentities } from './tier2FacetIdentity.ts';
+import { TIER2_FACET_RECIPES } from './tier2FacetRecipes.ts';
+import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import {
+  buildTier2SynonymIndex,
+  lookupTier2SynonymCandidates,
+  normalizeTier2Synonym,
+  relationLabelClauses
+} from './tier2Synonyms.ts';
+
 /**
  * Claim-level renderer-tier dispatch for one authored relation envelope.
  *
@@ -20,290 +70,24 @@ import { readCategoryLabel } from '../categoryLabel.ts';
  * facet, or Tier 3 for an unrecoverable primary. Tier 2 never repairs the
  * generic twin of a malformed registered primary.
  */
-import type {
-  DerivationStageRelation,
-  SurfaceRealization,
-  SyntaxNode
-} from '../../types.ts';
-import {
-  dispatchRelation,
-  findRelationRegistryEntry,
-  productionRelationRegistry
-} from '../relationDispatch/index.js';
-import { resolveOutcomeLiteral } from './outcomeResolver.ts';
-import { PRODUCTION_RENDER_FAMILIES } from './renderFamilies.ts';
-import {
-  TIER2_FACET_RECIPES,
-  POSITIVE_OUTCOMES,
-  buildTier2FacetIdentity,
-  buildTier2FacetOutputIdentities,
-  evaluateTier2FacetRecipe,
-  indexTier2Forests,
-  type Tier2ForestIndexes,
-  type Tier2AuthoredEvidenceEntry,
-  type Tier2FacetEvidence,
-  type Tier2FacetEvaluation,
-  type Tier2FacetOutputIdentity,
-  type Tier2FacetRecipe
-} from './tier2FacetRecipes.ts';
-import {
-  buildTier2SynonymIndex,
-  lookupTier2SynonymCandidates,
-  normalizeTier2Synonym,
-  relationLabelClauses,
-  type Tier2SynonymIndex
-} from './tier2Synonyms.ts';
-
-type Tier1Dispatch = ReturnType<typeof dispatchRelation>;
-
-export type Tier2ResolvedFacet = {
-  recipe: Tier2FacetRecipe;
-  evaluation: Tier2FacetEvaluation;
-  facetIdentity: string;
-  outputIdentities: Tier2FacetOutputIdentity[];
-  parentFacetIds: string[];
-  evidence?: Tier2FacetEvidence;
-  restates?: AssignmentScope['restates'];
-};
-
-type Tier2EvaluatedFacet = Pick<Tier2ResolvedFacet, 'recipe' | 'evaluation' | 'evidence' | 'restates'> & {
-  origins?: AssignmentScope['origins'] & { priorAnchors?: Record<string, number[]> }
-};
-
-export type Tier2CollisionDiagnostic = {
-  kind: 'ambiguous-facets' | 'more-specific-facet' | 'contradictory-evidence' | 'unrecovered-evidence';
-  collision: string;
-  facets: string[];
-  winner?: string;
-};
-
-type ClaimDispatchBase = {
-  relationInstance: { stageIndex: number; relationIndex: number };
-  authoredRelationName: string;
-  tier1Dispatch: Tier1Dispatch;
-  /** The same interpretation is used by drawing and Replay. */
-  evidence: Tier2FacetEvidence;
-  facetDiagnostics: Array<{ facetId: string; failures: string[] }>;
-};
-
-export type RecoveredEvidenceReference = {
-  field: 'anchors' | 'priorAnchors' | 'values';
-  key: string;
-  itemIndices?: number[];
-};
-
-export type Tier1RecoveredClaim = {
-  tier: 1;
-  kind: 'registered-primary';
-  canonicalClaimIdentity: string;
-  registryEntryId: string;
-  consumedEvidence: RecoveredEvidenceReference[];
-};
-
-export type Tier2RecoveredClaim = {
-  tier: 2;
-  kind: 'structural-facet';
-  canonicalClaimIdentity: string;
-  facet: Tier2ResolvedFacet;
-  consumedEvidence: RecoveredEvidenceReference[];
-};
-
-export type Tier3RecoveredClaim = {
-  tier: 3;
-  kind: 'fallback-primary' | 'fallback-residual';
-  canonicalClaimIdentity: string;
-  reason:
-    | 'registered-signature-incomplete'
-    | 'no-complete-tier2-facet'
-    | 'unconsumed-envelope-evidence'
-    | 'malformed-authored-relation';
-  consumedEvidence: RecoveredEvidenceReference[];
-  /** Current participants of the authored relation, not an inferred extra dependency. */
-  contextAnchors?: Record<string, string | string[]>;
-};
-
-export type RecoveredClaim =
-  | Tier1RecoveredClaim
-  | Tier2RecoveredClaim
-  | Tier3RecoveredClaim;
-
-export type RelationEvidenceCoverage = {
-  /** Full authored context, not a claim reconstructed from leftover fields. */
-  authoredRelation: DerivationStageRelation;
-  fields: Array<{
-    field: RecoveredEvidenceReference['field'];
-    key: string;
-    concepts: string[];
-    recognizedBy: Array<{ claim: string; tier: 1 | 2; itemIndices: number[] }>;
-    unrecoveredItemIndices: number[];
-    unrecoveredEmptyField: boolean;
-  }>;
-};
-
-export type RelationClaimDispatch = ClaimDispatchBase & {
-  evidenceCoverage: RelationEvidenceCoverage;
-  primaryClaim: Tier1RecoveredClaim | Tier3RecoveredClaim | null;
-  claims: RecoveredClaim[];
-  facets: Tier2ResolvedFacet[];
-  diagnostics: Tier2CollisionDiagnostic[];
-  /** The primary evidence after independent claim evidence is removed. */
-  primaryRelation: DerivationStageRelation;
-  /** Internal role lookup; original spelling remains in primaryRelation. */
-  boundPrimaryRelation: DerivationStageRelation;
-  residualRelation?: DerivationStageRelation;
-};
-
-export type ExclusiveRelationDispatchInput = {
-  relation: DerivationStageRelation;
-  stageIndex: number;
-  relationIndex: number;
-  currentForest: readonly SyntaxNode[];
-  currentRealizations?: readonly SurfaceRealization[];
-  priorRealizations?: readonly SurfaceRealization[];
-  priorForest?: readonly SyntaxNode[];
-  activeLens?: boolean;
-  assignmentContext?: AssignmentContext;
-  controlContext?: ControlContext;
-  registry?: typeof productionRelationRegistry;
-  synonymIndex?: Tier2SynonymIndex;
-};
-
-export type RelationClaimDispatchEntry = {
-  relation: DerivationStageRelation;
-  dispatch: RelationClaimDispatch;
-};
-
-export type ExclusiveRelationBatchDispatchInput = Omit<
-  ExclusiveRelationDispatchInput,
-  'relation' | 'relationIndex'
-> & {
-  relations: readonly DerivationStageRelation[];
-};
 
 const DEFAULT_SYNONYM_INDEX = buildTier2SynonymIndex();
-
-const canonicalize = (value: unknown): unknown => {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (value && typeof value === 'object') {
-    return Object.keys(value as Record<string, unknown>)
-      .sort()
-      .reduce<Record<string, unknown>>((result, key) => {
-        result[key] = canonicalize((value as Record<string, unknown>)[key]);
-        return result;
-      }, {});
-  }
-  return value;
-};
-
-const primaryClaimIdentity = (
-  relation: DerivationStageRelation,
-  registryEntryId?: string,
-  kind: Tier1RecoveredClaim['kind'] | Tier3RecoveredClaim['kind'] = 'registered-primary',
-  contextAnchors?: Record<string, string | string[]>
-): string => JSON.stringify(canonicalize({
-  kind,
-  identity: registryEntryId ?? normalizeTier2Synonym(relation.relation),
-  anchors: relation.anchors ?? {},
-  priorAnchors: relation.priorAnchors ?? null,
-  values: relation.values ?? null,
-  ...(contextAnchors ? { contextAnchors } : {})
-}));
-
-const authoredEvidenceReferences = (
-  relation: DerivationStageRelation
-): RecoveredEvidenceReference[] => (
-  (['anchors', 'priorAnchors', 'values'] as const).flatMap((field) =>
-    Object.keys(relation[field] ?? {}).map((key) => ({
-      field,
-      key
-    })))
-);
-
-const describeEvidenceCoverage = (
-  relation: DerivationStageRelation,
-  evidence: Tier2FacetEvidence,
-  claims: readonly RecoveredClaim[],
-  companions: readonly Tier2ResolvedFacet[],
-  synonymIndex: Tier2SynonymIndex
-): RelationEvidenceCoverage => {
-  const owners = [
-    ...claims.flatMap(claim => claim.tier === 3 ? [] : [{
-      claim: claim.tier === 1 ? claim.registryEntryId : claim.facet.recipe.id,
-      tier: claim.tier,
-      references: claim.consumedEvidence
-    }]),
-    ...companions.map(facet => ({ claim: facet.recipe.id, tier: 2 as const, references: facet.evaluation.consumedEvidence }))
-  ];
-  const entries = { anchors: evidence.authoredCurrentAnchors, priorAnchors: evidence.authoredPriorAnchors, values: evidence.authoredValues };
-  return {
-    authoredRelation: relation,
-    fields: authoredEvidenceReferences(relation).map(({ field, key }) => {
-      const value = relation[field]![key];
-      const indices = (Array.isArray(value) ? value : [value]).map((_, index) => index);
-      const recognizedBy = owners.flatMap(owner => {
-        const refs = owner.references.filter(ref => ref.field === field && ref.key === key);
-        if (!refs.length) return [];
-        const used = new Set(refs.flatMap(ref => ref.itemIndices ?? indices));
-        return [{ claim: owner.claim, tier: owner.tier, itemIndices: indices.filter(index => used.has(index)) }];
-      });
-      return {
-        field, key,
-        concepts: [...new Set([
-          ...(entries[field]?.find(entry => entry.key === key)?.concepts ?? []),
-          ...lookupTier2SynonymCandidates(synonymIndex, field === 'values' ? 'value' : 'role', key)
-        ])],
-        recognizedBy,
-        unrecoveredItemIndices: indices.filter(index => !recognizedBy.some(owner => owner.itemIndices.includes(index))),
-        unrecoveredEmptyField: indices.length === 0 && recognizedBy.length === 0
-      };
-    })
-  };
-};
-
-const removeConsumedEvidence = (
-  relation: DerivationStageRelation,
-  consumedEvidence: readonly RecoveredEvidenceReference[]
-): DerivationStageRelation => {
-  const retain = (
-    field: RecoveredEvidenceReference['field'],
-    block: Record<string, string | string[]> | undefined
-  ): Record<string, string | string[]> => Object.fromEntries(
-    Object.entries(block ?? {}).flatMap(([key, value]) => {
-      const references = consumedEvidence.filter(ref => ref.field === field && ref.key === key);
-      if (references.length === 0) return [[key, value]];
-      if (references.some(ref => ref.itemIndices === undefined)) return [];
-      const used = new Set(references.flatMap(ref => ref.itemIndices ?? []));
-      const remaining = (Array.isArray(value) ? value : [value]).filter((_, index) => !used.has(index));
-      return remaining.length ? [[key, Array.isArray(value) ? remaining : remaining[0]]] : [];
-    })
-  );
-  const anchors = retain('anchors', relation.anchors);
-  const priorAnchors = retain('priorAnchors', relation.priorAnchors);
-  const values = retain('values', relation.values);
-  return {
-    relation: relation.relation,
-    anchors,
-    ...(Object.keys(priorAnchors).length > 0 ? { priorAnchors } : {}),
-    ...(Object.keys(values).length > 0 ? { values } : {})
-  };
-};
 
 const evaluateClaims = (evidence: Tier2FacetEvidence, indexes: Tier2ForestIndexes): Tier2EvaluatedFacet[] => (
   TIER2_FACET_RECIPES
     .filter((recipe) => recipe.kind === 'claim')
-    .map((recipe) => ({ recipe, evaluation: evaluateTier2FacetRecipe(recipe, evidence, indexes) }))
+    .map((recipe) => {
+      const explicit = recipe.id === 'phase.edge' ? explicitPhaseEdgeFields(evidence) : [];
+      // A contextual accessibility role cannot enlarge an independently explicit
+      // edge claim, including beside a registered primary relation.
+      if (explicit.length && explicit.length !== evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('phase.edge')).length) {
+        const scope = scopeEvidence(evidence, 'phase.edge', explicit.map(entry => ({ entry, concept: 'phase.edge' })));
+        return { recipe, evaluation: evaluateTier2FacetRecipe(recipe, scope.evidence, indexes),
+          evidence: scope.evidence, origins: scope.origins };
+      }
+      return { recipe, evaluation: evaluateTier2FacetRecipe(recipe, evidence, indexes) };
+    })
 );
-
-const authoredEvidenceItems = (
-  evidence: Tier2FacetEvidence,
-  references: readonly RecoveredEvidenceReference[]
-): string => JSON.stringify([...new Set(references.flatMap(ref => {
-  const entries = ref.field === 'anchors' ? evidence.authoredCurrentAnchors
-    : ref.field === 'priorAnchors' ? evidence.authoredPriorAnchors : evidence.authoredValues;
-  const entry = entries?.find(candidate => candidate.key === ref.key);
-  return (ref.itemIndices ?? entry?.items.map((_, index) => index) ?? [])
-    .map(index => JSON.stringify([ref.field, ref.key, index]));
-}))].sort());
 
 const resolveClaimCollisions = (
   completeClaims: readonly Tier2EvaluatedFacet[],
@@ -362,7 +146,7 @@ const resolveClaimCollisions = (
   if (initial.has('feature-sharing') && initial.has('feature.dependency')
     && !evidence.values['case.literal']?.length && nominalConcordMembers(evidence).length
     && authoredEvidenceItems(evidence, initial.get('feature-sharing')!.evaluation.consumedEvidence)
-      === authoredEvidenceItems(evidence, initial.get('feature.dependency')!.evaluation.consumedEvidence))
+    === authoredEvidenceItems(evidence, initial.get('feature.dependency')!.evaluation.consumedEvidence))
     prefer('nominal-concord-or-generic-feature', 'feature-sharing', 'feature.dependency');
   prefer('transfer-owns-edge', 'transfer.domain', 'phase.edge');
   prefer('strong-npi-owns-licensing', 'strong-npi', 'polarity.licensing');
@@ -456,10 +240,12 @@ const attachFacetIdentities = (
     if (!facetIdentity) return [];
     return [{
       recipe,
-      evaluation: origins ? { ...evaluation, consumedEvidence: evaluation.consumedEvidence.map(ref => {
-        const indices = origins[ref.field]?.[ref.key] ?? [];
-        return { ...ref, itemIndices: indices };
-      }) } : evaluation,
+      evaluation: origins ? {
+        ...evaluation, consumedEvidence: evaluation.consumedEvidence.map(ref => {
+          const indices = origins[ref.field]?.[ref.key] ?? [];
+          return { ...ref, itemIndices: indices };
+        })
+      } : evaluation,
       ...(scopedEvidence ? { evidence: scopedEvidence } : {}),
       ...(restates ? { restates } : {}),
       facetIdentity,
@@ -568,7 +354,7 @@ export const dispatchRelationClaims = (
     relationIndex,
     currentForest,
     priorForest
-  }) as Tier1Dispatch;
+  });
   const registryEntry = findRelationRegistryEntry(registry, relation.relation);
   const evidence = buildTier2FacetEvidence({
     relation,
@@ -581,11 +367,11 @@ export const dispatchRelationClaims = (
   });
   const declaredPrimaryAnchorKeys = new Set<string>(registryEntry
     ? [
-        ...Object.keys(registryEntry.signature.anchors.required),
-        ...Object.keys(registryEntry.signature.anchors.optional)
-      ].map(normalizeTier2Synonym).concat(authoredTier1Dispatch.roleBindings
-        .filter(binding => binding.field === 'anchors')
-        .map(binding => normalizeTier2Synonym(binding.authoredRole)))
+      ...Object.keys(registryEntry.signature.anchors.required),
+      ...Object.keys(registryEntry.signature.anchors.optional)
+    ].map(normalizeTier2Synonym).concat(authoredTier1Dispatch.roleBindings
+      .filter(binding => binding.field === 'anchors')
+      .map(binding => normalizeTier2Synonym(binding.authoredRole)))
     : []);
   const declaredPrimaryAnchorConcepts = new Set<string>(registryEntry
     ? Object.entries({ ...registryEntry.signature.anchors.required, ...registryEntry.signature.anchors.optional } as Record<string, { concept?: string }>)
@@ -618,54 +404,63 @@ export const dispatchRelationClaims = (
     && !(recipe.id === 'operator-binding' && typedInterpretedBinding(evidence)));
   const eligibleClaims = registryEntry
     ? completeClaims.filter(({ evaluation }) => {
-        if (primaryAcceptsAdditionalAnchors) return false;
-        const currentAnchorEvidence = evaluation.consumedEvidence.filter(
-          ({ field }) => field === 'anchors'
-        );
-        return currentAnchorEvidence.length > 0 && currentAnchorEvidence.every(
-          ({ key }) => (
-            !declaredPrimaryAnchorKeys.has(normalizeTier2Synonym(key))
-            && [...(evidence.authoredCurrentAnchors?.find(entry => entry.key === key)?.concepts ?? []),
-              ...lookupTier2SynonymCandidates(synonymIndex, 'role', key)].every(
-              (concept) => !declaredPrimaryAnchorConcepts.has(concept)
-            )
+      if (primaryAcceptsAdditionalAnchors) return false;
+      const currentAnchorEvidence = evaluation.consumedEvidence.filter(
+        ({ field }) => field === 'anchors'
+      );
+      return currentAnchorEvidence.length > 0 && currentAnchorEvidence.every(
+        ({ key }) => (
+          !declaredPrimaryAnchorKeys.has(normalizeTier2Synonym(key))
+          && [...(evidence.authoredCurrentAnchors?.find(entry => entry.key === key)?.concepts ?? []),
+          ...lookupTier2SynonymCandidates(synonymIndex, 'role', key)].every(
+            (concept) => !declaredPrimaryAnchorConcepts.has(concept)
           )
-        );
-      })
+        )
+      );
+    })
     : completeClaims;
   const { selected, diagnostics } = resolveClaimCollisions(eligibleClaims, evidence);
   const licensed = evidence.currentAnchors['licensed.hosts'] ?? [];
   const rejected = evidence.currentAnchors['rejected.hosts'] ?? [];
   const conflictingHosts = licensed.filter(id => rejected.includes(id));
-  if (conflictingHosts.length && !authoredTier1Dispatch.signatureIssues.some(issue => issue.kind === 'candidate-outcome-conflict')) diagnostics.push({ kind: 'contradictory-evidence',
-    collision: `candidate-outcome-conflict:${[...new Set(conflictingHosts)].join(',')}`, facets: ['landing-candidates'] });
+  if (conflictingHosts.length && !authoredTier1Dispatch.signatureIssues.some(issue => issue.kind === 'candidate-outcome-conflict')) diagnostics.push({
+    kind: 'contradictory-evidence',
+    collision: `candidate-outcome-conflict:${[...new Set(conflictingHosts)].join(',')}`, facets: ['landing-candidates']
+  });
   const outcomes = evidence.values.outcome ?? [];
   if (!authoredTier1Dispatch.signatureIssues.some(issue => issue.kind === 'ambiguous-outcome-values')
     && new Set(outcomes.map(item => resolveOutcomeLiteral(item)?.concept).filter(Boolean)).size > 1) diagnostics.push({
-    kind: 'contradictory-evidence', collision: 'outcome-conflict', facets: []
-  });
+      kind: 'contradictory-evidence', collision: 'outcome-conflict', facets: []
+    });
   const continued: Tier2EvaluatedFacet[] = !registryEntry
     ? [...recoverRelationScopes(relation, evidence, input.assignmentContext),
-        ...(input.controlContext ? recoverControllerChainControl(evidence, input.controlContext) : [])].flatMap(scope => {
-        // Historical continuity can corroborate a subset of a claim already
-        // recovered from this record. Its identical authored items do not
-        // establish another grid or connector in the same relation moment.
-        const alreadyOwned = selected.some(facet => facet.recipe.id === scope.kind
-          && (['anchors', 'values'] as const).every(field => Object.entries(scope.origins[field]).every(([key, indices]) =>
-            indices.every(index => facet.evaluation.consumedEvidence.some(ref => ref.field === field && ref.key === key
-              && (ref.itemIndices === undefined || ref.itemIndices.includes(index)))))));
-        const sharedInventoryOwned = scope.kind === 'feature.dependency'
-          && !evidence.values['case.literal']?.length && nominalConcordMembers(evidence).length > 0
-          && selected.some(facet => facet.recipe.id === 'feature-sharing'
-            && authoredEvidenceItems(evidence, facet.evaluation.consumedEvidence)
-              === authoredEvidenceItems(evidence, (['anchors', 'values'] as const).flatMap(field =>
-                Object.entries(scope.origins[field]).map(([key, itemIndices]) => ({ field, key, itemIndices })))));
-        if (alreadyOwned || sharedInventoryOwned) return [];
-        const recipe = TIER2_FACET_RECIPES.find(recipe => recipe.id === scope.kind)!;
-        const evaluation = evaluateTier2FacetRecipe(recipe, scope.evidence, indexes);
-        return evaluation.complete ? [{ recipe, evaluation, evidence: scope.evidence, origins: scope.origins,
-          ...('restates' in scope ? { restates: scope.restates } : {}) }] : [];
-      }) : [];
+    ...(input.controlContext ? recoverControllerChainControl(evidence, input.controlContext) : [])].flatMap(scope => {
+      // Historical continuity can corroborate a subset of a claim already
+      // recovered from this record. Its identical authored items do not
+      // establish another grid or connector in the same relation moment.
+      const alreadyOwned = selected.some(facet => facet.recipe.id === scope.kind
+        && (['anchors', 'values'] as const).every(field => Object.entries(scope.origins[field]).every(([key, indices]) =>
+          indices.every(index => facet.evaluation.consumedEvidence.some(ref => ref.field === field && ref.key === key
+            && (ref.itemIndices === undefined || ref.itemIndices.includes(index)))))));
+      const sharedInventoryOwned = scope.kind === 'feature.dependency'
+        && !evidence.values['case.literal']?.length && nominalConcordMembers(evidence).length > 0
+        && selected.some(facet => facet.recipe.id === 'feature-sharing'
+          && authoredEvidenceItems(evidence, facet.evaluation.consumedEvidence)
+          === authoredEvidenceItems(evidence, (['anchors', 'values'] as const).flatMap(field =>
+            Object.entries(scope.origins[field]).map(([key, itemIndices]) => ({ field, key, itemIndices })))));
+      // Transfer already paints these exact edge occurrences even when movement
+      // names them through a different authored field.
+      const transferOwned = scope.kind === 'phase.edge' && selected.some(facet => facet.recipe.id === 'transfer.domain'
+        && scope.evidence.currentAnchors['phase.edge']?.every(id =>
+          (facet.evidence ?? evidence).currentAnchors['phase.edge']?.includes(id)));
+      if (alreadyOwned || sharedInventoryOwned || transferOwned) return [];
+      const recipe = TIER2_FACET_RECIPES.find(recipe => recipe.id === scope.kind)!;
+      const evaluation = evaluateTier2FacetRecipe(recipe, scope.evidence, indexes);
+      return evaluation.complete ? [{
+        recipe, evaluation, evidence: scope.evidence, origins: scope.origins,
+        ...('restates' in scope ? { restates: scope.restates } : {})
+      }] : [];
+    }) : [];
   // A generic connector is the same claim's incomplete view when a recovered
   // scope supplies rows for exactly its original endpoint fields and items.
   // Other fields, repeated entries and independent endpoints remain separate.
@@ -713,11 +508,21 @@ export const dispatchRelationClaims = (
       // its generic member-only property. Separate rows keep their first scope.
       if (facet.recipe.id === 'pf.structured') {
         const hosts = (facet.evidence ?? evidence).currentAnchors['rewrite.output'] ?? [];
+        const terminalDomain = (ids: readonly string[]): string[] | undefined => {
+          const terminals = (node: SyntaxNode): string[] => node.children?.length
+            ? node.children.flatMap(terminals) : [node.id];
+          const nodes = ids.map(id => indexes.currentIndex.nodes.get(id));
+          return nodes.every(matches => matches?.length === 1)
+            ? nodes.flatMap(matches => terminals(matches![0])) : undefined;
+        };
         owners.push(...continued.filter(scope => {
           const outputs = scope.evidence?.currentAnchors['rewrite.output'] ?? [];
+          const hostDomain = terminalDomain(hosts), outputDomain = terminalDomain(outputs);
           return scope.recipe.id === 'pf.structured' && scope.evidence?.realizationGroupAnchorKeys?.length
             && (scope.evaluation.outcomeConcept ?? null) === (facet.evaluation.outcomeConcept ?? null)
-            && outputs.length > hosts.length && hosts.length > 0 && hosts.every(id => outputs.includes(id));
+            && (outputs.length > hosts.length && hosts.length > 0 && hosts.every(id => outputs.includes(id))
+              || hosts.length === 1 && outputs.length > 0 && hostDomain && outputDomain
+                && sameRealizationMembers(hostDomain, outputDomain));
         }));
       }
       const valueRefs = facet.evaluation.consumedEvidence.filter(ref => ref.field === 'values');
@@ -836,13 +641,13 @@ export const dispatchRelationClaims = (
   let primaryRelation = removeConsumedEvidence(relation, independentlyConsumedEvidence);
   const tier1Dispatch = registryEntry
     ? dispatchRelation({
-        registry,
-        relation: primaryRelation,
-        stageIndex,
-        relationIndex,
-        currentForest,
-        priorForest
-      }) as Tier1Dispatch
+      registry,
+      relation: primaryRelation,
+      stageIndex,
+      relationIndex,
+      currentForest,
+      priorForest
+    })
     : authoredTier1Dispatch;
   const thetaContext = registryEntry?.id === 'theta.grid'
     ? new Set(evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('predicate.context')).map(entry => entry.key))
@@ -864,7 +669,8 @@ export const dispatchRelationClaims = (
     evidence,
     tier1Dispatch,
     primaryRelation,
-    boundPrimaryRelation: residualRelation ? { ...tier1Dispatch.boundRelation,
+    boundPrimaryRelation: residualRelation ? {
+      ...tier1Dispatch.boundRelation,
       anchors: Object.fromEntries(Object.entries(tier1Dispatch.boundRelation.anchors).filter(([key]) => !unownedAnchors.includes(key)))
     } : tier1Dispatch.boundRelation,
     facets,
@@ -916,11 +722,11 @@ export const dispatchRelationClaims = (
       })
     };
     claims = [primaryClaim, ...tier2Claims, ...(residualRelation ? [{
-        tier: 3 as const, kind: 'fallback-residual' as const,
-        canonicalClaimIdentity: primaryClaimIdentity(residualRelation, undefined, 'fallback-residual'),
-        reason: 'unconsumed-envelope-evidence' as const,
-        consumedEvidence: authoredEvidenceReferences(residualRelation)
-      }] : [])];
+      tier: 3 as const, kind: 'fallback-residual' as const,
+      canonicalClaimIdentity: primaryClaimIdentity(residualRelation, undefined, 'fallback-residual'),
+      reason: 'unconsumed-envelope-evidence' as const,
+      consumedEvidence: authoredEvidenceReferences(residualRelation)
+    }] : [])];
   } else if (registryEntry) {
     primaryClaim = {
       tier: 3,
@@ -975,8 +781,10 @@ export const dispatchRelationClaims = (
     claim.consumedEvidence = unrecovered.map(entry => {
       const original = relation[entry.field]![entry.key];
       const count = Array.isArray(original) ? original.length : 1;
-      return { field: entry.field, key: entry.key,
-        ...(entry.unrecoveredItemIndices.length === count ? {} : { itemIndices: entry.unrecoveredItemIndices }) };
+      return {
+        field: entry.field, key: entry.key,
+        ...(entry.unrecoveredItemIndices.length === count ? {} : { itemIndices: entry.unrecoveredItemIndices })
+      };
     });
     // A drawing can account for an anchor without exhausting every assertion
     // involving it. Keep current context beside remaining participants, excluding
@@ -1059,9 +867,11 @@ export function dispatchStageRelations(stages: readonly { workspaceForest: Synta
   return stages.map((stage, stageIndex) => {
     beginControlStage(controlContext, stage.workspaceForest);
     return stage.relations.map((relation, relationIndex) => {
-      const dispatch = dispatchRelationClaims({ ...options, relation, stageIndex, relationIndex, assignmentContext, controlContext,
+      const dispatch = dispatchRelationClaims({
+        ...options, relation, stageIndex, relationIndex, assignmentContext, controlContext,
         currentForest: stage.workspaceForest, currentRealizations: stage.realizations,
-        priorRealizations: stages[stageIndex - 1]?.realizations, priorForest: stages[stageIndex - 1]?.workspaceForest });
+        priorRealizations: stages[stageIndex - 1]?.realizations, priorForest: stages[stageIndex - 1]?.workspaceForest
+      });
       recoveredClaimMovements(dispatch).forEach(movement => {
         rememberAssignmentMovement(assignmentContext, movement);
         rememberControlMovement(controlContext, stageIndex, movement);

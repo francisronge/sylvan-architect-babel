@@ -1,6 +1,6 @@
-import { establishesAssignment } from './assignmentContinuity.ts';
 import type { SyntaxNode } from '../../types.ts';
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import { establishesAssignment } from './outcomeResolver.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { normalizeTier2Synonym } from './tier2Synonyms.ts';
 
 /** Named chains remain separate claims even when one relation lists several. */
@@ -35,7 +35,7 @@ export function recoverOccurrenceGroups(evidence: Tier2FacetEvidence) {
   // family without restating movement. Root lineage proves identity only.
   const chainDescription = /\b(?:chain|identity|shared (?:thematic )?argument|antecedent government|government of (?:the )?(?:head )?traces?)\b/u.test(normalizeTier2Synonym(evidence.relationName ?? ''));
   const positioned = (evidence.authoredCurrentAnchors ?? []).filter(entry => chainDescription ? entry.items.length > 0 && entry.items.every(id => nodes.get(id)?.length === 1 && nodes.get(id)![0].lineageId?.trim()) :
-    /^(?:chain (?:head|foot)|(?:pronounced|unpronounced)(?: occurrences?| copies?)?|(?:thematic|higher|lower|upper|base|raised|intermediate) (?:occurrences?|copies?|traces?|positions?|verbs?)|(?:head|verb|object|subject) (?:antecedent|trace|position)|(?:overt|pronounced) (?:antecedent|argument)|theta position)$/u
+    /^(?:chain (?:head|foot)|(?:pronounced|unpronounced)(?: occurrences?| cop(?:y|ies))?|surface (?:copy|occurrence)|(?:thematic|higher|lower|upper|base|raised|intermediate) (?:occurrences?|cop(?:y|ies)|traces?|positions?|verbs?)|(?:head|verb|object|subject) (?:antecedent|trace|position)|(?:overt|pronounced) (?:antecedent|argument)|theta position)$/u
       .test(normalizeTier2Synonym(entry.key)));
   const namedList = positioned.length === 1 && establishesAssignment(evidence) && /\bchain\b/u.test(normalizeTier2Synonym(evidence.relationName ?? ''))
     && !/\b(?:no|not|without|possible|potential|hypothetical|pending|unresolved|failed|blocked|unlicensed)\b/u.test(normalizeTier2Synonym(evidence.relationName ?? ''));

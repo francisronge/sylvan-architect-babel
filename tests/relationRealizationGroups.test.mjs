@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { dispatchRelationClaims, dispatchRelationClaimBatch, dispatchStageRelations } from '../replay/relations/tier2RelationDispatch.ts';
-import { compileRelationRenderPlan, visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
-import { getFrameRelations } from '../replay/replayCompiler.ts';
+import { getFrameRelations } from '../replay/frameRelations.ts';
 
 const forest = [{ id: 'root', label: 'XP', children: [
   { id: 'x7', label: 'X', word: '甲' },
@@ -37,7 +38,11 @@ test('a typed surface in an asserted realization uses the exact contributor grou
     assert.equal(inspect({ ...r, relation: name }).plates.length, 0, name);
   for (const groups of [[], [{ nodeIds: ['x7', 'y3'], tokenIndices: [0] }], [group, group]])
     assert.equal(inspect(r, groups).plates.length, 0);
-  assert.equal(inspect({ ...r, anchors: { items: [...group.nodeIds] } }).plates.length, 0);
+  const open = inspect({ ...r, anchors: { items: [...group.nodeIds] } });
+  assert.equal(open.plates.length, 1, 'the asserted exact group proves ownership without a contributor-role alias');
+  assert.deepEqual(open.plates[0].anchorNodeIds, group.nodeIds);
+  assert.deepEqual(open.plates[0].rows, [{ label: 'surface', value: '주었다' }]);
+  assert.equal(inspect({ ...r, anchors: { items: ['x7', 'y3'] } }).plates.length, 0);
   assert.equal(inspect({ ...r, relation: 'VocabularyInsertion' }).plates.length, 0);
 });
 
@@ -134,6 +139,51 @@ test('an explicitly realized carrier can associate its contained contributors wi
     { contributors: group.nodeIds, nominal: 'root', carrier: 'root' },
     { contributors: [...group.nodeIds, 'outside'], nominal: 'root' }
   ]) assert.equal(inspect({ ...relation, anchors }, realizations, [...forest, { id: 'outside', label: 'Z' }]).plates.length, 0);
+});
+
+test('incidental descendants of a realized carrier cannot own a collective PF plate', () => {
+  const realizations = [{ nodeIds: ['root'], tokenIndices: [0] }];
+  for (const anchors of [
+    { context: 'root', incidental: 'x7' },
+    { nominal: 'root', article: 'x7', context: ['y3', 'z8'] }
+  ]) {
+    const r = { relation: 'An unfamiliar observation', anchors, values: { inputToken: 'whole token' } };
+    const { dispatch, plates } = inspect(r, realizations);
+    assert.equal(plates.length, 0);
+    assert.equal(dispatch.primaryClaim.tier, 3);
+    assert.deepEqual(dispatch.primaryRelation, r);
+    for (const field of dispatch.evidenceCoverage.fields)
+      assert.deepEqual(field.unrecoveredItemIndices, [r[field.field][field.key]].flat().map((_, index) => index));
+  }
+  const morphology = { relation: 'Nominal morphological realization',
+    anchors: { nominal: 'root', article: 'x7', affixes: ['y3', 'z8'] }, values: { inputToken: 'whole token' } };
+  assert.deepEqual(inspect(morphology, realizations).plates[0].anchorNodeIds, ['root', 'x7', 'y3', 'z8']);
+  const explicit = { ...morphology, relation: 'An unfamiliar observation',
+    anchors: { nominal: 'root', contributors: ['x7', 'y3', 'z8'] } };
+  assert.deepEqual(inspect(explicit, realizations).plates[0].anchorNodeIds, ['root', 'x7', 'y3', 'z8']);
+  const denied = { ...morphology, relation: 'Possible nominal morphological realization' };
+  assert.equal(inspect(denied, realizations).plates.length, 0);
+  const sibling = { ...morphology, relation: 'An unfamiliar observation',
+    anchors: { context: 'root', incidental: 'x7', controller: 'q1', controlledSubject: 'y3' } };
+  const result = inspect(sibling, realizations);
+  assert.equal(result.plates.length, 0);
+  assert(result.dispatch.facets.some(facet => facet.recipe.id === 'control.dependency'));
+});
+
+test('a carrier property and the same complete contributor realization draw one owned plaque', () => {
+  const workspace = [{ id: 'complex', label: 'I', children: [
+    { id: 'verb', label: 'V', word: 'read' }, { id: 'tense', label: 'I', word: 'past' }
+  ] }];
+  const groups = [{ nodeIds: ['verb', 'tense'], tokenIndices: [0] }];
+  for (const values of [{ surfaceRealization: 'read' },
+    { surfaceWord: 'read', pastExponent: 'past', agreementExponent: 'zero' }]) {
+    const r = { relation: 'Finite verbal realization',
+      anchors: { inflectedHead: 'complex', verbalContributor: 'verb', tenseContributor: 'tense' }, values };
+    const { plates } = inspect(r, groups, workspace);
+    assert.equal(plates.length, 1);
+    assert.deepEqual(plates[0].anchorNodeIds.toSorted(), ['tense', 'verb']);
+    assert.deepEqual(plates[0].rows, [{ label: Object.hasOwn(values, 'surfaceWord') ? 'surfaceWord' : 'surfaceRealization', value: 'read' }]);
+  }
 });
 
 test('independent sibling claims keep their own drawing and the realization plate remains one complete group', () => {

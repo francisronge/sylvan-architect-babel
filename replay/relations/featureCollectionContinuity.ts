@@ -1,5 +1,5 @@
 import type { DerivationStage, SyntaxNode } from '../../types.ts';
-import type { NodePlaquePlanItem, PlanRelationRef, RelationPlanItem } from './renderPlanCompiler.ts';
+import type { NodePlaquePlanItem, PlanRelationRef, RelationPlanItem } from './renderPlan.ts';
 
 type Collection = {
   plaque: NodePlaquePlanItem;

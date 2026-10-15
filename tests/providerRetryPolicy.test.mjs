@@ -2,20 +2,9 @@ import assert from 'node:assert/strict';
 import test, { after, before, beforeEach } from 'node:test';
 
 import { ParseApiError } from '../server/babelParser/error.js';
-import {
-  assertGenerationComplete,
-  buildAnthropicRequestBody,
-  buildGrokRequestBody,
-  buildKimiRequestBody,
-  buildOpenAIRequestBody,
-  generateAnthropicStructuredContent,
-  generateGrokStructuredContent,
-  generateKimiStructuredContent,
-  generateOpenAIStructuredContent,
-  isRetryableProviderFailure,
-  runWithTransportRetries,
-  withTimeout
-} from '../server/babelParser/modelRuntime.js';
+import { buildAnthropicRequestBody, buildGrokRequestBody, buildKimiRequestBody, buildOpenAIRequestBody, generateAnthropicStructuredContent, generateGrokStructuredContent, generateKimiStructuredContent, generateOpenAIStructuredContent } from '../server/babelParser/modelRuntime.js';
+import { runWithTransportRetries, withTimeout } from '../server/babelParser/providerTransport.js';
+import { assertGenerationComplete } from '../server/babelParser/generationOutcome.js';
 
 const originalNodeEnv = process.env.NODE_ENV;
 before(() => { process.env.NODE_ENV = 'production'; });
@@ -64,7 +53,6 @@ test('explicit rate limits override transport/server retry signals', async (t) =
   ]) {
     await t.test(label, async () => {
       let calls = 0;
-      assert.equal(isRetryableProviderFailure(error), false);
       await assert.rejects(runWithTransportRetries({
         runId: 'rate-limit', delay: noDelay,
         run: async () => { calls += 1; throw error; }
@@ -95,7 +83,6 @@ test('application errors, completed stops, and permanent failures are terminal',
   ]) {
     await t.test(`${error.code || error.name}: ${error.message} (${error.status || 'no status'})`, async () => {
       let calls = 0;
-      assert.equal(isRetryableProviderFailure(error), false);
       await assert.rejects(runWithTransportRetries({
         delay: noDelay,
         run: async () => { calls += 1; throw error; }
@@ -126,7 +113,6 @@ test('only recognized transient failures retry, with one run ID and at most thre
           return completed();
         }
       });
-      assert.equal(isRetryableProviderFailure(error), true);
       assert.equal(receipt.runId, 'transient');
       assert.equal(calls, 3);
       assert.deepEqual(delays, [10, 20]);
@@ -205,13 +191,31 @@ test('backoff rejection retains the attempted transport failure without another 
   assert.equal(calls, 1);
 });
 
-test('nested and cyclic causes cannot hide a timeout or hang classification', () => {
+test('nested and cyclic causes cannot hide a timeout or hang classification', async () => {
   const timeout = failure('headers stalled', { code: 'UND_ERR_HEADERS_TIMEOUT' });
   const wrapped = new Error('fetch failed', { cause: new Error('wrapper', { cause: timeout }) });
-  assert.equal(isRetryableProviderFailure(wrapped), false);
+  let timeoutCalls = 0;
+  await assert.rejects(runWithTransportRetries({
+    delay: noDelay,
+    run: async () => { timeoutCalls += 1; throw wrapped; }
+  }), (error) => {
+    assert.equal(error, wrapped);
+    assert.equal(error.providerAttempts[0].retryReason, 'uncertain_timeout');
+    return true;
+  });
+  assert.equal(timeoutCalls, 1);
   const cyclic = failure('connection failed', { code: 'ECONNRESET' });
   cyclic.cause = cyclic;
-  assert.equal(isRetryableProviderFailure(cyclic), true);
+  let transportCalls = 0;
+  const result = await runWithTransportRetries({
+    delay: async () => {},
+    run: async () => {
+      if (++transportCalls === 1) throw cyclic;
+      return completed();
+    }
+  });
+  assert.equal(transportCalls, 2);
+  assert.equal(result.attempts[0].retryReason, 'transient_transport_failure');
 });
 
 test('ambiguous timeout and abort signals never start another generation', async (t) => {

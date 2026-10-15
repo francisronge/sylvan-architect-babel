@@ -5,17 +5,19 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { createServer } from 'vite';
 import { chromium } from 'playwright';
-import { __test__ } from '../../server/babelParser.js';
+import { normalizeParseBundle } from '../../server/babelParser/parseNormalization.js';
 import { prepareReplay } from '../../replay/prepareReplay.ts';
 import { compileRelationRenderPlan } from '../../replay/relations/renderPlanCompiler.ts';
 import { TIER2_FACET_RECIPES } from '../../replay/relations/tier2FacetRecipes.ts';
 import { buildPublicFacetFixture } from '../helpers/tier2PublicFixtures.mjs';
 import { productionDomChecks } from '../helpers/tier2ProductionExpectations.mjs';
+import { startBrowserTestServer } from '../helpers/browserTestServer.mjs';
+import { verifyRuntimeFreshness } from '../../scripts/reviewRuntimeProvenance.mjs';
 
 // Set BABEL_TIER2_ATLAS_URL to reuse an already served production atlas.
 // BABEL_TIER2_PRODUCTION_EVIDENCE chooses an external capture/report directory.
+// A virtual-entry atlas also requires BABEL_TIER2_ATLAS_ENTRY_FILE with its exact expected entry source.
 const repo = fileURLToPath(new URL('../../', import.meta.url));
 const sha = value => createHash('sha256').update(value).digest('hex');
 const zoomRecipes = new Set(['operator-binding', 'pf.rewrite', 'feature-sharing', 'feature.dependency', 'judgment.verdict']);
@@ -30,7 +32,7 @@ async function sourceManifest() {
     }
   };
   for (const directory of ['components', 'replay', 'contractQualification', 'server/babelParser']) await visit(directory);
-  files.push('tests/helpers/tier2PublicFixtures.mjs', 'tests/helpers/tier2ProductionExpectations.mjs',
+  files.push('tests/helpers/browserTestServer.mjs', 'tests/helpers/tier2PublicFixtures.mjs', 'tests/helpers/tier2ProductionExpectations.mjs',
     'tests/helpers/tier2ProductionEntry.tsx', 'tests/browser/tier2ProductionRecipes.test.mjs');
   const sources = await Promise.all(files.sort().map(async file => ({ file, sha256: sha(await fs.readFile(path.join(repo, file))) })));
   return { sha256: sha(JSON.stringify(sources)), sources };
@@ -43,7 +45,7 @@ function buildSpecimens() {
     { recipe: movement, options: { crossWorkspace: true }, variant: 'cross-workspace' }];
   return ['xbar', 'minimalism'].flatMap(framework => examples.map(({ recipe, options, variant }) => {
     const { sentence, derivationStages, relationStageIndex } = buildPublicFacetFixture(recipe, options);
-    const bundle = __test__.normalizeParseBundle({ derivationStages }, framework, sentence, 'grok', true);
+    const bundle = normalizeParseBundle({ derivationStages }, framework, sentence, 'grok', true);
     const analysis = bundle.analyses[0], activeLens = recipe.id === 'presentation.lens';
     const replay = prepareReplay({ sentence, inputTokens: bundle.inputTokens, derivationStages: analysis.derivationStages, includePlayback: true });
     const plan = activeLens ? compileRelationRenderPlan(analysis.derivationStages, { activeLens: true }) : replay.relationRenderPlan;
@@ -159,16 +161,16 @@ test('public Tier 2 recipes paint their intended pieces in the production render
       runtimeProvenance = await provenanceResponse.json();
       const compiled = runtimeProvenance.replay;
       assert(compiled?.sources?.length && compiled.jsSha256, 'Atlas must identify the actual compiled production sources.');
-      compiledSources = await Promise.all(compiled.sources.map(async item => {
-        const currentSha256 = sha(await fs.readFile(path.resolve(repo, item.path)));
-        return { path: item.path, builtSha256: item.sha256, currentSha256, match: currentSha256 === item.sha256 };
-      }));
-      assert(compiledSources.every(item => item.match), 'Prebuilt renderer is stale against the current source candidate. Rebuild the atlas.');
+      const entrySource = process.env.BABEL_TIER2_ATLAS_ENTRY_FILE
+        ? await fs.readFile(path.resolve(process.env.BABEL_TIER2_ATLAS_ENTRY_FILE), 'utf8') : undefined;
+      const freshness = await verifyRuntimeFreshness(compiled, { root: repo, entrySource });
+      compiledSources = freshness.sources;
+      assert(freshness.fresh, `Prebuilt renderer is stale or incomplete: ${freshness.mismatches.join(', ')}. Rebuild the atlas.`);
       assert(specimens.every(specimen => specimen.recipe && specimen.productionDomChecks?.length), 'Use the production recipe atlas, not a general parse review.');
     } else {
       specimens = buildSpecimens();
       const byId = new Map(specimens.map(specimen => [specimen.id, specimen]));
-      server = await createServer({ root: repo, server: { host: '127.0.0.1', port: 0 }, plugins: [{ name: 'tier2-production-fixtures', configureServer(vite) {
+      server = await startBrowserTestServer({ root: repo, plugins: [{ name: 'tier2-production-fixtures', configureServer(vite) {
         vite.middlewares.use('/__tier2_fixture__', async (request, response) => {
           const url = new URL(request.url || '/', 'http://127.0.0.1');
           const specimen = byId.get(url.searchParams.get('id'));
@@ -179,8 +181,7 @@ test('public Tier 2 recipes paint their intended pieces in the production render
           response.end(html);
         });
       } }] });
-      await server.listen();
-      base = new URL(`http://127.0.0.1:${server.httpServer.address().port}/`);
+      base = new URL(server.url);
       for (const specimen of specimens) specimen.file = `__tier2_fixture__?id=${encodeURIComponent(specimen.id)}`;
       runtimeProvenance = { kind: 'production-tree-visualizer-vite', source };
     }
@@ -249,8 +250,8 @@ test('public Tier 2 recipes paint their intended pieces in the production render
       }
     }
   } finally {
-    await browser?.close();
-    await server?.close();
+    try { await browser?.close(); }
+    finally { await server?.close(); }
     const finalSource = await sourceManifest();
     const report = { started, finished: new Date().toISOString(), providerCallsMade: 0,
       expectedCases: specimens?.length ?? null, attemptedCases: results.length,

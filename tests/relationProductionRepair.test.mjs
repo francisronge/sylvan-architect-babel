@@ -1,18 +1,16 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { createPlaqueDrawing } from '../components/renderer/plaqueDrawing.ts';
+import { createSvgDom, descendants, select } from './helpers/svgDom.mjs';
 
-import {
-  compileRelationRenderPlan,
-  visiblePlanFrameItems
-} from '../replay/relations/renderPlanCompiler.ts';
-import { bindRelationPlanFrame, boundOverlayBounds } from '../replay/relations/geometryBinding.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
+import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { boundOverlayBounds } from '../replay/relations/geometryBounds.ts';
 import { caseFeatureComposition, featurePlaqueAssignment } from '../replay/relations/featureComposition.ts';
-import {
-  adaptDerivationStagesForReplay,
-  buildPlaybackStepsFromDerivationFrames,
-  formatAuthoredWitnessSurface
-} from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
+import { formatAuthoredWitnessSurface } from '../replay/replaySurfaceNotation.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 
 const leaf = (id, label, word, extra = {}) => ({ id, label, ...(word ? { word } : {}), ...extra });
@@ -706,11 +704,27 @@ test('Phillips parasitic-gap topology binds its terminal departure to the author
   assert.deepEqual(gapBadges, [
     { nodeId: 'dp_pg_secondary', text: 'pgᵢ', shape: 'plain' }
   ], 'only the parasitic site receives a relation-owned pg side label');
-  assert.match(
-    readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8'),
-    /babel-pg-gap-label/,
-    'the pg notation is painted as a separate overlay label, not by rewriting terminal text'
-  );
+  const { Element, restore } = createSvgDom();
+  try {
+    const root = new Element('g');
+    const terminal = new Element('text', { class: 'terminal-label', 'data-node-id': 'd_pg_secondary' });
+    terminal.textContent = 'gap';
+    root.appendChild(terminal);
+    const { drawTextBadge } = createPlaqueDrawing({
+      parasiticGapCoindexLayers: new Map(),
+      acceptedLayerInHost: (_layers, _item, className, host) => host.append('g').attr('class', className)
+    });
+    const item = plan.frames[0].items.find(item => item.kind === 'node-badges' && item.badgeStyle === 'gap-notation');
+    const primitive = bound.primitives.find(mark => mark.type === 'text-badge' && mark.badgeStyle === 'gap-notation');
+    drawTextBadge(primitive, item, select(root), null);
+    const labels = descendants(root).filter(element => element.classList.contains('babel-pg-gap-label'));
+    assert.equal(labels.length, 1);
+    assert.equal(labels[0].getAttribute('data-gap-label-anchor'), 'dp_pg_secondary');
+    assert.equal(labels[0].textContent, 'pgᵢ');
+    assert.equal(terminal.textContent, 'gap', 'a relation-owned label must not rewrite the authored terminal');
+  } finally {
+    restore();
+  }
 });
 
 test('Phillips path rings and blocked-edge slashes are post-fit marks', () => {
@@ -989,7 +1003,10 @@ test('a relation appears only at its Replay relation moment, never during earlie
   // microsteps, and each authored relation gets its own moment.
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(frames, undefined, replayPlan);
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames,
+    replayPlan
+  });
   const relationStepIndices = steps
     .map((step, index) => ({ step, index }))
     .filter(({ step }) => step.replayKind === 'relation');
@@ -1027,7 +1044,11 @@ test('neutral annotations follow only the current Replay relation while known dr
   const plan = compileRelationRenderPlan(stages);
   const reserved = structuredClone(plan);
   const frames = adaptDerivationStagesForReplay(stages);
-  const steps = buildPlaybackStepsFromDerivationFrames(frames, 'a b', buildDerivationReplayPlan({ derivationStages: stages }));
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames,
+    sentence: 'a b',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+  });
 
   // Forward, backward and direct scrubbing must derive visibility from the
   // current moment, never from the previous mounted frame.
@@ -1157,7 +1178,10 @@ test('Identity never owns a structural transition that must be authored by movem
   ];
   const frames = adaptDerivationStagesForReplay(stages);
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(frames, undefined, replayPlan);
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames,
+    replayPlan
+  });
   const secondMacroIndex = steps.findIndex((step) =>
     step.replayKind === 'macro' && step.replayFrameIndex === 1);
   const identityIndex = steps.findIndex((step) =>

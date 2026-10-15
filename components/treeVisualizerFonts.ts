@@ -1,7 +1,7 @@
 import { CATEGORY_FONT } from '../replay/categoryTextLayout.ts';
-import { REPLAY_GENERATED_TERMINAL_GLYPHS } from '../replay/replayCompiler.ts';
-import { FALLBACK_ROLE_STYLE } from '../replay/relations/geometryBinding.ts';
-import { TERMINAL_FONT, TERMINAL_INDEX_FONT, CATEGORY_INDEX_FONT } from './treeInkTextMeasure.ts';
+import { FALLBACK_ROLE_STYLE } from '../replay/relations/fallbackGeometry.ts';
+import { REPLAY_GENERATED_TERMINAL_GLYPHS } from '../replay/replaySurfaceNotation.ts';
+import { CATEGORY_INDEX_FONT, TERMINAL_FONT, TERMINAL_INDEX_FONT } from './treeInkTextMeasure.ts';
 
 /** Measure once the fonts used by categories, terminals, plaques and fallback roles have settled. */
 export function watchTreeVisualizerFonts(fonts: FontFaceSet | undefined, changed: () => void, text = ''): () => void {

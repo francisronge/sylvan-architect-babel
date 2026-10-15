@@ -1,12 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  createRelationRegistry,
-  dispatchRelation,
-  productionRelationRegistry,
-  summarizeUnregisteredRelations
-} from '../replay/relationDispatch/index.js';
+import { createRelationRegistry } from '../replay/relationDispatch/relationRegistry.js';
+import { dispatchRelation, summarizeUnregisteredRelations } from '../replay/relationDispatch/relationDispatch.js';
+import { productionRelationRegistry } from '../replay/relationDispatch/productionRegistry.js';
 
 const createTestRegistry = () => createRelationRegistry({
   registryId: 'test.registry',

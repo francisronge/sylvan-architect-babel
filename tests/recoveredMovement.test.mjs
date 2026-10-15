@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
-import { buildRenderableCommittedCanvasData, isWordlessCategoryLeaf, isDisplayTerminalSurface } from '../replay/replayCompiler.ts';
+import { buildRenderableCommittedCanvasData } from '../replay/replayCanvas.ts';
+import { isWordlessCategoryLeaf, isDisplayTerminalNode } from '../replay/replaySurfaceNotation.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
-import { buildTier2FacetEvidence, dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
+import { buildTier2FacetEvidence } from '../replay/relations/relationEvidence.ts';
+import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { bindRelationPlanFrame, resolveUniqueDisplayTerminal } from '../replay/relations/geometryBinding.ts';
+import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { resolveUniqueDisplayTerminal } from '../replay/relations/trajectoryAttachment.ts';
 
 const saved = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
 const cases = [
@@ -751,7 +754,7 @@ test('saved movement plans bind real category or terminal endpoints without miss
       if (!node) return null;
       if (attachment === 'terminal') {
         node = resolveUniqueDisplayTerminal(node, n => n.children || [],
-          n => !n.children?.length && isDisplayTerminalSurface(n.word || n.label)).terminal;
+          isDisplayTerminalNode).terminal;
         if (!node) return null;
       }
       const index = displayedNodes.indexOf(node);

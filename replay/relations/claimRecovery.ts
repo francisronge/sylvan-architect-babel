@@ -1,26 +1,59 @@
 import type { DerivationStageRelation } from '../../types.ts';
 import { recoverAssignmentContinuity, type AssignmentContext } from './assignmentContinuity.ts';
 import { recoverCompoundAssignments } from './compoundAssignments.ts';
-import { recoverOccurrenceGroups } from './occurrenceGroups.ts';
-import { recoverInterpretiveCorrespondence } from './interpretiveCorrespondence.ts';
-import { recoverEllipsisCorrespondence, recoverRemnantCorrespondence, recoverNamedEllipsisSite, recoverCoordinateGapping, recoverQualifiedParallelism } from './correspondenceEvidence.ts';
-import { recoverSharedMovement } from './sharedMovement.ts';
-import { recoverContextualCaseAssignment, recoverLabelledCaseAssignment, recoverQualifiedCaseAssignments, recoverCaseQualifiedPair, recoverLicensedArgumentCase } from './qualifiedCaseAssignments.ts';
-import { recoverExplicitFeatureSharing, recoverRelativeConcord, recoverQualifiedNominalConcord, recoverDirectedAgreementTargets, recoverCheckedFeatureRows, recoverInterrogativeAgreement, recoverNominalCaseConcord, recoverQualifiedAgreement, recoverFailedFeatureComparison, recoverIndependentFeatureOutcomes } from './qualifiedAgreement.ts';
-import { recoverResultAssignments } from './resultAssignments.ts';
-import { recoverDeclarativeLicensing, recoverNamedFormLicensing, recoverSpecifiedMoodLicensing } from './declarativeLicensing.ts';
-import { recoverPFRewrite } from './pfRewrite.ts';
-import { recoverPredication } from './predicationRecovery.ts';
-import { recoverPhaseEdge } from './phaseEdgeEvidence.ts';
-import { recoverModifierAttachment } from './modifierEvidence.ts';
-import { recoverExplicitCoreference, recoverNamedBinding } from './explicitCoreference.ts';
-import { typedThematicAssignment, recoverClauseComplementTheta, recoverQualifiedThetaLicensing, recoverQualifiedRoleInterpretation } from './thematicAssignment.ts';
-import { recoverFocusAssociation } from './focusAssociationEvidence.ts';
-import { recoverNamedFeatureLicensing } from './featureLicensingEvidence.ts';
 import { recoverSubjectChainControl } from './controlEvidence.ts';
-import { recoverInterpretedOperatorBinding } from './interpretedBindingEvidence.ts';
+import {
+  recoverCoordinateGapping,
+  recoverEllipsisCorrespondence,
+  recoverNamedEllipsisSite,
+  recoverQualifiedParallelism,
+  recoverRemnantCorrespondence
+} from './correspondenceEvidence.ts';
+import {
+  recoverDeclarativeLicensing,
+  recoverNamedFormLicensing,
+  recoverSpecifiedMoodLicensing
+} from './declarativeLicensing.ts';
 import type { EvidenceScope } from './evidenceScopes.ts';
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
+import { recoverExplicitCoreference, recoverNamedBinding } from './explicitCoreference.ts';
+import { recoverNamedFeatureLicensing } from './featureLicensingEvidence.ts';
+import { recoverFocusAssociation } from './focusAssociationEvidence.ts';
+import { recoverIdiomDomain } from './idiomEvidence.ts';
+import { recoverInterpretedOperatorBinding } from './interpretedBindingEvidence.ts';
+import { recoverInterpretiveCorrespondence } from './interpretiveCorrespondence.ts';
+import { recoverModifierAttachment } from './modifierEvidence.ts';
+import { recoverOccurrenceGroups } from './occurrenceGroups.ts';
+import { recoverPFRewrite } from './pfRewrite.ts';
+import { recoverPhaseEdge } from './phaseEdgeEvidence.ts';
+import { recoverPredication } from './predicationRecovery.ts';
+import {
+  recoverCheckedFeatureRows,
+  recoverDirectedAgreementTargets,
+  recoverExplicitFeatureSharing,
+  recoverFailedFeatureComparison,
+  recoverIndependentFeatureOutcomes,
+  recoverInterrogativeAgreement,
+  recoverNominalCaseConcord,
+  recoverQualifiedAgreement,
+  recoverQualifiedNominalConcord,
+  recoverRelativeConcord
+} from './qualifiedAgreement.ts';
+import {
+  recoverCaseQualifiedPair,
+  recoverContextualCaseAssignment,
+  recoverLabelledCaseAssignment,
+  recoverLicensedArgumentCase,
+  recoverQualifiedCaseAssignments
+} from './qualifiedCaseAssignments.ts';
+import { recoverResultAssignments } from './resultAssignments.ts';
+import { recoverMovementGroups } from './movementGroups.ts';
+import {
+  recoverClauseComplementTheta,
+  recoverQualifiedRoleInterpretation,
+  recoverQualifiedThetaLicensing,
+  typedThematicAssignment
+} from './thematicAssignment.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 
 /** Association recovery produces evidence scopes, never geometry or a tier
  * decision. Every scope must pass the same recipe checks as an ordinary claim. */
@@ -29,7 +62,7 @@ export function recoverRelationScopes(
   evidence: Tier2FacetEvidence,
   history?: AssignmentContext
 ): EvidenceScope[] {
-  const movements = recoverSharedMovement(evidence);
+  const movements = recoverMovementGroups(evidence);
   const thematic = typedThematicAssignment(evidence).scope;
   const occurrences = recoverOccurrenceGroups(evidence).filter(scope => !movements.some(movement =>
     Object.keys(scope.origins.anchors).every(key => key in movement.origins.anchors)));
@@ -37,6 +70,7 @@ export function recoverRelationScopes(
     ...movements,
     ...occurrences,
     ...recoverInterpretiveCorrespondence(evidence),
+    ...recoverIdiomDomain(evidence),
     ...recoverEllipsisCorrespondence(evidence),
     ...recoverRemnantCorrespondence(evidence),
     ...recoverNamedEllipsisSite(evidence),

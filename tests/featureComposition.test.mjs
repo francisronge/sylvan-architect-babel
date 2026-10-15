@@ -1,10 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { compileRelationRenderPlan, visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
-import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey } from '../replay/relations/featureComposition.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
+import {
+  caseFeatureComposition,
+  collectionPlaque,
+  featurePlaqueAssignment,
+  featureRowKey
+} from '../replay/relations/featureComposition.ts';
 import { prepareCasePlaqueRows } from '../replay/relations/plaqueTextLayout.ts';
 import { dottedCollectionPath } from '../replay/relations/markGeometry.ts';
-import { featureCollectionPlaquePath, featureCollectionPlaqueCurve, featureCollectionEdge } from '../replay/relations/overlayGeometry.ts';
+import {
+  featureCollectionPlaquePath,
+  featureCollectionPlaqueCurve,
+  featureCollectionEdge
+} from '../replay/relations/overlayGeometry.ts';
 const tree = { id: 'root', label: 'PP', children: [{ id: 'p', label: 'P' }, { id: 'k', label: 'KP', children: [
   { id: 'num', label: 'Num', word: 'books' }, { id: 'n', label: 'N' }
 ] }] };

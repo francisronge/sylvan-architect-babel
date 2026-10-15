@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { __test__ } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
 import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { runQualificationAttempt } from '../contractQualification/run.js';
@@ -13,7 +14,7 @@ const stage = (tree, realizations, relations = []) => ({
 });
 const group = (nodeIds, tokenIndices) => ({ nodeIds, tokenIndices });
 const normalize = (stages, sentence, framework = 'minimalism') =>
-  __test__.normalizeParseBundle({ derivationStages: stages }, framework, sentence, 'grok', true);
+  normalizeParseBundle({ derivationStages: stages }, framework, sentence, 'grok', true);
 const nodes = (tree) => [tree, ...(tree.children || []).flatMap(nodes)];
 
 test('collective realizations preserve morphology, ordinary indices and all saved/replayed stage state in both frameworks', () => {
@@ -33,7 +34,7 @@ test('collective realizations preserve morphology, ordinary indices and all save
     assert.ok(prepareReplay({ derivationStages: analysis.derivationStages, sentence: 'Mia walked', includePlayback: true }).playbackSteps.length > 0);
     assert.deepEqual(loadTreeBankBundleSnapshot(createTreeBankBundleSnapshot(bundle)), JSON.parse(JSON.stringify(bundle)));
     assert.deepEqual(stages, original);
-    assert.deepEqual(__test__.inspectDerivationWorkspaces(stages, { sentence: 'Mia walked' }).flatMap(({ diagnostics }) => diagnostics), []);
+    assert.deepEqual(inspectDerivationWorkspaces(stages, { sentence: 'Mia walked' }).flatMap(({ diagnostics }) => diagnostics), []);
   }
 });
 
@@ -51,7 +52,7 @@ test('explicit groups support irregular, phrasal, repeated, separated and shared
   for (const [sentence, tree, groups] of cases) {
     const result = normalize([stage(tree, groups)], sentence).analyses[0];
     assert.deepEqual(result.derivationStages[0].realizations, groups, sentence);
-    assert.deepEqual(__test__.inspectDerivationWorkspaces([stage(tree, groups)], { sentence })[0].diagnostics, [], sentence);
+    assert.deepEqual(inspectDerivationWorkspaces([stage(tree, groups)], { sentence })[0].diagnostics, [], sentence);
     if (sentence === 'a middle b') {
       assert.equal(nodes(result.tree).find(({ id }) => id === 'pair').surfaceSpan, undefined);
       assert.equal(nodes(result.tree).find(({ id }) => id === 'middle').tokenIndex, 1);
@@ -90,7 +91,7 @@ test('precise diagnostics preserve invalid group shape, references, indices and 
       assert.equal(error.failure.fieldPath, `$.derivationStages[0]${suffix}`);
       return true;
     });
-    const inspected = __test__.inspectDerivationWorkspaces(stages, { sentence: 'walked', analysisIndex: 2, fieldPath: '$.analyses[2]' });
+    const inspected = inspectDerivationWorkspaces(stages, { sentence: 'walked', analysisIndex: 2, fieldPath: '$.analyses[2]' });
     assert.ok(inspected[0].diagnostics.some((issue) => issue.ruleId === ruleId && issue.fieldPath === `$.analyses[2].derivationStages[0]${suffix}`));
     assert.deepEqual(inspected[0].authoredStage, original[0]);
     assert.deepEqual(stages, original);
@@ -117,7 +118,7 @@ test('collective realization coverage accepts a final forest without inventing a
   assert.equal(analysis.tree, undefined);
   assert.deepEqual(analysis.finalForest.map(({ id }) => id), ['root', 'past']);
   assert.deepEqual(analysis.finalForest.map(({ surfaceSpan }) => surfaceSpan), [[0, 0], [0, 0]]);
-  assert.deepEqual(__test__.inspectDerivationWorkspaces([split], { sentence: 'walked' })[0].diagnostics.map(({ ruleId }) => ruleId),
+  assert.deepEqual(inspectDerivationWorkspaces([split], { sentence: 'walked' })[0].diagnostics.map(({ ruleId }) => ruleId),
     ['DERIVATION_FINAL_WORKSPACE_MULTIPLE_ROOTS']);
 });
 

@@ -5,7 +5,8 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 import { isPriorMovementContextFailure } from '../replay/relations/movementDiagnosticOwnership.ts';
 import { dispatchStageRelations } from '../replay/relations/tier2RelationDispatch.ts';
-import { findRelationRegistryEntry, productionRelationRegistry } from '../replay/relationDispatch/index.js';
+import { findRelationRegistryEntry } from '../replay/relationDispatch/relationRegistry.js';
+import { productionRelationRegistry } from '../replay/relationDispatch/productionRegistry.js';
 
 const saved = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/holdout-transitions.json', import.meta.url)));
 const node = (id, label, children = [], extra = {}) => ({ id, label, children, ...extra });

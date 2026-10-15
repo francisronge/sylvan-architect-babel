@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildTier2FacetEvidence, dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
+import { buildTier2FacetEvidence } from '../replay/relations/relationEvidence.ts';
+import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { recoverPredication } from '../replay/relations/predicationRecovery.ts';
 import { recoverInterpretedOperatorBinding } from '../replay/relations/interpretedBindingEvidence.ts';
 

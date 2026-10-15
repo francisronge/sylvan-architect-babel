@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
 import ts from 'typescript';
+import { loadOrchardFixtures } from './helpers/orchardFixtures.mjs';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
-import {
-  adaptDerivationStagesForReplay,
-  buildPlaybackStepsFromDerivationFrames
-} from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 
 import {
   ACTIVE_VISUAL_DESIGNS,
@@ -39,13 +39,15 @@ import {
   validateLabRelations
 } from '../docs/design/visual-relations-lab-adapter.ts';
 
-const offsetFixtureTokenIndices = (tree, offset) => ({
-  ...tree,
-  ...(Number.isInteger(tree?.tokenIndex) ? { tokenIndex: tree.tokenIndex + offset } : {}),
-  ...(tree?.children
-    ? { children: tree.children.map((child) => offsetFixtureTokenIndices(child, offset)) }
-    : {})
-});
+const orchard = await loadOrchardFixtures();
+const loadOrchardCases = async () => structuredClone(orchard.rawCases);
+const orchardFixtures = () => structuredClone(orchard.trees);
+const requiredOrchardCase = (cases, title) => {
+  const card = cases.find(candidate => candidate.title === title);
+  assert.ok(card, `missing executable Orchard fixture: ${title}`);
+  return card;
+};
+const fixtureNodes = node => [node, ...(node.children ?? []).flatMap(fixtureNodes)];
 
 const tree = {
   id: 'cp',
@@ -219,64 +221,64 @@ test('constituent enclosures retain their exact authored relation identity', () 
 });
 
 test('the ACD relative clause binds its object gap through a complete operator chain', async () => {
-  const source = await readFile(
-    new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url),
-    'utf8'
-  );
-  const acdBlock = source.slice(
-    source.indexOf("const acdHighQp ="),
-    source.indexOf("const orderedCaseStackingTree =")
-  );
-
-  assert.ok(acdBlock.length > 0);
-  // No bare `t` terminals and no chainless null placeholders: the object gap is
-  // a silent occurrence of the relative operator, tied to its chain by lineage.
-  assert.doesNotMatch(acdBlock, /silentLexicalNode\([^\n]+, 'D', 't'\)/);
-  assert.doesNotMatch(acdBlock, /'D', '∅'/);
-  // Both QP occurrences author the operator in Spec,CP and its gap occurrence,
-  // all four on the one 'acd-op' lineage.
-  assert.equal((acdBlock.match(/silentLexicalNode\('d_op_(?:high|low)_acd', 'D', 'Op', \{ lineageId: 'acd-op' \}\)/g) || []).length, 2);
-  assert.equal((acdBlock.match(/silentLexicalNode\('d_object_gap_(?:high|low)_acd', 'D', 'Op', \{ lineageId: 'acd-op' \}\)/g) || []).length, 2);
+  const card = requiredOrchardCase(await loadOrchardCases(), 'Antecedent-Contained Deletion');
+  const nodes = new Map(fixtureNodes(card.data).map(node => [node.id, node]));
+  for (const occurrence of ['high', 'low']) {
+    const cp = nodes.get(`cp_relative_${occurrence}_acd`);
+    const vp = nodes.get(`vp_ellipsis_${occurrence}_acd`);
+    assert.equal(cp.children[0].id, `dp_op_${occurrence}_acd`, 'the operator occupies the relative-clause specifier');
+    assert.equal(vp.children[1].id, `dp_object_gap_${occurrence}_acd`, 'the object gap remains inside the silent VP');
+    for (const id of [`d_op_${occurrence}_acd`, `d_object_gap_${occurrence}_acd`]) {
+      const operator = nodes.get(id);
+      assert.equal(operator.label, 'D');
+      assert.equal(operator.lineageId, 'acd-op');
+      assert.equal(operator.silent, true);
+      assert.equal(operator.children.length, 1);
+      assert.equal(operator.children[0].word, 'Op');
+      assert.equal(operator.children[0].lineageId, 'acd-op');
+      assert.equal(operator.children[0].silent, true);
+    }
+  }
 });
 
 test('the archived ACD fixture composes QR and ellipsis without dedicated machinery', async () => {
-  const source = await readFile(
-    new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url),
-    'utf8'
-  );
-  const cardStart = source.indexOf("title: 'Antecedent-Contained Deletion'");
-  const cardEnd = source.indexOf("title: 'Ordered Case Stacking'");
-  const card = source.slice(cardStart, cardEnd);
-  assert.ok(card.length > 0);
-
-  assert.equal(card.indexOf("relation: 'AntecedentContainedDeletion'"), -1);
-  assert.equal((card.match(/relation: 'QuantifierRaising'/g) || []).length, 1);
-  assert.equal((card.match(/relation: 'Ellipsis'/g) || []).length, 1);
-  const scopeAt = card.indexOf('pronouncedQP:');
-  const recoverabilityAt = card.indexOf('antecedent:');
-  assert.ok(scopeAt > 0 && scopeAt < recoverabilityAt, 'QR precedes the independent ellipsis claim');
-  assert.match(card, /pronouncedQP:[\s\S]*lfQP:[\s\S]*scopeDomain:/);
-  assert.match(card, /domain: 'vp_ellipsis_high_acd'[\s\S]*antecedent: 'vp_matrix_acd'/);
-  // The unresolved surface frame precedes the composed resolution.
-  const surfaceAt = card.indexOf('acdSurfaceTree');
-  assert.ok(surfaceAt > 0 && surfaceAt < scopeAt, 'the surface frame comes first');
+  const card = requiredOrchardCase(await loadOrchardCases(), 'Antecedent-Contained Deletion');
+  assert.deepEqual(card.derivationStages.map(stage => stage.relations.map(relation => relation.relation)),
+    [[], ['QuantifierRaising'], ['Ellipsis']]);
+  const plan = compileRelationRenderPlan(card.derivationStages);
+  assert.deepEqual(plan.diagnostics, []);
+  assert.deepEqual(plan.unregistered, []);
+  assert.deepEqual(plan.frames.map(frame => frame.items.map(item => item.kind).sort()),
+    [[], ['quantifier-raising'], ['ellipsis-site', 'quantifier-raising']]);
+  const qr = plan.frames[1].items[0];
+  assert.deepEqual(qr.relationRef.anchors, {
+    pronouncedQP: 'qp_low_acd', lfQP: 'qp_high_acd', scopeDomain: 'tp_surface_acd'
+  });
+  const ellipsis = plan.frames[2].items.find(item => item.kind === 'ellipsis-site');
+  assert.deepEqual(ellipsis.relationRef.anchors, {
+    domain: 'vp_ellipsis_high_acd', antecedent: 'vp_matrix_acd'
+  });
+  assert.equal(ellipsis.relationRef.stageIndex, 2);
+  assert.equal(plan.frames[2].items.find(item => item.kind === 'quantifier-raising').relationRef.stageIndex, 1,
+    'the earlier QR claim persists while ellipsis receives its own relation moment');
 });
 
 test('Illicit Analysis has a canonical card with an open authored verdict label', async () => {
-  const source = await readFile(
-    new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url),
-    'utf8'
-  );
-  const cardStart = source.indexOf("title: 'Illicit Analysis'");
-  const cardEnd = source.indexOf("title: 'Ellipsis / Silent Structure'");
-  const card = source.slice(cardStart, cardEnd);
-  assert.ok(card.length > 0);
-  assert.equal((card.match(/relation: 'IllicitAnalysis'/g) || []).length, 1);
-  assert.match(card, /anchors: \{ analysis: 'tp_illicit_analysis' \}/);
-  assert.match(card, /judgment: '\*'[\s\S]*label: 'agreement'[\s\S]*outcome: 'illicit'[\s\S]*reason: 'Plural the girls requires plural present agreement, but arrives is third-person singular\.'/);
-  assert.match(card, /workspaceForest: \[illicitAnalysisSubject, illicitAnalysisPredicate\]/);
-  assert.match(card, /External Merge assembles the deviant input as one complete TP/);
-  assert.doesNotMatch(card, /BlockedExtraction|extraction/);
+  const card = requiredOrchardCase(await loadOrchardCases(), 'Illicit Analysis');
+  assert.deepEqual(card.derivationStages.map(stage => stage.workspaceForest.length), [2, 1, 1]);
+  assert.deepEqual(card.derivationStages[1].workspaceForest, card.derivationStages[2].workspaceForest,
+    'the verdict does not change the assembled syntax');
+  const plan = compileRelationRenderPlan(card.derivationStages);
+  assert.deepEqual(plan.diagnostics, []);
+  assert.deepEqual(plan.unregistered, []);
+  assert.deepEqual(plan.frames.map(frame => frame.items.map(item => item.kind)), [[], [], ['analysis-verdict']]);
+  const verdict = plan.frames[2].items[0];
+  assert.equal(verdict.analysisNodeId, 'tp_illicit_analysis');
+  assert.equal(verdict.judgment, '*');
+  assert.equal(verdict.label, 'agreement');
+  assert.equal(verdict.relationRef.stageIndex, 2);
+  assert.equal(verdict.relationRef.values.outcome, 'illicit');
+  assert.ok(verdict.relationRef.values.reason);
 });
 
 test('the Orchard archive references executable fixtures', async () => {
@@ -1923,71 +1925,7 @@ test('every live lab anchor resolves to an authored fixture node ID', async () =
 });
 
 test('corrected fixtures preserve exact surface tokens and one licensed pronunciation per lineage', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const file = ts.createSourceFile('visual-relations-current-lab.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-
-  const evaluate = (expression) => {
-    if (!expression) return undefined;
-    if (ts.isStringLiteralLike(expression)) return expression.text;
-    if (ts.isNumericLiteral(expression)) return Number(expression.text);
-    if (expression.kind === ts.SyntaxKind.TrueKeyword) return true;
-    if (expression.kind === ts.SyntaxKind.FalseKeyword) return false;
-    if (ts.isArrayLiteralExpression(expression)) return expression.elements.map(evaluate);
-    if (ts.isObjectLiteralExpression(expression)) {
-      return Object.fromEntries(expression.properties.flatMap((property) => {
-        if (!ts.isPropertyAssignment(property)) return [];
-        const name = ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)
-          ? property.name.text
-          : property.name.getText(file);
-        return [[name, evaluate(property.initializer)]];
-      }));
-    }
-    if (ts.isCallExpression(expression) && ts.isIdentifier(expression.expression)) {
-      const name = expression.expression.text;
-      const args = expression.arguments.map(evaluate);
-      if (name === 'leaf') {
-        const [id, label, word, extra = {}] = args;
-        return { id, label, ...(word ? { word } : {}), ...extra };
-      }
-      if (name === 'node') {
-        const [id, label, children, extra = {}] = args;
-        return { id, label, children, ...extra };
-      }
-      if (name === 'silentLexicalNode') {
-        const [id, label, surface, extra = {}] = args;
-        return {
-          id,
-          label,
-          children: [{ id: `${id}__silent`, label: surface, silent: true, ...extra }],
-          silent: true,
-          ...extra
-        };
-      }
-      if (name === 'nullHead') {
-        const [id, label] = args;
-        return { id, label, children: [{ id: `${id}__null`, label: '∅', silent: true }] };
-      }
-    }
-    throw new Error(`Unsupported fixture expression: ${expression.getText(file).slice(0, 120)}`);
-  };
-
-  const wanted = new Set([
-    'controlTree',
-    'phaseTree',
-    'multiPhaseTree',
-    'ellipsisTree',
-    'localDislocationTree',
-    'qrScopeTree',
-    'lfReconstructionTree'
-  ]);
-  const fixtures = new Map();
-  file.statements.forEach((statement) => {
-    if (!ts.isVariableStatement(statement)) return;
-    statement.declarationList.declarations.forEach((declaration) => {
-      if (!ts.isIdentifier(declaration.name) || !wanted.has(declaration.name.text)) return;
-      fixtures.set(declaration.name.text, evaluate(declaration.initializer));
-    });
-  });
+  const fixtures = orchardFixtures();
 
   const walk = (root, visit) => {
     visit(root);
@@ -2549,86 +2487,7 @@ test('an authored lf lens survives QR and reconstruction hydration', () => {
 });
 
 test('the migrated lab cards derive the same drawings from authored values', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const file = ts.createSourceFile('visual-relations-current-lab.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const fixtures = new Map();
-
-  const build = (expression) => {
-    if (!expression) return undefined;
-    if (ts.isStringLiteralLike(expression)) return expression.text;
-    if (ts.isNumericLiteral(expression)) return Number(expression.text);
-    if (expression.kind === ts.SyntaxKind.TrueKeyword) return true;
-    if (expression.kind === ts.SyntaxKind.FalseKeyword) return false;
-    if (ts.isIdentifier(expression)) return fixtures.get(expression.text);
-    if (ts.isArrayLiteralExpression(expression)) return expression.elements.map(build);
-    if (ts.isObjectLiteralExpression(expression)) {
-      return Object.fromEntries(expression.properties.flatMap((property) => {
-        if (!ts.isPropertyAssignment(property)) return [];
-        const name = ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)
-          ? property.name.text
-          : property.name.getText(file);
-        return [[name, build(property.initializer)]];
-      }));
-    }
-    if (ts.isCallExpression(expression) && ts.isIdentifier(expression.expression)) {
-      const name = expression.expression.text;
-      const args = expression.arguments.map(build);
-      if (name === 'leaf') {
-        const [id, label, word, extra = {}] = args;
-        return { id, label, ...(word ? { word } : {}), ...extra };
-      }
-      if (name === 'node') {
-        const [id, label, children, extra = {}] = args;
-        return { id, label, children, ...extra };
-      }
-      if (name === 'silentLexicalNode') {
-        const [id, label, surface, extra = {}] = args;
-        return {
-          id,
-          label,
-          children: [{ id: `${id}__silent`, label: surface, silent: true, ...extra }],
-          silent: true,
-          ...extra
-        };
-      }
-      if (name === 'nullHead') {
-        const [id, label] = args;
-        return { id, label, children: [{ id: `${id}__null`, label: '∅', silent: true }] };
-      }
-      if (name === 'offsetTokenIndices') {
-        const [tree, offset] = args;
-        return offsetFixtureTokenIndices(tree, offset);
-      }
-      if (name === 'stage') {
-        const [, statement, stageRecord, relations, tree] = args;
-        return { statement, stageRecord, relations, workspaceForest: [tree] };
-      }
-    }
-    return undefined;
-  };
-
-  file.statements.forEach((statement) => {
-    if (!ts.isVariableStatement(statement)) return;
-    statement.declarationList.declarations.forEach((declaration) => {
-      if (!ts.isIdentifier(declaration.name)) return;
-      const value = build(declaration.initializer);
-      if (value && typeof value === 'object' && 'id' in value) fixtures.set(declaration.name.text, value);
-    });
-  });
-
-  const stages = [];
-  const visit = (node) => {
-    if (
-      ts.isCallExpression(node)
-      && ts.isIdentifier(node.expression)
-      && node.expression.text === 'stage'
-    ) {
-      const built = build(node);
-      if (built?.relations) stages.push(built);
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(file);
+  const stages = orchard.rawCases.flatMap(card => card.derivationStages);
 
   const stagesNaming = (relationName) =>
     stages.filter((stage) => stage.relations.some((relation) => relation.relation === relationName));
@@ -2807,78 +2666,8 @@ test('a bounding-node crossing fails closed without one unambiguous dependency p
   assert.equal(bindCrossingDependencyPath(5), 'ambiguous');
 });
 
-/**
- * Structural contract: authored trees are binary. A non-tree claim such as
- * multidominance is expressed by a relation overlay over a binary forest, never
- * by giving a node three or more children.
- */
-const parseLabFixtures = (source) => {
-  const file = ts.createSourceFile('lab.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const fixtures = new Map();
-  const build = (expr) => {
-    if (!expr) return undefined;
-    if (ts.isStringLiteralLike(expr)) return expr.text;
-    if (ts.isNumericLiteral(expr)) return Number(expr.text);
-    if (expr.kind === ts.SyntaxKind.TrueKeyword) return true;
-    if (expr.kind === ts.SyntaxKind.FalseKeyword) return false;
-    if (ts.isIdentifier(expr)) return fixtures.get(expr.text);
-    if (ts.isArrayLiteralExpression(expr)) return expr.elements.map(build);
-    if (ts.isObjectLiteralExpression(expr)) {
-      return Object.fromEntries(expr.properties.flatMap((property) => {
-        if (!ts.isPropertyAssignment(property)) return [];
-        const name = ts.isIdentifier(property.name) || ts.isStringLiteralLike(property.name)
-          ? property.name.text
-          : property.name.getText(file);
-        return [[name, build(property.initializer)]];
-      }));
-    }
-    if (ts.isCallExpression(expr) && ts.isIdentifier(expr.expression)) {
-      const name = expr.expression.text;
-      const args = expr.arguments.map(build);
-      if (name === 'leaf') {
-        const [id, label, word, extra = {}] = args;
-        return { id, label, ...(word ? { word } : {}), ...extra };
-      }
-      if (name === 'node') {
-        const [id, label, children, extra = {}] = args;
-        return { id, label, children, ...extra };
-      }
-      if (name === 'silentLexicalNode') {
-        const [id, label, surface, extra = {}] = args;
-        return {
-          id,
-          label,
-          children: [{ id: `${id}__silent`, label: surface, silent: true, ...extra }],
-          silent: true,
-          ...extra
-        };
-      }
-      if (name === 'nullHead') {
-        const [id, label] = args;
-        return { id, label, children: [{ id: `${id}__null`, label: '∅', silent: true }] };
-      }
-      if (name === 'offsetTokenIndices') {
-        const [tree, offset] = args;
-        return offsetFixtureTokenIndices(tree, offset);
-      }
-    }
-    return undefined;
-  };
-
-  file.statements.forEach((statement) => {
-    if (!ts.isVariableStatement(statement)) return;
-    statement.declarationList.declarations.forEach((declaration) => {
-      if (!ts.isIdentifier(declaration.name)) return;
-      const value = build(declaration.initializer);
-      if (value && typeof value === 'object' && 'id' in value) fixtures.set(declaration.name.text, value);
-    });
-  });
-  return fixtures;
-};
-
 test('every authored lab fixture is structurally binary', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   assert.ok(fixtures.size > 30, `expected the fixture set to parse, got ${fixtures.size}`);
 
   const violations = [];
@@ -2896,8 +2685,7 @@ test('every authored lab fixture is structurally binary', async () => {
 });
 
 test('every authored lab fixture node carries an id and a label', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const incomplete = [];
   fixtures.forEach((root, fixtureName) => {
     const walk = (current) => {
@@ -2911,8 +2699,7 @@ test('every authored lab fixture node carries an id and a label', async () => {
 });
 
 test('every authored verbal projection belongs to a shell with an authored verbal head', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const headless = [];
   fixtures.forEach((root, fixtureName) => {
     const containsVerbalHead = (current) => (
@@ -2940,8 +2727,7 @@ test('every authored verbal projection belongs to a shell with an authored verba
 });
 
 test('sideward movement ends as one externally merged tree and retains both movement endpoints', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const final = fixtures.get('sidewardFinalTree');
   assert.ok(final, 'the sideward derivation has no final tree');
   assert.equal(final.id, 'coordp_sideward_sw');
@@ -2970,19 +2756,18 @@ test('sideward movement ends as one externally merged tree and retains both move
     ['Hinter', 'jedem', 'Löwen', 'steht', 'eine', 'Dompteuse', 'und', 'krault', 'ihm', 'den', 'Rücken']
   );
 
-  const card = source.slice(
-    source.indexOf("archetype: 'M3. Multi-workspace / sideward'"),
-    source.indexOf("archetype: 'M3B. Multi-workspace / sideward'")
-  );
-  assert.match(card, /workspaceForest: \[sidewardPrimaryBaseTree, sidewardAdditionalBaseTree\]/);
-  assert.match(card, /workspaceForest: \[sidewardPrimaryTree, sidewardAdditionalTree\]/);
-  assert.match(card, /workspaceForest: \[sidewardFinalTree\]/);
-  assert.equal((card.match(/relation: 'SidewardMovement'/g) || []).length, 1);
+  const card = requiredOrchardCase(orchard.rawCases, 'Sideward Movement');
+  assert.deepEqual(card.derivationStages.map(stage => stage.workspaceForest), [
+    [fixtures.get('sidewardPrimaryBaseTree'), fixtures.get('sidewardAdditionalBaseTree')],
+    [fixtures.get('sidewardPrimaryTree'), fixtures.get('sidewardAdditionalTree')],
+    [final]
+  ]);
+  assert.deepEqual(card.derivationStages.flatMap(stage => stage.relations.map(relation => relation.relation)),
+    ['SidewardMovement']);
 });
 
 test('the sideward parasitic-gap derivation retains sideward and ordinary wh paths in one final tree', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const final = fixtures.get('sidewardPgFinalTree');
   assert.ok(final, 'the second sideward derivation has no final tree');
   assert.equal(final.id, 'cp_final_swpg');
@@ -2994,18 +2779,18 @@ test('the sideward parasitic-gap derivation retains sideward and ordinary wh pat
   assert.equal(find(final, 'dp_paper_matrix_swpg')?.silent, true);
   assert.equal(find(final, 'dp_paper_high_swpg')?.silent, undefined);
 
-  const start = source.indexOf("archetype: 'M3B. Multi-workspace / sideward'");
-  const card = source.slice(start, source.indexOf("archetype: 'N1. Merge / Pair Merge'", start));
-  assert.equal((card.match(/relation: 'SidewardMovement'/g) || []).length, 1);
-  assert.equal((card.match(/relation: 'AbarMove'/g) || []).length, 1);
-  assert.match(card, /workspaceForest: \[sidewardPgMatrixBaseTree, sidewardPgAdjunctBaseTree\]/);
-  assert.match(card, /workspaceForest: \[sidewardPgMatrixMovedTree, sidewardPgAdjunctMovedTree\]/);
-  assert.match(card, /workspaceForest: \[sidewardPgFinalTree\]/);
+  const card = requiredOrchardCase(orchard.rawCases, 'Sideward Movement (parasitic-gap derivation)');
+  assert.deepEqual(card.derivationStages.map(stage => stage.workspaceForest), [
+    [fixtures.get('sidewardPgMatrixBaseTree'), fixtures.get('sidewardPgAdjunctBaseTree')],
+    [fixtures.get('sidewardPgMatrixMovedTree'), fixtures.get('sidewardPgAdjunctMovedTree')],
+    [final]
+  ]);
+  assert.deepEqual(card.derivationStages.flatMap(stage => stage.relations.map(relation => relation.relation)),
+    ['SidewardMovement', 'AbarMove']);
 });
 
 test('the four-occurrence chain has four complete positions and three ordered links', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const finalTree = fixtures.get('fourOccurrenceIdentityTree');
   assert.ok(finalTree, 'four-occurrence final tree is missing');
 
@@ -3048,13 +2833,12 @@ test('the four-occurrence chain has four complete positions and three ordered li
     assert.ok(traceLeaves.every((leaf) => leaf.silent === true));
   });
 
-  const start = source.indexOf("title: 'Identity / Copy Chain (four occurrences)'");
-  const nextCard = source.indexOf('\n  {', start + 1);
-  const card = source.slice(start, nextCard);
-  assert.equal((card.match(/relation: 'AbarMove'/g) || []).length, 3);
-  assert.equal((card.match(/relation: 'Identity'/g) || []).length, 1);
-  assert.equal((card.match(/\bstage\(/g) || []).length, 6);
-  assert.doesNotMatch(card, /accumulatedTrajectories|stageScopedTrajectories/);
+  const card = requiredOrchardCase(orchard.rawCases, 'Identity / Copy Chain (four occurrences)');
+  assert.equal(card.derivationStages.length, 6);
+  assert.deepEqual(card.derivationStages.flatMap(stage => stage.relations.map(relation => relation.relation)),
+    ['AbarMove', 'AbarMove', 'AbarMove', 'Identity']);
+  assert.equal(Object.hasOwn(card, 'accumulatedTrajectories'), false);
+  assert.equal(Object.hasOwn(card, 'stageScopedTrajectories'), false);
 });
 
 test('phrasal movement without an authored trace witness draws nothing', () => {
@@ -3241,65 +3025,45 @@ test('distinct nested boundaries give distinct ordered crossings', () => {
  * nodes, and their depths in the tree. Two cards that differ only in wording
  * produce the same signature and count once.
  */
-const describeDesignContexts = (source) => {
-  const fixtures = parseLabFixtures(source);
-  const heads = [...source.matchAll(/archetype: '([^']+)',\s*\n\s*title: '([^']+)'/g)]
-    .map((match) => ({ title: match[2], at: match.index }));
-
+const describeDesignContexts = () => {
   const locate = (root, id) => {
     let hit = null;
     const walk = (node, depth) => {
       if (node.id === id) hit = { depth, label: node.label };
-      (node.children || []).forEach((child) => walk(child, depth + 1));
+      (node.children || []).forEach(child => walk(child, depth + 1));
     };
     walk(root, 0);
     return hit;
   };
-
   const contexts = new Map();
-  heads.forEach((head, index) => {
-    const body = source.slice(head.at, index + 1 < heads.length ? heads[index + 1].at : source.length);
-    if (/\n\s*inactive: /.test(body)) return;
-    const fixtureName = (body.match(/\n\s*data: (\w+),/) || [])[1];
-    const tree = fixtureName ? fixtures.get(fixtureName) : undefined;
-
-    Object.entries(ACTIVE_VISUAL_DESIGNS).forEach(([design, entry]) => {
-      const instances = [...body.matchAll(/relation: '([A-Za-z]+)',\s*\n?\s*anchors: \{([\s\S]{0,600}?)\}/g)]
-        .filter((match) => entry.relations.includes(match[1]));
-      if (instances.length === 0) return;
-
-      const roles = new Set();
-      const categories = [];
-      const depths = [];
-      instances.forEach((match) => {
-        [...match[2].matchAll(/(\w+):\s*(?:'([^']+)'|\[([^\]]*)\])/g)].forEach((anchor) => {
-          roles.add(anchor[1]);
-          const ids = anchor[2]
-            ? [anchor[2]]
-            : (anchor[3] || '').split(',').map((value) => value.trim().replace(/'/g, ''));
-          ids.filter(Boolean).forEach((id) => {
-            const found = tree ? locate(tree, id) : null;
+  for (const card of orchard.rawCases) {
+    for (const [design, entry] of Object.entries(ACTIVE_VISUAL_DESIGNS)) {
+      const instances = card.derivationStages.flatMap(stage => stage.relations)
+        .filter(relation => entry.relations.includes(relation.relation));
+      if (instances.length === 0) continue;
+      const roles = new Set(), categories = [], depths = [];
+      for (const instance of instances) {
+        for (const [role, anchor] of Object.entries(instance.anchors)) {
+          roles.add(role);
+          for (const id of Array.isArray(anchor) ? anchor : [anchor]) {
+            const found = locate(card.data, id);
             if (found) { categories.push(found.label); depths.push(found.depth); }
-          });
-        });
-      });
-
+          }
+        }
+      }
       const signature = JSON.stringify({
-        roles: [...roles].sort(),
-        instances: instances.length,
-        categories: [...categories].sort(),
-        depths: [...depths].sort((a, b) => a - b)
+        roles: [...roles].sort(), instances: instances.length,
+        categories: categories.sort(), depths: depths.sort((a, b) => a - b)
       });
       if (!contexts.has(design)) contexts.set(design, new Map());
-      if (!contexts.get(design).has(signature)) contexts.get(design).set(signature, head.title);
-    });
-  });
+      if (!contexts.get(design).has(signature)) contexts.get(design).set(signature, card.title);
+    }
+  }
   return contexts;
 };
 
 test('every active visual design has two meaningfully different render contexts', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const contexts = describeDesignContexts(source);
+  const contexts = describeDesignContexts();
 
   const missing = Object.keys(ACTIVE_VISUAL_DESIGNS).filter((design) => !contexts.has(design));
   assert.deepEqual(missing, [], 'every registered design must appear in the active lab');
@@ -3311,8 +3075,7 @@ test('every active visual design has two meaningfully different render contexts'
 });
 
 test('LF reconstruction preserves the lower reflexive preterminal and is not frozen', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const tree = fixtures.get('lfReconstructionTree');
 
   const find = (root, id) => {
@@ -3335,7 +3098,7 @@ test('LF reconstruction preserves the lower reflexive preterminal and is not fro
   assert.equal(reflexive.children[0].children?.[0]?.silent, true);
   assert.equal('frozen' in ACTIVE_VISUAL_DESIGNS.lfInterpretation, false);
 
-  const reconstructionContexts = describeDesignContexts(source).get('lfInterpretation');
+  const reconstructionContexts = describeDesignContexts().get('lfInterpretation');
   assert.equal(reconstructionContexts?.size, 2);
   assert.deepEqual(
     [...reconstructionContexts.values()].sort(),
@@ -3343,12 +3106,11 @@ test('LF reconstruction preserves the lower reflexive preterminal and is not fro
   );
 });
 
-test('every pronounced word still reaches the surface after expansion', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+test('every completed fixture retains its indexed surface after expansion', () => {
   // Expanding a category-as-terminal must not drop or duplicate surface material:
-  // each fixture's pronounced tokens must still form a gap-free index sequence.
-  fixtures.forEach((root, fixtureName) => {
+  // complete trees use a gap-free sequence; intermediate subtrees keep their
+  // original input addresses and need not begin at token zero.
+  orchard.rawCases.forEach(({ data: root, title: fixtureName }) => {
     const tokens = [];
     const walk = (node) => {
       if (Number.isInteger(node.tokenIndex) && node.silent !== true && node.word) {
@@ -3727,7 +3489,7 @@ test('the roll-up fixture is a complete ordinary DP at every stage', async () =>
    * their words as unpronounced lexical material, so pronunciation is read off
    * the parsed trees rather than counted in the source text.
    */
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const pronouncedWords = (root) => {
     const words = [];
     const walk = (node_) => {
@@ -3780,8 +3542,7 @@ test('the roll-up fixture is a complete ordinary DP at every stage', async () =>
 });
 
 test('every roll-up vacated position is a complete headed copy with leaf traces', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const stageNames = ['rollUpBaseTree', 'rollUpStepOneTree', 'rollUpStepTwoTree', 'rollUpMovementTree'];
 
   const silentTerminals = (root) => {
@@ -3846,8 +3607,7 @@ test('every roll-up vacated position is a complete headed copy with leaf traces'
 });
 
 test('each roll-up mover contains the constituent assembled by the preceding step', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const find = (root, id) => root.id === id
     ? root
     : (root.children || []).reduce((found, child) => found || find(child, id), null);
@@ -3872,8 +3632,7 @@ test('each roll-up mover contains the constituent assembled by the preceding ste
 });
 
 test('successive roll-up stages reveal each moved constituent only at its relation moment', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const stages = [
     {
       statement: 'The nominal hierarchy is base-generated.',
@@ -3910,10 +3669,11 @@ test('successive roll-up stages reveal each moved constituent only at its relati
     }
   ];
   const replayPlan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(stages),
-    'ha-sfarim ha-adumim ha-gdolim ha-ele',
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    sentence: 'ha-sfarim ha-adumim ha-gdolim ha-ele',
     replayPlan
+  }
   );
 
   for (const stageNumber of [2, 3, 4]) {
@@ -3932,8 +3692,7 @@ test('successive roll-up stages reveal each moved constituent only at its relati
 });
 
 test('every remnant trace sits in the vacated structure, none at a landing', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
 
   /*
    * Checked by ancestry, not by counting. A trace at a landing would say the
@@ -3989,8 +3748,7 @@ test('every remnant trace sits in the vacated structure, none at a landing', asy
 });
 
 test('every remnant trace is a leaf under its own preterminal', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const PRETERMINALS = new Set(['D', 'N', 'P', 'V', 'C', 'T', 'Neg']);
   const PHRASES = new Set(['VP', "V'", 'PP', 'DP', 'NP', 'CP', "C'", 'TP', "T'", 'NegP', "Neg'"]);
 
@@ -4065,9 +3823,8 @@ test('every remnant trace is a leaf under its own preterminal', async () => {
   assert.equal(findIn(final, 'vp_rt_low').lineageId, 'rt-vp');
 });
 
-test('the remnant fixture is a German clause a parser could emit', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+test('the remnant fixture keeps ordinary categories and authored silent trace notation', () => {
+  const fixtures = orchardFixtures();
 
   ['remnantStepOneTree', 'remnantMovementTree'].forEach((name) => {
     const tree = fixtures.get(name);
@@ -4085,18 +3842,21 @@ test('the remnant fixture is a German clause a parser could emit', async () => {
       assert.ok(node_.id && node_.label, `${name} has an unlabelled node`);
     });
     const categories = [...new Set(nodes
-      .filter((node_) => (node_.children || []).length > 0 || typeof node_.word === 'string')
+      .filter((node_) => (node_.children || []).length > 0
+        || typeof node_.word === 'string' && node_.label !== node_.word)
       .map((node_) => node_.label))].sort();
     const ordinary = ["C'", 'C', 'CP', 'D', 'DP', 'N', 'NP', "Neg'", 'Neg', 'NegP', 'P', 'PP',
       "T'", 'T', "V'", 'V', 'VP', 'TP'].sort();
     assert.deepEqual(categories.filter((label) => !ordinary.includes(label)), [],
       `${name} uses a category outside the ordinary X-bar inventory`);
 
-    // No authored trace terminals: a gap is a silent phrase, not a written `t`.
+    // Authored trace notation remains lexical material under a category shell.
     nodes.forEach((node_) => {
-      if (typeof node_.word !== 'string') return;
-      assert.doesNotMatch(node_.word, /^t([₀-₉\d]+|NP|VP|DP|v)?$/,
-        `${name}:${node_.id} authors the bare trace token ${node_.word}`);
+      if (typeof node_.word !== 'string' || !/^t([₀-₉\d]+|NP|VP|DP|v)?$/.test(node_.word)) return;
+      assert.equal(node_.silent, true, `${name}:${node_.id} pronounces its trace`);
+      assert.equal((node_.children ?? []).length, 0, `${name}:${node_.id} uses trace notation as a projection`);
+      const parent = nodes.find(candidate => candidate.children?.includes(node_));
+      assert.ok(ordinary.includes(parent?.label), `${name}:${node_.id} lost its category shell`);
     });
 
     // Every word of the sentence is pronounced exactly once, in every stage.
@@ -4109,9 +3869,13 @@ test('the remnant fixture is a German clause a parser could emit', async () => {
    * Stage 1 evacuates a genuine phrase from inside the phrase that later moves;
    * stage 2 moves that phrase. Both ends of both movements are authored nodes.
    */
-  const card = source.slice(source.indexOf("archetype: 'L1. Trajectory / remnant'"), source.indexOf("archetype: 'L2"));
-  assert.match(card, /relation: 'RemnantMovement'[\s\S]*?lowerCopy: 'dp_obj_gap'[\s\S]*?pronouncedCopy: 'dp_obj_high'[\s\S]*?phase: 'evacuation'/);
-  assert.match(card, /relation: 'RemnantMovement'[\s\S]*?lowerCopy: 'vp_rt_low'[\s\S]*?pronouncedCopy: 'vp_rt_high'[\s\S]*?phase: 'fronting'/);
+  const card = requiredOrchardCase(orchard.rawCases, 'Remnant Movement');
+  const movements = card.derivationStages.flatMap(stage => stage.relations)
+    .filter(relation => relation.relation === 'RemnantMovement');
+  assert.deepEqual(movements.map(({ anchors, values }) => ({ anchors, phase: values.phase })), [
+    { anchors: { lowerCopy: 'dp_obj_gap', traceWitness: 'd_das_gap', pronouncedCopy: 'dp_obj_high' }, phase: 'evacuation' },
+    { anchors: { lowerCopy: 'vp_rt_low', traceWitness: 'v_gelegt_low', pronouncedCopy: 'vp_rt_high' }, phase: 'fronting' }
+  ]);
   const find = (tree, id) => {
     if (tree.id === id) return tree;
     return (tree.children || []).reduce((found, child) => found || find(child, id), null);
@@ -4128,8 +3892,7 @@ test('the remnant fixture is a German clause a parser could emit', async () => {
 });
 
 test('the remnant lower copies keep every category node, tracing only the words', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const findIn = (tree, id) => (tree.id === id ? tree
     : (tree.children || []).reduce((found, child) => found || findIn(child, id), null));
   const final = fixtures.get('remnantMovementTree');
@@ -4176,24 +3939,18 @@ test('the remnant lower copies keep every category node, tracing only the words'
    * The arrows relate constituents. Each names a phrase at both ends, and the
    * witness is a leaf inside the lower one — evidence, not an endpoint.
    */
-  const card = source.slice(source.indexOf("archetype: 'L1. Trajectory / remnant'"), source.indexOf("archetype: 'L2"));
-  assert.match(card, /lowerCopy: 'dp_obj_gap',\s*traceWitness: 'd_das_gap',\s*pronouncedCopy: 'dp_obj_high'/);
-  assert.match(card, /lowerCopy: 'vp_rt_low',\s*traceWitness: 'v_gelegt_low',\s*pronouncedCopy: 'vp_rt_high'/);
   ['dp_obj_gap', 'dp_obj_high', 'vp_rt_low', 'vp_rt_high'].forEach((id) => {
     const node_ = findIn(stepOne, id) || findIn(final, id);
     assert.ok(['DP', 'VP'].includes(node_.label), `${id} is not a phrase`);
   });
 });
 
-test('every authored fixture pronounces each chain exactly once', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+test('every completed fixture pronounces each chain exactly once unless PF retains partial copies', () => {
+  const fixtures = new Map(orchard.rawCases.map(card => [card.title, card.data]));
   const offenders = [];
   const licensedMultiplePronunciationFixtures = new Set([
-    'partialCopyMovementTree',
-    'partialCopyDeletionTree',
-    'resumptivePartialCopyDeletionTree',
-    'resumptivePartialCopyRealizationTree'
+    'Partial Copy Deletion',
+    'Partial Copy Deletion (Resumptive D)'
   ]);
 
   fixtures.forEach((root, name) => {
@@ -4240,8 +3997,7 @@ test('every authored fixture pronounces each chain exactly once', async () => {
 });
 
 test('no phrase or bar level in the lab stands in for a trace', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const PHRASES = /^(?:[A-Za-z#]+P|[A-Za-z#]+')$/;
   const offenders = [];
 
@@ -4264,8 +4020,7 @@ test('no phrase or bar level in the lab stands in for a trace', async () => {
 });
 
 test('explicit trace notation stays authored and silent', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const offenders = [];
 
   /*
@@ -4297,8 +4052,7 @@ test('explicit trace notation stays authored and silent', async () => {
 });
 
 test('no fixture uses a phrase label as a terminal', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const fixtures = parseLabFixtures(source);
+  const fixtures = orchardFixtures();
   const PHRASES = /^(?:[A-Za-z#]+P|[A-Za-z#]+')$/;
   const offenders = [];
 

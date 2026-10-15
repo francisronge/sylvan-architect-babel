@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { getFrameRelations } from '../replay/replayCompiler.ts';
-import { __test__ as parser } from '../server/babelParser.js';
+import { getFrameRelations } from '../replay/frameRelations.ts';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 
 const saved = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
 const copy = name => structuredClone(saved.find(record => record.name === name));
@@ -89,6 +89,41 @@ const transitionRecord = (previous, current, relations) => ({ derivationStages: 
   { statement: 'Initial structure', stageRecord: '', workspaceForest: previous, relations: [] },
   { statement: 'Changed structure', stageRecord: '', workspaceForest: current, relations }
 ] });
+
+test('a neutral copied occurrence cannot publish a later owned realization early', () => {
+  for (const [priorWord, priorTokenIndex] of [[undefined, undefined], ['walked', 0], ['walked', undefined]]) {
+    const lower = { id: 'lower', label: 'V descriptive', lineageId: 'copy-chain', children: [],
+      ...(priorWord ? { word: priorWord } : {}), ...(priorTokenIndex === undefined ? {} : { tokenIndex: priorTokenIndex }) };
+    const other = { id: 'other', label: 'Adv', word: 'again', tokenIndex: 1, children: [] };
+    const prior = [{ id: 'base', label: 'V', children: [lower, other] }];
+    const current = [{ id: 'root', label: 'T', children: [
+      { id: 'complex', label: 'T', children: [
+        { ...lower, id: 'higher', word: 'walked', tokenIndex: 0 }, { id: 'host', label: 'T', silent: true, children: [] }
+      ] },
+      { id: 'base', label: 'V', children: [{ ...lower, silent: true }, structuredClone(other)] }
+    ] }];
+    const record = transitionRecord(prior, current, [
+      { relation: 'Opaque occurrence update', anchors: { higher: 'higher', lower: 'lower', context: 'host' },
+        priorAnchors: { witness: 'lower' } },
+      { relation: 'PFRealization', anchors: { terminal: 'higher' }, values: { realization: 'walked' } }
+    ]);
+    const original = structuredClone(record);
+    const steps = buildReplayPlayback({ sentence: 'walked again', inputTokens: ['walked', 'again'], analyses: [record] }).steps;
+    const [copy, realization] = moments(steps, 1);
+    assert.ok(visible(copy, 'higher'), 'the proved occurrence exists before its separately owned form');
+    assert.equal(nodes(copy.replayCanvasData).find(node => node.id === 'higher').word, priorWord);
+    assert.equal(nodes(copy.replayCanvasData).find(node => node.id === 'higher').tokenIndex, priorTokenIndex,
+      'an unchanged spelling cannot publish its later owned input address');
+    assert.equal(visible(copy, 'higher::__leaf'), Boolean(priorWord), 'only prior lexical content is available');
+    assert.equal(nodes(realization.replayCanvasData).find(node => node.id === 'higher').word, 'walked');
+    assert.equal(nodes(realization.replayCanvasData).find(node => node.id === 'higher').tokenIndex, 0);
+    assert.ok(visible(realization, 'higher::__leaf'));
+    const items = compileRelationRenderPlan(record.derivationStages).frames[1].items;
+    assert.ok(items.some(item => item.kind === 'fallback' && item.relationRef.relationIndex === 0));
+    assert.ok(!items.some(item => item.kind === 'trajectory'), 'timing proof grants no movement drawing');
+    assert.deepEqual(record, original);
+  }
+});
 
 test('earlier neutral claims diagnose later-owned outputs without changing their visibility or order', () => {
   for (const renamed of [false, true]) for (const early of [true, false]) {
@@ -303,7 +338,7 @@ test('an intermediate workspace expresses Agree before further Merge using the e
     stageRecord: 'v merges with VP, then Agree values the object before John merges.',
     workspaceForest: [structuredClone(core)], relations: stage.relations
   }, { ...stage, statement: 'John merges with vP.', stageRecord: 'John merges after Agree.', relations: [] });
-  const bundle = parser.normalizeParseBundle({ derivationStages: record.derivationStages }, 'minimalism', 'Which book did John buy?', 'gpt', true);
+  const bundle = normalizeParseBundle({ derivationStages: record.derivationStages }, 'minimalism', 'Which book did John buy?', 'gpt', true);
   const { steps } = buildReplayPlayback(bundle);
   const agree = steps.find(s => s.replayFrameIndex === 2 && s.operation === 'Agree');
   assert.ok(agree);

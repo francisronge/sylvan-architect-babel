@@ -1,3 +1,4 @@
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { normalizeTier2Synonym, relationLabelClauses, TIER2_VALUE_SYNONYMS } from './tier2Synonyms.ts';
 
 /**
@@ -227,3 +228,15 @@ const participantAccessDenied = (literal: string, roles: readonly string[]): boo
   return Boolean(match && roles.some(role => normalizeTier2Synonym(role) === match[1])
     && !/\b(?:if|unless|whether|but|or|not)\b/u.test(match[2] ?? ''));
 };
+
+
+export const POSITIVE_OUTCOMES = [
+  'licensed', 'successful', 'allowed', 'accepted', 'valid'
+] as const satisfies readonly OutcomeConcept[];
+
+
+export const assignmentOutcomes = (evidence: Tier2FacetEvidence) => (evidence.authoredValues ?? []).filter(entry =>
+  entry.concepts.includes('outcome') || ['outcome', 'status', 'result', 'verdict', 'judgment'].includes(normalizeTier2Synonym(entry.key)));
+
+export const establishesAssignment = (evidence: Tier2FacetEvidence) => assignmentOutcomes(evidence).every(entry =>
+  entry.items.every(literal => POSITIVE_OUTCOMES.some(concept => concept === resolveOutcomeLiteral(literal)?.concept)));

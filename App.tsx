@@ -2,8 +2,11 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useGeneration } from './hooks/useGeneration';
 import { captureVisibleTreeSnapshot } from './services/treeSnapshot';
 import { buildMilesNotation } from './services/milesNotation';
-import { listTreeBankEntries, saveTreeBankEntry, loadTreeBankEntry, removeTreeBankEntry, subscribeTreeBankChanges, type TreeBankEntrySummary } from './services/treeBankStore';
-import TreeBankPreview from './components/TreeBankPreview';
+import { useTreeBank } from './hooks/useTreeBank';
+import { useDevPreview, type DevAnalysisOptions, type SavedPreview } from './hooks/useDevPreview';
+import type { TreeBankEntrySummary } from './services/treeBankStore';
+import { TreeBankView, TreeBankDeleteDialog } from './components/TreeBankView';
+import { DerivationNotesView, type CopyCodeKey } from './components/DerivationNotesView';
 import {
   ParseBundle,
   ParseResult
@@ -14,14 +17,12 @@ import LoadingMark from './components/LoadingMark';
 import FailurePanel from './components/FailurePanel';
 import { collectDerivationStageRecords } from './derivationNotes.js';
 import { GENERATION_MODEL_IDS, getResearchModel } from './server/babelParser/researchModelCatalog.js';
-import { collectPronouncedTerminalSequence } from './replay/pronouncedTerminals.ts';
 import { displayTreeForAnalysis, finalForestForAnalysis } from './replay/finalForest.ts';
 import { 
   RotateCcw, 
   Sparkles,
   Layers,
   Zap,
-  Info,
   Brain,
   FileText,
   ChevronUp,
@@ -32,13 +33,8 @@ import {
   EyeOff,
   Maximize2,
   Minimize2,
-  Copy,
   Check,
-  ExternalLink,
-  Archive,
-  Trash2,
-  FolderOpen,
-  Clock3
+  Archive
 } from 'lucide-react';
 
 type AppTab = 'tree' | 'derivation' | 'notes';
@@ -101,56 +97,7 @@ const coerceReasoningEffortForRoute = (route: ModelMode, value?: string): Reason
   return (control.values.includes(value || '') ? value : control.qualificationDefault) as ReasoningEffort;
 };
 
-type CopyCodeKey = 'canopy' | 'derivation';
 type WorkspaceView = 'arboretum' | 'treeBank';
-type DevReplayTarget = number | 'last' | null;
-
-interface DevBundleConfig {
-  bundlePath: string;
-  tab: AppTab;
-  replayStep: DevReplayTarget;
-  captureMode: boolean;
-}
-
-const compareTreeBankEntries = (a: TreeBankEntrySummary, b: TreeBankEntrySummary): number =>
-  b.updatedAt.localeCompare(a.updatedAt);
-
-const treeBankFailureMessage = (error: unknown, fallback: string): string => {
-  if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-    return 'Browser storage is full. This save did not complete; your analysis is still open.';
-  }
-  return error instanceof Error ? `${fallback} ${error.message}` : fallback;
-};
-
-const createTreeBankId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `tree-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
-
-const formatTreeBankDate = (iso: string): string => {
-  const parsed = new Date(iso);
-  if (Number.isNaN(parsed.getTime())) return 'Unknown timestamp';
-  return parsed.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-};
-
-const unwrapDevBundlePayload = (value: unknown): ParseBundle | null => {
-  if (!value || typeof value !== 'object') return null;
-  const candidate = value as Record<string, unknown>;
-  const response = candidate.response;
-  if (response && typeof response === 'object' && Array.isArray((response as unknown as ParseBundle).analyses)) {
-    return response as unknown as ParseBundle;
-  }
-  const result = candidate.result;
-  if (result && typeof result === 'object' && Array.isArray((result as unknown as ParseBundle).analyses)) {
-    return result as unknown as ParseBundle;
-  }
-  return Array.isArray((candidate as unknown as ParseBundle).analyses)
-    ? candidate as unknown as ParseBundle
-    : null;
-};
-
 interface AppProps {
   /** Local harnesses can offer their own catalog subset without changing public provider routes. */
   modelIds?: readonly string[];
@@ -164,30 +111,11 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const inferModelRouteFromModel = (modelUsed?: string): ModelMode =>
     MODEL_OPTIONS.find(model => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID;
   const appContainerRef = useRef<HTMLDivElement>(null);
-  const treeBankSaveSuccessTimeoutRef = useRef<number | null>(null);
   const copiedCodeTimeoutRef = useRef<number | null>(null);
   const showcaseMode = useMemo(() => {
     if (typeof window === 'undefined') return false;
     const value = new URLSearchParams(window.location.search).get('showcase');
     return ['1', 'true', 'yes'].includes(String(value || '').toLowerCase());
-  }, []);
-  const devBundleConfig = useMemo<DevBundleConfig | null>(() => {
-    if (typeof window === 'undefined') return null;
-    const params = new URLSearchParams(window.location.search);
-    const bundlePath = String(params.get('devBundle') || '').trim();
-    if (!bundlePath) return null;
-    const rawTab = String(params.get('devTab') || '').trim();
-    const tab: AppTab =
-      rawTab === 'derivation' || rawTab === 'notes' || rawTab === 'tree' ? rawTab : 'tree';
-    const rawReplayStep = String(params.get('devReplayStep') || '').trim().toLowerCase();
-    const replayStep: DevReplayTarget =
-      rawReplayStep === 'last'
-        ? 'last'
-        : (rawReplayStep !== '' && Number.isInteger(Number(rawReplayStep)) && Number(rawReplayStep) >= 0
-          ? Number(rawReplayStep)
-          : null);
-    const captureMode = ['1', 'true', 'yes'].includes(String(params.get('devCapture') || '').toLowerCase());
-    return { bundlePath, tab, replayStep, captureMode };
   }, []);
   const spores = useMemo(
     () =>
@@ -206,7 +134,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const [activeTab, setActiveTab] = useState<AppTab>('tree');
   const [isInputExpanded, setIsInputExpanded] = useState(true);
   const [isInputVisible, setIsInputVisible] = useState(!showcaseMode);
-  const [devCaptureMode, setDevCaptureMode] = useState(false);
   const [abstractionMode, setAbstractionMode] = useState(false);
   const [framework, setFramework] = useState<'xbar' | 'minimalism'>('xbar');
   const [parsedFramework, setParsedFramework] = useState<'xbar' | 'minimalism'>('xbar');
@@ -214,17 +141,12 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('high');
   const [copiedCodeKey, setCopiedCodeKey] = useState<CopyCodeKey | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState<string | null>(null);
   const [parsedSentence, setParsedSentence] = useState('The farmer eats the pig');
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('arboretum');
-  const [treeBankEntries, setTreeBankEntries] = useState<TreeBankEntrySummary[]>([]);
-  const [treeBankLoading, setTreeBankLoading] = useState(false);
-  const [treeBankError, setTreeBankError] = useState<string | null>(null);
-  const [treeBankSaveSuccess, setTreeBankSaveSuccess] = useState(false);
-  const [treeBankSaving, setTreeBankSaving] = useState(false);
-  const [treeBankOpening, setTreeBankOpening] = useState(false);
+  const treeBank = useTreeBank();
   const replayPositions = useRef(new WeakMap<ParseResult, number>());
   const [initialReplayPosition, setInitialReplayPosition] = useState<number | null>(null);
-  const [entryPendingDelete, setEntryPendingDelete] = useState<TreeBankEntrySummary | null>(null);
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
   const rememberReplayPosition = useCallback((step: number) => {
     if (activeParse) replayPositions.current.set(activeParse, step);
@@ -253,11 +175,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const reasoningControlLabel = selectedModel.controls[0].label;
   const isTreeBankView = workspaceView === 'treeBank';
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
-  const canopyMilesNotation = useMemo(() => {
-    if (!activeParse) return '';
-    return buildMilesNotation(activeFinalForest);
-  }, [activeParse, activeFinalForest]);
-  const derivationMilesNotation = useMemo(() => {
+  const milesNotation = useMemo(() => {
     if (!activeParse) return '';
     return buildMilesNotation(activeFinalForest);
   }, [activeParse, activeFinalForest]);
@@ -265,164 +183,64 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     if (!activeParse) return [];
     return collectDerivationStageRecords(activeParse.derivationStages);
   }, [activeParse]);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const target = window as any;
-    target.__BABEL_DEV_SET_ANALYSIS__ = (bundle: ParseBundle, options: {
-      sentence?: string;
-      framework?: 'xbar' | 'minimalism';
-      modelRoute?: ModelMode;
-      reasoningEffort?: ReasoningEffort;
-    } = {}) => {
-      setInitialReplayPosition(null);
-      setAnalysisBundle(bundle);
-      const nextSentence = String(options.sentence || '').trim();
-      if (nextSentence) {
-        setParsedSentence(nextSentence);
-        setInput(nextSentence);
-      }
-      if (options.framework) setFramework(options.framework);
-      setParsedFramework(options.framework || bundle.analyses[0]?.provenance?.framework || 'xbar');
-      if (options.modelRoute) {
-        const nextRoute = coerceModelRoute(options.modelRoute);
-        setModelRoute(nextRoute);
-        setReasoningEffort(coerceReasoningEffortForRoute(nextRoute, options.reasoningEffort || reasoningEffort));
-      } else if (options.reasoningEffort) {
-        setReasoningEffort(coerceReasoningEffortForRoute(modelRoute, options.reasoningEffort));
-      }
-      setActiveParseIndex(0);
-      setActiveTab('tree');
-      setCopiedCodeKey(null);
-      setIsInputVisible(true);
-      setIsInputExpanded(true);
-      setWorkspaceView('arboretum');
-      resetGeneration();
-    };
-    target.__BABEL_DEV_SET_TAB__ = (tab: AppTab) => {
-      if (tab === 'tree' || tab === 'derivation' || tab === 'notes') {
-        setActiveTab(tab);
-      }
-    };
-    target.__BABEL_DEV_SET_INPUT_VISIBILITY__ = (visible: boolean) => {
-      setIsInputVisible(Boolean(visible));
-    };
-    target.__BABEL_DEV_SET_CAPTURE_MODE__ = (enabled: boolean) => {
-      setDevCaptureMode(Boolean(enabled));
-    };
-
-    return () => {
-      delete target.__BABEL_DEV_SET_ANALYSIS__;
-      delete target.__BABEL_DEV_SET_TAB__;
-      delete target.__BABEL_DEV_SET_INPUT_VISIBILITY__;
-      delete target.__BABEL_DEV_SET_CAPTURE_MODE__;
-    };
+  const acceptDevAnalysis = useCallback((bundle: ParseBundle, options: DevAnalysisOptions) => {
+    setInitialReplayPosition(null);
+    setAnalysisBundle(bundle);
+    const nextSentence = String(options.sentence || '').trim();
+    if (nextSentence) {
+      setParsedSentence(nextSentence);
+      setInput(nextSentence);
+    }
+    if (options.framework) setFramework(options.framework);
+    setParsedFramework(options.framework || bundle.analyses[0]?.provenance?.framework || 'xbar');
+    if (options.modelRoute) {
+      const nextRoute = coerceModelRoute(options.modelRoute);
+      setModelRoute(nextRoute);
+      setReasoningEffort(coerceReasoningEffortForRoute(nextRoute, options.reasoningEffort || reasoningEffort));
+    } else if (options.reasoningEffort) {
+      setReasoningEffort(coerceReasoningEffortForRoute(modelRoute, options.reasoningEffort));
+    }
+    setActiveParseIndex(0);
+    setActiveTab('tree');
+    setCopiedCodeKey(null);
+    setIsInputVisible(true);
+    setIsInputExpanded(true);
+    setWorkspaceView('arboretum');
+    resetGeneration();
   }, [modelRoute, reasoningEffort]);
+
+  const acceptSavedPreview = useCallback((preview: SavedPreview) => {
+    const { bundle, sentence, framework: nextFramework, tab, captureMode } = preview;
+    const nextRoute = coerceModelRoute(preview.modelRoute || inferModelRouteFromModel(bundle.modelUsed));
+    setInitialReplayPosition(null);
+    setAnalysisBundle(bundle);
+    setParsedSentence(sentence);
+    setInput(sentence);
+    setFramework(nextFramework);
+    setParsedFramework(nextFramework);
+    setModelRoute(nextRoute);
+    setReasoningEffort(coerceReasoningEffortForRoute(nextRoute, preview.reasoningEffort || reasoningEffort));
+    setActiveParseIndex(0);
+    setActiveTab(tab);
+    setCopiedCodeKey(null);
+    setWorkspaceView('arboretum');
+    resetGeneration();
+    setIsInputVisible(!(showcaseMode || captureMode));
+    setIsInputExpanded(!(showcaseMode || captureMode));
+  }, [showcaseMode, reasoningEffort]);
+
+  const devCaptureMode = useDevPreview({
+    analysisBundle,
+    onAnalysis: acceptDevAnalysis,
+    onPreview: acceptSavedPreview,
+    onTab: setActiveTab,
+    onInputVisibility: setIsInputVisible,
+    onError: reportError
+  });
 
   useEffect(() => {
     setReasoningEffort((current) => coerceReasoningEffortForRoute(modelRoute, current));
   }, [modelRoute]);
-
-  useEffect(() => {
-    if (!devBundleConfig) return;
-    let cancelled = false;
-
-    const loadDevBundle = async () => {
-      try {
-        const response = await fetch(devBundleConfig.bundlePath, { cache: 'no-store' });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        const saved = await response.json();
-        const bundle = unwrapDevBundlePayload(saved);
-        if (!bundle || !Array.isArray(bundle.analyses) || bundle.analyses.length === 0) {
-          throw new Error('Saved bundle does not contain analyses.');
-        }
-        if (cancelled) return;
-
-        const savedRecord = saved && typeof saved === 'object' ? saved as Record<string, any> : {};
-        const requestRecord = savedRecord.request && typeof savedRecord.request === 'object'
-          ? savedRecord.request as Record<string, any>
-          : {};
-        const firstAnalysis = bundle.analyses[0];
-        const hasRealizations = bundle.analyses.some(analysis =>
-          analysis.derivationStages?.some(stage => stage.realizations?.length));
-        const suppliedSentence = String(requestRecord.sentence || savedRecord.sentence || bundle.sentence || '').trim();
-        if (hasRealizations && !suppliedSentence) throw new Error('Saved realization analyses require their original input sentence.');
-        const pronouncedTerminalSentence = hasRealizations ? ''
-          : collectPronouncedTerminalSequence(finalForestForAnalysis(firstAnalysis)).join(' ');
-        const nextSentence =
-          suppliedSentence
-          || pronouncedTerminalSentence
-          || 'Sentence unavailable';
-        const nextFramework = requestRecord.framework === 'minimalism'
-          ? 'minimalism'
-          : (requestRecord.framework === 'xbar' ? 'xbar' : firstAnalysis?.provenance?.framework === 'minimalism' ? 'minimalism' : 'xbar');
-        const nextModelRoute =
-          String(requestRecord.modelId || bundle.requestedModelId || '').trim()
-          || inferModelRouteFromModel(bundle.modelUsed);
-        const coercedModelRoute = coerceModelRoute(nextModelRoute);
-        const nextReasoningEffort = String(requestRecord.reasoningEffort || bundle.requestedReasoningEffort || '').trim();
-
-        setInitialReplayPosition(null);
-        setAnalysisBundle(bundle);
-        setParsedSentence(nextSentence);
-        setInput(nextSentence);
-        setFramework(nextFramework);
-        setParsedFramework(nextFramework);
-        setModelRoute(coercedModelRoute);
-        setReasoningEffort(coerceReasoningEffortForRoute(coercedModelRoute, nextReasoningEffort || reasoningEffort));
-        setActiveParseIndex(0);
-        setActiveTab(devBundleConfig.tab);
-        setCopiedCodeKey(null);
-        setWorkspaceView('arboretum');
-        resetGeneration();
-        setDevCaptureMode(devBundleConfig.captureMode);
-        setIsInputVisible(!(showcaseMode || devBundleConfig.captureMode));
-        setIsInputExpanded(!(showcaseMode || devBundleConfig.captureMode));
-      } catch (err) {
-        if (cancelled) return;
-        const message = err instanceof Error ? err.message : String(err || 'Unknown error');
-        reportError({ message: `Unable to load preview bundle: ${message}` });
-      }
-    };
-
-    loadDevBundle();
-    return () => {
-      cancelled = true;
-    };
-  }, [devBundleConfig, showcaseMode, reasoningEffort]);
-
-  useEffect(() => {
-    if (!devBundleConfig || devBundleConfig.replayStep === null || typeof window === 'undefined' || !analysisBundle) {
-      return;
-    }
-    let attempts = 0;
-    const target = window as any;
-    const timer = window.setInterval(() => {
-      const getReplayCount = target.__BABEL_DEV_GET_REPLAY_STEP_COUNT__;
-      const setReplayStep = target.__BABEL_DEV_SET_REPLAY_STEP__;
-      if (typeof getReplayCount !== 'function' || typeof setReplayStep !== 'function') {
-        attempts += 1;
-        if (attempts > 40) window.clearInterval(timer);
-        return;
-      }
-      const replayCount = Number(getReplayCount()) || 0;
-      if (replayCount <= 0) {
-        attempts += 1;
-        if (attempts > 40) window.clearInterval(timer);
-        return;
-      }
-      const nextStep = devBundleConfig.replayStep === 'last'
-        ? replayCount - 1
-        : Math.min(Math.max(devBundleConfig.replayStep, 0), replayCount - 1);
-      setReplayStep(nextStep);
-      window.clearInterval(timer);
-    }, 180);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [analysisBundle, devBundleConfig]);
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -445,37 +263,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    let revision = 0;
-    const refresh = async () => {
-      const currentRevision = ++revision;
-      setTreeBankLoading(true);
-      try {
-        const { entries, issues } = await listTreeBankEntries();
-        if (!cancelled && currentRevision === revision) {
-          setTreeBankEntries(entries);
-          setTreeBankError(issues.length
-            ? `${issues.length} saved ${issues.length === 1 ? 'entry could' : 'entries could'} not be read. Their data is preserved; other saves remain available.`
-            : null);
-        }
-      } catch (error) {
-        if (!cancelled && currentRevision === revision) {
-          setTreeBankError(treeBankFailureMessage(error, 'Tree Bank could not be loaded.'));
-        }
-      } finally {
-        if (!cancelled && currentRevision === revision) setTreeBankLoading(false);
-      }
-    };
-    void refresh();
-    const unsubscribe = subscribeTreeBankChanges(() => { void refresh(); });
-    return () => { cancelled = true; unsubscribe(); };
-  }, []);
-
-  useEffect(() => {
     return () => {
-      if (treeBankSaveSuccessTimeoutRef.current !== null) {
-        window.clearTimeout(treeBankSaveSuccessTimeoutRef.current);
-      }
       if (copiedCodeTimeoutRef.current !== null) {
         window.clearTimeout(copiedCodeTimeoutRef.current);
       }
@@ -487,6 +275,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     if (loading) return;
     if (!input.trim()) return;
 
+    setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
     await generate({
       sentence: input,
       framework,
@@ -507,19 +296,15 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   };
 
   const handleSaveCurrentTree = async () => {
-    if (!analysisBundle || treeBankSaving || loading) return;
+    if (!analysisBundle || treeBank.saving || loading) return;
 
     const sentence = parsedSentence.trim() || input.trim();
     if (!sentence) return;
 
-    const now = new Date().toISOString();
     const entry = {
-      id: createTreeBankId(),
       sentence,
       framework: parsedFramework,
       activeParseIndex,
-      createdAt: now,
-      updatedAt: now,
       bundle: analysisBundle,
       view: activeTab,
       replayStep: activeParse ? replayPositions.current.get(activeParse) ?? null : null,
@@ -527,34 +312,12 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       treeSnapshotDataUrl: captureVisibleTreeSnapshot()
     };
 
-    setTreeBankSaveSuccess(false);
-    setTreeBankError(null);
-    setTreeBankSaving(true);
-    try {
-      const saved = await saveTreeBankEntry(entry);
-      setTreeBankEntries(current => [saved, ...current.filter(item => item.id !== saved.id)].sort(compareTreeBankEntries));
-      setTreeBankSaveSuccess(true);
-      setTreeBankError(null);
-      if (treeBankSaveSuccessTimeoutRef.current !== null) {
-        window.clearTimeout(treeBankSaveSuccessTimeoutRef.current);
-      }
-      treeBankSaveSuccessTimeoutRef.current = window.setTimeout(() => {
-        setTreeBankSaveSuccess(false);
-        treeBankSaveSuccessTimeoutRef.current = null;
-      }, 2200);
-    } catch (err) {
-      console.error('Tree Bank save failed', err);
-      setTreeBankError(treeBankFailureMessage(err, 'Unable to save this tree to Tree Bank.'));
-    } finally {
-      setTreeBankSaving(false);
-    }
+    await treeBank.save(entry);
   };
 
   const handleOpenTreeBankEntry = async (summary: TreeBankEntrySummary) => {
-    if (treeBankOpening || loading) return;
-    setTreeBankOpening(true);
-    try {
-      const { entry, bundle, view, replayStep, abstractionMode: savedAbstraction } = await loadTreeBankEntry(summary.id);
+    if (loading) return;
+    await treeBank.open(summary.id, ({ entry, bundle, view, replayStep, abstractionMode: savedAbstraction }) => {
       const selected = bundle.analyses[entry.activeParseIndex];
       if (replayStep !== null) replayPositions.current.set(selected, replayStep);
       setInitialReplayPosition(replayStep);
@@ -569,30 +332,12 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setActiveParseIndex(entry.activeParseIndex);
       setActiveTab(view);
       setAbstractionMode(savedAbstraction);
-      setTreeBankError(null);
       clearFailure();
       setCopiedCodeKey(null);
       setIsInputVisible(true);
       setIsInputExpanded(true);
       setWorkspaceView('arboretum');
-    } catch (error) {
-      setTreeBankError(treeBankFailureMessage(error, 'This saved entry could not be opened. Its data has been preserved.'));
-    } finally {
-      setTreeBankOpening(false);
-    }
-  };
-
-  const handleDeleteTreeBankEntry = async () => {
-    if (!entryPendingDelete) return;
-    try {
-      await removeTreeBankEntry(entryPendingDelete.id);
-      setTreeBankEntries((current) => current.filter((entry) => entry.id !== entryPendingDelete.id));
-      setTreeBankError(null);
-      setEntryPendingDelete(null);
-    } catch (err) {
-      console.error('Tree Bank delete failed', err);
-      setTreeBankError(treeBankFailureMessage(err, 'Unable to delete this saved tree.'));
-    }
+    });
   };
 
   const copyMilesCode = (text: string, key: CopyCodeKey) => {
@@ -609,6 +354,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   };
 
   const toggleFullscreen = async () => {
+    setFullscreenError(null);
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen();
@@ -616,6 +362,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
         await document.documentElement.requestFullscreen();
       }
     } catch (err) {
+      setFullscreenError('The browser blocked fullscreen. Select this tab and try again, or use the browser\'s fullscreen command.');
       console.error('Fullscreen toggle failed', err);
     }
   };
@@ -637,13 +384,13 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               left: `${spore.left}vw`,
               animationDelay: `-${spore.delay}s`,
               animationDuration: `${spore.duration}s`,
-              ['--spore-drift' as any]: `${spore.drift}px`
+              ['--spore-drift' as string]: `${spore.drift}px`
             }}
           />
         ))}
       </div>
       <header className="bg-black/60 backdrop-blur-xl border-b border-white/10 z-40 px-4 py-3 md:px-8 md:py-4 shrink-0 shadow-2xl">
-        <div className="max-w-[2000px] mx-auto flex flex-wrap items-center gap-3 md:gap-6">
+        <div className="w-full flex flex-wrap min-[1600px]:flex-nowrap items-center gap-3 md:gap-6">
             <div className="flex items-center gap-3 md:gap-4 shrink-0">
               <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,78,59,0.5)]">
                 <RootLogo size={40} shape="square" blend={true} zoom={1.12} className="w-full h-full" />
@@ -654,14 +401,14 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               </div>
             </div>
 
-            <div className="basis-full md:basis-auto min-w-0 flex-1">
-              <div className="flex flex-wrap md:flex-nowrap items-center justify-start md:justify-between gap-2 md:gap-4">
-                <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3">
+            <div className="basis-full min-[1600px]:basis-auto min-w-0 flex-1">
+              <div className="flex flex-wrap xl:flex-nowrap items-center gap-2 md:gap-3">
+                <div className="min-w-0 xl:contents xl:[&>button]:grow xl:[&>button]:justify-center flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3">
                   {!isTreeBankView ? (
                     <>
                       <button
                         onClick={() => setFramework(framework === 'xbar' ? 'minimalism' : 'xbar')}
-                        className={`flex items-center gap-2 md:gap-2.5 min-w-[14rem] justify-center px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest shadow-inner group whitespace-nowrap ${
+                        className={`flex items-center gap-2 md:gap-2.5 min-w-[14rem] xl:min-w-0 justify-center px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest shadow-inner group whitespace-nowrap ${
                           framework === 'minimalism'
                           ? 'bg-purple-500/20 border-purple-500/40 text-purple-400'
                           : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
@@ -703,20 +450,20 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                   )}
                 </div>
 
-                <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4">
+                <div className="min-w-0 xl:contents xl:[&>button]:grow xl:[&>button]:justify-center flex flex-wrap items-center gap-2 md:gap-3">
                   {!isTreeBankView && (
                     <button
                       onClick={handleSaveCurrentTree}
-                      disabled={!analysisBundle || loading || treeBankSaving}
+                      disabled={!analysisBundle || loading || treeBank.saving}
                       className={`flex items-center gap-2 px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest whitespace-nowrap ${
-                        treeBankSaveSuccess
+                        treeBank.saveSuccess
                           ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
                           : 'border-white/10 bg-white/5 text-white/50 hover:text-emerald-400 hover:border-emerald-500/30 disabled:opacity-30 disabled:cursor-not-allowed'
                       }`}
                       title={analysisBundle ? 'Save current analysis to Tree Bank' : 'Parse a sentence before saving'}
                     >
-                      {treeBankSaveSuccess ? <Check size={12} /> : <Archive size={12} />}
-                      {treeBankSaving ? 'Saving...' : treeBankSaveSuccess ? 'Saved' : 'Save to Tree Bank'}
+                      {treeBank.saveSuccess ? <Check size={12} /> : <Archive size={12} />}
+                      {treeBank.saving ? 'Saving...' : treeBank.saveSuccess ? 'Saved' : 'Save to Tree Bank'}
                     </button>
                   )}
 
@@ -730,12 +477,12 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                     title={isTreeBankView ? 'Return to Arboretum' : 'Open Tree Bank'}
                   >
                     <Archive size={12} />
-                    {isTreeBankView ? 'Back to Arboretum' : `Tree Bank (${treeBankEntries.length})`}
+                    {isTreeBankView ? 'Back to Arboretum' : `Tree Bank (${treeBank.entries.length})`}
                   </button>
 
                   {!isTreeBankView && (
                     <div
-                      className="flex flex-wrap items-center gap-2"
+                      className="flex flex-wrap xl:contents items-center gap-2"
                       title={
                         analysisBundle?.modelUsed
                           ? `Selected model: ${selectedModelLabel}. Last parse used: ${modelLabel}.`
@@ -743,7 +490,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                       }
                     >
                       <label
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg border"
+                        className="flex xl:grow items-center gap-2 px-3 py-2 rounded-lg border"
                         style={{
                           color: MODEL_ACCENT_COLORS[modelRoute],
                           backgroundColor: `${MODEL_ACCENT_COLORS[modelRoute]}1f`,
@@ -761,7 +508,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                             setReasoningEffort('high');
                             clearFailure();
                           }}
-                          className="w-40 bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
+                          className="w-40 xl:grow bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
                         >
                           {MODEL_OPTIONS.map((model) => (
                             <option key={model.id} value={model.id} className="bg-[#061810]" style={{ color: MODEL_ACCENT_COLORS[model.id] }}>
@@ -770,7 +517,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                           ))}
                         </select>
                       </label>
-                      <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${REASONING_PILL_STYLES[activeReasoningEffort]}`} title={reasoningControlLabel}>
+                      <label className={`flex xl:grow items-center gap-2 px-3 py-2 rounded-lg border ${REASONING_PILL_STYLES[activeReasoningEffort]}`} title={reasoningControlLabel}>
                         <Brain size={10} className="fill-current" />
                         <select
                           aria-label={reasoningControlLabel}
@@ -780,7 +527,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                             setReasoningEffort(event.target.value as ReasoningEffort);
                             clearError();
                           }}
-                          className="w-24 bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
+                          className="w-24 xl:grow bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
                         >
                           {activeReasoningOptions.map((effort) => <option key={effort} value={effort} className="bg-[#061810]">{REASONING_EFFORT_LABELS[effort]}</option>)}
                         </select>
@@ -802,111 +549,23 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
         </div>
       </header>
 
-      {!isTreeBankView && treeBankError && (
+      {fullscreenError && (
+        <p role="alert" className="shrink-0 border-b border-rose-500/30 bg-[#261114] px-4 py-3 text-rose-200 text-sm">
+          {fullscreenError}
+        </p>
+      )}
+
+      {!isTreeBankView && treeBank.error && (
         <div role="alert" className="shrink-0 border-b border-rose-500/30 bg-[#261114] px-4 py-3 text-rose-200 text-sm">
-          {treeBankError}
+          {treeBank.error}
         </div>
       )}
       <main data-babel-workspace="true" className="flex-1 relative flex flex-col overflow-hidden">
         {isTreeBankView && (
-          <div className="absolute inset-0 z-20 overflow-y-auto px-4 py-6 md:px-12 md:py-12">
-            <div className="max-w-7xl mx-auto space-y-8 pb-24">
-              <div className="glass-dark rounded-[2.5rem] p-8 md:p-10">
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.5em] text-emerald-500/60">Saved Workspace</p>
-                    <h2 className="serif text-4xl text-white tracking-tight mt-2">Tree Bank</h2>
-                    <p className="text-emerald-50/70 mt-3 max-w-2xl">
-                      Re-open any saved sentence with its full generated artifacts, or prune entries you no longer need.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-emerald-400/80">
-                    <Archive size={14} />
-                    {treeBankEntries.length} {treeBankEntries.length === 1 ? 'Saved Tree' : 'Saved Trees'}
-                  </div>
-                </div>
-                {treeBankError && (
-                  <div className="mt-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-rose-300 text-sm">
-                    {treeBankError}
-                  </div>
-                )}
-              </div>
-
-              {treeBankLoading ? (
-                <div className="glass-dark rounded-[2.5rem] p-12 flex flex-col items-center justify-center gap-4 text-emerald-200/80">
-                  <RotateCcw size={22} className="animate-spin" />
-                  <p className="text-sm uppercase tracking-[0.25em] font-black">Loading Tree Bank</p>
-                </div>
-              ) : treeBankEntries.length === 0 ? (
-                <div className="glass-dark rounded-[2.5rem] p-14 text-center">
-                  <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                    <Archive size={28} />
-                  </div>
-                  <p className="serif italic text-2xl text-white mb-2">No saved trees yet</p>
-                  <p className="text-emerald-50/60 max-w-xl mx-auto">
-                    Parse a sentence in the Arboretum, then use "Save to Tree Bank" in the header.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                  {treeBankEntries.map((entry) => {
-                    const stageCount = entry.stageCount;
-
-                    return (
-                      <div
-                        key={entry.id}
-                        className="glass-dark rounded-[2.2rem] p-8 border border-white/10 hover:border-emerald-500/40 transition-all"
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0">
-                            <p className="text-[9px] font-black uppercase tracking-[0.35em] text-emerald-400/70">
-                              {entry.framework === 'xbar' ? 'X-Bar Theory' : 'Minimalist Program'}
-                            </p>
-                            <p className="mt-3 serif italic text-2xl leading-tight text-white break-words">"{entry.sentence}"</p>
-                          </div>
-                          <div className="text-[9px] uppercase tracking-[0.2em] font-black text-emerald-500/60 shrink-0 flex items-center gap-2">
-                            <Clock3 size={12} />
-                            {formatTreeBankDate(entry.updatedAt)}
-                          </div>
-                        </div>
-
-                        <div className="mt-6 flex flex-wrap gap-2 text-[9px] font-black uppercase tracking-[0.18em]">
-                          <span className="px-3 py-1.5 rounded-full border border-emerald-500/25 text-emerald-300/80 bg-emerald-500/10">
-                            {entry.analysisCount} {entry.analysisCount === 1 ? 'Parse' : 'Parses'}
-                          </span>
-                          <span className="px-3 py-1.5 rounded-full border border-white/15 text-white/70 bg-white/5">
-                            {stageCount} {stageCount === 1 ? 'Stage' : 'Stages'}
-                          </span>
-                        </div>
-
-                        <div className="mt-6 rounded-[1.4rem] border border-white/10 bg-[#020806] overflow-hidden h-56">
-                          <TreeBankPreview previewId={entry.previewId} sentence={entry.sentence} />
-                        </div>
-
-                        <div className="mt-7 flex items-center gap-3">
-                          <button
-                            onClick={() => void handleOpenTreeBankEntry(entry)}
-                            disabled={treeBankOpening}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-emerald-500/50 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20 transition-all text-[10px] font-black uppercase tracking-widest"
-                          >
-                            <FolderOpen size={13} />
-                            Open Tree
-                          </button>
-                          <button
-                            onClick={() => setEntryPendingDelete(entry)}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 transition-all text-[10px] font-black uppercase tracking-widest"
-                          >
-                            <Trash2 size={13} />
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+          <TreeBankView
+            entries={treeBank.entries} loading={treeBank.loading} error={treeBank.error}
+            opening={treeBank.opening} onOpen={handleOpenTreeBankEntry} onDelete={treeBank.setPendingDelete}
+          />
         )}
 
         {!isTreeBankView && hasAmbiguity && (
@@ -955,108 +614,13 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               inputTokens={analysisBundle?.inputTokens}
             />
           ) : activeParse && activeTab === 'notes' ? (
-            <div
-              className="w-full h-full flex justify-center overflow-y-auto overflow-x-hidden bg-[#020806]/60 backdrop-blur-md items-start px-4 pt-8 pb-36 md:px-12 md:pt-20 md:pb-44"
-            >
-              {activeTab === 'notes' && (
-                <div className="max-w-4xl w-full space-y-8">
-                  <div className="glass-dark p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-2xl">
-                      <div className="flex items-center gap-4 md:gap-5 mb-6 md:mb-8">
-                        <div className="w-10 h-10 md:w-12 md:h-12 moss-gradient rounded-2xl flex items-center justify-center text-white shadow-lg">
-                          <Info size={24} />
-                        </div>
-                        <h2 className="text-xl md:text-3xl font-bold text-white serif tracking-tight">Derivational Notes</h2>
-                      </div>
-                      <div className="space-y-5 md:space-y-6">
-                        {derivationalNoteParagraphs.map((paragraph, index) => (
-                          <p
-                            key={`derivational-note-${index}`}
-                            className="text-emerald-50/90 leading-relaxed italic serif text-lg md:text-2xl border-l-2 border-emerald-500/20 pl-5 md:pl-8"
-                          >
-                            &quot;{paragraph}&quot;
-                          </p>
-                        ))}
-                      </div>
-                  </div>
-
-                  {(canopyMilesNotation || derivationMilesNotation) && (
-                    <div className="glass-dark p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] shadow-2xl">
-                       <div className="flex items-center justify-between mb-6 md:mb-8 gap-4">
-                          <div className="flex items-center gap-4 md:gap-5">
-                            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/5 rounded-2xl flex items-center justify-center text-emerald-500 border border-white/10">
-                              <Layers size={24} />
-                            </div>
-                            <div>
-                              <h2 className="text-xl md:text-3xl font-bold text-white serif tracking-tight">Labeled Bracketing</h2>
-                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/40">Canopy + Derivation Miles Shang Formalism</p>
-                            </div>
-                          </div>
-                          <a 
-                            href="https://mshang.ca/syntree/" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 px-6 py-3 rounded-2xl border bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30 transition-all text-[11px] font-black uppercase tracking-widest"
-                          >
-                            <ExternalLink size={14} />
-                            Miles Shang
-                          </a>
-                        </div>
-                        <div className="space-y-6">
-                          {canopyMilesNotation && (
-                            <div className="bg-black/40 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-white/5 shadow-inner">
-                              <div className="flex items-center justify-between mb-4">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">Canopy Code</p>
-                                <button 
-                                  onClick={() => copyMilesCode(canopyMilesNotation, 'canopy')}
-                                  className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${
-                                    copiedCodeKey === 'canopy'
-                                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
-                                    : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
-                                  }`}
-                                >
-                                  {copiedCodeKey === 'canopy' ? <Check size={13} /> : <Copy size={13} />}
-                                  {copiedCodeKey === 'canopy' ? 'Copied to Soil' : 'Copy Canopy'}
-                                </button>
-                              </div>
-                              <code className="text-emerald-400 mono text-sm md:text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
-                                {canopyMilesNotation}
-                              </code>
-                            </div>
-                          )}
-
-                          {derivationMilesNotation && (
-                            <div className="bg-black/40 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-white/5 shadow-inner">
-                              <div className="flex items-center justify-between mb-4">
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">Derivation Code (Movement Indexed)</p>
-                                <button 
-                                  onClick={() => copyMilesCode(derivationMilesNotation, 'derivation')}
-                                  className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${
-                                    copiedCodeKey === 'derivation'
-                                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
-                                    : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
-                                  }`}
-                                >
-                                  {copiedCodeKey === 'derivation' ? <Check size={13} /> : <Copy size={13} />}
-                                  {copiedCodeKey === 'derivation' ? 'Copied to Soil' : 'Copy Derivation'}
-                                </button>
-                              </div>
-                              <code className="text-emerald-400 mono text-sm md:text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
-                                {derivationMilesNotation}
-                              </code>
-                            </div>
-                          )}
-                        </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <DerivationNotesView paragraphs={derivationalNoteParagraphs} notation={milesNotation} copiedCodeKey={copiedCodeKey} copyMilesCode={copyMilesCode} />
           ) : !loading && (
             <div className="w-full h-full flex flex-col items-center justify-center text-emerald-900/10 gap-10">
               <div className="relative">
-                <div className="absolute inset-0 bg-emerald-500/20 blur-[80px] rounded-full scale-150 animate-pulse"></div>
+                <div className="absolute inset-0 bg-emerald-500/20 blur-[80px] rounded-full scale-150"></div>
                 <div className="relative z-10 w-24 h-24 md:w-32 md:h-32 rounded-full border border-white/5 flex items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner">
-                  <RootLogo size={104} shape="circle" blend={true} zoom={0.92} className="animate-pulse w-[78px] h-[78px] md:w-[104px] md:h-[104px]" />
+                  <RootLogo size={104} shape="circle" blend={true} zoom={0.92} className="w-[78px] h-[78px] md:w-[104px] md:h-[104px]" />
                 </div>
               </div>
               <div className="text-center z-10 min-h-[88px] flex flex-col justify-start">
@@ -1103,7 +667,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                   <div className="glass-dark rounded-[2.5rem] border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden">
                     <div className="flex items-center justify-between px-5 md:px-7 py-3 md:py-3.5 border-b border-white/5 bg-black/30">
                       <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"></div>
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></div>
                         <span className="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-500/80">Arboretum Link</span>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -1191,7 +755,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                     style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
                     title="Restore Arboretum Link"
                   >
-                    <RootLogo size={34} shape="circle" blend={true} zoom={0.92} className="animate-pulse w-7 h-7 md:w-[34px] md:h-[34px]" />
+                    <RootLogo size={34} shape="circle" blend={true} zoom={0.92} className="w-7 h-7 md:w-[34px] md:h-[34px]" />
                   </button>
                 )}
               </>
@@ -1199,30 +763,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
           </>
         )}
 
-        {entryPendingDelete && (
-          <div className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center px-6">
-            <div className="glass-dark rounded-[2rem] p-8 w-full max-w-xl border border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.14)]">
-              <h3 className="serif text-3xl text-white mt-1 mb-4">Delete saved tree?</h3>
-              <p className="text-emerald-50/80 leading-relaxed">
-                This will permanently remove <span className="italic">"{entryPendingDelete.sentence}"</span> from Tree Bank.
-              </p>
-              <div className="mt-7 flex items-center gap-3">
-                <button
-                  onClick={handleDeleteTreeBankEntry}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-rose-500/50 bg-rose-500/20 text-rose-200 hover:bg-rose-500/30 transition-all text-[10px] font-black uppercase tracking-widest"
-                >
-                  <Trash2 size={13} />
-                  Delete Tree
-                </button>
-                <button
-                  onClick={() => setEntryPendingDelete(null)}
-                  className="px-5 py-2.5 rounded-xl border border-white/15 bg-white/5 text-white/70 hover:text-emerald-300 hover:border-emerald-500/40 transition-all text-[10px] font-black uppercase tracking-widest"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
+        {treeBank.pendingDelete && (
+          <TreeBankDeleteDialog entry={treeBank.pendingDelete} onConfirm={treeBank.deletePending} onCancel={() => treeBank.setPendingDelete(null)} />
         )}
 
       </main>

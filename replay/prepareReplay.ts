@@ -1,19 +1,13 @@
-import type { DerivationStage } from '../types.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
-import {
-  adaptDerivationStagesForReplay,
-  applyPreFrontingSentenceInitialCasing,
-  buildAuthoredRelationLinksForFrames,
-  buildMovementChainIndexCatalogueForFrames,
-  buildPlaybackStepsFromDerivationFrames,
-  buildResolvedLinkTraceIndexMap,
-  createFrameRelationResolver,
-  decoratePlaybackStepsWithTraceIndices,
-  hidePendingInflSpecifierWrappersInStep,
-  type DerivationReplayPlan,
-  type PlaybackStep
-} from './replayCompiler.ts';
+import type { DerivationStage } from '../types.ts';
 import { compileRelationRenderPlan } from './relations/renderPlanCompiler.ts';
+import { adaptDerivationStagesForReplay } from './authoredFrames.ts';
+import { applyPreFrontingSentenceInitialCasing } from './replayCasing.ts';
+import { buildAuthoredRelationLinksForFrames, buildMovementChainIndexCatalogueForFrames, createFrameRelationResolver } from './frameRelations.ts';
+import { buildPlaybackStepsFromDerivationFrames } from './replayCompiler.ts';
+import { buildResolvedLinkTraceIndexMap } from './movementIndices.ts';
+import { decoratePlaybackStepsWithTraceIndices } from './movementPresentation.ts';
+import { type DerivationReplayPlan, type PlaybackStep } from './types.ts';
 
 export interface ReplayPreparationInput {
   derivationStages?: DerivationStage[];
@@ -36,8 +30,14 @@ export const prepareReplay = ({ derivationStages, sentence, inputTokens, include
   const finalFrame = replayDerivationFrames[finalIndex];
   const frameRelations = createFrameRelationResolver(replayDerivationFrames, derivationReplayPlan);
   const committedDerivationVisualLinks = finalFrame
-    ? buildAuthoredRelationLinksForFrames(replayDerivationFrames, derivationReplayPlan, finalIndex,
-      finalFrame.workspaceForest || [], Number.POSITIVE_INFINITY, frameRelations)
+    ? buildAuthoredRelationLinksForFrames({
+      frames: replayDerivationFrames,
+      replayPlan: derivationReplayPlan,
+      activeFrameIndex: finalIndex,
+      forest: finalFrame.workspaceForest || [],
+      currentFrameRelationLimit: Number.POSITIVE_INFINITY,
+      frameRelations
+    })
     : [];
   const movementChainIndexCatalogue = buildMovementChainIndexCatalogueForFrames(
     replayDerivationFrames, derivationReplayPlan, frameRelations);
@@ -47,8 +47,13 @@ export const prepareReplay = ({ derivationStages, sentence, inputTokens, include
       finalFrame.workspaceForest || [], movementChainIndexCatalogue.links, Number.MAX_SAFE_INTEGER,
       movementChainIndexCatalogue
     );
-    const steps = buildPlaybackStepsFromDerivationFrames(replayDerivationFrames, sentence, derivationReplayPlan, inputTokens, frameRelations)
-      .map(hidePendingInflSpecifierWrappersInStep);
+    const steps = buildPlaybackStepsFromDerivationFrames({
+      frames: replayDerivationFrames,
+      sentence,
+      replayPlan: derivationReplayPlan,
+      inputTokens,
+      frameRelations
+    });
     playbackSteps = applyPreFrontingSentenceInitialCasing(
       decoratePlaybackStepsWithTraceIndices(steps, traceIndexByNodeId), sentence, inputTokens
     );

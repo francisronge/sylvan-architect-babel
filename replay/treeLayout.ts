@@ -1,15 +1,47 @@
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import { getNodeId } from './displayIdentity.ts';
+import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import type { CategoryTextMeasure } from './categoryTextLayout.ts';
+import type { TreeInkTextMeasure } from './treeInkGeometry.ts';
+import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
+import { prepareWorkspaceLifetimeContours, workspaceLifetimeContourCoordinates } from './workspaceLifetimeContours.ts';
+import { TREE_ROW_HEIGHT, TREE_SIBLING_GAP } from './treeSpacing.ts';
+import type { PlaybackStep } from './types.ts';
 
 export type TreeDirection = 'ltr' | 'rtl';
 export type TreeCoordinateReservation = Map<string, { x: number; y: number }>;
 
+type TreeLayoutMeasurements = {
+  measureCategoryText?: CategoryTextMeasure;
+  measureTreeInk?: TreeInkTextMeasure;
+  treeLabelRuns?: PreparedTreeLabelRuns;
+  measureTreeLabel?: TreeLabelMeasure;
+};
+
 /** Reflect coordinates, never child order or glyphs. All geometry binds after this layout. */
 export function layoutSyntaxTree(root: d3.HierarchyNode<SyntaxNode>, size: [number, number], direction: TreeDirection = 'ltr',
-  reservation?: ReadonlyMap<string, { x: number; y: number }>, visibleIds?: ReadonlySet<string>) {
-  const tree = d3.tree<SyntaxNode>().size(size)
+  reservation?: ReadonlyMap<string, { x: number; y: number }>, visibleIds?: ReadonlySet<string>, measurements: TreeLayoutMeasurements = {}) {
+  applyVizIds(root);
+  const tree = d3.tree<SyntaxNode>().nodeSize([TREE_SIBLING_GAP / 2.5, TREE_ROW_HEIGHT])
     .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
+  tree.each(node => { node.x += size[0] / 2; });
+  if (!reservation && (measurements.measureCategoryText || measurements.measureTreeInk
+    || measurements.treeLabelRuns || measurements.measureTreeLabel)) {
+    // A single current scene uses the same ink-aware contour packing as Replay.
+    // There is no lookahead here: hidden scaffolding contributes no local shape.
+    const step = { replayCanvasData: root.data, replayKind: 'macro', replayFrameIndex: 0,
+      replayVisibleNodeIds: [...(visibleIds ?? tree.descendants().map(getNodeId))] } as PlaybackStep;
+    const points = workspaceLifetimeContourCoordinates(
+      prepareWorkspaceLifetimeContours([step], measurements.measureCategoryText,
+        measurements.measureTreeInk, measurements.treeLabelRuns, measurements.measureTreeLabel, direction)()
+    ).get(root.data)!;
+    const xs = [...points.values()].map(point => point.x);
+    const offset = xs.length ? size[0] / 2 - (Math.min(...xs) + Math.max(...xs)) / 2 : 0;
+    tree.each(node => {
+      const point = points.get(getNodeId(node));
+      if (point) { node.x = point.x + offset; node.y = point.y; }
+    });
+  }
   if (reservation) tree.each(node => {
     const position = reservation.get(getNodeId(node));
     if (position) { node.x = position.x; node.y = position.y; }

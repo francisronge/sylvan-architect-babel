@@ -21,8 +21,6 @@ const adapted = (citation: string, location: string, url: string, note: string):
   ({ kind: 'adapted convention', citation, location, url, note });
 const composed = (note: string, citation = 'Babel drawing'): OrchardSourceCitation =>
   ({ kind: 'Babel composition', citation, note });
-const unverified = (note: string): OrchardSourceCitation =>
-  ({ kind: 'source unverified', citation: 'No verified source figure', note });
 
 // One entry for every public Orchard card. A source link identifies evidence
 // for the named convention, not permission to reproduce that source's image.

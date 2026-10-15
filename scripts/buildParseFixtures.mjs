@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { __test__ } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const rawDir = path.join(repoRoot, 'fixtures', 'raw');
@@ -31,7 +31,7 @@ const buildFixture = (rawPath) => {
     throw new Error(`${path.basename(rawPath)} must contain sentence, framework, modelRoute, and payload`);
   }
 
-  const bundle = __test__.normalizeParseBundle(
+  const bundle = normalizeParseBundle(
     payload,
     framework,
     sentence,

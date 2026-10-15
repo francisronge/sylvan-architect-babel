@@ -1,12 +1,13 @@
-import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '../types.ts';
-import type { PlaybackStep, ReplayDerivationFrame } from './replayCompiler.ts';
 import * as d3 from 'd3';
+import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '../types.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { recoverMovementEvidence } from './relations/movementEvidence.ts';
-import { dispatchRelationClaims, type RelationClaimDispatch } from './relations/tier2RelationDispatch.ts';
+import { establishesAssignment } from './relations/outcomeResolver.ts';
+import { dispatchRelationClaims } from './relations/tier2RelationDispatch.ts';
+import { type RelationClaimDispatch } from './relations/relationClaims.ts';
 import { isRealizationDescription, normalizeTier2Synonym, relationLabelClauses } from './relations/tier2Synonyms.ts';
-import { establishesAssignment } from './relations/assignmentContinuity.ts';
-import { readCategoryLabel } from './categoryLabel.ts';
+import type { PlaybackStep, ReplayDerivationFrame } from './types.ts';
+import { namedInputRealizationGroups } from './realizationGroups.ts';
 
 export const cloneRealizations = (groups: readonly SurfaceRealization[]): SurfaceRealization[] =>
   groups.map(group => ({ nodeIds: [...group.nodeIds], tokenIndices: [...group.tokenIndices] }));
@@ -22,7 +23,7 @@ const sameMembers = <T,>(left: readonly T[], right: readonly T[]) => left.length
   && new Set(left).size === left.length && new Set(right).size === right.length
   && left.every(item => right.includes(item));
 
-const inputSequenceRole = (key: string) => /^(?:input (?:parts|pieces(?: in order)?|tokens)|surface pieces)$/u
+const inputSequenceRole = (key: string) => /^(?:input (?:parts|pieces(?: in order)?|tokens)|surface pieces|orthographic tokens)$/u
   .test(normalizeTier2Synonym(key));
 
 const pronunciationRole = (key: string, pronounced: boolean) =>
@@ -144,14 +145,21 @@ export const resolveRealizationChanges = (
         ? [{ kind: facet.recipe.id, ids: outputs, collective: Boolean(evidence.realizationGroupAnchorKeys?.length) }] : [];
     });
   const outputCovers = (outputs: readonly string[], group: SurfaceRealization) => {
-    if (sameMembers(outputs, group.nodeIds)) return true;
-    if (outputs.length !== 1) return false;
-    const owner = exactNode(newNodes, outputs[0]);
-    if (!owner) return false;
-    const leaves: string[] = [];
-    const visit = (node: SyntaxNode) => node.children?.length ? node.children.forEach(visit) : leaves.push(node.id);
-    visit(owner);
-    return sameMembers(leaves, group.nodeIds);
+    const leaves = (ids: readonly string[]) => {
+      if (!ids.length || new Set(ids).size !== ids.length) return;
+      const terminals = new Set<string>();
+      const visit = (id: string): boolean => {
+        const node = exactNode(newNodes, id);
+        if (!node) return false;
+        if (node.children?.length) return node.children.every(child => visit(child.id));
+        terminals.add(id); return true;
+      };
+      return ids.every(visit) ? [...terminals] : undefined;
+    };
+    // An authored group may name a complete head or its contributors. Nested
+    // output anchors must cover exactly that same domain, without extra leaves.
+    const outputLeaves = leaves(outputs), groupLeaves = leaves(group.nodeIds);
+    return Boolean(outputLeaves && groupLeaves && sameMembers(outputLeaves, groupLeaves));
   };
   const conditionerRole = (key: string) => /^(?:(?:morphological|allomorphic) )?conditioner$/u.test(normalizeTier2Synonym(key));
   const inputSequence = (index: number) => Object.entries(current.relations![index].values ?? {})
@@ -173,8 +181,41 @@ export const resolveRealizationChanges = (
           return group.nodeIds.includes(id) || Boolean(node && node.children?.length
             && group.nodeIds.some(member => syntaxIds([node]).has(member)));
         })))));
+  const namedAssociations = new Map<number, SurfaceRealization[]>();
+  const literalAssociations = new Map<number, SurfaceRealization[]>();
+  const literalInputGroups = (index: number): SurfaceRealization[] => {
+    if (!literalAssociations.has(index)) {
+      const relation = current.relations![index];
+      const values = Object.values(relation.values ?? {});
+      const anchors = Object.values(relation.anchors ?? {}).flat();
+      // One asserted realization can name several whole-token outputs without
+      // qualified contributor fields. Its complete anchor domain and unique
+      // exact input literals must account for every output together.
+      const qualified = Object.keys(relation.anchors ?? {}).some(key => / contributors?$/u.test(normalizeTier2Synonym(key)))
+        || Object.keys(relation.values ?? {}).some(key => / tokens?$/u.test(normalizeTier2Synonym(key)));
+      const allGroups = current.after?.realizations ?? [];
+      const matched = !qualified && inputTokens && values.length && values.every(value => typeof value === 'string' && value)
+        ? values.map(value => allGroups.filter(group => group.tokenIndices.length === 1
+          && inputTokens[group.tokenIndices[0]] === value
+          && !allGroups.some(other => other !== group && other.tokenIndices.includes(group.tokenIndices[0])))) : [];
+      const outputs = matched.flat();
+      const complete = matched.length === values.length && matched.every(matches => matches.length === 1)
+        && new Set(outputs).size === outputs.length && outputCovers(anchors, {
+          nodeIds: outputs.flatMap(group => group.nodeIds), tokenIndices: outputs.flatMap(group => group.tokenIndices)
+        });
+      literalAssociations.set(index, complete ? outputs : []);
+    }
+    return literalAssociations.get(index)!;
+  };
   const inputAssociationOwns = (index: number, groups: SurfaceRealization[]) => {
-    return pfOwns(index, groups) && exactInputSequence(index, groups);
+    if (pfOwns(index, groups) && exactInputSequence(index, groups)) return true;
+    const relation = current.relations![index];
+    if (malformedClaim(claimsFor(index)) || !isRealizationDescription(relation.relation)
+      || !establishesAssignment(claimsFor(index).evidence)) return false;
+    if (!namedAssociations.has(index)) namedAssociations.set(index, namedInputRealizationGroups(
+      relation, current.after?.realizations ?? [], current.workspaceForest, inputTokens));
+    return groups.length > 0 && groups.every(group => namedAssociations.get(index)!.includes(group)
+      || literalInputGroups(index).includes(group));
   };
   const pronunciationOwns = (index: number, change: Pick<RealizationChange, 'before' | 'after'>) => {
     if (malformedClaim(claimsFor(index)) || change.before.length !== 1 || change.after.length !== 1
@@ -202,44 +243,6 @@ export const resolveRealizationChanges = (
   const malformedClaim = (dispatch: RelationClaimDispatch) => dispatch.claims.some(claim => claim.tier === 3
     && ['registered-signature-incomplete', 'malformed-authored-relation'].includes(claim.reason));
   const pfConcept = (concept: string) => /^(?:pf\.|rewrite\.)/u.test(concept);
-  const receivingHeadRole = (key: string) => /^(?:host head|receiving head|target head|inflectional host|receiving host|target host)$/u
-    .test(normalizeTier2Synonym(key));
-  const receivingHosts = new Map<number, string | undefined>();
-  const retainedReceivingHost = (index: number): string | undefined => {
-    if (receivingHosts.has(index)) return receivingHosts.get(index);
-    receivingHosts.set(index, undefined);
-    const movement = relations[index].movement;
-    if (!movement?.transition || movement.trajectoryKind !== 'head') return;
-    const parentSlot = (nodes: Map<string, SyntaxNode[]>, id: string) => {
-      const slots = [...nodes.values()].flat().flatMap(parent => (parent.children ?? [])
-        .flatMap((child, position) => child.id === id ? [{ parent, position }] : []));
-      return slots.length === 1 && exactNode(nodes, slots[0].parent.id) ? slots[0] : undefined;
-    };
-    const landing = exactNode(newNodes, movement.targetNodeId), shellSlot = parentSlot(newNodes, movement.targetNodeId);
-    const shell = shellSlot?.parent;
-    if (!landing || !shell || shell.children?.length !== 2 || oldNodes.has(shell.id)
-      || readCategoryLabel(shell.label)?.kind !== 'head' || readCategoryLabel(landing.label)?.kind !== 'head') return;
-    const host = shell.children.find(node => node.id !== landing.id);
-    const oldHost = host && exactNode(oldNodes, host.id);
-    if (!host || !oldHost || exactNode(newNodes, host.id) !== host
-      || readCategoryLabel(host.label)?.kind !== 'head'
-      || readCategoryLabel(host.label)?.head !== readCategoryLabel(shell.label)?.head
-      || !movement.context?.some(context => [shell.id, host.id].includes(context.nodeId)
-        && ['head-host', 'head-complex', 'head-landing'].includes(context.kind))) return;
-    const { word: _beforeWord, ...beforeContent } = oldHost;
-    const { word: _afterWord, ...afterContent } = host;
-    if (JSON.stringify(beforeContent) !== JSON.stringify(afterContent)) return;
-    const beforeSlot = parentSlot(oldNodes, host.id), afterSlot = parentSlot(newNodes, shell.id);
-    if (!beforeSlot || !afterSlot || beforeSlot.parent.id !== afterSlot.parent.id
-      || beforeSlot.parent.label !== afterSlot.parent.label || beforeSlot.position !== afterSlot.position
-      || JSON.stringify(beforeSlot.parent.children!.map(node => node.id))
-        !== JSON.stringify(afterSlot.parent.children!.map(node => node.id === shell.id ? host.id : node.id))) return;
-    const { children: _beforeChildren, ...beforeParent } = beforeSlot.parent;
-    const { children: _afterChildren, ...afterParent } = afterSlot.parent;
-    if (JSON.stringify(beforeParent) !== JSON.stringify(afterParent)) return;
-    receivingHosts.set(index, host.id);
-    return host.id;
-  };
   const rewriteDomainContext = (index: number, id: string): boolean => {
     const dispatch = claimsFor(index), outputs = pfOutputs(dispatch);
     if (!outputs.length || outputs.some(output => output.kind !== 'pf.rewrite')) return false;
@@ -293,6 +296,25 @@ export const resolveRealizationChanges = (
       !group.nodeIds.some(id => scope.nodeIds.includes(id))
       && !group.tokenIndices.some(position => scope.tokenIndices.includes(position))));
   };
+  const disjointLowerSuppression = (index: number, value: unknown, change: Pick<RealizationChange, 'before' | 'after'>) => {
+    if (typeof value !== 'string') return false;
+    const assertion = /^lower (?:(complex )?(head|v)|copy|occurrence) suppressed$/u.exec(normalizeTier2Synonym(value));
+    const movement = relations[index].movement;
+    if (!assertion || !movement?.transition || assertion[2] && movement.trajectoryKind !== 'head') return false;
+    const lower = exactNode(newNodes, movement.sourceNodeId), prior = exactNode(oldNodes, movement.priorSourceNodeId);
+    if (!lower?.silent || !prior || assertion[1] && !lower.children?.length) return false;
+    const lowerDomain = syntaxIds([lower]), priorDomain = syntaxIds([prior]);
+    if ([...lowerDomain].some(id => !exactNode(newNodes, id))
+      || [...priorDomain].some(id => !exactNode(oldNodes, id))) return false;
+    // This complete assertion concerns only the authored silent lower copy.
+    // It cannot be context when the association replaces that copy or includes
+    // its enclosing domain. The prose stays in its neutral relation claim.
+    return ([['before', oldNodes, priorDomain], ['after', newNodes, lowerDomain]] as const)
+      .every(([side, nodes, domain]) => change[side].every(group => group.nodeIds.every(id => {
+        const contributor = exactNode(nodes, id);
+        return contributor && [...syntaxIds([contributor])].every(member => !domain.has(member));
+      })));
+  };
   const unsupportedPFAssertion = (index: number, change: Pick<RealizationChange, 'before' | 'after'>) => {
     const dispatch = claimsFor(index), relation = current.relations![index];
     if (malformedClaim(dispatch) || inputSequence(index).length && !exactInputSequence(index, change.after)) return true;
@@ -300,6 +322,8 @@ export const resolveRealizationChanges = (
     if (!pfOutputs(dispatch).length && (isRealizationDescription(relation.relation)
       || relationLabelClauses(relation.relation).some(clause => /\bpronunciation\b/u.test(clause)))) return true;
     return dispatch.evidenceCoverage.fields.some(field => {
+      if (field.field === 'values' && normalizeTier2Synonym(field.key) === 'pronunciation'
+        && disjointLowerSuppression(index, relation.values?.[field.key], change)) return false;
       if (field.field === 'values' && normalizeTier2Synonym(field.key) === 'input association'
         && disjointLiteralAssociation(index, change)) return false;
       const explicit = field.concepts.some(pfConcept) || field.field === 'values'
@@ -310,25 +334,19 @@ export const resolveRealizationChanges = (
       return explicit && (field.unrecoveredItemIndices.length || field.unrecoveredEmptyField);
     });
   };
-  const participantsRecovered = (index: number, change: Pick<RealizationChange, 'before' | 'after'>,
-    allows: (claim: string) => boolean) => {
+  const rewriteParticipantsRecovered = (index: number, change: Pick<RealizationChange, 'before' | 'after'>) => {
     const relation = current.relations![index];
-    const movement = relations[index].movement;
     const affected = new Set([...change.before, ...change.after].flatMap(group => group.nodeIds));
     return claimsFor(index).evidenceCoverage.fields.every(field => {
       if (field.field === 'values') return true;
       const ids = [relation[field.field]?.[field.key] ?? []].flat();
       return ids.every((id, itemIndex) => !affected.has(id)
-        || field.recognizedBy.some(owner => allows(owner.claim) && owner.itemIndices.includes(itemIndex))
-        || allows('movement.path') && movement && (field.field === 'anchors'
-          ? movement.context?.some(context => context.key === field.key && context.nodeId === id)
-          : movement.priorContextKeys?.includes(field.key))
-        || allows('movement.path') && receivingHeadRole(field.key) && id === retainedReceivingHost(index));
+        || field.recognizedBy.some(owner => owner.claim === 'pf.rewrite' && owner.itemIndices.includes(itemIndex)));
     });
   };
   const spellingRewriteOnly = (index: number, change: Pick<RealizationChange, 'before' | 'after'>) => {
     const dispatch = claimsFor(index), outputs = pfOutputs(dispatch);
-    return !unsupportedPFAssertion(index, change) && participantsRecovered(index, change, claim => claim === 'pf.rewrite')
+    return !unsupportedPFAssertion(index, change) && rewriteParticipantsRecovered(index, change)
       && outputs.some(output => output.kind === 'pf.rewrite' && change.after.every(group => outputCovers(output.ids, group)))
       && !outputs.some(output => output.kind !== 'pf.rewrite' && change.after.some(group => outputCovers(output.ids, group)));
   };
@@ -344,10 +362,9 @@ export const resolveRealizationChanges = (
         ![ids].flat().some(id => affected.has(id))
         || conditionerRole(key));
     }
-    // Ownership follows recovered participant roles. Neutral prose remains in
-    // its residual claim; it does not turn a Case or movement claim into PF.
-    return dispatch.claims.some(claim => claim.tier !== 3)
-      && participantsRecovered(index, change, claim => !claim.startsWith('pf.'));
+    // Shared participants alone are weaker than a complete PF/pronunciation
+    // owner, regardless of drawing tier. The neutral claim keeps its moment.
+    return true;
   };
   const movementCovers = (change: Pick<RealizationChange, 'before' | 'after'>, movement: typeof relations[number]['movement']) => {
     if (!movement?.transition || !change.before.length || change.before.length !== change.after.length) return false;
@@ -380,7 +397,7 @@ export const resolveRealizationChanges = (
   return changes.map(change => {
     let directCandidates = relations.flatMap((relation, index) => {
       const currentCovered = change.after.every(group => group.nodeIds.every(id =>
-        exactNode(newNodes, id) && relation.current.has(id)));
+        exactNode(newNodes, id) && relation.current.has(id))) || inputAssociationOwns(index, change.after);
       const previousCovered = change.before.every(group => group.nodeIds.every(id =>
         exactNode(oldNodes, id) && (relation.prior.has(id) || (exactNode(newNodes, id) && relation.current.has(id)))));
       return currentCovered && previousCovered ? [index] : [];

@@ -59,7 +59,7 @@ test('a feature collection keeps its own host reservation before its goal appear
   }
 });
 
-test('Icelandic transferred Case waits for tI, then reserves clear arrows through the final frame', () => {
+test('Icelandic Case stays at the old I until transfer; the later claim waits for tI', () => {
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/case-source-transfer.json', import.meta.url)));
   const stages = record.derivationStages;
   const prepared = prepareReplay({ sentence: record.sentence, inputTokens: record.inputTokens,
@@ -71,8 +71,19 @@ test('Icelandic transferred Case waits for tI, then reserves clear arrows throug
   const indices = plan.frames[2].items.flatMap((item, index) =>
     item.pathStyle === 'case-assignment' && item.fromNodeId === 'tI' ? [index] : []);
   assert.equal(indices.length, 2);
-  for (const frame of [26, 27, 28]) for (const index of indices) {
-    assert(!selectReplayPlaqueLayout(schedule, 2, frame - 1).has(index), `frame ${frame} allocated unavailable tI`);
+  const carried = indices.find(index => plan.frames[2].items[index].relationRef.stageIndex === 1);
+  const later = indices.find(index => plan.frames[2].items[index].relationRef.stageIndex === 2);
+  assert.notEqual(carried, undefined);
+  assert.notEqual(later, undefined);
+  for (const frame of [26, 27, 28]) {
+    const layout = selectReplayPlaqueLayout(schedule, 2, frame - 1);
+    const box = layout.get(carried);
+    assert.equal(box?.attachmentNodeId, 'iComplex2', `frame ${frame}: the earlier Case remains at its displayed I`);
+    assert(!layout.has(later), `frame ${frame}: the later claim cannot allocate unavailable tI`);
+    const scene = space.scenes.find(scene => scene.stepIndices.includes(frame - 1));
+    const anchor = scene.nodes.find(node => node.data.id === 'iComplex2');
+    assert(anchor);
+    assert(caseAssignmentClears(anchor, box, scene.obstacles), `frame ${frame}: the retained Case curve stays clear`);
   }
   for (const frame of [29, 30, 31, 36]) {
     const scene = space.scenes.find(scene => scene.stepIndices.includes(frame - 1));

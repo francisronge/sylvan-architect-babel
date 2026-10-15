@@ -1,6 +1,6 @@
 import type { SyntaxNode } from '../types.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
-import { treeLabelRunKey, type PreparedTreeLabelRuns, type TreeLabelRuns, type TreeLabelMeasure } from './treeLabelRuns.ts';
+import { treeLabelRunKey, type PreparedTreeLabelRuns, type TreeLabelMeasure, type TreeLabelRuns } from './treeLabelRuns.ts';
+import type { PlaybackStep } from './types.ts';
 
 type Material = {
   assignment: Array<[number, Array<[string, string[]]>]>;

@@ -1,0 +1,295 @@
+{
+  "sentence": "Jana čte nový časopis.",
+  "derivationStages": [
+    {
+      "statement": "The object occupies its preceding position.",
+      "stageRecord": "",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a2-verb-high",
+                      "label": "V°",
+                      "lineageId": "a2-read-V",
+                      "tokenIndex": 1,
+                      "word": "čte"
+                    },
+                    {
+                      "children": [],
+                      "id": "a2-inflection",
+                      "label": "I° [present, indicative, third-person singular]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "a2-complex-i",
+                  "label": "I°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a2-adjective",
+                                      "label": "A°",
+                                      "tokenIndex": 2,
+                                      "word": "nový"
+                                    }
+                                  ],
+                                  "id": "a2-abar",
+                                  "label": "A′"
+                                }
+                              ],
+                              "id": "a2-ap",
+                              "label": "AP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a2-magazine",
+                                  "label": "N°",
+                                  "tokenIndex": 3,
+                                  "word": "časopis"
+                                }
+                              ],
+                              "id": "a2-subject-inner",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "a2-subject-outer",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "a2-subject",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a2-verb-low",
+                          "label": "V° trace",
+                          "lineageId": "a2-read-V",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a2-Jan",
+                                  "label": "N°",
+                                  "tokenIndex": 0,
+                                  "word": "Jana"
+                                }
+                              ],
+                              "id": "a2-object-nbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "a2-object-low",
+                          "label": "NP",
+                          "lineageId": "a2-Jan-NP"
+                        }
+                      ],
+                      "id": "a2-vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "a2-vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "a2-ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "a2-ip",
+          "label": "IP"
+        }
+      ],
+      "relations": []
+    },
+    {
+      "statement": "Front the object.",
+      "stageRecord": "",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a2-Jan",
+                      "label": "N°",
+                      "tokenIndex": 0,
+                      "word": "Jana"
+                    }
+                  ],
+                  "id": "a2-object-nbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "a2-object-high",
+              "label": "NP",
+              "lineageId": "a2-Jan-NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "a2-c",
+                  "label": "C° [declarative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a2-verb-high",
+                              "label": "V°",
+                              "lineageId": "a2-read-V",
+                              "tokenIndex": 1,
+                              "word": "čte"
+                            },
+                            {
+                              "children": [],
+                              "id": "a2-inflection",
+                              "label": "I° [present, indicative, third-person singular]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "a2-complex-i",
+                          "label": "I°"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "a2-adjective",
+                                              "label": "A°",
+                                              "tokenIndex": 2,
+                                              "word": "nový"
+                                            }
+                                          ],
+                                          "id": "a2-abar",
+                                          "label": "A′"
+                                        }
+                                      ],
+                                      "id": "a2-ap",
+                                      "label": "AP"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "a2-magazine",
+                                          "label": "N°",
+                                          "tokenIndex": 3,
+                                          "word": "časopis"
+                                        }
+                                      ],
+                                      "id": "a2-subject-inner",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "a2-subject-outer",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "a2-subject",
+                              "label": "NP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a2-verb-low",
+                                  "label": "V° trace",
+                                  "lineageId": "a2-read-V",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [],
+                                  "id": "a2-object-low",
+                                  "label": "NP trace",
+                                  "lineageId": "a2-Jan-NP",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "a2-vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "a2-vp",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "a2-ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "a2-ip",
+                  "label": "IP"
+                }
+              ],
+              "id": "a2-cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "a2-cp",
+          "label": "CP"
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "frontedObject": "a2-object-high",
+            "landingClause": "a2-cp",
+            "lowerTrace": "a2-object-low",
+            "raisedVerbalHead": "a2-verb-high",
+            "verbalGovernor": "a2-verb-low"
+          },
+          "priorAnchors": {
+            "movementSource": "a2-object-low"
+          },
+          "relation": "Object A′-fronting",
+          "values": {
+            "discourseCompatibility": "topic or contrastive object",
+            "landingSite": "Spec-CP",
+            "retainedCase": "accusative",
+            "retainedThetaRole": "internal read-target argument",
+            "traceLicensing": "antecedent c-command and proper government by the verbal chain"
+          }
+        }
+      ]
+    }
+  ]
+}

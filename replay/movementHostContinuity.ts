@@ -1,8 +1,8 @@
-import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
+import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
 import { getNodeId } from './displayIdentity.ts';
+import type { PlaybackStep } from './types.ts';
 import { visibleComponentNodes } from './visibleComponent.ts';
 
 type Node = d3.HierarchyPointNode<SyntaxNode>;

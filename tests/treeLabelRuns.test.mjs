@@ -1,8 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as d3 from 'd3';
-import {stagedTerminalText,identityLabelState,thetaLabelState,treeLabelRunKey,identityLabelTarget,thetaLabelTarget,treeLabelRunsForStep} from '../replay/treeLabelRuns.ts';
-import {applyVizIds,getNodeId} from '../replay/replayCompiler.ts';
+import {
+  stagedTerminalText,
+  identityLabelState,
+  thetaLabelState,
+  treeLabelRunKey,
+  identityLabelTarget,
+  thetaLabelTarget,
+  treeLabelRunsForStep
+} from '../replay/treeLabelRuns.ts';
+import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 const context=(trace={},operator={},aliases={})=>({traceIndices:new Map(Object.entries(trace)),operatorIndices:new Map(Object.entries(operator)),rawTraceAliases:new Map(Object.entries(aliases))});
 const leaf=(word,extras={})=>{const root=d3.hierarchy({id:'w',label:'N',word,...extras});applyVizIds(root);return root;};
 

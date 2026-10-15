@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { compileRelationRenderPlan, visiblePlanFrameItems, planItemRelationRefs } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
 const forest = [{ id: 'tp', label: 'TP', children: [
   { id: 'subject', label: 'DP', word: 'they', tokenIndex: 0 },
   { id: 'head', label: 'T', word: 'read', tokenIndex: 1 }

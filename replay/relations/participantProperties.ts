@@ -1,10 +1,9 @@
-import { normalizeTier2Synonym, isRealizationDescription, relationLabelClauses } from './tier2Synonyms.ts';
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
-import { hasIndependentCaseEndpoints } from './featureEvidence.ts';
-import { establishesAssignment } from './assignmentContinuity.ts';
 import { categoryLabel } from '../categoryLabel.ts';
 import { participantProperties, scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
-import { relationAssertionFailure } from './outcomeResolver.ts';
+import { hasIndependentCaseEndpoints } from './featureEvidence.ts';
+import { establishesAssignment, relationAssertionFailure } from './outcomeResolver.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import { isRealizationDescription, normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
 
 /** A Case assertion can pair nominal properties under one exact authored key.
  * The pairing says nothing about an assigning head or a directed dependency. */

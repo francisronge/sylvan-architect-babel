@@ -2,9 +2,74 @@ import { inlineWorkerPlugin } from '../../scripts/inlineWorkerPlugin.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { build } from 'esbuild';
-import { chromium } from 'playwright';
+import { chromium, webkit } from 'playwright';
 import { buildQualificationReviewRuntime } from '../../scripts/buildContractQualificationReviewRuntime.mjs';
 import { prepareReplay } from '../../replay/prepareReplay.ts';
+import { persistentCaseMovement } from '../helpers/persistentCaseMovement.mjs';
+import { waitForReplayPaint } from '../../scripts/captureReadiness.mjs';
+
+test('Case arrow and plaque persist through construction before head movement in both engines', { timeout: 180_000 }, async () => {
+  const runtime = await buildQualificationReviewRuntime({ entrySource: `
+    import React from 'react';import {flushSync} from 'react-dom';import {createRoot} from 'react-dom/client';
+    import TreeVisualizer from './components/AsyncTreeVisualizer';import {buildDerivationCanvasData} from './replay/replayCanvas.ts';
+    import './styles.css';const root=createRoot(document.getElementById('root'));
+    window.mount=record=>flushSync(()=>root.render(<TreeVisualizer key={String(record.exact)}
+      data={buildDerivationCanvasData(record.derivationStages.at(-1).workspaceForest)} sentence={record.sentence}
+      derivationStages={record.derivationStages} animated autoPlay={false}/>));window.mount(window.record);` });
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    try {
+      for (const width of [1200, 390]) {
+        const page = await browser.newPage({ viewport: { width, height: 900 } }), errors = [];
+        page.on('pageerror', error => errors.push(String(error)));
+        try {
+          for (const exact of [false, true]) {
+            const input = { ...persistentCaseMovement(exact), exact };
+            const steps = prepareReplay({ ...input, includePlayback: true }).playbackSteps;
+            await page.setContent(`<style>${runtime.css}html,body,#root{height:100%;margin:0}</style><div id="root"></div>
+              <script>window.record=${JSON.stringify(input)}</script><script>${runtime.js}</script>`);
+            await waitForReplayPaint(page, 0);
+            const movement = steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1);
+            const first = steps.findIndex(step => step.replayFrameIndex === 1);
+            for (const index of [...Array.from({ length: movement - first + 2 }, (_, i) => first - 1 + i),
+              steps.length - 1, movement - 1]) {
+              await page.getByRole('slider', { name: 'Replay frame', exact: true }).fill(String(index));
+              await waitForReplayPaint(page, index);
+              const state = await page.evaluate(() => {
+                const owned = element => {
+                  for (let current = element; current; current = current.parentElement)
+                    if ((current.dataset.vrOwnerRefs ?? '').split(/\s+/).includes('0:0')) return true;
+                  return false;
+                };
+                const paths = [...document.querySelectorAll('.babel-case-assignment-path')].filter(owned);
+                const rows = [...document.querySelectorAll('.babel-feature-row')].filter(owned);
+                const grids = [...document.querySelectorAll('.babel-theta-grid-shell')];
+                const painted = element => {
+                  for (let current = element; current; current = current.parentElement) {
+                    const style = getComputedStyle(current);
+                    if (style.display === 'none' || Number(style.opacity) === 0) return false;
+                  }
+                  return true;
+                };
+                return { paths: paths.length, rows: rows.length, grids: grids.length,
+                  painted: [...paths, ...rows, ...grids].every(painted),
+                  bearer: rows[0]?.dataset.featureAnchor, text: rows[0]?.textContent,
+                  arrow: paths[0]?.getAttribute('marker-end') };
+              });
+              assert.equal(state.paths, 1, `frame ${index + 1}: the established arrow exists`);
+              assert.equal(state.rows, 1, `frame ${index + 1}: the established plaque exists`);
+              assert.equal(state.grids, 1, `frame ${index + 1}: the earlier theta grid also persists`);
+              assert(state.painted && state.arrow, `frame ${index + 1}: both pieces are painted`);
+              assert.equal(state.bearer, 'object');
+              assert(state.text.includes('objective'));
+            }
+          }
+          assert.deepEqual(errors, []);
+        } finally { await page.close(); }
+      }
+    } finally { await browser.close(); }
+  }
+});
 
 test('standalone and Case-composed feature plaques keep row attachment through Replay, zoom, hover and mobile', async () => {
   const tree = { id: 'root', label: 'PP', children: [{ id: 'p', label: 'P', word: 'with' }, { id: 'k', label: 'KP', children: [
@@ -43,7 +108,7 @@ test('standalone and Case-composed feature plaques keep row attachment through R
       if (await page.getByRole('button', { name: 'Pause', exact: true }).count()) await page.getByRole('button', { name: 'Pause', exact: true }).click();
       await page.evaluate(() => document.fonts.ready);
       const go = async index => { await page.locator('input[type=range]').fill(String(index));
-        await page.waitForFunction(i => document.querySelector('svg[data-babel-rendered-step]')?.getAttribute('data-babel-rendered-step') === String(i), index); };
+        await waitForReplayPaint(page, index); };
       let earlierShell;
       if (samePair) {
         await go(steps.findIndex(step => step.replayRelationIdentity?.relationIndex === 0));
@@ -96,9 +161,17 @@ test('standalone and Case-composed feature plaques keep row attachment through R
             'the painted collection must use the shallow Orchard D6 curve');
           assert.equal(path.owner, `0:${agreementIndex}`);
           assert.equal(path.marker, null, 'collection has no assignment arrowhead');
-          assert(Math.abs(path.start.x - state.rect.x + 12) < 1 || Math.abs(path.start.x - state.rect.x - state.rect.width - 12) < 1);
-          assert(path.start.y > state.rect.y && path.start.y < state.rect.y + state.rect.height);
+          const side = (Math.abs(path.start.x - state.rect.x + 12) < 1
+            || Math.abs(path.start.x - state.rect.x - state.rect.width - 12) < 1)
+            && path.start.y > state.rect.y && path.start.y < state.rect.y + state.rect.height;
+          const vertical = (Math.abs(path.start.y - state.rect.y + 12) < 1
+            || Math.abs(path.start.y - state.rect.y - state.rect.height - 12) < 1)
+            && path.start.x >= state.rect.x + 23 && path.start.x <= state.rect.x + state.rect.width - 23;
+          assert(side || vertical, JSON.stringify({ variant, width, path, plaque: state.rect }));
         }
+        const [a, b] = state.paths.map(path => path.start);
+        if (Math.abs(a.y - b.y) < 1) assert(Math.abs(a.x - b.x) >= 23,
+          JSON.stringify({ variant, width, reason: 'vertical collectors keep separate reserved ports', state }));
         const treeTransform = await page.locator('svg > g').first().getAttribute('transform');
         await page.mouse.move(width / 2, 350); await page.mouse.wheel(0, -160);
         await page.waitForFunction(previous => document.querySelector('svg > g')?.getAttribute('transform') !== previous, treeTransform);

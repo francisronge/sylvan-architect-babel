@@ -59,7 +59,7 @@ for (const direction of ['ltr', 'rtl']) for (const relationName of ['PFRealizati
     const {steps, coordinates} = shorteningScenario(relationName, connected);
     const savedSteps = JSON.stringify(steps), savedCoordinates = structuredClone(coordinates);
     const size = [2200, 1000];
-    const result = reserveWorkspaceAttachments(steps, new Map([[0, size]]), direction, () => coordinates);
+    const result = reserveWorkspaceAttachments({ steps, sizes: new Map([[0, size]]), direction, coordinatesForStage: () => coordinates });
     const point = (frame, id, reservations = result) => {
       const step = steps[frame], root = d3.hierarchy(step.replayCanvasData); applyVizIds(root);
       return layoutSyntaxTree(root, size, direction, reservations.get(step.replayCanvasData), new Set(step.replayVisibleNodeIds))

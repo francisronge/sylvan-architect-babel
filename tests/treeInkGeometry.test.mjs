@@ -5,7 +5,7 @@ import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { collectTreeInkMeasurements, treeInkObstacles, prepareTreeInkSubtrees } from '../replay/treeInkGeometry.ts';
 import { visibleComponentNodes } from '../replay/visibleComponent.ts';
 import { plaqueTreeObstacles } from '../replay/relations/plaquePlacement.ts';
-import { REPLAY_GENERATED_TERMINAL_GLYPHS, formatIndexedSurfaceForDisplayValue } from '../replay/replayCompiler.ts';
+import { REPLAY_GENERATED_TERMINAL_GLYPHS, formatIndexedSurfaceForDisplayValue } from '../replay/replaySurfaceNotation.ts';
 
 const widths = text => [...text].length * 20;
 const metrics = (text, style) => ({ width: widths(text), left: 0, right: widths(text),

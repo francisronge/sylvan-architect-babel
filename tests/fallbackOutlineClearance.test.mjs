@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { bindRelationPlanFrame, fitFallbackGeometry } from '../replay/relations/geometryBinding.ts';
+import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { fitFallbackGeometry } from '../replay/relations/fallbackGeometry.ts';
 import { fongEdgeOutlineRect } from '../replay/relations/markGeometry.ts';
 
 test('neutral labels clear their phase-edge outline at Fit and zoom without changing other witnesses', () => {

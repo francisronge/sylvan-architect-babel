@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
 
-import { __test__, ParseApiError } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { parseModelJsonDetailed } from '../server/babelParser/modelJson.js';
+import { ParseApiError } from '../server/babelParser/error.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { createTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
 
@@ -24,15 +26,14 @@ const expectedDiagnostic = ({
 
 const createLocalRoutes = (rawText) => createParseRoutes({
   ParseApiError,
-  normalizeParseBundle: __test__.normalizeParseBundle,
-  parseModelJson: __test__.parseModelJson,
-  parseModelJsonDetailed: __test__.parseModelJsonDetailed,
+  normalizeParseBundle: normalizeParseBundle,
+  parseModelJsonDetailed: parseModelJsonDetailed,
   generateLocal: async () => rawText
 });
 
 test('reports appended EOF closers with their exact byte edit', () => {
   const candidate = '{"a":[1,2';
-  const parsed = __test__.parseModelJsonDetailed(candidate);
+  const parsed = parseModelJsonDetailed(candidate);
 
   assert.deepEqual(parsed.payload, { a: [1, 2] });
   assert.equal(parsed.jsonDiagnostic.kind, 'json-syntax');
@@ -48,7 +49,7 @@ test('reports appended EOF closers with their exact byte edit', () => {
 test('original JSON error offsets account for BOM, whitespace and multibyte text', () => {
   const candidate = '{"é":[1,2}';
   const raw = `\uFEFF\n  ${candidate}\n`;
-  const parsed = __test__.parseModelJsonDetailed(raw);
+  const parsed = parseModelJsonDetailed(raw);
   assert.equal(parsed.jsonDiagnostic.candidateByteOffset, Buffer.byteLength(candidate.slice(0, -1)));
   assert.equal(parsed.jsonDiagnostic.originalByteOffset, Buffer.byteLength(raw.slice(0, raw.indexOf('}'))));
   assert.match(parsed.jsonDiagnostic.message, /JSON/);
@@ -61,7 +62,7 @@ test('delimiter repairs preserve node-reference strings, escapes and literal del
     workspaceForest: [{ id: 'n]é', label: 'N', children: [] }, { refId: 'quoted"id' }] }] };
   const json = JSON.stringify(payload);
   for (const candidate of [json.slice(0, -2), `${json}}`, json.slice(0, -2) + '}']) {
-    const parsed = __test__.parseModelJsonDetailed(candidate);
+    const parsed = parseModelJsonDetailed(candidate);
     assert.deepEqual(parsed.payload, payload);
     assert.ok(parsed.repairDiagnostics.length > 0);
   }
@@ -69,7 +70,7 @@ test('delimiter repairs preserve node-reference strings, escapes and literal del
 
 test('reports closers inserted before a mismatched closer at a UTF-8 byte offset', () => {
   const candidate = '{"é":[1,2}';
-  const parsed = __test__.parseModelJsonDetailed(candidate);
+  const parsed = parseModelJsonDetailed(candidate);
 
   assert.deepEqual(parsed.payload, { é: [1, 2] });
   assert.deepEqual(parsed.repairDiagnostics, [expectedDiagnostic({
@@ -81,7 +82,7 @@ test('reports closers inserted before a mismatched closer at a UTF-8 byte offset
 
 test('reports an unmatched closer removal with its exact byte edit', () => {
   const candidate = '{"a":1}}';
-  const parsed = __test__.parseModelJsonDetailed(candidate);
+  const parsed = parseModelJsonDetailed(candidate);
 
   assert.deepEqual(parsed.payload, { a: 1 });
   assert.deepEqual(parsed.repairDiagnostics, [expectedDiagnostic({
@@ -92,7 +93,7 @@ test('reports an unmatched closer removal with its exact byte edit', () => {
 });
 
 test('does not treat delimiters inside strings as damage', () => {
-  const parsed = __test__.parseModelJsonDetailed('{"text":"[}"}');
+  const parsed = parseModelJsonDetailed('{"text":"[}"}');
 
   assert.deepEqual(parsed.payload, { text: '[}' });
   assert.deepEqual(parsed.integrityFlags, []);
@@ -101,7 +102,7 @@ test('does not treat delimiters inside strings as damage', () => {
 
 test('retains attempted edits when delimiter repair cannot produce valid JSON', () => {
   assert.throws(
-    () => __test__.parseModelJsonDetailed('{"text":"unterminated}'),
+    () => parseModelJsonDetailed('{"text":"unterminated}'),
     (error) => {
       assert.equal(error instanceof ParseApiError, true);
       assert.equal(error.code, 'BAD_MODEL_RESPONSE');
@@ -120,7 +121,7 @@ test('retains attempted edits when delimiter repair cannot produce valid JSON', 
 
 test('retains successful delimiter edits when the repaired root is not an object', () => {
   assert.throws(
-    () => __test__.parseModelJsonDetailed('[1,2'),
+    () => parseModelJsonDetailed('[1,2'),
     (error) => {
       assert.equal(error instanceof ParseApiError, true);
       assert.equal(error.details.jsonDiagnostic.kind, 'json-root-type');
@@ -139,8 +140,8 @@ test('retains successful delimiter edits when the repaired root is not an object
 test('successful repair diagnostics persist through normalization and Tree Bank snapshots', async () => {
   const fixture = JSON.parse(await readFile(new URL('mia-laughed.xbar.json', fixturesDirectory), 'utf8'));
   const completePayload = JSON.stringify(fixture.payload);
-  const repaired = __test__.parseModelJsonDetailed(completePayload.slice(0, -1));
-  const bundle = __test__.normalizeParseBundle(
+  const repaired = parseModelJsonDetailed(completePayload.slice(0, -1));
+  const bundle = normalizeParseBundle(
     repaired.payload,
     fixture.framework,
     fixture.sentence,
@@ -193,7 +194,7 @@ test('committed raw fixtures activate no delimiter repair', async () => {
 
   for (const fixtureName of fixtureNames) {
     const rawFixture = await readFile(new URL(fixtureName, fixturesDirectory), 'utf8');
-    const parsed = __test__.parseModelJsonDetailed(rawFixture);
+    const parsed = parseModelJsonDetailed(rawFixture);
     assert.deepEqual(parsed.repairDiagnostics, [], fixtureName);
     assert.equal(parsed.integrityFlags.includes('json_delimiter_damage_repaired'), false, fixtureName);
   }

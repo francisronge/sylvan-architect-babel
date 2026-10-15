@@ -54,8 +54,7 @@ test('complete rigid translation at an owned merge preserves the accepted plan b
     [{}, { operation: 'ExternalMerge', targetNodeId: 'wrapper', sourceNodeIds: ['sub', 'r'] }]);
   assert.deepEqual(detect(input), []);
   const forbidden = () => { throw Error('valid plan must not measure'); };
-  const result = planCoherentWorkspace(input.scenes, input.baseline, 'ltr', input.render,
-    { measureCategoryText: forbidden, measureTreeInk: forbidden, measureTreeLabel: forbidden });
+  const result = planCoherentWorkspace({ scenes: input.scenes, baseline: input.baseline, direction: 'ltr', render: input.render, metrics: { measureCategoryText: forbidden, measureTreeInk: forbidden, measureTreeLabel: forbidden } });
   assert.equal(result.coordinates, input.baseline); assert.equal(result.diagnostic.status, 'unchanged');
 });
 
@@ -92,7 +91,7 @@ test('an unrelated current movement grants no pose exemption to the detected bra
       { sub: [700, 0], a: [250, 300], b: [1150, 300], source: [2000, 900], landing: [3000, 900] }],
     [{}, { replayKind: 'relation', replayRelationIdentity: { stageIndex: 1, relationIndex: 0 },
       replayRelationLinks: [{ authoredRelationKey: '1:0', renderFamily: 'trajectory', priorSourceNodeId: 'source', witnessNodeId: 'source', targetNodeId: 'landing' }] }]);
-  const result = planCoherentWorkspace(input.scenes, input.baseline, 'ltr', input.render);
+  const result = planCoherentWorkspace({ scenes: input.scenes, baseline: input.baseline, direction: 'ltr', render: input.render });
   assert.equal(result.diagnostic.status, 'resolved', JSON.stringify(result.diagnostic));
   assert.ok(result.diagnostic.reflows.some(seed => seed.kind === 'unchanged-subtree-shape'));
   const points = input.scenes.map(scene => result.coordinates.get(scene.canvas));
@@ -149,7 +148,7 @@ test('an exact Project translation returns the existing plan by identity', () =>
     [{}, { operation: 'Project', targetNodeId: 'head', sourceNodeIds: ['word'] }]);
   assert.deepEqual(workspaceContinuityReflows(input.scenes, input.baseline, input.render), []);
   const forbidden = () => { throw Error('valid Project must not measure'); };
-  const result = planCoherentWorkspace(input.scenes, input.baseline, 'ltr', input.render, { measureCategoryText: forbidden });
+  const result = planCoherentWorkspace({ scenes: input.scenes, baseline: input.baseline, direction: 'ltr', render: input.render, metrics: { measureCategoryText: forbidden } });
   assert.equal(result.coordinates, input.baseline); assert.equal(result.diagnostic.status, 'unchanged');
 });
 
@@ -159,7 +158,7 @@ test('same-canvas stable moments retain object identity and deterministic zero-w
   const forbidden = () => { throw Error('unchanged canvas must not measure'); };
   for (let repeat = 0; repeat < 3; repeat++) {
     assert.deepEqual(workspaceContinuityReflows(input.scenes, input.baseline, input.render), []);
-    const result = planCoherentWorkspace(input.scenes, input.baseline, 'ltr', input.render, { measureCategoryText: forbidden });
+    const result = planCoherentWorkspace({ scenes: input.scenes, baseline: input.baseline, direction: 'ltr', render: input.render, metrics: { measureCategoryText: forbidden } });
     assert.equal(result.coordinates, input.baseline);
     assert.deepEqual(result.diagnostic, { status: 'unchanged', reflows: [], evaluations: 0, corrections: 0 });
   }

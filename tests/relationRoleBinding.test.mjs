@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { dispatchRelation, productionRelationRegistry } from '../replay/relationDispatch/index.js';
+import { dispatchRelation } from '../replay/relationDispatch/relationDispatch.js';
+import { productionRelationRegistry } from '../replay/relationDispatch/productionRegistry.js';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { getFrameRelations } from '../replay/replayCompiler.ts';
+import { getFrameRelations } from '../replay/frameRelations.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 
 const forest = [{ id: 'domain', label: 'TP', children: ['a', 'b', 'c'].map(id => ({ id, label: 'D', word: id })) }];

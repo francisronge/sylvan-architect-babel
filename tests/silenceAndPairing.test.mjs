@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { __test__, ParseApiError } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { collectOvertTerminalNodes } from '../server/babelParser/syntaxTree.js';
+import { inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
+import { ParseApiError } from '../server/babelParser/error.js';
 import { collectPronouncedLeaves } from '../server/babelParser/nodePronunciation.js';
-import { collectPronouncedLeafNodeIdsInOrder } from '../replay/replayCompiler.ts';
+import { collectPronouncedLeafNodeIdsInOrder } from '../replay/syntaxForest.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 
@@ -19,7 +22,7 @@ const stage = (workspaceForest, relations = []) => ({
   relations,
   workspaceForest
 });
-const normalize = (workspaceForest, sentence) => __test__.normalizeParseBundle(
+const normalize = (workspaceForest, sentence) => normalizeParseBundle(
   { derivationStages: [stage(workspaceForest)] }, 'xbar', sentence, 'claude', true, { payloadIntegrityFlags: [] }
 );
 
@@ -32,7 +35,7 @@ test('a silent phrase leaves every terminal beneath it unpronounced on both laye
     ])
   ]);
   const bundle = normalize([tree], 'Which book buy');
-  const overt = __test__.collectOvertTerminalNodes(bundle.analyses[0].tree).map((item) => item.id);
+  const overt = collectOvertTerminalNodes(bundle.analyses[0].tree).map((item) => item.id);
   assert.deepEqual(overt, ['d_high', 'n_high', 'v']);
   assert.deepEqual(collectPronouncedLeaves(tree).map((item) => item.id), overt);
   assert.deepEqual(collectPronouncedLeafNodeIdsInOrder(tree), overt);
@@ -43,7 +46,7 @@ test('a token index on a terminal beneath a silent phrase is diagnosed, not pron
     leaf('v', 'V', { word: 'buy', tokenIndex: 0 }),
     node('dp_low', 'DP', [leaf('d_low', 'D', { word: 'which', tokenIndex: 1 })], { silent: true })
   ]);
-  const inspection = __test__.inspectDerivationWorkspaces([stage([tree])]);
+  const inspection = inspectDerivationWorkspaces([stage([tree])]);
   const issue = inspection[0].diagnostics.find((diagnostic) => diagnostic.ruleId === 'DERIVATION_TOKEN_INDEX_SILENT');
   assert.equal(issue.fieldPath, '$.derivationStages[0].workspaceForest[0].children[1].children[0].tokenIndex');
   assert.throws(() => normalize([tree], 'buy'), (error) => {

@@ -3,11 +3,10 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
-import {
-  adaptDerivationStagesForReplay,
-  buildPlaybackStepsFromDerivationFrames
-} from '../replay/replayCompiler.ts';
-import { compileRelationRenderPlan, visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 
 const leaf = (id, label, word, extra = {}) => ({
   id, label, ...(word ? { word } : {}), children: [], ...extra
@@ -102,10 +101,11 @@ test('head movement preserves the old binary parent until subject landing introd
       }
     ])
   ];
-  const steps = buildPlaybackStepsFromDerivationFrames(
-    adaptDerivationStagesForReplay(stages),
-    'children laugh',
-    buildDerivationReplayPlan({ derivationStages: stages })
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    sentence: 'children laugh',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+  }
   );
   const head = steps.find(step => step.operation === 'V-to-T head movement');
   const subjectLanding = steps.find(step => step.operation === 'subject A-movement');
@@ -138,8 +138,11 @@ test('a retained head becomes its complete complex atomically at head movement',
   const stages = [stage('T is present.', [before]), stage('The head reaches T.', [after], [
     { relation: 'V-to-T head movement', anchors: { higherOccurrence: 'landing', lowerOccurrence: 'source' }, priorAnchors: { source: 'source' } }
   ])];
-  const steps = buildPlaybackStepsFromDerivationFrames(adaptDerivationStagesForReplay(stages),
-    'read', buildDerivationReplayPlan({ derivationStages: stages }));
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(stages),
+    sentence: 'read',
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+  });
   const movementIndex = steps.findIndex(step => step.operation === 'V-to-T head movement');
   assert.ok(movementIndex > 0);
   assert.ok(steps.slice(0, movementIndex).every(step => !step.replayVisibleNodeIds.includes('innerHost')));
@@ -163,8 +166,11 @@ const assertCompleteLandingParent = (step, landingId) => {
 
 test('saved German subject landing has its independently constructed I-bar before later head movement', () => {
   const saved = JSON.parse(readFileSync(new URL('../fixtures/movement/independent-infl-context.json', import.meta.url)));
-  const steps = buildPlaybackStepsFromDerivationFrames(adaptDerivationStagesForReplay(saved.derivationStages),
-    saved.sentence, buildDerivationReplayPlan(saved));
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames: adaptDerivationStagesForReplay(saved.derivationStages),
+    sentence: saved.sentence,
+    replayPlan: buildDerivationReplayPlan(saved)
+  });
   const subject = steps.findIndex(step => step.operation === 'A-movement');
   const head = steps.findIndex(step => step.operation === 'V-to-I head movement');
   const projection = steps.findIndex(step => step.replayKind === 'micro' && step.targetNodeId === 'ibar');
@@ -192,8 +198,11 @@ for (const firstMovement of ['subject', 'head']) {
     };
     const ordered = firstMovement === 'subject' ? [relations.subject, relations.head] : [relations.head, relations.subject];
     const stages = [stage('The predicate is formed.', [lower]), stage('Both landings are complete.', [current], ordered)];
-    const steps = buildPlaybackStepsFromDerivationFrames(adaptDerivationStagesForReplay(stages), 'Ada reads',
-      buildDerivationReplayPlan({ derivationStages: stages }));
+    const steps = buildPlaybackStepsFromDerivationFrames({
+      frames: adaptDerivationStagesForReplay(stages),
+      sentence: 'Ada reads',
+      replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
+    });
     const relationSteps = steps.filter(step => step.replayKind === 'relation');
     assert.deepEqual(relationSteps.map(step => step.operation), ordered.map(relation => relation.relation));
     const first = steps.indexOf(relationSteps[0]);

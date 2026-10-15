@@ -12,6 +12,7 @@ import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
 import { earlierWorkspaceForks, prepareWorkspaceHistoryGuard, WORKSPACE_HISTORY_EVALUATION_LIMIT } from '../replay/workspaceHistoryRefinement.ts';
+import { TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
 
 const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/nested-premovement-width.json', import.meta.url)));
 const close = (a, b, message) => assert(Math.abs(a - b) <= 1e-6, `${message}: ${a} vs ${b}`);
@@ -29,7 +30,8 @@ function setup(input, width, height, direction) {
     return layoutSyntaxTree(root, sizes.get(step.replayFrameIndex), direction, coords, visible).descendants()
       .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace');
   };
-  const reserved = reserveWorkspaceAttachments(steps, sizes, direction, () => { throw Error('expected the prepared plan'); });
+  const reserved = reserveWorkspaceAttachments({ steps, sizes, direction, minimumSiblingGap: TREE_SIBLING_GAP,
+    coordinatesForStage: () => { throw Error('expected the prepared plan'); } });
   const preceding = compactCurrentRootForks(steps, sizes, reserved);
   return { steps, sizes, points, preceding, render, diagnostic: getCoherentWorkspaceDiagnostics(steps)[0] };
 }

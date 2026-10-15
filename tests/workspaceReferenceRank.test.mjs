@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { workspaceReferenceRank } from '../replay/workspaceReferenceRank.ts';
 import { stageVerticalGeometry } from '../replay/stageVerticalGeometry.ts';
+import { TREE_ROW_HEIGHT } from '../replay/treeSpacing.ts';
 import { prepareWorkspaceLifetimeContours, workspaceContourCandidates } from '../replay/workspaceLifetimeContours.ts';
 
 const choose = (preferred, ranks = [210], latest = ranks.at(-1), complete = true) =>
@@ -40,15 +41,15 @@ const points = entries => new Map(entries.map(([id, x, y]) => [id, { x, y }]));
 test('native stage row excludes only the temporary construction workspace', () => {
   const completed = fork('p', fork('compound', atom('a'), atom('b')), fork('right', atom('c')));
   const workspace = { id: 'workspace', label: 'Workspace', replayOrigin: { kind: 'workspace' }, children: [completed] };
-  const geometry = stageVerticalGeometry([step(workspace), step(completed, { replayKind: 'macro' })], 420);
-  assert.equal(geometry.rowHeight, 210);
+  const geometry = stageVerticalGeometry([step(workspace), step(completed, { replayKind: 'macro' })]);
+  assert.equal(geometry.rowHeight, TREE_ROW_HEIGHT);
   assert.equal(geometry.temporaryRootDepth(workspace), 1);
   assert.equal(geometry.temporaryRootDepth(completed), 0);
 });
 test('an authored completed forest keeps its actual container depth', () => {
   const forest = { id: 'workspace', label: 'Workspace', replayOrigin: { kind: 'workspace' }, children: [fork('p', atom('a'))] };
-  const geometry = stageVerticalGeometry([step(forest, { replayKind: 'macro' })], 420);
-  assert.equal(geometry.rowHeight, 210);
+  const geometry = stageVerticalGeometry([step(forest, { replayKind: 'macro' })]);
+  assert.equal(geometry.rowHeight, TREE_ROW_HEIGHT);
   assert.equal(geometry.temporaryRootDepth(forest), 0);
 });
 test('head insertion cannot preserve a future nested leaf rank in the current fork', () => {

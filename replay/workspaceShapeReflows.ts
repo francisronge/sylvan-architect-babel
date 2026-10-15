@@ -1,12 +1,12 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
-import type { TreeCoordinateReservation } from './treeLayout.ts';
-import { authoredDisplayWord } from './displayWordMaterial.ts';
 import { getNodeId } from './displayIdentity.ts';
+import { authoredDisplayWord } from './displayWordMaterial.ts';
+import type { TreeCoordinateReservation } from './treeLayout.ts';
+import type { PlaybackStep } from './types.ts';
 import { visibleComponentNodes } from './visibleComponent.ts';
-import { workspaceMotionOwnership, type WorkspaceMotionView } from './workspaceMotionOwnership.ts';
 import { changesOwnedDisplayTerminal } from './workspaceDisplayTerminal.ts';
+import { workspaceMotionOwnership, type WorkspaceMotionView } from './workspaceMotionOwnership.ts';
 
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 type Scene = { step: PlaybackStep; canvas: SyntaxNode; nodes: ReadonlyMap<string, Node> };
@@ -59,8 +59,10 @@ function detectWorkspaceReflows<S extends Scene>(
         const childIds = children.get(current)!;
         const missing = childIds.filter(child => !parts.has(child));
         if (missing.length) { pending.push(...missing); continue; }
-        const node = nodes.get(current)!, owner = parents.get(current);
-        const word = authoredDisplayWord(node.data, owner ? nodes.get(owner)!.data : undefined);
+        const node = nodes.get(current)!;
+        const owner = node.parent && (nodes.has(getNodeId(node.parent)) || scene.step.replayUsesFutureLayoutScaffold)
+          ? node.parent.data : undefined;
+        const word = authoredDisplayWord(node.data, owner);
         const key = JSON.stringify([word ?? node.data.label, word ?? node.data.word, node.data.silent,
           childIds.map(child => [child, parts.get(child)!.signature])]);
         let signature = signatures.get(key);

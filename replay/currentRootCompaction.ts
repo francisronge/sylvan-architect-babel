@@ -1,16 +1,16 @@
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
-import { applyVizIds, getNodeId } from './displayIdentity.ts';
-import { layoutSyntaxTree, type TreeCoordinateReservation } from './treeLayout.ts';
-import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
-import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
+import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
+import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import { prepareTreeInkSubtrees, treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
+import { layoutSyntaxTree, type TreeCoordinateReservation } from './treeLayout.ts';
+import type { PlaybackStep } from './types.ts';
 import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
-import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
 import { currentForkBranchesClear } from './workspaceForkClearance.ts';
-import { prepareTreeInkSubtrees } from './treeInkGeometry.ts';
+import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
+import { TREE_SIBLING_GAP } from './treeSpacing.ts';
 
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
 type Node = d3.HierarchyPointNode<SyntaxNode>;
@@ -89,7 +89,7 @@ export function compactCurrentRootForks(steps: readonly PlaybackStep[], sizes: R
         const gap = side === 0
           ? Math.min(...hostInk.map(box => box.x)) - Math.max(...headInk.map(box => box.x + box.width))
           : Math.min(...headInk.map(box => box.x)) - Math.max(...hostInk.map(box => box.x + box.width));
-        let amount = gap - 120;
+        let amount = Math.min(gap - 120, Math.abs(head.x - host.x) - TREE_SIBLING_GAP);
         if (amount <= 1e-6) continue;
         // Earlier independent inputs can occupy the same horizontal corridor.
         // Their measured ink limits the one translation used by the complete

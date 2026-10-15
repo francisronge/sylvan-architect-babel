@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
+import { existsSync } from 'node:fs';
 import { readFile, writeFile, mkdir, realpath, appendFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -24,12 +25,13 @@ const report = { schemaVersion: 1, fixtureSha256, policy, selfCheck: Boolean(val
   environment: { node: process.version, platform: process.platform, arch: process.arch, viewport: { width: 1600, height: 1000 } },
   samples: { base: [], candidate: [] } };
 
-// Both revisions receive the same authored record and entry code. Preparation,
-// native font measurement, worker delivery and the actual renderer remain timed.
-const entrySource = `import React from 'react';
+// Both revisions receive the same authored record and entry behavior. The canvas
+// owner may have moved between revisions; preparation, fonts, workers, and the
+// actual renderer remain inside the same timing boundary.
+const entrySource = (canvasModule) => `import React from 'react';
 import {createRoot} from 'react-dom/client';
 import TreeVisualizer from './components/AsyncTreeVisualizer';
-import {buildDerivationCanvasData} from './replay/replayCompiler';
+import { buildDerivationCanvasData } from '${canvasModule}';
 import './styles.css';
 const record=${JSON.stringify(fixture)};
 createRoot(document.getElementById('root')).render(<TreeVisualizer
@@ -88,7 +90,10 @@ try {
   const assets = new Map();
   report.builds = {};
   for (const [name, source] of [['base', baselineRoot], ['candidate', root]]) {
-    const runtime = await buildQualificationReviewRuntime({ root: source, entrySource });
+    const canvasModule = existsSync(path.join(source, 'replay/replayCanvas.ts'))
+      ? './replay/replayCanvas.ts' : './replay/replayCompiler.ts';
+    const entry = entrySource(canvasModule);
+    const runtime = await buildQualificationReviewRuntime({ root: source, entrySource: entry });
     report.builds[name] = { jsSha256: runtime.metadata.jsSha256, cssSha256: runtime.metadata.cssSha256 };
     assets.set(`/${name}/runtime.js`, ['text/javascript', runtime.js]);
     assets.set(`/${name}/runtime.css`, ['text/css', runtime.css]);

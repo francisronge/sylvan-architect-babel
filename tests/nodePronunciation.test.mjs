@@ -1,19 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { __test__, ParseApiError } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { collectOvertTerminalNodes } from '../server/babelParser/syntaxTree.js';
+import { ParseApiError } from '../server/babelParser/error.js';
 import {
   authoredWord,
   isPronouncedLeaf,
   isSilentWordLeaf,
   isWordlessLeaf
 } from '../server/babelParser/nodePronunciation.js';
-import {
-  adaptDerivationStagesForReplay,
-  collectOvertLeafNodeIdsInOrder,
-  collectPronouncedLeafNodeIdsInOrder,
-  isWordlessCategoryLeaf
-} from '../replay/replayCompiler.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { collectOvertLeafNodeIdsInOrder, collectPronouncedLeafNodeIdsInOrder } from '../replay/syntaxForest.ts';
+import { isWordlessCategoryLeaf } from '../replay/replaySurfaceNotation.ts';
 
 // Pronunciation is authored through `word` and `silent`. Neither the spelling
 // of a word nor the casing of a label may change what the parser or Replay
@@ -27,7 +26,7 @@ const stage = (workspaceForest) => ({
   relations: [],
   workspaceForest
 });
-const normalize = (workspaceForest, sentence) => __test__.normalizeParseBundle(
+const normalize = (workspaceForest, sentence) => normalizeParseBundle(
   { derivationStages: [stage(workspaceForest)] },
   'xbar',
   sentence,
@@ -46,7 +45,7 @@ test('ordinary words spelled like notation stay pronounced on both layers', () =
     ])
   ]);
   const bundle = normalize([tree], 'copy trace pro');
-  const overt = __test__.collectOvertTerminalNodes(bundle.analyses[0].tree);
+  const overt = collectOvertTerminalNodes(bundle.analyses[0].tree);
   assert.deepEqual(overt.map((item) => [item.id, item.tokenIndex]), [['n_copy', 0], ['v_trace', 1], ['d_pro', 2]]);
   assert.deepEqual(collectPronouncedLeafNodeIdsInOrder(tree), ['n_copy', 'v_trace', 'd_pro']);
   for (const item of leaves(tree)) {
@@ -66,7 +65,7 @@ test('wordless heads are abstract whatever their label casing says, on both laye
       const normalizedHead = leaves(bundle.analyses[0].tree).find((item) => item.id === 'head');
       assert.equal(Object.hasOwn(normalizedHead, 'tokenIndex'), false, `${label} must not receive a token index`);
       assert.equal(Object.hasOwn(normalizedHead, 'surfaceSpan'), false, `${label} must not receive a surface span`);
-      assert.deepEqual(__test__.collectOvertTerminalNodes(tree).map((item) => item.id), ['n_mia']);
+      assert.deepEqual(collectOvertTerminalNodes(tree).map((item) => item.id), ['n_mia']);
       assert.deepEqual(collectPronouncedLeafNodeIdsInOrder(tree), ['n_mia']);
       assert.deepEqual(collectOvertLeafNodeIdsInOrder(tree), ['n_mia']);
       assert.equal(isWordlessLeaf(leaf('head', label)), true);
@@ -88,7 +87,7 @@ test('the parser and Replay agree on every authored pronunciation shape', () => 
       ])
     ])
   ]);
-  const serverIds = __test__.collectOvertTerminalNodes(tree).map((item) => item.id);
+  const serverIds = collectOvertTerminalNodes(tree).map((item) => item.id);
   assert.deepEqual(serverIds, ['d_high', 'v']);
   assert.deepEqual(collectPronouncedLeafNodeIdsInOrder(tree), serverIds);
   const byId = Object.fromEntries(leaves(tree).map((item) => [item.id, item]));
@@ -103,7 +102,7 @@ test('the parser and Replay agree on every authored pronunciation shape', () => 
 
 test('a wordless lowercase t is trace notation for display but never pronounced anywhere', () => {
   const tree = node('tp', 'TP', [leaf('t_low', 't'), leaf('t_cat', 'T'), leaf('n', 'N', { word: 'Mia', tokenIndex: 0 })]);
-  assert.deepEqual(__test__.collectOvertTerminalNodes(tree).map((item) => item.id), ['n']);
+  assert.deepEqual(collectOvertTerminalNodes(tree).map((item) => item.id), ['n']);
   assert.deepEqual(collectPronouncedLeafNodeIdsInOrder(tree), ['n']);
   assert.equal(isWordlessCategoryLeaf(leaf('t_low', 't')), false);
   assert.equal(isWordlessCategoryLeaf(leaf('t_cat', 'T')), true);

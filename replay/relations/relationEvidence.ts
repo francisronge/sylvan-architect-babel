@@ -1,13 +1,36 @@
 import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '../../types.ts';
 import { exactRealizationGroup, sameRealizationMembers } from '../realizationGroups.ts';
-import { recoverMovementEvidence } from './movementEvidence.ts';
-import { nominalConcordMembers, directedNominalConcordMembers } from './nominalConcord.ts';
 import { isUnqualifiedGrammaticalProperty, uniqueCurrentOwners } from './evidenceScopes.ts';
-import { resolveOutcomeLiteral, isUnestablishedOutcomeLiteral, relationAssertionFailure, relationLabelOutcome, negativeClaimFailure } from './outcomeResolver.ts';
-import { INDEPENDENT_TIER2_ANCHOR_ROLES, INDEPENDENT_TIER2_VALUE_ROLES, POSITIVE_OUTCOMES, independentFeatureDimensions, independentThetaArgumentFields, independentIdiomMemberFields, sameNameValueEntries,
-  type Tier2AuthoredEvidenceEntry, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
-import { buildTier2SynonymIndex, lookupTier2SynonymCandidates, normalizeTier2Synonym, relationRoleConcepts, relationValueConcepts,
-  hasAuthoredJudgment, isCovertMovementDescription, type Tier2SynonymIndex, type Tier2SynonymScope } from './tier2Synonyms.ts';
+import { recoverMovementEvidence } from './movementEvidence.ts';
+import { directedNominalConcordMembers, nominalConcordMembers } from './nominalConcord.ts';
+import {
+  isUnestablishedOutcomeLiteral,
+  negativeClaimFailure,
+  POSITIVE_OUTCOMES,
+  relationAssertionFailure,
+  relationLabelOutcome,
+  resolveOutcomeLiteral
+} from './outcomeResolver.ts';
+import {
+  INDEPENDENT_TIER2_ANCHOR_ROLES,
+  INDEPENDENT_TIER2_VALUE_ROLES,
+  independentFeatureDimensions,
+  independentIdiomMemberFields,
+  independentThetaArgumentFields,
+  sameNameValueEntries
+} from './tier2EvidenceQueries.ts';
+import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import {
+  buildTier2SynonymIndex,
+  hasAuthoredJudgment,
+  isCovertMovementDescription,
+  isRealizationDescription,
+  normalizeTier2Synonym,
+  relationRoleConcepts,
+  relationValueConcepts,
+  type Tier2SynonymIndex,
+  type Tier2SynonymScope
+} from './tier2Synonyms.ts';
 const DEFAULT_SYNONYM_INDEX = buildTier2SynonymIndex();
 
 const authoredItems = (value: string | string[]): string[] => (
@@ -171,7 +194,7 @@ export const buildTier2FacetEvidence = ({
   const declaredContributors = currentAnchors.authored.filter(entry => entry.concepts.includes('pf.contributors'));
   const contributors = declaredContributors.length ? declaredContributors : currentAnchors.authored;
   const surfaces = values.authored.filter(entry => entry.concepts.includes('pf.surface'));
-  const surfaceSequence = surfaces.length === 1 && ['surface sequence', 'surface pieces', 'surface tokens', 'input tokens', 'input pieces in order', 'input spelling']
+  const surfaceSequence = surfaces.length === 1 && ['surface sequence', 'surface pieces', 'surface tokens', 'orthographic tokens', 'input tokens', 'input pieces in order', 'input spelling']
     .includes(normalizeTier2Synonym(surfaces[0].key));
   let realizationGroupAnchorKeys: string[] | undefined;
   let priorRealizationGroupAnchorKeys: string[] | undefined;
@@ -196,8 +219,9 @@ export const buildTier2FacetEvidence = ({
       if (group.nodeIds.length === ids.length && new Set(group.nodeIds).size === ids.length
         && ids.every(id => group.nodeIds.includes(id))) return [{ group, carriers: [] as Tier2AuthoredEvidenceEntry[] }];
       // A realization may name the whole constituent while its relation names
-      // the contained contributors. The carrier must also be explicitly anchored.
-      if (group.nodeIds.length !== 1) return [];
+      // the contained contributors. Containment alone cannot turn incidental
+      // anchors into contributors; the relation must assert that association.
+      if (group.nodeIds.length !== 1 || !declaredContributors.length && !isRealizationDescription(relation.relation)) return [];
       const carriers = currentAnchors.authored.filter(entry => (!declaredContributors.length || !contributors.includes(entry))
         && entry.items.length === 1 && entry.items[0] === group.nodeIds[0]);
       const carrier = nodes.get(group.nodeIds[0]);

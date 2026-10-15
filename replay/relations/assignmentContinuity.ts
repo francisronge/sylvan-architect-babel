@@ -1,20 +1,20 @@
 import type { SyntaxNode } from '../../types.ts';
-import { literalThetaRoles, pairedLiterals, POSITIVE_OUTCOMES, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
-import type { RecoveredMovement } from './movementEvidence.ts';
-import { normalizeTier2Synonym } from './tier2Synonyms.ts';
-import { resolveOutcomeLiteral, relationAssertionFailure, negativeClaimFailure } from './outcomeResolver.ts';
 import { categoryLabel } from '../categoryLabel.ts';
+import type { RecoveredMovement } from './movementEvidence.ts';
+import {
+  assignmentOutcomes,
+  establishesAssignment,
+  negativeClaimFailure,
+  relationAssertionFailure
+} from './outcomeResolver.ts';
+import { literalThetaRoles, pairedLiterals } from './tier2EvidenceQueries.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 
 type Occurrence = { id: string; parent: string | null; lineage?: string; headCategory?: string; children: string[] };
 type RelationMoment = { stageIndex: number; relationIndex: number };
 type Assignment = { kind: 'theta-grid' | 'feature.dependency'; source: Occurrence; target: Occurrence; literal: string; moment: RelationMoment };
 export type AssignmentContext = { assignments: Assignment[]; continuations: Map<string, Set<string>> };
 export const createAssignmentContext = (): AssignmentContext => ({ assignments: [], continuations: new Map() });
-
-export const assignmentOutcomes = (evidence: Tier2FacetEvidence) => (evidence.authoredValues ?? []).filter(entry =>
-  entry.concepts.includes('outcome') || ['outcome', 'status', 'result', 'verdict', 'judgment'].includes(normalizeTier2Synonym(entry.key)));
-export const establishesAssignment = (evidence: Tier2FacetEvidence) => assignmentOutcomes(evidence).every(entry =>
-  entry.items.every(literal => POSITIVE_OUTCOMES.some(concept => concept === resolveOutcomeLiteral(literal)?.concept)));
 
 function occurrences(forest: readonly SyntaxNode[]) {
   const nodes = new Map<string, Occurrence[]>();

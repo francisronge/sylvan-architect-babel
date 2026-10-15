@@ -1,50 +1,24 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import * as d3 from 'd3';
-import ts from 'typescript';
-import { STAGE_CAMERA_PADDING } from '../replay/stageCamera.ts';
-import { advanceFittedCamera, availableTreeViewport, containCamera } from '../components/treeViewport.ts';
+import assert from 'node:assert/strict';
+import test, { after } from 'node:test';
+import { fitTreeCamera } from '../components/renderer/frameCamera.ts';
+import { availableTreeViewport } from '../components/treeViewport.ts';
+import { createCameraHarness } from './helpers/cameraHarness.mjs';
+import { createSvgDom } from './helpers/svgDom.mjs';
 
-const source = ts.createSourceFile('TreeVisualizer.tsx',
-  fs.readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8'),
-  ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-const names = new Set(['stageFitContainmentBounds', 'applyFittedCamera', 'fitToRenderedBounds']);
-const declarations = new Map();
-const visit = node => {
-  if (ts.isVariableDeclaration(node) && names.has(node.name.getText(source))) {
-    declarations.set(node.name.getText(source), node.initializer.getText(source));
-  }
-  ts.forEachChild(node, visit);
-};
-visit(source);
-assert.equal(declarations.size, names.size, 'execute the production containment and fit functions');
+const { Element, restore } = createSvgDom();
+after(restore);
 
 function camera(input) {
-  let painted;
-  const dependencies = {
-    d3, STAGE_CAMERA_PADDING, advanceFittedCamera, containCamera,
-    stageCameraBounds: input.bounds,
-    stagePlaqueContainmentBounds: input.plaques ?? null,
-    fitLeft: input.view.left, fitRight: input.view.right,
-    fitTop: input.view.top, fitBottom: input.view.bottom,
-    derivationFrameFitNodes: [{}], overlayFitBounds: null,
-    minimumInitialScale: input.width < 500 ? 0.02 : 0.06,
-    animated: true, autoCameraRef: input.auto, completedReplayStep: undefined,
-    cameraAnimationRef: { current: null }, svg: { attr() {} },
-    animateFittedCamera: transform => { painted = transform; },
-    manualCameraRef: input.manual ?? { current: null },
-    data: input.data, derivationStagesSignature: 'saved-stage-records',
-    fitRevision: 0, containerWidth: input.width, containerHeight: input.height,
-    activeStepIndex: input.step,
-    g: { selectAll: () => ({ attr() {} }) },
-    fitFallbackOverlays: undefined,
-    applyCameraTransform: transform => { painted = transform; }
-  };
-  const body = [...declarations].map(([name, expression]) => `const ${name} = ${expression};`).join('\n');
-  const deferred = new Function(...Object.keys(dependencies), ts.transpile(`let deferredRelationCamera = null;\n${body}\nfitToRenderedBounds();\nreturn deferredRelationCamera;`,
-    { target: ts.ScriptTarget.ES2023 }))(...Object.values(dependencies));
-  assert.deepEqual(deferred, painted, 'deferred panels use the destination or retained manual camera');
+  const harness = createCameraHarness(Element, { ...input, animated: true });
+  const painted = harness.run(() => fitTreeCamera({ session: harness.session, layout: {
+    relationRenderPlan: null, activeDerivationFrameIndex: 0,
+    stageCameraBounds: input.bounds, stagePlaqueContainmentBounds: input.plaques ?? null,
+    uiBounds: input.uiBounds, g: harness.group,
+    derivationFrameFitNodes: [{}], overlayFitBounds: null, visibleNodes: []
+  } }));
+  assert.deepEqual(harness.session.cameraRuntime.deferred, painted,
+    'deferred panels use the destination or retained manual camera');
   return painted;
 }
 
@@ -58,14 +32,15 @@ const enclosed = (transform, bounds, view) => {
 for (const [width, height, panelTop] of [[1596, 996, 721], [390, 844, 585]]) {
   for (const withPlaques of [false, true]) {
     test(`${width}px: sequential Replay keeps both edge-label margins${withPlaques ? ' and plaques' : ''}`, () => {
-      const view = availableTreeViewport(width, height, { headerBottom: 64, panelTop });
+      const uiBounds = { headerBottom: 64, panelTop };
+      const view = availableTreeViewport(width, height, uiBounds);
       // Saved French geometry; the left-edge control mirrors the same failure
       // observed in the saved parasitic-gap Replay.
       const bounds = { minX: 290, maxX: 6670, minY: 0, maxY: 2470 };
       const plaques = withPlaques ? { ...bounds, maxY: 2725 } : null;
       const envelope = { minX: 70, maxX: 6890, minY: -160, maxY: withPlaques ? 2725 : 2630 };
       const data = {};
-      const input = { bounds, plaques, width, height, view, data, step: 0, auto: { current: null } };
+      const input = { bounds, plaques, width, height, uiBounds, data, step: 0, auto: { current: null } };
       const direct = camera(input);
       enclosed(direct, envelope, view);
       for (const side of ['left', 'right']) {
@@ -85,11 +60,12 @@ for (const [width, height, panelTop] of [[1596, 996, 721], [390, 844, 585]]) {
   }
 
   test(`${width}px: containment preserves a user-controlled camera`, () => {
-    const data = {}, view = availableTreeViewport(width, height, { headerBottom: 64, panelTop });
+    const data = {}, uiBounds = { headerBottom: 64, panelTop };
+    const view = availableTreeViewport(width, height, uiBounds);
     const bounds = { minX: 290, maxX: 6670, minY: 0, maxY: 2470 };
     const transform = d3.zoomIdentity.translate(-450, 98).scale(0.7);
     const manual = { current: { data, signature: 'saved-stage-records', width, height, transform } };
-    const input = { bounds, plaques: { ...bounds, maxY: 2725 }, width, height, view,
+    const input = { bounds, plaques: { ...bounds, maxY: 2725 }, width, height, uiBounds,
       data, step: 0, auto: { current: null }, manual };
     assert.deepEqual(camera(input), transform);
     assert.deepEqual(camera({ ...input, step: 1 }), transform, 'Next does not replace manual pan or zoom');

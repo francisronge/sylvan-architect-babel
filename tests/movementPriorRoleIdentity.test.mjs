@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import { dispatchStageRelations } from '../replay/relations/tier2RelationDispatch.ts';
-import { compileRelationRenderPlan, planItemRelationRefs, visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 
 const saved = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/clause-context.json', import.meta.url)))
   .cases.find(record => record.name === 'archive-english-raising-xbar-astra-0');

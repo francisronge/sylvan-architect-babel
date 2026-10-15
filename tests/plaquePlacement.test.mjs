@@ -2,18 +2,43 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import * as d3 from 'd3';
-import { caseAssignmentSource, caseAssignmentClears, collectionPlaqueClears, prepareCollectionPlaqueSpace, plaqueCollectionConnectorObstacles, plaqueCaseConnectorObstacles, placeStagePlaques, plaqueIdentity, plaqueTreeObstacles, plaqueConnectorObstacles, plaquesOverlap, projectPlaqueLayout, projectPlaqueContent } from '../replay/relations/plaquePlacement.ts';
+import {
+  caseAssignmentSource,
+  caseAssignmentClears,
+  collectionPlaqueClears,
+  prepareCollectionPlaqueSpace,
+  prepareStagePlaqueRequests,
+  plaqueCollectionConnectorObstacles,
+  plaqueCaseConnectorObstacles,
+  placeStagePlaques,
+  plaqueIdentity,
+  plaqueTreeObstacles,
+  plaqueConnectorObstacles,
+  plaquesOverlap,
+  projectPlaqueLayout,
+  projectPlaqueContent
+} from '../replay/relations/plaquePlacement.ts';
 import { caseAssignmentPlaqueCurve, featureCollectionPlaqueCurve } from '../replay/relations/overlayGeometry.ts';
 import { sampleCubic } from '../replay/relations/markGeometry.ts';
 import { cubicIntersectsRect } from '../replay/relations/curveClearance.ts';
-import { preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
-import { stageTreeLayoutSize, buildStageLayoutGroups, buildStagePlaqueLayout, buildReplayPlaqueLayouts, buildReplayPlaqueSchedule, selectReplayPlaqueLayout, buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
+import { preparePlaqueTextLayout, preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
+import {
+  stageTreeLayoutSize,
+  buildStageLayoutGroups,
+  buildStagePlaqueLayout,
+  buildReplayPlaqueLayouts,
+  buildReplayPlaqueSchedule,
+  selectReplayPlaqueLayout,
+  buildStageCameraBounds,
+  measureStagePlaqueSpace
+} from '../replay/stageCamera.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { applyVizIds, buildRenderableDerivationCanvasData } from '../replay/replayCompiler.ts';
+import { applyVizIds } from '../replay/displayIdentity.ts';
+import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 
 const plaque = (ids, long = false) => ({ kind: 'node-plaque', plaqueStyle: 'feature',
   anchorNodeIds: ids, title: 'Authored relation', rows: [{ label: 'claim', value: long ? 'A complete authored explanation. '.repeat(15) : 'value' }],
@@ -21,6 +46,33 @@ const plaque = (ids, long = false) => ({ kind: 'node-plaque', plaqueStyle: 'feat
 const tree = () => d3.tree().nodeSize([600, 300])(d3.hierarchy({ id: 'root', label: 'XP', children: [
   { id: 'left', label: 'X', word: 'first' }, { id: 'right', label: 'Y', word: 'second' }
 ]}));
+
+for (const plaqueStyle of ['feature', 'correspondence']) {
+  test(`${plaqueStyle} allocation reserves the painted font dimensions and collection row`, () => {
+    const nodes = tree().descendants();
+    const item = { ...plaque(['left']), plaqueStyle, title: undefined,
+      rows: [{ label: 'clauseType', value: 'direct constituent question' }] };
+    const collection = { kind: 'directed-path', pathStyle: 'case-agree', fromNodeId: 'left', toNodeId: 'right',
+      featureRow: item.rows[0], relationRef: { stageIndex: 0, relationIndex: 1 } };
+    const items = plaqueStyle === 'feature' ? [item, collection] : [item];
+    const measureText = (text, style) => ({ width: [...text].length * style.fontSize * .62,
+      ascent: style.fontSize * 1.4, descent: style.fontSize * .6 });
+    const variant = plaqueStyle === 'feature' ? 'feature' : 'generic';
+    const painted = preparePlaqueTextLayout(item, { variant, measureText });
+    const estimated = preparePlaqueTextLayout(item, { variant });
+    assert.notEqual(painted.height, estimated.height, 'font ink must exercise the missing measurement boundary');
+    const request = prepareStagePlaqueRequests(items, nodes, measureText)[0];
+    assert.deepEqual([request.width, request.height], [painted.width, painted.height]);
+    if (plaqueStyle === 'feature') {
+      const first = painted.rows[0].lines[0], last = painted.rows[0].lines.at(-1);
+      assert.equal(request.collectionRows[0].y, (first.y - first.ascent + last.y + last.descent) / 2,
+        'fixed collectors use the painted row, without adding a new route');
+    }
+    const box = placeStagePlaques(items, nodes, plaqueTreeObstacles(nodes), new Map(), measureText).get(0);
+    assert.deepEqual([box.drawnWidth, box.drawnHeight], [painted.width, painted.height]);
+    assert(plaqueTreeObstacles(nodes).every(obstacle => !plaquesOverlap(box, obstacle)));
+  });
+}
 
 test('short grouped realization stays near its anchor instead of below the entire common subtree', () => {
   const nodes = tree().descendants();

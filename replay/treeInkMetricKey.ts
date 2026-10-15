@@ -1,8 +1,8 @@
+import type { SyntaxNode } from '../types.ts';
 import { categoryMetricKey } from './categoryMetricKey.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { collectTreeInkMeasurements, type TreeInkTextMeasure } from './treeInkGeometry.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
-import type { SyntaxNode } from '../types.ts';
+import type { PlaybackStep } from './types.ts';
 
 type MetricKeys = {
   material: Array<[string, string | undefined]>;

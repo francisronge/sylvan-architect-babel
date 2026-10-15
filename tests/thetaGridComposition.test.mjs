@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { compileRelationRenderPlan, visiblePlanFrameItems, planItemRelationRefs, planItemDependencyNodeIds } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
+import { planItemRelationRefs, planItemDependencyNodeIds } from '../replay/relations/renderPlan.ts';
 import { plaqueIdentity } from '../replay/relations/plaquePlacement.ts';
 import { projectThetaGrid } from '../replay/relations/thetaGridComposition.ts';
 

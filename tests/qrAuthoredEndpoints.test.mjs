@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
-import { compileRelationRenderPlan, visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 
 const nodes = forest => forest.flatMap(node => [node, ...nodes(node.children ?? [])]);

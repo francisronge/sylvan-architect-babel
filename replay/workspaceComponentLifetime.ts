@@ -1,17 +1,18 @@
-import { cubicIntersectsRect } from './relations/curveClearance.ts';
-import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
-import type { TreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
-import type { CategoryTextMeasure } from './categoryTextLayout.ts';
-import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
-import { authoredDisplayWord } from './displayWordMaterial.ts';
-import { addsOwnedDisplayTerminal } from './workspaceDisplayTerminal.ts';
 import type * as d3 from 'd3';
-import { plaqueTreeObstacles, plaqueBranchObstacles } from './relations/plaquePlacement.ts';
 import type { SyntaxNode } from '../types.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
+import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { getNodeId } from './displayIdentity.ts';
-import { visibleComponentNodes } from './visibleComponent.ts';
+import { authoredDisplayWord } from './displayWordMaterial.ts';
+import { cubicIntersectsRect } from './relations/curveClearance.ts';
+import { plaqueBranchObstacles, plaqueTreeObstacles } from './relations/plaquePlacement.ts';
+import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
+import type { TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 import type { TreeCoordinateReservation, TreeDirection } from './treeLayout.ts';
+import type { PlaybackStep } from './types.ts';
+import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
+import { visibleComponentNodes } from './visibleComponent.ts';
+import { addsOwnedDisplayTerminal } from './workspaceDisplayTerminal.ts';
+import { constructionReceivingAttachments, type CurrentWorkspaceTopology } from './workspaceReceivingHost.ts';
 
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 type Position = { x: number; y: number };
@@ -469,26 +470,51 @@ export function workspaceComponentIsStationary(
   }));
 }
 
-/** Find a completed workspace whose unchanged visible syntax reflows in the
- * accepted plan. Only those component lifetimes need another placement attempt. */
+/** Find unchanged components whose shape, stationary lifetime or ordinary
+ * attachment order needs another placement attempt. A resolved contour plan
+ * only needs the bounded merge-order check. */
 export function workspaceComponentLifetimeSeeds(
-  scenes: readonly WorkspacePlacementScene[], coordinates: WorkspaceReservations, render: Render
+  scenes: readonly WorkspacePlacementScene[], coordinates: WorkspaceReservations, render: Render,
+  scope: 'all' | 'merge-order' = 'all'
 ) {
-  const seeds: { index: number; rootId: string; attachment?: boolean; unrelated?: boolean }[] = [];
+  const seeds: { index: number; rootId: string; attachment?: 'shape' | 'order'; unrelated?: boolean }[] = [];
   for (let index = 1; index < scenes.length; index++) {
+    const step = scenes[index].step;
+    if (scope === 'merge-order' && (step.replayKind !== 'micro' || step.operation !== 'ExternalMerge')) continue;
     const before = positioned(scenes[index - 1], coordinates, render), after = positioned(scenes[index], coordinates, render);
+    const topology = (nodes: ReadonlyMap<string, Node>): CurrentWorkspaceTopology => ({
+      has: id => nodes.has(id),
+      parent: id => { const node = nodes.get(id); return node && parent(node, nodes); },
+      children: id => (nodes.get(id)?.children ?? []).filter(child => nodes.has(getNodeId(child))).map(getNodeId),
+      contains: (root, id) => nodes.get(id)?.ancestors().some(node => getNodeId(node) === root) ?? false,
+    });
+    const unchanged = (id: string) => before.has(id) && after.has(id)
+      && signature(before.get(id)!, before) === signature(after.get(id)!, after);
+    for (const { host, wrapper } of constructionReceivingAttachments(step, topology(before), topology(after), unchanged)) {
+      const children = (after.get(wrapper)!.children ?? []).filter(child => after.has(getNodeId(child)));
+      const incoming = children.find(child => getNodeId(child) !== host)!;
+      const owner = parent(before.get(host)!, before)!, oldParent = before.get(owner)!, currentParent = after.get(owner)!;
+      // The exact completed join supplies horizontal order, never an earlier
+      // branch height or permission to move an authored movement source.
+      if (children.length === 2 && unchanged(getNodeId(incoming))
+        && oldParent.data.label === currentParent.data.label && oldParent.data.word === currentParent.data.word
+        && oldParent.data.silent === currentParent.data.silent
+        && (before.get(getNodeId(incoming))!.x - before.get(host)!.x) * (incoming.x - after.get(host)!.x) < 0) {
+        seeds.push({ index, rootId: wrapper, attachment: 'order' });
+      }
+    }
+    if (scope === 'merge-order') continue;
     for (const node of before.values()) {
       const id = getNodeId(node), current = after.get(id);
       if (!current || signature(node, before) !== signature(current, after)) continue;
       const oldOwner = parent(node, before), newOwner = parent(current, after);
-      const step = scenes[index].step;
       const wrapper = newOwner && after.get(newOwner);
       if (oldOwner !== newOwner && wrapper && !before.has(newOwner!) && step.replayKind === 'micro'
         && step.operation === 'ExternalMerge' && step.targetNodeId === newOwner && (!oldOwner || parent(wrapper, after) === oldOwner)) {
         if (visibleComponentNodes(node, before).some(member => {
           const next = after.get(getNodeId(member))!;
           return Math.hypot(next.x-current.x-(member.x-node.x),next.y-current.y-(member.y-node.y)) > 1e-6;
-        })) seeds.push({index,rootId:id,attachment:true});
+        })) seeds.push({ index, rootId: id, attachment: 'shape' });
         continue;
       }
       if (oldOwner || newOwner) {
@@ -515,7 +541,7 @@ export function workspaceComponentLifetimeSeeds(
     }
   }
   const path = (seed: typeof seeds[number]) => {
-    const nodes = scenes[seed.index - 1].nodes;
+    const nodes = scenes[seed.attachment === 'order' ? seed.index : seed.index - 1].nodes;
     let root = nodes.get(seed.rootId)!;
     const parts: number[] = [];
     while (root.parent && nodes.has(getNodeId(root.parent))) {

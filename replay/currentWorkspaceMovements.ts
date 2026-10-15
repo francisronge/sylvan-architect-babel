@@ -1,5 +1,5 @@
 import type { ResolvedRelationLink } from '../relationLinks.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
+import type { PlaybackStep } from './types.ts';
 
 type CurrentNodes = { has(id: string): boolean };
 export type CurrentWorkspaceMovement = ResolvedRelationLink & {

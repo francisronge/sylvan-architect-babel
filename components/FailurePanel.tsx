@@ -80,7 +80,7 @@ const FailurePanel: React.FC<FailurePanelProps> = ({
     <div className="flex items-start gap-3">
       <AlertTriangle size={14} className="mt-0.5 shrink-0" />
       <div className="min-w-0 flex-1 space-y-3">
-        <p className="serif italic text-rose-200">{message}</p>
+        <p role="alert" className="serif italic text-rose-200">{message}</p>
         {failure && (
           <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 font-mono text-[10px]">
             <dt className="text-rose-400/70">Class</dt>

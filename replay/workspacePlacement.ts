@@ -1,25 +1,29 @@
-import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
-import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
-import { planCoherentWorkspace, type CoherentWorkspaceDiagnostic } from './workspaceCoherentPlan.ts';
-import { attachmentShapeChanges } from './attachmentShapeChanges.ts';
-import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
-import type { PreparedTreeLabelRuns, TreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
-import { categoryMetricKey } from './categoryMetricKey.ts';
-import { treeInkMetricKey } from './treeInkMetricKey.ts';
-import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
-import type { CategoryTextMeasure } from './categoryTextLayout.ts';
-import { cubicIntersectsRect } from './relations/curveClearance.ts';
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
+import { attachmentShapeChanges } from './attachmentShapeChanges.ts';
+import { categoryMetricKey } from './categoryMetricKey.ts';
+import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
-import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
-import { retainCurrentRootFork } from './currentRootFork.ts';
-import { retainCurrentSiblingRanks } from './currentSiblingRanks.ts';
-import { sourceSiblingTranslation, unchangedSourceRankOffsets } from './sourceSiblingTranslation.ts';
-import { visibleComponentNodes } from './visibleComponent.ts';
 import { rigidMovementHosts } from './movementHostContinuity.ts';
-import { workspaceComponentIsStationary, workspaceComponentLifetimeSeeds, prepareComponentLifetimeReservations, retainUnchangedComponentLifetime, type ComponentLifetimeOptions } from './workspaceComponentLifetime.ts';
+import { cubicIntersectsRect } from './relations/curveClearance.ts';
+import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
+import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
+import { treeInkMetricKey } from './treeInkMetricKey.ts';
+import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
+import type { PreparedTreeLabelRuns, TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
+import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import type { PlaybackStep } from './types.ts';
+import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
+import { visibleChildIds, visibleComponentNodes, visibleParentId } from './visibleComponent.ts';
+import { reserveAttachmentLifetimes, type WorkspaceAttachmentPolicy, type WorkspaceAttachmentScene } from './workspaceAttachmentPlan.ts';
+import { planCoherentWorkspace, type CoherentWorkspaceDiagnostic } from './workspaceCoherentPlan.ts';
+import {
+  prepareComponentLifetimeReservations,
+  retainUnchangedComponentLifetime,
+  workspaceComponentIsStationary,
+  workspaceComponentLifetimeSeeds,
+  type ComponentLifetimeOptions
+} from './workspaceComponentLifetime.ts';
 
 type LifetimeAttempt = { kind: 'reserve'; options?: ComponentLifetimeOptions } | { kind: 'retain' };
 // Keep established successful plans first; later policies handle progressively
@@ -37,56 +41,38 @@ const lifetimeAttempts: readonly LifetimeAttempt[] = [
 
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
-type Scene = {
+type Scene = WorkspaceAttachmentScene & {
   measureCategoryText?: CategoryTextMeasure;
   measureTreeInk?: TreeInkTextMeasure;
   treeLabelRuns?: ReadonlyMap<string, readonly TreeLabelRuns[]>;
   measureTreeLabel?: TreeLabelMeasure;
-  step: PlaybackStep;
-  canvas: SyntaxNode;
-  size: [number, number];
   currentRowHeight: number;
-  nodes: Map<string, Node>;
-  coordinates: TreeCoordinateReservation;
 };
 
 const cache = new WeakMap<readonly PlaybackStep[], Map<string, Map<string, Reservations>>>();
 const coherentDiagnostics = new WeakMap<readonly PlaybackStep[], Map<string, CoherentWorkspaceDiagnostic & { direction: TreeDirection }>>();
 export const getCoherentWorkspaceDiagnostics = (steps: readonly PlaybackStep[]) => [...(coherentDiagnostics.get(steps)?.values() ?? [])];
-const parentId = (node: Node, nodes: ReadonlyMap<string, Node>): string | undefined => {
-  const parent = node.parent;
-  return parent && nodes.has(getNodeId(parent)) && parent.data.replayOrigin?.kind !== 'workspace'
-    && !parent.data.replayLayoutOnly ? getNodeId(parent) : undefined;
-};
-const childrenOf = (node: Node, nodes: ReadonlyMap<string, Node>) =>
-  (node.children ?? []).filter(child => nodes.has(getNodeId(child))).map(getNodeId);
-
-function lowerWitnesses(step: PlaybackStep): Map<string, string> | null {
-  const witnesses = new Map<string, string>();
-  for (const link of step.replayRelationLinks ?? []) {
-    if (!String(link.authoredRelationKey ?? '').startsWith(`${step.replayFrameIndex}:`)) continue;
-    if (!link.priorSourceNodeId || !link.witnessNodeId || link.priorSourceNodeId === link.witnessNodeId) continue;
-    const old = witnesses.get(link.priorSourceNodeId);
-    if (old && old !== link.witnessNodeId) return null;
-    witnesses.set(link.priorSourceNodeId, link.witnessNodeId);
-  }
-  return witnesses;
-}
-
 /** Reserve a component whose first attachment preserves its child lists.
  * Ordinary construction reserves the attachment layout before the component
  * appears. If that cannot fit its earlier source, retain the component shape
  * through its first attachment stage. A relation keeps the source in its old parent;
  * the source's old place belongs only to its exact lower witness.
  * No syntax, branch ranks, pronunciation or relation timing is added here. */
-export function reserveWorkspaceAttachments(
-  steps: readonly PlaybackStep[], sizes: ReadonlyMap<number, [number, number]>, direction: TreeDirection,
-  coordinatesForStage: (stage: number, size: [number, number]) => Reservations, measureCategoryText?: CategoryTextMeasure,
-  measureTreeInk?: TreeInkTextMeasure, treeLabelRuns?: PreparedTreeLabelRuns,
-  measureTreeLabel?: TreeLabelMeasure
-): Reservations {
+export function reserveWorkspaceAttachments({
+  steps, sizes, direction, coordinatesForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, minimumSiblingGap = 0
+}: {
+  steps: readonly PlaybackStep[];
+  sizes: ReadonlyMap<number, [number, number]>;
+  direction: TreeDirection;
+  coordinatesForStage: (stage: number, size: [number, number]) => Reservations;
+  measureCategoryText?: CategoryTextMeasure;
+  measureTreeInk?: TreeInkTextMeasure;
+  treeLabelRuns?: PreparedTreeLabelRuns;
+  measureTreeLabel?: TreeLabelMeasure;
+  minimumSiblingGap?: number;
+}): Reservations {
   const stageSizes = [...sizes].sort(([a], [b]) => a - b);
-  const key = JSON.stringify([direction, stageSizes]);
+  const key = JSON.stringify([direction, stageSizes, minimumSiblingGap]);
   let measurements = cache.get(steps);
   if (!measurements) cache.set(steps, measurements = new Map());
   const metricKey = JSON.stringify([categoryMetricKey(steps, measureCategoryText),
@@ -101,8 +87,8 @@ export function reserveWorkspaceAttachments(
   const orderedSteps = [...steps].sort((a, b) => (a.replayFrameIndex! - b.replayFrameIndex!)
     || ((a.replayStageStepIndex ?? (a.replayKind === 'macro' ? Infinity : 0))
       - (b.replayStageStepIndex ?? (b.replayKind === 'macro' ? Infinity : 0))));
-  const stageRows = new Map(stageSizes.map(([stage, size]) => [stage,
-    stageVerticalGeometry(orderedSteps.filter(step => step.replayFrameIndex === stage), size[1]).rowHeight]));
+  const stageRows = new Map(stageSizes.map(([stage]) => [stage,
+    stageVerticalGeometry(orderedSteps.filter(step => step.replayFrameIndex === stage)).rowHeight]));
   const scenes: Scene[] = orderedSteps.flatMap(step => {
     const canvas = step.replayCanvasData, size = sizes.get(step.replayFrameIndex!);
     if (!canvas || !size) return [];
@@ -123,13 +109,13 @@ export function reserveWorkspaceAttachments(
   for (let index = 1; index < scenes.length; index++) {
     const prior = scenes[index - 1], next = scenes[index];
     if (prior.step.replayFrameIndex === next.step.replayFrameIndex || next.step.replayKind !== 'micro') continue;
-    const roots = (scene: Scene) => [...scene.nodes.values()].filter(node => !parentId(node, scene.nodes));
+    const roots = (scene: Scene) => [...scene.nodes.values()].filter(node => !visibleParentId(node, scene.nodes));
     const earlier = roots(prior), later = roots(next);
     // A new parent must not relayout an already complete daughter. Its whole
     // component qualifies, including a clause whose root attaches at this step.
     earlier.filter(node => {
       const attached = next.nodes.get(getNodeId(node));
-      return attached && parentId(attached, next.nodes);
+      return attached && visibleParentId(attached, next.nodes);
     }).forEach(node => ordinaryRoots.add(getNodeId(node)));
     const common = earlier.filter(node => later.some(other => getNodeId(other) === getNodeId(node)
       && JSON.stringify(node.data) === JSON.stringify(other.data)));
@@ -138,168 +124,20 @@ export function reserveWorkspaceAttachments(
     const laterOrder = [...common].sort((a, b) => next.nodes.get(getNodeId(a))!.x - next.nodes.get(getNodeId(b))!.x).map(getNodeId);
     if (JSON.stringify(earlierOrder) !== JSON.stringify(laterOrder)) {
       common.forEach(node => stableRoots.add(getNodeId(node)));
-      earlier.filter(node => !childrenOf(node, prior.nodes).length && parentId(next.nodes.get(getNodeId(node)) ?? node, next.nodes))
+      earlier.filter(node => !visibleChildIds(node, prior.nodes).length && visibleParentId(next.nodes.get(getNodeId(node)) ?? node, next.nodes))
         .forEach(node => stableRoots.add(getNodeId(node)));
     }
   }
   // The established side-switch reservation remains the fallback. Complete
   // attachment histories additionally compose each earlier scene backwards,
   // so a prior movement cannot become the new location of the same jump.
-  const compute = (allowOrdinary: boolean, base?: Reservations, progressive = false, preserveShape = true, preserveSourceClearance = false) => {
-    const output = new Map(scenes.map(scene => [scene.canvas, new Map(base?.get(scene.canvas) ?? scene.coordinates)]));
-    for (let boundary = 1; boundary < scenes.length; boundary++) {
-      const before = scenes[boundary - 1], after = scenes[boundary];
-      const positioned = (scene: Scene): Map<string, Node> => {
-        const root = d3.hierarchy(scene.canvas); applyVizIds(root);
-        const visible = new Set(scene.nodes.keys());
-        return new Map<string, Node>(layoutSyntaxTree(root, scene.size, direction, output.get(scene.canvas), visible).descendants()
-          .filter(node => visible.has(getNodeId(node))).map(node => [getNodeId(node), node] as const));
-      };
-      const beforeNodes = progressive ? positioned(before) : before.nodes;
-      const afterNodes = progressive ? positioned(after) : after.nodes;
-      const roots = [...beforeNodes.values()].filter(node => !parentId(node, beforeNodes));
-      if (roots.length < 2) continue;
-      const witnesses = lowerWitnesses(after.step);
-      if (!witnesses) continue;
-
-      for (const root of roots) {
-        const rootId = getNodeId(root), attached = afterNodes.get(rootId);
-        const legacy = !allowOrdinary && after.step.replayFrameIndex !== before.step.replayFrameIndex
-          && after.step.replayKind === 'relation' && root.children?.length;
-        const ordinary = allowOrdinary && (progressive ? ordinaryRoots : stableRoots).has(rootId) && after.step.replayKind === 'micro';
-        if (!legacy && !ordinary) continue;
-        if (witnesses.has(rootId) || !attached || !parentId(attached, after.nodes)) continue;
-        const members: Node[] = root.descendants().filter(node => before.nodes.has(getNodeId(node)));
-        const ids = new Set<string>(members.map(getNodeId));
-        const mapped = (id: string) => witnesses.get(id) ?? id;
-        const targetIds = new Set<string>(members.map(node => mapped(getNodeId(node))));
-        if (targetIds.size !== ids.size) continue;
-        const shapeMatches = members.every(node => {
-          const other = after.nodes.get(mapped(getNodeId(node)));
-          if (!other) return false;
-          const children = childrenOf(node, before.nodes).map(mapped), next = childrenOf(other, after.nodes);
-          return children.length === next.length && children.every((id, index) => id === next[index]);
-        });
-        if (!shapeMatches) continue;
-        const dx = attached.x - root.x, dy = attached.y - root.y;
-        if (legacy && !ordinary && Math.hypot(dx, dy) < 1e-7) continue;
-        const positions: TreeCoordinateReservation = new Map(members.map(node => {
-          const future = afterNodes.get(mapped(getNodeId(node)))!;
-          return [getNodeId(node), preserveShape ? { x: node.x + dx, y: node.y + dy } : { x: future.x, y: future.y }];
-        }));
-
-        const applyLifetime = (start: number, increment: number, useWitnesses: boolean) => {
-          const currentIds = new Map(members.map(node => [getNodeId(node), useWitnesses ? mapped(getNodeId(node)) : getNodeId(node)]));
-          let lifetimePositions = new Map(positions), referenceNodes = after.nodes;
-          for (let index = start; index >= 0 && index < scenes.length; index += increment) {
-            const scene = scenes[index];
-            if (ordinary && useWitnesses && scene.step.replayFrameIndex !== after.step.replayFrameIndex) break;
-            if (progressive && ordinary && useWitnesses) {
-              const nextWitnesses = lowerWitnesses(scene.step);
-              if (!nextWitnesses) break;
-              currentIds.forEach((id, original) => { const witness = nextWitnesses.get(id); if (witness) currentIds.set(original, witness); });
-            }
-            const memberIds = new Set(currentIds.values());
-            const expectedParents = new Map(members.map(node => [currentIds.get(getNodeId(node))!,
-              node === root ? (ordinary && useWitnesses ? parentId(attached, after.nodes) : undefined) : currentIds.get(getNodeId(node.parent!))]));
-            const present = [...memberIds].filter(id => scene.nodes.has(id));
-            if (!present.length) break;
-            const compatible = present.every(id => {
-              const node = scene.nodes.get(id)!, parent = parentId(node, scene.nodes);
-              if (!progressive) return (ordinary && id === rootId ? parent === expectedParents.get(id) : (!parent || id === mapped(rootId) || parent === expectedParents.get(id)))
-                && childrenOf(node, scene.nodes).every(child => memberIds.has(child));
-              return ordinary && !useWitnesses
-                ? (!parent || memberIds.has(parent))
-                : (!parent || id === currentIds.get(rootId) || parent === expectedParents.get(id))
-                  && (ordinary || childrenOf(node, scene.nodes).every(child => memberIds.has(child)));
-            });
-            if (!compatible) break;
-            const coordinates = new Map(output.get(scene.canvas)!);
-            const relocated = new Set<string>();
-            if (progressive && ordinary && !useWitnesses) for (const id of present) {
-              const node = scene.nodes.get(id)!, future = referenceNodes.get(id), parent = parentId(node, scene.nodes);
-              if (parent && future && !future.ancestors().some(ancestor => getNodeId(ancestor) === parent)) {
-                node.each(descendant => relocated.add(getNodeId(descendant)));
-              }
-            }
-            for (const [oldId, position] of lifetimePositions) {
-              const id = currentIds.get(oldId)!;
-              if (!scene.nodes.has(id) || relocated.has(id)) continue;
-              coordinates.set(id, { x: direction === 'rtl' ? scene.size[0] - position.x : position.x, y: position.y });
-            }
-            // A future landing must not pull a source out of its current parent.
-            // Retain its current sister clearance; an identical complete source
-            // may also share the reference occurrence's internal rank grid.
-            const sourceTranslations = new Map<string, { x: number; y: number } | undefined>();
-            const sourceRanks = new Map<string, ReadonlyMap<string, number> | undefined>();
-            for (const id of relocated) {
-              const node = scene.nodes.get(id);
-              const anchor = node?.ancestors().slice(1).find(ancestor => lifetimePositions.has(getNodeId(ancestor)) && !relocated.has(getNodeId(ancestor)));
-              const position = anchor && lifetimePositions.get(getNodeId(anchor));
-              if (!node || !anchor || !position) continue;
-              const movedRoot = node.ancestors().find(current => current.parent === anchor);
-              const futureRoot = movedRoot && referenceNodes.get(getNodeId(movedRoot));
-              const futureParent = futureRoot?.parent;
-              const futurePoint = lifetimePositions.get(id), parentPoint = futureParent && lifetimePositions.get(getNodeId(futureParent));
-              const sameBranch = movedRoot && futureRoot && JSON.stringify(childrenOf(movedRoot, scene.nodes)) === JSON.stringify(childrenOf(futureRoot, referenceNodes));
-              if (preserveSourceClearance && movedRoot && !sourceTranslations.has(getNodeId(movedRoot))) {
-                sourceTranslations.set(getNodeId(movedRoot), sourceSiblingTranslation(
-                  movedRoot, anchor, scene.nodes, lifetimePositions, relocated));
-              }
-              const translation = movedRoot && sourceTranslations.get(getNodeId(movedRoot));
-              const x = translation ? node.x + translation.x
-                : position.x + (sameBranch && futurePoint && parentPoint ? futurePoint.x - parentPoint.x : node.x - anchor.x);
-              if (translation && movedRoot && !sourceRanks.has(getNodeId(movedRoot))) {
-                sourceRanks.set(getNodeId(movedRoot), unchangedSourceRankOffsets(
-                  movedRoot, scene.nodes, referenceNodes, lifetimePositions));
-              }
-              const rankOffset = movedRoot && sourceRanks.get(getNodeId(movedRoot))?.get(id);
-              const y = translation ? (rankOffset === undefined ? node.y : movedRoot!.y + rankOffset) + translation.y
-                : position.y + (sameBranch && futurePoint && parentPoint ? futurePoint.y - parentPoint.y : node.y - anchor.y);
-              coordinates.set(id, { x: direction === 'rtl' ? scene.size[0] - x : x, y });
-            }
-            if (ordinary) {
-              if (progressive && !useWitnesses) {
-                const current = { nodes: scene.nodes, visible: new Set(scene.nodes.keys()), coordinates };
-                const future = { nodes: referenceNodes, visible: new Set(referenceNodes.keys()), coordinates: lifetimePositions };
-                // Attachment continuity detaches an unbuilt wrapper from the
-                // current tree. Its eventual rank must not leak back through
-                // the retained old edge when workspace positions are reserved.
-                const pendingWrappers = new Set((scene.canvas.replayOrigin?.kind === 'workspace' ? scene.canvas.children ?? [] : [])
-                  .filter(node => node.id && !scene.nodes.has(node.id)).map(node => node.id!));
-                if (pendingWrappers.size) retainCurrentSiblingRanks(current, future, undefined, relocated, pendingWrappers);
-                retainCurrentRootFork(current, future);
-              }
-              const hierarchy = d3.hierarchy(scene.canvas); applyVizIds(hierarchy);
-              const visible = new Set(scene.nodes.keys());
-              const tree = layoutSyntaxTree(hierarchy, scene.size, direction, coordinates, visible);
-              const valid = tree.descendants().filter(node => visible.has(getNodeId(node))).every(node => {
-                if (node.parent && visible.has(getNodeId(node.parent)) && node.y <= node.parent.y) return false;
-                const children = (node.children ?? []).filter(child => visible.has(getNodeId(child)));
-                return children.slice(1).every((child, index) => direction === 'rtl'
-                  ? children[index].x > child.x : children[index].x < child.x);
-              });
-              if (!valid) break;
-              if (progressive && !useWitnesses) {
-                referenceNodes = new Map(tree.descendants().filter(node => visible.has(getNodeId(node))).map(node => [getNodeId(node), node] as const));
-                lifetimePositions = new Map([...referenceNodes].filter(([id]) => memberIds.has(id))
-                  .map(([id, node]) => [id, { x: node.x, y: node.y }]));
-              }
-            }
-            output.set(scene.canvas, coordinates);
-          }
-        };
-        applyLifetime(boundary - 1, -1, false);
-        if (preserveShape) applyLifetime(boundary, 1, true);
-      }
-    }
-    return output;
-  };
-  const legacy = compute(false);
+  const compute = (policy: WorkspaceAttachmentPolicy, base?: Reservations) =>
+    reserveAttachmentLifetimes({ scenes, direction, ordinaryRoots, stableRoots, base, policy });
+  const relationAttachments = compute({ allowOrdinary: false });
   const inkCaches = [new WeakMap<Scene, WeakMap<TreeCoordinateReservation, Map<string, number> | null>>(),
     new WeakMap<Scene, WeakMap<TreeCoordinateReservation, Map<string, number> | null>>()];
-  let baseline: Reservations = compute(true, legacy);
-  let candidate: Reservations = compute(true, baseline, true, false);
+  let baseline: Reservations = compute({ allowOrdinary: true }, relationAttachments);
+  let candidate: Reservations = compute({ allowOrdinary: true, progressive: true, preserveShape: false }, baseline);
   const renderCache = new WeakMap<Scene, WeakMap<TreeCoordinateReservation, Node[]>>();
   const rendered = (scene: Scene, reservation: TreeCoordinateReservation): Node[] => {
     let sceneCache = renderCache.get(scene);
@@ -322,16 +160,15 @@ export function reserveWorkspaceAttachments(
     const after = attachmentShapeChanges(nodes(previous, proposed), nodes(scene, proposed));
     return [...after].every(([pair, change]) => change <= (before.get(pair) ?? 0) + 1e-6);
   });
-  if (!finalShapesUnchanged(baseline, legacy) || !attachmentsSafe(baseline, legacy) || !scenes.every(scene => {
-    const after = ink(scene, baseline.get(scene.canvas)!), before = ink(scene, legacy.get(scene.canvas)!);
+  if (!finalShapesUnchanged(baseline, relationAttachments) || !attachmentsSafe(baseline, relationAttachments) || !scenes.every(scene => {
+    const after = ink(scene, baseline.get(scene.canvas)!), before = ink(scene, relationAttachments.get(scene.canvas)!);
     return after && before && [...after].every(([pair, area]) => area <= (before.get(pair) ?? 0) + 1e-6);
   })) {
-    baseline = legacy;
-    candidate = compute(true, baseline, true, false);
+    baseline = relationAttachments;
+    candidate = compute({ allowOrdinary: true, progressive: true, preserveShape: false }, baseline);
   }
   // A lifetime can end when its topology changes. Reject a reservation that
   // merely moves a discontinuity to that boundary or to another component.
-  let retainingLifetimes = false;
   const activeLowerWitnesses = new WeakMap<Scene, Set<string>>();
   const movementParticipants = (before: Scene, scene: Scene): Set<string> => {
     const cached = activeLowerWitnesses.get(scene);
@@ -346,7 +183,7 @@ export function reserveWorkspaceAttachments(
         || !link.priorSourceNodeId || !link.witnessNodeId || !link.targetNodeId
         || link.targetNodeId === link.witnessNodeId || !scene.nodes.has(link.targetNodeId)) continue;
       const source = before.nodes.get(link.priorSourceNodeId), witness = scene.nodes.get(link.witnessNodeId);
-      if (!source || !witness || parentId(source, before.nodes) !== parentId(witness, scene.nodes)) continue;
+      if (!source || !witness || visibleParentId(source, before.nodes) !== visibleParentId(witness, scene.nodes)) continue;
       const priorMembers = new Set(visibleComponentNodes(source, before.nodes).map(getNodeId));
       for (const member of visibleComponentNodes(witness, scene.nodes)) {
         const id = getNodeId(member);
@@ -360,7 +197,12 @@ export function reserveWorkspaceAttachments(
     for (let current = node.parent; current && nodes.has(getNodeId(current)); current = current.parent) ancestors.push(current);
     return ancestors;
   };
-  const stableMotion = (includeRelationReflow = false) => scenes.every((scene, index) => {
+  type PlanCheck = {
+    candidate: Reservations;
+    baseline: Reservations;
+    mode: 'attachment' | 'lifetime';
+  };
+  const stableMotion = ({ candidate, baseline, mode }: PlanCheck, includeRelationReflow = false) => scenes.every((scene, index) => {
     if (!index) return true;
     const before = scenes[index - 1];
     const previous = new Map(rendered(before, candidate.get(before.canvas)!).map(node => [getNodeId(node), node] as const));
@@ -371,15 +213,15 @@ export function reserveWorkspaceAttachments(
     const currentAttachments = attachmentShapeChanges(previous, currentPositions);
     if ([...currentAttachments].some(([pair, change]) => change > (priorAttachments.get(pair) ?? 0) + 1e-6)) return false;
     const lowerWitnesses = movementParticipants(before, scene);
-    const joiningHosts = retainingLifetimes ? rigidMovementHosts(scene.step, before.nodes, scene.nodes, previous, currentPositions) : new Set<string>();
+    const joiningHosts = mode === 'lifetime' ? rigidMovementHosts(scene.step, before.nodes, scene.nodes, previous, currentPositions) : new Set<string>();
     return [...currentPositions.values()].every(node => {
       const id = getNodeId(node), original = scene.nodes.get(id)!, prior = before.nodes.get(id), moved = previous.get(id);
-      if (!prior || !moved || parentId(original, scene.nodes) !== parentId(prior, before.nodes)
-        || JSON.stringify(childrenOf(original, scene.nodes)) !== JSON.stringify(childrenOf(prior, before.nodes))) return true;
+      if (!prior || !moved || visibleParentId(original, scene.nodes) !== visibleParentId(prior, before.nodes)
+        || JSON.stringify(visibleChildIds(original, scene.nodes)) !== JSON.stringify(visibleChildIds(prior, before.nodes))) return true;
       if (scene.step.replayKind === 'relation' && visibleAncestors(prior, before.nodes).some(ancestor =>
         before.nodes.has(getNodeId(ancestor)) && ancestor.data.replayOrigin?.kind !== 'workspace'
         && !visibleAncestors(original, scene.nodes).some(current => getNodeId(current) === getNodeId(ancestor)))) return true;
-      if (retainingLifetimes) {
+      if (mode === 'lifetime') {
         // The exact lower occurrence participates in its movement moment even
         // when it remains pronounced. Earlier trajectories grant no exception.
         if (lowerWitnesses.has(id) || joiningHosts.has(id)) return true;
@@ -392,9 +234,9 @@ export function reserveWorkspaceAttachments(
         const changedSubtree = visibleComponentNodes(original, scene.nodes).some(child => {
           const old = before.nodes.get(getNodeId(child));
           return !old || child.data.label !== old.data.label || child.data.word !== old.data.word
-            || child.data.silent !== old.data.silent || JSON.stringify(childrenOf(child, scene.nodes)) !== JSON.stringify(childrenOf(old, before.nodes));
+            || child.data.silent !== old.data.silent || JSON.stringify(visibleChildIds(child, scene.nodes)) !== JSON.stringify(visibleChildIds(old, before.nodes));
         });
-        if (childrenOf(original, scene.nodes).length && changedSubtree
+        if (visibleChildIds(original, scene.nodes).length && changedSubtree
           && Math.abs(node.y - moved.y) < 1e-6) return true;
       }
       const priorMotion = Math.hypot(baselineAfter.get(id)!.x - baselineBefore.get(id)!.x,
@@ -460,11 +302,11 @@ export function reserveWorkspaceAttachments(
     }
     return overlaps;
   }
-  function finalShapesUnchanged(proposed: Reservations = candidate, accepted: Reservations = baseline) {
+  function finalShapesUnchanged(proposed: Reservations, accepted: Reservations) {
     const scene = scenes.at(-1)!;
     const before = new Map(rendered(scene, accepted.get(scene.canvas)!).map(node => [getNodeId(node), node]));
     const after = new Map(rendered(scene, proposed.get(scene.canvas)!).map(node => [getNodeId(node), node]));
-    return [...after.values()].filter(node => !parentId(node, after)).every(root => {
+    return [...after.values()].filter(node => !visibleParentId(node, after)).every(root => {
       const oldRoot = before.get(getNodeId(root))!;
       return visibleComponentNodes(root, after).every(node => {
         const old = before.get(getNodeId(node))!;
@@ -472,14 +314,25 @@ export function reserveWorkspaceAttachments(
       });
     });
   };
-  const safe = () => finalShapesUnchanged() && stableMotion() && scenes.every(scene => {
+  const completedRootsDoNotWiden = (proposed: Reservations, accepted: Reservations) => scenes.every(scene => {
+    if (scene.step.replayKind !== 'macro') return true;
+    const before = new Map(rendered(scene, accepted.get(scene.canvas)!).map(node => [getNodeId(node), node]));
+    const after = new Map(rendered(scene, proposed.get(scene.canvas)!).map(node => [getNodeId(node), node]));
+    const width = (nodes: readonly Node[]) => Math.max(...nodes.map(node => node.x)) - Math.min(...nodes.map(node => node.x));
+    return [...before.values()].filter(node => !visibleParentId(node, before)).every(root => {
+      const members = visibleComponentNodes(root, before);
+      return width(members.map(node => after.get(getNodeId(node))!)) <= width(members) + 1e-6;
+    });
+  });
+  const safe = ({ candidate, baseline, mode }: PlanCheck) => finalShapesUnchanged(candidate, baseline)
+    && stableMotion({ candidate, baseline, mode }) && scenes.every(scene => {
     const next = candidate.get(scene.canvas)!, prior = baseline.get(scene.canvas)!;
     if ([...next].every(([id, p]) => p.x === prior.get(id)?.x && p.y === prior.get(id)?.y)) return true;
-    if (retainingLifetimes) {
+    if (mode === 'lifetime') {
       const beforeNodes = new Map(rendered(scene, prior).map(node => [getNodeId(node), node]));
       const afterNodes = new Map(rendered(scene, next).map(node => [getNodeId(node), node]));
       for (const node of afterNodes.values()) {
-        const children = childrenOf(node, afterNodes);
+        const children = visibleChildIds(node, afterNodes);
         if (children.length < 2) continue;
         const span = (nodes: ReadonlyMap<string, Node>) => {
           const rows = children.map(id => nodes.get(id)!.y);
@@ -488,19 +341,19 @@ export function reserveWorkspaceAttachments(
         if (span(afterNodes) > span(beforeNodes) + 1e-6) return false;
       }
     }
-    const after = ink(scene, next, retainingLifetimes), before = ink(scene, prior, retainingLifetimes);
+    const after = ink(scene, next, mode === 'lifetime'), before = ink(scene, prior, mode === 'lifetime');
     return after && before && [...after].every(([pair, area]) => area <= (before.get(pair) ?? 0) + 1e-6);
   });
-  if (!safe()) {
+  if (!safe({ candidate, baseline, mode: 'attachment' })) {
     // A compact lower copy can leave too little room for its earlier full form.
     // In that case reserve the existing component shape instead.
-    candidate = compute(true, baseline, true);
-    if (!safe()) {
+    candidate = compute({ allowOrdinary: true, progressive: true }, baseline);
+    if (!safe({ candidate, baseline, mode: 'attachment' })) {
       // A later movement changes the parent's center and the sister's width.
       // Reserve the earlier full source by its current sister clearance only
       // when neither established plan can preserve the workspace safely.
-      candidate = compute(true, baseline, true, false, true);
-      if (!stableMotion(true) || !safe()) candidate = baseline;
+      candidate = compute({ allowOrdinary: true, progressive: true, preserveShape: false, preserveSourceClearance: true }, baseline);
+      if (!stableMotion({ candidate, baseline, mode: 'attachment' }, true) || !safe({ candidate, baseline, mode: 'attachment' })) candidate = baseline;
     }
   }
   const rememberCoherent = (coherent: ReturnType<typeof planCoherentWorkspace>) => {
@@ -510,26 +363,34 @@ export function reserveWorkspaceAttachments(
     plans.set(key, coherent.coordinates);
     return coherent.coordinates;
   };
-  // A complete solve validates every current contour and temporal constraint.
-  // Only a resolved plan can bypass the older per-component repair attempts.
+  // The coherent solve preserves current contours and motion ownership. Merge
+  // participants may still exchange sides, so check their construction order
+  // before accepting a resolved plan.
   const directInput = candidate;
-  const direct = planCoherentWorkspace(scenes, directInput, direction, rendered, {
+  const direct = planCoherentWorkspace({ scenes, baseline: directInput, direction, render: rendered, minimumSiblingGap, metrics: {
     measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel,
-  });
-  if (direct.diagnostic.status === 'resolved') return rememberCoherent(direct);
+  } });
+  const seeds = workspaceComponentLifetimeSeeds(scenes, direct.coordinates, rendered,
+    direct.diagnostic.status === 'resolved' ? 'merge-order' : 'all');
+  if (direct.diagnostic.status === 'resolved' && !seeds.some(seed => seed.attachment === 'order')) return rememberCoherent(direct);
 
   // The attachment strategies above do not cover components that stay loose,
   // or a stage opened by selection before a relation performs the attachment.
   // Only reserve a component lifetime when the already accepted plan actually
   // reflows a complete unchanged component.
-  baseline = candidate;
-  retainingLifetimes = true;
-  for (const seed of workspaceComponentLifetimeSeeds(scenes, baseline, rendered)) {
+  baseline = candidate = direct.coordinates;
+  for (const seed of seeds) {
     const before = scenes[seed.index - 1], after = scenes[seed.index];
     const earlier = new Map(rendered(before, baseline.get(before.canvas)!).map(node => [getNodeId(node), node]));
     const later = new Map(rendered(after, baseline.get(after.canvas)!).map(node => [getNodeId(node), node]));
     const resolved = (before: ReadonlyMap<string, Node>, after: ReadonlyMap<string, Node>) => {
-      if (!seed.attachment) return workspaceComponentIsStationary(before, after, seed.rootId);
+      if (seed.attachment === 'order') {
+        const wrapper = after.get(seed.rootId)!;
+        return (wrapper.children ?? []).filter(child => before.has(getNodeId(child))).every(child =>
+          visibleComponentNodes(before.get(getNodeId(child))!, before).every(member =>
+            Math.abs(after.get(getNodeId(member))!.x - member.x) <= 1e-6));
+      }
+      if (seed.attachment !== 'shape') return workspaceComponentIsStationary(before, after, seed.rootId);
       const old = before.get(seed.rootId)!, current = after.get(seed.rootId)!;
       return visibleComponentNodes(old, before).every(member => {
         const next = after.get(getNodeId(member))!;
@@ -539,21 +400,24 @@ export function reserveWorkspaceAttachments(
     if (resolved(earlier, later)) continue;
     const reserveLifetime = prepareComponentLifetimeReservations(scenes, baseline, direction, seed.index, seed.rootId, rendered);
     for (const attempt of lifetimeAttempts) {
+      // An order seed is the new complete join; it has no earlier shape to retain.
+      if (seed.attachment === 'order' && attempt.kind === 'retain') continue;
       candidate = attempt.kind === 'retain'
         ? retainUnchangedComponentLifetime(scenes, baseline, direction, seed.index, seed.rootId, rendered)
         : reserveLifetime(attempt.options);
       const reservedBefore = new Map(rendered(before, candidate.get(before.canvas)!).map(node => [getNodeId(node), node]));
       const reservedAfter = new Map(rendered(after, candidate.get(after.canvas)!).map(node => [getNodeId(node), node]));
       if (resolved(reservedBefore, reservedAfter)
-        && stableMotion(true) && safe()) {
+        && (seed.attachment !== 'order' || completedRootsDoNotWiden(candidate, baseline))
+        && stableMotion({ candidate, baseline, mode: 'lifetime' }, true) && safe({ candidate, baseline, mode: 'lifetime' })) {
         baseline = candidate;
         break;
       }
       candidate = baseline;
     }
   }
-  const coherent = candidate === directInput ? direct : planCoherentWorkspace(scenes, candidate, direction, rendered, {
+  const coherent = candidate === direct.coordinates ? direct : planCoherentWorkspace({ scenes, baseline: candidate, direction, render: rendered, minimumSiblingGap, metrics: {
     measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel,
-  });
+  } });
   return rememberCoherent(coherent);
 }

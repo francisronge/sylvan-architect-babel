@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
-import { compileRelationRenderPlan, visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { formatAuthoredWitnessSurface, formatTraceSurfaceForDisplayValue } from '../replay/replaySurfaceNotation.ts';
 

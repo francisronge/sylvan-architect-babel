@@ -8,6 +8,8 @@ import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCamera.ts';
 import { visibleComponentNodes } from '../replay/visibleComponent.ts';
+import { prepareTreeInkSubtrees } from '../replay/treeInkGeometry.ts';
+import { currentForkBranchesClear } from '../replay/workspaceForkClearance.ts';
 
 const { cases } = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/workspace-historical-continuity.json', import.meta.url)));
 for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction of ['ltr', 'rtl']) for (const record of cases) {
@@ -70,15 +72,17 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
       }
     }
     if (record.expectedFinalRelative) {
+      // A coherent lifetime may tighten the final pose. Reviewed geometry is
+      // an upper bound; current ranks, order and painted clearance remain strict.
       const final = frame(steps.length), root = [...final.values()].find(node => !node.parent || !final.has(getNodeId(node.parent)));
       const key = width === 1600 ? (direction === 'ltr' ? 'desktop' : 'rtl') : (direction === 'ltr' ? 'phone' : 'phone-rtl');
       const expected = new Map(record.expectedFinalRelative[key].map(([id, x, y]) => [id, { x, y }]));
+      const ink = prepareTreeInkSubtrees(final);
       for (const [id, point] of expected) {
         const node = final.get(id); assert(node);
         assert(Number.isFinite(node.x) && Number.isFinite(node.y));
         if (node.parent && final.has(getNodeId(node.parent))) assert(node.y > node.parent.y, `${id}: branch points down`);
-        assert(Math.abs(node.y - root.y - point.y) < 1e-8, `${id} retains native final rank`);
-        assert(Math.abs(node.x - root.x - point.x) < 1e-6, `${id} retains its reviewed final displacement`);
+        assert(node.y - root.y <= point.y + 1e-6, `${id} does not gain extra vertical depth`);
         const children = (node.children ?? []).filter(child => final.has(getNodeId(child)));
         for (let i = 1; i < children.length; i++) {
           assert(Math.abs(children[i].y - children[0].y) < 1e-8, `${id}: siblings share their rank`);
@@ -87,8 +91,12 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
         }
         const checkInterval = (a, b) => {
           const before = expected.get(b).x - expected.get(a).x, after = final.get(b).x - final.get(a).x;
-          assert(Math.abs(after - before) < 1e-6, `${id}: reviewed interval ${a}–${b} stays exact`);
+          assert(Math.abs(after) <= Math.abs(before) + 1e-6, `${id}: reviewed interval ${a}–${b} does not widen`);
         };
+        if (children.length > 1) assert(currentForkBranchesClear(node, children.map(child => ({
+          point: child,
+          obstacles: ink(child).map(rect => ({ ...rect, x: rect.x - child.x, y: rect.y - child.y }))
+        }))), `${id}: branches avoid sibling ink`);
         for (const child of children) checkInterval(id, getNodeId(child));
         for (let i = 1; i < children.length; i++) checkInterval(getNodeId(children[i - 1]), getNodeId(children[i]));
       }

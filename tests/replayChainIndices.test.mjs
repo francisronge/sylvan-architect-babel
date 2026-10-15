@@ -1,12 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import {
-  buildResolvedLinkTraceIndexMap,
-  buildMovementChainIndexCatalogue,
-  formatIndexedSurfaceForDisplayValue,
-  formatTraceSurfaceForDisplayValue
-} from '../replay/replayCompiler.ts';
+import { buildResolvedLinkTraceIndexMap, buildMovementChainIndexCatalogue } from '../replay/movementIndices.ts';
+import { formatIndexedSurfaceForDisplayValue, formatTraceSurfaceForDisplayValue } from '../replay/replaySurfaceNotation.ts';
 
 const occurrence = (id, word = 'word') => ({ id, label: 'DP', word });
 const movement = (sourceNodeId, targetNodeId, stepIndex = 0, extra = {}) => ({

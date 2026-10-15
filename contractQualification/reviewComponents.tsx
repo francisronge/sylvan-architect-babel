@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TreeVisualizer from '../components/AsyncTreeVisualizer';
-import { buildDerivationCanvasData } from '../replay/replayCompiler';
+import { buildDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { displayTreeForAnalysis } from '../replay/finalForest';
 import { duplicateStageNodeIds, inspectionStageDisplay } from './diagnosticReplay';
 import { InspectionIdentityNotice } from './InspectionIdentityNotice';

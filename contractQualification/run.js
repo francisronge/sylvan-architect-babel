@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
 
-import { __test__ as parserTest } from '../server/babelParser.js';
+import { parseModelJsonDetailed } from '../server/babelParser/modelJson.js';
+import { inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { resolveResearchModelSelection } from '../server/babelParser/researchModelCatalog.js';
 import {
   FAILURE_CLASSES,
@@ -217,7 +219,7 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
   let inspection = null;
   const analysisOutcomes = [];
   try {
-    const parsed = parserTest.parseModelJsonDetailed(rawOutput);
+    const parsed = parseModelJsonDetailed(rawOutput);
     parsedPayload = parsed.payload;
     ingress = {
       integrityFlags: Array.isArray(parsed.integrityFlags) ? parsed.integrityFlags : [],
@@ -242,7 +244,7 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
         .map((analysis, analysisIndex) => ({
           analysisIndex,
           authoredAnalysis: structuredClone(analysis),
-          stages: parserTest.inspectDerivationWorkspaces(analysis?.derivationStages, {
+          stages: inspectDerivationWorkspaces(analysis?.derivationStages, {
             analysisIndex,
             sentence: attempt.request.sentence,
             sentenceTokens: resolveSavedInputTokens(attempt.request.sentence, attempt.request.inputTokens),
@@ -252,7 +254,7 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
     };
     phase = 'normalization';
     const reasoningSetting = Object.values(attempt.model.nativeSettings)[0] || '';
-    const normalized = stripVolatileProvenance(parserTest.normalizeParseBundle(
+    const normalized = stripVolatileProvenance(normalizeParseBundle(
       parsed.payload,
       attempt.request.framework,
       attempt.request.sentence,

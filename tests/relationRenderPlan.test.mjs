@@ -2,19 +2,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-import { createRelationRegistry } from '../replay/relationDispatch/index.js';
-import {
-  compileRelationRenderPlan,
-  planItemOwnsRelationMoment,
-  isPlanItemRevealed
-} from '../replay/relations/renderPlanCompiler.ts';
+import { createRelationRegistry } from '../replay/relationDispatch/relationRegistry.js';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemOwnsRelationMoment, isPlanItemRevealed } from '../replay/relations/renderPlan.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { fallbackDrawing } from '../replay/relations/fallbackTopology.ts';
-import {
-  LARGE_ANCHOR_ARRAY_THRESHOLD,
-  compileLargeAnchorSets
-} from '../replay/relations/largeAnchorSets.ts';
+import { LARGE_ANCHOR_ARRAY_THRESHOLD, compileLargeAnchorSets } from '../replay/relations/largeAnchorSets.ts';
 
 const leaf = (id, label, word, extra = {}) => ({ id, label, ...(word ? { word } : {}), ...extra });
 const node = (id, label, children, extra = {}) => ({ id, label, children, ...extra });
@@ -1482,10 +1476,8 @@ test('a similarly named unregistered relation never inherits a full-array exempt
 
 test('values and priorAnchors travel verbatim through the replay plan and authored links', async () => {
   const { buildDerivationReplayPlan } = await import('../derivationReplayPlan.js');
-  const {
-    adaptDerivationStagesForReplay,
-    buildAuthoredRelationLinksForFrames
-  } = await import('../replay/replayCompiler.ts');
+  const { adaptDerivationStagesForReplay } = await import('../replay/authoredFrames.ts');
+const { buildAuthoredRelationLinksForFrames } = await import('../replay/frameRelations.ts');
 
   const before = node('tp_v_before', 'TP', [leaf('lex_before', 'X', 'le')]);
   const after = node('tp_v_after', 'TP', [leaf('lex_after', 'X', 'se'), leaf('lex_other', 'Y', 'lo')]);
@@ -1509,11 +1501,12 @@ test('values and priorAnchors travel verbatim through the replay plan and author
   assert.deepEqual(relationStep.values, { register: ['α', 'β'], note: 'verbatim' });
 
   const frames = adaptDerivationStagesForReplay(stages);
-  const links = buildAuthoredRelationLinksForFrames(
+  const links = buildAuthoredRelationLinksForFrames({
     frames,
     replayPlan,
-    1,
-    [after]
+    activeFrameIndex: 1,
+    forest: [after]
+  }
   );
   assert.equal(links.length, 1);
   assert.deepEqual(links[0].priorAnchors, { replaced: 'lex_before' });

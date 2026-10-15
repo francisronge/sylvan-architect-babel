@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { compileRelationRenderPlan, isPlanItemRevealed, planItemRelationRefs, visiblePlanFrameItems } from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { isPlanItemRevealed, planItemRelationRefs } from '../replay/relations/renderPlan.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { caseFeatureComposition, featurePlaqueAssignment } from '../replay/relations/featureComposition.ts';
 
 const forest = [{ id: 'root', label: 'TP', children: [

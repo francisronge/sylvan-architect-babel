@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import ts from 'typescript';
+// Run the complete hook with controlled effects and worker completions to
+// exercise stale-result races without adding a React testing runtime.
 const source = readFileSync(new URL('../components/useReplayPlaqueLayout.ts', import.meta.url), 'utf8');
 const parsed = ts.createSourceFile('layout.ts', source, ts.ScriptTarget.Latest, true);
 const body = parsed.statements.filter(node => !ts.isImportDeclaration(node))

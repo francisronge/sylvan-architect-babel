@@ -28,17 +28,6 @@ export const collectNodeReferencesById = (value) => {
   return references;
 };
 
-export const normalizeSurfaceSpan = (value) => {
-  if (!Array.isArray(value) || value.length !== 2) return undefined;
-  if (value[0] === null || value[0] === undefined || value[1] === null || value[1] === undefined) {
-    return undefined;
-  }
-  const start = Number(value[0]);
-  const end = Number(value[1]);
-  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start) return undefined;
-  return [start, end];
-};
-
 export const normalizeTokenIndex = (value, sentenceLength) => {
   if (value === null || value === undefined || typeof value === 'boolean') return undefined;
   if (typeof value === 'string' && value.trim() === '') return undefined;

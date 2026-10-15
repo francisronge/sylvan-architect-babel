@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
-import { __test__ } from '../server/babelParser.js';
+import { inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
 import { diagnosticReplayStages } from '../contractQualification/diagnosticReplay.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 
@@ -48,7 +48,7 @@ test('self-contained workspaces restart inspection after a break without resurre
     stage([node('last', 'Last')])
   ];
   const original = structuredClone(stages);
-  const inspected = __test__.inspectDerivationWorkspaces(stages, { analysisIndex: 2, fieldPath: '$.analyses[2]' });
+  const inspected = inspectDerivationWorkspaces(stages, { analysisIndex: 2, fieldPath: '$.analyses[2]' });
   assert.deepEqual(inspected.map(({ workspaceForest }) => workspaceForest?.[0]?.word ?? null), [
     'Old', null, null, 'New', 'New', null, 'Last'
   ]);

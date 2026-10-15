@@ -1,8 +1,6 @@
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
-import {
-  compileRelationRenderPlan,
-  planItemRelationRefs
-} from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
 import { dispatchStageRelations } from '../replay/relations/tier2RelationDispatch.ts';
 
 const relationKey = ({ stageIndex, relationIndex }) => `${stageIndex}:${relationIndex}`;

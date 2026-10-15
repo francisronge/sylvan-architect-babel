@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import { hierarchy } from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { collectPronouncedLeafNodeIdsInOrder, hasSilentOrGhostAncestor } from '../replay/replayCompiler.ts';
+import { collectPronouncedLeafNodeIdsInOrder, hasSilentOrGhostAncestor } from '../replay/syntaxForest.ts';
 
 const load = name => JSON.parse(fs.readFileSync(new URL(`../fixtures/replay-regressions/${name}.json`, import.meta.url)));
 const nodes = root => [root, ...(root.children ?? []).flatMap(nodes)];

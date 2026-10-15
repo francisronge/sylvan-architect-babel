@@ -1,3 +1,6 @@
+import type * as d3 from 'd3';
+import { isWordlessLeaf } from '../server/babelParser/nodePronunciation.js';
+import type { SyntaxNode } from '../types.ts';
 import { categoryLabel as normalizeStructuralLabel } from './categoryLabel.ts';
 
 /** Surface and index notation only; this does not infer movement or pronunciation. */
@@ -148,9 +151,38 @@ const NULL_LIKE_LABEL = /^(∅|Ø|ε|NULL|EPSILON)$/i;
 
 export const isNullLike = (label: string): boolean => NULL_LIKE_LABEL.test(label.trim());
 
-/** A rendered leaf is terminal material even when `t` also resembles T. */
-export const isDisplayTerminalSurface = (surface?: string): boolean => {
+/**
+ * A wordless leaf is an abstract category whatever its label spells, unless
+ * the label is display notation for an unpronounced position (`t`, `∅`).
+ */
+export const isWordlessCategoryLeaf = (node: SyntaxNode): boolean =>
+  isWordlessLeaf(node) && !isNotationSurface(node.label);
+
+/** Match painted terminal material, including authored words that spell categories. */
+export const isDisplayTerminalNode = (node: SyntaxNode): boolean =>
+  !node.children?.length && !isWordlessCategoryLeaf(node);
+
+export const resolveLeafSurface = (node: d3.HierarchyNode<SyntaxNode>): string => (node.data.word || node.data.label || '').trim();
+
+
+/**
+ * Pronunciation is decided by authored fields (nodePronunciation.js). The
+ * helpers below add notation styling for unpronounced leaves and inherit
+ * silence from current syntax, never from invisible future layout context.
+ */
+export const isNotationSurface = (surface?: string): boolean => {
   const trimmed = String(surface || '').trim();
-  return Boolean(trimmed)
-    && (isTraceLike(trimmed) || isNullLike(trimmed) || !isStructuralCategorySurface(trimmed));
+  return Boolean(trimmed) && (isTraceLike(trimmed) || isNullLike(trimmed));
+};
+
+
+export const shouldExpandPreterminalLeaf = (node: SyntaxNode): boolean => {
+  if (Array.isArray(node.children) && node.children.length > 0) return false;
+  const label = String(node.label || '').trim();
+  const word = typeof node.word === 'string' ? node.word.trim() : '';
+  if (!label || !word) return false;
+  if (isTraceLike(label)) return false;
+  // Surface-token matching strips notation such as √; category labels must retain it.
+  if (label.toLowerCase() === word.toLowerCase()) return false;
+  return true;
 };

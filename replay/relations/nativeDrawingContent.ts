@@ -1,6 +1,6 @@
 import type { SyntaxNode } from '../../types.ts';
-import type { Tier2FacetEvidence } from './tier2FacetRecipes.ts';
 import type { LocalDislocationContent } from './localDislocationContent.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 
 
 export type NativePlaqueContent =

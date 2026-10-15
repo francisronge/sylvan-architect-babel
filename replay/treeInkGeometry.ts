@@ -1,11 +1,11 @@
-import type { TreeLabelRuns, TreeLabelMeasure, TreeLabelBounds } from './treeLabelRuns.ts';
 import type { HierarchyPointNode } from 'd3';
-import type { SyntaxNode } from '../types.ts';
 import { caseSurfaceInitial } from '../server/babelParser/surfaceTokens.js';
+import type { SyntaxNode } from '../types.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
 import { getNodeId } from './displayIdentity.ts';
-import { REPLAY_GENERATED_TERMINAL_GLYPHS } from './replayCompiler.ts';
-import { plaqueTreeObstacles, plaqueBranchObstacles, type PlaqueRect } from './relations/plaquePlacement.ts';
+import { plaqueBranchObstacles, plaqueTreeObstacles, type PlaqueRect } from './relations/plaquePlacement.ts';
+import { REPLAY_GENERATED_TERMINAL_GLYPHS } from './replaySurfaceNotation.ts';
+import type { TreeLabelBounds, TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 
 export type TreeInkTextStyle = 'category' | 'terminal' | 'category-index' | 'terminal-index';
 /** Glyph x bounds use a left-aligned origin; ascent/descent are baseline distances. */

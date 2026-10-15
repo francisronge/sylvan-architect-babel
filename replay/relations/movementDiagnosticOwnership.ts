@@ -1,8 +1,9 @@
 import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
+import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
+import { findRelationRegistryEntry } from '../relationDispatch/relationRegistry.js';
 import type { RecoveredMovement } from './movementEvidence.ts';
-import type { RelationClaimDispatch } from './tier2RelationDispatch.ts';
 import { foldMovementIdentityKey, isMovementIdentity } from './movementIdentities.ts';
-import { findRelationRegistryEntry, productionRelationRegistry } from '../relationDispatch/index.js';
+import type { RelationClaimDispatch } from './relationClaims.ts';
 
 /** A rejected movement candidate can describe an earlier event's context.
  * Keep the rejection in claim evidence, without attributing it to a second

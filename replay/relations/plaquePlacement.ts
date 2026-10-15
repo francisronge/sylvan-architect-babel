@@ -1,14 +1,38 @@
-import { categoryTextLayout, CATEGORY_LINE_HEIGHT, type CategoryTextMeasure } from '../categoryTextLayout.ts';
-import { isWordlessCategoryLeaf, shouldExpandPreterminalLeaf, resolveLeafSurface } from '../replayCompiler.ts';
 import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
-import { planItemRelationRefs, type RelationPlanItem } from './renderPlanCompiler.ts';
-import { featureSharingPlaqueRect, dependentCaseStatePlaques, sampleCubic } from './markGeometry.ts';
-import { caseAssignmentPlaqueCurve, featureCollectionPlaqueCurve, featureCollectionEdge, type CollectionEdge } from './overlayGeometry.ts';
-import { caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow } from './featureComposition.ts';
-import { prepareCasePlaqueRows, preparePlaqueTextLayout, preparePfPlaqueTextLayout, prepareThetaGridTextLayout, type PlaqueTextMeasure } from './plaqueTextLayout.ts';
-import { preparePlaqueObstacleIndex, preparePlaqueOverlapIndex, preparePlaqueColumnIntervals, plaqueColumnContains, plaquesOverlap, type ObstacleRect } from './plaqueObstacleIndex.ts';
+import { CATEGORY_LINE_HEIGHT, categoryTextLayout, type CategoryTextMeasure } from '../categoryTextLayout.ts';
+import { isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf } from '../replaySurfaceNotation.ts';
 import { cubicIntersectsRect } from './curveClearance.ts';
+import {
+  caseFeatureComposition,
+  collectionPlaque,
+  featurePlaqueAssignment,
+  featureRowKey,
+  pathFeatureRow
+} from './featureComposition.ts';
+import { dependentCaseStatePlaques, featureSharingPlaqueRect, sampleCubic } from './markGeometry.ts';
+import {
+  caseAssignmentPlaqueCurve,
+  featureCollectionEdge,
+  featureCollectionPlaqueCurve,
+  type CollectionEdge
+} from './overlayGeometry.ts';
+import {
+  plaqueColumnContains,
+  plaquesOverlap,
+  preparePlaqueColumnIntervals,
+  preparePlaqueObstacleIndex,
+  preparePlaqueOverlapIndex,
+  type ObstacleRect
+} from './plaqueObstacleIndex.ts';
+import {
+  prepareCasePlaqueRows,
+  preparePfPlaqueTextLayout,
+  preparePlaqueTextLayout,
+  prepareThetaGridTextLayout,
+  type PlaqueTextMeasure
+} from './plaqueTextLayout.ts';
+import { planItemRelationRefs, type RelationPlanItem } from './renderPlan.ts';
 export { plaquesOverlap } from './plaqueObstacleIndex.ts';
 
 export type PlaqueRect = ObstacleRect & {
@@ -112,18 +136,6 @@ export function projectPlaqueLayout(layout: Map<number, PlaquePlacement>, positi
       y: placement.y + anchor.y - placement.attachmentY });
   });
   return projected;
-}
-
-/** Match the reserved connector to its own value row, including shared plaques. */
-export function collectionPlaqueEdge(box: PlaqueRect, sourceNodeId: string, rowY: number) {
-  return box.collectionRows?.find(row => row.sourceNodeId === sourceNodeId
-    && Math.abs(row.y - rowY) < 1e-6)?.edge;
-}
-
-/** The reserved port stays plaque-local through Replay projection and zoom. */
-export function collectionPlaquePortX(box: PlaqueRect, sourceNodeId: string, rowY: number) {
-  return box.collectionRows?.find(row => row.sourceNodeId === sourceNodeId
-    && Math.abs(row.y - rowY) < 1e-6)?.portX;
 }
 
 const branchWeights = Array.from({ length: 32 }, (_, index) => {
@@ -567,7 +579,7 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
       if (item.plaqueStyle === 'feature') {
         if (featurePlaqueAssignment(items, index) !== undefined) return;
       }
-      let size = preparePlaqueTextLayout(item, { variant: item.plaqueStyle === 'feature' ? 'feature' : 'generic' });
+      let size = preparePlaqueTextLayout(item, { variant: item.plaqueStyle === 'feature' ? 'feature' : 'generic', measureText });
       if (item.plaqueStyle === 'realization') {
         const rows = item.rows.map((row, rowIndex) => ({ ...row, rowIndex,
           kind: item.realizationRowKinds?.[rowIndex], isFinal: rowIndex === item.rows.length - 1 }));

@@ -1,11 +1,14 @@
 import type { SyntaxNode } from '../../types.ts';
-import { scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
-import { POSITIVE_OUTCOMES, type Tier2FacetEvidence } from './tier2FacetRecipes.ts';
-import { normalizeTier2Synonym } from './tier2Synonyms.ts';
-import { relationAssertionFailure, resolveOutcomeLiteral } from './outcomeResolver.ts';
-import { establishesAssignment } from './assignmentContinuity.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
-import { relationLabelClauses } from './tier2Synonyms.ts';
+import { scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
+import {
+  establishesAssignment,
+  POSITIVE_OUTCOMES,
+  relationAssertionFailure,
+  resolveOutcomeLiteral
+} from './outcomeResolver.ts';
+import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
+import { normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
 
 /** Silence is authored on the exact target or throughout its entire yield.
  * A wordless terminal alone does not establish silence. */

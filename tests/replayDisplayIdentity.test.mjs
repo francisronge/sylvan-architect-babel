@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import test from 'node:test';
 import * as d3 from 'd3';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
-import { buildRenderableDerivationCanvasData, projectAuthoredSyntaxNode, isSyntheticWorkspaceRootNode } from '../replay/replayCompiler.ts';
+import { buildRenderableDerivationCanvasData, isSyntheticWorkspaceRootNode } from '../replay/replayCanvas.ts';
+import { projectAuthoredSyntaxNode } from '../replay/syntaxForest.ts';
 import { replayOwnerId, isReplayDisplayChild } from '../replay/displayIdentity.ts';
 
 const nodes = tree => tree ? [tree, ...(tree.children ?? []).flatMap(nodes)] : [];

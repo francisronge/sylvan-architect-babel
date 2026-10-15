@@ -1,5 +1,5 @@
-import { boundedStringTransform } from '../boundedStringTransform.ts';
 import type { SyntaxNode } from '../../types.ts';
+import { boundedStringTransform } from '../boundedStringTransform.ts';
 import { categoryLabel, readCategoryLabel } from '../categoryLabel.ts';
 
 /**
@@ -159,7 +159,7 @@ export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [
 
   group('role', 'phase', ['phase', 'phase domain', 'phase phrase']),
   group('role', 'phase.head', ['phase head']),
-  group('role', 'phase.edge', ['phase edge', 'escape hatch', 'phase periphery', 'accessible DPs', 'accessible subject', 'accessible wh occurrence']),
+  group('role', 'phase.edge', ['phase edge', 'escape hatch', 'phase periphery'], ['accessible DPs', 'accessible subject', 'accessible wh occurrence']),
   group('role', 'transfer.domain', ['transfer domain', 'spell out domain', 'spellout domain', 'transferred domain', 'transferred complement'], ['complement', 'complement domain']),
   group('role', 'access.source', ['access source', 'source', 'probe', 'search source', 'higher probe']),
   group('role', 'access.target', ['access target', 'target', 'goal', 'inaccessible goal', 'embedded target']),
@@ -217,7 +217,7 @@ export const TIER2_VALUE_SYNONYMS: readonly Tier2SynonymGroup[] = [
   group('value', 'feature.rows', ['feature rows', 'features', 'feature bundle', 'valuations', 'feature values', 'agreement', 'agreement features', 'checked features', 'shared features', 'licensed features', 'phi', 'φ', 'phi features', ...FEATURE_DIMENSION_KEYS]),
   group('value', 'plaque.rows', ['plaque rows', 'rows', 'fields', 'entries', 'record values']),
   group('value', 'pf.rows', ['pf rows', 'pf plate rows', 'morphology rows', 'realization plate rows', 'pf entries', 'realization', 'tense', 'tense value', 'exponent']),
-  group('value', 'pf.surface', ['surface form', 'realized form', 'surface realization', 'surface word', 'surface token', 'surface tokens', 'input token', 'input tokens', 'realization', 'surface sequence', 'surface pieces', 'input pieces in order']),
+  group('value', 'pf.surface', ['surface form', 'realized form', 'surface realization', 'surface word', 'surface token', 'surface tokens', 'input token', 'input tokens', 'realization', 'surface sequence', 'orthographic sequence', 'surface pieces', 'input pieces in order']),
   group('value', 'fission.input', ['input features']),
   group('value', 'fission.output', ['output features', 'outputs features', 'bundle features']),
   group('value', 'feature.hierarchy', ['feature hierarchy']),
@@ -363,7 +363,7 @@ export const relationValueConcepts = (index: Tier2SynonymIndex, key: string,
   const concepts = new Set(lookupTier2SynonymCandidates(index, 'value', key));
   const normalized = normalizeTier2Synonym(key);
   if (isRealizationDescription(context.relation ?? '')
-    && /^(?:output|form|input word|input spelling)$/u.test(normalized)) concepts.add('pf.surface');
+    && /^(?:output|form|input word|input spelling|orthographic tokens)$/u.test(normalized)) concepts.add('pf.surface');
   // A separately named word/spelling is the surface value. A general
   // realization description remains a literal row, not a competing spelling.
   if (normalized === 'realization' && Object.keys(context.values ?? {}).some(field =>
@@ -374,7 +374,7 @@ export const relationValueConcepts = (index: Tier2SynonymIndex, key: string,
     concepts.add('pf.surface');
   if (isRealizationDescription(context.relation ?? '')
     && !Object.keys(context.anchors ?? {}).some(role => lookupTier2SynonymCandidates(index, 'role', role).includes('pf.contributors'))
-    && (FEATURE_DIMENSION_KEYS.has(normalized) || /^(?:morphology|inflection|lexical form|inflected form|resulting stem|surface stem|surface word|surface form|surface sequence|input pieces|input pieces in order|aspect|voice|tense aspect|features|agreement|(?:(?:verb|verbal) )?agreement specification|form|auxiliary form)$/u.test(normalized))) concepts.add('pf.rows');
+    && (FEATURE_DIMENSION_KEYS.has(normalized) || /^(?:morphology|morphological sequence|orthographic sequence|inflection|lexical form|inflected form|resulting stem|surface stem|surface word|surface form|surface sequence|input pieces|input pieces in order|aspect|voice|tense aspect|features|agreement|(?:(?:verb|verbal) )?agreement specification|form|auxiliary form)$/u.test(normalized))) concepts.add('pf.rows');
   if (normalized === 'status' && isWholeClauseJudgmentRelation(context.relation ?? '')) concepts.add('verdict');
   if (/(?:^| )role$/u.test(normalized)
     && Object.keys(context.anchors ?? {}).some(role => lookupTier2SynonymCandidates(index, 'role', role).includes('predicate'))
@@ -420,6 +420,15 @@ export const isRealizationDescription = (name: string): boolean => {
     /\b(?:realization|realisation|realized|contraction|inflection|inflectional|inflected|morphological|allomorphy|allomorph|stem formation|finite tense|tense compatibility|tense form compatibility|finite form|finite lexical form|finite feature|finite auxiliary feature|voice feature compatibility|aspectual feature matching|input association)\b/u.test(clause));
   return claims.length > 0 && claims.every(clause =>
     !/\b(?:no|not|never|without|denied|rejected|failed|blocked|unmet|required|requirement|requested|expected|selection|mismatch|unlicensed|pending|unresolved|unestablished|possible|potential|hypothetical|whether|if|unless)\b/u.test(clause));
+};
+
+/** A property is a predicate only in an asserted predication claim. Selection,
+ * property inventories and questions about predication supply no such role. */
+export const isPredicationDescription = (name: string): boolean => {
+  const clauses = relationLabelClauses(name).filter(clause => /\b(?:predication|predicative)\b/u.test(clause));
+  return clauses.length === 1 && (/^(?:[\p{L}]+ )?predication(?: (?:relation|dependency))?$/u.test(clauses[0])
+    || /^predicative (?:subject|object) role$/u.test(clauses[0]))
+    && !/\b(?:no|not|without|possible|potential|hypothetical|pending|unresolved|failed|blocked|unlicensed)\b/u.test(clauses[0]);
 };
 
 export const isUnestablishedCovertMovementDescription = (name: string): boolean => relationLabelClauses(name)
@@ -476,7 +485,7 @@ export const relationRoleConcepts = (
   const modifiedParticipant = Object.keys(context.anchors ?? {}).some(role => /^modified (?:nominal|predicate)$/u.test(normalizeTier2Synonym(role)));
   if (!/\b(?:possible|potential|hypothetical)\b/u.test(relationName)
     && (/\b(?:modification|adjunction)\b/u.test(relationName) || modifiedParticipant)) {
-    if (/^(?:modifier(?: pp|phrase|constituent)?|adjunct)$/u.test(spelling)) concepts.add('pair.member');
+    if (/^(?:modifier(?: pp| phrase| constituent)?|adjunct)$/u.test(spelling)) concepts.add('pair.member');
     const declaredHost = Object.keys(context.anchors ?? {}).some(role =>
       lookupTier2SynonymCandidates(index, 'role', role).includes('host'));
     if (!declaredHost && /^(?:modified (?:nominal|predicate)|nominal|noun)$/u.test(spelling)) concepts.add('host');
@@ -485,7 +494,16 @@ export const relationRoleConcepts = (
   if (isRealizationDescription(relationName)) {
     const entries = Object.entries(context.anchors ?? {});
     const complexRole = (role: string) => /^(?:complex head|head complex|(?:inflectional|morphological|realization) domain|realization complex)$/u.test(normalizeTier2Synonym(role));
-    const hostRole = (role: string) => complexRole(role)
+    const realizedOccurrence = (role: string) => {
+      if (!/^realized (?:head|terminal|occurrence)$/u.test(normalizeTier2Synonym(role)) || !context.forest) return false;
+      const id = context.anchors?.[role];
+      if (typeof id !== 'string') return false;
+      const matches: SyntaxNode[] = [];
+      const visit = (node: SyntaxNode) => { if (node.id === id) matches.push(node); node.children?.forEach(visit); };
+      context.forest.forEach(visit);
+      return matches.length === 1 && !matches[0].children?.length && Boolean(matches[0].word?.trim());
+    };
+    const hostRole = (role: string) => complexRole(role) || realizedOccurrence(role)
       || /^(?:(?:inflected|finite|lexical) verb|verb|verbal stem|(?:[\p{L}]+ )?exponent|finite predicate|stem|proper name|name|auxiliary)$/u.test(normalizeTier2Synonym(role));
     const explicit = entries.filter(([role]) => lookupTier2SynonymCandidates(index, 'role', role).includes('rewrite.output'));
     const hosts = explicit.length ? explicit : entries.filter(([role]) => hostRole(role));

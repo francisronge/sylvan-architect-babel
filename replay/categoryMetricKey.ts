@@ -1,6 +1,6 @@
-import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
 import type { SyntaxNode } from '../types.ts';
+import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
+import type { PlaybackStep } from './types.ts';
 
 type MetricKeys = { labels: string[]; measured: WeakMap<CategoryTextMeasure, string>; fallback?: string };
 const metricKeys = new WeakMap<readonly PlaybackStep[], MetricKeys>();

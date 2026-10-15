@@ -43,6 +43,8 @@ test('an explicit phase-edge landing retains its movement and exact outline owne
   assert.deepEqual(marks[0].memberNodeIds, ['high']);
   assert.equal(marks[0].domainStyle, 'transfer-edge');
   assert.deepEqual({ relation, forest }, original);
+  const contextual = { ...relation, anchors: { ...relation.anchors, accessibleSubject: 'low' } };
+  assert.deepEqual(plans(contextual).filter(item => item.domainStyle === 'transfer-edge').map(item => item.rootNodeId), ['high']);
 });
 
 test('phase-edge meaning can be explicit in the operation or in its typed trigger', () => {
@@ -132,4 +134,68 @@ test('an explicit Transfer composition continues to own its edge outline', () =>
   assert(result.diagnostics.some(diagnostic => diagnostic.collision === 'transfer-owns-edge'));
   assert.equal(plans(record, current).filter(item => item.kind === 'domain-mark'
     && item.domainStyle === 'transfer-edge' && item.rootNodeId === 'high').length, 1);
+});
+
+test('accessible participants alone do not assert a current phase edge', () => {
+  for (const role of ['accessibleSubject', 'accessibleWhOccurrence', 'accessibleDPs']) {
+    const record = { relation: 'subject-edge requirement',
+      anchors: { [role]: 'low', requiringHead: 'phaseHead' },
+      values: { requirement: 'place the subject at the edge of T' } };
+    assert(!recipes(record).includes('phase.edge'), role);
+    assert(!plans(record).some(item => item.kind === 'domain-mark'), role);
+    const result = dispatch(record);
+    assert.deepEqual(result.evidenceCoverage.fields.find(field => field.key === role).unrecoveredItemIndices, [0]);
+    assert.deepEqual(result.primaryRelation, record);
+  }
+});
+
+test('accessibility is located by the complete Transfer configuration, not an independent edge recipe', () => {
+  const current = structuredClone(forest);
+  current[0].children[1].children[0].label = 'v';
+  const record = { relation: 'Unregistered transfer description', anchors: {
+    phaseHead: 'phaseHead', transferredDomain: 'predicate', accessibleSubject: 'high'
+  } };
+  assert.deepEqual(recipes(record, current), ['transfer.domain']);
+  const mixedForest = structuredClone(current);
+  mixedForest[0].children.unshift({ id: 'anotherEdge', label: 'DP' });
+  const mixed = { ...record, anchors: { ...record.anchors, phaseEdge: 'anotherEdge' } };
+  assert.deepEqual(recipes(mixed, mixedForest), ['transfer.domain']);
+  assert.deepEqual(plans(mixed, mixedForest).filter(item => item.domainStyle === 'transfer-edge')
+    .map(item => item.rootNodeId).sort(), ['anotherEdge', 'high']);
+  assert.equal(plans(record, current).filter(item => item.kind === 'domain-mark'
+    && item.domainStyle === 'transfer-edge' && item.rootNodeId === 'high').length, 1);
+  for (const anchors of [
+    { ...record.anchors, transferredDomain: 'missing' },
+    { ...record.anchors, accessibleSubject: 'low' },
+    { ...record.anchors, phaseHead: 'verb' },
+    { phaseHead: 'phaseHead', accessibleSubject: 'high' }
+  ]) {
+    assert(!recipes({ ...record, anchors }, current).includes('transfer.domain'));
+    assert(!recipes({ ...record, anchors }, current).includes('phase.edge'));
+    assert(!plans({ ...record, anchors }, current).some(item => item.domainStyle === 'transfer-edge'));
+  }
+});
+
+test('an independent explicit edge survives beside unproven accessibility and malformed primary claims', () => {
+  const record = { relation: 'Novel observation', anchors: { phaseEdge: 'high', accessibleSubject: 'low' } };
+  assert.deepEqual(plans(record).filter(item => item.domainStyle === 'transfer-edge').map(item => item.rootNodeId), ['high']);
+  const result = dispatch(record);
+  assert.deepEqual(result.evidenceCoverage.fields.find(field => field.key === 'phaseEdge').unrecoveredItemIndices, []);
+  assert.deepEqual(result.evidenceCoverage.fields.find(field => field.key === 'accessibleSubject').unrecoveredItemIndices, [0]);
+  assert(recipes({ relation: 'Novel observation', anchors: { phaseHead: 'phaseHead', edge: 'high' } }).includes('phase.edge'));
+  assert(!recipes({ relation: 'Phase', anchors: { accessibleSubject: 'high' } }).includes('phase.edge'));
+  const sibling = { relation: 'Agree', anchors: { probe: 'verb', phaseEdge: 'high', accessibleSubject: 'low' }, values: { features: 'plural' } };
+  assert.equal(dispatch(sibling).primaryClaim.tier, 3);
+  assert(recipes(sibling).includes('phase.edge'));
+  assert.deepEqual(plans(sibling).filter(item => item.domainStyle === 'transfer-edge').map(item => item.rootNodeId), ['high']);
+});
+
+test('Transfer owns an edge also recovered through a differently named movement landing', () => {
+  const current = structuredClone(forest);
+  current[0].children[1].children[0].label = 'v';
+  current[0].children[1].children[1].children[1].id = 'newLow';
+  const record = { ...relation, anchors: { ...relation.anchors, lowerOccurrence: 'newLow',
+    accessibleSubject: 'high', transferredDomain: 'predicate' } };
+  assert.deepEqual(recipes(record, current), ['movement.path', 'transfer.domain']);
+  assert.deepEqual(plans(record, current).filter(item => item.domainStyle === 'transfer-edge').map(item => item.rootNodeId), ['high']);
 });

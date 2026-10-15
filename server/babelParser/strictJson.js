@@ -221,6 +221,3 @@ export const parseStrictModelJsonDetailed = (rawText, createError) => {
     repairDiagnostics
   };
 };
-
-export const parseStrictModelJson = (rawText, createError) =>
-  parseStrictModelJsonDetailed(rawText, createError).payload;

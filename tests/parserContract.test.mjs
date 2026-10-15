@@ -4,7 +4,8 @@ import test from 'node:test';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { displayTreeForAnalysis } from '../replay/finalForest.ts';
-import { __test__ } from '../server/babelParser.js';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { parseModelJson } from '../server/babelParser/modelJson.js';
 import { buildSystemInstruction, DERIVATION_STAGES_BASE_INSTRUCTION } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
 import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
@@ -171,7 +172,7 @@ test('sentence requests preserve quoted, multiline and multilingual input as dat
 });
 
 test('normalizes ordinary derivations without adding optional realization groups', () => {
-  const bundle = __test__.normalizeParseBundle(
+  const bundle = normalizeParseBundle(
     buildCurrentContractPayload(),
     'xbar',
     'Mia laughed.',
@@ -242,7 +243,7 @@ test('rejects derivation stages that add an unsupported authored field', () => {
   }));
 
   assert.throws(
-    () => __test__.normalizeParseBundle(
+    () => normalizeParseBundle(
       payload,
       'xbar',
       'Mia laughed.',
@@ -256,14 +257,14 @@ test('rejects derivation stages that add an unsupported authored field', () => {
 
 test('rejects a top-level array at JSON ingress', () => {
   assert.throws(
-    () => __test__.parseModelJson(JSON.stringify([buildCurrentContractPayload()])),
+    () => parseModelJson(JSON.stringify([buildCurrentContractPayload()])),
     (error) => error?.code === 'BAD_MODEL_RESPONSE'
   );
 });
 
 test('preserves every distinct analysis in the strict ambiguity envelope', () => {
   const payload = buildCurrentContractPayload();
-  const bundle = __test__.normalizeParseBundle(
+  const bundle = normalizeParseBundle(
     { analyses: [payload, payload, payload] },
     'xbar',
     'Mia laughed.',
@@ -288,7 +289,7 @@ test('keeps the complete final forest instead of substituting an earlier tree', 
     ]
   });
 
-  const analysis = __test__.normalizeParseBundle(
+  const analysis = normalizeParseBundle(
     payload, 'xbar', 'Mia laughed.', 'gemini', true, { payloadIntegrityFlags: [] }
   ).analyses[0];
   assert.deepEqual(analysis.finalForest.map((root) => root.id), ['np_mia', 'vp_laughed']);
@@ -312,7 +313,7 @@ test('keeps the existing surface-mismatch result for a split final stage with di
   });
 
   assert.throws(
-    () => __test__.normalizeParseBundle(
+    () => normalizeParseBundle(
       payload,
       'xbar',
       'Mia laughed.',
@@ -344,7 +345,7 @@ test('a spoken repair can retain the abandoned word beside the complete clause',
       relations: [{ relation: 'speech-repair replacement', anchors: { abandoned: 'first_the', restart: 'second_the' } }],
       workspaceForest: [{ refId: 'first_the' }, clause] }
   ] };
-  const analysis = __test__.normalizeParseBundle(payload, 'xbar', 'The the dog slept.', 'gemini', true).analyses[0];
+  const analysis = normalizeParseBundle(payload, 'xbar', 'The the dog slept.', 'gemini', true).analyses[0];
   assert.deepEqual(analysis.finalForest.map(root => root.id), ['first_the', 'ip']);
   assert.equal(analysis.tree, undefined);
   assert.equal(displayTreeForAnalysis(analysis).children.length, 2);
@@ -355,10 +356,10 @@ test('a spoken repair can retain the abandoned word beside the complete clause',
 
   const missingWord = structuredClone(payload);
   missingWord.derivationStages[1].workspaceForest[1].children[0].children.pop();
-  assert.throws(() => __test__.normalizeParseBundle(missingWord, 'xbar', 'The the dog slept.', 'gemini', true),
+  assert.throws(() => normalizeParseBundle(missingWord, 'xbar', 'The the dog slept.', 'gemini', true),
     error => error.failure.ruleId === 'SURFACE_ORDER_EXACT');
   const brokenReference = structuredClone(payload);
   brokenReference.derivationStages[1].workspaceForest[0].refId = 'unknown';
-  assert.throws(() => __test__.normalizeParseBundle(brokenReference, 'xbar', 'The the dog slept.', 'gemini', true),
+  assert.throws(() => normalizeParseBundle(brokenReference, 'xbar', 'The the dog slept.', 'gemini', true),
     error => error.failure.ruleId === 'DERIVATION_WORKSPACE_VALID');
 });

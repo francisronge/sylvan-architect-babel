@@ -1,22 +1,23 @@
-import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
-import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
-import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
-import { categoryMetricKey } from './categoryMetricKey.ts';
-import { treeInkMetricKey } from './treeInkMetricKey.ts';
-import type { TreeInkTextMeasure } from './treeInkGeometry.ts';
 import * as d3 from 'd3';
-import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import type { SyntaxNode } from '../types.ts';
-import type { PlaybackStep } from './replayCompiler.ts';
-import { applyVizIds, getNodeId } from './displayIdentity.ts';
-import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
-import { authoredDisplayWord } from './displayWordMaterial.ts';
-import { separateWorkspaceContours } from './workspaceContourClearance.ts';
-import { reserveWorkspaceAttachments } from './workspacePlacement.ts';
+import { categoryMetricKey } from './categoryMetricKey.ts';
+import type { CategoryTextMeasure } from './categoryTextLayout.ts';
+import { compactCurrentRootForks } from './currentRootCompaction.ts';
 import { retainCurrentRootFork } from './currentRootFork.ts';
 import { retainCurrentSiblingRanks, retainCurrentUnaryRank } from './currentSiblingRanks.ts';
-import { compactCurrentRootForks } from './currentRootCompaction.ts';
+import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import { retainedSubtreeMaterial } from './displayWordMaterial.ts';
 import { retainMovementSourceSlots } from './movementSourceContinuity.ts';
+import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
+import type { TreeInkTextMeasure } from './treeInkGeometry.ts';
+import { treeInkMetricKey } from './treeInkMetricKey.ts';
+import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
+import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
+import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import type { PlaybackStep } from './types.ts';
+import { separateWorkspaceContours } from './workspaceContourClearance.ts';
+import { reserveWorkspaceAttachments } from './workspacePlacement.ts';
+import { TREE_SIBLING_GAP } from './treeSpacing.ts';
 
 type Scene = {
   canvas: SyntaxNode;
@@ -30,18 +31,6 @@ const cache = new WeakMap<readonly PlaybackStep[], Map<number, StageReservation>
 
 const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => node.ancestors().slice(1).find(ancestor =>
   !ancestor.data.replayLayoutOnly && ancestor.data.replayOrigin?.kind !== 'workspace');
-
-/** Sentence casing changes a generated word label, not its unchanged syntax
- * owner. Compare that display child against its owner's spelling while keeping
- * every authored field and every other display property in the signature. */
-function retainedSubtreeMaterial(node: SyntaxNode): string {
-  const material = (current: SyntaxNode, parent?: SyntaxNode): SyntaxNode => {
-    const word = authoredDisplayWord(current, parent);
-    const next = word === undefined ? current : { ...current, word, label: word };
-    return current.children ? { ...next, children: current.children.map(child => material(child, current)) } : next;
-  };
-  return JSON.stringify(material(node));
-}
 
 function reserveScene(current: Scene, reference: Scene, retained: TreeCoordinateReservation): Scene {
   const relocated = new Set<string>();
@@ -216,16 +205,6 @@ function reserveContours(scenes: Scene[], separateAttachments = false): Scene[] 
     });
     return centerParents({ ...scene, coordinates });
   });
-  const extent = (states: Scene[]) => {
-    const xs = states.flatMap(scene => [...scene.coordinates.values()].map(point => point.x));
-    return [Math.min(...xs), Math.max(...xs)];
-  };
-  const [oldMin, oldMax] = extent(scenes), [newMin, newMax] = extent(result);
-  const scale = (oldMax - oldMin) / (newMax - newMin || 1);
-  // Keep the existing stage width, as with D3's sized tree layout. This is one
-  // transform for every scene, so fitting cannot shrink at a later reveal.
-  if (scale < 1) for (const scene of result) scene.coordinates.forEach((point, id) =>
-    scene.coordinates.set(id, { x: oldMin + (point.x - newMin) * scale, y: point.y }));
   return result;
 }
 
@@ -253,13 +232,11 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
   const cached = stages.get(stageIndex);
   if (cached && cached.size[0] === size[0] && cached.size[1] === size[1]
     && cached.direction === direction && cached.categoryMetrics === categoryMetrics && cached.treeInkMetrics === treeInkMetrics && cached.treeLabelMetrics === treeLabelMetrics && cached.preceding === precedingCoordinates) return cached.frames;
-  const { rowHeight, temporaryRootDepth } = stageVerticalGeometry(frames, size[1]);
+  const { rowHeight, temporaryRootDepth } = stageVerticalGeometry(frames);
   const scenes: Scene[] = frames.map(step => {
     const canvas = step.replayCanvasData!, root = d3.hierarchy(canvas);
     applyVizIds(root);
     const tree = layoutSyntaxTree(root, size);
-    // D3 sizes each canvas by its own depth. Reservations combine canvases, so
-    // they need one vertical unit before any unchanged subtree is retained.
     // A temporary construction forest contributes no extra syntax level.
     tree.each(node => { node.y = (node.depth - temporaryRootDepth(canvas)) * rowHeight; });
     const nodes = new Map<string, d3.HierarchyPointNode<SyntaxNode>>(tree.descendants().map(node => [getNodeId(node), node]));
@@ -301,7 +278,7 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
   if (frames[0]?.replayKind === 'relation' && previous?.replayCanvasData && precedingCoordinates) {
     const root = d3.hierarchy(previous.replayCanvasData); applyVizIds(root);
     const nodes = new Map<string, d3.HierarchyPointNode<SyntaxNode>>(
-      layoutSyntaxTree(root, previousSize!).descendants().map(node => [getNodeId(node), node]));
+      layoutSyntaxTree(root, previousSize!, 'ltr', precedingCoordinates).descendants().map(node => [getNodeId(node), node]));
     // RTL painting reflects x around the current canvas width. Carry the origin
     // with the retained workspace, translating the whole scene to preserve its
     // existing clearances instead of pushing that component into its neighbours.
@@ -329,8 +306,8 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
     const stageSize = sizeForStage(step.replayFrameIndex);
     if (stageSize) sizes.set(step.replayFrameIndex, stageSize);
   }
-  const planned = reserveWorkspaceAttachments(steps, sizes, direction, (stage, stageSize) =>
-    buildStageLocalCoordinates(steps, stage, stageSize, sizeForStage, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel), measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+  const planned = reserveWorkspaceAttachments({ steps, sizes, direction, minimumSiblingGap: TREE_SIBLING_GAP, coordinatesForStage: (stage, stageSize) =>
+    buildStageLocalCoordinates(steps, stage, stageSize, sizeForStage, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel), measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel });
   const compact = compactCurrentRootForks(steps, sizes, planned, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
   const continuous = retainMovementSourceSlots(steps, sizes, compact, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
   return new Map([...original].map(([canvas, coordinates]) => [canvas, continuous.get(canvas) ?? coordinates]));

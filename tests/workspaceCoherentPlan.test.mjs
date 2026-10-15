@@ -40,7 +40,7 @@ function fixture({ prefix = '', unary = false, direction = 'ltr', stationary = f
     });
     return { id, scenes, baseline, render, original, direction };
 }
-function run(input, metrics) { return planCoherentWorkspace(input.scenes, input.baseline, input.direction, input.render, metrics); }
+function run(input, metrics) { return planCoherentWorkspace({ scenes: input.scenes, baseline: input.baseline, direction: input.direction, render: input.render, metrics }); }
 function current(input, result, index) { return new Map(input.render(input.scenes[index], result.coordinates.get(input.scenes[index].canvas)).map(node => [getNodeId(node), node])); }
 test('a renderer rejection at native-rank stopping continues refinement and retained-plan fallback', () => {
     const ordinary = fixture();

@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  compileRelationRenderPlan,
-  visiblePlanFrameItems
-} from '../replay/relations/renderPlanCompiler.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 
 const leaf = (id, label, word, extra = {}) => ({ id, label, ...(word ? { word } : {}), ...extra });
@@ -332,8 +330,8 @@ test('Agree with only probe/goal draws its registered goal mark and no empty pla
  * ------------------------------------------------------------------ */
 
 test('a relations-only stage (unchanged forest) still yields one Replay moment per authored relation', async () => {
-  const { adaptDerivationStagesForReplay, buildPlaybackStepsFromDerivationFrames } =
-    await import('../replay/replayCompiler.ts');
+  const { adaptDerivationStagesForReplay } = await import('../replay/authoredFrames.ts');
+const { buildPlaybackStepsFromDerivationFrames } = await import('../replay/replayCompiler.ts');
   const { buildDerivationReplayPlan } = await import('../derivationReplayPlan.js');
   const forest = wideForest();
   const stages = [
@@ -346,7 +344,10 @@ test('a relations-only stage (unchanged forest) still yields one Replay moment p
   ];
   const frames = adaptDerivationStagesForReplay(stages);
   const plan = buildDerivationReplayPlan({ derivationStages: stages });
-  const steps = buildPlaybackStepsFromDerivationFrames(frames, undefined, plan);
+  const steps = buildPlaybackStepsFromDerivationFrames({
+    frames,
+    replayPlan: plan
+  });
   const relationSteps = steps.filter((step) => step.replayKind === 'relation');
   assert.deepEqual(
     relationSteps.map((step) => step.operation),
