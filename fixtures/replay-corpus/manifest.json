@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "requiredMechanisms": ["movement-wrapper", "ordinary-wrapper", "later-movement", "separate-pronunciation", "multiple-roots", "nonmovement", "tier2-persistence", "malformed-exact-claim"],
+  "records": [
+    {
+      "id": "spanish-head-and-ordinary-wrapper",
+      "source": "../replay-regressions/head-movement-ordinary-wrapper.json",
+      "mechanisms": ["movement-wrapper", "ordinary-wrapper", "nonmovement"],
+      "expect": {
+        "minMovementMoments": 1,
+        "minMerges": 1,
+        "samePoints": [[
+          {"stage": 0, "kind": "macro", "node": "i_infl"},
+          {"stage": 1, "kind": "relation", "relationIndex": 0, "node": "i_finite"},
+          {"stage": 1, "kind": "micro", "operation": "ExternalMerge", "target": "i_complex", "node": "i_complex"}
+        ]]
+      }
+    },
+    {
+      "id": "nested-premovement-wrapper",
+      "source": "../replay-regressions/nested-premovement-width.json",
+      "mechanisms": ["movement-wrapper", "later-movement"],
+      "expect": {"minMovementMoments": 2}
+    },
+    {
+      "id": "pending-source-pronunciation",
+      "source": "../replay-regressions/pending-source-pronunciation.json",
+      "mechanisms": ["later-movement", "separate-pronunciation"],
+      "expect": {"minMovementMoments": 1}
+    },
+    {
+      "id": "japanese-independent-clause-realization",
+      "source": "../replay-regressions/independent-clause-and-realization.json",
+      "mechanisms": ["nonmovement", "separate-pronunciation"],
+      "expect": {"minRealizationGroups": 1, "minMerges": 1, "maxMovementMoments": 0}
+    },
+    {
+      "id": "ordinary-receiving-width-control",
+      "source": "../replay-regressions/ordinary-receiving-width-control.json",
+      "mechanisms": ["ordinary-wrapper", "nonmovement"],
+      "expect": {"minMerges": 1}
+    },
+    {
+      "id": "receiving-slot-width-control",
+      "source": "../replay-regressions/receiving-slot-width-control.json",
+      "mechanisms": ["movement-wrapper", "nonmovement"]
+    },
+    {
+      "id": "irish-detached-lexical-roots",
+      "source": "../replay-regressions/construction-slot-continuity.json",
+      "selector": "/cases/0",
+      "mechanisms": ["multiple-roots", "nonmovement"],
+      "expect": {"minWorkspaceRoots": 2, "minMerges": 1}
+    },
+    {
+      "id": "indonesian-applicative-peer",
+      "source": "../replay-regressions/construction-slot-continuity.json",
+      "selector": "/cases/1",
+      "mechanisms": ["multiple-roots", "nonmovement"],
+      "expect": {"minWorkspaceRoots": 2, "minMerges": 1}
+    },
+    {
+      "id": "retained-root-growth",
+      "source": "../replay-regressions/retained-root-growth.json",
+      "mechanisms": ["ordinary-wrapper", "nonmovement"],
+      "expect": {"minMerges": 1, "maxMovementMoments": 0}
+    },
+    {
+      "id": "relative-clause-waiting-clearance",
+      "source": "../replay-regressions/relative-clause-waiting-clearance.json",
+      "mechanisms": ["multiple-roots", "ordinary-wrapper", "later-movement"],
+      "expect": {"minWorkspaceRoots": 2, "minMerges": 1, "minMovementMoments": 1}
+    },
+    {
+      "id": "tier2-witness-persistence",
+      "source": "relation-controls.json",
+      "selector": "/cases/0",
+      "mechanisms": ["tier2-persistence", "nonmovement"],
+      "expect": {"facets": [{"stage": 0, "facet": "identity.occurrences", "present": true}, {"stage": 1, "facet": "identity.occurrences", "present": true}, {"stage": 2, "facet": "identity.occurrences", "present": false}]}
+    },
+    {
+      "id": "malformed-exact-with-independent-verdict",
+      "source": "relation-controls.json",
+      "selector": "/cases/1",
+      "mechanisms": ["malformed-exact-claim"],
+      "expect": {"facets": [{"stage": 0, "facet": "judgment.verdict", "present": true}], "fallbacks": [{"stage": 0, "relationIndex": 0}]}
+    }
+  ]
+}

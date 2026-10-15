@@ -5,10 +5,13 @@ import { existsSync } from 'node:fs';
 import { readFile, writeFile, mkdir, realpath, appendFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { parseArgs } from 'node:util';
+import { execFile } from 'node:child_process';
+import { parseArgs, promisify } from 'node:util';
 import { chromium } from 'playwright';
 import { buildQualificationReviewRuntime } from './buildContractQualificationReviewRuntime.mjs';
-import { assessRendererPerformance, rendererPerformancePolicy as policy } from './rendererPerformanceBudget.mjs';
+import { assessRendererPerformance, describeRendererPreparation, rendererPerformancePolicy as policy } from './rendererPerformanceBudget.mjs';
+import { observeRendererOpening } from './rendererPerformanceObservation.mjs';
+import { verifyRuntimeFreshness } from './reviewRuntimeProvenance.mjs';
 
 const { values } = parseArgs({ options: {
   'baseline-root': { type: 'string' }, 'self-check': { type: 'boolean' }, report: { type: 'string' }
@@ -21,8 +24,9 @@ const fixtureBytes = await readFile(path.join(root, 'fixtures/performance/german
 const fixture = JSON.parse(fixtureBytes);
 const fixtureSha256 = createHash('sha256').update(fixtureBytes).digest('hex');
 const reportPath = path.resolve(values.report ?? path.join(os.tmpdir(), `babel-renderer-performance-${process.pid}.json`));
-const report = { schemaVersion: 1, fixtureSha256, policy, selfCheck: Boolean(values['self-check']),
-  environment: { node: process.version, platform: process.platform, arch: process.arch, viewport: { width: 1600, height: 1000 } },
+const report = { schemaVersion: 2, fixtureSha256, policy, selfCheck: Boolean(values['self-check']),
+  environment: { node: process.version, platform: process.platform, arch: process.arch, cpus: os.availableParallelism(),
+    loadAverageBefore: os.loadavg(), viewport: { width: 1600, height: 1000 } },
   samples: { base: [], candidate: [] } };
 
 // Both revisions receive the same authored record and entry behavior. The canvas
@@ -39,62 +43,19 @@ createRoot(document.getElementById('root')).render(<TreeVisualizer
  sentence={record.sentence} inputTokens={record.inputTokens}
  derivationStages={record.derivationStages} animated autoPlay={false}/>);`;
 
-// This is installed before application code, so a late automation poll cannot
-// inflate the opening time. Completion is separately checked after first paint.
-function observeOpening() {
-  const state = window.__rendererBenchmark = { readyMs: null, settledStep: null, complete: null, workers: [] };
-  const NativeWorker = window.Worker;
-  window.Worker = class extends NativeWorker {
-    constructor(...args) {
-      super(...args);
-      const record = { terminated: false }; state.workers.push(record); this.record = record;
-      this.addEventListener('message', ({ data }) => {
-        const coordinates = data?.result?.coordinates;
-        if (!(coordinates instanceof Map)) {
-          // The pre-optimization base returns only the completed plaque schedule;
-          // its coordinates were prepared on the main thread.
-          if (Array.isArray(data?.result?.stages) && data.result.steps instanceof Map) {
-            state.complete = { at: performance.now(), stages: data.result.stages.length, legacySchedule: true };
-          }
-          return;
-        }
-        let points = 0, invalid = 0;
-        for (const canvases of coordinates.values()) for (const nodes of canvases.values()) for (const point of nodes.values()) {
-          points++; if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) invalid++;
-        }
-        state.complete = { at: performance.now(), stages: coordinates.size, points, invalid };
-      });
-    }
-    terminate() { this.record.terminated = true; return super.terminate(); }
-  };
-  let consecutive = 0, previous = null;
-  const tick = () => {
-    const svg = document.querySelector('svg[data-babel-tree]');
-    const step = svg?.dataset.babelRenderedStep;
-    const camera = svg?.querySelector(':scope > g')?.getAttribute('transform');
-    const ready = document.fonts.status === 'loaded' && step !== undefined && camera
-      && !/NaN|Infinity/.test(camera)
-      && svg.querySelector('.node-group text')?.textContent.trim();
-    const signature = ready ? `${step}:${camera}` : null;
-    consecutive = signature ? signature === previous ? consecutive + 1 : 1 : 0;
-    previous = signature;
-    state.settledStep = consecutive >= 2 ? step : null;
-    if (state.settledStep === '0' && state.readyMs === null) state.readyMs = performance.now();
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
-}
-
 let browser, server;
 try {
   const assets = new Map();
+  const builds = new Map();
   report.builds = {};
   for (const [name, source] of [['base', baselineRoot], ['candidate', root]]) {
     const canvasModule = existsSync(path.join(source, 'replay/replayCanvas.ts'))
       ? './replay/replayCanvas.ts' : './replay/replayCompiler.ts';
     const entry = entrySource(canvasModule);
     const runtime = await buildQualificationReviewRuntime({ root: source, entrySource: entry });
-    report.builds[name] = { jsSha256: runtime.metadata.jsSha256, cssSha256: runtime.metadata.cssSha256 };
+    const revision = await promisify(execFile)('git', ['rev-parse', 'HEAD'], { cwd: source }).then(result => result.stdout.trim()).catch(() => null);
+    report.builds[name] = { ...runtime.metadata, revision };
+    builds.set(name, { source, entry, metadata: runtime.metadata });
     assets.set(`/${name}/runtime.js`, ['text/javascript', runtime.js]);
     assets.set(`/${name}/runtime.css`, ['text/css', runtime.css]);
     assets.set(`/${name}/`, ['text/html', `<!doctype html><html><head><meta charset="utf-8">
@@ -120,7 +81,7 @@ try {
         if (!url.startsWith(origin + '/')) { errors.push(`Unexpected external request: ${url}`); return route.abort(); }
         return route.continue();
       });
-      await page.addInitScript(observeOpening);
+      await page.addInitScript(observeRendererOpening);
       await page.goto(`${origin}/${name}/`);
       await page.waitForFunction(() => window.__rendererBenchmark.readyMs !== null
         && window.__rendererBenchmark.complete && window.__rendererBenchmark.workers.every(w => w.terminated), null, { timeout: 20000 });
@@ -147,23 +108,40 @@ try {
   for (let round = 0; round < policy.samples; round++) {
     for (const name of round % 2 ? ['candidate', 'base'] : ['base', 'candidate']) {
       const sample = await measure(name); report.samples[name].push(sample);
-      console.log(`${name} ${round + 1}/${policy.samples}: ${Math.round(sample.readyMs)} ms`);
+      console.log(`${name} ${round + 1}/${policy.samples}: first paint ${Math.round(sample.readyMs)} ms; preparation ${Math.round(sample.completeMs)} ms`);
     }
   }
   report.assessment = assessRendererPerformance(report.samples.base.map(s => s.readyMs), report.samples.candidate.map(s => s.readyMs));
+  report.preparation = describeRendererPreparation(report.samples.base, report.samples.candidate);
+  report.inputFreshness = {};
+  for (const [name, built] of builds) {
+    const freshness = await verifyRuntimeFreshness(built.metadata, { root: built.source, entrySource: built.entry });
+    report.inputFreshness[name] = freshness;
+    assert(freshness.fresh, `${name} build inputs changed during measurement: ${freshness.mismatches.join(', ')}`);
+  }
   if (report.assessment.status !== 'passed') process.exitCode = 1;
 } catch (error) {
   report.error = String(error?.stack ?? error); process.exitCode = 1;
 } finally {
-  await browser?.close();
-  if (server?.listening) await new Promise(resolve => server.close(resolve));
+  report.environment.loadAverageAfter = os.loadavg();
+  for (const close of [() => browser?.close(), () => server?.listening
+    ? new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())) : undefined]) {
+    try { await close(); }
+    catch (error) {
+      (report.cleanupErrors ??= []).push(String(error));
+      report.error ??= `Owned benchmark resources did not close: ${error}`;
+      process.exitCode = 1;
+    }
+  }
   await mkdir(path.dirname(reportPath), { recursive: true });
   await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n');
 }
 const result = report.assessment;
-const summary = result ? `Renderer performance: ${result.status}. Base median ${Math.round(result.base.medianMs)} ms; candidate ${Math.round(result.candidate.medianMs)} ms; allowed increase ${Math.round(result.allowedIncreaseMs)} ms.` : `Renderer performance: failed to measure. ${report.error}`;
-console.log(summary + `\nReport: ${reportPath}`);
+const summary = report.error ? `Renderer performance: failed to verify. ${report.error}` : result ? `Renderer performance: ${result.status}. Base median ${Math.round(result.base.medianMs)} ms; candidate ${Math.round(result.candidate.medianMs)} ms; allowed increase ${Math.round(result.allowedIncreaseMs)} ms.` : 'Renderer performance: no complete measurement.';
+const preparation = report.preparation;
+const preparationSummary = preparation ? `Full preparation (reporting only): base median ${Math.round(preparation.complete.base.medianMs)} ms, range ${Math.round(preparation.complete.base.minMs)}–${Math.round(preparation.complete.base.maxMs)} ms; candidate median ${Math.round(preparation.complete.candidate.medianMs)} ms, range ${Math.round(preparation.complete.candidate.minMs)}–${Math.round(preparation.complete.candidate.maxMs)} ms. Remaining after first paint: base ${Math.round(preparation.remainingAfterFirstPaint.base.medianMs)} ms; candidate ${Math.round(preparation.remainingAfterFirstPaint.candidate.medianMs)} ms. Completion samples ${preparation.complete.stable ? 'stable' : 'unstable'}; no completion budget has been calibrated.` : '';
+console.log(summary + `\n${preparationSummary}\nReport: ${reportPath}`);
 if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY,
-  `### Renderer performance\n\n${summary}\n\nFixed German analysis, Chromium, 1600 × 1000. Five alternating fresh-context samples per revision; no retries. The local reference-device target is 2,000 ms. CI enforces the same-runner regression budget.\n`);
+  `### Renderer performance\n\n${summary}\n\n${preparationSummary}\n\nFixed German analysis, Chromium, 1600 × 1000. Five alternating fresh-context samples per revision; no retries. The local reference-device target is 2,000 ms. CI enforces the same-runner first-paint regression budget.\n`);
 if (result?.status === 'regression') console.error('Reassess the PR and remove the slowdown. Do not relax the budget or replace the fixture to make it pass.');
 if (result?.status === 'unstable') console.error('Runner timing was unstable. No performance pass was established; inspect the samples before rerunning CI.');

@@ -14,6 +14,7 @@ import {
   changeReviewSelection, initialReviewSelection, reviewAnalyses, reviewStatus, reviewViews
 } from '../contractQualification/reviewModel.js';
 import { buildQualificationReviewHtml } from '../contractQualification/reviewPage.js';
+import { buildQualificationReviewRuntime } from '../scripts/buildContractQualificationReviewRuntime.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const require = createRequire(import.meta.url);
@@ -32,6 +33,9 @@ const { QualificationReview, ReviewTree, ReviewEvidence } = await import(
 );
 const render = (component, props) => renderToStaticMarkup(React.createElement(component, props));
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const assertArchiveImports = runtime => assert.deepEqual(runtime.bundleInputs.filter(file =>
+  /fixtures\/|App\.tsx|parseRoutes|modelRuntime|prompts\.js/.test(file) && file !== 'contractQualification/reviewApp.tsx'), [],
+  'archive runtime must not import the application, provider routes, prompts or fixture corpus');
 const node = (id, word) => ({ id, label: 'N', word, children: [] });
 const stage = (workspaceForest) => ({ statement: 'External Merge', stageRecord: 'Authored x_i.', relations: [], workspaceForest });
 const attempt = () => {
@@ -228,6 +232,13 @@ test('explicit copy Replay is separate from the failed original and its recorded
   assert.deepEqual(record, original);
 });
 
+test('the archive import guard catches a real application import even when Tailwind scans that file', async () => {
+  const runtime = await buildQualificationReviewRuntime({ entrySource: "import App from './App.tsx'; import './styles.css'; window.__boundaryControl = App;" });
+  assert(runtime.metadata.styleContent.files.includes('App.tsx'));
+  assert(runtime.metadata.bundleInputs.includes('App.tsx'), 'a CSS-scanned file remains in the actual import graph');
+  assert.throws(() => assertArchiveImports(runtime.metadata), /archive runtime must not import/);
+});
+
 test('an archive-only build is self-contained, hash-attributed and leaves original files unchanged', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-live-review-'));
   try {
@@ -267,10 +278,10 @@ test('an archive-only build is self-contained, hash-attributed and leaves origin
     assert.deepEqual(data.attempts[0].normalizedRecord, record.normalizedRecord);
     assert.equal(data.attempts[0].inspectionCopy, null);
     assert.deepEqual(data.attempts[0].analyses[0].replay, record.analyses[0].replay);
-    const sources = data.runtime.sources.map(({ path: file }) => file);
-    assert.ok(sources.includes('components/TreeVisualizer.tsx'));
-    assert.ok(sources.includes('replay/replayCompiler.ts'));
-    assert.ok(!sources.some((file) => /fixtures\/|App\.tsx|parseRoutes|modelRuntime|prompts\.js/.test(file) && file !== 'contractQualification/reviewApp.tsx'));
+    assert.ok(data.runtime.bundleInputs.includes('components/TreeVisualizer.tsx'));
+    assert.ok(data.runtime.bundleInputs.includes('replay/replayCompiler.ts'));
+    assertArchiveImports(data.runtime);
+    assert.ok(data.runtime.sources.some(source => source.path === 'App.tsx'), 'Tailwind-only application content still needs provenance');
     for (const source of data.runtime.sources) assert.equal(source.sha256, hash(fs.readFileSync(path.join(repoRoot, source.path))));
     const receipt = JSON.parse(fs.readFileSync(path.join(root, 'review/review-receipt.json'), 'utf8'));
     assert.equal(receipt.interactiveReplay, true);

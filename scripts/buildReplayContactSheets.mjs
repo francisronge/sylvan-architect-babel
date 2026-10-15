@@ -1,59 +1,36 @@
-import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import http from 'node:http';
-import net from 'node:net';
-import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { parseArgs } from 'node:util';
+import { createHash } from 'node:crypto';
+import { openCaptureSession } from './browserSession.mjs';
+import { waitForDecodedImages } from './captureReadiness.mjs';
 
-const args = process.argv.slice(2);
-
-const readArg = (name, fallback = '') => {
-  const index = args.indexOf(`--${name}`);
-  if (index < 0) return fallback;
-  return args[index + 1] || fallback;
-};
-
-const renderDir = path.resolve(readArg('render-dir'));
-const outDir = path.resolve(readArg('out'));
-const browserPath = readArg('browser', process.env.BABEL_CHROME_BIN || '');
-const cols = Math.max(1, Number(readArg('cols', '2')) || 2);
-const framesPerSheet = Math.max(1, Number(readArg('frames-per-sheet', '12')) || 12);
-const viewportWidth = Math.max(800, Number(readArg('width', '1800')) || 1800);
-const viewportHeight = Math.max(800, Number(readArg('height', '1200')) || 1200);
-
-if (!renderDir || !fs.existsSync(renderDir)) {
-  console.error('Missing --render-dir.');
-  process.exit(1);
+const { values } = parseArgs({ options: {
+  'render-dir': { type: 'string' }, out: { type: 'string' }, browser: { type: 'string' },
+  cols: { type: 'string', default: '2' }, 'frames-per-sheet': { type: 'string', default: '12' },
+  width: { type: 'string', default: '1800' }, height: { type: 'string', default: '1200' }
+} });
+if (!values['render-dir'] || !values.out) throw new Error('Provide --render-dir and --out.');
+const renderDir = path.resolve(values['render-dir']), outDir = path.resolve(values.out);
+const browserPath = values.browser || process.env.BABEL_CHROME_BIN;
+if (browserPath && !fs.existsSync(browserPath)) throw new Error(`Missing browser: ${browserPath}`);
+const cols = Number(values.cols), framesPerSheet = Number(values['frames-per-sheet']);
+const viewportWidth = Number(values.width), viewportHeight = Number(values.height);
+if ([cols, framesPerSheet, viewportWidth, viewportHeight].some(n => !Number.isInteger(n) || n <= 0)) {
+  throw new Error('Sheet counts and viewport dimensions must be positive integers.');
 }
-if (!outDir) {
-  console.error('Missing --out.');
-  process.exit(1);
-}
-if (!browserPath || !fs.existsSync(browserPath)) {
-  console.error('Missing browser executable. Pass --browser or set BABEL_CHROME_BIN.');
-  process.exit(1);
-}
-
-const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, ''));
-
-const replayCount = (() => {
-  const summaryPath = path.join(renderDir, 'render-summary.json');
-  if (fs.existsSync(summaryPath)) {
-    const summary = readJson(summaryPath);
-    if (Number.isInteger(summary.replayCount) && summary.replayCount > 0) return summary.replayCount;
-  }
-  return fs.readdirSync(renderDir)
-    .filter((name) => /^replay-\d+\.png$/i.test(name))
-    .length;
-})();
-
-if (replayCount < 1) {
-  console.error(`No replay frames found in ${renderDir}.`);
-  process.exit(1);
-}
-
+if (fs.existsSync(outDir) && fs.readdirSync(outDir).length) throw new Error(`Sheet output is not empty: ${outDir}`);
 fs.mkdirSync(outDir, { recursive: true });
+const summaryPath = path.join(renderDir, 'render-summary.json');
+const captureSummary = fs.existsSync(summaryPath) ? JSON.parse(fs.readFileSync(summaryPath, 'utf8')) : null;
+if (captureSummary && captureSummary.ok !== true) throw new Error('Refusing sheets from an unsuccessful capture.');
+const replayCount = captureSummary?.replayCount || fs.readdirSync(renderDir).filter(name => /^replay-\d+\.png$/i.test(name)).length;
+if (!Number.isInteger(replayCount) || replayCount < 1) throw new Error(`No complete Replay capture in ${renderDir}.`);
+const inputs = Array.from({ length: replayCount }, (_, index) => {
+  const file = path.join(renderDir, `replay-${String(index).padStart(2, '0')}.png`);
+  return { file, sha256: createHash('sha256').update(fs.readFileSync(file)).digest('hex') };
+});
 
 const escapeHtml = (value) =>
   String(value || '')
@@ -65,8 +42,7 @@ const escapeHtml = (value) =>
 const pad = (value) => String(value).padStart(2, '0');
 const fileUrl = (filePath) => pathToFileURL(filePath).href;
 
-const buildHtml = (sheetIndex, frames) => {
-  const rows = Math.ceil(frames.length / cols);
+const buildHtml = (frames) => {
   const title = `${path.basename(renderDir)} frames ${frames[0] + 1}-${frames.at(-1) + 1}`;
   const cellWidth = Math.floor((viewportWidth - 80 - (cols - 1) * 18) / cols);
   return `<!doctype html>
@@ -129,156 +105,35 @@ const buildHtml = (sheetIndex, frames) => {
 </html>`;
 };
 
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const fetchJson = (url) => new Promise((resolve, reject) => {
-  const req = http.get(url, (res) => {
-    const chunks = [];
-    res.on('data', (chunk) => chunks.push(chunk));
-    res.on('end', () => {
-      const body = Buffer.concat(chunks).toString('utf8');
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        reject(new Error(`${url} returned HTTP ${res.statusCode}: ${body.slice(0, 300)}`));
-        return;
-      }
-      resolve(JSON.parse(body));
-    });
-  });
-  req.on('error', reject);
-  req.setTimeout(5000, () => req.destroy(new Error(`Timed out fetching ${url}`)));
-});
-
-const waitFor = async (fn, timeoutMs, label) => {
-  const started = Date.now();
-  let lastError = null;
-  while (Date.now() - started < timeoutMs) {
-    try {
-      const value = await fn();
-      if (value) return value;
-    } catch (err) {
-      lastError = err;
-    }
-    await wait(120);
+let session;
+const summary = { ok: false, renderDir, outDir, replayCount, framesPerSheet, cols, inputs, sheets: [] };
+try {
+  session = await openCaptureSession({ executablePath: browserPath, localFiles: true,
+    viewport: { width: viewportWidth, height: viewportHeight } });
+  summary.browser = { engine: session.engine, version: session.browserVersion };
+  for (let start = 0, sheetIndex = 1; start < replayCount; start += framesPerSheet, sheetIndex++) {
+    const frames = Array.from({ length: Math.min(framesPerSheet, replayCount - start) }, (_, index) => start + index);
+    const stem = `contact-sheet-${pad(sheetIndex)}`, htmlPath = path.join(outDir, `${stem}.html`), pngPath = path.join(outDir, `${stem}.png`);
+    fs.writeFileSync(htmlPath, buildHtml(frames));
+    await session.page.goto(pathToFileURL(htmlPath).href);
+    await waitForDecodedImages(session.page, frames.length);
+    session.assertHealthy();
+    await session.page.screenshot({ path: pngPath, fullPage: true });
+    session.assertHealthy();
+    summary.sheets.push(pngPath);
   }
-  throw new Error(`${label} timed out${lastError ? `: ${lastError.message}` : ''}`);
-};
-
-const findFreePort = () => new Promise((resolve, reject) => {
-  const server = net.createServer();
-  server.listen(0, '127.0.0.1', () => {
-    const address = server.address();
-    const port = typeof address === 'object' && address ? address.port : 0;
-    server.close(() => resolve(port));
-  });
-  server.on('error', reject);
-});
-
-class CdpClient {
-  constructor(wsUrl) {
-    this.ws = new WebSocket(wsUrl);
-    this.nextId = 1;
-    this.pending = new Map();
+  summary.ok = true;
+} catch (error) {
+  summary.error = String(error.stack || error); process.exitCode = 1; console.error(summary.error);
+} finally {
+  if (session) {
+    summary.assets = await session.assetReceipt();
+    try { session.assertHealthy(); }
+    catch (error) { summary.ok = false; summary.error ||= String(error); process.exitCode = 1; }
   }
-
-  async open() {
-    await new Promise((resolve, reject) => {
-      this.ws.addEventListener('open', resolve, { once: true });
-      this.ws.addEventListener('error', reject, { once: true });
-    });
-    this.ws.addEventListener('message', (event) => {
-      const message = JSON.parse(String(event.data));
-      if (!message.id || !this.pending.has(message.id)) return;
-      const { resolve, reject } = this.pending.get(message.id);
-      this.pending.delete(message.id);
-      if (message.error) reject(new Error(message.error.message || JSON.stringify(message.error)));
-      else resolve(message.result);
-    });
-  }
-
-  command(method, params = {}) {
-    const id = this.nextId++;
-    this.ws.send(JSON.stringify({ id, method, params }));
-    return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-    });
-  }
-
-  close() {
-    this.ws.close();
-  }
+  try { await session?.close(); summary.closed = true; }
+  catch (error) { summary.ok = false; summary.closeError = String(error); process.exitCode = 1; }
+  summary.diagnostics = session?.diagnostics || [];
+  fs.writeFileSync(path.join(outDir, 'contact-sheets.json'), JSON.stringify(summary, null, 2) + '\n');
 }
-
-const captureSheet = async (htmlPath, pngPath) => {
-  const browserDebugPort = await findFreePort();
-  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-contact-sheet-'));
-  const browser = spawn(browserPath, [
-    '--headless=new',
-    '--disable-gpu',
-    '--disable-gpu-sandbox',
-    '--disable-dev-shm-usage',
-    '--no-sandbox',
-    '--no-first-run',
-    '--no-default-browser-check',
-    `--remote-debugging-port=${browserDebugPort}`,
-    `--user-data-dir=${userDataDir}`,
-    `--window-size=${viewportWidth},${viewportHeight}`,
-    fileUrl(htmlPath)
-  ], { stdio: 'ignore' });
-
-  try {
-    const target = await waitFor(async () => {
-      const targets = await fetchJson(`http://127.0.0.1:${browserDebugPort}/json/list`);
-      return Array.isArray(targets) && targets.find((item) => item.type === 'page' && item.webSocketDebuggerUrl);
-    }, 10000, 'browser target');
-
-    const client = new CdpClient(target.webSocketDebuggerUrl);
-    await client.open();
-    await client.command('Page.enable');
-    await client.command('Emulation.setDeviceMetricsOverride', {
-      width: viewportWidth,
-      height: viewportHeight,
-      deviceScaleFactor: 1,
-      mobile: false
-    });
-    await wait(600);
-    const result = await client.command('Page.captureScreenshot', {
-      format: 'png',
-      captureBeyondViewport: true,
-      fromSurface: true
-    });
-    fs.writeFileSync(pngPath, Buffer.from(result.data, 'base64'));
-    client.close();
-  } finally {
-    browser.kill();
-    try {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    } catch {
-      // Disposable browser profile cleanup can briefly lag behind browser exit.
-    }
-  }
-};
-
-const pngs = [];
-for (let start = 0, sheetIndex = 1; start < replayCount; start += framesPerSheet, sheetIndex += 1) {
-  const frames = Array.from(
-    { length: Math.min(framesPerSheet, replayCount - start) },
-    (_, index) => start + index
-  );
-  const stem = `contact-sheet-${pad(sheetIndex)}`;
-  const htmlPath = path.join(outDir, `${stem}.html`);
-  const pngPath = path.join(outDir, `${stem}.png`);
-  fs.writeFileSync(htmlPath, buildHtml(sheetIndex, frames), 'utf8');
-  await captureSheet(htmlPath, pngPath);
-  pngs.push(pngPath);
-}
-
-const summary = {
-  renderDir,
-  outDir,
-  replayCount,
-  framesPerSheet,
-  cols,
-  sheets: pngs
-};
-fs.writeFileSync(path.join(outDir, 'contact-sheets.json'), `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
-console.log(`Wrote ${pngs.length} contact sheet(s) to ${path.relative(process.cwd(), outDir)}`);
+if (summary.ok) console.log(`Wrote ${summary.sheets.length} decoded contact sheets to ${outDir}`);

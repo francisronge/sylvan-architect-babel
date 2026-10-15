@@ -1,0 +1,155 @@
+{
+  "description": "Bounded positive and negative relation-lifetime controls using the same authored evidence as the Tier-2 tests.",
+  "cases": [
+    {
+      "sentence": "one two",
+      "inputTokens": [
+        "one",
+        "two"
+      ],
+      "derivationStages": [
+        {
+          "statement": "The current authored state is established.",
+          "stageRecord": "These exact occurrences carry the claim; later stages do not restate it.",
+          "workspaceForest": [
+            {
+              "id": "root",
+              "label": "NP",
+              "children": [
+                {
+                  "id": "first",
+                  "label": "N",
+                  "word": "one"
+                },
+                {
+                  "id": "second",
+                  "label": "N",
+                  "word": "two"
+                }
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "relation": "Authored occurrence correspondence",
+              "anchors": {
+                "occurrences": [
+                  "first",
+                  "second"
+                ]
+              },
+              "values": {
+                "index": "1"
+              }
+            }
+          ]
+        },
+        {
+          "statement": "The current authored state is established.",
+          "stageRecord": "These exact occurrences carry the claim; later stages do not restate it.",
+          "workspaceForest": [
+            {
+              "id": "root",
+              "label": "NP",
+              "children": [
+                {
+                  "id": "first",
+                  "label": "N",
+                  "word": "one"
+                },
+                {
+                  "id": "second",
+                  "label": "N",
+                  "word": "two"
+                }
+              ]
+            }
+          ],
+          "relations": []
+        },
+        {
+          "statement": "The current authored state is established.",
+          "stageRecord": "These exact occurrences carry the claim; later stages do not restate it.",
+          "workspaceForest": [
+            {
+              "id": "root",
+              "label": "NP",
+              "children": [
+                {
+                  "id": "first",
+                  "label": "N",
+                  "word": "one"
+                }
+              ]
+            }
+          ],
+          "relations": []
+        }
+      ]
+    },
+    {
+      "sentence": "who gap",
+      "inputTokens": [
+        "who",
+        "gap"
+      ],
+      "derivationStages": [
+        {
+          "statement": "The current authored state is established.",
+          "stageRecord": "These exact occurrences carry the claim; later stages do not restate it.",
+          "workspaceForest": [
+            {
+              "id": "blocked_analysis",
+              "label": "CP",
+              "children": [
+                {
+                  "id": "blocked_target",
+                  "label": "DP",
+                  "children": [
+                    {
+                      "id": "target_word",
+                      "label": "N",
+                      "word": "who"
+                    }
+                  ]
+                },
+                {
+                  "id": "blocked_adjunct",
+                  "label": "CP",
+                  "children": [
+                    {
+                      "id": "blocked_source",
+                      "label": "DP",
+                      "children": [
+                        {
+                          "id": "gap_word",
+                          "label": "N",
+                          "word": "gap"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "relation": "BlockedExtraction",
+              "anchors": {
+                "target": "blocked_target",
+                "adjunctDomain": "blocked_adjunct",
+                "analysis": "blocked_analysis"
+              },
+              "values": {
+                "outcome": "blocked",
+                "judgment": "*",
+                "label": "extraction"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

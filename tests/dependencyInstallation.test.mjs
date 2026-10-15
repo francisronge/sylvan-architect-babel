@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import test from 'node:test';
+import { verifyDependencyInstallation } from '../scripts/verifyDependencyInstallation.mjs';
+
+const write = async (root, file, value) => {
+  await fs.mkdir(path.dirname(path.join(root, file)), { recursive: true });
+  await fs.writeFile(path.join(root, file), JSON.stringify(value));
+};
+
+test('Doctor checks real transitive manifests and required closure rather than trusting the hidden lock', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'babel-dependency-doctor-'));
+  const parent = { name: 'parent', version: '1.0.0', dependencies: { child: '1.0.0' } };
+  const child = { name: 'child', version: '1.0.0' };
+  const pkg = { name: 'doctor-control', version: '1.0.0', dependencies: { parent: '1.0.0' }, optionalDependencies: { 'platform-extra': '1.0.0' } };
+  const packages = { '': pkg, 'node_modules/parent': parent, 'node_modules/child': child };
+  const hidden = { name: pkg.name, version: pkg.version, lockfileVersion: 3, packages: { 'node_modules/parent': parent, 'node_modules/child': child } };
+  try {
+    await write(root, 'package.json', pkg); await write(root, 'package-lock.json', { lockfileVersion: 3, packages });
+    await write(root, 'node_modules/.package-lock.json', hidden);
+    await write(root, 'node_modules/parent/package.json', parent); await write(root, 'node_modules/child/package.json', child);
+    assert.equal((await verifyDependencyInstallation(root)).installedPackages, 2, 'absent optional dependencies remain valid');
+    await write(root, 'node_modules/child/package.json', { ...child, version: '9.0.0' });
+    await assert.rejects(verifyDependencyInstallation(root), /differs from the lock.*child/);
+    await fs.rm(path.join(root, 'node_modules/child'), { recursive: true });
+    await assert.rejects(verifyDependencyInstallation(root), /ENOENT.*child/);
+    delete hidden.packages['node_modules/child']; await write(root, 'node_modules/.package-lock.json', hidden);
+    await assert.rejects(verifyDependencyInstallation(root), /dependency graph is incomplete/);
+    await write(root, 'node_modules/child/package.json', child); hidden.packages['node_modules/child'] = child;
+    await write(root, 'node_modules/.package-lock.json', hidden);
+    assert.equal((await verifyDependencyInstallation(root)).installedPackages, 2, 'repaired dependency closure passes');
+  } finally { await fs.rm(root, { recursive: true, force: true }); }
+});
