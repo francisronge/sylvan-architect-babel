@@ -38,7 +38,7 @@ export function namedInputRealizationGroups(
   const anchors = Object.entries(relation.anchors ?? {});
   const tokens = new Map<string, string[]>();
   for (const [key, value] of Object.entries(relation.values ?? {})) {
-    const qualifier = /^(.+?) (?:input )?tokens?$/u.exec(normalizeTier2Synonym(key))?.[1];
+    const qualifier = /^(.+?) (?:(?:input )?tokens?|spelling)$/u.exec(normalizeTier2Synonym(key))?.[1];
     if (!qualifier) continue;
     if (tokens.has(qualifier) || typeof value !== 'string' && !Array.isArray(value)) return [];
     const pieces = typeof value === 'string' ? [value] : value;
@@ -47,7 +47,7 @@ export function namedInputRealizationGroups(
   }
   const result: SurfaceRealization[] = [], qualifiers = new Set<string>();
   for (const [key, ids] of anchors) {
-    const qualifier = /^(.+) contributors?$/u.exec(normalizeTier2Synonym(key))?.[1];
+    const qualifier = /^(.+) (?:contributors?|token sources?)$/u.exec(normalizeTier2Synonym(key))?.[1];
     if (!qualifier || qualifiers.has(qualifier) || !Array.isArray(ids)) return [];
     qualifiers.add(qualifier);
     const group = exactRealizationGroup(ids, groups, forest), literal = tokens.get(qualifier);

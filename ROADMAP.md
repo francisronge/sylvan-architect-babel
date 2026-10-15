@@ -23,35 +23,37 @@ and no optional-index recovery needed. Usage totals 233,807 tokens; mean
 generation took 210.1 seconds. Hypothetical API token cost is $2.03 at the
 retained 2026-10-11 rates. These are selected cases, not a population error estimate.
 
-Repair the demonstrated recognition boundaries before another provider batch:
+The saved cases now have shared repairs for their seven missed movement paths
+across six analyses from four requests. Bundled head categories and preserved
+descriptive inflection labels retain their authored spelling. Exact preceding
+source slots and current root identity distinguish a contextual finite head or
+containing landing clause from the moved occurrence. The Mandarin upper DPs
+appear with their paths at the owning movement moment. Qualified input-source
+inventories and exact spelling also resolve both Stage-1 pronunciation delays;
+incidental semantic references do not acquire ownership.
 
-- Recover explicitly authored head movement when a bundled category or a
-  preserved receiving head contains descriptive inflection labels. The German
-  and Turkish examples establish exact earlier sources and current landings;
-  an unfamiliar label must not substitute for missing structural proof.
-- Distinguish a contextual finite head or containing landing clause from the
-  moved occurrence. Both Mandarin subject readings and the Japanese topic
-  reading currently miss their authored paths despite a unique root pair.
-  Both Mandarin readings also hide the upper DP until the next pronunciation
-  relation, violating atomic movement visibility.
-- Bind qualified input associations without giving incidental semantic mentions
-  equal ownership. Both Mandarin controls defer an explicit Stage-1 association
-  because `TokenSources`/`Spelling` do not match `Contributors`/`Tokens` field suffixes;
-  the exact groups and final input coverage are correct.
-- Verify those repairs against the saved cases, the Turkish stage-boundary
-  fit, earlier stretching controls, and positive and refusal controls. All 34
-  new analyses author some movement, so this cohort does not supply whole-analysis
-  nonmovement controls; retain the maintained saved controls as an independent
-  check against invented movement.
+The Turkish review exposed an unnecessary round trip on screen: a changed
+coordinate origin appeared before the camera compensated for it. The receiving
+head's preserved contents now acquire clearance at their movement moment, so
+earlier selection cannot expand the clause. Forward playback retains an already
+fitting view instead of zooming in merely because a later stage has more room.
+Actual overflow, explicit Fit and the completed final view retain their fitting
+behavior. Unchanged subtree contours and the earlier stretching controls remain
+required verification constraints.
 
-Seven movement paths are missed across six analyses from four requests. One
-additional Arabic alternative assumes a past nonverbal matrix clause without
+Review the repaired saved Replays before another provider batch. All 34 new
+analyses author some movement, so this cohort supplies no whole-analysis
+nonmovement controls. The maintained saved controls remain necessary to detect
+invented movement. Repair validation uses the same saved responses without
+replacement generations or prompt changes. Private receipts and before/after
+captures remain outside Git. Diminishing returns have not been established.
+
+One additional Arabic alternative assumes a past nonverbal matrix clause without
 the copula required by the
 [Standard Arabic past-time contrast](https://marz.kau.edu.sa/Files/320/Researches/74322_47483.pdf).
 Retain it as inspectable model output with the review limitation; do not silently rewrite its tree or add
 language-specific rejection rules. A single alternative does not justify a
-prompt change. Private receipts, Replay links and diagnostic controls remain
-outside Git. Diminishing returns have not been established.
+prompt change.
 
 ### Completed verification and earlier cohorts
 

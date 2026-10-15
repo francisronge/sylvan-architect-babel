@@ -56,6 +56,13 @@ the smaller lower-occurrence slot, retain its established slot after that
 movement instead of pulling unchanged ancestors inward. This fallback must pass
 the same ink, ownership and motion checks as source compaction.
 
+A proved head movement may add one member directly to an existing receiving
+head, beside its complete ordered prior contents. Those retained contents own
+their clearance translation at that movement moment. Earlier selection and
+projection steps cannot open that gap. Each unchanged component keeps its
+internal contour; reordered contents, a phrasal landing, or a source already
+inside the receiver do not establish this receiving boundary.
+
 A separate placement pass may reserve the future root position of an independent
 workspace component when a relation opens its attachment stage. The component's
 child lists must survive that attachment, allowing an exact authored lower witness
@@ -716,6 +723,10 @@ immediate fit. Structural micro-steps still share one authored-stage fit. Only t
 completed last Stage Record releases earlier source-position bounds and fits the
 finished drawing; Fit uses those same final bounds. This does not compact or
 recenter the tree's internal coordinates.
+Forward playback also retains an already fitting view when a new stage could
+merely zoom in. Actual overflow can still pan or reduce scale. Explicit Fit,
+nonadjacent frame selection and the completed last Stage Record retain their
+existing fitting behavior.
 Stage framing retains its existing margins for ordinary labels. When a revealed
 label exceeds those margins, expand the shared stage envelope by only that
 excess, using the same styled text bounds as layout. Include every revealed

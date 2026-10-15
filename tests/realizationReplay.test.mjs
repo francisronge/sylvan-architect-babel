@@ -139,6 +139,29 @@ test('separate named contributor inventories and exact input literals own one si
   assert.deepEqual(moments(play(stages, ['walked', 'again']), 1)[1].replayRealizations, stages[1].realizations);
 });
 
+test('qualified token sources and spelling bind exact input associations beside descriptive metadata', () => {
+  const stages = namedAssociationStages(), association = stages[1].relations[1];
+  association.anchors = { firstTokenSources: ['root', 'past'], secondTokenSources: ['other'] };
+  association.values = { firstSpelling: 'walked', secondSpelling: 'again', associationType: 'Authored orthographic mapping' };
+  const original = structuredClone(stages), steps = play(stages, ['walked', 'again']);
+  assert.deepEqual(moments(steps, 1)[0].replayRealizations, []);
+  assert.deepEqual(moments(steps, 1)[1].replayRealizations, stages[1].realizations);
+  assert(!steps.some(s => s.replayRealizationDiagnostics?.length));
+  assert.deepEqual(stages, original);
+  for (const mutate of [
+    s => { s[1].relations[1].values.firstSpelling = 'wrong'; },
+    s => { s[1].relations[1].values.firstToken = 'again'; },
+    s => { s[1].relations[1].anchors.firstContributors = ['root']; },
+    s => { s[1].relations[1].anchors.firstTokenSources = ['root', 'root']; },
+    s => { s[1].relations[1].anchors.secondTokenSources = ['other', 'past']; },
+    s => { s[1].relations[1].relation = 'Hypothetical input association'; },
+    s => { s[1].relations.push(structuredClone(s[1].relations[1])); }
+  ]) {
+    const bad = structuredClone(stages); mutate(bad);
+    assert.notEqual(resolveRealizationChanges(...adaptDerivationStagesForReplay(bad), 1, ['walked', 'again'])[0].relationIndex, 1, mutate.toString());
+  }
+});
+
 const literalInventoryStages = () => [stage(undefined, [], [
   node('inflected', [node('root'), node('past')]),
   node('possessed', [node('stem'), node('possessor')]), node('outside')

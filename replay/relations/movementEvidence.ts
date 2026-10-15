@@ -94,7 +94,7 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
   // head contents. The receiver identity and ordered contents establish the
   // host without requiring those contents to repeat the receiver category.
   return siblings.length > 0 && readCategoryLabel(landing?.label)?.kind === 'head'
-    && siblings.every(node => readCategoryLabel(node.label)?.kind === 'head'
+    && siblings.every(node => !['bar', 'phrase'].includes(readCategoryLabel(node.label)?.kind ?? '')
       && !node.children?.length && !containsLowerOccurrence(node))
     && Boolean(before && readCategoryLabel(before.label)?.kind === 'head'
       && headCategory(before) === headCategory(parent)
@@ -194,7 +194,7 @@ const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly
 /** Shared exact structural check for Tier 1 and recovered movement context. */
 export const movementContextFailure = (
   forest: readonly SyntaxNode[], landingId: string, contextId: string, kind: MovementContextKind,
-  previous: readonly SyntaxNode[] = []
+  previous: readonly SyntaxNode[] = [], sourceId?: string
 ): string | undefined => {
   const nodes: SyntaxNode[] = [];
   const visit = (node: SyntaxNode) => { nodes.push(node); (node.children || []).forEach(visit); };
@@ -208,7 +208,22 @@ export const movementContextFailure = (
   const parent = parents.length === 1 ? parents[0] : undefined;
   if (!parent || nodes.filter(node => node.id === parent.id).length !== 1) return 'landing-parent-missing-or-ambiguous';
   const isParent = parent === context[0];
-  if (kind === 'site') return isParent ? undefined : 'not-the-immediate-landing-parent';
+  if (kind === 'site') {
+    if (isParent) return;
+    // A topic/edge shell may intervene between the moved occurrence and its
+    // landing domain. Only the nearest common domain of the proved endpoints
+    // establishes that context; an arbitrary containing ancestor does not.
+    let domain: SyntaxNode | undefined = parent;
+    if (sourceId && nodes.filter(node => node.id === sourceId).length === 1) {
+      while (domain && !contains(domain, sourceId)) {
+        if (nodes.filter(node => node.id === domain!.id).length !== 1) return 'landing-path-id-ambiguous';
+        const ancestors = nodes.filter(node => node.children?.includes(domain!));
+        domain = ancestors.length === 1 ? ancestors[0] : undefined;
+      }
+      if (domain === context[0]) return;
+    }
+    return 'not-the-immediate-landing-parent';
+  }
   if (!isHeadComplex(parent, landingId, previous)) return 'landing-is-not-in-a-supported-head-complex';
   const isHost = context[0] !== landing[0] && Boolean(parent.children?.includes(context[0]));
   const valid = kind === 'head-complex' ? isParent : kind === 'head-host' ? isHost : isParent || isHost;
@@ -227,6 +242,7 @@ const hasRole = (key: string, concept: string) => relationRoleConcepts(vocabular
 const genericRoles = new Set(['source', 'sources', 'origin', 'origins', 'from', 'target', 'targets', 'to', 'destination', 'destinations', 'landing', 'landings', 'landing site', 'landing sites', 'filler', 'fillers', 'operator', 'operators', 'head', 'heads', 'variable', 'variables', 'real gap', 'real gaps']);
 const sourceContainerRole = (key: string): boolean => /^(?:(?:prior|movement) )?(?:source|lower|base|intermediate) (?:[a-z]+ )?(?:clauses?|phrases?|constituents?|objects?|[a-z]+p)$/u.test(normalizeTier2Synonym(key));
 const sourceComplexRole = (key: string): boolean => /^(?:(?:prior|movement) )?(?:source|lower|base|intermediate) (?:head )?complex$/u.test(normalizeTier2Synonym(key));
+const landingContainerRole = (key: string): boolean => /^(?:movement )?(?:landing|target|higher|upper) (?:[a-z]+ )?(?:clauses?|phrases?|domains?)$/u.test(key);
 
 // Recover occurrence identity from the anchored objects, never a shared descendant
 // or the relation's title. The result is renderer evidence, not authored syntax.
@@ -335,7 +351,8 @@ export function recoverMovementEvidence(
       const target = current.nodes.get(targetId);
       return targetId !== sourceId && target?.lineageId === before.lineageId && !current.duplicates.has(targetId)
         && !contains(current.nodes.get(sourceId)!, targetId) && !contains(target, sourceId)
-        && entries.some(e => e.ids.length === 1 && e.ids[0] === targetId && hasRole(e.key, 'movement.landing'))
+        && entries.some(e => e.ids.length === 1 && (e.ids[0] === targetId && hasRole(e.key, 'movement.landing')
+          || landingContainerRole(e.key) && movementContextFailure(forest, targetId, e.ids[0], 'site', previous, sourceId) === undefined))
         && Boolean(landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) }, { current, prior }));
     }).map(targetId => ({ priorId, sourceId, targetId })));
   });
@@ -513,7 +530,7 @@ export function recoverMovementEvidence(
     // A phrase's target head may remain in place or project beside the landing.
     // Leave that field unclaimed after proving the phrase's lineage and exact
     // preceding slot; it establishes no additional movement endpoint.
-    const isHeadParticipantRole = (key: string): boolean => key === 'target'
+    const isHeadParticipantRole = (key: string): boolean => key === 'target' || key === 'head'
       || /^(?:movement )?(?:target|landing|higher|upper|raised|moved) (?:[a-z]+ )*head$/.test(key);
     // The exact preceding root pair can identify an openly named landing even
     // when the directional field names its parent rather than the occurrence.
@@ -558,6 +575,9 @@ export function recoverMovementEvidence(
     const occurrences = anchored.filter(id => id !== sources[0] && lineage
       && current.nodes.get(id)?.lineageId === lineage).filter(occurrence => targets.every(id => id === occurrence
         || (targets.includes(occurrence) && current.nodes.has(id) && contains(current.nodes.get(id)!, occurrence))
+        || (sourcePair?.landing.id === occurrence && entries.filter(e => e.ids.includes(id)
+          && hasRole(e.key, 'movement.landing')).every(e => landingContainerRole(e.key))
+          && movementContextFailure(forest, occurrence, id, 'site', previous, sources[0]) === undefined)
         || (targets.includes(occurrence) && entries.some(e => e.key === 'operator' && e.ids[0] === id)
           && entries.some(e => e.ids[0] === occurrence && !genericRoles.has(e.key) && hasRole(e.key, 'movement.landing'))
           && contains(current.nodes.get(occurrence)!, id))
@@ -737,7 +757,8 @@ export function recoverMovementEvidence(
         ? kind === 'head' && e.key !== 'landing site' ? 'head-landing' : 'site' : undefined;
     if (!contextKind) return;
     const reason = e.ids.length !== 1 ? 'context-needs-one-exact-node'
-      : movementContextFailure(forest, targetId, e.ids[0], contextKind, previous);
+      : movementContextFailure(forest, targetId, e.ids[0], contextKind, previous,
+        kind === 'phrasal' && landingContainerRole(e.key) ? sourceId : undefined);
     if (reason) diagnostics.push(`MOVEMENT_CONTEXT_UNPROVEN: anchors.${e.authoredKey} (${e.ids.join(', ')}) for landing ${targetId}: ${reason}. The authored field remains unresolved.`);
     else context.push({ key: e.authoredKey, nodeId: e.ids[0], kind: contextKind });
   });

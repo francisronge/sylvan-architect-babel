@@ -70,4 +70,9 @@ test('a same-scale Replay advance retains framing and only pans for actual overf
   assert.equal(corrected.x + wider.maxX * corrected.k, view.right);
   const smaller = { ...recentered, k: 0.1 };
   assert.equal(advanceFittedCamera(previous, smaller, bounds, view), smaller);
+  const larger = { ...recentered, k: previous.k * 1.08, y: 48 };
+  assert.equal(advanceFittedCamera(previous, larger, bounds, view), previous,
+    'an eight-percent opportunity to zoom in is not a reason to move the camera');
+  const overflow = advanceFittedCamera(previous, larger, { ...bounds, maxX: 12000 }, view);
+  assert(overflow.k < previous.k, 'new content still earns the scale reduction needed to remain visible');
 });
