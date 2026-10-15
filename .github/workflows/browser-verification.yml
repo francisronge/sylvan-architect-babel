@@ -1,0 +1,48 @@
+name: Functional browser verification
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-verification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-verification:
+    name: Provider-free browser behavior
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Install pinned browser runtimes
+        run: npx --no-install playwright install --with-deps chromium webkit
+
+      - name: Verify all required browser suites
+        run: npm run verify:browser -- --evidence "$RUNNER_TEMP/browser-evidence"
+
+      - name: Retain browser diagnostics and captures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: browser-verification-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/browser-evidence
+          if-no-files-found: warn
+          retention-days: 14

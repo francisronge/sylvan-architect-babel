@@ -1,6 +1,8 @@
 import { inlineWorkerPlugin } from '../../scripts/inlineWorkerPlugin.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { build } from 'esbuild';
 import { chromium, webkit } from 'playwright';
 import { buildQualificationReviewRuntime } from '../../scripts/buildContractQualificationReviewRuntime.mjs';
@@ -78,6 +80,9 @@ test('standalone and Case-composed feature plaques keep row attachment through R
   const agreement = { relation: 'An open agreement', anchors: { probe: 'k', goal: 'num' }, values: { agreement: ['inclusive', 'dual'] } };
   const caseRelation = { relation: 'CaseAssignment', anchors: { assigner: 'p', bearer: 'k' }, values: { feature: 'Case', value: 'DAT' } };
   const runtime = await buildQualificationReviewRuntime();
+  const evidence = process.env.BABEL_BROWSER_EVIDENCE
+    ? path.join(process.env.BABEL_BROWSER_EVIDENCE, 'feature-composition') : null;
+  if (evidence) await mkdir(evidence, { recursive: true });
   const browser = await chromium.launch({ headless: true });
   try {
     for (const variant of ['standalone', 'bearer', 'same-pair', 'native-bearer', 'native-same-pair']) {
@@ -101,7 +106,8 @@ test('standalone and Case-composed feature plaques keep row attachment through R
           createRoot(document.getElementById('root')).render(<TreeVisualizer data={${JSON.stringify(tree)}} derivationStages={${JSON.stringify(stages)}} sentence="with books" animated />);`,
         loader: 'tsx', resolveDir: new URL('../../', import.meta.url).pathname },
         bundle: true, write: false, format: 'iife', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' } });
-      const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+      const page = await browser.newPage({ viewport: { width: 1200, height: 900 },
+        ...(evidence && variant === 'bearer' ? { recordVideo: { dir: evidence } } : {}) });
       const errors = []; page.on('pageerror', error => errors.push(String(error)));
       await page.setContent(`<style>${runtime.css}</style><div id="root" style="height:900px"></div><script>${compiled.outputFiles[0].text}</script>`);
       await page.locator('svg[data-babel-rendered-step]').waitFor();
@@ -142,6 +148,7 @@ test('standalone and Case-composed feature plaques keep row attachment through R
         assert.equal(await page.locator('.babel-feature-plaque').count(), 1);
         assert.equal(await page.locator('.babel-case-assignment-path').count(), Number(combined));
         const state = await read();
+        if (evidence && variant === 'bearer') await page.screenshot({ path: path.join(evidence, `before-zoom-${width}.png`) });
         if (samePair) {
           if (width === 1200) assert.deepEqual(await page.locator('.babel-feature-plaque-shell').evaluate(e =>
             ['x', 'y', 'width', 'height'].map(k => e.getAttribute(k))), earlierShell, 'later rows and arrows cannot relocate or resize the shared plaque');
@@ -185,6 +192,7 @@ test('standalone and Case-composed feature plaques keep row attachment through R
         assert.deepEqual(await read(), quiet, 'quiet hover does not move a connector or plaque');
         await go(moment);
         const restored = await read();
+        if (evidence && variant === 'bearer') await page.screenshot({ path: path.join(evidence, `after-rewind-${width}.png`) });
         assert.deepEqual(restored.rect, state.rect, 'reverse scrubbing preserves the plaque reservation');
         const screenScale = await page.locator('.babel-case-collection-path').first().evaluate(e => Math.abs(e.getScreenCTM().a));
         restored.paths.forEach((path, index) => {
@@ -197,4 +205,57 @@ test('standalone and Case-composed feature plaques keep row attachment through R
       await page.close();
     }
   } finally { await browser.close(); }
+});
+
+
+test('painted syntax glyph bounds stay in tree space across native zoom and refresh on repaint', async () => {
+  const runtime = await buildQualificationReviewRuntime({ entrySource: `
+    import {select} from 'd3';
+    import {createTreeGraphicsMeasure,measureTreeGraphics} from './components/renderer/treeMeasurements.ts';
+    import './styles.css';
+    const g=select(document.querySelector('#tree'));
+    const labels=[...document.querySelectorAll('#tree text')];
+    window.capture=()=>{window.measure=createTreeGraphicsMeasure(g)};
+    window.read=()=>labels.map(label=>({stable:window.measure([label]),live:measureTreeGraphics(g,[label])}));` });
+  const observations = [];
+  for (const engine of [chromium, webkit]) {
+    const browser = await engine.launch({ headless: true });
+    try {
+      const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
+      await page.setContent(`<style>${runtime.css}</style><svg width="1200" height="900"><g id="tree">
+        <text class="category-label" x="300" y="150" style="font:900 42px Quicksand,sans-serif">KP</text>
+        <text class="terminal-label" x="300" y="300" style="font:italic 900 56px Quicksand,sans-serif">books</text>
+        </g></svg><script>${runtime.js}</script>`);
+      await page.evaluate(async () => {
+        await Promise.all([document.fonts.load('900 42px Quicksand', 'KP'),
+          document.fonts.load('italic 900 56px Quicksand', 'books')]);
+        await document.fonts.ready;
+        window.capture();
+      });
+      const initial = await page.evaluate(() => window.read());
+      for (const scale of [0.25, 0.7, 1.25, 2]) {
+        const sample = await page.evaluate(scale => {
+          document.querySelector('#tree').setAttribute('transform', `translate(35,40) scale(${scale})`);
+          return window.read();
+        }, scale);
+        observations.push({ engine: engine.name(), scale, initial, sample });
+        for (let i = 0; i < sample.length; i++) for (const key of ['x', 'y', 'width', 'height']) {
+          assert(Math.abs(sample[i].stable[key] - initial[i].stable[key]) < 1e-4,
+            JSON.stringify({ engine: engine.name(), scale, label: i, key, initial, sample }));
+        }
+      }
+      const repainted = await page.evaluate(() => {
+        document.querySelector('#tree').removeAttribute('transform');
+        document.querySelector('.category-label').textContent = 'TP [finite]';
+        window.capture();
+        return window.read();
+      });
+      assert(repainted[0].stable.width > initial[0].stable.width + 20,
+        'a new paint must measure changed glyphs rather than reusing an old frame');
+    } finally { await browser.close(); }
+  }
+  if (process.env.BABEL_BROWSER_EVIDENCE) {
+    await mkdir(process.env.BABEL_BROWSER_EVIDENCE, { recursive: true });
+    await writeFile(path.join(process.env.BABEL_BROWSER_EVIDENCE, 'syntax-glyph-zoom.json'), JSON.stringify(observations, null, 2));
+  }
 });

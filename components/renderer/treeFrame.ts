@@ -32,6 +32,7 @@ import { paintRelationScene } from './relationScene.ts';
 import type { SyntaxDrawingContext } from './syntaxDrawing.ts';
 import { paintSyntaxTree } from './syntaxDrawing.ts';
 import { alignReplayUnaryTerminalLeaves } from './treeNotation.ts';
+import { measureTreeGraphics } from './treeMeasurements.ts';
 
 interface FrameLayout {
   dimensions: { width: number; height: number };
@@ -401,7 +402,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
       const labels = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
         .filter(d => getRevealStepForNodeId(getNodeId(d)) <= effectiveRevealThreshold)
         .nodes().flatMap(label => {
-          const rect = measureGraphicsElementsInTreeSpace([label]);
+          // Occlusion follows live rasterized ink; connector anchors retain world bounds.
+          const rect = measureTreeGraphics(g, [label]);
           return rect ? [rect] : [];
         });
       let mask = g.select<SVGMaskElement>(`#${trajectoryLabelMaskId}`);

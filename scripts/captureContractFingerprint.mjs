@@ -46,8 +46,10 @@ const explicitSections = {
     'scripts/captureReplayArtifact.mjs',
     'scripts/browserSession.mjs',
     'scripts/captureReadiness.mjs',
+    'scripts/replayCapturePayload.mjs',
     'scripts/buildReplayContactSheets.mjs',
     'scripts/buildContractQualificationReviewRuntime.mjs',
+    'scripts/reviewRuntimeProvenance.mjs',
     'scripts/inlineWorkerPlugin.mjs'
   ],
   deterministicIngress: [

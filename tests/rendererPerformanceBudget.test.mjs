@@ -1,11 +1,50 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assessRendererPerformance } from '../scripts/rendererPerformanceBudget.mjs';
+import vm from 'node:vm';
+import { assessRendererPerformance, describeRendererPreparation } from '../scripts/rendererPerformanceBudget.mjs';
+import { observeRendererOpening } from '../scripts/rendererPerformanceObservation.mjs';
 
 test('renderer budget fails a sustained slowdown and accepts improvements', () => {
   const base = [1800, 1802, 1798, 1801, 1800];
   assert.equal(assessRendererPerformance(base, [2040, 2050, 2045, 2055, 2048]).status, 'regression');
   assert.equal(assessRendererPerformance(base, [1500, 1510, 1490, 1505, 1495]).status, 'passed');
+});
+
+test('a delay after first paint appears in preparation without changing the opening measurement', () => {
+  const observe = completionDelay => {
+    let clock = 0, nextFrame;
+    class Worker {
+      addEventListener(type, callback) { if (type === 'message') this.message = callback; }
+      terminate() {}
+    }
+    const svg = { dataset: { babelRenderedStep: '0' }, querySelector: selector => selector === ':scope > g'
+      ? { getAttribute: () => 'translate(0,0) scale(1)' } : { textContent: 'Mara' } };
+    const context = { window: { Worker }, document: { fonts: { status: 'loaded' }, querySelector: () => svg },
+      performance: { now: () => clock }, Map, requestAnimationFrame: callback => { nextFrame = callback; } };
+    vm.runInNewContext(`(${observeRendererOpening.toString()})()`, context);
+    const worker = new context.window.Worker();
+    clock = 100; nextFrame();
+    clock = 116; nextFrame();
+    clock = 200 + completionDelay;
+    worker.message({ data: { result: { coordinates: new Map([[0, new Map([[0, new Map([['node', { x: 1, y: 2 }]])]])]]) } } });
+    worker.terminate();
+    const state = context.window.__rendererBenchmark;
+    assert.equal(state.complete.points, 1);
+    assert.equal(state.complete.invalid, 0);
+    assert.equal(state.workers[0].terminated, true);
+    return { readyMs: state.readyMs, completeMs: state.complete.at };
+  };
+  const baseline = observe(0), delayed = observe(750);
+  assert.equal(baseline.readyMs, 116);
+  assert.equal(delayed.readyMs, baseline.readyMs);
+  assert.equal(delayed.completeMs - baseline.completeMs, 750);
+  const before = Array.from({ length: 5 }, () => baseline), after = Array.from({ length: 5 }, () => delayed);
+  assert.equal(assessRendererPerformance(before.map(item => item.readyMs), after.map(item => item.readyMs)).status, 'passed');
+  const report = describeRendererPreparation(before, after);
+  assert.equal(report.complete.medianIncreaseMs, 750);
+  assert.equal(report.remainingAfterFirstPaint.medianIncreaseMs, 750);
+  assert.deepEqual(report.complete.pairedDeltasMs, [750, 750, 750, 750, 750]);
+  assert.equal(report.blockingBudget, null, 'uncalibrated completion reports cannot introduce a new blocking threshold');
 });
 
 test('ordinary jitter and one modest outlier do not create a false regression', () => {
