@@ -11,7 +11,8 @@ export const labelBelongsToNode = (element: SVGGraphicsElement, id: string): boo
 };
 export const measureTreeGraphics = (
   g: DrawingLayer,
-  elements: SVGGraphicsElement[]
+  elements: SVGGraphicsElement[],
+  glyphBounds?: ReadonlyMap<SVGGraphicsElement, { x: number; y: number; width: number; height: number }>
 ): { x: number; y: number; width: number; height: number } | null => {
   const treeMatrix = g.node()?.getCTM();
   if (!treeMatrix || elements.length === 0) return null;
@@ -20,7 +21,7 @@ export const measureTreeGraphics = (
   elements.forEach((element) => {
     const elementMatrix = element.getCTM();
     if (!elementMatrix) return;
-    const box = element.getBBox();
+    const box = glyphBounds?.get(element) ?? element.getBBox();
     if (!box.width && !box.height) return;
     [
       [box.x, box.y],
@@ -45,6 +46,18 @@ export const measureTreeGraphics = (
     height: Math.max(...ys) - Math.min(...ys)
   };
 };
+
+
+/** Capture syntax glyphs before camera fitting. Native font hinting can change
+ * getBBox at another zoom; one painted frame must retain its world geometry. */
+export function createTreeGraphicsMeasure(g: DrawingLayer) {
+  const glyphBounds = new Map<SVGGraphicsElement, { x: number; y: number; width: number; height: number }>();
+  g.selectAll<SVGTextElement, unknown>('.category-label, .terminal-label').each(function () {
+    const { x, y, width, height } = this.getBBox();
+    glyphBounds.set(this, { x, y, width, height });
+  });
+  return (elements: SVGGraphicsElement[]) => measureTreeGraphics(g, elements, glyphBounds);
+}
 
 interface TreeMeasurementsContext {
   g: DrawingLayer;

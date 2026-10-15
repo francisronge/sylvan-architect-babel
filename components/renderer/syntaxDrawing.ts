@@ -42,7 +42,7 @@ import { caseSurfaceInitial } from '../../server/babelParser/surfaceTokens.js';
 import { type SyntaxNode } from '../../types.ts';
 import type { DrawingLayer } from './drawingContext.ts';
 import { getReplayTokenIndex } from './syntaxReveal.ts';
-import { measureTreeGraphics } from './treeMeasurements.ts';
+import { createTreeGraphicsMeasure } from './treeMeasurements.ts';
 
 type TriangulatedNode = HierNode & {isTriangulated?: boolean; triangulatedWords?: string};
 
@@ -613,8 +613,6 @@ export function paintSyntaxTree({
     .attr('x1', 0).attr('y1', 20).attr('x2', 0).attr('y2', 65)
     .attr('stroke', BRANCH_COLOR).attr('stroke-width', 3).attr('stroke-dasharray', '8,8').attr('opacity', 0.6);
 
-  const measureGraphicsElementsInTreeSpace = (elements: SVGGraphicsElement[]) => measureTreeGraphics(g, elements);
-
   // 5. ABSTRACTION MODE (Triangles)
   const triangles = nodeGroups.filter((d: TriangulatedNode) => d.isTriangulated);
   triangles.selectAll('text').remove();
@@ -656,7 +654,7 @@ export function paintSyntaxTree({
     getRevealStepForNodeId,
     effectiveRevealThreshold,
     getReplayRenderedTerminalText,
-    measureGraphicsElementsInTreeSpace,
+    measureGraphicsElementsInTreeSpace: createTreeGraphicsMeasure(g),
     TARGET_EMERALD
   };
 }
