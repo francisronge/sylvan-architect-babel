@@ -116,6 +116,22 @@ render-plan compiler produces geometry. Recovery rules do not draw, select a
 tier, or mutate the authored record. Rules must apply to an evidence shape,
 never a sentence, language, fixture, node ID, or particular analysis.
 
+Movement endpoints require an exact preceding source slot and a unique current
+root pair. A retained finite head remains context beside a proved phrasal
+landing. A containing landing clause can identify the nearest common domain of
+the lower occurrence and a landing inside a new topic shell; it cannot replace
+the moved nominal as the path endpoint. Explicit competing occurrence roles
+still refuse recovery. Bundled head notation such as `T/Aux` remains a head
+only when every bundled category is a head. Descriptive leaf labels inside an
+exactly preserved receiving head do not require rewriting into category names.
+
+Qualified input associations can pair contributor inventories with their exact
+input spelling. `TokenSources` and `Spelling` carry the same proof as
+`Contributors` and `Tokens`: unique current contributors, an exact authored
+realization group, matching input positions and literal output. Descriptive
+metadata cannot supply a missing mapping, and conflicting paired fields remain
+unresolved. Incidental semantic references do not acquire pronunciation ownership.
+
 Participant qualification and item provenance are shared across property,
 agreement, and Case recovery. Independent claims may use the same recipe in one
 relation moment. Recipe identity alone cannot suppress a second claim. Drawing

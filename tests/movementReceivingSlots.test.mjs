@@ -8,7 +8,7 @@ import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCame
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
-import { constructionReceivingAttachments, movementReceivingAttachments } from '../replay/workspaceReceivingHost.ts';
+import { constructionReceivingAttachments, movementReceivingAttachments, movementReceivingHosts } from '../replay/workspaceReceivingHost.ts';
 
 const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/receiving-head-slot.json', import.meta.url)));
 const close = (a,b,message) => assert(Math.abs(a-b)<1e-6,`${message}: ${a} vs ${b}`);
@@ -124,6 +124,41 @@ for(const count of [0,1,2,3])test(`receiving slots recognize arbitrary interior 
   assert.deepEqual(movementReceivingAttachments({...step,replayKind:'micro'},before,after,()=>true),[],'construction cannot borrow movement ownership');
   assert.deepEqual(movementReceivingAttachments({...step,replayRelationIdentity:{stageIndex:2,relationIndex:0}},before,after,()=>true),[],'a stale drawing cannot authorize placement');
 });
+
+test('an existing head opens its preserved receiving material only at the proved head-movement moment', () => {
+  const before = topology([['clause', ['receiver', 'domain']], ['receiver', ['tense', 'agreement']],
+    ['tense', []], ['agreement', []], ['domain', ['source']], ['source', []]]);
+  const current = topology([['clause', ['receiver', 'domain']], ['receiver', ['landing', 'tense', 'agreement']],
+    ['landing', []], ['tense', []], ['agreement', []], ['domain', ['lower']], ['lower', []]]);
+  const step = { replayKind: 'relation', replayRelationIdentity: { stageIndex: 1, relationIndex: 0 }, replayRelationLinks: [{
+    authoredRelationKey: '1:0', movementTransition: true, trajectoryKind: 'head',
+    priorSourceNodeId: 'source', witnessNodeId: 'lower', targetNodeId: 'landing' }] };
+  assert.deepEqual([...movementReceivingHosts(step, before, current, () => true)], ['receiver', 'tense', 'agreement']);
+  assert.deepEqual([...movementReceivingHosts({ ...step, replayKind: 'micro' }, before, current, () => true)], []);
+  assert.deepEqual([...movementReceivingHosts(step, before, current, () => false)], []);
+  const phrasal = structuredClone(step); phrasal.replayRelationLinks[0].trajectoryKind = 'phrasal';
+  assert.deepEqual([...movementReceivingHosts(phrasal, before, current, () => true)], []);
+  const reordered = topology([['clause', ['receiver', 'domain']], ['receiver', ['landing', 'agreement', 'tense']],
+    ['landing', []], ['tense', []], ['agreement', []], ['domain', ['lower']], ['lower', []]]);
+  assert.deepEqual([...movementReceivingHosts(step, before, reordered, () => true)], []);
+});
+
+for (const [width, height] of [[1600,948], [390,844]]) for (const direction of ['ltr','rtl']) {
+  test(`${width}px ${direction}: later head movement cannot expand the earlier clause during C selection`, () => {
+    const r = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/qualified-contexts.json', import.meta.url)))
+      .find(r => r.name === 'preserved-progressive-contents');
+    const stages = [r.priorForest, r.currentForest].map((workspaceForest, i) => ({
+      statement: '', stageRecord: '', workspaceForest, relations: i ? [r.relation] : [] }));
+    const { scenes, steps } = setup({ sentence: '', derivationStages: stages }, width, height, direction);
+    const prior = scenes.findLast(s => s.step.replayFrameIndex === 0 && s.step.replayKind === 'macro');
+    const selectionIndex = steps.findIndex(s => s.replayFrameIndex === 1 && s.operation === 'LexicalSelect');
+    assert(selectionIndex >= 0);
+    for (const id of ['mI', 'mProgressive', 'mAgr']) {
+      close(prior.nodes.get(id).x, scenes[selectionIndex].nodes.get(id).x, `${id} keeps its x before movement`);
+      close(prior.nodes.get(id).y, scenes[selectionIndex].nodes.get(id).y, `${id} keeps its rank before movement`);
+    }
+  });
+}
 
 for (const direction of ['ltr','rtl']) test(`${direction}: a receiving slot cannot widen an earlier completed workspace`, () => {
   const control=JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/receiving-slot-width-control.json',import.meta.url)));

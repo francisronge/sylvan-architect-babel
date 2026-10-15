@@ -1,13 +1,14 @@
 export type ViewportRect = { left: number; top: number; right: number; bottom: number };
 
-/** A same-scale advance only pans when new content would otherwise overflow. */
+/** Playback does not zoom in merely because a later stage has more room.
+ * Preserve the accepted pose until clearance needs a pan or smaller scale. */
 export function advanceFittedCamera(
   previous: { x: number; y: number; k: number },
   fitted: { x: number; y: number; k: number },
   bounds: { minX: number; minY: number; maxX: number; maxY: number },
   view: ViewportRect
 ) {
-  return Math.abs(previous.k - fitted.k) < 1e-7 ? containCamera(previous, bounds, view) : fitted;
+  return previous.k <= fitted.k + 1e-7 ? containCamera(previous, bounds, view) : fitted;
 }
 
 /** Retain an accepted fit; correct overflow with the least translation and scale reduction. */

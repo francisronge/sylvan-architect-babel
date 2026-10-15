@@ -34,7 +34,7 @@ export const readCategoryLabel = (label?: string | null): CategoryShape | undefi
   const projection = /\s+\([^)]*\bprojection\b[^)]*\)$/u.test(categoryText);
   const spelling = projection ? categoryText.replace(/\s+\([^)]*\)$/u, '')
     : categoryText.replace(/(?:\s*\([^()]+\))+$/u, '').trim();
-  const parts = spelling.split('+').map(part => {
+  const parts = spelling.split(/[+/]/u).map(part => {
     const match = /^([A-Za-z][A-Za-z]*)(?:_[A-Za-z][A-Za-z0-9_-]*)?(⁰|°|\^?0|[′’'])?$/u.exec(part.trim());
     if (!match) return;
     const category = match[1];

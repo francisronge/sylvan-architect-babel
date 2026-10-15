@@ -46,7 +46,24 @@ export function movementReceivingHosts(
   step: PlaybackStep, before: CurrentWorkspaceTopology, current: CurrentWorkspaceTopology,
   sameTopology: (id: string) => boolean
 ): ReadonlySet<string> {
-  return new Set(movementReceivingAttachments(step, before, current, sameTopology).map(item => item.host));
+  const hosts = new Set(movementReceivingAttachments(step, before, current, sameTopology).map(item => item.host));
+  for (const link of currentWorkspaceMovements(step, before, current)) {
+    const receiver = current.parent(link.targetNodeId);
+    if (link.trajectoryKind !== 'head' || !receiver || !before.has(receiver)
+      || before.parent(receiver) !== current.parent(receiver)
+      || before.contains(receiver, link.priorSourceNodeId)) continue;
+    const priorChildren = before.children(receiver), children = current.children(receiver);
+    const retained = children.filter(id => id !== link.targetNodeId);
+    // A receiving head can grow around preserved inflection material without
+    // an extra wrapper occurrence. Clearance belongs to that movement moment,
+    // never to an earlier selection that merely reserves the final layout.
+    if (priorChildren.length > 1 && children.length === priorChildren.length + 1
+      && priorChildren.every((id, index) => id === retained[index] && sameTopology(id))) {
+      hosts.add(receiver);
+      priorChildren.forEach(id => hosts.add(id));
+    }
+  }
+  return hosts;
 }
 
 /** Share the exact replaced child slot with geometry planning. The wrapper is

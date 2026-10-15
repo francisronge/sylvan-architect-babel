@@ -1,0 +1,1791 @@
+[
+  {
+    "name": "bundled-head",
+    "sourceNodeId": "t",
+    "targetNodeId": "tHigh",
+    "trajectoryKind": "head",
+    "priorForest": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "adv",
+                "label": "Adv",
+                "tokenIndex": 4,
+                "word": "gestern"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "rD",
+                            "label": "D",
+                            "lineageId": "recipientD",
+                            "tokenIndex": 0,
+                            "word": "Dem"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "rA",
+                                "label": "A",
+                                "lineageId": "recipientA",
+                                "tokenIndex": 1,
+                                "word": "alten"
+                              },
+                              {
+                                "children": [],
+                                "id": "rN",
+                                "label": "N",
+                                "lineageId": "recipientN",
+                                "tokenIndex": 2,
+                                "word": "Mann"
+                              }
+                            ],
+                            "id": "rNP",
+                            "label": "NP",
+                            "lineageId": "recipientNP"
+                          }
+                        ],
+                        "id": "rDP",
+                        "label": "DP",
+                        "lineageId": "recipientDP"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "sD",
+                                "label": "D",
+                                "tokenIndex": 5,
+                                "word": "ein"
+                              },
+                              {
+                                "children": [],
+                                "id": "sN",
+                                "label": "N",
+                                "tokenIndex": 6,
+                                "word": "Brief"
+                              }
+                            ],
+                            "id": "sDP",
+                            "label": "DP"
+                          },
+                          {
+                            "children": [],
+                            "id": "v",
+                            "label": "V[participle]",
+                            "tokenIndex": 7,
+                            "word": "geschickt"
+                          }
+                        ],
+                        "id": "vpTheme",
+                        "label": "VP"
+                      }
+                    ],
+                    "id": "vp",
+                    "label": "VP"
+                  },
+                  {
+                    "children": [],
+                    "id": "voice",
+                    "label": "Voice[passive]",
+                    "silent": true
+                  }
+                ],
+                "id": "voicep",
+                "label": "VoiceP"
+              }
+            ],
+            "id": "voicepModified",
+            "label": "VoiceP"
+          },
+          {
+            "children": [],
+            "id": "t",
+            "label": "T/Aux[past,finite]",
+            "lineageId": "finiteAuxiliary",
+            "tokenIndex": 3,
+            "word": "wurde"
+          }
+        ],
+        "id": "tp",
+        "label": "TP"
+      },
+      {
+        "children": [],
+        "id": "c",
+        "label": "C[declarative,V2]",
+        "silent": true
+      }
+    ],
+    "currentForest": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "tHigh",
+                "label": "T/Aux[past,finite]",
+                "lineageId": "finiteAuxiliary",
+                "tokenIndex": 3,
+                "word": "wurde"
+              },
+              {
+                "children": [],
+                "id": "c",
+                "label": "C[declarative,V2]",
+                "silent": true
+              }
+            ],
+            "id": "cComplex",
+            "label": "C"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "adv",
+                    "label": "Adv",
+                    "tokenIndex": 4,
+                    "word": "gestern"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "rD",
+                                "label": "D",
+                                "lineageId": "recipientD",
+                                "tokenIndex": 0,
+                                "word": "Dem"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "rA",
+                                    "label": "A",
+                                    "lineageId": "recipientA",
+                                    "tokenIndex": 1,
+                                    "word": "alten"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "rN",
+                                    "label": "N",
+                                    "lineageId": "recipientN",
+                                    "tokenIndex": 2,
+                                    "word": "Mann"
+                                  }
+                                ],
+                                "id": "rNP",
+                                "label": "NP",
+                                "lineageId": "recipientNP"
+                              }
+                            ],
+                            "id": "rDP",
+                            "label": "DP",
+                            "lineageId": "recipientDP"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "sD",
+                                    "label": "D",
+                                    "tokenIndex": 5,
+                                    "word": "ein"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "sN",
+                                    "label": "N",
+                                    "tokenIndex": 6,
+                                    "word": "Brief"
+                                  }
+                                ],
+                                "id": "sDP",
+                                "label": "DP"
+                              },
+                              {
+                                "children": [],
+                                "id": "v",
+                                "label": "V[participle]",
+                                "tokenIndex": 7,
+                                "word": "geschickt"
+                              }
+                            ],
+                            "id": "vpTheme",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "vp",
+                        "label": "VP"
+                      },
+                      {
+                        "children": [],
+                        "id": "voice",
+                        "label": "Voice[passive]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "voicep",
+                    "label": "VoiceP"
+                  }
+                ],
+                "id": "voicepModified",
+                "label": "VoiceP"
+              },
+              {
+                "children": [],
+                "id": "t",
+                "label": "T/Aux[past,finite]",
+                "lineageId": "finiteAuxiliary",
+                "silent": true,
+                "word": "wurde"
+              }
+            ],
+            "id": "tp",
+            "label": "TP"
+          }
+        ],
+        "id": "cpBody",
+        "label": "CP"
+      }
+    ],
+    "relation": {
+      "anchors": {
+        "higherOccurrence": "tHigh",
+        "host": "c",
+        "sourceOccurrence": "t"
+      },
+      "priorAnchors": {
+        "sourceOccurrence": "t"
+      },
+      "relation": "finite head movement",
+      "values": {
+        "dependency": "T-to-C",
+        "pronunciation": "higher occurrence pronounced; lower occurrence silent"
+      }
+    }
+  },
+  {
+    "name": "preserved-head-contents",
+    "sourceNodeId": "rV",
+    "targetNodeId": "rVHigh",
+    "trajectoryKind": "head",
+    "priorForest": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "rName",
+                    "label": "N° [proper name, genitive]",
+                    "tokenIndex": 0,
+                    "word": "Ayşe'nin"
+                  }
+                ],
+                "id": "rSubjectBar",
+                "label": "N′"
+              }
+            ],
+            "id": "rSubject",
+            "label": "NP [genitive]"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "rAdv",
+                        "label": "Adv°",
+                        "tokenIndex": 1,
+                        "word": "dün"
+                      }
+                    ],
+                    "id": "rAdvP",
+                    "label": "AdvP"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "rObject",
+                            "label": "NP [relative operator, accusative]",
+                            "lineageId": "relativeOperator",
+                            "silent": true
+                          },
+                          {
+                            "children": [],
+                            "id": "rV",
+                            "label": "V°",
+                            "lineageId": "relativeVerb",
+                            "word": "gör"
+                          }
+                        ],
+                        "id": "rVBar",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "rCoreVP",
+                    "label": "VP"
+                  }
+                ],
+                "id": "rOuterVP",
+                "label": "VP"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "rNom",
+                    "label": "Nominalizing inflection",
+                    "word": "-DIK"
+                  },
+                  {
+                    "children": [],
+                    "id": "rAgr",
+                    "label": "Agreement [possessive, third-person singular]",
+                    "word": "-(s)I"
+                  }
+                ],
+                "id": "rI",
+                "label": "I° [nominal inflection]"
+              }
+            ],
+            "id": "rIBar",
+            "label": "I′"
+          }
+        ],
+        "id": "rIP",
+        "label": "IP [nonfinite, nominal]"
+      }
+    ],
+    "currentForest": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "rName",
+                    "label": "N° [proper name, genitive]",
+                    "tokenIndex": 0,
+                    "word": "Ayşe'nin"
+                  }
+                ],
+                "id": "rSubjectBar",
+                "label": "N′"
+              }
+            ],
+            "id": "rSubject",
+            "label": "NP [genitive]"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "rAdv",
+                        "label": "Adv°",
+                        "tokenIndex": 1,
+                        "word": "dün"
+                      }
+                    ],
+                    "id": "rAdvP",
+                    "label": "AdvP"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "rObject",
+                            "label": "NP [relative operator, accusative]",
+                            "lineageId": "relativeOperator",
+                            "silent": true
+                          },
+                          {
+                            "children": [],
+                            "id": "rV",
+                            "label": "V° [head trace]",
+                            "lineageId": "relativeVerb",
+                            "silent": true
+                          }
+                        ],
+                        "id": "rVBar",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "rCoreVP",
+                    "label": "VP"
+                  }
+                ],
+                "id": "rOuterVP",
+                "label": "VP"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "rVHigh",
+                    "label": "V°",
+                    "lineageId": "relativeVerb",
+                    "word": "gör"
+                  },
+                  {
+                    "children": [],
+                    "id": "rNom",
+                    "label": "Nominalizing inflection",
+                    "word": "-DIK"
+                  },
+                  {
+                    "children": [],
+                    "id": "rAgr",
+                    "label": "Agreement [possessive, third-person singular]",
+                    "word": "-(s)I"
+                  }
+                ],
+                "id": "rI",
+                "label": "I° [complex nominal verbal head]"
+              }
+            ],
+            "id": "rIBar",
+            "label": "I′"
+          }
+        ],
+        "id": "rIP",
+        "label": "IP [nonfinite, nominal]"
+      }
+    ],
+    "relation": {
+      "anchors": {
+        "headTrace": "rV",
+        "landingHead": "rI",
+        "movedVerb": "rVHigh"
+      },
+      "priorAnchors": {
+        "sourceVerb": "rV",
+        "targetHead": "rI"
+      },
+      "relation": "V-to-I head movement",
+      "values": {
+        "chainType": "local head chain preserving lower argument and Case relations"
+      }
+    }
+  },
+  {
+    "name": "preserved-progressive-contents",
+    "sourceNodeId": "mV",
+    "targetNodeId": "mVHigh",
+    "trajectoryKind": "head",
+    "priorForest": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "rOperatorHigh",
+                    "label": "NP [relative operator]",
+                    "lineageId": "relativeOperator",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "rName",
+                                    "label": "N° [proper name, genitive]",
+                                    "tokenIndex": 0,
+                                    "word": "Ayşe'nin"
+                                  }
+                                ],
+                                "id": "rSubjectBar",
+                                "label": "N′"
+                              }
+                            ],
+                            "id": "rSubject",
+                            "label": "NP [genitive]"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "rAdv",
+                                        "label": "Adv°",
+                                        "tokenIndex": 1,
+                                        "word": "dün"
+                                      }
+                                    ],
+                                    "id": "rAdvP",
+                                    "label": "AdvP"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "rObject",
+                                            "label": "NP [A′ trace, accusative]",
+                                            "lineageId": "relativeOperator",
+                                            "silent": true
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "rV",
+                                            "label": "V° [head trace]",
+                                            "lineageId": "relativeVerb",
+                                            "silent": true
+                                          }
+                                        ],
+                                        "id": "rVBar",
+                                        "label": "V′"
+                                      }
+                                    ],
+                                    "id": "rCoreVP",
+                                    "label": "VP"
+                                  }
+                                ],
+                                "id": "rOuterVP",
+                                "label": "VP"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "rVHigh",
+                                    "label": "V°",
+                                    "lineageId": "relativeVerb",
+                                    "word": "gör"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "rNom",
+                                    "label": "Nominalizing inflection",
+                                    "word": "-DIK"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "rAgr",
+                                    "label": "Agreement [possessive, third-person singular]",
+                                    "word": "-(s)I"
+                                  }
+                                ],
+                                "id": "rI",
+                                "label": "I° [complex nominal verbal head]"
+                              }
+                            ],
+                            "id": "rIBar",
+                            "label": "I′"
+                          }
+                        ],
+                        "id": "rIP",
+                        "label": "IP [nonfinite, nominal]"
+                      },
+                      {
+                        "children": [],
+                        "id": "rC",
+                        "label": "C° [relative, nonfinite]",
+                        "silent": true
+                      }
+                    ],
+                    "id": "rCBar",
+                    "label": "C′"
+                  }
+                ],
+                "id": "rCP",
+                "label": "CP [relative]"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "childN",
+                    "label": "N°",
+                    "tokenIndex": 3,
+                    "word": "çocuk"
+                  }
+                ],
+                "id": "childNBar",
+                "label": "N′"
+              }
+            ],
+            "id": "childNP",
+            "label": "NP"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "parkN",
+                            "label": "N° [locative]",
+                            "tokenIndex": 4,
+                            "word": "parkta"
+                          }
+                        ],
+                        "id": "parkNBar",
+                        "label": "N′"
+                      }
+                    ],
+                    "id": "parkNP",
+                    "label": "NP [locative, adverbial]"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "mV",
+                            "label": "V°",
+                            "lineageId": "matrixVerb",
+                            "word": "oyna"
+                          }
+                        ],
+                        "id": "mVBar",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "mCoreVP",
+                    "label": "VP"
+                  }
+                ],
+                "id": "mOuterVP",
+                "label": "VP"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "mProgressive",
+                    "label": "Progressive inflection",
+                    "word": "-(I)yor"
+                  },
+                  {
+                    "children": [],
+                    "id": "mAgr",
+                    "label": "Agreement [third-person singular, zero]",
+                    "silent": true
+                  }
+                ],
+                "id": "mI",
+                "label": "I° [finite inflection]"
+              }
+            ],
+            "id": "mIBar",
+            "label": "I′"
+          }
+        ],
+        "id": "mIP",
+        "label": "IP [finite]"
+      }
+    ],
+    "currentForest": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "rOperatorHigh",
+                            "label": "NP [relative operator]",
+                            "lineageId": "relativeOperator",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "rName",
+                                            "label": "N° [proper name, genitive]",
+                                            "tokenIndex": 0,
+                                            "word": "Ayşe'nin"
+                                          }
+                                        ],
+                                        "id": "rSubjectBar",
+                                        "label": "N′"
+                                      }
+                                    ],
+                                    "id": "rSubject",
+                                    "label": "NP [genitive]"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "rAdv",
+                                                "label": "Adv°",
+                                                "tokenIndex": 1,
+                                                "word": "dün"
+                                              }
+                                            ],
+                                            "id": "rAdvP",
+                                            "label": "AdvP"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "rObject",
+                                                    "label": "NP [A′ trace, accusative]",
+                                                    "lineageId": "relativeOperator",
+                                                    "silent": true
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "id": "rV",
+                                                    "label": "V° [head trace]",
+                                                    "lineageId": "relativeVerb",
+                                                    "silent": true
+                                                  }
+                                                ],
+                                                "id": "rVBar",
+                                                "label": "V′"
+                                              }
+                                            ],
+                                            "id": "rCoreVP",
+                                            "label": "VP"
+                                          }
+                                        ],
+                                        "id": "rOuterVP",
+                                        "label": "VP"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "rVHigh",
+                                            "label": "V°",
+                                            "lineageId": "relativeVerb",
+                                            "word": "gör"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "rNom",
+                                            "label": "Nominalizing inflection",
+                                            "word": "-DIK"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "rAgr",
+                                            "label": "Agreement [possessive, third-person singular]",
+                                            "word": "-(s)I"
+                                          }
+                                        ],
+                                        "id": "rI",
+                                        "label": "I° [complex nominal verbal head]"
+                                      }
+                                    ],
+                                    "id": "rIBar",
+                                    "label": "I′"
+                                  }
+                                ],
+                                "id": "rIP",
+                                "label": "IP [nonfinite, nominal]"
+                              },
+                              {
+                                "children": [],
+                                "id": "rC",
+                                "label": "C° [relative, nonfinite]",
+                                "silent": true
+                              }
+                            ],
+                            "id": "rCBar",
+                            "label": "C′"
+                          }
+                        ],
+                        "id": "rCP",
+                        "label": "CP [relative]"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "childN",
+                            "label": "N°",
+                            "tokenIndex": 3,
+                            "word": "çocuk"
+                          }
+                        ],
+                        "id": "childNBar",
+                        "label": "N′"
+                      }
+                    ],
+                    "id": "childNP",
+                    "label": "NP"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "parkN",
+                                    "label": "N° [locative]",
+                                    "tokenIndex": 4,
+                                    "word": "parkta"
+                                  }
+                                ],
+                                "id": "parkNBar",
+                                "label": "N′"
+                              }
+                            ],
+                            "id": "parkNP",
+                            "label": "NP [locative, adverbial]"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "mV",
+                                    "label": "V° [head trace]",
+                                    "lineageId": "matrixVerb",
+                                    "silent": true
+                                  }
+                                ],
+                                "id": "mVBar",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "mCoreVP",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "mOuterVP",
+                        "label": "VP"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "mVHigh",
+                            "label": "V°",
+                            "lineageId": "matrixVerb",
+                            "word": "oyna"
+                          },
+                          {
+                            "children": [],
+                            "id": "mProgressive",
+                            "label": "Progressive inflection",
+                            "word": "-(I)yor"
+                          },
+                          {
+                            "children": [],
+                            "id": "mAgr",
+                            "label": "Agreement [third-person singular, zero]",
+                            "silent": true
+                          }
+                        ],
+                        "id": "mI",
+                        "label": "I° [complex finite verbal head]"
+                      }
+                    ],
+                    "id": "mIBar",
+                    "label": "I′"
+                  }
+                ],
+                "id": "mIP",
+                "label": "IP [finite]"
+              },
+              {
+                "children": [],
+                "id": "mC",
+                "label": "C° [declarative]",
+                "silent": true
+              }
+            ],
+            "id": "mCBar",
+            "label": "C′"
+          }
+        ],
+        "id": "mCP",
+        "label": "CP [declarative]"
+      }
+    ],
+    "relation": {
+      "anchors": {
+        "headTrace": "mV",
+        "landingHead": "mI",
+        "movedVerb": "mVHigh"
+      },
+      "priorAnchors": {
+        "sourceVerb": "mV",
+        "targetHead": "mI"
+      },
+      "relation": "Matrix V-to-I head movement",
+      "values": {
+        "chainType": "local head chain preserving the lower external theta relation"
+      }
+    }
+  },
+  {
+    "name": "contextual-head",
+    "sourceNodeId": "aDP",
+    "targetNodeId": "aDPHigh",
+    "trajectoryKind": "phrasal",
+    "priorForest": [
+      {
+        "children": [
+          {
+            "children": [],
+            "id": "aT",
+            "label": "T",
+            "silent": true
+          },
+          {
+            "children": [
+              {
+                "children": [],
+                "id": "aZheng",
+                "label": "Adv",
+                "word": "正"
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "aDem",
+                        "label": "D",
+                        "lineageId": "aDemonstrative",
+                        "word": "那"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "aCl",
+                            "label": "Cl",
+                            "lineageId": "aClassifier",
+                            "word": "位"
+                          },
+                          {
+                            "children": [],
+                            "id": "aTeacher",
+                            "label": "N",
+                            "lineageId": "aTeacherNominal",
+                            "tokenIndex": 1,
+                            "word": "老师"
+                          }
+                        ],
+                        "id": "aClP",
+                        "label": "Cl",
+                        "lineageId": "aClassifierProjection"
+                      }
+                    ],
+                    "id": "aDP",
+                    "label": "D",
+                    "lineageId": "aSubject"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "av",
+                        "label": "v",
+                        "silent": true
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "aZai",
+                                "label": "P",
+                                "word": "在"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "aCourtyard",
+                                    "label": "N",
+                                    "tokenIndex": 3,
+                                    "word": "院子"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "aLi",
+                                    "label": "L",
+                                    "tokenIndex": 4,
+                                    "word": "里"
+                                  }
+                                ],
+                                "id": "aLP",
+                                "label": "L"
+                              }
+                            ],
+                            "id": "aPP",
+                            "label": "P"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "aRead",
+                                "label": "V",
+                                "tokenIndex": 5,
+                                "word": "看"
+                              },
+                              {
+                                "children": [],
+                                "id": "aNewspaper",
+                                "label": "N",
+                                "tokenIndex": 6,
+                                "word": "报"
+                              }
+                            ],
+                            "id": "aVP",
+                            "label": "V"
+                          }
+                        ],
+                        "id": "aLocatedVP",
+                        "label": "V"
+                      }
+                    ],
+                    "id": "avCore",
+                    "label": "v"
+                  }
+                ],
+                "id": "avP",
+                "label": "v"
+              }
+            ],
+            "id": "aProgressiveDomain",
+            "label": "v"
+          }
+        ],
+        "id": "aTCore",
+        "label": "T"
+      }
+    ],
+    "currentForest": [
+      {
+        "children": [
+          {
+            "children": [],
+            "id": "aC",
+            "label": "C",
+            "silent": true
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "aDemHigh",
+                    "label": "D",
+                    "lineageId": "aDemonstrative",
+                    "word": "那"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "aClHigh",
+                        "label": "Cl",
+                        "lineageId": "aClassifier",
+                        "word": "位"
+                      },
+                      {
+                        "children": [],
+                        "id": "aTeacherHigh",
+                        "label": "N",
+                        "lineageId": "aTeacherNominal",
+                        "tokenIndex": 1,
+                        "word": "老师"
+                      }
+                    ],
+                    "id": "aClPHigh",
+                    "label": "Cl",
+                    "lineageId": "aClassifierProjection"
+                  }
+                ],
+                "id": "aDPHigh",
+                "label": "D",
+                "lineageId": "aSubject"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "aT",
+                    "label": "T",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [],
+                        "id": "aZheng",
+                        "label": "Adv",
+                        "word": "正"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "aDem",
+                                "label": "D",
+                                "lineageId": "aDemonstrative",
+                                "silent": true,
+                                "word": "那"
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "aCl",
+                                    "label": "Cl",
+                                    "lineageId": "aClassifier",
+                                    "silent": true,
+                                    "word": "位"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "aTeacher",
+                                    "label": "N",
+                                    "lineageId": "aTeacherNominal",
+                                    "silent": true,
+                                    "word": "老师"
+                                  }
+                                ],
+                                "id": "aClP",
+                                "label": "Cl",
+                                "lineageId": "aClassifierProjection",
+                                "silent": true
+                              }
+                            ],
+                            "id": "aDP",
+                            "label": "D",
+                            "lineageId": "aSubject",
+                            "silent": true
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "id": "av",
+                                "label": "v",
+                                "silent": true
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "aZai",
+                                        "label": "P",
+                                        "word": "在"
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "aCourtyard",
+                                            "label": "N",
+                                            "tokenIndex": 3,
+                                            "word": "院子"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "aLi",
+                                            "label": "L",
+                                            "tokenIndex": 4,
+                                            "word": "里"
+                                          }
+                                        ],
+                                        "id": "aLP",
+                                        "label": "L"
+                                      }
+                                    ],
+                                    "id": "aPP",
+                                    "label": "P"
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [],
+                                        "id": "aRead",
+                                        "label": "V",
+                                        "tokenIndex": 5,
+                                        "word": "看"
+                                      },
+                                      {
+                                        "children": [],
+                                        "id": "aNewspaper",
+                                        "label": "N",
+                                        "tokenIndex": 6,
+                                        "word": "报"
+                                      }
+                                    ],
+                                    "id": "aVP",
+                                    "label": "V"
+                                  }
+                                ],
+                                "id": "aLocatedVP",
+                                "label": "V"
+                              }
+                            ],
+                            "id": "avCore",
+                            "label": "v"
+                          }
+                        ],
+                        "id": "avP",
+                        "label": "v"
+                      }
+                    ],
+                    "id": "aProgressiveDomain",
+                    "label": "v"
+                  }
+                ],
+                "id": "aTCore",
+                "label": "T"
+              }
+            ],
+            "id": "aTP",
+            "label": "T"
+          }
+        ],
+        "id": "aCP",
+        "label": "C"
+      }
+    ],
+    "relation": {
+      "anchors": {
+        "head": "aT",
+        "lowerOccurrence": "aDP",
+        "upperOccurrence": "aDPHigh"
+      },
+      "priorAnchors": {
+        "source": "aDP",
+        "targetHead": "aT"
+      },
+      "relation": "Subject Internal Merge and edge satisfaction",
+      "values": {
+        "dependency": "A-movement",
+        "requirement": "EPP",
+        "status": "satisfied"
+      }
+    }
+  },
+  {
+    "name": "containing-landing-clause",
+    "sourceNodeId": "trace-subject",
+    "targetNodeId": "np-hanako",
+    "trajectoryKind": "phrasal",
+    "priorForest": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "n-hanako",
+                    "label": "N",
+                    "tokenIndex": 0,
+                    "word": "花子"
+                  }
+                ],
+                "id": "nbar-hanako",
+                "label": "N′"
+              }
+            ],
+            "id": "np-hanako",
+            "label": "NP",
+            "lineageId": "hanako-chain"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "id": "n-library",
+                                    "label": "N",
+                                    "tokenIndex": 2,
+                                    "word": "図書館"
+                                  }
+                                ],
+                                "id": "nbar-library",
+                                "label": "N′"
+                              }
+                            ],
+                            "id": "np-library",
+                            "label": "NP"
+                          },
+                          {
+                            "children": [],
+                            "id": "p-de",
+                            "label": "P",
+                            "tokenIndex": 3,
+                            "word": "で"
+                          }
+                        ],
+                        "id": "pbar-library",
+                        "label": "P′"
+                      }
+                    ],
+                    "id": "pp-library",
+                    "label": "PP"
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "id": "a-new",
+                                                    "label": "A",
+                                                    "tokenIndex": 4,
+                                                    "word": "新しい"
+                                                  }
+                                                ],
+                                                "id": "abar-new",
+                                                "label": "A′"
+                                              }
+                                            ],
+                                            "id": "ap-new",
+                                            "label": "AP"
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "id": "n-magazine",
+                                                "label": "N",
+                                                "tokenIndex": 5,
+                                                "word": "雑誌"
+                                              }
+                                            ],
+                                            "id": "nbar-magazine",
+                                            "label": "N′"
+                                          }
+                                        ],
+                                        "id": "nbar-modified-magazine",
+                                        "label": "N′"
+                                      }
+                                    ],
+                                    "id": "np-magazine",
+                                    "label": "NP"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "k-o",
+                                    "label": "K[accusative]",
+                                    "tokenIndex": 6,
+                                    "word": "を"
+                                  }
+                                ],
+                                "id": "kbar-object",
+                                "label": "K′"
+                              }
+                            ],
+                            "id": "kp-object",
+                            "label": "KP"
+                          },
+                          {
+                            "children": [],
+                            "id": "trace-v",
+                            "label": "V trace",
+                            "lineageId": "read-chain",
+                            "silent": true
+                          }
+                        ],
+                        "id": "vbar-read",
+                        "label": "V′"
+                      }
+                    ],
+                    "id": "vp-core",
+                    "label": "VP"
+                  }
+                ],
+                "id": "vp-located",
+                "label": "VP"
+              },
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "v-read",
+                    "label": "V",
+                    "lineageId": "read-chain",
+                    "word": "読む"
+                  },
+                  {
+                    "children": [],
+                    "id": "i-past",
+                    "label": "I[past]",
+                    "word": "た"
+                  }
+                ],
+                "id": "i-complex",
+                "label": "I"
+              }
+            ],
+            "id": "ibar-clause",
+            "label": "I′"
+          }
+        ],
+        "id": "ip-clause",
+        "label": "IP"
+      },
+      {
+        "children": [],
+        "id": "k-wa",
+        "label": "K[topic]",
+        "tokenIndex": 1,
+        "word": "は"
+      }
+    ],
+    "currentForest": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "n-hanako",
+                            "label": "N",
+                            "tokenIndex": 0,
+                            "word": "花子"
+                          }
+                        ],
+                        "id": "nbar-hanako",
+                        "label": "N′"
+                      }
+                    ],
+                    "id": "np-hanako",
+                    "label": "NP",
+                    "lineageId": "hanako-chain"
+                  },
+                  {
+                    "children": [],
+                    "id": "k-wa",
+                    "label": "K[topic]",
+                    "tokenIndex": 1,
+                    "word": "は"
+                  }
+                ],
+                "id": "kbar-topic",
+                "label": "K′"
+              }
+            ],
+            "id": "kp-topic",
+            "label": "KP[topic]"
+          },
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [],
+                    "id": "trace-subject",
+                    "label": "NP trace",
+                    "lineageId": "hanako-chain",
+                    "silent": true
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "id": "n-library",
+                                            "label": "N",
+                                            "tokenIndex": 2,
+                                            "word": "図書館"
+                                          }
+                                        ],
+                                        "id": "nbar-library",
+                                        "label": "N′"
+                                      }
+                                    ],
+                                    "id": "np-library",
+                                    "label": "NP"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "p-de",
+                                    "label": "P",
+                                    "tokenIndex": 3,
+                                    "word": "で"
+                                  }
+                                ],
+                                "id": "pbar-library",
+                                "label": "P′"
+                              }
+                            ],
+                            "id": "pp-library",
+                            "label": "PP"
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [
+                                                          {
+                                                            "children": [],
+                                                            "id": "a-new",
+                                                            "label": "A",
+                                                            "tokenIndex": 4,
+                                                            "word": "新しい"
+                                                          }
+                                                        ],
+                                                        "id": "abar-new",
+                                                        "label": "A′"
+                                                      }
+                                                    ],
+                                                    "id": "ap-new",
+                                                    "label": "AP"
+                                                  },
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "id": "n-magazine",
+                                                        "label": "N",
+                                                        "tokenIndex": 5,
+                                                        "word": "雑誌"
+                                                      }
+                                                    ],
+                                                    "id": "nbar-magazine",
+                                                    "label": "N′"
+                                                  }
+                                                ],
+                                                "id": "nbar-modified-magazine",
+                                                "label": "N′"
+                                              }
+                                            ],
+                                            "id": "np-magazine",
+                                            "label": "NP"
+                                          },
+                                          {
+                                            "children": [],
+                                            "id": "k-o",
+                                            "label": "K[accusative]",
+                                            "tokenIndex": 6,
+                                            "word": "を"
+                                          }
+                                        ],
+                                        "id": "kbar-object",
+                                        "label": "K′"
+                                      }
+                                    ],
+                                    "id": "kp-object",
+                                    "label": "KP"
+                                  },
+                                  {
+                                    "children": [],
+                                    "id": "trace-v",
+                                    "label": "V trace",
+                                    "lineageId": "read-chain",
+                                    "silent": true
+                                  }
+                                ],
+                                "id": "vbar-read",
+                                "label": "V′"
+                              }
+                            ],
+                            "id": "vp-core",
+                            "label": "VP"
+                          }
+                        ],
+                        "id": "vp-located",
+                        "label": "VP"
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [],
+                            "id": "v-read",
+                            "label": "V",
+                            "lineageId": "read-chain",
+                            "word": "読む"
+                          },
+                          {
+                            "children": [],
+                            "id": "i-past",
+                            "label": "I[past]",
+                            "word": "た"
+                          }
+                        ],
+                        "id": "i-complex",
+                        "label": "I"
+                      }
+                    ],
+                    "id": "ibar-clause",
+                    "label": "I′"
+                  }
+                ],
+                "id": "ip-clause",
+                "label": "IP"
+              },
+              {
+                "children": [],
+                "id": "c-declarative",
+                "label": "C[declarative]",
+                "silent": true
+              }
+            ],
+            "id": "cbar-sentence",
+            "label": "C′"
+          }
+        ],
+        "id": "cp-sentence",
+        "label": "CP"
+      }
+    ],
+    "relation": {
+      "anchors": {
+        "landingClause": "cp-sentence",
+        "movedNominal": "np-hanako",
+        "sourceTrace": "trace-subject",
+        "topicMarker": "k-wa",
+        "topicPhrase": "kp-topic"
+      },
+      "priorAnchors": {
+        "sourceClause": "ip-clause",
+        "sourceNominal": "np-hanako"
+      },
+      "relation": "Subject topicalization",
+      "values": {
+        "casePreservation": "The subject chain retains abstract nominative; は overtly marks the topic.",
+        "chainInterpretation": "Hanako is the Agent of reading.",
+        "movementType": "A′ movement from Spec-IP to the topic position in Spec-CP",
+        "topicInterpretation": "As for Hanako"
+      }
+    }
+  }
+]
