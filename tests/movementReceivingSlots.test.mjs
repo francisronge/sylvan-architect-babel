@@ -143,19 +143,34 @@ test('an existing head opens its preserved receiving material only at the proved
   assert.deepEqual([...movementReceivingHosts(step, before, reordered, () => true)], []);
 });
 
-for (const [width, height] of [[1600,948], [390,844]]) for (const direction of ['ltr','rtl']) {
-  test(`${width}px ${direction}: later head movement cannot expand the earlier clause during C selection`, () => {
+for (const retainedChildren of [1, 2]) for (const [width, height] of [[1600,948], [390,844]]) for (const direction of ['ltr','rtl']) {
+  test(`${width}px ${direction}: head movement with ${retainedChildren} retained items cannot expand the earlier clause during C selection`, () => {
     const r = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/qualified-contexts.json', import.meta.url)))
       .find(r => r.name === 'preserved-progressive-contents');
+    if (retainedChildren === 1) {
+      const omitAgreement = node => {
+        if (!node.children) return;
+        node.children = node.children.filter(child => child.id !== 'mAgr');
+        node.children.forEach(omitAgreement);
+      };
+      r.priorForest.forEach(omitAgreement);
+      r.currentForest.forEach(omitAgreement);
+    }
     const stages = [r.priorForest, r.currentForest].map((workspaceForest, i) => ({
       statement: '', stageRecord: '', workspaceForest, relations: i ? [r.relation] : [] }));
     const { scenes, steps } = setup({ sentence: '', derivationStages: stages }, width, height, direction);
     const prior = scenes.findLast(s => s.step.replayFrameIndex === 0 && s.step.replayKind === 'macro');
     const selectionIndex = steps.findIndex(s => s.replayFrameIndex === 1 && s.operation === 'LexicalSelect');
     assert(selectionIndex >= 0);
-    for (const id of ['mI', 'mProgressive', 'mAgr']) {
+    for (const id of ['mI', 'mProgressive', ...(retainedChildren === 2 ? ['mAgr'] : [])]) {
       close(prior.nodes.get(id).x, scenes[selectionIndex].nodes.get(id).x, `${id} keeps its x before movement`);
       close(prior.nodes.get(id).y, scenes[selectionIndex].nodes.get(id).y, `${id} keeps its rank before movement`);
+    }
+    if (retainedChildren === 1) {
+      const movement = scenes.find(s => s.step.replayRelationIdentity);
+      assert(movement.nodes.has('mVHigh'), 'the moved head is introduced at its owning moment');
+      for (const axis of ['x', 'y']) close(prior.nodes.get('mProgressive')[axis],
+        movement.nodes.get('mProgressive')[axis], 'the sole retained child remains stationary through movement');
     }
   });
 }

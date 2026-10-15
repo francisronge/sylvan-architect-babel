@@ -57,6 +57,8 @@ export function movementReceivingHosts(
     // A receiving head can grow around preserved inflection material without
     // an extra wrapper occurrence. Clearance belongs to that movement moment,
     // never to an earlier selection that merely reserves the final layout.
+    // A unary receiver has no old fork to release: its retained child stays a
+    // stationary witness while the new head is placed around it.
     if (priorChildren.length > 1 && children.length === priorChildren.length + 1
       && priorChildren.every((id, index) => id === retained[index] && sameTopology(id))) {
       hosts.add(receiver);
