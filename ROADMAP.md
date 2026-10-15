@@ -12,6 +12,49 @@ syntactic rules. Desktop remains the primary experience.
 
 ## Current work order
 
+The optional-token-index recovery is merged. A response whose final input
+coverage independently matches can retain its tree while contradictory optional
+indices are recorded in provenance; ambiguous identity and realization conflicts
+remain validation failures.
+
+The subsequent frozen twenty-request Sol/high qualification completed through
+Codex OAuth with 34 normalized analyses, no interruptions or rejected outputs,
+and no optional-index recovery needed. Usage totals 233,807 tokens; mean
+generation took 210.1 seconds. Hypothetical API token cost is $2.03 at the
+retained 2026-10-11 rates. These are selected cases, not a population error estimate.
+
+Repair the demonstrated recognition boundaries before another provider batch:
+
+- Recover explicitly authored head movement when a bundled category or a
+  preserved receiving head contains descriptive inflection labels. The German
+  and Turkish examples establish exact earlier sources and current landings;
+  an unfamiliar label must not substitute for missing structural proof.
+- Distinguish a contextual finite head or containing landing clause from the
+  moved occurrence. Both Mandarin subject readings and the Japanese topic
+  reading currently miss their authored paths despite a unique root pair.
+  Both Mandarin readings also hide the upper DP until the next pronunciation
+  relation, violating atomic movement visibility.
+- Bind qualified input associations without giving incidental semantic mentions
+  equal ownership. Both Mandarin controls defer an explicit Stage-1 association
+  because `TokenSources`/`Spelling` do not match `Contributors`/`Tokens` field suffixes;
+  the exact groups and final input coverage are correct.
+- Verify those repairs against the saved cases, the Turkish stage-boundary
+  fit, earlier stretching controls, and positive and refusal controls. All 34
+  new analyses author some movement, so this cohort does not supply whole-analysis
+  nonmovement controls; retain the maintained saved controls as an independent
+  check against invented movement.
+
+Seven movement paths are missed across six analyses from four requests. One
+additional Arabic alternative assumes a past nonverbal matrix clause without
+the copula required by the
+[Standard Arabic past-time contrast](https://marz.kau.edu.sa/Files/320/Researches/74322_47483.pdf).
+Retain it as inspectable model output with the review limitation; do not silently rewrite its tree or add
+language-specific rejection rules. A single alternative does not justify a
+prompt change. Private receipts, Replay links and diagnostic controls remain
+outside Git. Diminishing returns have not been established.
+
+### Completed verification and earlier cohorts
+
 1. Architecture cleanup is complete: dead paths, duplicate policy, test-only
    runtime facades and tests that repeated implementation have been removed.
    Independent review, full offline verification, baseline comparisons,
@@ -284,10 +327,9 @@ syntactic rules. Desktop remains the primary experience.
     input context for realization positions, retain doctor receipts with missing
     dependencies, and compare installed dependency declarations with the canonical
     lock. Captures, recordings, private corpus evidence and media exports stay
-    outside Git. The next qualification action is the eight focused Sol/high
-    requests described above, with frozen inputs and retained diagnostics, tokens,
-    latency and dated hypothetical API cost. No provider request was made for
-    delivery verification. Animated-pollen performance and the remaining
+    outside Git. Subsequent qualification keeps inputs frozen and retains
+    diagnostics, tokens, latency and dated hypothetical API cost. No provider
+    request was made for delivery verification. Animated-pollen performance and the remaining
     Mandarin/Arabic reading distinctions remain open work.
 
 The architecture cleanup does not redesign the product, alter provider payloads
