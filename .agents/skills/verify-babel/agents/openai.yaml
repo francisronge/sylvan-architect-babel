@@ -1,0 +1,4 @@
+interface:
+  display_name: "Babel verification"
+  short_description: "Run Babel verification and retain exact failure evidence"
+  default_prompt: "Verify the affected Babel workflow with its maintained commands and report the evidence and limits."

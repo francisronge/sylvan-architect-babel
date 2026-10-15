@@ -19,9 +19,8 @@ Replay is a declared presentation transform. It may expand an authored
 `{ label, word }` terminal into a stable display node. Exact authored IDs are
 reserved before generated IDs are allocated; `replayOrigin` identifies each
 display node's authored owner. ID spelling never establishes that ownership.
-The generic operations and display-origin kinds are listed by
-`DECLARED_PRESENTATION_TRANSFORMS` in
-`server/babelParser/inventionDetector.js`. It may not create linguistic nulls,
+The allowed Replay operations and display-provenance checks live in
+`server/babelParser/inventionDetector.js`. Replay may not create linguistic nulls,
 traces, shells, dependency labels, or movement operations.
 
 Open `relations` role names and relation labels remain literal authored

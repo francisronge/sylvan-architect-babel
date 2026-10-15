@@ -47,6 +47,9 @@ dist-ssr
 !.artifacts/random20_dual_showcase.cjs
 test-results/
 skills/
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/verify-babel/
 .vercel/
 *.local
 .env

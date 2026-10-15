@@ -1,6 +1,6 @@
 # Babel generation and renderer audit
 
-Evidence baseline: 5 September 2026. Preserved in the repository on 7 September 2026 at Francis's request. This document records findings, not implementation status. The active checklist and work order are in [Program 1 of ROADMAP.md](../../../ROADMAP.md#current-priority-resolve-the-september-system-audit). No proposed fix was approved by preserving this audit.
+Evidence baseline: 5 September 2026. Preserved in the repository on 7 September 2026 at Francis's request. This document records findings, not implementation status. The active checklist and work order are in [Program 1 of ROADMAP.md](../../../ROADMAP.md#current-work-order). No proposed fix was approved by preserving this audit.
 
 The [field-by-field contract audit](#field-by-field-contract-audit) adds the 7 September inspection of the exact sent instructions, request formatting settings, every authored field, and error propagation. It includes 58 local probes and reproductions of both Fable failures. It does not change product behavior.
 
@@ -16,7 +16,7 @@ decisions" list. Generated identity, ordinary plaque integration, judgment
 handling, separate relation moments, public-route scripted polling/cancellation
 and measured Replay preparation repairs are no longer open merely because an
 earlier entry says so. The authorized Grok pair has also been completed. Current
-pending work is listed only in [ROADMAP.md](../../../ROADMAP.md#current-reconciliation-and-next-work).
+pending work is listed only in [ROADMAP.md](../../../ROADMAP.md#current-work-order).
 The separate [morphology and surface realization audit](../../research/morphology-realization-audit.md)
 records the newly investigated representation limit and neutral-transition
 ownership finding. Historical prompt quotations and raw-analysis findings below
@@ -992,7 +992,7 @@ judgments and incomplete-processing policy remain open. No scrolling was impleme
 This audit examines production at `fb5741b`, after surface realizations and the
 preterminal-label repair. It changes no recognizer, renderer, prompt or saved
 analysis. The proposals below remain separate from implementation; the active
-work order is in [ROADMAP.md](../../../ROADMAP.md#current-reconciliation-and-next-work).
+work order is in [ROADMAP.md](../../../ROADMAP.md#current-work-order).
 
 ### Scope and evidence
 
@@ -1713,7 +1713,7 @@ attach it to unrelated syntax or turn contextual remainders into extra drawings.
 
 This follow-up separates the later visual evidence from the earlier source/frame
 review. The active work order remains in
-[ROADMAP.md](../../../ROADMAP.md#current-reconciliation-and-next-work).
+[ROADMAP.md](../../../ROADMAP.md#current-work-order).
 The reconciliation itself changes documentation only.
 
 Main's dirty checkout contains the Tree Bank thumbnail repair. Its old broad SVG
@@ -2734,7 +2734,7 @@ this case. The roadmap tracks implementation and verification status.
 The proposal below was prepared after the 9 September batch discussion without
 accompanying product changes. Its unresolved choices remain proposals; the later
 authorization above applies to Roadmap Batches 1 and 2. The
-[roadmap work order](../../../ROADMAP.md#repair-work-order) groups every numbered
+[roadmap work order](../../../ROADMAP.md#current-work-order) groups every numbered
 finding. The original evidence remains below.
 
 ### What to simplify first
@@ -5066,7 +5066,7 @@ Model ownership of copy/trace choice, the white primary Replay heading, keeping 
 
 ## Dependencies identified by the audit
 
-The following dependencies explain the suggested order. Track approval, progress, and closure only in [ROADMAP.md](../../../ROADMAP.md#current-priority-resolve-the-september-system-audit).
+The following dependencies explain the suggested order. Track approval, progress, and closure only in [ROADMAP.md](../../../ROADMAP.md#current-work-order).
 
 1. Correct diagnostic/history handling. Preserve original stages and references and expose the actual shape error. Review final-workspace and anchor checks as diagnostics without silently deciding a new rejection policy.
 2. Resolve the representation and timing questions above. Especially silent copies, typed traces, bare maximal items, and relation order within completed stages.
