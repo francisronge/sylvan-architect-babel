@@ -32,6 +32,20 @@ test('Doctor checks real transitive manifests and required closure rather than t
     await write(root, 'node_modules/child/package.json', child); hidden.packages['node_modules/child'] = child;
     await write(root, 'node_modules/.package-lock.json', hidden);
     assert.equal((await verifyDependencyInstallation(root)).installedPackages, 2, 'repaired dependency closure passes');
+    await fs.rm(path.join(root, 'node_modules/child'), { recursive: true });
+    delete hidden.packages['node_modules/child'];
+    hidden.packages['node_modules/parent'] = { ...parent, dependencies: {} };
+    await write(root, 'node_modules/.package-lock.json', hidden);
+    await write(root, 'node_modules/parent/package.json', { ...parent, dependencies: {} });
+    await assert.rejects(verifyDependencyInstallation(root), /dependency declarations differ.*parent/,
+      'an altered manifest cannot conceal the child still required by the canonical lock');
+    await write(root, 'node_modules/parent/package.json', parent);
+    await write(root, 'node_modules/child/package.json', child);
+    hidden.packages['node_modules/child'] = child; hidden.packages['node_modules/parent'] = parent;
+    await write(root, 'node_modules/.package-lock.json', hidden);
+    await write(root, 'package.json', { ...pkg, dependencies: {} });
+    await assert.rejects(verifyDependencyInstallation(root), /dependency declarations differ.*package.json/,
+      'the project manifest cannot conceal a required dependency either');
   } finally { await fs.rm(root, { recursive: true, force: true }); }
 });
 
