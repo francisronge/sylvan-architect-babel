@@ -4,6 +4,7 @@ import { buildSystemInstruction } from '../server/babelParser/systemInstruction.
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
 import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 import { resolveResearchModelSelection } from '../server/babelParser/researchModelCatalog.js';
+import { qualificationResponseHeaders, qualificationTransportError } from './telemetry.js';
 
 // Subscription transport only; this module is not part of Babel's public provider routes.
 export const CODEX_RESPONSES_URL = 'https://chatgpt.com/backend-api/codex/responses';
@@ -72,11 +73,12 @@ const responseText = response => (response?.output || [])
  */
 export const requestCodexQualification = async ({
   body, credentials, fetchImpl = fetch, dispatcher, signal,
-  onBytes = () => {}, onHeaders = () => {}
+  onBytes = () => {}, onHeaders = () => {}, onEvent = () => {}, onLifecycle = () => {}
 }) => {
   let response = null;
   let httpStatus = null;
   let terminalEvent = null;
+  let responseId = null;
   const parts = new Map();
   const completedItems = new Map();
   // Codex may leave response.output empty and deliver the complete messages in item events.
@@ -89,14 +91,17 @@ export const requestCodexQualification = async ({
       const [bi, bc] = b.split(':').map(Number);
       return ai - bi || ac - bc;
     }).map(([, text]) => text).join('');
-  const result = (status, error) => ({
-    status, httpStatus, terminalEvent, response,
-    text: status === 'completed' ? completedText() : partialText(),
-    ...(error ? { error } : {})
-  });
+  const result = (status, error, failure) => {
+    onLifecycle({ type: 'transport-result', status, phase, httpStatus, terminalEvent, responseId,
+      ...(failure ? { failure } : {}) });
+    return { status, httpStatus, terminalEvent, response, responseId,
+      text: status === 'completed' ? completedText() : partialText(),
+      ...(error ? { error } : {}), ...(failure ? { failure } : {}) };
+  };
   let reader;
   let phase = 'request';
   try {
+    onLifecycle({ type: 'request-start' });
     const http = await fetchImpl(CODEX_RESPONSES_URL, {
       method: 'POST', redirect: 'error', signal, dispatcher,
       headers: {
@@ -111,9 +116,8 @@ export const requestCodexQualification = async ({
     httpStatus = http.status;
     phase = 'archive-headers';
     // Deliberately exclude cookies and account-identifying headers from artifacts.
-    onHeaders({ status: http.status, contentType: http.headers.get('content-type'),
-      requestId: http.headers.get('x-request-id') });
-    if (!http.body) return result('failed', 'Response has no body.');
+    onHeaders(qualificationResponseHeaders(http));
+    if (!http.body) return result('failed', 'Response has no body.', { phase, reason: 'missing_body' });
     reader = http.body.getReader();
     const decoder = new TextDecoder('utf-8', { fatal: true });
     let buffer = '';
@@ -125,6 +129,11 @@ export const requestCodexQualification = async ({
       let event;
       try { event = JSON.parse(data); }
       catch { protocolError = 'Invalid JSON in provider event.'; return; }
+      onEvent(event);
+      if (typeof event.response?.id === 'string' && /^[A-Za-z0-9_-]{1,200}$/u.test(event.response.id)) {
+        responseId = event.response.id;
+        onLifecycle({ type: 'provider-response', providerEventType: event.type, responseId });
+      }
       if (event.type === 'response.output_text.delta') {
         const key = `${event.output_index ?? 0}:${event.content_index ?? 0}`;
         parts.set(key, (parts.get(key) || '') + (event.delta || ''));
@@ -140,7 +149,10 @@ export const requestCodexQualification = async ({
     while (true) {
       phase = 'read-stream';
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        onLifecycle({ type: 'stream-eof', bufferedBytes: Buffer.byteLength(buffer, 'utf8') });
+        break;
+      }
       phase = 'archive-bytes';
       onBytes(Buffer.from(value));
       if (!http.ok) continue;
@@ -153,24 +165,44 @@ export const requestCodexQualification = async ({
       }
       if (terminalEvent || protocolError) break;
     }
-    if (!http.ok) return result('failed', `Provider HTTP ${http.status}; see raw response bytes.`);
-    if (protocolError) return result('failed', protocolError);
-    if (!terminalEvent) return result('interrupted', 'Stream ended without a terminal response.');
+    if (!http.ok) return result('failed', `Provider HTTP ${http.status}; see raw response bytes.`,
+      { phase: 'request', reason: 'http_error' });
+    if (protocolError) return result('failed', protocolError, { phase: 'decode-stream', reason: 'invalid_event_json' });
+    if (!terminalEvent) return result('interrupted', 'Stream ended without a terminal response.',
+      { phase: 'read-stream', reason: 'eof_without_terminal', cancelled: Boolean(signal?.aborted) });
     if (!['response.completed', 'response.done'].includes(terminalEvent) || response?.status !== 'completed') {
-      return result('failed', 'Provider did not complete the response; see terminal response.');
+      return result('failed', 'Provider did not complete the response; see terminal response.',
+        { phase: 'decode-stream', reason: 'provider_terminal_failure' });
     }
-    if (!completedText()) return result('failed', 'Completed response contains no assistant text.');
+    if (!completedText()) return result('failed', 'Completed response contains no assistant text.',
+      { phase: 'decode-stream', reason: 'missing_assistant_text' });
     if (partialText() && partialText() !== completedText()) {
-      return result('failed', 'Streamed text differs from completed response text.');
+      return result('failed', 'Streamed text differs from completed response text.',
+        { phase: 'decode-stream', reason: 'text_mismatch' });
     }
     return result('completed');
   } catch (error) {
-    // Preserve the failing operation and standard error codes, never messages,
-    // stacks, request objects or headers that may contain credentials.
-    const codes = [error?.code, error?.cause?.code].filter(code =>
-      typeof code === 'string' && /^(?:ERR_|UND_ERR_|E)[A-Z0-9_]{1,64}$/u.test(code));
-    return { ...result('interrupted', signal?.aborted ? 'Request cancelled.' : 'Connection, stream decoding or artifact write failed.'),
-      failure: { phase, cancelled: Boolean(signal?.aborted), ...(codes.length ? { codes } : {}) } };
+    const details = qualificationTransportError(error);
+    const messages = {
+      peer_closed: 'The remote peer closed the socket before the response completed.',
+      connection_reset: 'The connection was reset before the response completed.',
+      body_timeout: 'The client response-body timeout expired.',
+      headers_timeout: 'The client response-header timeout expired.',
+      connect_timeout: 'The client connection timeout expired.',
+      invalid_http_response: 'The HTTP transport rejected an invalid response.',
+      socket_closed: 'The socket closed before the response completed.',
+      socket_destroyed: 'The socket was destroyed before the response completed.'
+    };
+    const operationErrors = {
+      request: 'The HTTP request failed before response headers arrived.',
+      'archive-headers': 'Saving response headers failed.',
+      'archive-bytes': 'Saving received response bytes failed.',
+      'decode-stream': 'Processing received stream bytes failed.',
+      'read-stream': 'Reading the HTTP response stream failed.'
+    };
+    const message = signal?.aborted ? 'Request cancelled.' : messages[details.reason] ?? operationErrors[phase];
+    return result('interrupted', message,
+      { phase, cancelled: Boolean(signal?.aborted), ...details });
   } finally {
     await reader?.cancel().catch(() => {});
     reader?.releaseLock();

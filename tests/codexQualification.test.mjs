@@ -3,6 +3,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { createServer } from 'node:http';
+import { once } from 'node:events';
+import { Agent } from 'undici';
 
 import { buildCodexQualificationRequest, CODEX_RESPONSES_URL,
   DEFAULT_CODEX_QUALIFICATION_MODEL, readCodexCredentials,
@@ -12,6 +15,7 @@ import { runQualificationAttempt } from '../contractQualification/run.js';
 import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
 import { GENERATION_MODEL_IDS } from '../server/babelParser/researchModelCatalog.js';
+import { createQualificationTelemetry, qualificationResponseHeaders } from '../contractQualification/telemetry.js';
 
 const credentials = { token: 'dummy-secret-token', accountId: 'dummy-account' };
 const request = (overrides = {}) => buildCodexQualificationRequest({
@@ -113,6 +117,69 @@ test('streaming preserves received bytes, exact Unicode output and completion us
   }
 });
 
+test('telemetry observes split UTF-8 streams without changing usage, output or event order', async () => {
+  let clock = 0;
+  const trace = createQualificationTelemetry({ now: () => clock++ });
+  const text = '本 → élève';
+  const terminal = completed(text);
+  terminal.response.usage.output_tokens_details = { reasoning_tokens: 11, provider_detail: 3 };
+  const data = [
+    { type: 'response.output_item.added', item: { type: 'reasoning', encrypted_content: 'private-reasoning' } },
+    { type: 'response.output_text.delta', delta: text, sequence_number: 4, output_index: 1 },
+    terminal
+  ];
+  const bytes = Buffer.from(data.map(event).join(''));
+  const result = await requestCodexQualification({ body: request().body, credentials,
+    fetchImpl: async () => chunkedResponse(bytes),
+    onHeaders: () => trace.headers(), onBytes: chunk => trace.bytes(chunk), onEvent: item => trace.event(item) });
+  const measured = trace.snapshot();
+  assert.equal(result.text, text);
+  assert.deepEqual(result.response.usage, terminal.response.usage);
+  assert.equal(measured.receivedBytes, bytes.length);
+  assert.deepEqual(measured.events.map(e => e.type), data.map(e => e.type));
+  assert.ok(measured.headersAtMs < measured.firstByteAtMs);
+  assert.ok(measured.firstReasoningEventAtMs < measured.firstOutputTextAtMs);
+  assert.ok(measured.firstOutputTextAtMs < measured.terminalAtMs);
+  assert.equal(measured.events[1].textBytes, Buffer.byteLength(text));
+  assert.equal(measured.events[1].sequenceNumber, 4);
+  assert.ok(!JSON.stringify(measured).includes('private-reasoning'));
+});
+
+test('telemetry keeps absent phases unavailable on an interrupted stream', async () => {
+  const trace = createQualificationTelemetry();
+  const result = await requestCodexQualification({ body: request().body, credentials,
+    fetchImpl: async () => chunkedResponse(Buffer.from(event({ type: 'response.created' }))),
+    onBytes: chunk => trace.bytes(chunk), onEvent: item => trace.event(item) });
+  assert.equal(result.status, 'interrupted');
+  const measured = trace.snapshot();
+  assert.equal(measured.firstOutputTextAtMs, null);
+  assert.equal(measured.firstReasoningEventAtMs, null);
+  assert.equal(measured.terminalAtMs, null);
+  assert.equal(measured.eventCounts['response.created'], 1);
+});
+
+test('response telemetry retains technical limits but never unknown or account-linked header values', () => {
+  const response = new Response('', { headers: {
+    'content-type': 'text/event-stream', 'x-request-id': 'request-2',
+    'x-oai-request-id': 'openai-request-2', 'cf-ray': 'edge-request-2',
+    'x-ratelimit-remaining-tokens': '1000', 'x-codex-primary-used-percent': '14',
+    'x-codex-credits-balance': '25', 'set-cookie': 'cookie-secret',
+    'x-codex-plan-account-id': 'account-secret', 'x-unknown': 'unknown-secret'
+  } });
+  const measured = qualificationResponseHeaders(response);
+  assert.equal(measured.headers['x-ratelimit-remaining-tokens'], '1000');
+  assert.equal(measured.headers['x-codex-primary-used-percent'], '14');
+  assert.equal(measured.headers['x-codex-credits-balance'], '25');
+  assert.equal(measured.headers['x-oai-request-id'], 'openai-request-2');
+  assert.equal(measured.headers['cf-ray'], 'edge-request-2');
+  assert.equal(measured.requestId, 'request-2');
+  assert.equal(qualificationResponseHeaders(new Response('', { headers: {
+    'x-oai-request-id': 'openai-request-3'
+  } })).requestId, 'openai-request-3');
+  assert.deepEqual(measured.omittedHeaderNames, ['set-cookie', 'x-codex-plan-account-id', 'x-unknown']);
+  assert.ok(!JSON.stringify(measured).includes('secret'));
+});
+
 test('partial, failed and inconsistent streams retain evidence without retrying or accepting completion', async () => {
   const delta = event({ type: 'response.output_text.delta', delta: 'partial' });
   const scenarios = [
@@ -206,5 +273,84 @@ test('interrupted runs identify transport, decoding and archive failures without
     assert.deepEqual(result.failure.codes, [scenario.code]);
     assert.equal(calls, 1);
     assert.ok(!JSON.stringify(result).includes(secret));
+  }
+});
+
+
+test('empty output deltas do not establish visible text timing', () => {
+  let now = 0;
+  const trace = createQualificationTelemetry({ now: () => now });
+  now = 100; trace.event({ type: 'response.output_text.delta', delta: '' });
+  assert.equal(trace.snapshot().firstOutputTextAtMs, null);
+  now = 250; trace.event({ type: 'response.output_text.delta', delta: 'A' });
+  now = 400; trace.event({ type: 'response.output_text.delta', delta: '' });
+  const measured = trace.snapshot();
+  assert.equal(measured.firstOutputTextAtMs, 250);
+  assert.equal(measured.lastOutputTextAtMs, 250);
+  assert.equal(measured.eventCount, 3, 'all observed events remain in the trace');
+});
+
+test('socket diagnostics retain a wrapped peer-close cause without arbitrary messages, addresses or credentials', async () => {
+  const secret = credentials.token;
+  const socket = { bytesRead: 1200, bytesWritten: 500, timeout: 0,
+    localAddress: secret, remoteAddress: secret, headers: { Authorization: secret } };
+  const inner = Object.assign(new Error('other side closed'), { code: 'UND_ERR_SOCKET', socket });
+  const wrapped = new TypeError(secret, { cause: new Error(secret, { cause: inner }) });
+  const trace = createQualificationTelemetry();
+  trace.connection('disconnect', wrapped);
+  let delivered = false;
+  const result = await requestCodexQualification({ body: request().body, credentials,
+    fetchImpl: async () => new Response(new ReadableStream({ pull(controller) {
+      if (delivered) controller.error(wrapped);
+      else { delivered = true; controller.enqueue(Buffer.from(event({ type: 'response.created',
+        response: { id: 'resp_failed_stream', status: 'in_progress' } }))); }
+    } }))
+  });
+  assert.equal(result.responseId, 'resp_failed_stream');
+  assert.equal(result.response, null, 'creation metadata must not masquerade as completion');
+  assert.equal(result.failure.reason, 'peer_closed');
+  assert.deepEqual(result.failure.codes, ['UND_ERR_SOCKET']);
+  assert.deepEqual(result.failure.socket, { bytesRead: 1200, bytesWritten: 500, timeout: 0 });
+  assert.match(result.error, /remote peer closed/);
+  assert.equal(trace.snapshot().connections[0].reason, 'peer_closed');
+  assert.ok(!JSON.stringify({ result, telemetry: trace.snapshot() }).includes(secret));
+});
+
+test('real HTTP stream termination distinguishes peer close, client timeout and completed response', async t => {
+  const server = createServer((req, res) => {
+    req.resume();
+    res.writeHead(200, { 'content-type': 'text/event-stream' });
+    res.write(event({ type: 'response.created', response: { id: 'resp_local', status: 'in_progress' } }));
+    if (req.url === '/peer-close') res.socket.end(); // No final HTTP chunk or provider completion.
+    else if (req.url === '/completed') res.end(streamFor('complete'));
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  for (const [route, bodyTimeout, expected] of [
+    ['/peer-close', 0, 'peer_closed'], ['/stalled', 15, 'body_timeout'], ['/completed', 0, null]
+  ]) {
+    const dispatcher = new Agent({ headersTimeout: 0, bodyTimeout });
+    const trace = createQualificationTelemetry();
+    dispatcher.on('disconnect', (_origin, _targets, error) => trace.connection('disconnect', error));
+    try {
+      const result = await requestCodexQualification({ body: request().body, credentials, dispatcher,
+        fetchImpl: (_url, options) => fetch(origin + route, options),
+        onBytes: chunk => trace.bytes(chunk), onEvent: item => trace.event(item)
+      });
+      assert.equal(result.responseId, route === '/completed' ? 'response-1' : 'resp_local');
+      if (expected) {
+        assert.equal(result.status, 'interrupted');
+        assert.equal(result.failure.phase, 'read-stream');
+        assert.equal(result.failure.cancelled, false);
+        assert.equal(result.failure.reason, expected);
+        assert.equal(trace.snapshot().connections[0].reason, expected);
+        assert.equal(trace.snapshot().firstOutputTextAtMs, null);
+      } else {
+        assert.equal(result.status, 'completed');
+        assert.equal(result.text, 'complete');
+      }
+    } finally { await dispatcher.close(); }
   }
 });
