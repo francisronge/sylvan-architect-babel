@@ -9,6 +9,9 @@ import { buildCodexQualificationRequest, readCodexCredentials,
   requestCodexQualification, CODEX_RESPONSES_URL } from '../contractQualification/codexOAuth.js';
 import { writeQualificationAttempt } from '../contractQualification/artifacts.js';
 import { hashQualificationBytes, stableQualificationJson } from '../contractQualification/run.js';
+import { createQualificationTelemetry, qualificationTransportError } from '../contractQualification/telemetry.js';
+import { createTransportDiagnostics } from '../contractQualification/transportDiagnostics.js';
+import { estimateApiTokenCost } from '../contractQualification/apiCost.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const { values } = parseArgs({ options: {
@@ -64,36 +67,56 @@ if (values.run) {
   const authPath = values['auth-file'] || path.join(process.env.CODEX_HOME || path.join(os.homedir(), '.codex'), 'auth.json');
   const credentials = readCodexCredentials(authPath);
   const controller = new AbortController();
-  const cancel = () => controller.abort();
-  process.once('SIGINT', cancel);
-  process.once('SIGTERM', cancel);
   const dispatcher = new Agent({ headersTimeout: 0, bodyTimeout: 0 });
   const rawPath = path.join(outputPath, 'response.sse');
   fs.writeFileSync(rawPath, '');
   receipt.startedAt = new Date().toISOString();
   receipt.status = 'request-started';
   receipt.providerCallsMade = true;
+  receipt.client = { node: process.version, fetchUndici: process.versions.undici,
+    headersTimeoutMs: 0, bodyTimeoutMs: 0, retries: 0 };
+  receipt.diagnostics = { artifact: 'transport-diagnostics.ndjson', schemaVersion: 1 };
   writeJson('run-receipt.json', receipt);
   const start = performance.now();
+  const telemetry = createQualificationTelemetry();
+  const diagnostics = createTransportDiagnostics({ directory: outputPath,
+    endpoint: CODEX_RESPONSES_URL, client: receipt.client, snapshot: () => telemetry.snapshot() });
+  const cancelInt = () => { diagnostics.signal('SIGINT'); controller.abort(); };
+  const cancelTerm = () => { diagnostics.signal('SIGTERM'); controller.abort(); };
+  process.once('SIGINT', cancelInt);
+  process.once('SIGTERM', cancelTerm);
+  for (const type of ['connect', 'disconnect', 'connectionError']) {
+    dispatcher.on(type, (_origin, _targets, error) => {
+      telemetry.connection(type, error); diagnostics.connection(type, error);
+    });
+  }
+  let runnerPhase = 'request';
   try {
     const result = await requestCodexQualification({ body, credentials, dispatcher, signal: controller.signal,
-      onBytes: chunk => fs.appendFileSync(rawPath, chunk),
-      onHeaders: headers => writeJson('response-headers.json', headers)
+      onBytes: chunk => { telemetry.bytes(chunk); fs.appendFileSync(rawPath, chunk); diagnostics.observe(); },
+      onHeaders: headers => { telemetry.headers(); writeJson('response-headers.json', headers); diagnostics.headers(headers); },
+      onEvent: event => { telemetry.event(event); diagnostics.observe(); },
+      onLifecycle: event => diagnostics.lifecycle(event)
     });
+    runnerPhase = 'archive-result';
     const { text, ...transportResult } = result;
     fs.writeFileSync(path.join(outputPath, 'output.txt'), text);
     const rawBytes = fs.readFileSync(rawPath);
     Object.assign(receipt, {
       completedAt: new Date().toISOString(), durationMs: Math.round(performance.now() - start),
       status: result.status, result: transportResult,
+      hypotheticalApiTokenCost: estimateApiTokenCost(result.response?.model ?? body.model, result.response?.usage),
       rawResponse: { artifact: 'response.sse', byteLength: rawBytes.length, sha256: hashQualificationBytes(rawBytes) },
       output: { artifact: 'output.txt', sha256: hashQualificationBytes(Buffer.from(text, 'utf8')) }
     });
     // Incomplete transport must never enter delimiter repair or masquerade as a complete analysis.
     if (result.status === 'completed') {
+      runnerPhase = 'babel-processing';
+      const processingStart = performance.now();
       const attempt = { id: 'parse', request: { sentence: values.sentence, framework: values.framework, inputTokens },
         model: selection, source: { kind: 'raw-text-file', path: 'output.txt' } };
       const artifacts = writeQualificationAttempt({ outputPath, attempt, rawBytes: Buffer.from(text, 'utf8') });
+      receipt.processingDurationMs = Math.round((performance.now() - processingStart) * 1000) / 1000;
       receipt.attempts = [{ attemptId: attempt.id, outcome: artifacts.receipt.outcome }];
       writeJson('review-manifest.json', { schemaVersion: 1, entries: [artifacts.reviewEntry] });
       console.log(`Babel processing: ${artifacts.receipt.outcome.status}`);
@@ -103,10 +126,17 @@ if (values.run) {
       console.error(result.error);
     }
     console.log(`Transport: ${result.status}. Artifacts: ${outputPath}`);
+  } catch (error) {
+    diagnostics.lifecycle({ type: 'runner-failure', phase: runnerPhase,
+      ...qualificationTransportError(error) });
+    throw error;
   } finally {
+    const telemetryBytes = Buffer.from(stableQualificationJson(telemetry.snapshot()));
+    fs.writeFileSync(path.join(outputPath, 'telemetry.json'), telemetryBytes);
+    receipt.telemetry = { artifact: 'telemetry.json', sha256: hashQualificationBytes(telemetryBytes) };
     writeJson('run-receipt.json', receipt);
-    process.removeListener('SIGINT', cancel);
-    process.removeListener('SIGTERM', cancel);
-    await dispatcher.close();
+    process.removeListener('SIGINT', cancelInt);
+    process.removeListener('SIGTERM', cancelTerm);
+    try { await dispatcher.close(); } finally { diagnostics.close(); }
   }
 }
