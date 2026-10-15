@@ -186,6 +186,7 @@ export interface Provenance {
   uiVersion?: string;
   payloadIntegrityFlags?: string[];
   payloadRepairDiagnostics?: PayloadRepairDiagnostic[];
+  tokenIndexCorrections?: TokenIndexCorrection[];
   hasDerivationStages?: boolean;
   parsePromptTokenCount?: number;
   parseOutputTokenCount?: number;
@@ -193,6 +194,16 @@ export interface Provenance {
   primaryPromptTokenCount?: number;
   primaryOutputTokenCount?: number;
   primaryTotalTokenCount?: number;
+}
+
+export interface TokenIndexCorrection {
+  kind: 'omitted_mismatched_optional_token_index';
+  stageIndex: number;
+  fieldPath: string;
+  nodeId: string;
+  word: string;
+  authoredTokenIndex: number;
+  inputTokenAtAuthoredIndex: string;
 }
 
 export interface ParseResult {
