@@ -3,7 +3,7 @@
 These files preserve prior plans, handoffs, audits, and reviews. They are
 non-authoritative records, not instructions for current work.
 
-Current status and future work live only in [`ROADMAP.md`](../../ROADMAP.md).
+Remaining work lives only in [`ROADMAP.md`](../../ROADMAP.md).
 
 Historical does not mean disposable. In particular, the
 [Fable Zero Unknowns packet](architecture/fable-zero-unknowns-2026-07-17/README.md)
