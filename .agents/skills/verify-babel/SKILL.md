@@ -53,8 +53,10 @@ and raw payloads. Include those paths when reporting results.
 
 Prove a new guard catches the old defect or a controlled bad result. Keep useful
 positive and unrelated controls. Distinguish parser warnings from fatal failures,
-offline geometry from native painting, and a prerequisite check from a user-flow
-check. Report unverified coverage rather than extrapolating from passing counts.
+offline geometry from native painting, a fixed-size test viewport from a real
+fullscreen window, and a prerequisite check from a user-flow check. Native Chrome
+grants fullscreen only to the active tab. Report unverified coverage rather than
+extrapolating from passing counts.
 
 ## Cleanup
 

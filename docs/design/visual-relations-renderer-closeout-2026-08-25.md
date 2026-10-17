@@ -17,6 +17,8 @@ Status: historical closeout, corrected by the September 16 fidelity audit below.
   do not restore retired renderer identities.
 - Relation hover uses the shared emerald ink with a `6px`, alpha `0.50` halo.
   It changes no stroke width, geometry, opacity, or layout.
+- Movement paths keep their original stroke behavior; the screen-sized stroke
+  experiment remains rejected.
 - Pair Merge follows both native branches of its shared-parent fork. Blocked
   Extraction reuses the same branch overlay for its adjunct branch only; Phase
   remains a separate solid domain cap.
@@ -44,7 +46,8 @@ Local drawing proportions use a 375-unit sibling pitch and a 220-unit row from
 not select those proportions. Identical material subtrees retain the same local
 shape across containing trees; measured labels, words and branch clearance may
 require more room. Camera fitting scales the complete drawing. It never squeezes
-individual forks back into a previous whole-tree width.
+individual forks back into a previous whole-tree width. Dense full-tree
+overviews can therefore require zoom; that alone is not a defect.
 
 Replay prepares intrinsic contours once through the construction history and
 then applies its existing attachment and continuity constraints. Canopy uses the
@@ -92,6 +95,10 @@ Reject a reservation that widens any earlier completed syntax root. The envelope
 between independent forest roots may grow to reserve their eventual sides; their
 internal widths and the final tree remain unchanged. Actual movement still owns
 its separate relation moment.
+
+Writing direction follows the input's Unicode first-strong direction and applies
+only to presentation coordinates. Stored children, tokens, glyphs and syntactic
+dependencies are never reversed.
 
 When an unchanged workspace component carries coordinates across stages, preserve
 its position after applying the writing direction. RTL reflection uses the current
@@ -458,7 +465,8 @@ The entire stage reserves that viewport before any of its rows appear. All rows
 remain in the authored record and SVG; wheel and keyboard input scroll the plaque
 without changing the tree camera. Small/local and larger/below-subtree placement
 continue to use the shared allocator. This exception does not introduce a reading
-view or a new relation drawing.
+view or a new relation drawing. No silent row cap, hidden rows or relocation of
+plaque values into Replay-only text is approved.
 
 Tree Bank previews capture the visible portion at its correct bounds, with all
 rows preserved in the saved analysis. A static thumbnail does not promise a full
@@ -802,6 +810,10 @@ canvas. Future-layout candidates retain the same chronological eligibility and
 stopping rules; only their construction is deferred, newest first, until the last
 valid candidate is found. Each candidate retains its own allowed occurrence IDs.
 These caches remain local to one compilation and preserve the serialized result.
+
+On the reference bundled runtime at a 1600px desktop viewport, a usable Replay
+should open within 2 seconds, and ordinary rendered frame changes should stay
+below 100 ms at the 95th percentile.
 
 The September 22 CPU controls preserve all 1,432 saved Replay frames exactly.
 For a 96-stage left- or right-nested derivation, preparation fell from about

@@ -7,7 +7,7 @@ contract, prompt, analysis or drawing. Its baseline findings remain below; the
 `realizations` contract approved and implemented on 15 September. Offline
 integration and browser verification are complete; fresh model authoring remains
 unmeasured.
-[ROADMAP.md](../../ROADMAP.md#current-reconciliation-and-next-work) owns the work
+[ROADMAP.md](../../ROADMAP.md#current-work-order) owns the work
 order. The model continues to author the linguistics.
 
 ## Answer at the audited baseline

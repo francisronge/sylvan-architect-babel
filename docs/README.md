@@ -6,14 +6,14 @@ This file answers one question: which document should be trusted for what?
 
 | Document | Authority |
 | --- | --- |
-| [`ROADMAP.md`](../ROADMAP.md) | The only active implementation plan and status map. |
+| [`ROADMAP.md`](../ROADMAP.md) | The single ordered list of remaining work. |
 | [`CONTEXT.md`](../CONTEXT.md) | Canonical names and boundaries for the product, renderer, qualification work, archives, corpus, and benchmark. |
 | [`AGENTS.md`](../AGENTS.md) | Repository operating contract for coding agents. |
 | [`README.md`](../README.md) | Product overview and local-use guide. |
 | [`server/babelParser/systemInstruction.js`](../server/babelParser/systemInstruction.js) and [`prompts.js`](../server/babelParser/prompts.js) | Model-facing authored contract. |
 | [`docs/implementation/invention-boundary.md`](implementation/invention-boundary.md) | Deterministic compiler and elaboration boundary. |
 | [`docs/implementation/baselines/provider-free-baseline-spec.md`](implementation/baselines/provider-free-baseline-spec.md) | Provider-free baseline contract. |
-| [`docs/design/visual-relations-tier2-shape-dispatch-spec.md`](design/visual-relations-tier2-shape-dispatch-spec.md) | Intended Tier-2 behavior and earlier fixture verification; current defects are tracked in Program 1. |
+| [`docs/design/visual-relations-tier2-shape-dispatch-spec.md`](design/visual-relations-tier2-shape-dispatch-spec.md) | Intended Tier-2 behavior and earlier fixture verification; open renderer work is listed in the roadmap. |
 | [`docs/design/visual-relations-renderer-closeout-2026-08-25.md`](design/visual-relations-renderer-closeout-2026-08-25.md) | Historical fixture closeout, not a sign-off on the later live-output failures. |
 
 ## Supporting Implementation Records
@@ -24,6 +24,10 @@ This file answers one question: which document should be trusted for what?
   benchmark plumbing.
 - [`docs/design/benchmark-provenance-conditions.md`](design/benchmark-provenance-conditions.md):
   benchmark provenance conditions.
+- [`contractQualification/program-1.item-set.json`](../contractQualification/program-1.item-set.json)
+  and [`frozen-item-set-contract.manifest.json`](implementation/contract-qualification/frozen-item-set-contract.manifest.json):
+  the frozen 14-item qualification set and its original contract manifest.
+  They are historical baselines and do not describe today's contract.
 - [`docs/implementation/contract-qualification/incumbent-contract-audit-2026-08-28.md`](implementation/contract-qualification/incumbent-contract-audit-2026-08-28.md):
   Program 1 fingerprint and audit of the current model-facing interface.
 - [`docs/implementation/contract-qualification/fable-review-2026-08-28.md`](implementation/contract-qualification/fable-review-2026-08-28.md):
@@ -34,7 +38,7 @@ This file answers one question: which document should be trusted for what?
 The remaining `docs/design/visual-relations-*` research notes, inventories,
 source records, and proof pages explain how the renderer was developed. They
 are useful provenance, not open tasks. The Tier-2 specification records intended
-behavior. Follow Program 1 for current work and status.
+behavior. The roadmap lists current work.
 
 Some of those historical notes refer to locally recovered copies of academic
 figures under `docs/design/visual-relations-assets/`. Those third-party copies

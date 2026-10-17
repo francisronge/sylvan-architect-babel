@@ -47,11 +47,11 @@ standard even though model analyses may differ.
 _Avoid_: public generation policy
 
 **Babel product launch**:
-Programs 0 through 6 working together in production: qualified generation, the
-shared public and research application, complete renderer integration, durable
-Personal Tree Bank work, bounded operations, the Generation Archive, and a
-working review path into the Reviewed Derivational Corpus. A large reviewed
-corpus and the benchmark are not launch requirements.
+Roadmap Programs 1 through 6 working together in production: qualified
+generation, the shared public and research application, complete renderer
+integration, durable Personal Tree Bank work, bounded operations, the Generation
+Archive, and a working review path into the Reviewed Derivational Corpus. A
+large reviewed corpus and the benchmark are not launch requirements.
 _Avoid_: Relation Orchard publication, benchmark release
 
 **Benchmark**:
@@ -83,3 +83,60 @@ A provider attempt that does not become a valid Babel analysis because of
 transport, malformed data, contract, or deterministic-engine failure. A valid
 analysis of an ungrammatical sentence is not a failed generation.
 _Avoid_: illicit analysis, corrupt sentence
+
+## Boundaries
+
+Babel's product, its benchmark and its derivational data (Personal Tree Bank,
+Generation Archive and Reviewed Derivational Corpus) are separate systems. They
+share the derivation contract and durable record types but not product state.
+None quietly copies another's derivation bytes, and benchmark controls never
+become ordinary interface settings.
+
+- No confirmed-worse derivational output is acceptable for formatting,
+  reliability, cost, latency, convenience or implementation simplicity.
+- Babel requests complete derivations. The output allowance is never inferred
+  from sentence length.
+- One analysis produces one canonical immutable durable record.
+- Archive raw provider response bytes, parsed values and canonical
+  reserialization separately. They are three different fidelity layers.
+- Provider settings keep their native names and meanings. Do not manufacture a
+  temperature, equate effort labels across providers, or treat lower effort as
+  harmless without an approved comparison. Every run records its effective
+  settings and documented defaults.
+- Keep the model-facing contract provider-neutral, with no worked language
+  examples, role menus, hidden provider-specific linguistic patches or closed
+  relation ontology.
+- Production generation never retries an explicit rate limit or replaces a
+  received answer that fails downstream. Genuine temporary network or server
+  failures get at most three total attempts within the deadline. An uncertain
+  timeout does not prove that a generation stopped; recovering an existing
+  response is distinct from creating a new one.
+- The derivational database never supplies benchmark answers or held-out
+  material. A released benchmark bundle may enter it only afterward, through an
+  explicit one-way import marked with its benchmark origin.
+
+## Contract qualification rules
+
+Qualification is product reliability work over selected cases, not a benchmark.
+
+- Start each batch from a concrete unresolved question with acceptance criteria
+  stated in advance. Freeze its inputs, and state the models, native settings and
+  approved maximum run count or spend before it runs.
+- Preserve failures, valid unexpected analyses and every returned alternative.
+  Show Francis the questionable examples with the full batch still inspectable;
+  already-approved records do not need repeated review.
+- Classify transport completion, contract validity, linguistic adequacy and
+  deterministic engine or rendering defects separately.
+- Do not silently repair linguistic content or add speculative prompt rules to
+  prevent individual model errors. Model mistakes and defensible alternative
+  analyses stay inspectable; they are neither automatic shipping blockers nor
+  permission to rewrite records.
+- Neutral prose or context without another drawable dependency is not a missed
+  drawing, and an unfamiliar language alone is not evidence of a defect.
+- Keep genuinely unseen cases for evaluating a frozen candidate. Once a case
+  guides a fix, it is a regression, not untouched holdout evidence. Assess
+  defensible alternative analyses rather than demanding one gold tree.
+- A count of selected parses is not a benchmark, a population error estimate or
+  a measure of diminishing returns. Controlled sentence contrasts can isolate a
+  claimed phenomenon. Report morphology, language, provider and ambiguity
+  coverage honestly.
