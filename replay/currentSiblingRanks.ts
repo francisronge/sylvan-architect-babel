@@ -47,17 +47,20 @@ export function retainCurrentSiblingRanks(current: Scene & { coordinates: TreeCo
   });
 }
 
-/** A unary edge keeps its current rank until an unseen wrapper is inserted.
- * Apply this after contour reservation: changing a rank must not change the
- * contour solver's coordinate lifetimes or the completed tree's width. */
-export function retainCurrentUnaryRank(current: Scene & { coordinates: TreeCoordinateReservation }, future: Scene): void {
-  const { coordinates } = current;
-  const visibleNodes = new Map([...current.nodes].filter(([id]) => current.visible.has(id)));
+type CurrentScene = Scene & { coordinates: TreeCoordinateReservation };
+type PointNode = d3.HierarchyPointNode<SyntaxNode>;
+
+const visibleChildren = (node: PointNode, scene: Scene) => (node.children ?? []).filter(child =>
+  !child.data.replayLayoutOnly && scene.visible.has(getNodeId(child)));
+
+/** Current unary edges whose child will later receive an unseen wrapper
+ * between it and its current parent. */
+const unaryEdgesAwaitingInsertion = (current: Scene, future: Scene): Array<{ parent: PointNode; child: PointNode }> => {
+  const edges: Array<{ parent: PointNode; child: PointNode }> = [];
   current.nodes.forEach(parent => {
     if (parent.data.replayLayoutOnly || parent.data.replayOrigin?.kind === 'workspace'
       || !current.visible.has(getNodeId(parent))) return;
-    const children = (parent.children ?? []).filter(child =>
-      !child.data.replayLayoutOnly && current.visible.has(getNodeId(child)));
+    const children = visibleChildren(parent, current);
     if (children.length !== 1) return;
     const child = children[0], other = future.nodes.get(getNodeId(child));
     if (!other) return;
@@ -65,6 +68,18 @@ export function retainCurrentUnaryRank(current: Scene & { coordinates: TreeCoord
       !ancestor.data.replayLayoutOnly && ancestor.data.replayOrigin?.kind !== 'workspace');
     const parentIndex = ancestry.findIndex(ancestor => getNodeId(ancestor) === getNodeId(parent));
     if (parentIndex < 1 || ancestry.slice(0, parentIndex).some(ancestor => current.visible.has(getNodeId(ancestor)))) return;
+    edges.push({ parent, child });
+  });
+  return edges;
+};
+
+/** A unary edge keeps its current rank until an unseen wrapper is inserted.
+ * Apply this after contour reservation: changing a rank must not change the
+ * contour solver's coordinate lifetimes or the completed tree's width. */
+export function retainCurrentUnaryRank(current: CurrentScene, future: Scene): void {
+  const { coordinates } = current;
+  const visibleNodes = new Map([...current.nodes].filter(([id]) => current.visible.has(id)));
+  unaryEdgesAwaitingInsertion(current, future).forEach(({ parent, child }) => {
     const parentPoint = coordinates.get(getNodeId(parent))!, childPoint = coordinates.get(getNodeId(child))!;
     const gap = child.y - parent.y;
     const delta = parentPoint.y + gap - childPoint.y;
@@ -74,4 +89,35 @@ export function retainCurrentUnaryRank(current: Scene & { coordinates: TreeCoord
       if (point) coordinates.set(id, { ...point, y: point.y + delta });
     }
   });
+}
+
+/** Cross-stage reservations copy each member's future row back through its
+ * lifetime, so a current unary parent would otherwise wait at the height it
+ * needs after later insertions and show a stretched branch. When that parent
+ * and every visible ancestor above it are unary, lower the whole spine to one
+ * native row above its child: lexical material keeps its reserved slot and the
+ * spine rises one row at each authored insertion. A spine with a fork above it
+ * cannot move, so its child keeps the current rank instead. */
+export function retainCurrentUnaryRows(current: CurrentScene, future: Scene): void {
+  const { coordinates } = current;
+  const visibleParent = (node: PointNode) => {
+    const parent = syntaxParent(node);
+    return parent && current.visible.has(getNodeId(parent)) ? parent : undefined;
+  };
+  unaryEdgesAwaitingInsertion(current, future).reverse().forEach(({ parent, child }) => {
+    const spine = [parent];
+    for (let up = visibleParent(parent); up; up = visibleParent(up)) {
+      if (visibleChildren(up, current).length !== 1) return;
+      spine.push(up);
+    }
+    const gap = child.y - parent.y;
+    const parentPoint = coordinates.get(getNodeId(parent))!, childPoint = coordinates.get(getNodeId(child))!;
+    const delta = childPoint.y - gap - parentPoint.y;
+    if (!Number.isFinite(gap) || gap <= 0 || delta <= 1e-8) return;
+    for (const node of spine) {
+      const point = coordinates.get(getNodeId(node));
+      if (point) coordinates.set(getNodeId(node), { ...point, y: point.y + delta });
+    }
+  });
+  retainCurrentUnaryRank(current, future);
 }

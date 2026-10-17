@@ -1,7 +1,7 @@
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import { retainCurrentRootFork } from './currentRootFork.ts';
-import { retainCurrentSiblingRanks } from './currentSiblingRanks.ts';
+import { retainCurrentSiblingRanks, retainCurrentUnaryRows } from './currentSiblingRanks.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { sourceSiblingTranslation, unchangedSourceRankOffsets } from './sourceSiblingTranslation.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
@@ -171,6 +171,9 @@ export function reserveAttachmentLifetimes({
               // Carry the corrected rank back through its construction life.
               retainCurrentSiblingRanks(current, future, undefined, relocated);
               retainCurrentRootFork(current, future);
+              // Future rows reserved for later insertions must not stretch a
+              // current unary branch.
+              retainCurrentUnaryRows(current, future);
             }
             const hierarchy = d3.hierarchy(scene.canvas); applyVizIds(hierarchy);
             const visible = new Set(scene.nodes.keys());
