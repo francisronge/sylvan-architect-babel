@@ -112,6 +112,37 @@ export const RESEARCH_MODEL_CATALOG = deepFreeze([
     }
   },
   {
+    // Qualification runner only; not offered on Babel's generation routes.
+    id: 'anthropic:claude-opus-5-5',
+    label: 'Claude Opus 5.5',
+    provider: 'anthropic',
+    providerRoute: 'claude',
+    providerModel: 'claude-opus-5-5',
+    qualificationStatus: 'unqualified',
+    qualificationConfiguration: 'configured',
+    api: 'messages',
+    controls: [
+      {
+        id: 'output_config.effort',
+        label: 'Effort',
+        values: EFFORT_LEVELS,
+        qualificationDefault: 'high'
+      }
+    ],
+    requestPolicy: {
+      maxOutputTokens: 128000,
+      thinking: {
+        requestMode: 'explicit-adaptive',
+        value: { type: 'adaptive', display: 'omitted' }
+      },
+      omitSamplingParameters: true
+    },
+    documentation: {
+      retrievedOn: '2026-10-17',
+      url: 'https://platform.claude.com/docs/en/models/overview'
+    }
+  },
+  {
     id: 'anthropic:claude-opus-5',
     label: 'Claude Opus 5',
     provider: 'anthropic',

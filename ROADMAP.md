@@ -563,7 +563,9 @@ are historical baselines; they do not describe today's contract by implication.
 3. State models, native settings and an approved maximum run count or spend before
    a new batch. Future local tree generations default to GPT-6.1 Sol/high through
    `npm run qualification:codex` and Codex OAuth, following the September 29
-   decision. Earlier Astra records retain their provenance. No API-key substitution,
+   decision. Earlier Astra records retain their provenance. Claude Opus 5.5/high
+   batches run through `npm run qualification:anthropic`, spending only the Max
+   plan's monthly API credits (October 17 decision). No other API-key substitution,
    paid fallback, automatic retry or change to public API defaults is implied.
 4. Separate transport completion, contract validity, linguistic adequacy and
    deterministic-engine/rendering defects. Do not silently repair linguistic

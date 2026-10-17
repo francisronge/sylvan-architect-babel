@@ -1,5 +1,6 @@
 // Counterfactual token cost, not subscription allowance or an account charge.
 // Keep dated rates with their primary sources so saved receipts remain reproducible.
+// A rate added after the snapshot date carries its own retrieval date.
 export const API_PRICE_SNAPSHOT = {
   asOf: '2026-10-11', currency: 'USD', tier: 'standard', geography: 'global',
   sources: {
@@ -13,6 +14,7 @@ export const API_PRICE_SNAPSHOT = {
     'gpt-6-astra': { provider: 'openai', input: 10, cached: 1, write: 12.5, output: 50, long: [20, 2, 25, 75] },
     'gpt-5.6-sol': { provider: 'openai', input: 4, cached: 0.4, write: 5, output: 20, long: [8, 0.8, 10, 30] },
     'claude-fable-5-1': { provider: 'anthropic', input: 10, cached: 0.25, write: 12.5, write1h: 20, output: 50 },
+    'claude-opus-5-5': { provider: 'anthropic', input: 4, cached: 0.2, write: 5, write1h: 8, output: 20, asOf: '2026-10-17' },
     'claude-opus-5': { provider: 'anthropic', input: 5, cached: 0.5, write: 6.25, write1h: 10, output: 25 },
     'grok-4.6': { provider: 'xai', input: 2, cached: 0.5, write: 2, output: 6, long: [4, 1, 4, 12] }
   }
@@ -23,11 +25,12 @@ const usd = value => Math.round(value / 1e6 * 1e9) / 1e9;
 
 export const estimateApiTokenCost = (modelId, usage) => {
   const model = String(modelId ?? '').replace(/^(?:openai|anthropic|xai):/u, '');
-  const base = API_PRICE_SNAPSHOT.perMillion[model];
+  const entry = API_PRICE_SNAPSHOT.perMillion[model];
+  const { asOf = API_PRICE_SNAPSHOT.asOf, ...base } = entry ?? {};
   const result = { kind: 'hypothetical-api-token-cost', currency: 'USD', model,
-    pricingAsOf: API_PRICE_SNAPSHOT.asOf, tier: 'standard', geography: 'global', actualChargeUsd: null };
+    pricingAsOf: asOf, tier: 'standard', geography: 'global', actualChargeUsd: null };
   const unavailable = reason => ({ ...result, status: 'unavailable', reason, estimatedUsd: null });
-  if (!base) return unavailable('No verified rate for this exact model.');
+  if (!entry) return unavailable('No verified rate for this exact model.');
   if (!count(usage?.input_tokens) || !count(usage?.output_tokens)) return unavailable('Provider input/output usage is missing.');
   let rates = base;
   const longContext = base.provider === 'xai' ? usage.input_tokens >= 200000 : usage.input_tokens > 272000;
