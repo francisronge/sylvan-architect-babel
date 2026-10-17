@@ -31,7 +31,8 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
       scope: 'Offline Replay and unmeasured tree reservations. Native text metrics, SVG painting, plaque/connector geometry, camera and interaction are separate browser gates.',
       manifests: manifests.map(({ filename, sha256, coverage }) => ({ filename, sha256, coverage })),
       harness: { node: process.version, sources: await Promise.all([
-        fileURLToPath(import.meta.url), worker, fileURLToPath(new URL('./replayCorpusInputs.mjs', import.meta.url))
+        fileURLToPath(import.meta.url), worker, fileURLToPath(new URL('./replayCorpusInputs.mjs', import.meta.url)),
+        fileURLToPath(new URL('./replayFrameLayout.mjs', import.meta.url))
       ].map(async filename => ({ filename, sha256: sha256(await readFile(filename)) }))) },
       baseline: snapshots[0].identity, candidate: snapshots[1].identity,
       summary: { analyses: compared.length, frames: compared.reduce((count, record) => count + (record.frames ?? 0), 0),
