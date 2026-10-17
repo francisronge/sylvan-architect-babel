@@ -130,3 +130,21 @@ test('lexical selection labels use the same current visible casing as the tree',
   assert.equal(result.targetLabel, 'The');
   assert.deepEqual(result.sourceLabels, ['The']);
 });
+
+test('a sentence-initial word preceded by pronounced material in a separate workspace is lowercased', () => {
+  const whPhrase = { id: 'dp-wh', label: 'D[wh]', children: [
+    { id: 'd-wh', label: 'D[wh]', children: [word('which', 'Which')] },
+    { id: 'n', label: 'N', children: [word('violin', 'violin')] }
+  ] };
+  const verb = { id: 'v', label: 'V', children: [word('bring', 'bring')] };
+  const pro = { id: 'pro', label: 'D[PRO]', children: [{ id: 'pro-word', label: 'PRO', word: 'PRO', silent: true }] };
+  const workspace = (...children) => ({ id: 'workspace', label: 'Workspace', replayOrigin: { kind: 'workspace' }, children });
+  const visible = ['pro', 'pro-word', 'v', 'bring', 'vbar', 'dp-wh', 'd-wh', 'which', 'n', 'violin'];
+  const sentence = 'Which violin did Nora say that the musician had forgotten to bring?';
+  const [after] = applyPreFrontingSentenceInitialCasing(freeze([step('ExternalMerge', visible,
+    workspace(pro, { id: 'vbar', label: 'V', children: [verb, whPhrase] }))]), sentence);
+  assert.equal(find(after.replayCanvasData, 'which').word, 'which', 'bring precedes it, so it is not sentence-initial');
+  const [first] = applyPreFrontingSentenceInitialCasing(freeze([step('ExternalMerge', visible,
+    workspace(pro, whPhrase, verb))]), sentence);
+  assert.equal(find(first.replayCanvasData, 'which').word, 'Which', 'as the first pronounced word it keeps its authored form');
+});
