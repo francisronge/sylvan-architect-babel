@@ -39,9 +39,6 @@ syntactic rules. Desktop remains the primary experience.
 6. Merge duplicated layout checks without changing a pixel, proving identical
    coordinates with `npm run verify:corpus`, and fix the one remaining stretched
    branch in Indonesian control analysis 2.
-7. Give theta-role badges the index of their argument's chain. They use a separate
-   allocator, so a subject's theta badge can show a different letter from its
-   chain's coindex.
 
 ## Execution Order
 
