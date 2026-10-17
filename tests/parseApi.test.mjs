@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseFromBodyWithProviders } from '../server/parseApi.js';
+import { formatApiError, parseFromBodyWithProviders } from '../server/parseApi.js';
+import { ParseApiError } from '../server/babelParser.js';
+import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 
 test('preserves all current provider routes without a persistence side effect', async () => {
   const calls = [];
@@ -49,4 +51,15 @@ test('passes the exact input to the provider and retains it in the returned bund
 
   assert.equal(observedSentence, sentence);
   assert.equal(result.sentence, sentence);
+});
+
+test('a failure from a request that reached the model returns the tokens it was sent', async () => {
+  const sentence = '花子は太郎に窓を開けさせた。';
+  const fail = details => async () => { throw new ParseApiError('BAD_MODEL_RESPONSE', 'Invalid analysis.', 422, details); };
+  const reached = await parseFromBodyWithProviders({ sentence, framework: 'xbar', modelRoute: 'gemini' },
+    { gemini: fail({ rawOutputArtifact: { text: '{}' } }) }).catch(error => error);
+  assert.deepEqual(formatApiError(reached).body.error.inputTokens, tokenizeSentenceSurfaceOrder(sentence));
+  const notReached = await parseFromBodyWithProviders({ sentence, framework: 'xbar', modelRoute: 'gemini' },
+    { gemini: fail(undefined) }).catch(error => error);
+  assert.equal('inputTokens' in formatApiError(notReached).body.error, false);
 });

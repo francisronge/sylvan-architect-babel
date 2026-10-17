@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useGeneration } from './hooks/useGeneration';
+import { recoverLegacyInputTokens } from './services/legacyInputTokens';
 import { useSporeDrift, type Spore } from './hooks/useSporeDrift';
 import { captureVisibleTreeSnapshot } from './services/treeSnapshot';
 import { buildMilesNotation } from './services/milesNotation';
@@ -151,6 +152,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const replayPositions = useRef(new WeakMap<ParseResult, number>());
   const [initialReplayPosition, setInitialReplayPosition] = useState<number | null>(null);
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
+  const replayInputTokens = useMemo(() => analysisBundle?.inputTokens
+    ?? recoverLegacyInputTokens(activeParse, parsedSentence), [analysisBundle, activeParse, parsedSentence]);
   const rememberReplayPosition = useCallback((step: number) => {
     if (activeParse) replayPositions.current.set(activeParse, step);
   }, [activeParse]);
@@ -605,7 +608,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               derivationStages={activeParse.derivationStages}
               abstractionMode={abstractionMode}
               sentence={parsedSentence}
-              inputTokens={analysisBundle?.inputTokens}
+              inputTokens={replayInputTokens}
             />
           ) : activeParse && activeTab === 'notes' ? (
             <DerivationNotesView paragraphs={derivationalNoteParagraphs} notation={milesNotation} copiedCodeKey={copiedCodeKey} copyMilesCode={copyMilesCode} />
@@ -690,6 +693,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                           rawOutput={error.rawOutput}
                           generationRecord={error.generationRecord}
                           sentence={error.request?.sentence}
+                          inputTokens={error.inputTokens}
                         >
                           {needsKey && (
                             <div className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] font-black uppercase tracking-widest text-amber-200">

@@ -7,6 +7,8 @@ export interface GenerationError {
   failure?: ParseFailure;
   rawOutput?: RawOutputArtifact;
   generationRecord?: GenerationRecord;
+  /** The input tokens the model was sent, when the request reached it. */
+  inputTokens?: string[];
   request?: Pick<GenerationRequest, 'sentence' | 'framework'>;
 }
 
@@ -37,7 +39,8 @@ export const resolveGenerationError = (err: unknown): Pick<GenerationState, 'nee
       ...(code || needsKey ? { code: code || message } : {}),
       ...(err instanceof ParseServiceError && err.failure ? { failure: err.failure } : {}),
       ...(err instanceof ParseServiceError && err.rawOutput ? { rawOutput: err.rawOutput } : {}),
-      ...(err instanceof ParseServiceError && err.generationRecord ? { generationRecord: err.generationRecord } : {})
+      ...(err instanceof ParseServiceError && err.generationRecord ? { generationRecord: err.generationRecord } : {}),
+      ...(err instanceof ParseServiceError && err.inputTokens ? { inputTokens: err.inputTokens } : {})
     }
   };
 };

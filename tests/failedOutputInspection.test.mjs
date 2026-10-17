@@ -186,6 +186,8 @@ test('unknown original input does not invent realization index errors', async ()
   assert.deepEqual(withoutInput.stages[0].diagnostics, []);
   const withTokens = (await inspectFailedOutput(raw(payload), '', ['one', 'two', 'three', 'book'])).analyses[0];
   assert.ok(!withTokens.stages[0].diagnostics.some(issue => /outside|out of range/.test(issue.message)));
-  const withShortInput = (await inspectFailedOutput(raw(payload), 'book')).analyses[0];
-  assert.ok(withShortInput.stages[0].diagnostics.length > 0, 'actual known input still checks token positions');
+  const withShortTokens = (await inspectFailedOutput(raw(payload), 'book', ['book'])).analyses[0];
+  assert.ok(withShortTokens.stages[0].diagnostics.length > 0, 'the tokens the model was sent still check token positions');
+  const sentenceOnly = (await inspectFailedOutput(raw(payload), 'book')).analyses[0];
+  assert.deepEqual(sentenceOnly.stages[0].diagnostics, [], 'a sentence alone is never segmented again in the browser');
 });

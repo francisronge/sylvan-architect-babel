@@ -7,6 +7,7 @@
 } from './babelParser.js';
 import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './babelParser/researchModelCatalog.js';
 import { normalizeProviderReasoningEffort } from './babelParser/routeConfig.js';
+import { tokenizeSentenceSurfaceOrder } from './babelParser/surfaceTokens.js';
 import {
   createFailure,
   withFailureDetails
@@ -125,10 +126,19 @@ export const parseFromBodyWithProviders = async (
 ) => {
   abortSignal?.throwIfAborted();
   const { sentence, framework, modelId, settings, modelRoute, reasoningEffort } = validateParseBody(body);
-  const bundle = await (modelId
-    ? providers.research(sentence, framework, modelId, { settings, abortSignal })
-    : providers[modelRoute](sentence, framework, modelRoute, { reasoningEffort, abortSignal }));
-  return { ...bundle, sentence };
+  try {
+    const bundle = await (modelId
+      ? providers.research(sentence, framework, modelId, { settings, abortSignal })
+      : providers[modelRoute](sentence, framework, modelRoute, { reasoningEffort, abortSignal }));
+    return { ...bundle, sentence };
+  } catch (error) {
+    // A failure from a request that reached the model carries the tokens it was
+    // sent, so the browser never segments the sentence with its own Unicode data.
+    if (error instanceof ParseApiError && (error.rawOutput || error.details?.generationRecord)) {
+      error.inputTokens = tokenizeSentenceSurfaceOrder(sentence);
+    }
+    throw error;
+  }
 };
 
 export const parseFromBody = async (body, options) => parseFromBodyWithProviders(body, undefined, options);
@@ -205,6 +215,7 @@ export const formatApiError = (error) => {
           message: error.message,
           failure: error.failure,
           ...(error.rawOutput ? { rawOutput: error.rawOutput } : {}),
+          ...(Array.isArray(error.inputTokens) ? { inputTokens: error.inputTokens } : {}),
           ...(generationRecord
             ? { generationRecord: projectPublicGenerationRecord(generationRecord) }
             : {}),

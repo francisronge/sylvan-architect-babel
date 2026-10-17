@@ -2,7 +2,6 @@ import type { DerivationStage, RawOutputArtifact, SyntaxNode } from '../types.ts
 import { createAuthoredWorkspaceHelpers } from '../server/babelParser/authoredWorkspace.js';
 import { createRealizationHelpers } from '../server/babelParser/realizationContract.js';
 import { createFailureRecord } from '../server/babelParser/failureRecord.js';
-import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 import { diagnosticReplayProjection } from '../replay/diagnosticReplay.ts';
 
 // The browser retains the original failed output. Unlike a server error envelope,
@@ -21,7 +20,9 @@ const helpers = createAuthoredWorkspaceHelpers({
   createFailure,
   withFailureDetails: (details: object, failure: unknown) => ({ ...details, failure: createFailure(failure) }),
   ...createRealizationHelpers({ createFailure }),
-  tokenizeSentenceSurfaceOrder
+  // Inspection checks words only against the tokens the model was sent. It never
+  // segments the sentence with this browser's Unicode data, which can differ.
+  tokenizeSentenceSurfaceOrder: () => undefined
 });
 
 export interface FailedStageInspection {
