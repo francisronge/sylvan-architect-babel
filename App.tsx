@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useGeneration } from './hooks/useGeneration';
+import { useSporeDrift, type Spore } from './hooks/useSporeDrift';
 import { captureVisibleTreeSnapshot } from './services/treeSnapshot';
 import { buildMilesNotation } from './services/milesNotation';
 import { useTreeBank } from './hooks/useTreeBank';
@@ -117,7 +118,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     const value = new URLSearchParams(window.location.search).get('showcase');
     return ['1', 'true', 'yes'].includes(String(value || '').toLowerCase());
   }, []);
-  const spores = useMemo(
+  const spores = useMemo<Spore[]>(
     () =>
       Array.from({ length: 12 }, () => ({
         left: Math.random() * 100,
@@ -127,8 +128,10 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       })),
     []
   );
+  const sporeLayerRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState('The farmer eats the pig');
   const { loading, error, needsKey, generate, clearError, clearFailure, resetGeneration, reportError } = useGeneration();
+  useSporeDrift(sporeLayerRef, spores, loading);
   const [analysisBundle, setAnalysisBundle] = useState<ParseBundle | null>(null);
   const [activeParseIndex, setActiveParseIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<AppTab>('tree');
@@ -375,18 +378,9 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       }`}
     >
       <div className="god-rays"></div>
-      <div className={`spore-layer ${loading ? 'paused' : ''}`} aria-hidden="true">
+      <div ref={sporeLayerRef} className="spore-layer" aria-hidden="true">
         {spores.map((spore, idx) => (
-          <div
-            key={idx}
-            className="spore"
-            style={{
-              left: `${spore.left}vw`,
-              animationDelay: `-${spore.delay}s`,
-              animationDuration: `${spore.duration}s`,
-              ['--spore-drift' as string]: `${spore.drift}px`
-            }}
-          />
+          <div key={idx} className="spore" style={{ left: `${spore.left}vw` }} />
         ))}
       </div>
       <header className="bg-black/60 backdrop-blur-xl border-b border-white/10 z-40 px-4 py-3 md:px-8 md:py-4 shrink-0 shadow-2xl">

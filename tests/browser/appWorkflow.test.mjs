@@ -134,9 +134,28 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
             const initialTransforms = await pollen.evaluateAll(elements => elements.map(element => getComputedStyle(element).transform));
             await page.waitForFunction(before => [...document.querySelectorAll('.spore-layer .spore')]
               .some((element, index) => getComputedStyle(element).transform !== before[index]), initialTransforms);
+            // Spores move together, so a frame never changes only some of them.
+            const movement = await page.evaluate(() => new Promise(resolve => {
+              const spores = [...document.querySelectorAll('.spore-layer .spore')];
+              let previous = spores.map(element => element.style.transform), frames = 0, moving = 0, partial = 0;
+              const sample = () => {
+                const current = spores.map(element => element.style.transform);
+                const moved = current.filter((transform, index) => transform !== previous[index]).length;
+                if (moved) moving += 1;
+                if (moved && moved !== spores.length) partial += 1;
+                previous = current;
+                if (++frames < 120) requestAnimationFrame(sample); else resolve({ moving, partial });
+              };
+              requestAnimationFrame(sample);
+            }));
+            assert.ok(movement.moving > 0, 'the pollen keeps moving');
+            assert.equal(movement.partial, 0, 'all spores move in the same frame');
             await page.emulateMedia({ reducedMotion: 'reduce' });
-            assert.ok(await pollen.evaluateAll(elements => elements.every(element => getComputedStyle(element).animationName === 'none')),
-              'the pollen respects reduced motion');
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+            const stillTransforms = await pollen.evaluateAll(elements => elements.map(element => getComputedStyle(element).transform));
+            await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 250)));
+            assert.deepEqual(await pollen.evaluateAll(elements => elements.map(element => getComputedStyle(element).transform)),
+              stillTransforms, 'the pollen respects reduced motion');
             await page.emulateMedia({ reducedMotion: 'no-preference' });
             for (const headerWidth of [768, 1024, 1063, 1280, 1440, 1536, 1600, 1920, 2560, width]) {
               await page.setViewportSize({ width: headerWidth, height: 1000 });
