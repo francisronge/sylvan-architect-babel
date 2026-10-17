@@ -45,7 +45,7 @@ export type RegisteredPlanContext = {
     requireResolved: (role: string, nodeId: string) => boolean;
     pushDiagnostic: (kind: PlanDiagnostic['kind'], detail: string) => void;
     items: RelationPlanItem[];
-    dependencyIndexFor: (key: string) => string;
+    dependencyIndexFor: (key: string, authored?: string) => string;
     pushCompositeTrajectory: (trajectoryKind: 'phrasal' | 'head') => boolean;
     pushNeutralFallback: (anchorSource: Record<string, string | string[]>, includePriorCue: boolean, fallbackRelation?: PlanRelationRef, claimIdentity?: string) => void;
     resolvedIds: (role: string, value: string | string[] | undefined) => string[];
