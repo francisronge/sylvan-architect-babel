@@ -18,11 +18,6 @@ This file answers one question: which document should be trusted for what?
 
 ## Supporting Implementation Records
 
-- [`docs/implementation/contract-qualification/system-audit.md`](implementation/contract-qualification/system-audit.md):
-  September live-output audit covering 39 findings, all 36 original relations, linguistic
-  issues, Fable failures, costs, and review limitations. Program 1 in `ROADMAP.md`
-  owns the active checklist and status. Linked raw and generated evidence is
-  local-only under the ignored `.artifacts/` run directory.
 - [`derivationalDatabase/README.md`](../derivationalDatabase/README.md): exact
   scope of the persistence-free W17a-d record layer.
 - [`bench/README.md`](../bench/README.md): exact scope of provider-free W13-W16
@@ -39,8 +34,7 @@ This file answers one question: which document should be trusted for what?
 The remaining `docs/design/visual-relations-*` research notes, inventories,
 source records, and proof pages explain how the renderer was developed. They
 are useful provenance, not open tasks. The Tier-2 specification records intended
-behavior; the September audit supplies reproducible defects that reopen the
-earlier closeout. Follow Program 1 for current work and status.
+behavior. Follow Program 1 for current work and status.
 
 Some of those historical notes refer to locally recovered copies of academic
 figures under `docs/design/visual-relations-assets/`. Those third-party copies

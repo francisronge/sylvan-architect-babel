@@ -70,6 +70,7 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 - Final trees, surface order, relation render plans, Replay steps, and stage explanations are derived from those stages. Do not reintroduce parallel authored ledgers, growth frames, commitment graphs, or compatibility aliases.
 - Derivation stages are completed syntactic states, not display frames.
 - `relations` uses an open ontology. Keep model-facing relation and anchor names open; finite classifications belong in derived renderer logic.
+- Models return the contract as plain-text JSON. No provider JSON mode or response schema is used, so every provider answers under the same conditions; strict schemas cannot express open relation and anchor names.
 - When final pronounced words independently match the complete input, normalization may omit a demonstrably mismatched optional `tokenIndex` and validate again. Record each omission in `provenance.tokenIndexCorrections` without a user-facing warning; preserve the original response. This recovery does not change syntax, words, silence or relations, and excludes pronunciation groups, ambiguous repeated-word addresses and malformed ownership.
 
 ## Product boundaries
