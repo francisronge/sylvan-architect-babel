@@ -89,6 +89,8 @@ export interface GenerationRecord {
   providerResponseComplete?: boolean;
   promptContract: GenerationPromptContract;
   sentGenerationConfig: SentGenerationConfig;
+  /** The tokenizer and runtime Unicode data that produced the input tokens. */
+  inputTokenization?: { version: string; unicode: string | null; icu: string | null; cldr: string | null };
   timing: {
     requestStartedAt: string;
     durationMs: number;
