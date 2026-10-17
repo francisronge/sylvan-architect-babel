@@ -1574,3 +1574,19 @@ test('a drawing takes the index another relation authored for the same chain', (
     assert.deepEqual([...new Set(indexed.map(item => item.index))], ['k'], `order ${order}`);
   }
 });
+
+test('a theta badge shows the index of its argument\'s chain', () => {
+  const tree = node('tp', 'TP', [leaf('high', 'DP', 'Mia', { lineageId: 'mia' }),
+    node('vp', 'VP', [leaf('low', 'DP', '', { lineageId: 'mia', silent: true }), leaf('v', 'V', 'left'),
+      leaf('other', 'DP', 'Leo')])]);
+  const plan = compileRelationRenderPlan([stage([
+    { relation: 'Unrelated coreference', anchors: { occurrences: ['other', 'v'] } },
+    { relation: 'External theta-role assignment', anchors: { argument: 'low', predicate: 'v' }, values: { thetaRole: 'Agent' } },
+    { relation: 'Subject movement chain', anchors: { occurrences: ['high', 'low'] } }
+  ], [tree])]);
+  const items = plan.frames[0].items;
+  const chain = items.find(item => item.kind === 'coindex' && item.nodeIds.includes('high'));
+  const theta = items.flatMap(item => item.thetaRoles ?? []).find(role => role.nodeId === 'low');
+  assert.ok(chain && theta, 'the chain and the theta role are both drawn');
+  assert.equal(theta.index, chain.index);
+});

@@ -686,15 +686,19 @@ export const compileRelationRenderPlan = (
   organizationCompanions.forEach(companions => replacePlaceholders(companions, dependencyLetters));
   items.forEach(item => { if ('index' in item) usedIndices.add(item.index); });
   const argumentIndexByKey = new Map<string, string>();
+  const chainIndexByLineage = new Map([...dependencyPlaceholders.keys()]
+    .map((key, ordinal) => [key, dependencyLetters[ordinal]] as const)
+    .filter(([key]) => key.startsWith('lineage:')));
   let nextArgumentIndex = 0;
   // Theta notation identifies the exact argument, or its explicit root lineage.
   // Shared descendants and similarly spelled labels cannot merge arguments.
+  // An argument whose chain already carries an index shows that same index.
   const argumentIndex = (stageIndex: number, nodeId: string): string => {
     const lineage = stageNodeMaps[stageIndex].get(nodeId)?.lineageId;
     const key = lineage ? `lineage:${lineage}` : `theta:${nodeId}`;
     if (!argumentIndexByKey.has(key)) {
       const authored = authoredIndicesByIdentity.get(key);
-      let index = authored?.size === 1 ? [...authored][0] : '';
+      let index = authored?.size === 1 ? [...authored][0] : chainIndexByLineage.get(key) ?? '';
       while (!index) {
         const candidate = conventionalIndex(nextArgumentIndex++);
         if (!usedIndices.has(candidate)) index = candidate;
