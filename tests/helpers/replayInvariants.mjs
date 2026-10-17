@@ -181,6 +181,36 @@ export function checkRelationMoments(replay, record) {
   return out;
 }
 
+/** A construction micro-step changes existing syntax only through its own
+ * target. A node displayed at the preceding step stays displayed under the same
+ * parent unless the step's target now holds it (a merge or projection), or the
+ * new target takes its place. Nothing is detached. */
+export function checkStableConstruction(replay) {
+  const steps = replay.playbackSteps, out = [];
+  steps.forEach((step, index) => {
+    if (index === 0 || step.replayKind !== 'micro') return;
+    const previous = frameStructure(steps[index - 1]), current = frameStructure(step);
+    const target = String(step.targetNodeId ?? '');
+    const holds = id => { for (let at = id; at; at = current.parent.get(at)) if (at === target) return true; return false; };
+    const newTarget = current.displayed.has(target) && !previous.displayed.has(target);
+    for (const id of previous.displayed) {
+      const before = previous.parent.get(id);
+      const where = `at micro ${step.operation} (target ${target})`;
+      if (!current.displayed.has(id)) {
+        const replaced = newTarget && ((previous.children.get(id) ?? []).some(child => current.displayed.has(child) && holds(child))
+          || current.parent.get(target) === before);
+        if (!replaced) out.push(violation('stable-construction', index + 1, `${id} disappears ${where}`));
+        continue;
+      }
+      const after = current.parent.get(id);
+      if (after === before) continue;
+      if (after == null) out.push(violation('stable-construction', index + 1, `${id} is detached from ${before} ${where}`));
+      else if (!holds(after)) out.push(violation('stable-construction', index + 1, `${id} moves from ${before} to ${after} ${where}`));
+    }
+  });
+  return out;
+}
+
 /** A displayed node never has a hidden, non-scaffold child, except a retained
  * occurrence that is still waiting for a new child's own construction step:
  * it was displayed at the preceding step and that child was not. */
