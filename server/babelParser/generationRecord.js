@@ -3,6 +3,15 @@ import { SURFACE_TOKENIZATION_VERSION } from './surfaceTokens.js';
 
 export const PROMPT_TEMPLATE_PROBE_SENTENCE = 'Babel provenance probe.';
 
+/** Input tokens depend on the runtime's Unicode segmentation data as well as
+ * Babel's tokenizer, so a record names both. */
+export const describeInputTokenization = (versions = process.versions) => ({
+  version: SURFACE_TOKENIZATION_VERSION,
+  unicode: versions.unicode ?? null,
+  icu: versions.icu ?? null,
+  cldr: versions.cldr ?? null
+});
+
 export const sha256Hex = (value) =>
   createHash('sha256').update(String(value ?? '')).digest('hex');
 
@@ -146,6 +155,7 @@ export const buildGenerationRecord = ({
       buildTemplate
     }),
     sentGenerationConfig: describeSentRequest(provider, sentRequest),
+    inputTokenization: describeInputTokenization(),
     timing: {
       requestStartedAt: new Date(requestStartedAt).toISOString(),
       durationMs: Math.max(0, Number(durationMs) || 0)

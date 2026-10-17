@@ -11,6 +11,7 @@ import { hashQualificationBytes, stableQualificationJson } from '../contractQual
 import { createQualificationTelemetry, qualificationTransportError } from '../contractQualification/telemetry.js';
 import { createTransportDiagnostics } from '../contractQualification/transportDiagnostics.js';
 import { estimateApiTokenCost } from '../contractQualification/apiCost.js';
+import { describeInputTokenization } from '../server/babelParser/generationRecord.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const { values } = parseArgs({ options: {
@@ -52,7 +53,8 @@ const contract = JSON.parse(fs.readFileSync(path.join(outputPath, 'contract.mani
 const receipt = {
   schemaVersion: 1,
   transport: 'anthropic-api', endpoint: ANTHROPIC_MESSAGES_URL, anthropicVersion: ANTHROPIC_API_VERSION,
-  request: { sentence: values.sentence, framework: values.framework, inputTokens, model: selection },
+  request: { sentence: values.sentence, framework: values.framework, inputTokens,
+    inputTokenization: describeInputTokenization(), model: selection },
   requestBody: { artifact: 'request.json', sha256: hashQualificationBytes(requestBytes) },
   contract,
   transportDifferencesFromBabelRoute: { stream: 'true; Babel\'s Anthropic route waits for one non-streaming response' },
