@@ -3,7 +3,7 @@ import { collectReplayCanvasNodes } from './syntaxForest.ts';
 import { type ResolvedRelationLink } from '../relationLinks.ts';
 import { authoredWord } from '../server/babelParser/nodePronunciation.js';
 import { type DerivationOperation, type SyntaxNode } from '../types.ts';
-import { replayOwnerId } from './displayIdentity.ts';
+import { isReplayDisplayChild, replayOwnerId } from './displayIdentity.ts';
 import {
   isFrontingLikeOperationLabel,
   isMoveLikeOperation,
@@ -671,9 +671,13 @@ const carryReplayRelationLinksForward = (steps: PlaybackStep[]): PlaybackStep[] 
         ...automaticallyVisibleAnchorNodeIds
       ].forEach((nodeId) => {
         const node = findExactNodeByIdInForest([canvas], nodeId);
-        if (!nodeId || !node || (node as any).replayLayoutOnly || suppressedNodeIds.has(nodeId))
+        if (!nodeId || !node || (node as any).replayLayoutOnly || suppressedNodeIds.has(nodeId) || visibleNodeIds.has(nodeId))
           return;
         visibleNodeIds.add(nodeId);
+        // As in the snapshot, an occurrence revealed here shows its derived word.
+        (node.children || [])
+          .filter(child => isReplayDisplayChild(child, nodeId) && !(child as any).replayLayoutOnly)
+          .forEach(child => visibleNodeIds.add(String(child.id || '')));
       });
     });
     return {
