@@ -1038,8 +1038,6 @@ review authority, and correction path.
 ## Evidence and source reconciliation
 
 - [Documentation map](docs/README.md): authority and historical boundaries.
-- [September system audit](docs/implementation/contract-qualification/system-audit.md):
-  preserved original findings and review evidence, not an active checklist.
 - [Fable architecture reconciliation](docs/history/architecture/2026-07-fable-packet-audit.md):
   W0–W18 decisions mapped to the live project and this roadmap.
 - [Durable record layer](derivationalDatabase/README.md) and
