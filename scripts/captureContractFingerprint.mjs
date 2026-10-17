@@ -91,7 +91,7 @@ const recursiveSections = {
     include: (relativePath) => (
       (/\.test\.mjs$/.test(relativePath)
         || /^helpers\/.*\.(?:mjs|js|ts|tsx|json)$/.test(relativePath))
-      && !relativePath.startsWith('benchmark')
+      && !relativePath.startsWith('bench/')
       && !relativePath.startsWith('derivationalDatabase')
     )
   },

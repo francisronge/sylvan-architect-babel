@@ -11,6 +11,7 @@
     "dev": "vite",
     "build": "vite build",
     "test": "node --test --test-concurrency=2 tests/*.test.mjs",
+    "test:bench": "node --test --test-concurrency=2 tests/bench/*.test.mjs",
     "typecheck": "tsc --noEmit --pretty false",
     "fixtures:build": "node scripts/buildParseFixtures.mjs",
     "fixtures:replay": "node scripts/buildReplaySnapshots.mjs",
