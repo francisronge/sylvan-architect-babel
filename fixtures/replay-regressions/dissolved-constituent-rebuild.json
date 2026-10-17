@@ -1,0 +1,778 @@
+{
+  "description": "Stage 5 dissolves an existing V′ (persuasionVCore) and rebuilds its material under a new V′ (persuasionArguments) with no movement or rewrite claim. Replay currently removes the old V′ and detaches the embedded clause at the stage's first, unrelated step, then merges the new V′ one step later.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, 17 October 2026 (rare-relations batch, 09-english-object-control).",
+  "sentence": "John persuaded Mary to leave.",
+  "framework": "minimalism",
+  "inputTokens": [
+    "John",
+    "persuaded",
+    "Mary",
+    "to",
+    "leave"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "proLower",
+            "introducer": "embeddedVHead",
+            "predicate": "leave"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "role": "Agent"
+          }
+        }
+      ],
+      "stageRecord": "Externally merge the lexical verb leave with a silent verbalizing head, and then merge PRO as the external argument. The resulting object is labeled v by the projecting head; no independent bar-level categories are assumed. The embedded predicate assigns its Agent role to PRO. This is the thematic subject position from which PRO can subsequently undergo Internal Merge. PRO is unpronounced from its introduction, rather than becoming silent through movement.",
+      "statement": "Construct the embedded predicate and its unpronounced external argument.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "proLower",
+              "label": "D",
+              "lineageId": "embeddedSubject",
+              "silent": true,
+              "word": "PRO"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "embeddedVHead",
+                  "label": "v",
+                  "silent": true
+                },
+                {
+                  "children": [],
+                  "id": "leave",
+                  "label": "V",
+                  "tokenIndex": 4,
+                  "word": "leave"
+                }
+              ],
+              "id": "embeddedVCore",
+              "label": "v"
+            }
+          ],
+          "id": "embeddedVP",
+          "label": "v"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "domain": "embeddedVP",
+            "predicate": "leave",
+            "tense": "infinitivalTo"
+          },
+          "relation": "nonfinite tense domain",
+          "values": {
+            "finiteness": "nonfinite",
+            "verbForm": "bare"
+          }
+        },
+        {
+          "anchors": {
+            "attractingHead": "infinitivalTo",
+            "higherOccurrence": "proHigher",
+            "landingObject": "embeddedTP",
+            "source": "proLower"
+          },
+          "relation": "subject Internal Merge",
+          "values": {
+            "pronunciation": "both PRO occurrences are unpronounced",
+            "requirement": "embedded subject position"
+          }
+        }
+      ],
+      "stageRecord": "Merge infinitival to with the embedded verbal object. To establishes a nonfinite tense domain in which the verbal predicate has its bare form. Then internally merge the PRO occurrence already present in the preceding workspace into the subject position of the T-labeled object, satisfying the embedded subject requirement. The upper and lower occurrences share an identity, and both remain unpronounced. This analysis treats the infinitive as a T-sized complement, without adding an independently motivated embedded complementizer.",
+      "statement": "Build the infinitival clause and establish its PRO subject chain.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "proHigher",
+              "label": "D",
+              "lineageId": "embeddedSubject",
+              "silent": true,
+              "word": "PRO"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "infinitivalTo",
+                  "label": "T",
+                  "tokenIndex": 3,
+                  "word": "to"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "proLower",
+                      "label": "D",
+                      "lineageId": "embeddedSubject",
+                      "silent": true,
+                      "word": "PRO"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "embeddedVHead",
+                          "label": "v",
+                          "silent": true
+                        },
+                        {
+                          "children": [],
+                          "id": "leave",
+                          "label": "V",
+                          "tokenIndex": 4,
+                          "word": "leave"
+                        }
+                      ],
+                      "id": "embeddedVCore",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "embeddedVP",
+                  "label": "v"
+                }
+              ],
+              "id": "embeddedTCore",
+              "label": "T"
+            }
+          ],
+          "id": "embeddedTP",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "content": "embeddedTP",
+            "object": "mary",
+            "predicate": "persuaded"
+          },
+          "relation": "persuasion argument structure",
+          "values": {
+            "content": "propositional complement",
+            "object": "Goal/Addressee"
+          }
+        },
+        {
+          "anchors": {
+            "controlledOccurrences": [
+              "proHigher",
+              "proLower"
+            ],
+            "controller": "mary",
+            "selectingPredicate": "persuaded"
+          },
+          "relation": "obligatory object control",
+          "values": {
+            "dependency": "control, not raising or a movement chain between Mary and PRO",
+            "interpretation": "Mary is the understood subject of leave"
+          }
+        }
+      ],
+      "stageRecord": "Merge persuaded with the infinitival clause, and then merge Mary as the higher internal argument of the resulting V-labeled object. This binary organization places Mary before the infinitival complement without treating the two complements as a ternary branching structure. Mary is represented as an atomic nominal D object. Persuaded assigns Mary its Goal/Addressee role and takes the infinitival clause as the propositional content of the persuasion. Establish obligatory object control: Mary determines the reference of the embedded PRO chain. Mary is therefore independently selected by persuaded, not raised from the embedded subject position. The whole-word lexical form persuaded is introduced here with its past morphology; its compatibility with matrix tense will be licensed when that tense head is merged.",
+      "statement": "Construct the persuasion predicate and establish object control.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "mary",
+              "label": "D",
+              "tokenIndex": 2,
+              "word": "Mary"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "persuaded",
+                  "label": "V",
+                  "tokenIndex": 1,
+                  "word": "persuaded"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "proHigher",
+                      "label": "D",
+                      "lineageId": "embeddedSubject",
+                      "silent": true,
+                      "word": "PRO"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "infinitivalTo",
+                          "label": "T",
+                          "tokenIndex": 3,
+                          "word": "to"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "proLower",
+                              "label": "D",
+                              "lineageId": "embeddedSubject",
+                              "silent": true,
+                              "word": "PRO"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "embeddedVHead",
+                                  "label": "v",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [],
+                                  "id": "leave",
+                                  "label": "V",
+                                  "tokenIndex": 4,
+                                  "word": "leave"
+                                }
+                              ],
+                              "id": "embeddedVCore",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "embeddedVP",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "embeddedTCore",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "embeddedTP",
+                  "label": "T"
+                }
+              ],
+              "id": "persuasionVCore",
+              "label": "V"
+            }
+          ],
+          "id": "persuasionVP",
+          "label": "V"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "johnLower",
+            "introducer": "matrixVHead",
+            "predicate": "persuaded"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "role": "Agent"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "matrixVHead",
+            "nominal": "mary"
+          },
+          "relation": "structural Case licensing",
+          "values": {
+            "case": "accusative",
+            "mechanism": "Agree with the highest internal nominal"
+          }
+        }
+      ],
+      "stageRecord": "Merge a silent transitive v with the persuasion predicate, and then merge John as its external argument. John, like Mary, is an atomic nominal D object. The transitive head introduces John as the Agent of the persuasion event. It also licenses accusative Case on Mary, the structurally highest internal nominal argument of its complement. Mary remains in its object position; no object movement is posited. The lower object–infinitive organization is compatible with the eventual order because the lexical verb will precede its internal arguments at pronunciation.",
+      "statement": "Introduce the matrix Agent and license the matrix object.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "johnLower",
+              "label": "D",
+              "lineageId": "matrixSubject",
+              "tokenIndex": 0,
+              "word": "John"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "matrixVHead",
+                  "label": "v",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mary",
+                      "label": "D",
+                      "tokenIndex": 2,
+                      "word": "Mary"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "persuaded",
+                          "label": "V",
+                          "tokenIndex": 1,
+                          "word": "persuaded"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "proHigher",
+                              "label": "D",
+                              "lineageId": "embeddedSubject",
+                              "silent": true,
+                              "word": "PRO"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "infinitivalTo",
+                                  "label": "T",
+                                  "tokenIndex": 3,
+                                  "word": "to"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "proLower",
+                                      "label": "D",
+                                      "lineageId": "embeddedSubject",
+                                      "silent": true,
+                                      "word": "PRO"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "embeddedVHead",
+                                          "label": "v",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "leave",
+                                          "label": "V",
+                                          "tokenIndex": 4,
+                                          "word": "leave"
+                                        }
+                                      ],
+                                      "id": "embeddedVCore",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "embeddedVP",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "embeddedTCore",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "embeddedTP",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "persuasionVCore",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "persuasionVP",
+                  "label": "V"
+                }
+              ],
+              "id": "matrixVCore",
+              "label": "v"
+            }
+          ],
+          "id": "matrixVP",
+          "label": "v"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "tense": "matrixT",
+            "verb": "persuaded"
+          },
+          "relation": "finite tense licensing",
+          "values": {
+            "headMovement": "no movement of V to T",
+            "realization": "the whole-word lexical form persuaded",
+            "tenseValue": "past"
+          }
+        },
+        {
+          "anchors": {
+            "goal": "johnLower",
+            "probe": "matrixT"
+          },
+          "relation": "subject Agree and Case licensing",
+          "values": {
+            "case": "nominative",
+            "number": "singular",
+            "person": "third"
+          }
+        },
+        {
+          "anchors": {
+            "head": "persuaded",
+            "internalArguments": [
+              "mary",
+              "embeddedTP"
+            ],
+            "projection": "persuasionVP"
+          },
+          "relation": "lexical-head linearization",
+          "values": {
+            "ordering": "lexical V precedes its internal arguments; the higher internal argument precedes the lower complement",
+            "surfaceSequence": "persuaded Mary to leave"
+          }
+        }
+      ],
+      "stageRecord": "Merge silent finite past T above the matrix verbal object. T licenses the already introduced past form persuaded by a tense–verb dependency; this analysis treats persuaded as a whole-word terminal and does not split its suffix into a separate syntactic object. T then agrees with John in its existing external-argument position, licensing nominative Case and obtaining third-person singular agreement features. For linearization, the lexical verb precedes the internal-argument field of its V-labeled projection. This explicit head-first ordering commitment yields persuaded Mary to leave without moving Mary or treating the infinitive as Mary's constituent. No syntactic movement of the lexical verb to T is assumed.",
+      "statement": "Merge matrix past tense, license John, and establish lexical verb placement.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "matrixT",
+              "label": "T",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "johnLower",
+                  "label": "D",
+                  "lineageId": "matrixSubject",
+                  "tokenIndex": 0,
+                  "word": "John"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "matrixVHead",
+                      "label": "v",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "persuaded",
+                          "label": "V",
+                          "tokenIndex": 1,
+                          "word": "persuaded"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "mary",
+                              "label": "D",
+                              "tokenIndex": 2,
+                              "word": "Mary"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "proHigher",
+                                  "label": "D",
+                                  "lineageId": "embeddedSubject",
+                                  "silent": true,
+                                  "word": "PRO"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "infinitivalTo",
+                                      "label": "T",
+                                      "tokenIndex": 3,
+                                      "word": "to"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "proLower",
+                                          "label": "D",
+                                          "lineageId": "embeddedSubject",
+                                          "silent": true,
+                                          "word": "PRO"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "embeddedVHead",
+                                              "label": "v",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "leave",
+                                              "label": "V",
+                                              "tokenIndex": 4,
+                                              "word": "leave"
+                                            }
+                                          ],
+                                          "id": "embeddedVCore",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "embeddedVP",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "embeddedTCore",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "embeddedTP",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "persuasionArguments",
+                          "label": "V"
+                        }
+                      ],
+                      "id": "persuasionVP",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "matrixVCore",
+                  "label": "v"
+                }
+              ],
+              "id": "matrixVP",
+              "label": "v"
+            }
+          ],
+          "id": "matrixTCore",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "attractingHead": "matrixT",
+            "higherOccurrence": "johnHigher",
+            "landingObject": "matrixTP",
+            "source": "johnLower"
+          },
+          "priorAnchors": {
+            "sourceBeforeMovement": "johnLower"
+          },
+          "relation": "subject Internal Merge",
+          "values": {
+            "pronunciation": "pronounce the higher occurrence and silence the lower occurrence",
+            "requirement": "matrix subject position"
+          }
+        },
+        {
+          "anchors": {
+            "finiteClause": "matrixTP",
+            "forceHead": "declarativeC"
+          },
+          "relation": "clause force",
+          "values": {
+            "force": "declarative"
+          }
+        }
+      ],
+      "stageRecord": "Internally merge John from the external-argument position shown in the preceding workspace into the matrix subject position. The higher occurrence satisfies T's subject requirement and is pronounced; the lower occurrence retains the same nominal identity but is now silent. Merge a silent declarative C above the completed finite clause. The completed structure expresses John as persuader, Mary as persuadee, and Mary as the understood leaver through obligatory object control. The pronounced terminals, in tree order, are exactly John persuaded Mary to leave.",
+      "statement": "Complete the matrix subject chain and the declarative clause.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "declarativeC",
+              "label": "C",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "johnHigher",
+                  "label": "D",
+                  "lineageId": "matrixSubject",
+                  "tokenIndex": 0,
+                  "word": "John"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "matrixT",
+                      "label": "T",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "johnLower",
+                          "label": "D",
+                          "lineageId": "matrixSubject",
+                          "silent": true,
+                          "word": "John"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "matrixVHead",
+                              "label": "v",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "persuaded",
+                                  "label": "V",
+                                  "tokenIndex": 1,
+                                  "word": "persuaded"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "mary",
+                                      "label": "D",
+                                      "tokenIndex": 2,
+                                      "word": "Mary"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "proHigher",
+                                          "label": "D",
+                                          "lineageId": "embeddedSubject",
+                                          "silent": true,
+                                          "word": "PRO"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "infinitivalTo",
+                                              "label": "T",
+                                              "tokenIndex": 3,
+                                              "word": "to"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "proLower",
+                                                  "label": "D",
+                                                  "lineageId": "embeddedSubject",
+                                                  "silent": true,
+                                                  "word": "PRO"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "embeddedVHead",
+                                                      "label": "v",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "leave",
+                                                      "label": "V",
+                                                      "tokenIndex": 4,
+                                                      "word": "leave"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedVCore",
+                                                  "label": "v"
+                                                }
+                                              ],
+                                              "id": "embeddedVP",
+                                              "label": "v"
+                                            }
+                                          ],
+                                          "id": "embeddedTCore",
+                                          "label": "T"
+                                        }
+                                      ],
+                                      "id": "embeddedTP",
+                                      "label": "T"
+                                    }
+                                  ],
+                                  "id": "persuasionArguments",
+                                  "label": "V"
+                                }
+                              ],
+                              "id": "persuasionVP",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "matrixVCore",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "matrixVP",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "matrixTCore",
+                  "label": "T"
+                }
+              ],
+              "id": "matrixTP",
+              "label": "T"
+            }
+          ],
+          "id": "matrixCP",
+          "label": "C"
+        }
+      ]
+    }
+  ]
+}
