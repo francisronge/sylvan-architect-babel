@@ -832,20 +832,33 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const location = placement ? placement === priorCandidate ? priorCandidate.location : 'local' : 'below';
     if (!placement) {
       // A connector's lower lane clears all plaques, so its stems extend past
-      // every below-tree plaque. Choose the nearest clear column before stacking.
+      // every below-tree plaque. Each column clear of the stems descends past
+      // its own collisions; the landing nearest the subtree's ideal spot wins,
+      // so a blocked column cannot send the plaque down through unrelated syntax.
       const idealX = domainBounds.x + domainBounds.width / 2 - width / 2;
+      const top = domainBounds.y + domainBounds.height + 60;
       const stems = occupied.filter(box => box.extendsDownward);
       const gap = 24 + 1e-6;
-      const x = [idealX, ...stems.flatMap(box => [box.x - width - gap, box.x + box.width + gap])]
-        .sort((a, b) => Math.abs(a - idealX) - Math.abs(b - idealX) || a - b)
-        .find(x => stems.every(box => x + width + 24 <= box.x || x >= box.x + box.width + 24))!;
-      let y = domainBounds.y + domainBounds.height + 60;
-      for (;;) {
-        const collisions = occupied.filter(obstacle => plaquesOverlap({ x, y, width, height }, obstacle));
-        if (!collisions.length) break;
-        y = Math.max(...collisions.map(obstacle => obstacle.y + obstacle.height)) + 32;
+      const descend = (x: number): number => {
+        let y = top;
+        for (;;) {
+          const collisions = occupied.filter(obstacle => plaquesOverlap({ x, y, width, height }, obstacle));
+          if (!collisions.length) return y;
+          y = Math.max(...collisions.map(obstacle => obstacle.y + obstacle.height)) + 32;
+        }
+      };
+      const columns = [idealX, ...stems.flatMap(box => [box.x - width - gap, box.x + box.width + gap])]
+        .filter(x => stems.every(box => x + width + 24 <= box.x || x >= box.x + box.width + 24))
+        .sort((a, b) => Math.abs(a - idealX) - Math.abs(b - idealX) || a - b);
+      let best = { x: columns[0], y: Infinity, distance: Infinity };
+      for (const x of columns) {
+        // Columns are sorted by horizontal distance, a lower bound on the rest.
+        if (Math.abs(x - idealX) >= best.distance) break;
+        const y = descend(x);
+        const distance = Math.hypot(x - idealX, y - top);
+        if (distance < best.distance) best = { x, y, distance };
       }
-      placement = attach({ x, y, width, height }, request);
+      placement = attach({ x: best.x, y: best.y, width, height }, request);
     }
     const attachment = anchor;
     result.set(request.index, { ...placement, location, domainId: idOf(domain),

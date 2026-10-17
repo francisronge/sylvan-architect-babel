@@ -817,3 +817,19 @@ test('collection rejection reuse preserves clearance across pockets, ports and s
   for (const order of [queries.keys(), [...queries.keys()].reverse(), queries.keys()]) for (const i of order)
     assert.equal(space.clears(queries[i]), expected[i], `query ${i} must not inherit an earlier rejection`);
 });
+
+test('a large plaque whose own stem blocks its column takes the nearest clear landing, not the left column by default', () => {
+  const nodes = tree().descendants();
+  const item = plaque(['root'], true);
+  const ideal = placeStagePlaques([item], nodes).get(0);
+  assert.equal(ideal.location, 'below');
+  // A neutral link's own stem runs down through the ideal column; unrelated
+  // syntax fills the left column deep below the subtree; the right one is empty.
+  const stem = { x: ideal.x + ideal.width / 2 - 10, y: ideal.y - 400, width: 20, height: 5000, extendsDownward: true };
+  const leftSyntax = { x: stem.x - ideal.width - 100, y: ideal.y - 10, width: ideal.width + 60, height: 1500 };
+  const result = placeStagePlaques([item], nodes, [...plaqueTreeObstacles(nodes), stem, leftSyntax]).get(0);
+  assert.equal(result.location, 'below');
+  assert(result.x >= stem.x + stem.width, 'the plaque uses the clear column on the right');
+  assert.equal(result.y, ideal.y, 'it stays at the subtree depth instead of descending past unrelated syntax');
+  assert(!plaquesOverlap(result, stem) && !plaquesOverlap(result, leftSyntax));
+});
