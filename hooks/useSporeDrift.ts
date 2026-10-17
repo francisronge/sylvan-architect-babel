@@ -2,7 +2,7 @@ import { useEffect, useRef, type RefObject } from 'react';
 
 export type Spore = { left: number; delay: number; duration: number; drift: number };
 
-const UPDATES_PER_SECOND = 60;
+const UPDATES_PER_SECOND = 30;
 const RISE = 1.2; // Viewport heights travelled per cycle.
 const PEAK_OPACITY = 0.35;
 
@@ -16,7 +16,7 @@ export const sporeFrame = (p: number, drift: number, viewportHeight: number) => 
 /**
  * Moves every spore in `layerRef` from one loop, so all of them change in the same frame.
  * Independently timed CSS animations made the browser composite, and re-blur every glass
- * surface, on nearly every display refresh. Updates are capped at 60 per second; paused
+ * surface, on nearly every display refresh. Updates are capped at 30 per second; paused
  * time is excluded, so a resumed spore continues where it stopped. Reduced motion leaves
  * the spores still at their stylesheet opacity.
  */
@@ -31,7 +31,7 @@ export const useSporeDrift = (layerRef: RefObject<HTMLElement | null>, spores: r
     const draw = (now: number) => {
       if (previous !== null) elapsedMs.current += now - previous;
       previous = now;
-      // Tolerate refresh jitter so 60 Hz displays still draw every frame.
+      // Tolerate refresh jitter so updates land on every second 60 Hz frame.
       if (now - lastDrawn >= 1000 / UPDATES_PER_SECOND - 2) {
         lastDrawn = now;
         spores.forEach((spore, index) => {
