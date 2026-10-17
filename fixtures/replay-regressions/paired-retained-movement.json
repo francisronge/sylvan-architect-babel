@@ -1,0 +1,1247 @@
+{
+  "description": "One authored relation moves two retained occurrences at once: stage 5 raises both conjunct subjects with paired source and landing lists and no prior anchors.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, 17 October 2026 (rare-relations batch, 14-english-gapping).",
+  "sentence": "John ate rice, and Mary beans.",
+  "framework": "minimalism",
+  "inputTokens": [
+    "John",
+    "ate",
+    "rice",
+    "and",
+    "Mary",
+    "beans"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": [
+              "r1",
+              "b1"
+            ],
+            "predicate": [
+              "a1",
+              "a2"
+            ]
+          },
+          "relation": "internal-argument interpretation",
+          "values": {
+            "argument": [
+              "Theme",
+              "Theme"
+            ]
+          }
+        }
+      ],
+      "stageRecord": "The sentence is analyzed as coordination of two clauses, with gapping in the second conjunct. External Merge combines each occurrence of the transitive verb with its internal argument: rice in the first predicate and beans in the second. Each verb assigns its complement the Theme role. John and Mary remain separate objects until the external-argument structure is introduced. Projection labels are convenient names for Bare Phrase Structure objects whose labels are inherited from their projecting heads; they do not impose an X-bar template. The second occurrence of ate is syntactically present but has no input-token association: its eventual nonpronunciation will be established by ellipsis, not assumed at lexical introduction.",
+      "statement": "Build the two verbal predicates and introduce their external arguments.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "a1",
+              "label": "V",
+              "tokenIndex": 1,
+              "word": "ate"
+            },
+            {
+              "children": [],
+              "id": "r1",
+              "label": "DP",
+              "tokenIndex": 2,
+              "word": "rice"
+            }
+          ],
+          "id": "p1",
+          "label": "VP"
+        },
+        {
+          "children": [],
+          "id": "j1",
+          "label": "DP",
+          "lineageId": "john",
+          "tokenIndex": 0,
+          "word": "John"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "a2",
+              "label": "V",
+              "word": "ate"
+            },
+            {
+              "children": [],
+              "id": "b1",
+              "label": "DP",
+              "lineageId": "beans",
+              "tokenIndex": 5,
+              "word": "beans"
+            }
+          ],
+          "id": "p2",
+          "label": "VP"
+        },
+        {
+          "children": [],
+          "id": "m1",
+          "label": "DP",
+          "lineageId": "mary",
+          "tokenIndex": 4,
+          "word": "Mary"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": [
+              "j1",
+              "m1"
+            ],
+            "introducer": [
+              "v1",
+              "v2"
+            ],
+            "predicate": [
+              "p1",
+              "p2"
+            ]
+          },
+          "relation": "external-argument interpretation",
+          "values": {
+            "argument": [
+              "Agent",
+              "Agent"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "goal": [
+              "r1",
+              "b1"
+            ],
+            "licensor": [
+              "v1",
+              "v2"
+            ]
+          },
+          "relation": "structural Case licensing",
+          "values": {
+            "goal": [
+              "accusative",
+              "accusative"
+            ]
+          }
+        }
+      ],
+      "stageRecord": "Each silent transitive little-v head first merges with its VP, and its external argument then merges at the edge of the resulting object. John and Mary consequently receive the Agent interpretation in their respective clauses. Transitive little v licenses accusative Case on rice and beans. These operations establish the subject's thematic position below T, which will be the source position for subsequent subject movement. The silent functional heads contribute structure but no additional input words.",
+      "statement": "Introduce transitive little v and merge the two subjects.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "j1",
+              "label": "DP",
+              "lineageId": "john",
+              "tokenIndex": 0,
+              "word": "John"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "v1",
+                  "label": "v[transitive]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a1",
+                      "label": "V",
+                      "tokenIndex": 1,
+                      "word": "ate"
+                    },
+                    {
+                      "children": [],
+                      "id": "r1",
+                      "label": "DP",
+                      "tokenIndex": 2,
+                      "word": "rice"
+                    }
+                  ],
+                  "id": "p1",
+                  "label": "VP"
+                }
+              ],
+              "id": "w1",
+              "label": "vP"
+            }
+          ],
+          "id": "u1",
+          "label": "vP"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "m1",
+              "label": "DP",
+              "lineageId": "mary",
+              "tokenIndex": 4,
+              "word": "Mary"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "v2",
+                  "label": "v[transitive]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a2",
+                      "label": "V",
+                      "word": "ate"
+                    },
+                    {
+                      "children": [],
+                      "id": "b1",
+                      "label": "DP",
+                      "lineageId": "beans",
+                      "tokenIndex": 5,
+                      "word": "beans"
+                    }
+                  ],
+                  "id": "p2",
+                  "label": "VP"
+                }
+              ],
+              "id": "w2",
+              "label": "vP"
+            }
+          ],
+          "id": "u2",
+          "label": "vP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "attractor": "fh2",
+            "landingOccurrence": "b2",
+            "sourceOccurrence": "b1"
+          },
+          "relation": "contrastive object movement",
+          "values": {
+            "dependency": "object A-bar movement",
+            "interpretiveRequirement": "contrastive remnant"
+          }
+        },
+        {
+          "anchors": {
+            "pronouncedOccurrence": "b2",
+            "unpronouncedOccurrence": "b1"
+          },
+          "relation": "copy pronunciation",
+          "values": {
+            "selection": "pronounce the higher object occurrence"
+          }
+        }
+      ],
+      "stageRecord": "A silent contrastive-focus head merges above the second vP. Its object-directed movement requirement internally merges beans at its edge, taking the object occurrence already present inside VP as the movement source. This analysis commits to an object-evacuation implementation of gapping: the pronounced object must escape vP before that constituent can be deleted. The higher occurrence supplies the pronunciation of beans, while the lower occurrence retains its lexical identity, thematic connection, and accusative licensing but becomes silent by copy reduction. Mary remains inside vP at this stage and must independently escape before ellipsis.",
+      "statement": "Move beans outside the prospective ellipsis domain.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "j1",
+              "label": "DP",
+              "lineageId": "john",
+              "tokenIndex": 0,
+              "word": "John"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "v1",
+                  "label": "v[transitive]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a1",
+                      "label": "V",
+                      "tokenIndex": 1,
+                      "word": "ate"
+                    },
+                    {
+                      "children": [],
+                      "id": "r1",
+                      "label": "DP",
+                      "tokenIndex": 2,
+                      "word": "rice"
+                    }
+                  ],
+                  "id": "p1",
+                  "label": "VP"
+                }
+              ],
+              "id": "w1",
+              "label": "vP"
+            }
+          ],
+          "id": "u1",
+          "label": "vP"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "b2",
+              "label": "DP",
+              "lineageId": "beans",
+              "tokenIndex": 5,
+              "word": "beans"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "fh2",
+                  "label": "Foc[contrast, object-attracting]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "m1",
+                      "label": "DP",
+                      "lineageId": "mary",
+                      "tokenIndex": 4,
+                      "word": "Mary"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v2",
+                          "label": "v[transitive]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a2",
+                              "label": "V",
+                              "word": "ate"
+                            },
+                            {
+                              "children": [],
+                              "id": "b1",
+                              "label": "DP",
+                              "lineageId": "beans",
+                              "silent": true,
+                              "word": "beans"
+                            }
+                          ],
+                          "id": "p2",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "w2",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "u2",
+                  "label": "vP"
+                }
+              ],
+              "id": "h2",
+              "label": "FocP"
+            }
+          ],
+          "id": "f2",
+          "label": "FocP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "goal": [
+              "j1",
+              "m1"
+            ],
+            "probe": [
+              "t1",
+              "t2"
+            ]
+          },
+          "relation": "finite subject agreement and Case",
+          "values": {
+            "goal": [
+              "third-person singular; nominative",
+              "third-person singular; nominative"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "lexicalVerb": [
+              "a1",
+              "a2"
+            ],
+            "tenseHead": [
+              "t1",
+              "t2"
+            ]
+          },
+          "relation": "tense concord",
+          "values": {
+            "implementation": "lexically inflected V licensed by silent T",
+            "tenseHead": [
+              "past",
+              "past"
+            ]
+          }
+        }
+      ],
+      "stageRecord": "Silent finite T merges above the first vP and above the second clause's FocP. In each clause, T agrees with the subject still in its thematic position and licenses nominative Case. The intervening object-focus position in the second clause does not intervene for this subject-agreement dependency: beans is already accusative-licensed and inactive for nominative Agree. Each T also establishes past-tense concord with its lexical verb. This implementation treats ate as a whole-word, lexically inflected V licensed by silent past T; it does not posit overt V-to-T movement or split the input word into separately realized syntactic terminals. T's subject-edge requirement remains to be satisfied.",
+      "statement": "Introduce finite T and establish subject agreement and past tense.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "t1",
+              "label": "T[past, finite, subject-edge]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "j1",
+                  "label": "DP",
+                  "lineageId": "john",
+                  "tokenIndex": 0,
+                  "word": "John"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "v1",
+                      "label": "v[transitive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a1",
+                          "label": "V",
+                          "tokenIndex": 1,
+                          "word": "ate"
+                        },
+                        {
+                          "children": [],
+                          "id": "r1",
+                          "label": "DP",
+                          "tokenIndex": 2,
+                          "word": "rice"
+                        }
+                      ],
+                      "id": "p1",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "w1",
+                  "label": "vP"
+                }
+              ],
+              "id": "u1",
+              "label": "vP"
+            }
+          ],
+          "id": "q1",
+          "label": "TP"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "t2",
+              "label": "T[past, finite, subject-edge]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "b2",
+                  "label": "DP",
+                  "lineageId": "beans",
+                  "tokenIndex": 5,
+                  "word": "beans"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "fh2",
+                      "label": "Foc[contrast, object-attracting]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "m1",
+                          "label": "DP",
+                          "lineageId": "mary",
+                          "tokenIndex": 4,
+                          "word": "Mary"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "v2",
+                              "label": "v[transitive]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a2",
+                                  "label": "V",
+                                  "word": "ate"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "b1",
+                                  "label": "DP",
+                                  "lineageId": "beans",
+                                  "silent": true,
+                                  "word": "beans"
+                                }
+                              ],
+                              "id": "p2",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "w2",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "u2",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "h2",
+                  "label": "FocP"
+                }
+              ],
+              "id": "f2",
+              "label": "FocP"
+            }
+          ],
+          "id": "q2",
+          "label": "TP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "attractor": [
+              "t1",
+              "t2"
+            ],
+            "landingOccurrence": [
+              "j2",
+              "m2"
+            ],
+            "sourceOccurrence": [
+              "j1",
+              "m1"
+            ]
+          },
+          "relation": "subject A-movement",
+          "values": {
+            "requirement": "finite subject-edge requirement"
+          }
+        },
+        {
+          "anchors": {
+            "pronouncedOccurrence": [
+              "j2",
+              "m2"
+            ],
+            "unpronouncedOccurrence": [
+              "j1",
+              "m1"
+            ]
+          },
+          "relation": "subject copy pronunciation",
+          "values": {
+            "selection": "pronounce the higher subject occurrences"
+          }
+        }
+      ],
+      "stageRecord": "Each T's subject-edge requirement internally merges its already agreed-with subject at the TP edge. John moves from the first vP, and Mary moves from the second vP across the object-focus projection. These are subject A-dependencies; beans occupies a distinct A-bar position and does not compete for the subject landing site. The higher subject occurrences are pronounced and the thematic occurrences become silent copies. In the second clause, both Mary and beans are now outside vP, making them available as the two surviving remnants of gapping.",
+      "statement": "Raise both subjects to their finite clause edges.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "j2",
+              "label": "DP",
+              "lineageId": "john",
+              "tokenIndex": 0,
+              "word": "John"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "t1",
+                  "label": "T[past, finite, subject-edge]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "j1",
+                      "label": "DP",
+                      "lineageId": "john",
+                      "silent": true,
+                      "word": "John"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v1",
+                          "label": "v[transitive]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a1",
+                              "label": "V",
+                              "tokenIndex": 1,
+                              "word": "ate"
+                            },
+                            {
+                              "children": [],
+                              "id": "r1",
+                              "label": "DP",
+                              "tokenIndex": 2,
+                              "word": "rice"
+                            }
+                          ],
+                          "id": "p1",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "w1",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "u1",
+                  "label": "vP"
+                }
+              ],
+              "id": "q1",
+              "label": "TP"
+            }
+          ],
+          "id": "s1",
+          "label": "TP"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "m2",
+              "label": "DP",
+              "lineageId": "mary",
+              "tokenIndex": 4,
+              "word": "Mary"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "t2",
+                  "label": "T[past, finite, subject-edge]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "b2",
+                      "label": "DP",
+                      "lineageId": "beans",
+                      "tokenIndex": 5,
+                      "word": "beans"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "fh2",
+                          "label": "Foc[contrast, object-attracting]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "m1",
+                              "label": "DP",
+                              "lineageId": "mary",
+                              "silent": true,
+                              "word": "Mary"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "v2",
+                                  "label": "v[transitive]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a2",
+                                      "label": "V",
+                                      "word": "ate"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "b1",
+                                      "label": "DP",
+                                      "lineageId": "beans",
+                                      "silent": true,
+                                      "word": "beans"
+                                    }
+                                  ],
+                                  "id": "p2",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "w2",
+                              "label": "vP"
+                            }
+                          ],
+                          "id": "u2",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "h2",
+                      "label": "FocP"
+                    }
+                  ],
+                  "id": "f2",
+                  "label": "FocP"
+                }
+              ],
+              "id": "q2",
+              "label": "TP"
+            }
+          ],
+          "id": "s2",
+          "label": "TP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "coordinator": "and1",
+            "firstConjunct": "s1",
+            "secondConjunct": "s2"
+          },
+          "relation": "clausal coordination interpretation",
+          "values": {
+            "interpretation": "conjunction"
+          }
+        },
+        {
+          "anchors": {
+            "antecedentCorrelate": [
+              "j2",
+              "r1"
+            ],
+            "antecedentDomain": "u1",
+            "prospectiveEllipsisDomain": "u2",
+            "remnant": [
+              "m2",
+              "b2"
+            ]
+          },
+          "relation": "gapping contrast correspondence",
+          "values": {
+            "antecedentCorrelate": [
+              "external argument",
+              "internal argument"
+            ],
+            "identityCondition": "focus-sensitive predicate identity after abstracting over the contrasting arguments",
+            "remnant": [
+              "external argument",
+              "internal argument"
+            ],
+            "sharedAbstraction": "past eat(x, y)"
+          }
+        }
+      ],
+      "stageRecord": "The coordinator and first merges with the second TP, and the first TP then merges at the edge of the coordinator's projection. This asymmetric binary structure preserves the input order while coordinating two finite clauses, rather than treating Mary beans as an ordinary nominal constituent. The coordination has conjunction semantics. Within this coordination, Mary contrasts with John and beans contrasts with rice. Abstracting over these two argument pairs yields the same past eating relation in both conjuncts. This focus-sensitive parallelism, rather than literal identity of the differently named arguments, supplies the antecedence condition for gapping. The second verb is still present and not yet deleted in this workspace.",
+      "statement": "Coordinate the clauses and establish the parallel remnant-correlate pairs.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "j2",
+                  "label": "DP",
+                  "lineageId": "john",
+                  "tokenIndex": 0,
+                  "word": "John"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "t1",
+                      "label": "T[past, finite, subject-edge]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "j1",
+                          "label": "DP",
+                          "lineageId": "john",
+                          "silent": true,
+                          "word": "John"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "v1",
+                              "label": "v[transitive]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a1",
+                                  "label": "V",
+                                  "tokenIndex": 1,
+                                  "word": "ate"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "r1",
+                                  "label": "DP",
+                                  "tokenIndex": 2,
+                                  "word": "rice"
+                                }
+                              ],
+                              "id": "p1",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "w1",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "u1",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "q1",
+                  "label": "TP"
+                }
+              ],
+              "id": "s1",
+              "label": "TP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "and1",
+                  "label": "&",
+                  "tokenIndex": 3,
+                  "word": "and"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "m2",
+                      "label": "DP",
+                      "lineageId": "mary",
+                      "tokenIndex": 4,
+                      "word": "Mary"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "t2",
+                          "label": "T[past, finite, subject-edge]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "b2",
+                              "label": "DP",
+                              "lineageId": "beans",
+                              "tokenIndex": 5,
+                              "word": "beans"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "fh2",
+                                  "label": "Foc[contrast, object-attracting]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "m1",
+                                      "label": "DP",
+                                      "lineageId": "mary",
+                                      "silent": true,
+                                      "word": "Mary"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "v2",
+                                          "label": "v[transitive]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "a2",
+                                              "label": "V",
+                                              "word": "ate"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "b1",
+                                              "label": "DP",
+                                              "lineageId": "beans",
+                                              "silent": true,
+                                              "word": "beans"
+                                            }
+                                          ],
+                                          "id": "p2",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "w2",
+                                      "label": "vP"
+                                    }
+                                  ],
+                                  "id": "u2",
+                                  "label": "vP"
+                                }
+                              ],
+                              "id": "h2",
+                              "label": "FocP"
+                            }
+                          ],
+                          "id": "f2",
+                          "label": "FocP"
+                        }
+                      ],
+                      "id": "q2",
+                      "label": "TP"
+                    }
+                  ],
+                  "id": "s2",
+                  "label": "TP"
+                }
+              ],
+              "id": "coordRight",
+              "label": "&P"
+            }
+          ],
+          "id": "coord",
+          "label": "&P"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "antecedentDomain": "u1",
+            "deletedDomain": "u2",
+            "licensingCoordinator": "and1",
+            "suppressedVerb": "a2",
+            "survivingRemnant": [
+              "m2",
+              "b2"
+            ]
+          },
+          "priorAnchors": {
+            "domainBeforeDeletion": "u2",
+            "verbBeforeDeletion": "a2"
+          },
+          "relation": "gapping ellipsis",
+          "values": {
+            "interpretation": "Mary ate beans",
+            "licensing": "local clausal coordination with focus-sensitive antecedent identity",
+            "operation": "PF nonpronunciation of the second vP"
+          }
+        }
+      ],
+      "stageRecord": "The established coordination and contrast correspondence license nonpronunciation of the second vP. Ellipsis applies to the vP occurrence already shown in the preceding workspace, retaining its syntax and interpretation while silencing its entire terminal domain, including ate. The lower subject and object copies were already silent through copy reduction; ellipsis additionally suppresses the predicate that would otherwise be pronounced. Mary at the TP edge and beans at the focus edge remain outside the deleted constituent. Silent T preserves the second clause's finite past interpretation without supplying another overt word. The completed analysis therefore expresses that John ate rice and Mary ate beans, with exactly John ate rice and Mary beans pronounced. The comma and final period are punctuation, not additional supplied input tokens.",
+      "statement": "Apply gapping to the second vP and complete the sentence.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "j2",
+                  "label": "DP",
+                  "lineageId": "john",
+                  "tokenIndex": 0,
+                  "word": "John"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "t1",
+                      "label": "T[past, finite, subject-edge]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "j1",
+                          "label": "DP",
+                          "lineageId": "john",
+                          "silent": true,
+                          "word": "John"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "v1",
+                              "label": "v[transitive]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a1",
+                                  "label": "V",
+                                  "tokenIndex": 1,
+                                  "word": "ate"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "r1",
+                                  "label": "DP",
+                                  "tokenIndex": 2,
+                                  "word": "rice"
+                                }
+                              ],
+                              "id": "p1",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "w1",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "u1",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "q1",
+                  "label": "TP"
+                }
+              ],
+              "id": "s1",
+              "label": "TP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "and1",
+                  "label": "&",
+                  "tokenIndex": 3,
+                  "word": "and"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "m2",
+                      "label": "DP",
+                      "lineageId": "mary",
+                      "tokenIndex": 4,
+                      "word": "Mary"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "t2",
+                          "label": "T[past, finite, subject-edge]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "b2",
+                              "label": "DP",
+                              "lineageId": "beans",
+                              "tokenIndex": 5,
+                              "word": "beans"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "fh2",
+                                  "label": "Foc[contrast, object-attracting]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "m1",
+                                      "label": "DP",
+                                      "lineageId": "mary",
+                                      "silent": true,
+                                      "word": "Mary"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "v2",
+                                          "label": "v[transitive]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "a2",
+                                              "label": "V",
+                                              "word": "ate"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "b1",
+                                              "label": "DP",
+                                              "lineageId": "beans",
+                                              "silent": true,
+                                              "word": "beans"
+                                            }
+                                          ],
+                                          "id": "p2",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "w2",
+                                      "label": "vP"
+                                    }
+                                  ],
+                                  "id": "u2",
+                                  "label": "vP",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "h2",
+                              "label": "FocP"
+                            }
+                          ],
+                          "id": "f2",
+                          "label": "FocP"
+                        }
+                      ],
+                      "id": "q2",
+                      "label": "TP"
+                    }
+                  ],
+                  "id": "s2",
+                  "label": "TP"
+                }
+              ],
+              "id": "coordRight",
+              "label": "&P"
+            }
+          ],
+          "id": "coord",
+          "label": "&P"
+        }
+      ]
+    }
+  ]
+}
