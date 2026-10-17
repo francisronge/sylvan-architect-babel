@@ -62,6 +62,17 @@ export const finalizeStageReplay = (
         .flatMap(nodeId => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, nodeId)))));
       const priorLocations = indexExactForestNodeLocations(previousFrameWorkspaceRoots);
       const currentLocations = indexExactForestNodeLocations(workspaceRoots);
+      // A rewritten output may need a new parent above existing syntax. Build
+      // that parent's other material first, as a recovered movement builds its
+      // landing host; the parent itself appears with the output.
+      transitionNodeIds.forEach((nodeId) => {
+        const parentId = findParentNodeIdInForest(workspaceRoots, nodeId);
+        if (!parentId || transitionNodeIds.has(parentId) || priorLocations.has(parentId))
+          return;
+        (findExactNodeByIdInForest(workspaceRoots, parentId)?.children || [])
+          .filter(child => !transitionNodeIds.has(String(child.id || '')))
+          .forEach(child => collectSyntaxSubtreeNodeIds(child).forEach(id => prerequisiteIds.add(id)));
+      });
       const availableContextIds = new Set(previousFrameWorkspaceRoots.flatMap(collectSyntaxSubtreeNodeIds)
         .filter(nodeId => {
           if (!transitionNodeIds.has(nodeId))
