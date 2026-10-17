@@ -1512,3 +1512,20 @@ const { buildAuthoredRelationLinksForFrames } = await import('../replay/frameRel
   assert.deepEqual(links[0].priorAnchors, { replaced: 'lex_before' });
   assert.deepEqual(links[0].values, { register: ['α', 'β'], note: 'verbatim' });
 });
+
+test('a generated index never repeats a letter the model authored for another dependency', () => {
+  const tree = node('xp', 'XP', ['a', 'b', 'c', 'd'].map(id => node(id, 'NP', [leaf(`${id}1`, 'N', id)])));
+  const indices = (relations) => compileRelationRenderPlan([stage(relations, [tree])]).frames
+    .flatMap(frame => frame.items)
+    .filter(item => item.kind === 'coindex')
+    .map(item => [item.nodeIds.join('+'), item.index]);
+  for (const authored of ['i', 'j']) {
+    const result = new Map(indices([
+      { relation: 'Occurrence grouping', anchors: { occurrences: ['a', 'b'] }, values: { index: authored } },
+      { relation: 'Occurrence grouping', anchors: { occurrences: ['c', 'd'] } }
+    ]));
+    assert.equal(result.get('a+b'), authored, 'the authored index wins');
+    assert.ok(result.get('c+d'), 'the unindexed dependency still receives an index');
+    assert.notEqual(result.get('c+d'), authored, 'the generated index stays distinct');
+  }
+});

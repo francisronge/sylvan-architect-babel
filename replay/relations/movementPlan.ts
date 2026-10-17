@@ -585,8 +585,8 @@ export const movementFacetPlan = {
       ...base(facet, ['Coindex', 'Forest light'], 'identity.occurrences'),
       kind: 'coindex',
       nodeIds: many('occurrences'),
-      index: singleValue(evidence, 'index', identityIndexFor?.(many('occurrences'))
-        ?? dependencyIndexFor(dependencyKey('identity', many('occurrences'))))
+      index: singleValue(evidence, 'index') || identityIndexFor?.(many('occurrences'))
+        || dependencyIndexFor(dependencyKey('identity', many('occurrences')))
     });
     return;
   },
@@ -596,7 +596,7 @@ export const movementFacetPlan = {
       ...base(facet, ['Coindex'], 'coreference.coindex'),
       kind: 'coindex',
       nodeIds: many('coreference.participants'),
-      index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('coreference', many('coreference.participants'))))
+      index: singleValue(evidence, 'index') || dependencyIndexFor(dependencyKey('coreference', many('coreference.participants')))
     });
     return;
   },
@@ -684,7 +684,7 @@ export const movementFacetPlan = {
         scopeMemberNodeIds: collectSubtreeIds(nodes.get(domain)),
         subtreeDerived: [{ field: 'scopeMemberNodeIds' as const, rootNodeId: domain, mode: 'all' as const }]
       } : {}),
-      index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('operator-variable', [one('operator'), one('variable')])))
+      index: singleValue(evidence, 'index') || dependencyIndexFor(dependencyKey('operator-variable', [one('operator'), one('variable')]))
     });
     return;
   }

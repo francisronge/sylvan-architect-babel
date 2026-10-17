@@ -326,7 +326,7 @@ export const structuralFacetPlan = {
         kind: 'operator-variable-binding',
         operatorNodeId: one('binder'),
         variableNodeId: one('dependent'),
-        index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('binding', [one('binder'), one('dependent')])))
+        index: singleValue(evidence, 'index') || dependencyIndexFor(dependencyKey('binding', [one('binder'), one('dependent')]))
       });
       return;
     }
@@ -339,7 +339,7 @@ export const structuralFacetPlan = {
       domainMemberNodeIds: collectSubtreeIds(nodes.get(domain)),
       subtreeDerived: [{ field: 'domainMemberNodeIds', rootNodeId: domain, mode: 'all' }],
       ...(state === 'licensed' || state === 'failed' ? { outcome: state } : {}),
-      index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('binding', [one('binder'), one('dependent')])))
+      index: singleValue(evidence, 'index') || dependencyIndexFor(dependencyKey('binding', [one('binder'), one('dependent')]))
     });
     return;
   },

@@ -61,6 +61,21 @@ export type CompilePlanOptions = {
   activeLens?: boolean;
 };
 
+const conventionalIndex = (ordinal: number): string => 'ijklmnopqrstuvwxyz'[ordinal] ?? `i${ordinal + 1}`;
+
+/** Index symbols the model authored as relation values. A generated letter
+ * must never repeat one, or two unrelated dependencies would look coindexed. */
+const authoredIndexSymbols = (stageDispatches: ReturnType<typeof dispatchStageRelations>): Set<string> => {
+  const symbols = new Set<string>();
+  stageDispatches.forEach(dispatches => dispatches.forEach(({ evidence }) =>
+    (evidence.values.index || []).forEach(symbol => {
+      if (!symbol.trim()) return;
+      symbols.add(symbol);
+      symbols.add(symbol.trim().toLowerCase());
+    })));
+  return symbols;
+};
+
 export const compileRelationRenderPlan = (
   stages: DerivationStage[],
   options: CompilePlanOptions = {}
@@ -97,16 +112,20 @@ export const compileRelationRenderPlan = (
    * when the model connected two occurrences but supplied no index, Babel
    * labels that connection with a letter, i, j, k, allocated once per
    * dependency in order of first appearance and never from a list position.
+   * Authored index values are reserved first, so a generated letter never
+   * looks coindexed with an unrelated authored one.
    */
+  const reservedIndices = authoredIndexSymbols(stageDispatches);
   const dependencyIndexByKey = new Map<string, string>();
+  let nextDependencyOrdinal = 0;
   const dependencyIndexFor = (key: string): string => {
     if (!dependencyIndexByKey.has(key)) {
-      const ordinal = dependencyIndexByKey.size;
-      const conventionalIndices = 'ijklmnopqrstuvwxyz';
-      dependencyIndexByKey.set(
-        key,
-        ordinal < conventionalIndices.length ? conventionalIndices[ordinal] : `i${ordinal + 1}`
-      );
+      let index = '';
+      while (!index) {
+        const candidate = conventionalIndex(nextDependencyOrdinal++);
+        if (!reservedIndices.has(candidate)) index = candidate;
+      }
+      dependencyIndexByKey.set(key, index);
     }
     return dependencyIndexByKey.get(key)!;
   };
@@ -619,7 +638,7 @@ export const compileRelationRenderPlan = (
 
   // Allocate notation across the derivation, never separately in each painter.
   // Reserve authored symbols before allocating, including later movement indices.
-  const usedIndices = new Set<string>();
+  const usedIndices = new Set<string>(reservedIndices);
   const authoredIndicesByIdentity = new Map<string, Set<string>>();
   stageDispatches.forEach((dispatches, stageIndex) => {
     const nodes = stageNodeMaps[stageIndex];
@@ -651,7 +670,7 @@ export const compileRelationRenderPlan = (
       let index = authored?.size === 1 ? [...authored][0] : '';
       while (!index) {
         const ordinal = nextArgumentIndex++;
-        const candidate = 'ijklmnopqrstuvwxyz'[ordinal] || `i${ordinal + 1}`;
+        const candidate = conventionalIndex(ordinal);
         if (!usedIndices.has(candidate)) index = candidate;
       }
       usedIndices.add(index);
