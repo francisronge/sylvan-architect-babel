@@ -357,3 +357,43 @@ test('later stages cannot stretch earlier branches or enlarge their layout budge
       'unrelated later syntax must not change early branch proportions');
   }
 });
+
+test('a projection that later receives inserted layers is not stretched in advance across stages', async () => {
+  const { buildStageLayoutGroups } = await import('../replay/stageCamera.ts');
+  const { TREE_ROW_HEIGHT } = await import('../replay/treeSpacing.ts');
+  const word = (id, label, surface, tokenIndex) => ({ id, label, word: surface, tokenIndex });
+  const node = (id, label, children) => ({ id, label, children });
+  const bridges = () => node('nbar', "N'", [word('n', 'N', 'bridges', 2)]);
+  const adjective = () => node('ap', 'AP', [word('a', 'A', 'old', 1)]);
+  // The model projects NP first and later adjoins inside it under the same NP id.
+  const derivationStages = [
+    { statement: 'Build the pieces.', stageRecord: 'NP, AP and D are separate.', relations: [],
+      workspaceForest: [word('d', 'D', 'those', 0), adjective(), node('np', 'NP', [bridges()])] },
+    { statement: 'Adjoin the AP inside NP.', stageRecord: 'A new N′ joins AP and the old N′.', relations: [],
+      workspaceForest: [word('d', 'D', 'those', 0), node('np', 'NP', [node('nbar2', "N'", [adjective(), bridges()])])] },
+    { statement: 'Merge D.', stageRecord: 'D takes the NP.', relations: [],
+      workspaceForest: [node('dp', 'DP', [word('d', 'D', 'those', 0), node('np', 'NP', [node('nbar2', "N'", [adjective(), bridges()])])])] }
+  ];
+  const { playbackSteps: steps, replayDerivationFrames } = prepareReplay({ sentence: 'those old bridges',
+    inputTokens: ['those', 'old', 'bridges'], derivationStages, includePlayback: true });
+  const groups = buildStageLayoutGroups(steps, replayDerivationFrames);
+  const sizeFor = index => stageTreeLayoutSize(steps, index, 1596, 1016, groups);
+  const frames = steps.filter(step => step.replayCanvasData).map(step => {
+    const size = sizeFor(step.replayFrameIndex);
+    const reservation = buildStageCoordinateReservations(steps, step.replayFrameIndex, size, sizeFor, 'ltr')
+      .get(step.replayCanvasData);
+    const root = d3.hierarchy(step.replayCanvasData); applyVizIds(root);
+    const visible = new Set(step.replayVisibleNodeIds);
+    return { stage: step.replayFrameIndex, tree: layoutSyntaxTree(root, size, 'ltr', reservation, visible), visible };
+  });
+  const npAboveBridges = frames.filter(({ stage, visible }) => stage === 0 && visible.has('np') && visible.has('nbar'));
+  assert(npAboveBridges.length > 0, 'stage one shows the authored NP over N′');
+  for (const { tree, visible } of frames) {
+    for (const child of tree.descendants().filter(item => visible.has(getNodeId(item)) && !item.data.replayLayoutOnly)) {
+      const parent = child.ancestors().slice(1).find(item => visible.has(getNodeId(item))
+        && !item.data.replayLayoutOnly && item.data.replayOrigin?.kind !== 'workspace');
+      if (parent) assert(child.y - parent.y <= TREE_ROW_HEIGHT + 1e-6,
+        `${getNodeId(parent)} → ${getNodeId(child)} spans more than one row`);
+    }
+  }
+});
