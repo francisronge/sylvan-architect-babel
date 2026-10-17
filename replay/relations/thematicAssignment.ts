@@ -155,25 +155,6 @@ export function recoverClauseComplementTheta(evidence: Tier2FacetEvidence) {
   });
 }
 
-/** Qualified external/internal roles name their argument slots in a thematic
- * licensing claim. Finite inflection is Case context, not a theta predicate. */
-export function recoverQualifiedThetaLicensing(evidence: Tier2FacetEvidence) {
-  if (normalizeTier2Synonym(evidence.relationName) !== 'thematic and case licensing' || !establishesAssignment(evidence)) return [];
-  const anchors = evidence.authoredCurrentAnchors ?? [], values = evidence.authoredValues ?? [];
-  const sources = anchors.filter(entry => entry.concepts.includes('predicate') || /^(?:verb|predicate)$/u.test(normalizeTier2Synonym(entry.key)));
-  if (sources.length !== 1 || sources[0].items.length !== 1) return [];
-  return ['external', 'internal'].flatMap(slot => {
-    const rows = values.filter(entry => thematicSlotQualifier(entry.key, 'value') === slot);
-    const targets = anchors.filter(entry => normalizeTier2Synonym(entry.key) === (slot === 'external' ? 'subject' : 'object')
-      || thematicSlotQualifier(entry.key, 'anchor') === slot);
-    if (rows.length !== 1 || targets.length !== 1 || rows[0].items.length !== 1 || !rows[0].items[0].trim()
-      || /\b(?:denied|rejected|required|requested|expected|possible|potential|hypothetical|pending|unresolved|if|unless|whether)\b/u.test(normalizeTier2Synonym(rows[0].items[0]))
-      || targets[0].items.length !== 1 || !uniqueCurrentOwners(evidence, [...sources[0].items, ...targets[0].items])) return [];
-    return [scopeEvidence(evidence, 'theta-grid', [{ entry: sources[0], concept: 'predicate' }, { entry: targets[0], concept: 'theta.arguments' }],
-      [{ entry: rows[0], concept: 'role.label' }])];
-  });
-}
-
 /** An interpretation can explicitly qualify an argument rather than name a
  * generic argument field. Its named predicate owns the role; a containing PP
  * is introduction context. No role is extracted from explanatory prose. */

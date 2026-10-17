@@ -8,20 +8,18 @@ import { isPredicationDescription, normalizeTier2Synonym } from './tier2Synonyms
  * treating its contextual nominal head or embedded variable as another end. */
 function recoverQualifiedPredication(evidence: Tier2FacetEvidence): EvidenceScope[] {
   const label = normalizeTier2Synonym(evidence.relationName);
-  const tough = label === 'tough predication linkage';
-  const relative = label === 'relative predication';
-  if (!tough && !relative) return [];
+  if (label !== 'relative predication') return [];
   const anchors = evidence.authoredCurrentAnchors ?? [];
-  const externalRelative = relative && !anchors.some(entry => normalizeTier2Synonym(entry.key) === 'modified nominal')
+  const externalRelative = !anchors.some(entry => normalizeTier2Synonym(entry.key) === 'modified nominal')
     && anchors.some(entry => normalizeTier2Synonym(entry.key) === 'nominal head');
-  const predicates = anchors.filter(entry => normalizeTier2Synonym(entry.key) === (tough ? 'adjectival predicate' : externalRelative ? 'operator' : 'relative operator'));
-  const predicands = anchors.filter(entry => normalizeTier2Synonym(entry.key) === (tough ? 'matrix subject' : externalRelative ? 'nominal head' : 'modified nominal'));
+  const predicates = anchors.filter(entry => normalizeTier2Synonym(entry.key) === (externalRelative ? 'operator' : 'relative operator'));
+  const predicands = anchors.filter(entry => normalizeTier2Synonym(entry.key) === (externalRelative ? 'nominal head' : 'modified nominal'));
   if (predicates.length !== 1 || predicands.length !== 1 || [...predicates, ...predicands].some(entry => entry.items.length !== 1)
     || anchors.some(entry => ![predicates[0], predicands[0]].includes(entry)
       && (entry.concepts.some(concept => ['predicate', 'predicand'].includes(concept))
-        || relative && (entry.concepts.includes('operator') || /^(?:relative )?operator$/u.test(normalizeTier2Synonym(entry.key)))
+        || entry.concepts.includes('operator') || /^(?:relative )?operator$/u.test(normalizeTier2Synonym(entry.key))
         || /^(?:bearer|recipient)$/u.test(normalizeTier2Synonym(entry.key))))) return [];
-  const context = relative ? anchors.filter(entry => normalizeTier2Synonym(entry.key) === (externalRelative ? 'relative clause' : 'nominal head')) : [];
+  const context = anchors.filter(entry => normalizeTier2Synonym(entry.key) === (externalRelative ? 'relative clause' : 'nominal head'));
   if (context.length > 1 || externalRelative && context.length !== 1 || context.some(entry => entry.items.length !== 1)
     || !uniqueCurrentOwners(evidence, [...predicates, ...predicands, ...context].flatMap(entry => entry.items))) return [];
   const nodes = new Map<string, typeof evidence.currentForest[number]>();
@@ -34,13 +32,13 @@ function recoverQualifiedPredication(evidence: Tier2FacetEvidence): EvidenceScop
   const nominal = (node: typeof evidence.currentForest[number]) => ['D', 'DP', 'N', 'NP'].includes(categoryLabel(node.label));
   const contains = (node: typeof evidence.currentForest[number], id: string): boolean => node.id === id
     || Boolean(node.children?.some(child => contains(child, id)));
-  if (!nominal(predicand) || (tough ? !['A', 'AP'].includes(categoryLabel(predicate.label)) : !nominal(predicate))) return [];
+  if (!nominal(predicand) || !nominal(predicate)) return [];
   if (externalRelative) {
     const clause = nodes.get(context[0].items[0])!, parent = parents.get(predicand.id);
     if (!['C', 'CP'].includes(categoryLabel(clause.label)) || !contains(clause, predicate.id)
       || !parent || parent !== parents.get(clause.id) || !nominal(parent)) return [];
-  } else if (relative && (!contains(predicand, predicate.id)
-    || context.some(entry => !nominal(nodes.get(entry.items[0])!) || !contains(predicand, entry.items[0])))) return [];
+  } else if (!contains(predicand, predicate.id)
+    || context.some(entry => !nominal(nodes.get(entry.items[0])!) || !contains(predicand, entry.items[0]))) return [];
   const predication = scopeEvidence(evidence, 'predication.dependency', [
     { entry: predicates[0], concept: 'predicate' }, { entry: predicands[0], concept: 'predicand' }
   ]);

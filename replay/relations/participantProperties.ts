@@ -41,7 +41,6 @@ export function recoverPairedCaseProperties(evidence: Tier2FacetEvidence) {
 /** A checked nominal property belongs to its explicitly named goal. Qualified
  * argument slots and trace roles identify a property owner, never an assigner. */
 export function recoverNamedArgumentProperties(evidence: Tier2FacetEvidence) {
-  const name = normalizeTier2Synonym(evidence.relationName);
   const clauses = relationLabelClauses(evidence.relationName);
   if (!establishesAssignment(evidence)) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [], values = evidence.authoredValues ?? [];
@@ -54,8 +53,6 @@ export function recoverNamedArgumentProperties(evidence: Tier2FacetEvidence) {
     if (key === 'object case' && clauses.some(clause => /^(?:matrix |embedded )?argument licensing$/u.test(clause))
       && values.some(value => normalizeTier2Synonym(value.key) === 'internal role' && value.items.length === 1 && value.items[0].trim()))
       targets = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'internal argument');
-    if (row.concepts.includes('case.literal') && name === 'object trace case and government')
-      targets = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'object trace');
     if (targets.length !== 1 || targets[0].items.length !== 1 || !uniqueCurrentOwners(evidence, targets[0].items)) return [];
     return [scopeEvidence(evidence, 'plaque.structured', [{ entry: targets[0], concept: 'plaque.anchor' }], [{ entry: row, concept: 'plaque.rows' }])];
   });

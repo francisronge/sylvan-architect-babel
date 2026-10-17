@@ -15,7 +15,7 @@ const quantifiedVariableRole = (role: string) => /^(?:bound )?(?:subject|object)
  * movement nor a correspondence chosen from independent list order. */
 export function typedInterpretedBinding(evidence: Tier2FacetEvidence): boolean {
   const label = normalizeTier2Synonym(evidence.relationName);
-  return (relativeInterpretation(label) || quantifierScope(label) || label === 'tough predication linkage')
+  return (relativeInterpretation(label) || quantifierScope(label))
     && Boolean(evidence.authoredCurrentAnchors?.some(entry => {
       const role = normalizeTier2Synonym(entry.key);
       if (relativeInterpretation(label)) return role !== 'variable' && relativeVariableRole(role);
@@ -27,23 +27,13 @@ export function recoverInterpretedOperatorBinding(evidence: Tier2FacetEvidence) 
   const label = normalizeTier2Synonym(evidence.relationName);
   const relative = relativeInterpretation(label);
   const quantified = quantifierScope(label);
-  const tough = label === 'tough predication linkage';
-  if ((!relative && !quantified && !tough) || !establishesAssignment(evidence)) return [];
-  if (tough) {
-    const dependencies = (evidence.authoredValues ?? []).filter(entry => normalizeTier2Synonym(entry.key) === 'dependency type');
-    if (dependencies.length !== 1 || dependencies[0].items.length !== 1
-      || !/\boperator bound(?: object)? variable\b/u.test(normalizeTier2Synonym(dependencies[0].items[0]))
-      || /\b(?:no|not|without|denied|rejected|failed|blocked|unlicensed|possible|potential|hypothetical|conditional|pending|unresolved|if|unless|whether|required|expected)\b/u
-        .test(normalizeTier2Synonym(dependencies[0].items[0]))) return [];
-  }
+  if ((!relative && !quantified) || !establishesAssignment(evidence)) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [];
   const qualifiedScope = quantified && anchors.some(entry => qualifiedQuantifier(normalizeTier2Synonym(entry.key)));
   const operators = anchors.filter(entry => relative ? relativeOperatorRole(normalizeTier2Synonym(entry.key))
-    : tough ? normalizeTier2Synonym(entry.key) === 'operator'
     : /^(?:wide|narrow) scope operator$/u.test(normalizeTier2Synonym(entry.key))
       || qualifiedScope && Boolean(qualifiedQuantifier(normalizeTier2Synonym(entry.key))));
-  const variables = anchors.filter(entry => tough ? normalizeTier2Synonym(entry.key) === 'embedded variable'
-    : relative ? relativeVariableRole(normalizeTier2Synonym(entry.key))
+  const variables = anchors.filter(entry => relative ? relativeVariableRole(normalizeTier2Synonym(entry.key))
     : qualifiedScope ? quantifiedVariableRole(normalizeTier2Synonym(entry.key))
     : /^(?:subject|object) variable position$/u.test(normalizeTier2Synonym(entry.key)));
   if (anchors.some(entry => !operators.includes(entry) && (entry.concepts.includes('operator')
@@ -74,7 +64,7 @@ export function recoverInterpretedOperatorBinding(evidence: Tier2FacetEvidence) 
   const domains = anchors.filter(entry => entry.concepts.includes('scope.domain'));
   if (domains.length > 1 || domains.some(entry => entry.items.length !== 1 || !uniqueCurrentOwners(evidence, entry.items))) return [];
   const indices = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('index')
-    || (relative || tough) && normalizeTier2Synonym(entry.key) === 'variable index');
+    || relative && normalizeTier2Synonym(entry.key) === 'variable index');
   if (indices.length > 1 || indices.some(entry => entry.items.length !== 1 || !entry.items[0].trim())
     || operators.length > 1 && indices.length) return [];
   return backed.flatMap(({ operator, variable }) => {

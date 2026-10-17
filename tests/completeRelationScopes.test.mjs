@@ -36,24 +36,6 @@ test('category-confirmed force properties preserve their literal and local asser
   assert.equal(by(relation, 'plaque.structured', [...forest, leaf('ch', 'C')]).length, 0);
 });
 
-test('remnant correspondence uses role bijection, retains both proof rows, and invents no index', () => {
-  const relation = { relation: 'gapping contrast parallelism', anchors: { antecedentRemnants: ['a', 'b'], ellipsisRemnants: ['c', 'd'] },
-    values: { antecedentRemnants: ['agent', 'theme'], ellipsisRemnants: ['theme', 'agent'] } };
-  const drawn = by(relation, 'correspondence.alignment');
-  assert.equal(drawn.length, 2);
-  assert.deepEqual(drawn.map(claim => [claim.facet.evidence.currentAnchors['correspondence.source'], claim.facet.evidence.currentAnchors['correspondence.target']]),
-    [[['a'], ['d']], [['b'], ['c']]]);
-  assert.deepEqual(drawn.map(claim => claim.consumedEvidence.filter(ref => ref.field === 'values').map(ref => [ref.key, ref.itemIndices])), [
-    [['antecedentRemnants', [0]], ['ellipsisRemnants', [1]]], [['antecedentRemnants', [1]], ['ellipsisRemnants', [0]]]
-  ]);
-  assert(!render(relation).some(item => item.kind === 'coindex' || item.kind === 'coindex-set'));
-  for (const values of [
-    { antecedentRemnants: ['agent', 'theme'], ellipsisRemnants: ['agent', 'agent'] },
-    { antecedentRemnants: ['agent', 'theme'], ellipsisRemnants: ['agent'] },
-    { antecedentRemnants: ['agent', 'theme'], ellipsisRemnants: ['agent', 'recipient'] }
-  ]) assert.equal(by({ ...relation, values }, 'correspondence.alignment').length, 0);
-});
-
 test('named gapping domain needs actual authored silence for deletion', () => {
   const relation = { relation: 'gapping ellipsis', anchors: { silentDomain: 'silent', antecedentDomain: 'cl' } };
   assert.equal(by(relation, 'ellipsis.site').length, 1);
@@ -80,11 +62,7 @@ test('complement theta scope retains the actual clausal sister and rejects compe
     assert.equal(by({ ...relation, anchors: { ...relation.anchors, ...extra } }, 'theta-grid').length, 0);
 });
 
-test('named control and binding preserve optional domain and authored index', () => {
-  const control = { relation: 'subject chain and control', anchors: { finiteSubject: 'a', controlledSubject: 'pro', domain: 'domain' }, values: { index: 'k' } };
-  assert.equal(by(control, 'control.dependency').length, 1);
-  assert(by(control, 'control.dependency')[0].consumedEvidence.some(ref => ref.field === 'values' && ref.key === 'index'));
-  assert.equal(by({ ...control, anchors: { ...control.anchors, domain: 'wrong' } }, 'control.dependency').length, 0);
+test('named binding preserves its optional domain and authored index', () => {
   const binding = { relation: 'relative operator binding', anchors: { operator: 'a', resumptiveSubject: 'pro', domain: 'domain' }, values: { index: 'j' } };
   assert.equal(by(binding, 'binding.dependency').length, 1);
   assert(by(binding, 'binding.dependency')[0].consumedEvidence.some(ref => ref.field === 'values' && ref.key === 'index'));

@@ -442,9 +442,6 @@ test('unrelated context does not hide a complete identity group within a chain c
   ] }];
   const relation = { relation: 'subject chain and control', anchors: { finiteSubject: 'high', thematicSubject: 'low', controlledSubject: 'pro' } };
   assert(facet(relation, 'identity.occurrences', currentForest));
-  assert(facet(relation, 'control.dependency', currentForest), 'finiteSubject explicitly identifies the controller; thematicSubject remains lower-copy context');
-  assert(!facet({ ...relation, anchors: { controllerOccurrences: ['high', 'low'], controlledSubject: 'pro' } }, 'control.dependency', currentForest),
-    'an unqualified controller occurrence list does not select a single controller');
   const shared = { relation: 'shared thematic argument', anchors: { filingObject: 'high', readingObject: 'low', readingPredicate: 'pro' } };
   assert(facet(shared, 'identity.occurrences', currentForest));
   const distinct = structuredClone(currentForest); distinct[0].children[1].lineageId = 'different';
