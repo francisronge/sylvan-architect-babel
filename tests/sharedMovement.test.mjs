@@ -86,7 +86,11 @@ test('equivalent source and landing roles do not require the word shared', () =>
 
 test('shared movement rejects missing, conflicting, repeated, or ambiguous source associations', () => {
   for (const mutate of [
-    stages => { delete stages[1].relations[0].priorAnchors; },
+    stages => {
+      delete stages[1].relations[0].priorAnchors;
+      nodes(stages[1].workspaceForest).get('objectN').id = 'objectNLow';
+      stages[1].relations[0].anchors.sourceOccurrences = ['objectNLow', 'objectE'];
+    },
     stages => { stages[1].relations[0].anchors.sourceOccurrences = ['objectN', 'objectN']; },
     stages => { stages[1].relations[0].priorAnchors.sourceOccurrences = ['objectN', 'objectN']; },
     stages => { stages[1].relations[0].anchors.sharedLandingOccurrence = ['objectHigh', 'objectN']; },
@@ -101,6 +105,14 @@ test('shared movement rejects missing, conflicting, repeated, or ambiguous sourc
     const d = dispatchStageRelations(stages)[1][0];
     assert(!d.facets.some(f => f.recipe.id === 'movement.path'), JSON.stringify(stages[1].relations[0]));
   }
+});
+
+test('shared sources that keep their IDs match their preceding occurrences without prior anchors', () => {
+  const stages = structuredClone(record.analyses[0].derivationStages);
+  delete stages[1].relations[0].priorAnchors;
+  const paths = dispatchStageRelations(stages)[1][0].facets.filter(f => f.recipe.id === 'movement.path');
+  assert.deepEqual(paths.map(f => f.evidence.movement.sourceNodeId).sort(), ['objectE', 'objectN']);
+  assert(paths.every(f => f.evidence.movement.targetNodeId === 'objectHigh'));
 });
 
 test('a later converging source keeps its preceding state until its own relation moment', () => {
