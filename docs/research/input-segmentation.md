@@ -201,8 +201,25 @@ Detail to settle in the contract change:
 
 ## Proposed experiment
 
-This needs Francis's approval, because it changes the model-facing prompt.
+Francis approved the comparison on 17 October 2026. It changes the model-facing
+prompt only inside the qualification runner:
+`npm run qualification:codex -- --contract spellout`.
 
+- **Variant** `character-spellout-v1`, in `contractQualification/spelloutContract.js`.
+  - The request sends the sentence without a token list, and terminals have no
+    `tokenIndex`. A realization group names its `text`, a contiguous stretch of
+    whole final words, instead of token indices. All other instructions stay
+    word for word.
+  - Babel aligns the final words to the sentence from left to right, ignoring
+    case, whitespace and punctuation. The model's own words become the tokens,
+    spelled as in the sentence, and the unchanged parser, Replay and review
+    process the result.
+  - Restated in this form, every complete committed fixture reaches the same
+    parse and Replay. The five that change are the splits this study found
+    (読/ん/だ, 小/李), and each becomes one word.
+  - Limits: a group cannot cover a discontinuous stretch, which indices can.
+    A word that differs from its stretch only in inner marks (*don't* for
+    *don’t*) is recorded as a single-leaf group after conversion.
 - **Conditions.** The same sentences run under today's indexed token list and
   under character spell-out, with GPT-6.1 Sol at high effort through Codex OAuth.
   Each condition's prompt and contract version is recorded.
@@ -219,12 +236,10 @@ This needs Francis's approval, because it changes the model-facing prompt.
 
 ## Fixes independent of the contract
 
-- Record the runtime's Unicode, ICU and CLDR versions in generation provenance,
-  since today's tokens depend on them.
-- Stop the browser from tokenizing again:
-  - `services/failedOutputInspection.ts` re-tokenizes in the browser.
-  - `resolveSavedInputTokens` re-tokenizes records saved without a token list.
+Both are done.
 
-  In Firefox either path can produce tokens other than those the model received.
-  Both should use the tokens saved with the request, and label records without
-  them as legacy.
+- Generation provenance records the runtime's Unicode, ICU and CLDR versions,
+  since today's tokens depend on them (#55).
+- The browser no longer tokenizes again (#56). Failure inspection uses the tokens
+  the server sent, and records saved without a token list recover them from
+  their own final words where they can.
