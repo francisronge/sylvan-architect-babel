@@ -19,7 +19,12 @@ syntactic rules. Desktop remains the primary experience.
 2. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
    the Max plan's monthly API credits can be claimed (around 2026-10-24). Spend
    only those credits.
-3. Clean up the tests:
+3. Input segmentation ([study](docs/research/input-segmentation.md)): record the
+   runtime's Unicode, ICU and CLDR versions in generation provenance, and stop the
+   browser from tokenizing again. Then, with Francis's approval, run the proposed
+   comparison of today's tokens against character spell-out and decide the
+   contract.
+4. Clean up the tests:
    - Replace hand-picked per-frame Replay checks with one sweep that checks every
      rule on every frame of every saved parse, each rule first shown to fail on a
      known-bad case.
@@ -27,16 +32,16 @@ syntactic rules. Desktop remains the primary experience.
      them read data instead of slicing the lab's source text.
    - Check right-to-left once, as a mirror of left-to-right across the saved
      parses, then run continuity checks once per width.
-4. Recognition:
+5. Recognition:
    - Delete the recovery rules that fire on only one past sentence.
    - Run an offline, geometry-first recognition experiment over every saved
      parse: measure the wrong-picture rate where Babel already draws, and build
      a review page for relations Babel does not yet draw.
    - Later, consider Jev as a fallback.
-5. Remove the legacy server model-route picker (Gemini default, stale model names,
+6. Remove the legacy server model-route picker (Gemini default, stale model names,
    legacy environment variables) and the `.artifacts` harnesses that depend on it.
    Treat this as an explicit endpoint-contract change.
-6. Merge duplicated layout checks without changing a pixel, proving identical
+7. Merge duplicated layout checks without changing a pixel, proving identical
    coordinates with `npm run verify:corpus`, and fix the one remaining stretched
    branch in Indonesian control analysis 2.
 
