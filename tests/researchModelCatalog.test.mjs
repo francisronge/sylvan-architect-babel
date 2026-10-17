@@ -16,6 +16,7 @@ test('the research catalog contains the approved unqualified candidates', () => 
       'openai:gpt-6-astra',
       'openai:gpt-6-sol',
       'openai:gpt-5.6-sol',
+      'anthropic:claude-opus-5-5',
       'anthropic:claude-opus-5',
       'anthropic:claude-fable-5-1',
       'moonshot:kimi-k3',

@@ -1,6 +1,6 @@
 // Preserve transport measurements separately from provider usage and billing.
 // Header values are opt-in: unknown headers may contain account identifiers.
-const safeHeader = /^(?:content-type|content-length|date|server|server-timing|connection|transfer-encoding|x-request-id|x-oai-request-id|cf-ray|openai-processing-ms|openai-version|retry-after|x-ratelimit-(?:limit|remaining|reset)-(?:requests|tokens)|x-codex-(?:primary|secondary)-(?:used-percent|reset-at|reset-after-seconds|window-minutes)|x-codex-credits-(?:has-credits|unlimited|balance)|x-codex-plan-type|cf-cache-status)$/u;
+const safeHeader = /^(?:content-type|content-length|date|server|server-timing|connection|transfer-encoding|x-request-id|x-oai-request-id|cf-ray|openai-processing-ms|openai-version|retry-after|x-ratelimit-(?:limit|remaining|reset)-(?:requests|tokens)|x-codex-(?:primary|secondary)-(?:used-percent|reset-at|reset-after-seconds|window-minutes)|x-codex-credits-(?:has-credits|unlimited|balance)|x-codex-plan-type|cf-cache-status|request-id|x-should-retry|anthropic-ratelimit-(?:requests|tokens|input-tokens|output-tokens)-(?:limit|remaining|reset))$/u;
 
 export const qualificationResponseHeaders = response => {
   const headers = {}, omittedHeaderNames = [];
@@ -9,7 +9,8 @@ export const qualificationResponseHeaders = response => {
     else omittedHeaderNames.push(name);
   }
   return { status: response.status, contentType: response.headers.get('content-type'),
-    requestId: response.headers.get('x-request-id') ?? response.headers.get('x-oai-request-id'),
+    requestId: response.headers.get('x-request-id') ?? response.headers.get('x-oai-request-id')
+      ?? response.headers.get('request-id'),
     headers, omittedHeaderNames };
 };
 
@@ -55,18 +56,23 @@ export const createQualificationTelemetry = ({ now = () => performance.now() } =
         connections.push({ atMs: elapsed(), type, ...qualificationTransportError(error) });
       }
     },
+    // OpenAI Responses and Anthropic Messages events share these fields.
     event(event) {
+      const visibleText = event.type === 'response.output_text.delta' ? event.delta
+        : event.type === 'content_block_delta' && event.delta?.type === 'text_delta' ? event.delta.text : null;
+      const itemType = event.item?.type ?? event.content_block?.type;
       events.push({ atMs: elapsed(), type: event.type ?? null,
         ...(Number.isInteger(event.sequence_number) ? { sequenceNumber: event.sequence_number } : {}),
         ...(Number.isInteger(event.output_index) ? { outputIndex: event.output_index } : {}),
         ...(Number.isInteger(event.content_index) ? { contentIndex: event.content_index } : {}),
-        ...(event.item?.type ? { itemType: event.item.type } : {}),
-        ...(event.type === 'response.output_text.delta' ? { textBytes: Buffer.byteLength(event.delta ?? '', 'utf8') } : {}) });
+        ...(Number.isInteger(event.index) ? { blockIndex: event.index } : {}),
+        ...(itemType ? { itemType } : {}),
+        ...(visibleText !== null ? { textBytes: Buffer.byteLength(visibleText ?? '', 'utf8') } : {}) });
     },
     snapshot() {
-      const text = events.filter(e => e.type === 'response.output_text.delta' && e.textBytes > 0);
-      const terminal = events.findLast(e => ['response.completed', 'response.done', 'response.incomplete', 'response.failed', 'error'].includes(e.type));
-      const reasoning = events.find(e => e.itemType === 'reasoning' || e.type?.startsWith('response.reasoning'));
+      const text = events.filter(e => e.textBytes > 0);
+      const terminal = events.findLast(e => ['response.completed', 'response.done', 'response.incomplete', 'response.failed', 'message_stop', 'error'].includes(e.type));
+      const reasoning = events.find(e => ['reasoning', 'thinking', 'redacted_thinking'].includes(e.itemType) || e.type?.startsWith('response.reasoning'));
       return {
         schemaVersion: 2, clock: 'monotonic milliseconds since request start',
         elapsedMs: elapsed(), headersAtMs,

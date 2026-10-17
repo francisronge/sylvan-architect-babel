@@ -96,6 +96,7 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 ## Verification and safety
 
 - Use `npm run qualification:codex` for OpenAI qualification generations with the user's Codex OAuth. Never substitute API-key requests or a paid fallback without explicit user authorization.
+- Use `npm run qualification:anthropic` for Anthropic qualification generations. Its API key comes from the macOS Keychain item `Babel Anthropic API`, whose Console organization receives the Max plan's API credits. Never use another key or organization without explicit user authorization.
 - During implementation, run the smallest focused test proving the changed behavior.
 - Keep heavy gates sequential. Offline tests run two files at a time; the browser gate runs specs serially and limits esbuild CPU parallelism to two. Close unneeded visible test browsers.
 - Renderer startup has a PR performance budget. For renderer, layout, worker, or font changes, run `npm run verify:renderer-performance -- --baseline-root /path/to/base-checkout` with installed locked dependencies in both checkouts. A slowdown must be investigated and fixed before sign-off; do not weaken the fixture, timing boundary, or budget to make it pass. Intentional budget changes require explicit user approval.
@@ -235,3 +236,16 @@ public API request route or proof that the backend behaves identically to the
 paid API. No application provider route is changed. The runner works from a
 local or private remote checkout with Node 24 and `npm ci`; it does not provision
 a remote machine or copy a login there.
+
+`npm run qualification:anthropic` sends the request Babel's Anthropic route builds,
+adding only `stream: true`, to the Messages API. It reads the API key from the
+Keychain into memory and never writes it. Each invocation makes one request with
+no retries or model fallbacks; omit `--run` to save the request without a key or
+network access. The default is Claude Opus 5.5 at high effort. Artifacts and review
+match the Codex runner. Its cost receipt estimates the credit charge; the Console
+shows the actual one.
+
+```sh
+npm run qualification:anthropic -- --sentence 'Mia laughed.' --framework xbar \
+  --out /tmp/babel-opus-check --run
+```
