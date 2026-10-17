@@ -14,10 +14,10 @@ export type FacetPlanContext = {
   state: "licensed" | "blocked" | "failed" | undefined;
   nodes: Map<string, SyntaxNode>;
   many: (role: string) => string[];
-  identityIndexFor?: (ids: string[]) => string;
-  dependencyIndexFor: (key: string) => string;
+  identityIndexFor?: (ids: string[], authored?: string) => string;
+  dependencyIndexFor: (key: string, authored?: string) => string;
   dependencyKey: (tag: string, ids: readonly string[]) => string;
-  occurrenceIndexFor: (family: string, ids: string[]) => string;
+  occurrenceIndexFor: (family: string, ids: string[], authored?: string) => string;
   rows: { label: string; value: string; }[];
   nextPhaseIsPrimary: () => boolean;
   diagnostics: PlanDiagnostic[];

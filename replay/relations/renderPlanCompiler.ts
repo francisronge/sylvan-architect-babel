@@ -19,6 +19,7 @@ import {
   structuralLeafCount
 } from './planSyntax.ts';
 import type { RegisteredPlanCompilers } from './registeredPlanContext.ts';
+import { singleValue } from './tier2PlanValues.ts';
 import {
   FULL_ARRAY_OWNED_ROLES,
   PRODUCTION_RENDER_FAMILIES,
@@ -61,6 +62,26 @@ export type CompilePlanOptions = {
   activeLens?: boolean;
 };
 
+const conventionalIndex = (ordinal: number): string => 'ijklmnopqrstuvwxyz'[ordinal] ?? `i${ordinal + 1}`;
+
+// Private-use delimiters for a dependency index that is settled after compilation.
+const PLACEHOLDER_OPEN = '';
+const PLACEHOLDER_CLOSE = '';
+const PLACEHOLDER = /(\d+)/gu;
+
+/** Replaces settled dependency placeholders throughout plan items, in place.
+ * Only strings holding a placeholder are rewritten; shared values are left untouched. */
+const replacePlaceholders = (value: unknown, letters: readonly string[], seen = new WeakSet<object>()): void => {
+  if (!value || typeof value !== 'object' || seen.has(value)) return;
+  seen.add(value);
+  for (const [key, item] of Object.entries(value)) {
+    if (typeof item === 'string') {
+      const settled = item.replace(PLACEHOLDER, (_, ordinal) => letters[Number(ordinal)]);
+      if (settled !== item) (value as Record<string, unknown>)[key] = settled;
+    } else replacePlaceholders(item, letters, seen);
+  }
+};
+
 export const compileRelationRenderPlan = (
   stages: DerivationStage[],
   options: CompilePlanOptions = {}
@@ -93,22 +114,22 @@ export const compileRelationRenderPlan = (
   const items: RelationPlanItem[] = [];
 
   /*
-   * Generated dependency indices. An authored index always wins upstream;
-   * when the model connected two occurrences but supplied no index, Babel
-   * labels that connection with a letter, i, j, k, allocated once per
-   * dependency in order of first appearance and never from a list position.
+   * Dependency indices. A stage where the model authored the dependency's index
+   * shows that index, and the dependency's other stages show the first index
+   * authored for it. A dependency the model never indexed gets the next of
+   * i, j, k... that no authored index uses, in order of first appearance and
+   * never from a list position. Letters are settled after every stage is
+   * compiled, so an index authored in a later stage governs earlier ones too.
    */
-  const dependencyIndexByKey = new Map<string, string>();
-  const dependencyIndexFor = (key: string): string => {
-    if (!dependencyIndexByKey.has(key)) {
-      const ordinal = dependencyIndexByKey.size;
-      const conventionalIndices = 'ijklmnopqrstuvwxyz';
-      dependencyIndexByKey.set(
-        key,
-        ordinal < conventionalIndices.length ? conventionalIndices[ordinal] : `i${ordinal + 1}`
-      );
+  const dependencyPlaceholders = new Map<string, string>();
+  const authoredDependencyIndex = new Map<string, string>();
+  const dependencyIndexFor = (key: string, authored?: string): string => {
+    if (!dependencyPlaceholders.has(key)) {
+      dependencyPlaceholders.set(key, `${PLACEHOLDER_OPEN}${dependencyPlaceholders.size}${PLACEHOLDER_CLOSE}`);
     }
-    return dependencyIndexByKey.get(key)!;
+    if (!authored?.trim()) return dependencyPlaceholders.get(key)!;
+    if (!authoredDependencyIndex.has(key)) authoredDependencyIndex.set(key, authored);
+    return authored;
   };
   let phaseArcOrdinal = 0;
   const nextPhaseIsPrimary = () => phaseArcOrdinal++ === 0;
@@ -259,9 +280,9 @@ export const compileRelationRenderPlan = (
       if (claimDispatch.facets.length > 0) {
         const tier2 = compileTier2RelationOutputs({
           dependencyIndexFor,
-          occurrenceIndexFor: (family, ids) => dependencyIndexFor(stableChainKey(family, nodes, ids)),
+          occurrenceIndexFor: (family, ids, authored) => dependencyIndexFor(stableChainKey(family, nodes, ids), authored),
           nextPhaseIsPrimary,
-          identityIndexFor: ids => dependencyIndexFor(stableChainKey('identity', nodes, ids)),
+          identityIndexFor: (ids, authored) => dependencyIndexFor(stableChainKey('identity', nodes, ids), authored),
           relationRef,
           dispatch: claimDispatch,
           currentForest: stage?.workspaceForest || [],
@@ -638,6 +659,31 @@ export const compileRelationRenderPlan = (
       });
     });
   });
+  const unavailableLetters = new Set([...usedIndices, ...authoredDependencyIndex.values()]
+    .map(index => index.trim().toLowerCase()));
+  let nextDependencyOrdinal = 0;
+  // A dependency also takes an index authored by a different relation about the
+  // same nodes, such as trace binding between the two occurrences of one chain.
+  const nodesOf = (key: string) => (key.startsWith('lineage:') ? key
+    : key.slice(key.indexOf(':') + 1).split(/[|,]/u).sort().join(','));
+  const authoredIndexByNodes = new Map<string, string>();
+  stageDispatches.forEach((dispatches, stageIndex) => dispatches.forEach(({ evidence }) => {
+    const authored = singleValue(evidence, 'index');
+    const ids = [...new Set(Object.values(evidence.currentAnchors).flat())];
+    if (!authored.trim() || ids.length < 2) return;
+    const nodes = nodesOf(stableChainKey('relation', stageNodeMaps[stageIndex], ids));
+    if (!authoredIndexByNodes.has(nodes)) authoredIndexByNodes.set(nodes, authored);
+  }));
+  const dependencyLetters = [...dependencyPlaceholders.keys()].map(key => {
+    let index = authoredDependencyIndex.get(key) ?? authoredIndexByNodes.get(nodesOf(key)) ?? '';
+    while (!index) {
+      const candidate = conventionalIndex(nextDependencyOrdinal++);
+      if (!unavailableLetters.has(candidate)) index = candidate;
+    }
+    return index;
+  });
+  replacePlaceholders(items, dependencyLetters);
+  organizationCompanions.forEach(companions => replacePlaceholders(companions, dependencyLetters));
   items.forEach(item => { if ('index' in item) usedIndices.add(item.index); });
   const argumentIndexByKey = new Map<string, string>();
   let nextArgumentIndex = 0;
@@ -650,8 +696,7 @@ export const compileRelationRenderPlan = (
       const authored = authoredIndicesByIdentity.get(key);
       let index = authored?.size === 1 ? [...authored][0] : '';
       while (!index) {
-        const ordinal = nextArgumentIndex++;
-        const candidate = 'ijklmnopqrstuvwxyz'[ordinal] || `i${ordinal + 1}`;
+        const candidate = conventionalIndex(nextArgumentIndex++);
         if (!usedIndices.has(candidate)) index = candidate;
       }
       usedIndices.add(index);

@@ -4,7 +4,7 @@ import type { FacetPlanCompilers } from './facetPlanContext.ts';
 import { featureFacetPlan } from './featurePlan.ts';
 import { movementFacetPlan } from './movementPlan.ts';
 import { pfFacetPlan } from './pfPlan.ts';
-import { collectForest } from './planSyntax.ts';
+import { collectForest, stableChainKey } from './planSyntax.ts';
 import type { RelationClaimDispatch, Tier2ResolvedFacet } from './relationClaims.ts';
 import type { PlanDiagnostic, PlanRelationRef, RelationPlanItem } from './renderPlan.ts';
 import { structuralFacetPlan } from './structuralPlan.ts';
@@ -29,11 +29,12 @@ type CompileTier2Input = {
   dispatch: RelationClaimDispatch;
   currentForest: readonly SyntaxNode[];
   priorForest?: readonly SyntaxNode[];
-  /** Shared generated-index allocator: one letter per dependency, never a list position. */
-  dependencyIndexFor?: (key: string) => string;
-  occurrenceIndexFor?: (family: string, ids: string[]) => string;
+  /** Shared dependency-index allocator: one index per dependency, never a list position.
+   * An authored index is shown where authored and governs the dependency's other stages. */
+  dependencyIndexFor?: (key: string, authored?: string) => string;
+  occurrenceIndexFor?: (family: string, ids: string[], authored?: string) => string;
   nextPhaseIsPrimary?: () => boolean;
-  identityIndexFor?: (ids: string[]) => string;
+  identityIndexFor?: (ids: string[], authored?: string) => string;
 };
 
 export type CompileTier2Result = {
@@ -46,13 +47,14 @@ export const compileTier2RelationOutputs = ({
   dispatch,
   currentForest,
   priorForest,
-  dependencyIndexFor = (key) => key,
-  occurrenceIndexFor = (family, ids) => dependencyIndexFor(`${family}:${[...ids].sort().join('|')}`),
+  dependencyIndexFor = (key, authored) => (authored?.trim() ? authored : key),
+  occurrenceIndexFor = (family, ids, authored) => dependencyIndexFor(`${family}:${[...ids].sort().join('|')}`, authored),
   nextPhaseIsPrimary = () => true,
   identityIndexFor
 }: CompileTier2Input): CompileTier2Result => {
-  const dependencyKey = (tag: string, ids: readonly string[]) => `${tag}:${[...ids].sort().join('|')}`;
   const nodes = collectForest(currentForest);
+  // The same chain-aware key as exact-name drawings, so both share one index per dependency.
+  const dependencyKey = (tag: string, ids: readonly string[]) => stableChainKey(tag, nodes, [...ids]);
   const priorNodeIds = new Set(collectForest(priorForest || []).keys());
   const diagnostics: PlanDiagnostic[] = dispatch.diagnostics.map((diagnostic) => ({
     stageIndex: relationRef.stageIndex,

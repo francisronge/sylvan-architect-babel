@@ -53,7 +53,7 @@ export const movementPlan = {
         scopeMemberNodeIds: collectSubtreeIds(nodes.get(scopeDomain)),
         subtreeDerived: [{ field: 'scopeMemberNodeIds', rootNodeId: scopeDomain, mode: 'all' }]
       } : {}),
-      index: dependencyIndexFor(stableChainKey('operator-variable', nodes, [operator, variable]))
+      index: dependencyIndexFor(stableChainKey('operator-variable', nodes, [operator, variable]), singleValue(context.claim.claimDispatch.evidence, 'index'))
     });
     return;
   },
@@ -245,8 +245,8 @@ export const movementPlan = {
       ...base,
       kind: 'coindex',
       nodeIds: occurrenceIds,
-      index: indexFields.length ? [...authoredIndices][0]
-        : dependencyIndexFor(stableChainKey('identity', nodes, occurrenceIds))
+      index: dependencyIndexFor(stableChainKey('identity', nodes, occurrenceIds),
+        indexFields.length ? [...authoredIndices][0] : undefined)
     });
     return;
   },
@@ -263,7 +263,7 @@ export const movementPlan = {
       ...base,
       kind: 'coindex',
       nodeIds,
-      index: dependencyIndexFor(stableChainKey('coindex', nodes, nodeIds))
+      index: dependencyIndexFor(stableChainKey('coindex', nodes, nodeIds), singleValue(context.claim.claimDispatch.evidence, 'index'))
     });
     return;
   },
@@ -277,7 +277,7 @@ export const movementPlan = {
     if (!requireResolved('controller', controller)) return;
     if (!requireResolved('controllee', controllee)) return;
     if (!requireResolved('domain', domain)) return;
-    const index = dependencyIndexFor(stableChainKey('control', nodes, [controller, controllee]));
+    const index = dependencyIndexFor(stableChainKey('control', nodes, [controller, controllee]), singleValue(context.claim.claimDispatch.evidence, 'index'));
     items.push({
       ...base,
       kind: 'domain-mark',
@@ -489,7 +489,7 @@ export const movementPlan = {
       pronouncedNodeId: pronounced.nodeId,
       lfNodeId: lf.nodeId,
       ...(scopeDomain ? { scopeDomainNodeId: scopeDomain } : {}),
-      index: dependencyIndexFor(stableChainKey('qr', nodes, [pronounced.nodeId, lf.nodeId]))
+      index: dependencyIndexFor(stableChainKey('qr', nodes, [pronounced.nodeId, lf.nodeId]), singleValue(context.claim.claimDispatch.evidence, 'index'))
     });
     return;
   },
@@ -585,8 +585,8 @@ export const movementFacetPlan = {
       ...base(facet, ['Coindex', 'Forest light'], 'identity.occurrences'),
       kind: 'coindex',
       nodeIds: many('occurrences'),
-      index: singleValue(evidence, 'index', identityIndexFor?.(many('occurrences'))
-        ?? dependencyIndexFor(dependencyKey('identity', many('occurrences'))))
+      index: identityIndexFor?.(many('occurrences'), singleValue(evidence, 'index'))
+        ?? dependencyIndexFor(dependencyKey('identity', many('occurrences')), singleValue(evidence, 'index'))
     });
     return;
   },
@@ -596,7 +596,7 @@ export const movementFacetPlan = {
       ...base(facet, ['Coindex'], 'coreference.coindex'),
       kind: 'coindex',
       nodeIds: many('coreference.participants'),
-      index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('coreference', many('coreference.participants'))))
+      index: dependencyIndexFor(dependencyKey('coreference', many('coreference.participants')), singleValue(evidence, 'index'))
     });
     return;
   },
@@ -633,7 +633,7 @@ export const movementFacetPlan = {
       ...base(facet, ['Coindex'], 'control.dependency', 'indices'),
       kind: 'coindex',
       nodeIds: participants,
-      index: singleValue(evidence, 'index') || occurrenceIndexFor('control', participants)
+      index: occurrenceIndexFor('control', participants, singleValue(evidence, 'index'))
     });
     return;
   },
@@ -667,7 +667,7 @@ export const movementFacetPlan = {
       pronouncedNodeId: one('scope.source'),
       lfNodeId: one('scope.landing'),
       ...(one('scope.domain') ? { scopeDomainNodeId: one('scope.domain') } : {}),
-      index: singleValue(evidence, 'index') || occurrenceIndexFor('qr', [one('scope.source'), one('scope.landing')])
+      index: occurrenceIndexFor('qr', [one('scope.source'), one('scope.landing')], singleValue(evidence, 'index'))
     });
     return;
   },
@@ -684,7 +684,7 @@ export const movementFacetPlan = {
         scopeMemberNodeIds: collectSubtreeIds(nodes.get(domain)),
         subtreeDerived: [{ field: 'scopeMemberNodeIds' as const, rootNodeId: domain, mode: 'all' as const }]
       } : {}),
-      index: singleValue(evidence, 'index', dependencyIndexFor(dependencyKey('operator-variable', [one('operator'), one('variable')])))
+      index: dependencyIndexFor(dependencyKey('operator-variable', [one('operator'), one('variable')]), singleValue(evidence, 'index'))
     });
     return;
   }

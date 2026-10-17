@@ -1529,3 +1529,48 @@ test('an authored Case outcome draws the same way whether the relation name is e
   }
   assert.equal(caseArrow('Case assignment', { case: 'DAT', outcome: 'failed' }).claimTier, 1);
 });
+
+test('a generated index never repeats a letter the model authored for another dependency', () => {
+  const tree = node('xp', 'XP', ['a', 'b', 'c', 'd'].map(id => node(id, 'NP', [leaf(`${id}1`, 'N', id)])));
+  const indices = (relations) => compileRelationRenderPlan([stage(relations, [tree])]).frames
+    .flatMap(frame => frame.items)
+    .filter(item => item.kind === 'coindex')
+    .map(item => [item.nodeIds.join('+'), item.index]);
+  for (const relation of ['Occurrence grouping', 'Coindex']) for (const authored of ['i', 'j']) {
+    const result = new Map(indices([
+      { relation, anchors: { occurrences: ['a', 'b'] }, values: { index: authored } },
+      { relation, anchors: { occurrences: ['c', 'd'] } }
+    ]));
+    assert.equal(result.get('a+b'), authored, `${relation}: the authored index wins`);
+    assert.ok(result.get('c+d'), `${relation}: the unindexed dependency still receives an index`);
+    assert.notEqual(result.get('c+d'), authored, `${relation}: the generated index stays distinct`);
+  }
+});
+
+test('an index authored in a later stage labels the same dependency in earlier stages', () => {
+  const tree = node('xp', 'XP', ['a', 'b', 'c', 'd'].map(id => node(id, 'NP', [leaf(`${id}1`, 'N', id)])));
+  for (const relation of ['Occurrence grouping', 'Coindex']) {
+    const unindexed = [{ relation, anchors: { occurrences: ['a', 'b'] } }, { relation, anchors: { occurrences: ['c', 'd'] } }];
+    const plan = compileRelationRenderPlan([stage(unindexed, [tree]),
+      stage([unindexed[0], { ...unindexed[1], values: { index: 'k' } }], [tree])]);
+    const indices = plan.frames.map(frame => Object.fromEntries(frame.items
+      .filter(item => item.kind === 'coindex')
+      .map(item => [item.nodeIds.join('+'), item.index])));
+    assert.deepEqual(indices, [{ 'a+b': 'i', 'c+d': 'k' }, { 'a+b': 'i', 'c+d': 'k' }], relation);
+  }
+});
+
+test('a drawing takes the index another relation authored for the same chain', () => {
+  const tree = node('cp', 'CP', [leaf('op', 'DP', 'which', { lineageId: 'chain' }),
+    node('tp', 'TP', [leaf('v', 'V', 'read'), leaf('t', 'DP', '', { lineageId: 'chain', silent: true })])]);
+  for (const order of [[0, 1], [1, 0]]) {
+    const relations = [
+      { relation: 'operator binding and trace licensing', anchors: { binder: 'op', boundTrace: 't' } },
+      { relation: 'relative-operator movement chain', anchors: { operator: 'op', trace: 't' }, values: { index: 'k' } }
+    ];
+    const indexed = compileRelationRenderPlan([stage(order.map(i => relations[i]), [tree])]).frames[0].items
+      .filter(item => item.index !== undefined);
+    assert.ok(indexed.length >= 2, 'both relations draw an indexed dependency');
+    assert.deepEqual([...new Set(indexed.map(item => item.index))], ['k'], `order ${order}`);
+  }
+});
