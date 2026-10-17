@@ -377,7 +377,20 @@ export const finalizeStageReplay = (
       const rebuilt = rebuildStructuralStepForActiveRelations({
         ...step, replayVisibleNodeIds: availableStep.replayVisibleNodeIds
       }, activeRelationIndexes);
-      stagePlaybackSteps.push(withPendingStructureHidden(rebuilt));
+      // Carried syntax that no longer exists, such as a dissolved constituent
+      // after its regrouping, has no node in the rebuilt canvas to show.
+      const canvasIds = new Set<string>();
+      const indexCanvas = (node?: SyntaxNode | null) => {
+        if (!node) return;
+        canvasIds.add(String(node.id || ''));
+        (node.aliasIds || []).forEach(alias => canvasIds.add(String(alias)));
+        (node.children || []).forEach(indexCanvas);
+      };
+      indexCanvas(rebuilt.replayCanvasData);
+      stagePlaybackSteps.push(withPendingStructureHidden({
+        ...rebuilt,
+        replayVisibleNodeIds: (rebuilt.replayVisibleNodeIds || []).filter(id => canvasIds.has(String(id)))
+      }));
       emittedStructuralSteps.add(stepIndex);
       return [];
     };

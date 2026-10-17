@@ -8,7 +8,9 @@ import { categoryLabel } from './categoryLabel.ts';
 import {
   constructionAttachmentUpdates,
   hasConstructionWrapperInsertions,
-  preserveConstructionAttachments
+  preserveConstructionAttachments,
+  regroupingParents,
+  restoreRegroupedConstituents
 } from './constructionAttachments.ts';
 import { applyVizIds, createReplayIdentityContext, getNodeId, type ReplayIdentityContext } from './displayIdentity.ts';
 import { buildResolvedLinkTraceIndexMap, resolveTraceIndexFromNodeContext } from './movementIndices.ts';
@@ -279,6 +281,9 @@ export const buildStructuralDerivationPlaybackSteps = ({
   };
   const sequence = buildBottomUpSequence(hierarchy, visibleIds)
     .filter((node) => !isSyntheticWorkspaceRootNode(node));
+  // A regrouping parent keeps its preceding children until its first new
+  // child is built; that construction step completes the regrouping.
+  const pendingRegroupingIds = frameIndex > 0 ? regroupingParents(previousConstructionForest, forest) : new Set<string>();
   const nodesToReveal = sequence.filter((node) =>
     frameIndex === 0 || !continuityVisibleNodeIds.has(getNodeId(node)) || pendingAttachmentNodeIds.has(getNodeId(node))
   );
@@ -342,6 +347,9 @@ export const buildStructuralDerivationPlaybackSteps = ({
     const nodeId = getNodeId(node);
     cumulativeVisibleNodeIds.add(nodeId);
     const updatesAttachment = pendingAttachmentNodeIds.delete(nodeId);
+    const parentId = String(node.parent?.data?.id || '');
+    if (pendingRegroupingIds.has(parentId) && !collectForestNodesById(previousConstructionForest).has(nodeId))
+      pendingRegroupingIds.delete(parentId);
     const surface = resolveLeafSurface(node);
     const layoutVisibleNodeIds = new Set(cumulativeVisibleNodeIds);
     const expandedLayoutRoots = new Set<HierNode>();
@@ -363,9 +371,10 @@ export const buildStructuralDerivationPlaybackSteps = ({
       ? 'LexicalSelect'
       : (childNodes.length === 1 ? 'Project' : 'ExternalMerge');
     const snapshotVisibleNodeIds = new Set(cumulativeVisibleNodeIds);
-    const constructionForest = hasAttachmentContinuity
+    const attachedForest = hasAttachmentContinuity
       ? preserveConstructionAttachments(forest, previousConstructionForest, pendingAttachmentNodeIds, snapshotVisibleNodeIds)
       : forest;
+    const constructionForest = restoreRegroupedConstituents(attachedForest, previousConstructionForest, pendingRegroupingIds);
     const activeLayoutScaffold = layoutScaffoldForest
       && forestCanUseCurrentMaterialLayoutScaffold(constructionForest, layoutScaffoldForest)
       ? layoutScaffoldForest

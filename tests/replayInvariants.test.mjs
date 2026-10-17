@@ -4,7 +4,8 @@ import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
   checkInputUnchanged, checkMarksAtOwningMoment, checkNoEarlyReveal, checkNoVisibleScaffolding,
-  checkParentAfterChildren, checkRelationMoments, checkStableConstruction, checkStageCompletion, frameStructure
+  checkParentAfterChildren, checkRelationMoments, checkStableConstruction, checkStageCompletion, checkVisibleInCanvas,
+  frameStructure
 } from './helpers/replayInvariants.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 
@@ -140,6 +141,12 @@ test('control: stable-construction reports retained syntax that disappears or mo
     && violation.detail.startsWith(id) && /moves from|is detached from/.test(violation.detail)));
 });
 
+test('control: visible-in-canvas reports a visible id with no canvas node', () => {
+  assert.deepEqual(checkVisibleInCanvas(replay), []);
+  const stale = breakReplay(copy => { copy[3].replayVisibleNodeIds = [...copy[3].replayVisibleNodeIds, 'not-a-canvas-node']; });
+  assert(reported(checkVisibleInCanvas(stale), 'visible-in-canvas', 4, 'not-a-canvas-node is visible but absent'));
+});
+
 test('control: marks-at-owning-moment reports a mark before its moment and a mark whose moment never plays', () => {
   assert.deepEqual(checkMarksAtOwningMoment(replay), []);
   const momentOf = (stage, relation) => steps.findIndex(step => step.replayKind === 'relation'
@@ -167,9 +174,6 @@ test('control: marks-at-owning-moment reports a mark before its moment and a mar
 
 const FIRST_STAGE_REWRITE = 'Defect: a first-stage movement claim with no preceding stage to prove its source becomes a neutral rewrite; '
   + 'its moment shows only the anchored root of the rewritten phrase, and the rest of that phrase appears later with an ordinary merge.';
-const DISSOLVED_REBUILD = 'Defect: an authored stage dissolves an existing constituent and rebuilds its material under a new node '
-  + 'with no claim owning the change; Replay removes the old node and detaches its material at the stage\'s first step, '
-  + 'not at the construction step that replaces it.';
 const ORDER_BEFORE_CONTEXT = 'Defect (diagnosed RELATION_TIMING_CONFLICT): wh-movement is authored before the auxiliary movement '
   + 'that builds C′; Replay keeps authored order and shows CP with its landing but without C′.';
 const CONTEXT_MERGE_AT_MOMENT = 'Defect (diagnosed RELATION_TIMING_CONFLICT): continued V-to-I is authored before the I-to-C movement '
@@ -197,13 +201,12 @@ const KNOWN_DEFECTS = [
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 12, 'rVAtT rvAtTLeaf rVAtT::__leaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 28, 'mVAtT mvAtTLeaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 29, 'mVAtT mvAtTLeaf mVAtT::__leaf'],
-  [DISSOLVED_REBUILD, 'replay-regressions/dissolved-constituent-rebuild.json#', 'stable-construction', 33, 'persuasionVCore persuaded embeddedTP'],
   [ORDER_BEFORE_CONTEXT, 'normalized/what-did-mia-see.xbar.json#/analyses/0', 'parent-after-children', 15, 'cbar_question'],
   [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar']
 ];
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments',
-  'no-early-reveal', 'parent-after-children', 'stable-construction', 'marks-at-owning-moment'];
+  'no-early-reveal', 'parent-after-children', 'stable-construction', 'visible-in-canvas', 'marks-at-owning-moment'];
 let sweep;
 before(() => {
   sweep = corpus.records.map(({ id, record }) => {
@@ -213,7 +216,7 @@ before(() => {
       return { id, frames: prepared.playbackSteps.length, violations: [
         ...checkInputUnchanged(snapshot, authored), ...checkNoVisibleScaffolding(prepared), ...checkStageCompletion(prepared, authored),
         ...checkRelationMoments(prepared, authored), ...checkNoEarlyReveal(prepared), ...checkParentAfterChildren(prepared),
-        ...checkStableConstruction(prepared),
+        ...checkStableConstruction(prepared), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared)
       ] };
     } catch (error) { return { id, error }; }

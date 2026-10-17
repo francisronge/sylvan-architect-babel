@@ -181,6 +181,21 @@ export function checkRelationMoments(replay, record) {
   return out;
 }
 
+/** Every visible id names a node in that step's canvas (by id or alias). A
+ * stale id cannot be drawn, and capture rejects the frame. */
+export function checkVisibleInCanvas(replay) {
+  const out = [];
+  replay.playbackSteps.forEach((step, index) => {
+    const ids = new Set();
+    const walk = node => { if (!node) return; ids.add(String(node.id ?? '')); (node.aliasIds ?? []).forEach(alias => ids.add(String(alias))); (node.children ?? []).forEach(walk); };
+    walk(step.replayCanvasData);
+    for (const id of step.replayVisibleNodeIds ?? []) {
+      if (!ids.has(String(id))) out.push(violation('visible-in-canvas', index + 1, `${id} is visible but absent from the canvas`));
+    }
+  });
+  return out;
+}
+
 /** A construction micro-step changes existing syntax only through its own
  * target. A node displayed at the preceding step stays displayed under the same
  * parent unless the step's target now holds it (a merge or projection), or the
@@ -204,8 +219,13 @@ export function checkStableConstruction(replay) {
       }
       const after = current.parent.get(id);
       if (after === before) continue;
+      // When the new target replaces the old parent, that parent's material
+      // may regroup under the target or the target's parent.
+      const parentReplaced = newTarget && before != null && !current.displayed.has(before);
       if (after == null) out.push(violation('stable-construction', index + 1, `${id} is detached from ${before} ${where}`));
-      else if (!holds(after)) out.push(violation('stable-construction', index + 1, `${id} moves from ${before} to ${after} ${where}`));
+      else if (!holds(after) && !(parentReplaced && after === current.parent.get(target))) {
+        out.push(violation('stable-construction', index + 1, `${id} moves from ${before} to ${after} ${where}`));
+      }
     }
   });
   return out;
