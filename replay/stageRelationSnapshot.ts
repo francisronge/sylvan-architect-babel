@@ -248,7 +248,11 @@ export const createStageRelationSnapshots = (
       ownership.copyPairs?.forEach(pair => retainPendingPronunciation(pair.targetNodeId, pair.priorSourceNodeId, relationIndex));
     });
     if (baseStep?.replayPendingAttachmentNodeIds) {
-      snapshotWorkspaceRoots = preserveConstructionAttachments(snapshotWorkspaceRoots, previousFrameWorkspaceRoots, new Set(baseStep.replayPendingAttachmentNodeIds), new Set([...(baseStep.replayVisibleNodeIds || []), ...extraVisibleNodeIds]));
+      // An active relation that owns a structural change makes its new nodes
+      // current at this moment, so their edges cannot wait for a later step.
+      const activeTransitionNodeIds = Array.from(fallbackTransitionOwnership)
+        .flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex) ? [...ownership.currentNodeIds] : []);
+      snapshotWorkspaceRoots = preserveConstructionAttachments(snapshotWorkspaceRoots, previousFrameWorkspaceRoots, new Set(baseStep.replayPendingAttachmentNodeIds), new Set([...(baseStep.replayVisibleNodeIds || []), ...extraVisibleNodeIds, ...activeTransitionNodeIds]));
     }
     const activeRelationLinks = buildActiveRelationLinks(activeRelationIndexes);
     const baseVisibleNodeIds = Array.isArray(baseStep?.replayVisibleNodeIds)

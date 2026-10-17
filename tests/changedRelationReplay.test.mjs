@@ -144,3 +144,36 @@ test('explicit participant transfers remain valid and mixed Case/feature claims 
   const mixed = compileRelationRenderPlan([first, next]);
   assert.equal(plaques(mixed, 1, null).length, 2);
 });
+
+test('a relation that owns an adjunction completes it at its own moment, and later relations leave syntax unchanged', () => {
+  const word = (id, label, surface, tokenIndex) => ({ id, label, word: surface, tokenIndex });
+  const branch = (id, label, children) => ({ id, label, children });
+  const clause = () => branch('cp', 'CP', [word('c', 'C', 'that', 2), word('v', 'V', 'stand', 3)]);
+  const stages = [
+    { statement: 'Select the pieces.', stageRecord: 'Three separate workspaces.', relations: [],
+      workspaceForest: [word('q', 'Q', 'two', 0), branch('np', 'NP', [branch('nbar', "N'", [word('n', 'N', 'houses', 1)])]), clause()] },
+    { statement: 'Adjoin the relative inside NP, then quantify it.', stageRecord: 'The relative adjoins to the noun, then the numeral quantifies it.',
+      relations: [
+        { relation: 'relative attachment', anchors: { relativeClause: 'cp', attachmentSite: 'nbar2' } },
+        { relation: 'material modification', anchors: { modifier: 'cp', modifiedNominal: 'nbar2' }, priorAnchors: { nominal: 'np' } },
+        { relation: 'numeral quantification', anchors: { numeral: 'q', quantityPhrase: 'qp' } }
+      ],
+      workspaceForest: [branch('qp', 'QP', [word('q', 'Q', 'two', 0),
+        branch('np', 'NP', [branch('nbar2', "N'", [branch('nbar', "N'", [word('n', 'N', 'houses', 1)]), clause()])])])] }
+  ];
+  const steps = prepareReplay({ sentence: 'two houses that stand', inputTokens: ['two', 'houses', 'that', 'stand'],
+    derivationStages: stages, includePlayback: true }).playbackSteps;
+  const parents = canvas => {
+    const map = new Map();
+    const visit = (node, parent) => { map.set(node.id, parent); node.children?.forEach(child => visit(child, node.id)); };
+    (canvas.replayOrigin?.kind === 'workspace' ? canvas.children : [canvas]).forEach(root => visit(root, null));
+    return map;
+  };
+  const at = operation => steps.findIndex(step => step.replayKind === 'relation' && step.operation === operation);
+  const owner = parents(steps[at('material modification')].replayCanvasData);
+  assert.equal(owner.get('nbar2'), 'np', 'the new N′ attaches inside NP at its owning relation');
+  assert.equal(owner.get('nbar'), 'nbar2', 'the earlier N′ moves under the new N′ at the same moment');
+  const later = at('numeral quantification');
+  assert.deepEqual(parents(steps[later].replayCanvasData), parents(steps[later - 1].replayCanvasData),
+    'a relation that owns no structure leaves every branch unchanged');
+});
