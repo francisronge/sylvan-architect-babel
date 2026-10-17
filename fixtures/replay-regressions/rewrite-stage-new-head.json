@@ -1,0 +1,1492 @@
+{
+  "description": "Stage 4 rewrites the second conjunct with a claim Replay does not recognize as movement, and also builds an ordinary new head (C[E]) and its C′ around existing material. The new head must be selected and merged before the rewrite moment, not appear at the stage record.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, 17 October 2026 (rare-relations batch, 15-dutch-stripping, analysis 1).",
+  "sentence": "Jan heeft een boek gekocht en Marie ook.",
+  "framework": "xbar",
+  "inputTokens": [
+    "Jan",
+    "heeft",
+    "een",
+    "boek",
+    "gekocht",
+    "en",
+    "Marie",
+    "ook"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "agent": "s1Subject",
+            "predicate": "s1V",
+            "theme": "s1Object"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "roles": [
+              "Agent",
+              "Theme"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "agent": "s2Subject",
+            "predicate": "s2V",
+            "theme": "s2Object"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "roles": [
+              "Agent",
+              "Theme"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "accusativeLicenser": "s1V",
+            "accusativeNominal": "s1Object",
+            "nominativeLicenser": "s1I",
+            "nominativeNominal": "s1Subject"
+          },
+          "relation": "Case assignment",
+          "values": {
+            "objectCase": "accusative",
+            "subjectCase": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "accusativeLicenser": "s2V",
+            "accusativeNominal": "s2Object",
+            "nominativeLicenser": "s2I",
+            "nominativeNominal": "s2Subject"
+          },
+          "relation": "Case assignment",
+          "values": {
+            "objectCase": "accusative",
+            "subjectCase": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "auxiliaries": [
+              "s1I",
+              "s2I"
+            ],
+            "selectedPredicates": [
+              "s1VP",
+              "s2VP"
+            ]
+          },
+          "relation": "perfect auxiliary selection",
+          "values": {
+            "complementForm": "past participial VP",
+            "interpretation": "perfect"
+          }
+        }
+      ],
+      "stageRecord": "The first clause means that Jan has bought a book. The second reconstructs the same predicate with Marie as its subject. In this classical GB implementation, external arguments originate in Spec-IP; Dutch VP and I-bar are head-final. Each occurrence of gekocht assigns its external Agent role to the corresponding subject and its Theme role to its object. Finite heeft licenses nominative Case on the subject, and gekocht assigns accusative Case to the object. Each auxiliary selects a participial VP and contributes perfect interpretation. The second clause's repeated predicate is represented explicitly but has not yet received a surface realization or undergone deletion. Its indefinite need not denote the same book as the first clause's indefinite. The conjunction and additive particle are separate lexical objects at this stage.",
+      "statement": "Construct the two underlying clauses for the subject-remnant reading.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "s1Jan",
+                      "label": "N",
+                      "tokenIndex": 0,
+                      "word": "Jan"
+                    }
+                  ],
+                  "id": "s1SubjectNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "s1Subject",
+              "label": "NP",
+              "lineageId": "sJan"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "s1Det",
+                              "label": "Det",
+                              "tokenIndex": 2,
+                              "word": "een"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "s1Book",
+                                  "label": "N",
+                                  "tokenIndex": 3,
+                                  "word": "boek"
+                                }
+                              ],
+                              "id": "s1ObjectNbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "s1Object",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [],
+                          "id": "s1V",
+                          "label": "V",
+                          "tokenIndex": 4,
+                          "word": "gekocht"
+                        }
+                      ],
+                      "id": "s1Vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "s1VP",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "s1I",
+                  "label": "I",
+                  "lineageId": "sAuxiliary1",
+                  "tokenIndex": 1,
+                  "word": "heeft"
+                }
+              ],
+              "id": "s1Ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "s1IP",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "s2Marie",
+                      "label": "N",
+                      "tokenIndex": 6,
+                      "word": "Marie"
+                    }
+                  ],
+                  "id": "s2SubjectNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "s2Subject",
+              "label": "NP",
+              "lineageId": "sMarie"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "s2Det",
+                              "label": "Det",
+                              "word": "een"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "s2Book",
+                                  "label": "N",
+                                  "word": "boek"
+                                }
+                              ],
+                              "id": "s2ObjectNbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "s2Object",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [],
+                          "id": "s2V",
+                          "label": "V",
+                          "word": "gekocht"
+                        }
+                      ],
+                      "id": "s2Vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "s2VP",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "s2I",
+                  "label": "I",
+                  "lineageId": "sAuxiliary2",
+                  "word": "heeft"
+                }
+              ],
+              "id": "s2Ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "s2IP",
+          "label": "IP"
+        },
+        {
+          "children": [],
+          "id": "sConjunction",
+          "label": "Coord",
+          "tokenIndex": 5,
+          "word": "en"
+        },
+        {
+          "children": [],
+          "id": "sParticle",
+          "label": "Part",
+          "tokenIndex": 7,
+          "word": "ook"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "raisedHead": "s1C",
+            "sourceTrace": "s1I"
+          },
+          "priorAnchors": {
+            "sourceHead": "s1I"
+          },
+          "relation": "finite head movement",
+          "values": {
+            "motivation": "Dutch finite verb-second",
+            "operation": "I-to-C"
+          }
+        },
+        {
+          "anchors": {
+            "raisedHead": "s2C",
+            "sourceTrace": "s2I"
+          },
+          "priorAnchors": {
+            "sourceHead": "s2I"
+          },
+          "relation": "finite head movement",
+          "values": {
+            "motivation": "reconstructed finite clause",
+            "operation": "I-to-C"
+          }
+        }
+      ],
+      "stageRecord": "A finite CP is projected over each IP, and heeft moves from I to C in each clause. This establishes the verbal component of Dutch verb-second order before either preverbal position is filled. Each vacated I position is a silent head trace linked to its raised auxiliary; the Case and agreement properties established through I remain available through that head chain. The second auxiliary is reconstructed syntax, not an additional input token.",
+      "statement": "Raise both finite auxiliaries into the finite C positions.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "s1C",
+                  "label": "C",
+                  "lineageId": "sAuxiliary1",
+                  "tokenIndex": 1,
+                  "word": "heeft"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "s1Jan",
+                              "label": "N",
+                              "tokenIndex": 0,
+                              "word": "Jan"
+                            }
+                          ],
+                          "id": "s1SubjectNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "s1Subject",
+                      "label": "NP",
+                      "lineageId": "sJan"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "s1Det",
+                                      "label": "Det",
+                                      "tokenIndex": 2,
+                                      "word": "een"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "s1Book",
+                                          "label": "N",
+                                          "tokenIndex": 3,
+                                          "word": "boek"
+                                        }
+                                      ],
+                                      "id": "s1ObjectNbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "s1Object",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "s1V",
+                                  "label": "V",
+                                  "tokenIndex": 4,
+                                  "word": "gekocht"
+                                }
+                              ],
+                              "id": "s1Vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "s1VP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "s1I",
+                          "label": "t_I",
+                          "lineageId": "sAuxiliary1",
+                          "silent": true
+                        }
+                      ],
+                      "id": "s1Ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "s1IP",
+                  "label": "IP"
+                }
+              ],
+              "id": "s1Cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "s1CP",
+          "label": "CP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "s2C",
+                  "label": "C",
+                  "lineageId": "sAuxiliary2",
+                  "word": "heeft"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "s2Marie",
+                              "label": "N",
+                              "tokenIndex": 6,
+                              "word": "Marie"
+                            }
+                          ],
+                          "id": "s2SubjectNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "s2Subject",
+                      "label": "NP",
+                      "lineageId": "sMarie"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "s2Det",
+                                      "label": "Det",
+                                      "word": "een"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "s2Book",
+                                          "label": "N",
+                                          "word": "boek"
+                                        }
+                                      ],
+                                      "id": "s2ObjectNbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "s2Object",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "s2V",
+                                  "label": "V",
+                                  "word": "gekocht"
+                                }
+                              ],
+                              "id": "s2Vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "s2VP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "s2I",
+                          "label": "t_I",
+                          "lineageId": "sAuxiliary2",
+                          "silent": true
+                        }
+                      ],
+                      "id": "s2Ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "s2IP",
+                  "label": "IP"
+                }
+              ],
+              "id": "s2Cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "s2CP",
+          "label": "CP"
+        },
+        {
+          "children": [],
+          "id": "sConjunction",
+          "label": "Coord",
+          "tokenIndex": 5,
+          "word": "en"
+        },
+        {
+          "children": [],
+          "id": "sParticle",
+          "label": "Part",
+          "tokenIndex": 7,
+          "word": "ook"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "antecedent": "s1Topic",
+            "subjectTrace": "s1Subject"
+          },
+          "priorAnchors": {
+            "sourceNominal": "s1Subject"
+          },
+          "relation": "subject topicalization",
+          "values": {
+            "chainType": "A-bar",
+            "landingSite": "Spec-CP",
+            "traceLicensing": "local antecedent government"
+          }
+        },
+        {
+          "anchors": {
+            "antecedent": "s2Edge",
+            "subjectTrace": "s2Subject"
+          },
+          "priorAnchors": {
+            "sourceNominal": "s2Subject"
+          },
+          "relation": "subject remnant evacuation",
+          "values": {
+            "chainType": "A-bar",
+            "landingSite": "finite Spec-CP",
+            "traceLicensing": "local antecedent government"
+          }
+        }
+      ],
+      "stageRecord": "Jan moves from the first Spec-IP to Spec-CP, producing Jan heeft followed by the head-final predicate. Marie independently moves from the second Spec-IP to its finite Spec-CP. Her movement is the first step of remnant evacuation, not deletion. Both are A-bar chains whose lower subject positions retain the external theta roles and nominative Case established earlier. The Spec-CP occurrences locally antecedent-govern their subject traces. The nominal lexical subtrees move with the pronounced occurrences; the source positions contain traces rather than additional pronounced names.",
+      "statement": "Front Jan and move the second subject through the finite CP edge.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "s1Jan",
+                      "label": "N",
+                      "tokenIndex": 0,
+                      "word": "Jan"
+                    }
+                  ],
+                  "id": "s1SubjectNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "s1Topic",
+              "label": "NP",
+              "lineageId": "sJan"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "s1C",
+                  "label": "C",
+                  "lineageId": "sAuxiliary1",
+                  "tokenIndex": 1,
+                  "word": "heeft"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "s1SubjectTrace",
+                          "label": "t_NP",
+                          "silent": true
+                        }
+                      ],
+                      "id": "s1Subject",
+                      "label": "NP",
+                      "lineageId": "sJan",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "s1Det",
+                                      "label": "Det",
+                                      "tokenIndex": 2,
+                                      "word": "een"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "s1Book",
+                                          "label": "N",
+                                          "tokenIndex": 3,
+                                          "word": "boek"
+                                        }
+                                      ],
+                                      "id": "s1ObjectNbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "s1Object",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "s1V",
+                                  "label": "V",
+                                  "tokenIndex": 4,
+                                  "word": "gekocht"
+                                }
+                              ],
+                              "id": "s1Vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "s1VP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "s1I",
+                          "label": "t_I",
+                          "lineageId": "sAuxiliary1",
+                          "silent": true
+                        }
+                      ],
+                      "id": "s1Ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "s1IP",
+                  "label": "IP"
+                }
+              ],
+              "id": "s1Cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "s1CP",
+          "label": "CP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "s2Marie",
+                      "label": "N",
+                      "tokenIndex": 6,
+                      "word": "Marie"
+                    }
+                  ],
+                  "id": "s2SubjectNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "s2Edge",
+              "label": "NP",
+              "lineageId": "sMarie"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "s2C",
+                  "label": "C",
+                  "lineageId": "sAuxiliary2",
+                  "word": "heeft"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "s2SubjectTrace",
+                          "label": "t_NP",
+                          "silent": true
+                        }
+                      ],
+                      "id": "s2Subject",
+                      "label": "NP",
+                      "lineageId": "sMarie",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "s2Det",
+                                      "label": "Det",
+                                      "word": "een"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "s2Book",
+                                          "label": "N",
+                                          "word": "boek"
+                                        }
+                                      ],
+                                      "id": "s2ObjectNbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "s2Object",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "s2V",
+                                  "label": "V",
+                                  "word": "gekocht"
+                                }
+                              ],
+                              "id": "s2Vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "s2VP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "s2I",
+                          "label": "t_I",
+                          "lineageId": "sAuxiliary2",
+                          "silent": true
+                        }
+                      ],
+                      "id": "s2Ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "s2IP",
+                  "label": "IP"
+                }
+              ],
+              "id": "s2Cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "s2CP",
+          "label": "CP"
+        },
+        {
+          "children": [],
+          "id": "sConjunction",
+          "label": "Coord",
+          "tokenIndex": 5,
+          "word": "en"
+        },
+        {
+          "children": [],
+          "id": "sParticle",
+          "label": "Part",
+          "tokenIndex": 7,
+          "word": "ook"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "focusedRemnant": "s2Focus",
+            "intermediateTrace": "s2Edge",
+            "thetaPosition": "s2Subject"
+          },
+          "priorAnchors": {
+            "previousLandingSite": "s2Edge"
+          },
+          "relation": "successive-cyclic focus movement",
+          "values": {
+            "dependency": "subject A-bar chain",
+            "landingSite": "higher Spec-CP"
+          }
+        },
+        {
+          "anchors": {
+            "associate": "s2Focus",
+            "particle": "sParticle"
+          },
+          "relation": "additive focus association",
+          "values": {
+            "meaning": "Marie is an additional individual satisfying the recovered predicate"
+          }
+        }
+      ],
+      "stageRecord": "The second conjunct receives a higher focus CP, an articulated extension of the clause's left periphery. Its silent C carries an ellipsis feature. Ook heads a particle projection between that C and the lower finite CP. Marie now moves from the already established finite Spec-CP to the higher Spec-CP, leaving an intermediate trace. The resulting successive-cyclic chain connects the high remnant, the finite CP edge, and the subject position without skipping a clausal escape position. Ook associates with the high Marie constituent and will therefore survive deletion with it. This outer focus shell is required because deleting only IP after ordinary V2 movement would incorrectly leave the second heeft pronounced.",
+      "statement": "Place Marie and ook outside the prospective deletion domain.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "s1Jan",
+                      "label": "N",
+                      "tokenIndex": 0,
+                      "word": "Jan"
+                    }
+                  ],
+                  "id": "s1SubjectNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "s1Topic",
+              "label": "NP",
+              "lineageId": "sJan"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "s1C",
+                  "label": "C",
+                  "lineageId": "sAuxiliary1",
+                  "tokenIndex": 1,
+                  "word": "heeft"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "s1SubjectTrace",
+                          "label": "t_NP",
+                          "silent": true
+                        }
+                      ],
+                      "id": "s1Subject",
+                      "label": "NP",
+                      "lineageId": "sJan",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "s1Det",
+                                      "label": "Det",
+                                      "tokenIndex": 2,
+                                      "word": "een"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "s1Book",
+                                          "label": "N",
+                                          "tokenIndex": 3,
+                                          "word": "boek"
+                                        }
+                                      ],
+                                      "id": "s1ObjectNbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "s1Object",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "s1V",
+                                  "label": "V",
+                                  "tokenIndex": 4,
+                                  "word": "gekocht"
+                                }
+                              ],
+                              "id": "s1Vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "s1VP",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "s1I",
+                          "label": "t_I",
+                          "lineageId": "sAuxiliary1",
+                          "silent": true
+                        }
+                      ],
+                      "id": "s1Ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "s1IP",
+                  "label": "IP"
+                }
+              ],
+              "id": "s1Cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "s1CP",
+          "label": "CP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "s2Marie",
+                      "label": "N",
+                      "tokenIndex": 6,
+                      "word": "Marie"
+                    }
+                  ],
+                  "id": "s2SubjectNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "s2Focus",
+              "label": "NP",
+              "lineageId": "sMarie"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "s2EllipsisC",
+                  "label": "C[E]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sParticle",
+                          "label": "Part",
+                          "tokenIndex": 7,
+                          "word": "ook"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "s2EdgeTrace",
+                                  "label": "t_NP",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "s2Edge",
+                              "label": "NP",
+                              "lineageId": "sMarie",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "s2C",
+                                  "label": "C",
+                                  "lineageId": "sAuxiliary2",
+                                  "word": "heeft"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "s2SubjectTrace",
+                                          "label": "t_NP",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "s2Subject",
+                                      "label": "NP",
+                                      "lineageId": "sMarie",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "s2Det",
+                                                      "label": "Det",
+                                                      "word": "een"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "s2Book",
+                                                          "label": "N",
+                                                          "word": "boek"
+                                                        }
+                                                      ],
+                                                      "id": "s2ObjectNbar",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "s2Object",
+                                                  "label": "NP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "s2V",
+                                                  "label": "V",
+                                                  "word": "gekocht"
+                                                }
+                                              ],
+                                              "id": "s2Vbar",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "s2VP",
+                                          "label": "VP"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "s2I",
+                                          "label": "t_I",
+                                          "lineageId": "sAuxiliary2",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "s2Ibar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "s2IP",
+                                  "label": "IP"
+                                }
+                              ],
+                              "id": "s2Cbar",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "s2CP",
+                          "label": "CP"
+                        }
+                      ],
+                      "id": "s2PartBar",
+                      "label": "Part′"
+                    }
+                  ],
+                  "id": "s2PartP",
+                  "label": "PartP"
+                }
+              ],
+              "id": "s2FocusCbar",
+              "label": "C′"
+            }
+          ],
+          "id": "s2FocusCP",
+          "label": "CP[focus]"
+        },
+        {
+          "children": [],
+          "id": "sConjunction",
+          "label": "Coord",
+          "tokenIndex": 5,
+          "word": "en"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "deletedDomain": "s2CP",
+            "licenser": "s2EllipsisC",
+            "survivingParticle": "sParticle",
+            "survivingRemnant": "s2Focus"
+          },
+          "priorAnchors": {
+            "previouslyUndeletedDomain": "s2CP"
+          },
+          "relation": "clausal ellipsis",
+          "values": {
+            "construction": "stripping",
+            "deletionSize": "finite CP",
+            "operation": "PF nonpronunciation"
+          }
+        },
+        {
+          "anchors": {
+            "antecedentClause": "s1CP",
+            "antecedentContrast": "s1Topic",
+            "antecedentPredicate": "s1VP",
+            "ellipticalClause": "s2CP",
+            "recoveredPredicate": "s2VP",
+            "remnantContrast": "s2Focus"
+          },
+          "relation": "ellipsis recoverability",
+          "values": {
+            "reading": "Jan has bought a book, and Marie has bought a book too",
+            "sharedAbstraction": "the property of having bought a book"
+          }
+        },
+        {
+          "anchors": {
+            "coordinator": "sConjunction",
+            "firstConjunct": "s1CP",
+            "secondConjunct": "s2FocusCP"
+          },
+          "relation": "clausal coordination",
+          "values": {
+            "coordinationType": "additive conjunction of clauses"
+          }
+        }
+      ],
+      "stageRecord": "The ellipsis-bearing higher C licenses nonpronunciation of the entire lower finite CP, including the raised second auxiliary, the reconstructed object and participle, and all lower traces. Deletion follows remnant evacuation: Marie and ook are already outside that CP. Recovery compares the two clauses after abstracting over their contrasting subjects; both supply the property of having bought a book. The indefinite is interpreted within each buying proposition, so this reading does not require Jan and Marie to have bought one identical book. The conjunction combines the overt first CP and the reduced second focus CP as clausal conjuncts. This is stripping, not merely VP ellipsis: the second finite auxiliary is absent as well. The retained theta, Case, and movement chains interpret Marie as the buyer. The final pronounced order is exactly Jan heeft een boek gekocht en Marie ook.",
+      "statement": "Complete clausal coordination and subject-oriented stripping.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "s1Jan",
+                          "label": "N",
+                          "tokenIndex": 0,
+                          "word": "Jan"
+                        }
+                      ],
+                      "id": "s1SubjectNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "s1Topic",
+                  "label": "NP",
+                  "lineageId": "sJan"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "s1C",
+                      "label": "C",
+                      "lineageId": "sAuxiliary1",
+                      "tokenIndex": 1,
+                      "word": "heeft"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "s1SubjectTrace",
+                              "label": "t_NP",
+                              "silent": true
+                            }
+                          ],
+                          "id": "s1Subject",
+                          "label": "NP",
+                          "lineageId": "sJan",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "s1Det",
+                                          "label": "Det",
+                                          "tokenIndex": 2,
+                                          "word": "een"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "s1Book",
+                                              "label": "N",
+                                              "tokenIndex": 3,
+                                              "word": "boek"
+                                            }
+                                          ],
+                                          "id": "s1ObjectNbar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "s1Object",
+                                      "label": "NP"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "s1V",
+                                      "label": "V",
+                                      "tokenIndex": 4,
+                                      "word": "gekocht"
+                                    }
+                                  ],
+                                  "id": "s1Vbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "s1VP",
+                              "label": "VP"
+                            },
+                            {
+                              "children": [],
+                              "id": "s1I",
+                              "label": "t_I",
+                              "lineageId": "sAuxiliary1",
+                              "silent": true
+                            }
+                          ],
+                          "id": "s1Ibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "s1IP",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "s1Cbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "s1CP",
+              "label": "CP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "sConjunction",
+                  "label": "Coord",
+                  "tokenIndex": 5,
+                  "word": "en"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "s2Marie",
+                              "label": "N",
+                              "tokenIndex": 6,
+                              "word": "Marie"
+                            }
+                          ],
+                          "id": "s2SubjectNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "s2Focus",
+                      "label": "NP",
+                      "lineageId": "sMarie"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "s2EllipsisC",
+                          "label": "C[E]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sParticle",
+                                  "label": "Part",
+                                  "tokenIndex": 7,
+                                  "word": "ook"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "s2EdgeTrace",
+                                          "label": "t_NP",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "s2Edge",
+                                      "label": "NP",
+                                      "lineageId": "sMarie",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "s2C",
+                                          "label": "C",
+                                          "lineageId": "sAuxiliary2",
+                                          "word": "heeft"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "s2SubjectTrace",
+                                                  "label": "t_NP",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "s2Subject",
+                                              "label": "NP",
+                                              "lineageId": "sMarie",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "s2Det",
+                                                              "label": "Det",
+                                                              "word": "een"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "s2Book",
+                                                                  "label": "N",
+                                                                  "word": "boek"
+                                                                }
+                                                              ],
+                                                              "id": "s2ObjectNbar",
+                                                              "label": "N′"
+                                                            }
+                                                          ],
+                                                          "id": "s2Object",
+                                                          "label": "NP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "s2V",
+                                                          "label": "V",
+                                                          "word": "gekocht"
+                                                        }
+                                                      ],
+                                                      "id": "s2Vbar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "s2VP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "s2I",
+                                                  "label": "t_I",
+                                                  "lineageId": "sAuxiliary2",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "s2Ibar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "s2IP",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "s2Cbar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "s2CP",
+                                  "label": "CP",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "s2PartBar",
+                              "label": "Part′"
+                            }
+                          ],
+                          "id": "s2PartP",
+                          "label": "PartP"
+                        }
+                      ],
+                      "id": "s2FocusCbar",
+                      "label": "C′"
+                    }
+                  ],
+                  "id": "s2FocusCP",
+                  "label": "CP[focus]"
+                }
+              ],
+              "id": "sCoordBar",
+              "label": "Coord′"
+            }
+          ],
+          "id": "sCoordP",
+          "label": "CoordP"
+        }
+      ]
+    }
+  ]
+}
