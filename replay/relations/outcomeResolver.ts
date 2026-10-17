@@ -234,6 +234,25 @@ export const POSITIVE_OUTCOMES = [
   'licensed', 'successful', 'allowed', 'accepted', 'valid'
 ] as const satisfies readonly OutcomeConcept[];
 
+/** Failure concepts a dependency path can draw as blocked. */
+export const NEGATIVE_PATH_OUTCOMES = [
+  'blocked', 'failed', 'rejected', 'unlicensed', 'impossible', 'violation'
+] as const satisfies readonly OutcomeConcept[];
+
+/** Drawing state of a relation's authored outcome slot. Absent, unrecognized
+ * or contradictory outcomes return undefined and keep the ordinary drawing;
+ * the literal itself stays visible in Replay. */
+export const authoredPathOutcome = (
+  values: Record<string, string | string[]> | undefined
+): 'licensed' | 'blocked' | undefined => {
+  const concepts = new Set(authoredOutcomeLiterals(values).map(literal => resolveOutcomeLiteral(literal)?.concept));
+  if (concepts.size !== 1) return undefined;
+  const [concept] = concepts;
+  if (POSITIVE_OUTCOMES.some(positive => positive === concept)) return 'licensed';
+  if (NEGATIVE_PATH_OUTCOMES.some(negative => negative === concept)) return 'blocked';
+  return undefined;
+};
+
 
 export const assignmentOutcomes = (evidence: Tier2FacetEvidence) => (evidence.authoredValues ?? []).filter(entry =>
   entry.concepts.includes('outcome') || ['outcome', 'status', 'result', 'verdict', 'judgment'].includes(normalizeTier2Synonym(entry.key)));

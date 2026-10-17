@@ -2,6 +2,7 @@ import { nativeThetaAssignments } from './compoundAssignments.ts';
 import type { FacetPlanCompilers, FacetPlanContext } from './facetPlanContext.ts';
 import { collectionAssignment } from './featureComposition.ts';
 import { prepareNativeDependentCaseStep } from './nativeDrawingContent.ts';
+import { authoredPathOutcome } from './outcomeResolver.ts';
 import { collectSubtreeLeafIds, flattenAnchorIds } from './planSyntax.ts';
 import { scalarValue, verbatimRows } from './planValues.ts';
 import type { RegisteredPlanCompilers } from './registeredPlanContext.ts';
@@ -185,6 +186,7 @@ export const featurePlan = {
     const { anchors, base, values, authoredValues } = context.claim;
     const { requireResolved, items } = context.output;
     const { nodes } = context.workspace;
+    const outcome = authoredPathOutcome(authoredValues);
     const assigner = flattenAnchorIds(anchors.assigner)[0];
     const bearer = flattenAnchorIds(anchors.bearer)[0];
     const probe = flattenAnchorIds(anchors.probe)[0];
@@ -198,6 +200,7 @@ export const featurePlan = {
         fromNodeId: probe,
         toNodeId: goal,
         pathStyle: 'case-agree',
+        ...(outcome ? { outcome } : {}),
         featureRow: { label: scalarValue(values, 'feature'), value: scalarValue(values, 'value') },
         ...(scalarValue(values, 'feature') || scalarValue(values, 'value')
           ? { label: [scalarValue(values, 'feature'), scalarValue(values, 'value')].filter(Boolean).join(': ') }
@@ -226,6 +229,7 @@ export const featurePlan = {
       fromNodeId: assigner,
       toNodeId: bearer,
       pathStyle: 'case-assignment',
+      ...(outcome ? { outcome } : {}),
       featureRow: { label: scalarValue(values, 'feature'), value: scalarValue(values, 'value') || scalarValue(values, 'case') },
       ...(scalarValue(values, 'feature') || scalarValue(values, 'value')
         ? { label: [scalarValue(values, 'feature'), scalarValue(values, 'value')].filter(Boolean).join(': ') }

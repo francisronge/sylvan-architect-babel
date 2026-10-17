@@ -1512,3 +1512,20 @@ const { buildAuthoredRelationLinksForFrames } = await import('../replay/frameRel
   assert.deepEqual(links[0].priorAnchors, { replaced: 'lex_before' });
   assert.deepEqual(links[0].values, { register: ['α', 'β'], note: 'verbatim' });
 });
+
+test('an authored Case outcome draws the same way whether the relation name is exact or recovered', () => {
+  const forest = [node('pp', 'PP', [leaf('p', 'P', 'with'), node('dp', 'DP', [leaf('d', 'D', 'it')])])];
+  const caseArrow = (relation, values) => {
+    const plan = compileRelationRenderPlan([stage([{ relation, anchors: { assigner: 'p', recipient: 'dp' }, values }], forest)]);
+    const paths = plan.frames.flatMap(frame => frame.items)
+      .filter(item => item.kind === 'directed-path' && item.pathStyle === 'case-assignment');
+    assert.equal(paths.length, 1, `${relation} draws one Case arrow`);
+    return paths[0];
+  };
+  for (const relation of ['Case assignment', 'dative Case assignment']) {
+    assert.equal(caseArrow(relation, { case: 'DAT', outcome: 'failed' }).outcome, 'blocked', `${relation} failed`);
+    assert.equal(caseArrow(relation, { case: 'DAT', outcome: 'successful' }).outcome, 'licensed', `${relation} successful`);
+    assert.equal(caseArrow(relation, { case: 'DAT' }).outcome, undefined, `${relation} without an outcome`);
+  }
+  assert.equal(caseArrow('Case assignment', { case: 'DAT', outcome: 'failed' }).claimTier, 1);
+});

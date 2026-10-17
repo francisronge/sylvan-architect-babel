@@ -1,4 +1,4 @@
-import { POSITIVE_OUTCOMES, type OutcomeConcept } from './outcomeResolver.ts';
+import { NEGATIVE_PATH_OUTCOMES, POSITIVE_OUTCOMES, type OutcomeConcept } from './outcomeResolver.ts';
 import type {
   Tier2AnchorRequirement,
   Tier2FacetId,
@@ -313,14 +313,14 @@ export const TIER2_FACET_RECIPES: readonly Tier2FacetRecipe[] = [
     anchors: [current('probe', 1, 1), current('goal', 1)],
     values: [value('cycle', 1, 1), optionalValue('outcome', 1, 1)],
     checks: [{ kind: 'distinct', roles: ['probe', 'goal'], allowRepeatedWithinRole: true }, { kind: 'feature-dependency' }],
-    acceptedOutcomeConcepts: [...POSITIVE_OUTCOMES, 'blocked', 'failed', 'rejected', 'unlicensed', 'impossible', 'violation'],
+    acceptedOutcomeConcepts: [...POSITIVE_OUTCOMES, ...NEGATIVE_PATH_OUTCOMES],
     outputs: [output('Cycle badge')]
   }),
   recipe('feature.dependency', {
     anchors: [current('feature.source', 1, 1), current('feature.target', 1)],
     values: [optionalValue('feature.rows'), optionalValue('case.literal'), optionalValue('outcome', 1, 1)],
     checks: [{ kind: 'distinct', roles: ['feature.source', 'feature.target'], allowRepeatedWithinRole: true }, { kind: 'feature-dependency' }],
-    acceptedOutcomeConcepts: [...POSITIVE_OUTCOMES, 'blocked', 'failed', 'rejected', 'unlicensed', 'impossible', 'violation'],
+    acceptedOutcomeConcepts: [...POSITIVE_OUTCOMES, ...NEGATIVE_PATH_OUTCOMES],
     outputs: [output('Feature connectors')]
   }),
   recipe('dependent-case', {
