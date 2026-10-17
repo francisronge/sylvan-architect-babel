@@ -229,6 +229,14 @@ complete response enters Babel processing. Partial output remains available in
 `output.txt` and `response.sse`. Cancellation saves what has arrived. There is no
 client-imposed generation time limit.
 
+`--contract spellout` runs the input-segmentation experiment in
+`docs/research/input-segmentation.md`. The model receives only the sentence, with
+no token list, and its final words must spell the sentence.
+`contractQualification/spelloutContract.js` checks that spelling and converts each
+analysis into the current contract, using the model's own words as tokens, so the
+parser, Replay and review run unchanged. `spellout.json` keeps the alignment. No
+product route uses this variant.
+
 The subscription endpoint requires streaming and `store: false`; background
 polling and the API output-token limit are omitted and recorded as transport
 differences. These are subscription development checks, not verification of the
