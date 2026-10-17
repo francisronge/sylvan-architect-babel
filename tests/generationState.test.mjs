@@ -45,7 +45,8 @@ test('generation failures preserve every evidence carrier and never accept or re
   const evidence = {
     failure: { code: 'DERIVATION_INVALID', detail: 'Original diagnostic' },
     rawOutput: { text: '{ original authored output }' },
-    generationRecord: { id: 'generation-record-1' }
+    generationRecord: { id: 'generation-record-1' },
+    inputTokens: ['花子', 'は', '開', 'け']
   };
   const failure = new ParseServiceError({ code: 'INVALID_RESPONSE', message: 'The response was rejected.', ...evidence });
   const observed = observedState();

@@ -10,19 +10,23 @@ export class ParseServiceError extends Error {
   failure?: ParseFailure;
   rawOutput?: RawOutputArtifact;
   generationRecord?: GenerationRecord;
+  /** The input tokens the model was sent, when the request reached it. */
+  inputTokens?: string[];
 
   constructor({
     code,
     message,
     failure,
     rawOutput,
-    generationRecord
+    generationRecord,
+    inputTokens
   }: {
     code: string;
     message: string;
     failure?: ParseFailure;
     rawOutput?: RawOutputArtifact;
     generationRecord?: GenerationRecord;
+    inputTokens?: string[];
   }) {
     super(message);
     this.name = 'ParseServiceError';
@@ -30,6 +34,7 @@ export class ParseServiceError extends Error {
     this.failure = failure;
     this.rawOutput = rawOutput;
     this.generationRecord = generationRecord;
+    this.inputTokens = inputTokens;
   }
 }
 
@@ -43,7 +48,10 @@ const parseErrorFromResponse = async (response: Response): Promise<ParseServiceE
       message: message || code || `Request failed with status ${response.status}.`,
       failure: payload?.error?.failure,
       rawOutput: payload?.error?.rawOutput,
-      generationRecord: payload?.error?.generationRecord
+      generationRecord: payload?.error?.generationRecord,
+      inputTokens: Array.isArray(payload?.error?.inputTokens)
+        && payload.error.inputTokens.every((token: unknown) => typeof token === 'string')
+        ? payload.error.inputTokens : undefined
     });
   } catch {
     return new ParseServiceError({
