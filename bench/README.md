@@ -1,5 +1,9 @@
 # Provider-free benchmark plumbing
 
+Parked until the future benchmark (Program 7) is built. Nothing in the product
+imports it, and its tests are left out of `npm test`; run them with
+`npm run test:bench`.
+
 This directory is a dry-run infrastructure boundary, separate from the Babel
 product and any derivational database.
 
