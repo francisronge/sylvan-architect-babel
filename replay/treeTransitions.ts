@@ -373,6 +373,75 @@ export type FallbackTreeTransitionOwnership = {
   copyPairs?: Array<{ priorSourceNodeId: string; sourceNodeId: string; targetNodeId: string }>;
 };
 
+const ownNodeContent = (node: SyntaxNode): string => {
+  const { children: _children, ...own } = node;
+  return JSON.stringify(Object.keys(own).sort().map(key => [key, own[key as keyof typeof own]]));
+};
+
+/**
+ * True when a retained witness kept its own content and exact slot, and every
+ * earlier descendant, in order and under its earlier parent, and gained only
+ * new nodes or whole earlier workspaces. Ordinary construction builds that
+ * growth, so a relation restating the witness does not own it. A change to
+ * the witness itself, including its position, still belongs to the relation.
+ */
+const retainedWitnessOnlyGrew = (nodeId: string, previousForest: SyntaxNode[], currentForest: SyntaxNode[]): boolean => {
+  const prior = findExactNodesByIdInForest(previousForest, nodeId);
+  const current = findExactNodesByIdInForest(currentForest, nodeId);
+  if (prior.length !== 1 || current.length !== 1)
+    return false;
+  const previousLocations = indexExactForestNodeLocations(previousForest);
+  const priorSlot = previousLocations.get(nodeId);
+  const currentSlot = indexExactForestNodeLocations(currentForest).get(nodeId);
+  if (!priorSlot || !currentSlot || priorSlot.parentId !== currentSlot.parentId
+    || (priorSlot.parentId ? priorSlot.childIndex !== currentSlot.childIndex : currentSlot.parent !== null))
+    return false;
+  const order: string[] = [];
+  const parents = new Map<string, string>();
+  const nodes = new Map<string, SyntaxNode>();
+  const index = (node: SyntaxNode, parentId: string) => {
+    const id = String(node.id || '');
+    order.push(id);
+    parents.set(id, parentId);
+    nodes.set(id, node);
+    (node.children || []).forEach(child => index(child, id));
+  };
+  index(current[0], '');
+  if (order.some(id => !id) || nodes.size !== order.length)
+    return false;
+  const dominates = (ancestorId: string, id: string) => {
+    for (let parentId = parents.get(id); parentId; parentId = parents.get(parentId))
+      if (parentId === ancestorId)
+        return true;
+    return false;
+  };
+  const priorIds = new Set<string>();
+  let lastPosition = -1;
+  const survives = (node: SyntaxNode, parentId: string): boolean => {
+    const id = String(node.id || '');
+    const survivor = nodes.get(id);
+    const position = order.indexOf(id);
+    if (!survivor || ownNodeContent(survivor) !== ownNodeContent(node) || position <= lastPosition
+      || (parentId && !dominates(parentId, id)) || findExactNodesByIdInForest(currentForest, id).length !== 1)
+      return false;
+    priorIds.add(id);
+    lastPosition = position;
+    return (node.children || []).every(child => survives(child, id));
+  };
+  if (!survives(prior[0], ''))
+    return false;
+  return order.every(id => {
+    if (priorIds.has(id))
+      return true;
+    const location = previousLocations.get(id);
+    if (location === undefined)
+      return true;
+    // An existing node may join only with its whole earlier workspace.
+    const rootId = location ? String(previousForest[location.rootIndex]?.id || '') : '';
+    return Boolean(rootId) && nodes.has(rootId);
+  });
+};
+
 const resolvePriorWitnessTreeTransitionOwnership = (
   relation: DerivationReplayPlanStep,
   previousForest: SyntaxNode[],
@@ -423,7 +492,7 @@ const resolvePriorWitnessTreeTransitionOwnership = (
   const ownedCurrentAnchors = retainedPriorAnchors && repeatsPriorWitness
     ? currentAnchors.filter(([node]) => {
       if (priorAnchorIds.includes(String(node.id || '')))
-        return true;
+        return !retainedWitnessOnlyGrew(String(node.id || ''), previousForest, currentForest);
       // A uniquely witnessed copy is output of the same authored change,
       // even when its category is insufficient to draw a movement trajectory.
       if (copiedOutputs.has(node.id))

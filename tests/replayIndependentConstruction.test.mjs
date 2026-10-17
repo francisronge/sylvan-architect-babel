@@ -168,3 +168,19 @@ test('a fully recovered realization owns its word even without a neutral residua
   assert.ok(realization.replayVisibleNodeIds.includes('raised::__leaf'));
   assert.ok(!steps.some(step => step.replayKind === 'micro' && step.targetNodeId === 'raised::__leaf'));
 });
+
+test('a relation restating a phrase that only grew leaves that growth to ordinary construction', () => {
+  const restated = node('restated', [node('innerBar', [leaf('inner', 'two')])]);
+  const clause = node('clause', [leaf('modifier', 'after')]);
+  const grown = node('restated', [node('adjunction', [node('innerBar', [leaf('inner', 'two')]), clause])]);
+  const head = leaf('head', 'one');
+  const stages = [stage([node('nominal', [head, restated]), clause]), stage([node('nominal', [head, grown])], [
+    { relation: 'Restricted modifier restatement', anchors: { modifier: 'restated', head: 'head' }, priorAnchors: { modifier: 'restated', head: 'head' } }
+  ])];
+  const steps = replay(stages);
+  const shape = value => value && { id: value.id, children: (value.children || []).map(shape) };
+  const moment = steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1 && step.replayRelationIdentity.relationIndex === 0);
+  const merge = steps.findIndex(step => step.replayKind === 'micro' && step.targetNodeId === 'adjunction');
+  assert.ok(merge >= 0 && merge < moment, 'the adjunction is an ordinary merge before the relation');
+  assert.deepEqual(shape(steps[moment].replayCanvasData), shape(steps[moment - 1].replayCanvasData), 'the relation moment changes no structure');
+});
