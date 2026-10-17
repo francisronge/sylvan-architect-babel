@@ -153,8 +153,6 @@ test('control: marks-at-owning-moment reports a mark before its moment and a mar
 
 const FIRST_STAGE_REWRITE = 'Defect: a first-stage movement claim with no preceding stage to prove its source becomes a neutral rewrite; '
   + 'its moment shows only the anchored root of the rewritten phrase, and the rest of that phrase appears later with an ordinary merge.';
-const LEAKED_WORD = 'Defect: an occurrence withheld until its relation moment is withheld by its authored id only; '
-  + 'its derived word leaf (id::__leaf) is not, so the word appears early, floating without its node.';
 const ORDER_BEFORE_CONTEXT = 'Defect (diagnosed RELATION_TIMING_CONFLICT): wh-movement is authored before the auxiliary movement '
   + 'that builds C′; Replay keeps authored order and shows CP with its landing but without C′.';
 const CONTEXT_MERGE_AT_MOMENT = 'Defect (diagnosed RELATION_TIMING_CONFLICT): continued V-to-I is authored before the I-to-C movement '
@@ -168,27 +166,20 @@ const KNOWN_DEFECTS = [
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/2', 'no-early-reveal', 23,
     'argumentDbar demonstrativeD childrenNP demonstrativeD::__leaf childrenNbar childrenN childrenN::__leaf'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'parent-after-children', 37, 'sdh moh'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'no-early-reveal', 38, 'sdh moh donoh studenth'],
+  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'no-early-reveal', 38,
+    'sdh moh donoh studenth moh::__leaf donoh::__leaf studenth::__leaf'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'parent-after-children', 37, 'sdh moh'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'no-early-reveal', 38, 'sdh moh donoh studenth'],
+  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'no-early-reveal', 38,
+    'sdh moh donoh studenth moh::__leaf donoh::__leaf studenth::__leaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/independent-clause-and-realization.json#', 'parent-after-children', 20, 'operatorHighNbar'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/independent-clause-and-realization.json#', 'no-early-reveal', 21, 'operatorHighNbar operatorHighN'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/receiving-head-material.json#', 'parent-after-children', 20, 'booksDbar'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/receiving-head-material.json#', 'no-early-reveal', 21,
     'booksDbar booksD booksNP booksNbarOuter booksNbarInner demP bookN demBar bookN::__leaf dem dem::__leaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 11, 'rVAtT rvAtTLeaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 12, 'rVAtT rvAtTLeaf'],
+  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 12, 'rVAtT rvAtTLeaf rVAtT::__leaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 28, 'mVAtT mvAtTLeaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 29, 'mVAtT mvAtTLeaf'],
-  [LEAKED_WORD, 'movement/clause-context.json#/cases/6', 'no-early-reveal', 1, 'was1::__leaf'],
-  [LEAKED_WORD, 'movement/holdout-transitions.json#/2', 'no-early-reveal', 18, 'finiteV::__leaf'],
-  [LEAKED_WORD, 'movement/holdout-transitions.json#/3', 'no-early-reveal', 1, 'moh::__leaf donoh::__leaf studenth::__leaf'],
-  [LEAKED_WORD, 'movement/holdout-transitions.json#/4', 'no-early-reveal', 1, 'moh::__leaf donoh::__leaf studenth::__leaf'],
-  [LEAKED_WORD, 'movement/holdout-transitions.json#/6', 'no-early-reveal', 5, 'verb::__leaf'],
-  [LEAKED_WORD, 'replay-regressions/coordination-and-ellipsis.json#', 'no-early-reveal', 19, 'bruno2::__leaf'],
-  [LEAKED_WORD, 'replay-regressions/independent-clause-and-realization.json#', 'no-early-reveal', 13, 'readRaised::__leaf'],
-  [LEAKED_WORD, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 6, 'rVAtT::__leaf'],
-  [LEAKED_WORD, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 23, 'mVAtT::__leaf'],
+  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 29, 'mVAtT mvAtTLeaf mVAtT::__leaf'],
   [ORDER_BEFORE_CONTEXT, 'normalized/what-did-mia-see.xbar.json#/analyses/0', 'parent-after-children', 15, 'cbar_question'],
   [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar']
 ];

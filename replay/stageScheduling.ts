@@ -1,5 +1,5 @@
 /** Interleave bottom-up construction with authored relation moments and one completed Stage Record. */
-import { type DerivationOperation } from '../types.ts';
+import { type DerivationOperation, type SyntaxNode } from '../types.ts';
 import type { ReplayCompilation } from './compilationContext.ts';
 import { constructionAttachmentUpdates } from './constructionAttachments.ts';
 import { replayOwnerId } from './displayIdentity.ts';
@@ -298,6 +298,17 @@ export const finalizeStageReplay = (
         ...structuralProducers.keys(),
         ...relationProducers.keys()
       ].filter(nodeId => !availableNodeIds.has(nodeId)));
+      // A relation-owned occurrence appears whole at its moment. Its derived
+      // word leaf exists only on the canvas, so it waits with its owner.
+      const waitingOwners = new Set([...relationProducers.keys()].filter(nodeId => pendingIds.has(nodeId)));
+      const hideWaitingWords = (node: SyntaxNode) => (node.children || []).forEach((child) => {
+        const owner = String(child.replayOrigin?.ownerId || node.id || '');
+        if (child.replayOrigin?.kind === 'word' && waitingOwners.has(owner) && child.id !== step.targetNodeId)
+          pendingIds.add(String(child.id || ''));
+        hideWaitingWords(child);
+      });
+      if (waitingOwners.size && step.replayCanvasData)
+        hideWaitingWords(step.replayCanvasData);
       return {
         ...step,
         replayVisibleNodeIds: (step.replayVisibleNodeIds || []).filter(nodeId => !pendingIds.has(nodeId)),
