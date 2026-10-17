@@ -64,3 +64,26 @@ test('ordinary Orchard side approaches and vertically aligned arrows retain thei
     control1: { x: 332, y: 128 }, control2: { x: 300, y: 128 }
   });
 });
+
+test('a Case row just above or below its word still bends instead of running straight', () => {
+  // Measured Mandarin 把: its Case row sat a few units above the word's box.
+  const word = { x: 1000, y: 900, width: 64, height: 69 };
+  const deviation = curve => {
+    const { source, target } = curve;
+    const length = Math.hypot(target.x - source.x, target.y - source.y);
+    return Math.max(...sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 64)
+      .map(point => Math.abs((target.x - source.x) * (source.y - point.y) - (source.x - point.x) * (target.y - source.y)) / length));
+  };
+  for (const direction of [-1, 1]) {
+    for (const offset of [-20, -2, 2, 20]) {
+      const rowY = offset < 0 ? word.y + offset : word.y + word.height + offset;
+      const plaque = { x: direction > 0 ? 1300 : 400, y: rowY - 40, width: 280, height: 120 };
+      const curve = caseAssignmentPlaqueCurve(word, plaque, rowY);
+      const dx = Math.abs(curve.target.x - curve.source.x);
+      assert(deviation(curve) >= 0.5 * Math.min(76, dx / 4) * 0.75,
+        `row ${offset} units from the word needs a visible bend (direction ${direction})`);
+      assert(!cubicIntersectsRect(curve, word, 6), 'the arrow leaves the word clear');
+      assert(!cubicIntersectsRect(curve, plaque, 0), 'the arrow stays outside the plaque');
+    }
+  }
+});

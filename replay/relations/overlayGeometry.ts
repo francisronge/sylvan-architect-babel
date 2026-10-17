@@ -19,15 +19,17 @@ export function caseAssignmentPlaqueCurve(assigner: Rect, plaque: Rect, rowY: nu
       ? { x: plaque.x + plaque.width + 12, y: rowY, side: 'right' }
       : { x: centerX, y: assigner.y < plaque.y ? plaque.y - 12 : plaque.y + plaque.height + 12, side: 'vertical' };
   // A row beside the word must leave its side, not the space beneath it,
-  // which may already belong to the next category label.
-  if (target.side !== 'vertical' && rowY >= assigner.y && rowY <= assigner.y + assigner.height) {
-    const direction = target.side === 'left' ? 1 : -1;
-    const source = { x: direction > 0 ? assigner.x + assigner.width + 8 : assigner.x - 8,
-      y: assigner.y + assigner.height / 2 };
+  // which may already belong to the next category label. Side exits need
+  // their own bow: level endpoints otherwise make both handles collinear. A
+  // row within one bow of the word is level too, because a top or bottom exit
+  // would put all four curve points on one line.
+  const direction = target.side === 'left' ? 1 : -1;
+  const sideX = direction > 0 ? assigner.x + assigner.width + 8 : assigner.x - 8;
+  const bow = Math.min(76, Math.abs(target.x - sideX) / 4);
+  if (target.side !== 'vertical' && rowY >= assigner.y - bow && rowY <= assigner.y + assigner.height + bow) {
+    const source = { x: sideX, y: assigner.y + assigner.height / 2 };
     const approach = Math.min(76, Math.abs(target.x - source.x) / 2);
-    // Side exits need their own bow: level endpoints otherwise make both
-    // handles collinear. Bend above the gap, clear of the category below.
-    const bow = Math.min(76, Math.abs(target.x - source.x) / 4);
+    // Bend above the gap, clear of the category below.
     return { source, target, control1: { x: source.x + direction * approach, y: source.y - bow },
       control2: { x: target.x - direction * approach, y: target.y - bow } };
   }
