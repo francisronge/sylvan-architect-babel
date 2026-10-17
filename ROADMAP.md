@@ -12,11 +12,10 @@ syntactic rules. Desktop remains the primary experience.
 
 ## Current work order
 
-1. Run a 20-sentence GPT-6.1 Sol/high batch through Codex OAuth
+1. Run the approved 20-sentence GPT-6.1 Sol/high batch through Codex OAuth
    (`npm run qualification:codex`) aimed at rarely drawn relations: binding,
    scope, control, ellipsis, across-the-board and right-node raising, focus, copy
-   pronunciation and object agreement. Start after Francis approves the sentence
-   list.
+   pronunciation and object agreement.
 2. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
    the Max plan's monthly API credits can be claimed (around 2026-10-24). Spend
    only those credits.
@@ -28,27 +27,21 @@ syntactic rules. Desktop remains the primary experience.
      them read data instead of slicing the lab's source text.
    - Check right-to-left once, as a mirror of left-to-right across the saved
      parses, then run continuity checks once per width.
-4. Reduce idle CPU without changing or pausing the pollen animation, which is part
-   of Babel's visual identity. Every pollen frame makes the browser recompute
-   every live glass blur. Updating all spores together at 60 per second saves
-   about 15% with no visible change. Larger savings need Francis's decision:
-   30 updates per second, or static frosted glass instead of live blur. Measure
-   each step with interleaved runs on the same machine.
-5. Redo the dependency index-letter fix so each dependency keeps the letter the
-   model authored across stages, including in the exact-name (Tier-1) coindex,
-   control, QR and operator drawings.
-6. Recognition:
+4. Recognition:
    - Delete the recovery rules that fire on only one past sentence.
    - Run an offline, geometry-first recognition experiment over every saved
      parse: measure the wrong-picture rate where Babel already draws, and build
      a review page for relations Babel does not yet draw.
    - Later, consider Jev as a fallback.
-7. Remove the legacy server model-route picker (Gemini default, stale model names,
+5. Remove the legacy server model-route picker (Gemini default, stale model names,
    legacy environment variables) and the `.artifacts` harnesses that depend on it.
    Treat this as an explicit endpoint-contract change.
-8. Merge duplicated layout checks without changing a pixel, proving identical
+6. Merge duplicated layout checks without changing a pixel, proving identical
    coordinates with `npm run verify:corpus`, and fix the one remaining stretched
    branch in Indonesian control analysis 2.
+7. Give theta-role badges the index of their argument's chain. They use a separate
+   allocator, so a subject's theta badge can show a different letter from its
+   chain's coindex.
 
 ## Execution Order
 
