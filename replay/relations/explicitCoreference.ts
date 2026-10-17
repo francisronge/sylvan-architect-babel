@@ -19,19 +19,9 @@ const declaredTopicBindingRows = (evidence: Tier2FacetEvidence) =>
  * participant names and shared lineage do not supply that interpretation. */
 export function explicitCoreferenceParticipants(evidence: Tier2FacetEvidence): ExplicitCoreferenceParticipants | undefined {
   if (declaredTopicBindingRows(evidence).length === 1) return;
-  const topicNullResumption = normalizeTier2Synonym(evidence.relationName) === 'topic linked null object resumption';
-  // Discourse reference and syntactic occurrence identity are separate claims.
-  // A denial of the latter cannot negate an explicit positive reference claim.
-  if (topicNullResumption && !evidence.associatedAnchorKeys?.['coreference.participants']) {
-    const dependencies = (evidence.authoredValues ?? []).filter(entry => normalizeTier2Synonym(entry.key) === 'dependency');
-    if (dependencies.length !== 1 || dependencies[0].items.length !== 1) return;
-    const clauses = relationLabelClauses(dependencies[0].items[0]);
-    if (!/^(?:discourse )?anaphoric co ?reference$/u.test(clauses[0])
-      || clauses.slice(1).some(clause => !/^(?:not|no) syntactic occurrence identity$/u.test(clause))) return;
-  }
   const referentialDependency = (clause: string) => /\b(?:anaphoric|referential|resumption|resumptive) dependency$/u.test(clause)
     || /^(?:left|right) dislocation resumption$/u.test(clause)
-    || /\btopic resumption$/u.test(clause) || /^topic linked null object resumption$/u.test(clause);
+    || /\btopic resumption$/u.test(clause);
   const clauses = relationLabelClauses(evidence.relationName).filter(clause => /\b(?:co ?reference|same reference|coindexation)\b/u.test(clause)
     || /^referential identity(?: of (?:(?:reconstructed|interpreted) )?[\p{L} ]+)?$/u.test(clause)
     || /\brelative antecedence$/u.test(clause) || referentialDependency(clause));
@@ -64,9 +54,6 @@ export function explicitCoreferenceParticipants(evidence: Tier2FacetEvidence): E
   const referents = nominalTopic ? antecedents.filter(entry => entry !== topicEntries[0]) : antecedents;
   const namedPair = clauses.length > 0 && referents.length === 1 && anaphors.length === 1
     ? [...referents, ...anaphors] : undefined;
-  if (topicNullResumption && !evidence.associatedAnchorKeys?.['coreference.participants']
-    && (!namedPair || grouped.length || anchors.some(entry => !namedPair.includes(entry)
-      && entry.concepts.some(concept => ['binder', 'dependent', 'operator', 'variable'].includes(concept))))) return;
   const participants = grouped.length ? grouped : namedPair ?? anchors.filter(entry =>
     !/^discourse (?:licen[cs](?:or|er)|head)$/u.test(normalizeTier2Synonym(entry.key))
     || entry.items.length !== 1 || nodes.get(entry.items[0])?.length !== 1

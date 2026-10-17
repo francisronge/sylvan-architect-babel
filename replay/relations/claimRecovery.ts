@@ -1,13 +1,9 @@
 import type { DerivationStageRelation } from '../../types.ts';
 import { recoverAssignmentContinuity, type AssignmentContext } from './assignmentContinuity.ts';
 import { recoverCompoundAssignments } from './compoundAssignments.ts';
-import { recoverSubjectChainControl } from './controlEvidence.ts';
 import {
-  recoverCoordinateGapping,
   recoverEllipsisCorrespondence,
-  recoverNamedEllipsisSite,
-  recoverQualifiedParallelism,
-  recoverRemnantCorrespondence
+  recoverNamedEllipsisSite
 } from './correspondenceEvidence.ts';
 import {
   recoverDeclarativeLicensing,
@@ -50,7 +46,6 @@ import { recoverMovementGroups } from './movementGroups.ts';
 import {
   recoverClauseComplementTheta,
   recoverQualifiedRoleInterpretation,
-  recoverQualifiedThetaLicensing,
   typedThematicAssignment
 } from './thematicAssignment.ts';
 import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
@@ -72,22 +67,17 @@ export function recoverRelationScopes(
     ...recoverInterpretiveCorrespondence(evidence),
     ...recoverIdiomDomain(evidence),
     ...recoverEllipsisCorrespondence(evidence),
-    ...recoverRemnantCorrespondence(evidence),
     ...recoverNamedEllipsisSite(evidence),
-    ...recoverCoordinateGapping(evidence),
-    ...recoverQualifiedParallelism(evidence),
     ...recoverPredication(evidence),
     ...recoverPhaseEdge(evidence),
     ...recoverModifierAttachment(evidence),
     ...recoverExplicitCoreference(evidence),
     ...recoverNamedBinding(evidence),
-    ...recoverSubjectChainControl(evidence),
     ...recoverInterpretedOperatorBinding(evidence),
     ...recoverFocusAssociation(evidence),
     ...recoverNamedFeatureLicensing(evidence),
     ...(thematic ? [thematic] : []),
     ...recoverClauseComplementTheta(evidence),
-    ...recoverQualifiedThetaLicensing(evidence),
     ...recoverQualifiedRoleInterpretation(evidence),
     ...recoverCompoundAssignments(evidence),
     ...recoverQualifiedCaseAssignments(evidence),

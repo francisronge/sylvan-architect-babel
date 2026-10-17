@@ -14,10 +14,10 @@ export function recoverModifierAttachment(evidence: Tier2FacetEvidence) {
   const explicitAttachment = anchors.some(entry => qualifiedHost(entry.key))
     && anchors.some(entry => modifierRole(entry.key));
   const clauses = relationLabelClauses(evidence.relationName).filter(clause => explicitAttachment
-    || /\brelative (?:clause|head|adjunction|restriction)\b|\bmodification$|^event time interpretation$/u.test(clause));
+    || /\brelative (?:clause|head|adjunction|restriction)\b|\bmodification$/u.test(clause));
   if (clauses.length !== 1 || /\b(?:no|not|without|denied|rejected|required|requested|expected|possible|potential|hypothetical|conditional|pending|unresolved|failed|blocked|unlicensed|if|unless|whether)\b/u.test(clauses[0])) return [];
   const relative = /^(?:(?:restrictive|nonrestrictive) )?relative (?:clause (?:restriction|modification|attachment|adjunction)|head interpretation|adjunction|restriction(?: of (?:an? )?(?:external )?nominal head)?)$/u.test(clauses[0]);
-  const modification = explicitAttachment || /^(?:[\p{L}\p{N}]+ )*modification$|^event time interpretation$/u.test(clauses[0]);
+  const modification = explicitAttachment || /^(?:[\p{L}\p{N}]+ )*modification$/u.test(clauses[0]);
   if (!relative && !modification) return [];
   let hosts = anchors.filter(entry => entry.concepts.includes('host') || /^nominal (?:head|host)$/u.test(normalizeTier2Synonym(entry.key))
     || qualifiedHost(entry.key)
@@ -35,8 +35,7 @@ export function recoverModifierAttachment(evidence: Tier2FacetEvidence) {
         || !contains(nodes.get(host.items[0])!, entry.items[0])))) return [];
     hosts = declaredHosts;
   }
-  const modifiers = anchors.filter(entry => entry.concepts.includes('pair.member') || modifierRole(entry.key)
-    || clauses[0] === 'event time interpretation' && normalizeTier2Synonym(entry.key) === 'temporal expression');
+  const modifiers = anchors.filter(entry => entry.concepts.includes('pair.member') || modifierRole(entry.key));
   if (hosts.length !== 1 || modifiers.length !== 1 || hosts[0].items.length !== 1 || modifiers[0].items.length !== 1) return [];
   if (!uniqueCurrentOwners(evidence, [...hosts[0].items, ...modifiers[0].items])) return [];
   return [scopeEvidence(evidence, 'pair-merge', [

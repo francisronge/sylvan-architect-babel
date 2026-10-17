@@ -91,8 +91,6 @@ test('an exact Case-qualified governor and phrase preserve compound literal owne
   assert.equal(by({ ...relation, relation: 'Required Case licensing' }, 'feature.dependency').length, 0);
   assert.equal(by({ ...relation, values: { objectCase: 'another opaque literal' } }, 'feature.dependency').length, 0);
   assert.equal(by(relation, 'feature.dependency', [...forest, leaf('v', 'V')]).length, 0);
-  const trace = { relation: 'object-trace Case and government', anchors: { objectTrace: 'object', lexicalGovernor: 'v' }, values: { case: 'abstract accusative' } };
-  assert.equal(by(trace, 'plaque.structured').length, 1); assert.equal(by(trace, 'feature.dependency').length, 0);
 });
 
 test('actual abstract heads retain their properties separately from the lexical whole-word statement', () => {
@@ -116,51 +114,13 @@ test('current mood licensing preserves its explicit functional recipient without
   assert.equal(by(relation, 'feature.dependency').length, 0);
 });
 
-test('qualified theta slots and named passive/experiencer participants use their exact predicate', () => {
-  const licensing = { relation: 'thematic and Case licensing', anchors: { verb: 'v', subject: 'subject', object: 'object', finiteInflection: 't' },
-    values: { externalThetaRole: 'Agent', internalThetaRole: 'Theme' } };
-  const grids = by(licensing, 'theta-grid'); assert.equal(grids.length, 2);
-  assert.deepEqual(grids.map(claim => claim.facet.evidence.currentAnchors['theta.arguments']), [['subject'], ['object']]);
-  assert.equal(by({ ...licensing, anchors: { ...licensing.anchors, predicate: 'a' } }, 'theta-grid').length, 0);
+test('named passive and experiencer participants use their exact predicate', () => {
   const passive = { relation: 'Passive agent interpretation', anchors: { predicate: 'v', agentNominal: 'agent' }, values: { thetaRole: 'Agent' } };
   assert.equal(by(passive, 'theta-grid').length, 1);
   assert.equal(by({ ...passive, values: { thetaRole: 'Agent assignment is pending' } }, 'theta-grid').length, 0);
   assert.equal(by({ ...passive, values: { thetaRole: 'Agent assignment denied' } }, 'theta-grid').length, 0);
   const experiential = { relation: 'experiencer interpretation', anchors: { adjective: 'a', experiencer: 'subject' }, values: { role: 'Experiencer' } };
   assert.equal(by(experiential, 'theta-grid').length, 1);
-});
-
-test('coordinate gapping ghosts only the exact previously overt head and preserves its correspondence', () => {
-  const prior = [{ id: 'root', label: 'VP', children: [leaf('a', 'V'), leaf('e', 'V'), leaf('remnant', 'DP')] }];
-  const current = structuredClone(prior); current[0].children[1].silent = true;
-  const relation = { relation: 'coordinate gapping', anchors: { antecedentVerb: 'a', deletedVerb: 'e', remnantObject: 'remnant' },
-    priorAnchors: { verbBeforeDeletion: 'e' }, values: { operation: 'phonological deletion' } };
-  assert.equal(by(relation, 'ellipsis.site', current, prior).length, 1); assert.equal(by(relation, 'correspondence.alignment', current, prior).length, 1);
-  for (const mutate of [objects => { objects[0].silent = true; }, objects => { delete objects[0].children[1].word; }, objects => { objects[0].children[1].silent = true; }]) {
-    const malformed = structuredClone(prior); mutate(malformed); assert.equal(by(relation, 'ellipsis.site', current, malformed).length, 0);
-  }
-  const wrong = structuredClone(current); wrong[0].children[0].label = 'VP'; assert.equal(by(relation, 'ellipsis.site', wrong, prior).length, 0);
-});
-
-test('qualified contrastive slots align by named role and retain a uniquely associated optional index', () => {
-  const relation = { relation: 'contrastive parallelism licensing gapping', anchors: { firstSubject: 'subject', secondSubject: 'agent' }, values: { index: 'r' } };
-  const claims = by(relation, 'correspondence.alignment'); assert.equal(claims.length, 1); assert(used(claims[0], 'index'));
-  assert.equal(by({ ...relation, values: { index: ['r', 's'] } }, 'correspondence.alignment').length, 0);
-  assert.equal(by({ ...relation, values: { index: 'r', coindex: 's' } }, 'correspondence.alignment').length, 0);
-});
-
-test('qualified literal PF outputs require their exact authored surface group, never an invented whole-word node', () => {
-  const relation = { relation: 'inflectional realization', anchors: { alphaContributors: ['v', 't'] },
-    values: { alphaOutput: 'opaque whole form', alphaAllomorphy: 'literal stem description' } };
-  const groups = [{ nodeIds: ['v', 't'], tokenIndices: [0, 1] }];
-  const claims = by(relation, 'pf.structured', forest, undefined, groups); assert.equal(claims.length, 1);
-  assert.deepEqual(claims[0].facet.evidence.currentAnchors['rewrite.output'], ['v', 't']);
-  assert(used(claims[0], 'alphaContributors', [0, 1])); assert(used(claims[0], 'alphaOutput')); assert(used(claims[0], 'alphaAllomorphy'));
-  assert.equal(by(relation, 'pf.rewrite', forest, undefined, groups).length, 0);
-  for (const malformed of [[], [{ nodeIds: ['v'], tokenIndices: [0] }], [...groups, { nodeIds: ['otherT'], tokenIndices: [1] }]])
-    assert.equal(by(relation, 'pf.structured', forest, undefined, malformed).length, 0);
-  assert.equal(by({ ...relation, relation: 'Possible inflectional realization' }, 'pf.structured', forest, undefined, groups).length, 0);
-  assert.equal(by(relation, 'pf.structured', [...forest, leaf('v', 'V')], undefined, groups).length, 0);
 });
 
 test('argument licensing preserves an independently explicit Case source and qualified internal recipient', () => {

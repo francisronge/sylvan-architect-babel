@@ -36,7 +36,7 @@ const bindLiteralColumns = (scope: ReturnType<typeof rewriteScope>, inputKey: st
 };
 
 export function recoverPFRewrite(evidence: Tier2FacetEvidence) {
-  return [...recoverExplicitPFRewrite(evidence), ...recoverAllomorphRewrite(evidence), ...recoverQualifiedRealizationGroups(evidence), ...recoverSurfaceCombination(evidence)];
+  return [...recoverExplicitPFRewrite(evidence), ...recoverAllomorphRewrite(evidence), ...recoverSurfaceCombination(evidence)];
 }
 
 /** A literal surface combination belongs to the complete exact realization
@@ -87,27 +87,6 @@ function recoverSurfaceCombination(evidence: Tier2FacetEvidence) {
     [...values.filter(entry => surfaces.includes(entry) || morphology.includes(entry)), ...links].map(entry => ({ entry, concept: 'pf.rows' })));
   scope.evidence.realizationGroupAnchorKeys = groups[0].owners.map(entry => entry.key);
   return [scope];
-}
-
-/** Qualified contributor/output fields attach literal PF rows to their exact
- * authored realization group. They supply no invented whole-word syntax node
- * or input/output rewrite columns. */
-function recoverQualifiedRealizationGroups(evidence: Tier2FacetEvidence) {
-  if (normalizeTier2Synonym(evidence.relationName) !== 'inflectional realization' || !establishesAssignment(evidence)) return [];
-  const anchors = evidence.authoredCurrentAnchors ?? [], values = evidence.authoredValues ?? [];
-  return anchors.flatMap(anchor => {
-    const qualifier = /^(.+) contributors$/u.exec(normalizeTier2Synonym(anchor.key))?.[1];
-    if (!qualifier || !exactRealizationGroup(anchor.items, evidence.currentRealizations, evidence.currentForest)
-      || !uniqueCurrentOwners(evidence, anchor.items)) return [];
-    const outputs = values.filter(entry => normalizeTier2Synonym(entry.key) === `${qualifier} output`);
-    const rows = values.filter(entry => [`${qualifier} output`, `${qualifier} allomorphy`].includes(normalizeTier2Synonym(entry.key)));
-    if (outputs.length !== 1 || rows.some(entry => entry.items.length !== 1 || !entry.items[0].trim())
-      || rows.some(entry => /\b(?:denied|rejected|required|requested|expected|possible|potential|hypothetical|pending|unresolved|if|unless|whether)\b/u.test(normalizeTier2Synonym(entry.items[0])))
-      || anchors.some(entry => entry !== anchor && entry.concepts.includes('rewrite.output') && entry.items.some(id => anchor.items.includes(id)))) return [];
-    const scope = scopeEvidence(evidence, 'pf.structured', [{ entry: anchor, concept: 'rewrite.output' }], rows.map(entry => ({ entry, concept: 'pf.rows' })));
-    scope.evidence.realizationGroupAnchorKeys = [anchor.key];
-    return [scope];
-  });
 }
 
 /** Input/output roles alone are context. A complete PF mapping assertion plus
