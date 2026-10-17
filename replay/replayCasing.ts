@@ -56,8 +56,9 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
     const clonedCanvas = cloneSyntaxTree(step.replayCanvasData);
     if (!clonedCanvas)
       return step;
-    if (clonedCanvas.replayOrigin?.kind === 'workspace')
-      return step;
+    // Separate workspaces keep the authored form of their first word, but a
+    // word preceded by visible pronounced material is never sentence-initial.
+    const detachedForest = clonedCanvas.replayOrigin?.kind === 'workspace';
     let changed = false;
     // Keep first-preorder lookup semantics, including aliases, while collecting
     // parent and inherited flags once instead of searching a path for every leaf.
@@ -123,7 +124,7 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
         return landing && collectOvertLeafNodeIdsInOrder(landing).includes(leafId);
       });
       const nextSurface = leafId && leafId === firstPronouncedLeafId
-        ? (authoredLowercaseSource && !surfacedLanding ? authoredSurface : uppercaseInitial)
+        ? (detachedForest ? surface : authoredLowercaseSource && !surfacedLanding ? authoredSurface : uppercaseInitial)
         : maybeLowercaseSentenceInitialFunctionSurface({
           surface,
           sentenceInitialSurface,
