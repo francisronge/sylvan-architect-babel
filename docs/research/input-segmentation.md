@@ -220,6 +220,13 @@ prompt only inside the qualification runner:
   - Limits: a group cannot cover a discontinuous stretch, which indices can.
     A word that differs from its stretch only in inner marks (*don't* for
     *don’t*) is recorded as a single-leaf group after conversion.
+  - Version 2 (`character-spellout-v2`, 18 October) cuts one word list wherever
+    any analysis or earlier stage divides a word. Analyses that divide a word
+    differently, and a word that grows across stages (吃完, then 吃完了), then
+    share it; a word over several tokens is recorded as a single-leaf group.
+    Its wording also says that the writing, including its spacing, does not
+    prescribe word boundaries, after one Thai run treated a whole unspaced
+    sentence as one written word.
 - **Conditions.** The same sentences run under today's indexed token list and
   under character spell-out, with GPT-6.1 Sol at high effort through Codex OAuth.
   Each condition's prompt and contract version is recorded.
