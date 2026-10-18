@@ -404,7 +404,10 @@ have no invented links. Fan paths leave measured gaps around syntax and role
 labels. Scalar connector stems use the same label clearance. A fan spoke whose
 stroke would meet a visible plaque stops short of it on each side, leaving four
 marker units of dark space beyond the spoke's shadow at every automatic Fit.
-Spokes that only pass beside a plaque stay whole, and role labels do not move. Repeated witnesses retain every authored role label; a fan does not draw
+Spokes that only pass beside a plaque stay whole, and role labels do not move.
+Attachment wins over plaque clearance: when the gap would separate a spoke from
+either of its role labels, that plaque cuts the spoke only at its own edge, or
+not at all if even its edge reaches the label. Repeated witnesses retain every authored role label; a fan does not draw
 a spoke from a node to itself.
 
 The existing Replay rows identify previous-stage references with

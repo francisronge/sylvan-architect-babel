@@ -88,8 +88,10 @@ function segmentRectDistance(p: Point, q: Point, box: Rect): number {
 /** A plaque is not an attachment point. When the line left visible beside its
  * labels comes within `contact` of a plaque, it is cut wherever it lies inside
  * the plaque inflated by `gap`, so each cut end keeps at least that distance.
- * A line passing beside a plaque stays whole. An isolated piece left between
- * cuts, shorter than `minimum`, would paint as a round-capped dot and is dropped. */
+ * A line passing beside a plaque stays whole. No cut may remove the piece at
+ * either labelled end: the plaque then cuts at its own edge, or not at all.
+ * An isolated piece left between cuts, shorter than `minimum`, would paint as
+ * a round-capped dot and is dropped. */
 type PlaqueClearance = { boxes: readonly Rect[]; contact: number; gap: number; minimum: number };
 
 type Interval = [number, number];
@@ -102,15 +104,19 @@ export function clearLabelPath(from: Point, to: Point, boxes: readonly Rect[] = 
   const dx = to.x - from.x, dy = to.y - from.y;
   const at = (t: number): Point => ({ x: from.x + dx * t, y: from.y + dy * t });
   const besideLabels = boxes.reduce<Interval[]>((parts, box) => removeInterval(parts, lineInterval(from, dx, dy, box)), [[0, 1]]);
+  const start = besideLabels[0]?.[0], end = besideLabels.at(-1)?.[1];
+  const detaches = (cut: Interval | null) => Boolean(cut && start !== undefined && end !== undefined
+    && (cut[0] <= start && cut[1] > start || cut[0] < end && cut[1] >= end));
   let visible = besideLabels;
   if (plaques) {
     const met = plaques.boxes.filter(box => besideLabels.some(([a, b]) => segmentRectDistance(at(a), at(b), box) < plaques.contact));
-    for (const box of met) visible = removeInterval(visible, lineInterval(from, dx, dy, inflateRect(box, plaques.gap)));
+    // Attachment wins over clearance: keep the gap, else cut at the plaque's edge, else leave the spoke uncut.
+    for (const box of met) visible = removeInterval(visible, [inflateRect(box, plaques.gap), box]
+      .map(rect => lineInterval(from, dx, dy, rect)).find(cut => !detaches(cut)) ?? null);
   }
   const point = (t: number) => `${at(t).x.toFixed(1)} ${at(t).y.toFixed(1)}`;
   const length = Math.hypot(dx, dy);
   // A piece that still leaves a labelled end keeps the spoke attached, however short.
-  const start = besideLabels[0]?.[0], end = besideLabels.at(-1)?.[1];
   const kept = ([a, b]: Interval) => a === start || b === end || besideLabels.some(([c, e]) => c === a && e === b)
     || point(a) !== point(b) && (b - a) * length >= plaques!.minimum;
   return visible.filter(kept).map(([a, b]) => `M ${point(a)} L ${point(b)}`).join(' ');

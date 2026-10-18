@@ -116,11 +116,9 @@ for (const markerScale of [0.5, 1, 3]) test(`a shallow crossing keeps the full g
   assertCutClear(d, wide, markerScale);
 });
 
-for (const markerScale of [0.5, 1, 3]) test(`a spoke starting inside a plaque begins the full gap outside it at marker scale ${markerScale}`, () => {
+for (const markerScale of [0.5, 1, 3]) test(`a spoke whose end lies inside a plaque stays attached at marker scale ${markerScale}`, () => {
   const host = { x: 0, y: 0, width: 10, height: 10 };
-  const d = routeSpoke({ x: 5, y: 5 }, { x: 100, y: 5 }, { plaques: [host], markerScale });
-  assert.equal(pieces(d).length, 1);
-  assertCutClear(d, host, markerScale);
+  assert.equal(routeSpoke({ x: 5, y: 5 }, { x: 100, y: 5 }, { plaques: [host], markerScale }), 'M 5.0 5.0 L 100.0 5.0');
 });
 
 test('a short piece still attached to a role label is kept', () => {
@@ -135,6 +133,46 @@ test('a short piece still attached to a role label is kept', () => {
     assert.equal(d, expected);
     assertCutClear(d, plaque, 1);
   }
+});
+
+test('attachment wins over plaque clearance at a labelled end', () => {
+  const from = { x: 0, y: 0 }, to = { x: 100, y: 0 };
+  const labels = [{ x: -20, y: -12, width: 40, height: 24 }, { x: 80, y: -12, width: 40, height: 24 }];
+  for (const [plaque, expected] of [
+    // The gap would reach a label, so the plaque cuts only at its own edge.
+    [{ x: 25, y: -5, width: 10, height: 10 }, 'M 20.0 0.0 L 25.0 0.0 M 35.0 0.0 L 80.0 0.0'],
+    [{ x: 25, y: -5, width: 50, height: 10 }, 'M 20.0 0.0 L 25.0 0.0 M 75.0 0.0 L 80.0 0.0'],
+    // Even the plaque's edge reaches the label, so the spoke stays uncut.
+    [{ x: 15, y: -5, width: 10, height: 10 }, 'M 20.0 0.0 L 80.0 0.0']
+  ]) assert.equal(routeSpoke(from, to, { labels, plaques: [plaque] }), expected);
+});
+
+test('a placed spoke near a plaque stays attached to both role labels', () => {
+  const nodes = { a: { x: 0, y: 0 }, b: { x: 0, y: 60 }, c: { x: 200, y: 60 } };
+  const syntax = Object.fromEntries(Object.entries(nodes).map(([id, p]) => [id, { x: p.x - 10, y: p.y - 10, width: 20, height: 20 }]));
+  const near = { x: 13, y: 15, width: 50, height: 30 };
+  const measurements = { labels: Object.values(syntax), obstacles: [near], visibleLabels: Object.values(syntax),
+    visibleObstacles: [near], labelFor: id => syntax[id], subtreeFor: id => syntax[id], bottom: 70 };
+  const stage = { statement: '', stageRecord: '', relations: [{ relation: 'Unfamiliar relation', anchors: { h: 'a', p: ['b', 'c'] } }],
+    workspaceForest: [{ id: 'a', label: 'A', children: [{ id: 'b', label: 'B' }, { id: 'c', label: 'C' }] }] };
+  const bound = bindRelationPlanFrame(compileRelationRenderPlan([stage]), 0, id => nodes[id] ?? null,
+    { fallbackMeasurements: measurements, separateFallbackMoments: true });
+  const fitted = [...fitFallbackGeometry(bound, { fittedMarkerScale: 1, fallbackMeasurements: measurements,
+    separateFallbackMoments: true }).values()];
+  const marks = fitted.filter(primitive => primitive.type === 'fallback-mark');
+  // Role placement treats rectangles within half a unit as touching, not overlapping.
+  for (const mark of marks) {
+    const role = fallbackLabelRect(mark, 1);
+    assert(role.x + role.width <= near.x + 0.5 || near.x + near.width <= role.x + 0.5
+      || role.y + role.height <= near.y + 0.5 || near.y + near.height <= role.y + 0.5, 'role labels avoid the plaque');
+  }
+  const spokes = fitted.filter(primitive => primitive.type === 'segment');
+  for (const spoke of spokes) assert(pieces(spoke.d).length > 0, `spoke ${spoke.witnessNodeIds.join('→')} is drawn`);
+  // The a→b spoke meets the plaque right below its hub label; it is cut only at the plaque's edges.
+  const meeting = spokes.find(spoke => spoke.witnessNodeIds.includes('b')), drawn = pieces(meeting.d);
+  const [hub, target] = [meeting.fromMark, meeting.toMark].map(order => marks.find(mark => mark.allocationOrder === order));
+  assert(pointRectDistance(drawn[0][0], fallbackLabelRect(hub, 1)) < ROUNDING);
+  assert(pointRectDistance(drawn.at(-1)[1], fallbackLabelRect(target, 1)) < ROUNDING);
 });
 
 test('close plaques leave no zero-length or dot-sized fragment between their gaps', () => {
