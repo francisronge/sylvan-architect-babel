@@ -273,7 +273,10 @@ export function installAuditProbe(helpers) {
         const value = opacity(element), box = element.getBoundingClientRect();
         if (value < 0.01 || !(box.width > 0 && box.height > 0)) continue;
         const anchor = element.closest('[data-feature-anchor]')?.getAttribute('data-feature-anchor');
-        const container = tagOf(element) === 'g' ? element : element.closest('.babel-theta-grid-plate') || element.parentElement;
+        // The painter's plaque group holds the shell and its text: a Case plaque keeps its
+        // shell and title in .babel-feature-plaque-frame and each row in a sibling .babel-feature-row.
+        const container = tagOf(element) === 'g' ? element
+          : element.closest('.babel-theta-grid-plate,.babel-feature-plaque,.babel-dependent-case-state-plaque') || element.parentElement;
         const matrix = element.getScreenCTM();
         const record = { uid: `p${plaques.length}`, cls: classesOf(element).join(' '), owners: ownersOf(element),
           refs: refsOf(element), anchor: nodeIds.has(anchor) ? anchor : null,

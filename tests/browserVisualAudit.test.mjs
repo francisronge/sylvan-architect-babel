@@ -336,7 +336,19 @@ test('the serialized page probe collects geometry the shared rules judge, and sa
       el('g', { class: 'babel-feature-plaque vr-item', 'data-feature-anchor': 'cbar', 'data-plaque-location': 'local', 'data-vr-owner-refs': '2:0' },
         Object.assign(el('rect', { class: 'babel-feature-plaque-shell', rx: 14 }), { localBox: { x: 400, y: 860, width: 300, height: 80 } }),
         text({ class: 'babel-feature-text' }, [Object.assign(el('tspan', { x: 420, y: 905 }, 'clauseType: declarative'),
-          { localBox: { x: 420, y: 880, width: 260, height: 40 } })], { x: 420, y: 880, width: 260, height: 40 }, { baseline: 905 }))));
+          { localBox: { x: 420, y: 880, width: 260, height: 40 } })], { x: 420, y: 880, width: 260, height: 40 }, { baseline: 905 }))),
+    // A Case plaque as caseFeatureDrawing paints it: shell and title in the frame group, rows beside it.
+    el('g', { class: 'babel-agreement-case-relation-layer' },
+      el('g', { class: 'babel-feature-plaque babel-case-feature-plaque', 'data-feature-placement': 'accepted' },
+        el('g', { class: 'babel-feature-plaque-frame vr-item', 'data-vr-owner-refs': '5:0 5:1' },
+          Object.assign(el('rect', { class: 'babel-feature-plaque-shell', rx: 12 }), { localBox: { x: 900, y: 100, width: 400, height: 160 } }),
+          text({ class: 'babel-feature-plaque-title' }, 'CASE / AGREEMENT', { x: 920, y: 110, width: 240, height: 30 }, { baseline: 132 })),
+        el('g', { class: 'babel-feature-row vr-item', 'data-vr-owner-refs': '5:1', 'data-feature-anchor': 'cbar' },
+          text({ class: 'babel-feature-text' }, [Object.assign(el('tspan', { x: 922, y: 200 }, '[Case: accusative]'),
+            { localBox: { x: 922, y: 180, width: 300, height: 40 } })], { x: 922, y: 180, width: 300, height: 40 }, { baseline: 200 })))),
+    // A neutral role label of another claim placed over that plaque.
+    el('g', { class: 'vr-item', 'data-vr-owner-refs': '6:0' },
+      el('g', { class: 'vr-fallback-mark' }, text({ class: 'vr-fallback-role' }, 'Theme', { x: 1150, y: 200, width: 120, height: 40 }, { baseline: 230 }))));
   const svg = Object.assign(el('svg', { 'data-babel-tree': 'true', 'data-babel-rendered-step': '2', 'data-babel-camera-settled-step': '2' }, treeGroup),
     { box: { x: 0, y: 60, width: 1440, height: 840 } });
   const next = Object.assign(el('button', {}, 'Next'), { onclick: () => treeGroup.setAttribute('transform', 'translate(3000,900) scale(0.5)') });
@@ -360,14 +372,22 @@ test('the serialized page probe collects geometry the shared rules judge, and sa
     assert.deepEqual(snapshot.texts.map(item => [item.kind, item.text, item.nodeId, item.host, item.strokePx]), [
       ['category', 'Coord[alternative ]', 'cp', null, 5], ['word', 'Qué', 'queDP', null, 4], ['category', 'C′', 'cbar', null, 5],
       ['word', 'every', 'juanDP', null, 4], ['index', 'j', 'juanDP', 't3', 0], ['index', 'j', null, null, 0],
-      ['plaque-text', 'clauseType: declarative', null, null, 0]]);
+      ['plaque-text', 'clauseType: declarative', null, null, 0], ['plaque-text', 'CASE / AGREEMENT', null, null, 0],
+      ['plaque-text', '[Case: accusative]', null, null, 0], ['relation-label', 'Theme', null, null, 0]]);
+    assert.deepEqual(snapshot.texts.filter(item => item.kind === 'plaque-text').map(item => item.plaque), ['p0', 'p1', 'p1'],
+      'a Case plaque\'s rows belong to it through the painter\'s plaque group');
     assert.equal(snapshot.texts[0].inkBoxes.length, 2, 'one glyph box per wrapped line');
     assert.deepEqual(snapshot.texts[5].placement.anchor, 'juanDP');
-    assert.deepEqual(snapshot.plaques.map(item => [item.anchor, item.radiusPx, item.joined]), [['cbar', 7, false]]);
+    assert.deepEqual(snapshot.plaques.map(item => [item.anchor, item.radiusPx, item.joined]), [['cbar', 7, false], [null, 6, true]]);
     assert.deepEqual(snapshot.branches.map(item => item.kind), ['branch', 'branch', 'branch', 'stem', 'stem']);
     const { model } = toFrameModel(snapshot, { frame: 3, viewport: 'desktop' });
-    assert.deepEqual(model.texts.map(item => item.id), ['cp:category', 'queDP:word', 'cbar:category', 'juanDP:word', 'index(1:1 j)@juanDP']);
+    assert.deepEqual(model.texts.map(item => item.id), ['cp:category', 'queDP:word', 'cbar:category', 'juanDP:word', 'index(1:1 j)@juanDP',
+      'role(6:0 Theme)@']);
     assert.deepEqual(model.lines.map(item => item.id), ['cp->queDP', 'cp->cbar', 'cbar->juanDP', 'queDP:stem', 'juanDP:stem', 'connector(4:0)']);
+    const overlaps = checkFrame(model).filter(item => item.rule === 'glyph-overlap' && item.subtype === 'text-plaque');
+    assert.deepEqual(overlaps.map(item => [item.subtype, item.subject]),
+      [['text-plaque', 'plaque(5:0/5:1 CASE / AGREEMENT; [Case: accusative])@ role(6:0 Theme)@']],
+      'the role label of another claim overlaps the plaque; the plaque\'s own rows do not');
     const found = rules(checkFrame(model));
     for (const rule of ['line-clearance/branch-text', 'line-clearance/connector-plaque', 'label-typography/closing-start']) assert(found.includes(rule), `${rule} in ${found}`);
     assert.deepEqual(letterFindings(snapshot, { record: 'r', frame: 3, viewport: 'desktop' }).map(item => item.subject), ['juanDP:word j']);
