@@ -90,10 +90,18 @@ const adjoinsHostInPlace = (parent: SyntaxNode, landingId: string, workspaces?: 
     && sameMovementSourceSlot(current, prior, parent.id, host.id);
 };
 
-/** A moved head complex: each branching member holds a head of its own. */
-const hasHeadComplexShape = (node: SyntaxNode): boolean => !readsAsProjection(node)
-  && (!node.children?.length || node.children.some(child => !child.children?.length)
-    && node.children.every(hasHeadComplexShape));
+/** A branching occurrence is a moved head complex, not a phrase, when it was
+ * assembled by earlier head movement: each branching member holds a head of
+ * its own, and one member's lower copy remains beside the complex. */
+const isAssembledHeadComplex = (node: SyntaxNode, sisters: readonly SyntaxNode[]): boolean => {
+  const shaped = (member: SyntaxNode): boolean => !readsAsProjection(member)
+    && (!member.children?.length || member.children.some(child => !child.children?.length) && member.children.every(shaped));
+  const nodes = (root: SyntaxNode): SyntaxNode[] => [root, ...(root.children ?? []).flatMap(nodes)];
+  const members = (node.children ?? []).flatMap(nodes), lower = sisters.flatMap(nodes);
+  return Boolean(node.children?.length) && shaped(node) && members.some(member => member.lineageId
+    && member.lineageId !== node.lineageId && members.filter(other => other.lineageId === member.lineageId).length === 1
+    && lower.some(witness => witness.id !== member.id && witness.lineageId === member.lineageId));
+};
 
 const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly SyntaxNode[] = [],
   workspaces?: MovementWorkspaces): boolean => {
@@ -210,7 +218,8 @@ const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly
     || Boolean(headContext && priorSource.node?.children?.length && headCategory(priorSource.node) === headCategory(target)
       && isHeadAssembly(priorSource.node) && isHeadAssembly(target))
     || /^[A-Za-z][A-Za-z]*(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u.test(target.label) || projectedSource
-    || Boolean(parent && hasHeadComplexShape(target) && adjoinsHostInPlace(parent, target.id, workspaces));
+    || Boolean(parent && priorSource.node && isAssembledHeadComplex(priorSource.node, oldSisters)
+      && adjoinsHostInPlace(parent, target.id, workspaces));
   if (headUnit && parent && (isHeadComplex(parent, target.id, previous, workspaces) || isProjectedHead(parent, target, priorSource.node, workspaces))) return 'head';
   const parentCategory = readCategoryLabel(parent?.label);
   const specifier = parentCategory && parent?.children?.some(n => n.id !== target.id
