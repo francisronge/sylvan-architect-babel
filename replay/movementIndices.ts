@@ -3,6 +3,7 @@ import { type ResolvedRelationLink } from '../relationLinks.ts';
 import { type SyntaxNode } from '../types.ts';
 import { getNodeId } from './displayIdentity.ts';
 import { isResolvedMovementLink } from './movementLinks.ts';
+import { authoredRoleMatcher } from './relationAnchors.ts';
 import { TRAJECTORY_SOURCE_ROLES, TRAJECTORY_WITNESS_ROLES } from './relations/renderFamilies.ts';
 import {
   extractMovementIndex,
@@ -159,14 +160,14 @@ export const buildResolvedLinkTraceIndexMap = (
    * one dependency, one index, every conjunct.
    */
   const linkAnchorIdsByRoles = (link: ResolvedRelationLink, roles: readonly string[]): string[] => {
-    const wanted = new Set(roles.map((role) => role.toLowerCase()));
+    const wanted = authoredRoleMatcher(roles);
     const anchors = (link as ReplayAuthoredRelationLink)?.anchors;
     if (!Array.isArray(anchors))
       return [];
     return anchors
-      .filter((anchor) => wanted.has(String((anchor as {
+      .filter((anchor) => wanted((anchor as {
         role?: string;
-      })?.role || '').trim().toLowerCase()))
+      })?.role))
       .map((anchor) => String((anchor as {
         nodeId?: string;
       })?.nodeId || ''))

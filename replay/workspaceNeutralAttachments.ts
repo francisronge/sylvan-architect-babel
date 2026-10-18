@@ -11,8 +11,14 @@ export function neutralWorkspaceAttachments(
   const identity = step.replayRelationIdentity, proof = step.replayTreeTransition;
   const roots = new Set<string>();
   if (step.replayKind !== 'relation' || !identity || !proof
-    || proof.relationKey !== `${identity.stageIndex}:${identity.relationIndex}`
-    || !proof.priorNodeIds.length || !proof.currentNodeIds.length) return roots;
+    || proof.relationKey !== `${identity.stageIndex}:${identity.relationIndex}`) return roots;
+  // The compiler proved each listed host's material unchanged outside this
+  // claim's own output and its outer slot kept; the views confirm the new
+  // parent now holds it.
+  for (const { host, wrapper } of proof.attachments ?? [])
+    if (before.has(host) && current.has(host) && current.has(wrapper) && !before.has(wrapper) && current.parent(host) === wrapper)
+      roots.add(host);
+  if (!proof.priorNodeIds.length || !proof.currentNodeIds.length) return roots;
   const prior = new Set(proof.priorNodeIds), present = new Set(proof.currentNodeIds);
   // The compiler's sets may include display-independent IDs; only current,
   // uniquely represented structural witnesses participate in this boundary.

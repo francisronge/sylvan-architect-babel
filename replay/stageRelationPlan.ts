@@ -52,7 +52,8 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     frameRelationSteps,
     previousFrameWorkspaceRoots,
     structuralWorkspaceRoots,
-    frameHasNonMovementTreeTransition
+    frameHasNonMovementTreeTransition,
+    fallbackTransitionOwnership
   } = stage;
   const resolveRelationPlacement = (relation: IndexedRelationStep, relationIndex: number) => {
     const relationLabel = String(relation?.relation || '').trim() || 'Visual Relation';
@@ -233,6 +234,9 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
       ...placement.sourceNodeIds
     ].filter(Boolean))));
   });
+  // The new parents each neutral claim's moment introduces with its output.
+  const transitionHostNodeIds = new Map([...fallbackTransitionOwnership]
+    .flatMap(([relationIndex, ownership]) => (ownership.hostNodeIds ?? []).map(id => [id, relationIndex] as const)));
   const relationLayoutNodeIds = Array.from(new Set(Array.from(relationVisibleNodeIdsByIndex.values()).flat().filter(Boolean)));
   const frameHasTreeTransition = Array.from(singleRelationLinksByIndex.values()).some((links) => links.some(isResolvedMovementLink))
     || relationPlacements.some((placement) => placement.ownsPhrasalTreeTransition)
@@ -244,7 +248,8 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     relationVisibleNodeIdsByIndex,
     relationLayoutNodeIds,
     frameHasTreeTransition,
-    getMovementCreatedLandingHostPaths
+    getMovementCreatedLandingHostPaths,
+    transitionHostNodeIds
   };
 };
 

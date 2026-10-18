@@ -52,6 +52,7 @@ import {
 import {
   buildPreMovementStructuralForest,
   type FallbackTreeTransitionOwnership,
+  planNeutralTransitionAttachments,
   relationOwnedPhrasalSourceRoles,
   relationOwnedPhrasalTargetRoles,
   relationOwnsNonMovementTreeTransition,
@@ -218,6 +219,9 @@ export const prepareReplayStage = (
   nonMovementTreeTransitionRelationIndexes.forEach(relationIndex => {
     nonMovementTransitionNodeIds.set(relationIndex, fallbackTransitionOwnership.get(relationIndex)?.currentNodeIds || new Set(getRelationAllAnchorNodeIds(frameRelationSteps[relationIndex]).flatMap(nodeId => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, nodeId)))));
   });
+  if (frameHasNonMovementTreeTransition)
+    planNeutralTransitionAttachments(frameRelationSteps, fallbackTransitionOwnership, [...nonMovementTreeTransitionRelationIndexes],
+      previousFrameWorkspaceRoots, workspaceRoots);
   const frameIsPureVisualTrajectoryStage = frameHasMovementPayload
     && collectReplayOvertTokenMultisetKey(previousFrameWorkspaceRoots) === collectReplayOvertTokenMultisetKey(workspaceRoots)
     && collectReplayRootStructuralKey(previousFrameWorkspaceRoots) === collectReplayRootStructuralKey(workspaceRoots);

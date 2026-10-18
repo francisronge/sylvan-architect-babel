@@ -31,10 +31,12 @@ import {
 import { recoveredCovertMovement } from './relations/tier2Transitions.ts';
 import {
   collectExactSubtreeNodeIds,
+  collectSyntaxSubtreeNodeIds,
   findExactNodeByIdInForest,
   findExactNodesByIdInForest,
   indexExactForestNodeLocations
 } from './syntaxForest.ts';
+import { anchoredCopyDisplacement, resolveFallbackTreeTransitionOwnership } from './treeTransitions.ts';
 import {
   type DerivationReplayPlan,
   type DerivationReplayPlanStage,
@@ -355,7 +357,25 @@ export const getFrameRelations = (
       sourceNodeIds: [movement.sourceNodeId], targetNodeId: movement.targetNodeId
     };
   });
-  return recovered;
+  // A neutral claim's copy is its displacement only outside every recovered
+  // movement of the stage, which owns both of its occurrences, and outside
+  // what an earlier claim already establishes.
+  const claimedNodeIds = new Set(recovered.flatMap(step => (step.recoveredMovements ?? [step.recoveredMovement]))
+    .filter(movement => movement?.transition).flatMap(movement => [
+      ...[movement!.sourceNodeId, movement!.targetNodeId].flatMap(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(currentForest, id))),
+      ...collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement!.priorSourceNodeId))
+    ]));
+  return recovered.map((step, relationIndex) => {
+    const anchoredCopy = anchoredCopyDisplacement(step, previousForest, currentForest, claimedNodeIds);
+    const ambiguous = anchoredCopy?.copies.filter(copy => !copy.earlierNodeId).map(copy => copy.nodeId) ?? [];
+    const displaced = anchoredCopy ? { ...step, anchoredCopyDisplacement: anchoredCopy, ...(ambiguous.length ? { movementDiagnostics: [
+      ...(step.movementDiagnostics ?? []),
+      `COPY_SOURCE_AMBIGUOUS: Stage ${(plannedStage?.stageIndex ?? 0) + 1}, relation ${(step.authoredRelationIndex ?? relationIndex) + 1} (${step.relation}) relates ${ambiguous.join(', ')} to more than one earlier occurrence of the same object, and no single one is displaced. No earlier form stands in for a later pronunciation.`
+    ] } : {}) } : step;
+    resolveFallbackTreeTransitionOwnership(displaced, previousForest, currentForest)?.currentNodeIds
+      .forEach(id => claimedNodeIds.add(id));
+    return displaced;
+  });
 };
 
 /**

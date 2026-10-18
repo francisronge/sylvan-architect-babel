@@ -38,7 +38,9 @@ export const createStageRelationSnapshots = (
   compilation: ReplayCompilation,
   stage: ReplayStageContext,
   placements: StageRelationPlan,
-  ordinaryStructuralNodeIds: ReadonlySet<string>
+  ordinaryStructuralNodeIds: ReadonlySet<string>,
+  /** Ordinary attachments whose construction step has not run. */
+  heldAttachmentNodeIds: () => ReadonlySet<string> = () => new Set()
 ) => {
   const { frames, identity } = compilation;
   const {
@@ -63,7 +65,8 @@ export const createStageRelationSnapshots = (
     getMovementCreatedLandingHostNodeIds,
     relationVisibleNodeIdsByIndex,
     relationLayoutNodeIds,
-    frameHasTreeTransition
+    frameHasTreeTransition,
+    transitionHostNodeIds
   } = placements;
   const keptIdLandings = new Map([...fallbackTransitionOwnership].map(([relationIndex, ownership]) =>
     [relationIndex, keptIdLandingNodeIds(ownership, previousFrameWorkspaceRoots, workspaceRoots)]));
@@ -188,7 +191,10 @@ export const createStageRelationSnapshots = (
         withheldNodeIds: pendingMovementNodeIds,
         pendingTransitionNodeIds: new Set(Array.from(fallbackTransitionOwnership).flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex) ? []
           : [...ownership.priorNodeIds, ...ownership.currentNodeIds])),
-        pendingKeptIdLandingNodeIds: new Set([...keptIdLandings].flatMap(([relationIndex, nodeIds]) => activeRelationIndexes.has(relationIndex) ? [] : nodeIds))
+        pendingKeptIdLandingNodeIds: new Set([...keptIdLandings].flatMap(([relationIndex, nodeIds]) => activeRelationIndexes.has(relationIndex) ? [] : nodeIds)),
+        attachedNodeIds: new Set([...fallbackTransitionOwnership].flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex)
+          ? (ownership.attachments ?? []).map(attachment => attachment.host) : [])),
+        heldAttachmentNodeIds: new Set(heldAttachmentNodeIds())
       });
     let snapshotWorkspaceRoots = buildPreMovementStructuralForest(nonMovementTransitionForest, frameRelationSteps.flatMap((relation, relationIndex) => {
       if (activeRelationIndexes.has(relationIndex))
@@ -235,6 +241,40 @@ export const createStageRelationSnapshots = (
       else
         current.tokenIndex = prior.tokenIndex;
     };
+    // A copied phrase continues its earlier occurrence position by position.
+    // Until the claim that owns a node's pronunciation (by naming it or an
+    // ancestor) reaches its moment, each node shows its exact counterpart's
+    // pronunciation state: word, input address and silence on terminals, and
+    // silence above them. Without an exact counterpart it shows none.
+    const retainCopiedPronunciation = (nodeId: string, priorNodeId: string | null, ownerIndex: number) => {
+      const pending = (id: string): boolean => {
+        const named = new Set([id]);
+        for (let parentId = findParentNodeIdInForest(workspaceRoots, id); parentId; parentId = findParentNodeIdInForest(workspaceRoots, parentId))
+          named.add(parentId);
+        const owner = frameRelationSteps.findIndex((relation, relationIndex) => relationIndex > ownerIndex
+          && relation.pronunciationNodeIds?.some(named.has, named));
+        return owner >= 0 && !activeRelationIndexes.has(owner);
+      };
+      const restore = (id: string, prior: SyntaxNode | null, keys: readonly ('word' | 'tokenIndex' | 'silent')[]) => {
+        const current = findExactNodeByIdInForest(snapshotWorkspaceRoots, id) as unknown as Record<string, unknown> | null;
+        keys.forEach(key => {
+          if (current && prior?.[key] === undefined)
+            delete current[key];
+          else if (current)
+            current[key] = prior![key];
+        });
+      };
+      const walk = (node: SyntaxNode, prior: SyntaxNode | null): void => {
+        const terminal = !node.children?.length, exact = prior && Boolean(prior.children?.length) !== terminal ? prior : null;
+        if (pending(node.id))
+          restore(node.id, exact, terminal ? ['word', 'tokenIndex', 'silent'] : ['silent']);
+        const aligned = exact && exact.children?.length === node.children?.length ? exact.children! : null;
+        (node.children || []).forEach((child, childIndex) => walk(child, aligned ? aligned[childIndex] : null));
+      };
+      const node = findExactNodeByIdInForest(workspaceRoots, nodeId);
+      if (node)
+        walk(node, priorNodeId === null ? null : findExactNodeByIdInForest(previousFrameWorkspaceRoots, priorNodeId) ?? null);
+    };
     frameRelationSteps.forEach((movementRelation, movementIndex) => {
       (movementRelation.recoveredMovements ?? [movementRelation.recoveredMovement]).forEach(movement => {
         if (!movement?.transition || movement.trajectoryKind !== 'head'
@@ -249,13 +289,15 @@ export const createStageRelationSnapshots = (
     fallbackTransitionOwnership.forEach((ownership, relationIndex) => {
       if (!activeRelationIndexes.has(relationIndex))
         return;
-      ownership.copyPairs?.forEach(pair => retainPendingPronunciation(pair.targetNodeId, pair.priorSourceNodeId, relationIndex));
+      ownership.copyPairs?.forEach(pair => retainCopiedPronunciation(pair.targetNodeId, pair.priorSourceNodeId, relationIndex));
+      ownership.ambiguousCopyNodeIds?.forEach(nodeId => retainCopiedPronunciation(nodeId, null, relationIndex));
     });
     if (baseStep?.replayPendingAttachmentNodeIds) {
       // An active relation that owns a structural change makes its new nodes
       // current at this moment, so their edges cannot wait for a later step.
-      const activeTransitionNodeIds = Array.from(fallbackTransitionOwnership)
-        .flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex) ? [...ownership.currentNodeIds] : []);
+      const activeTransitionNodeIds = [...Array.from(fallbackTransitionOwnership)
+        .flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex) ? [...ownership.currentNodeIds] : []),
+      ...[...transitionHostNodeIds].flatMap(([nodeId, relationIndex]) => activeRelationIndexes.has(relationIndex) ? [nodeId] : [])];
       snapshotWorkspaceRoots = preserveConstructionAttachments(snapshotWorkspaceRoots, previousFrameWorkspaceRoots, new Set(baseStep.replayPendingAttachmentNodeIds), new Set([...(baseStep.replayVisibleNodeIds || []), ...extraVisibleNodeIds, ...activeTransitionNodeIds]));
     }
     const activeRelationLinks = buildActiveRelationLinks(activeRelationIndexes);
@@ -381,7 +423,11 @@ export const createStageRelationSnapshots = (
         replayTreeTransition: {
           relationKey: `${index}:${authoredRelationIndex}`,
           currentNodeIds: [...neutralOwnership.currentNodeIds],
-          priorNodeIds: [...neutralOwnership.priorNodeIds]
+          priorNodeIds: [...neutralOwnership.priorNodeIds],
+          ...(neutralOwnership.attachments?.some(attachment => attachment.retained) ? {
+            attachments: neutralOwnership.attachments.filter(attachment => attachment.retained)
+              .map(({ host, wrapper }) => ({ host, wrapper }))
+          } : {})
         }
       } : {}),
       operation: placement.relationLabel as DerivationOperation,
