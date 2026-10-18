@@ -1,0 +1,586 @@
+{
+  "description": "The final stage groups all five pronounced terminals (เขา, วิ่ง, ไป, ซื้อ, ข้าว) as the realization of the whole unspaced sentence, and adds an \"input realization association\" relation saying no fusion is involved. Under the character spell-out contract the terminals already spell the sentence, so the group claims nothing; Replay draws the extra relation and rail.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (character-spellout-v1), 18 October 2026 (night batch, 50-th-serial-verb, analysis 2), commit 53a7c7f. Tokens are the shared word list of that run.",
+  "contract": "character-spellout-v1",
+  "sentence": "เขาวิ่งไปซื้อข้าว",
+  "framework": "xbar",
+  "inputTokens": [
+    "เขาวิ่งไปซื้อข้าว"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "bRiceNP",
+            "assigner": "bBuy"
+          },
+          "relation": "internal theta-role assignment",
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "bBuy",
+            "recipient": "bRiceNP"
+          },
+          "relation": "abstract object Case",
+          "values": {
+            "case": "accusative",
+            "morphologicalRealization": "none"
+          }
+        },
+        {
+          "anchors": {
+            "predicate": "bMotionVP",
+            "verbalHeads": [
+              "bRun",
+              "bGo"
+            ]
+          },
+          "relation": "motion serial predicate composition",
+          "values": {
+            "externalArgument": "one composite Agent–Mover role",
+            "motionContribution": "วิ่ง supplies manner and ไป supplies directed motion"
+          }
+        }
+      ],
+      "stageRecord": "This analysis distinguishes the matrix motion event from a purposive buying clause. ซื้อ first combines with the bare NP ข้าว, assigning it the Theme role and then licensing abstract accusative Case. Independently, วิ่ง combines with a directional VP headed by ไป. The two motion verbs form a serial motion predicate: วิ่ง supplies manner and ไป supplies directed motion, with their external argument requirements identified as one Agent–Mover role. Unlike the integrated three-verb analysis, ซื้อ is not included in that matrix role identification. เขา remains a separate pronominal NP until the matrix IP is assembled. External subjects will be generated directly in Spec-IP, so no VP-internal subject or raising trace is assumed.",
+      "statement": "Build a motion predicate and a separate buying predicate.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "bPronoun",
+                  "label": "N: pronoun",
+                  "word": "เขา"
+                }
+              ],
+              "id": "bSubjectNBar",
+              "label": "N′"
+            }
+          ],
+          "id": "bSubject",
+          "label": "NP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "bRun",
+                  "label": "V",
+                  "word": "วิ่ง"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bGo",
+                          "label": "V",
+                          "word": "ไป"
+                        }
+                      ],
+                      "id": "bGoVBar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "bGoVP",
+                  "label": "VP"
+                }
+              ],
+              "id": "bMotionVBar",
+              "label": "V′"
+            }
+          ],
+          "id": "bMotionVP",
+          "label": "VP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "bBuy",
+                  "label": "V",
+                  "word": "ซื้อ"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bRice",
+                          "label": "N",
+                          "word": "ข้าว"
+                        }
+                      ],
+                      "id": "bRiceNBar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "bRiceNP",
+                  "label": "NP"
+                }
+              ],
+              "id": "bBuyVBar",
+              "label": "V′"
+            }
+          ],
+          "id": "bBuyVP",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "bPRO",
+            "predicate": "bBuyVP"
+          },
+          "relation": "embedded external theta-role assignment",
+          "values": {
+            "thetaRole": "Buyer"
+          }
+        },
+        {
+          "anchors": {
+            "complementizer": "bPurposeC",
+            "inflection": "bEmbeddedI",
+            "subject": "bPRO"
+          },
+          "relation": "PRO licensing",
+          "values": {
+            "inflectionType": "nonfinite and non-governing",
+            "position": "ungoverned Spec-IP",
+            "pronunciation": "silent"
+          }
+        },
+        {
+          "anchors": {
+            "goalPredicate": "bBuyVP",
+            "motionPredicate": "bMotionVBar",
+            "purposeClause": "bPurposeCP",
+            "purposeHead": "bPurposeC"
+          },
+          "relation": "purpose adjunction",
+          "values": {
+            "attachment": "right adjunct to matrix V′",
+            "interpretation": "running and going in order to buy rice"
+          }
+        }
+      ],
+      "stageRecord": "The buying VP is expanded into an embedded IP with PRO generated in Spec-IP and a silent nonfinite I. ซื้อ assigns its external Buyer role to PRO, rather than sharing that role directly with the matrix subject. Under the classical GB PRO theorem, the embedded subject position is ungoverned: the nonfinite I does not govern PRO, and C does not govern into Spec-IP. A silent purposive C then projects CP, which is right-adjoined to the matrix V′ containing วิ่ง ไป. The resulting binary adjunction preserves the surface order while locating the purpose boundary after ไป. The purpose relation connects the motion event to the intended buying event; actual completion of the purchase is not asserted by that relation. The analysis thus commits to a covert purposive clause, not an overtly missing word in the input. PRO's controller is established only when the matrix subject enters its clause.",
+      "statement": "Construct an unpronounced-subject purpose clause and adjoin it to the motion predicate.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "bPronoun",
+                  "label": "N: pronoun",
+                  "word": "เขา"
+                }
+              ],
+              "id": "bSubjectNBar",
+              "label": "N′"
+            }
+          ],
+          "id": "bSubject",
+          "label": "NP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bRun",
+                      "label": "V",
+                      "word": "วิ่ง"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "bGo",
+                              "label": "V",
+                              "word": "ไป"
+                            }
+                          ],
+                          "id": "bGoVBar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "bGoVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "bMotionVBar",
+                  "label": "V′"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bPurposeC",
+                          "label": "C: purpose",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bPROHead",
+                                      "label": "PRO",
+                                      "silent": true,
+                                      "word": "PRO"
+                                    }
+                                  ],
+                                  "id": "bPRONBar",
+                                  "label": "N′",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "bPRO",
+                              "label": "NP",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bEmbeddedI",
+                                  "label": "I: nonfinite",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "bBuy",
+                                          "label": "V",
+                                          "word": "ซื้อ"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "bRice",
+                                                  "label": "N",
+                                                  "word": "ข้าว"
+                                                }
+                                              ],
+                                              "id": "bRiceNBar",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "bRiceNP",
+                                          "label": "NP"
+                                        }
+                                      ],
+                                      "id": "bBuyVBar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "bBuyVP",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "bEmbeddedIBar",
+                              "label": "I′"
+                            }
+                          ],
+                          "id": "bEmbeddedIP",
+                          "label": "IP: nonfinite"
+                        }
+                      ],
+                      "id": "bPurposeCBar",
+                      "label": "C′"
+                    }
+                  ],
+                  "id": "bPurposeCP",
+                  "label": "CP: purpose adjunct"
+                }
+              ],
+              "id": "bAdjunctionVBar",
+              "label": "V′"
+            }
+          ],
+          "id": "bMotionVP",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "bPronoun",
+            "bRun",
+            "bGo",
+            "bBuy",
+            "bRice"
+          ],
+          "tokenIndices": [
+            0
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "argument": "bSubject",
+            "predicate": "bMotionVBar"
+          },
+          "relation": "matrix external theta-role assignment",
+          "values": {
+            "thetaRole": "composite Agent–Mover"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "bMatrixI",
+            "recipient": "bSubject"
+          },
+          "relation": "abstract subject Case",
+          "values": {
+            "case": "nominative",
+            "morphologicalRealization": "none",
+            "tenseValue": "not specified by the input"
+          }
+        },
+        {
+          "anchors": {
+            "controlledClause": "bPurposeCP",
+            "controlledSubject": "bPRO",
+            "controller": "bSubject"
+          },
+          "relation": "obligatory subject control",
+          "values": {
+            "dependencyType": "control, not movement",
+            "interpretation": "the matrix mover is the intended buyer",
+            "structuralCondition": "the matrix subject c-commands PRO"
+          }
+        },
+        {
+          "anchors": {
+            "contributors": [
+              "bPronoun",
+              "bRun",
+              "bGo",
+              "bBuy",
+              "bRice"
+            ]
+          },
+          "relation": "input realization association",
+          "values": {
+            "association": "unspaced Thai writing; no syntactic fusion",
+            "text": "เขาวิ่งไปซื้อข้าว"
+          }
+        }
+      ],
+      "stageRecord": "The matrix IP is assembled with เขา directly in Spec-IP, a silent clause-level I, and the motion VP containing its purpose adjunct. First, the matrix motion predicate assigns its composite Agent–Mover role to เขา. Second, matrix I licenses abstract nominative Case on that overt subject, without introducing an overt agreement marker or a determinate tense value. Third, the matrix subject obligatorily controls embedded PRO: เขา c-commands the purpose clause and supplies the reference of its independently theta-marked subject. Control is not movement, so เขา has no lower copy or trace inside the buying clause. The overt subject receives only its matrix theta-role, while PRO receives the buying role, preserving the theta criterion. Finally, the five overt terminals are associated with the exact unspaced input เขาวิ่งไปซื้อข้าว; the silent purpose head, embedded I, and PRO contribute no pronounced material. This yields the reading ‘he runs/goes in order to buy rice,’ with a separate controlled purpose clause.",
+      "statement": "Complete the matrix clause and establish subject control of the purpose clause.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bPronoun",
+                      "label": "N: pronoun",
+                      "word": "เขา"
+                    }
+                  ],
+                  "id": "bSubjectNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "bSubject",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "bMatrixI",
+                  "label": "I: clause-level inflection",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "bRun",
+                              "label": "V",
+                              "word": "วิ่ง"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bGo",
+                                      "label": "V",
+                                      "word": "ไป"
+                                    }
+                                  ],
+                                  "id": "bGoVBar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "bGoVP",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "bMotionVBar",
+                          "label": "V′"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "bPurposeC",
+                                  "label": "C: purpose",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "bPROHead",
+                                              "label": "PRO",
+                                              "silent": true,
+                                              "word": "PRO"
+                                            }
+                                          ],
+                                          "id": "bPRONBar",
+                                          "label": "N′",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "bPRO",
+                                      "label": "NP",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "bEmbeddedI",
+                                          "label": "I: nonfinite",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "bBuy",
+                                                  "label": "V",
+                                                  "word": "ซื้อ"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "bRice",
+                                                          "label": "N",
+                                                          "word": "ข้าว"
+                                                        }
+                                                      ],
+                                                      "id": "bRiceNBar",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "bRiceNP",
+                                                  "label": "NP"
+                                                }
+                                              ],
+                                              "id": "bBuyVBar",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "bBuyVP",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "bEmbeddedIBar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "bEmbeddedIP",
+                                  "label": "IP: nonfinite"
+                                }
+                              ],
+                              "id": "bPurposeCBar",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "bPurposeCP",
+                          "label": "CP: purpose adjunct"
+                        }
+                      ],
+                      "id": "bAdjunctionVBar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "bMotionVP",
+                  "label": "VP"
+                }
+              ],
+              "id": "bMatrixIBar",
+              "label": "I′"
+            }
+          ],
+          "id": "bMatrixIP",
+          "label": "IP"
+        }
+      ]
+    }
+  ]
+}

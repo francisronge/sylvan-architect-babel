@@ -1,0 +1,1201 @@
+{
+  "description": "Stage 3 authors \"Verb-to-honorific head movement\" with space-separated role names (\"raised lexical head\", \"host head\", \"lower head trace\"). Movement recognition reports MOVEMENT_CONTEXT_UNRESOLVED, so the moment (frame 43) draws no arrow, although the verb moves.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract and English metalanguage instruction (character-spellout-v1-english-metalanguage), 18 October 2026 (metalanguage A/B batch, 44-ko-honorific.r1.B, analysis 1), uncommitted sources on e28ac57. Tokens are the shared word list of that run.",
+  "contract": "character-spellout-v1-english-metalanguage",
+  "sentence": "선생님께서 책을 읽으셨다.",
+  "framework": "xbar",
+  "inputTokens": [
+    "선생님께서",
+    "책을",
+    "읽으셨다"
+  ],
+  "derivationStages": [
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "teacher",
+            "subjectParticle"
+          ],
+          "tokenIndices": [
+            0
+          ]
+        },
+        {
+          "nodeIds": [
+            "book",
+            "objectParticle"
+          ],
+          "tokenIndices": [
+            1
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "external argument": "subjectBase",
+            "internal argument": "object",
+            "predicate": "verb"
+          },
+          "relation": "Thematic assignment",
+          "values": {
+            "external argument role": "Agent",
+            "internal argument role": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "case bearer": "object",
+            "case exponent": "objectParticle",
+            "governor": "verb"
+          },
+          "relation": "Accusative Case under government",
+          "values": {
+            "Case": "Accusative",
+            "licensing configuration": "Verb and complement"
+          }
+        },
+        {
+          "anchors": {
+            "event predicate": "verbPhrase",
+            "tense head": "tense"
+          },
+          "relation": "Past-tense interpretation",
+          "values": {
+            "temporal ordering": "The reading event precedes the reference time",
+            "tense": "Past"
+          }
+        },
+        {
+          "anchors": {
+            "clause-typing head": "complementizer",
+            "finite complement": "inflectionPhrase"
+          },
+          "relation": "Declarative clause typing",
+          "values": {
+            "clause type": "Declarative"
+          }
+        },
+        {
+          "anchors": {
+            "nominal heads": [
+              "teacher",
+              "book"
+            ],
+            "particle heads": [
+              "subjectParticle",
+              "objectParticle"
+            ]
+          },
+          "relation": "Nominal particle attachment and written realization",
+          "values": {
+            "nominal heads": [
+              "선생님",
+              "책"
+            ],
+            "particle functions": [
+              "Honorific nominative morphology, awaiting finite Case licensing",
+              "Accusative morphology"
+            ],
+            "particle heads": [
+              "께서",
+              "을"
+            ],
+            "written forms": [
+              "선생님께서",
+              "책을"
+            ]
+          }
+        }
+      ],
+      "stageRecord": "The sentence is analyzed as a declarative clause meaning that the honored teacher read a book. The verb projects a head-final verb phrase, with 책을 as its complement and 선생님께서 as its underlying subject in the verb-phrase specifier. The verb assigns the Agent role to the subject and the Theme role to the object. It also governs and licenses the object's structural accusative Case, expressed by 을. Both nominals are noun phrases contained in head-final case phrases; no unexpressed determiner is required. The particle 께서 expresses honorific nominative morphology, but the subject's finite nominative licensing will be established after subject raising. The honorific head, past-tense inflection, and declarative complementizer are introduced above the verb phrase in that order. Past tense locates the reading event before the reference time, and the complementizer supplies declarative clause type. Finally, the two noun-plus-particle combinations are associated with their written words. The verbal suffixes remain separate syntactic heads at this stage; their attachment and collective written realization have not yet been established.",
+      "statement": "Establish the head-final clause and its underlying argument structure.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "teacher",
+                                                      "label": "Noun",
+                                                      "word": "선생님"
+                                                    }
+                                                  ],
+                                                  "id": "subjectNounBar",
+                                                  "label": "Noun intermediate projection"
+                                                }
+                                              ],
+                                              "id": "subjectNounPhrase",
+                                              "label": "Noun phrase"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "subjectParticle",
+                                              "label": "Case head: honorific nominative",
+                                              "word": "께서"
+                                            }
+                                          ],
+                                          "id": "subjectCaseBar",
+                                          "label": "Case intermediate projection"
+                                        }
+                                      ],
+                                      "id": "subjectBase",
+                                      "label": "Case phrase: underlying subject",
+                                      "lineageId": "subjectChain"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "book",
+                                                          "label": "Noun",
+                                                          "word": "책"
+                                                        }
+                                                      ],
+                                                      "id": "objectNounBar",
+                                                      "label": "Noun intermediate projection"
+                                                    }
+                                                  ],
+                                                  "id": "objectNounPhrase",
+                                                  "label": "Noun phrase"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "objectParticle",
+                                                  "label": "Case head: accusative",
+                                                  "word": "을"
+                                                }
+                                              ],
+                                              "id": "objectCaseBar",
+                                              "label": "Case intermediate projection"
+                                            }
+                                          ],
+                                          "id": "object",
+                                          "label": "Case phrase: direct object"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "verb",
+                                          "label": "Verb head",
+                                          "lineageId": "lexicalVerbChain",
+                                          "word": "읽"
+                                        }
+                                      ],
+                                      "id": "verbBar",
+                                      "label": "Verb intermediate projection"
+                                    }
+                                  ],
+                                  "id": "verbPhrase",
+                                  "label": "Verb phrase"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "honorific",
+                                  "label": "Honorific head",
+                                  "word": "으시"
+                                }
+                              ],
+                              "id": "honorificBar",
+                              "label": "Honorific intermediate projection"
+                            }
+                          ],
+                          "id": "honorificPhrase",
+                          "label": "Honorific phrase"
+                        },
+                        {
+                          "children": [],
+                          "id": "tense",
+                          "label": "Inflection head: past tense",
+                          "word": "었"
+                        }
+                      ],
+                      "id": "inflectionBar",
+                      "label": "Inflection intermediate projection"
+                    }
+                  ],
+                  "id": "inflectionPhrase",
+                  "label": "Inflection phrase"
+                },
+                {
+                  "children": [],
+                  "id": "complementizer",
+                  "label": "Complementizer head: declarative",
+                  "word": "다"
+                }
+              ],
+              "id": "complementizerBar",
+              "label": "Complementizer intermediate projection"
+            }
+          ],
+          "id": "clause",
+          "label": "Complementizer phrase"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "teacher",
+            "subjectParticle"
+          ],
+          "tokenIndices": [
+            0
+          ]
+        },
+        {
+          "nodeIds": [
+            "book",
+            "objectParticle"
+          ],
+          "tokenIndices": [
+            1
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "argument trace": "subjectTrace",
+            "finite projection": "inflectionPhrase",
+            "raised subject": "subjectRaised"
+          },
+          "priorAnchors": {
+            "movement source": "subjectBase"
+          },
+          "relation": "Subject A-movement and trace licensing",
+          "values": {
+            "chain interpretation": "One Agent argument",
+            "landing position": "Inflection-phrase specifier",
+            "source position": "Verb-phrase specifier",
+            "subject requirement": "Satisfied",
+            "trace licensing": "Antecedent government by the raised subject"
+          }
+        },
+        {
+          "anchors": {
+            "case bearer": "subjectRaised",
+            "case exponent": "subjectParticle",
+            "licensing head": "tense"
+          },
+          "relation": "Finite nominative Case licensing",
+          "values": {
+            "Case": "Nominative",
+            "configuration": "Finite inflection and its specifier"
+          }
+        },
+        {
+          "anchors": {
+            "honored subject": "subjectRaised",
+            "honorific head": "honorific",
+            "honorific nominal": "teacher",
+            "honorific nominative exponent": "subjectParticle"
+          },
+          "relation": "Subject honorific agreement",
+          "values": {
+            "honorific feature": "Positive",
+            "honorific target": "The subject referent",
+            "interpretation": "The teacher is honored as the reader"
+          }
+        }
+      ],
+      "stageRecord": "The subject case phrase moves from the previously established verb-phrase specifier to the inflection-phrase specifier, leaving a silent argument trace. This is an A-movement chain: the lower position retains the Agent interpretation, while the higher occurrence satisfies the finite clause's subject requirement and antecedent-governs the trace. Finite inflection licenses nominative Case on the raised subject, with 께서 realizing its honorific nominative form. The raised subject c-commands the honorific projection and licenses its subject-oriented honorific feature. Thus 으시 honors the teacher who performs the reading, not the book or an unexpressed addressee. The noun-particle realizations remain unchanged.",
+      "statement": "Raise the subject to the finite subject position and license nominative Case and subject honorification.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "teacher",
+                                      "label": "Noun",
+                                      "word": "선생님"
+                                    }
+                                  ],
+                                  "id": "subjectNounBar",
+                                  "label": "Noun intermediate projection"
+                                }
+                              ],
+                              "id": "subjectNounPhrase",
+                              "label": "Noun phrase"
+                            },
+                            {
+                              "children": [],
+                              "id": "subjectParticle",
+                              "label": "Case head: honorific nominative",
+                              "word": "께서"
+                            }
+                          ],
+                          "id": "subjectCaseBar",
+                          "label": "Case intermediate projection"
+                        }
+                      ],
+                      "id": "subjectRaised",
+                      "label": "Case phrase: finite subject",
+                      "lineageId": "subjectChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "subjectTrace",
+                                      "label": "Case phrase: subject A-trace",
+                                      "lineageId": "subjectChain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "book",
+                                                          "label": "Noun",
+                                                          "word": "책"
+                                                        }
+                                                      ],
+                                                      "id": "objectNounBar",
+                                                      "label": "Noun intermediate projection"
+                                                    }
+                                                  ],
+                                                  "id": "objectNounPhrase",
+                                                  "label": "Noun phrase"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "objectParticle",
+                                                  "label": "Case head: accusative",
+                                                  "word": "을"
+                                                }
+                                              ],
+                                              "id": "objectCaseBar",
+                                              "label": "Case intermediate projection"
+                                            }
+                                          ],
+                                          "id": "object",
+                                          "label": "Case phrase: direct object"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "verb",
+                                          "label": "Verb head",
+                                          "lineageId": "lexicalVerbChain",
+                                          "word": "읽"
+                                        }
+                                      ],
+                                      "id": "verbBar",
+                                      "label": "Verb intermediate projection"
+                                    }
+                                  ],
+                                  "id": "verbPhrase",
+                                  "label": "Verb phrase"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "honorific",
+                                  "label": "Honorific head",
+                                  "word": "으시"
+                                }
+                              ],
+                              "id": "honorificBar",
+                              "label": "Honorific intermediate projection"
+                            }
+                          ],
+                          "id": "honorificPhrase",
+                          "label": "Honorific phrase"
+                        },
+                        {
+                          "children": [],
+                          "id": "tense",
+                          "label": "Inflection head: past tense",
+                          "word": "었"
+                        }
+                      ],
+                      "id": "inflectionBar",
+                      "label": "Inflection intermediate projection"
+                    }
+                  ],
+                  "id": "inflectionPhrase",
+                  "label": "Inflection phrase"
+                },
+                {
+                  "children": [],
+                  "id": "complementizer",
+                  "label": "Complementizer head: declarative",
+                  "word": "다"
+                }
+              ],
+              "id": "complementizerBar",
+              "label": "Complementizer intermediate projection"
+            }
+          ],
+          "id": "clause",
+          "label": "Complementizer phrase"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "teacher",
+            "subjectParticle"
+          ],
+          "tokenIndices": [
+            0
+          ]
+        },
+        {
+          "nodeIds": [
+            "book",
+            "objectParticle"
+          ],
+          "tokenIndices": [
+            1
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "host head": "honorific",
+            "lower head trace": "verbTrace",
+            "raised lexical head": "verbAtHonorific",
+            "resulting complex head": "honorificComplex"
+          },
+          "priorAnchors": {
+            "attachment target": "honorific",
+            "movement source": "verb"
+          },
+          "relation": "Verb-to-honorific head movement",
+          "values": {
+            "head-movement constraint": "No intervening head is crossed",
+            "linear order": "Verb before honorific suffix",
+            "lower-position interpretation": "Lexical selection and argument licensing remain interpreted through the head chain",
+            "movement type": "Local head adjunction"
+          }
+        }
+      ],
+      "stageRecord": "The lexical verb raises from its established position inside the verb phrase and left-adjoins to the immediately higher honorific head. A silent verbal trace remains beside the object, preserving the position in which lexical selection, theta assignment, and object Case were established. The raised verb and the honorific suffix form a complex honorific head in root-before-suffix order. This adopts syntactic head raising rather than affix lowering; the movement crosses no intervening head. The conventional honorific exponent 으시 is retained after the consonant-final root 읽. No collective realization of the complete verbal word is assigned yet, because the past-tense and declarative heads have not joined this complex.",
+      "statement": "Attach the lexical verb to the honorific head by local head movement.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "teacher",
+                                      "label": "Noun",
+                                      "word": "선생님"
+                                    }
+                                  ],
+                                  "id": "subjectNounBar",
+                                  "label": "Noun intermediate projection"
+                                }
+                              ],
+                              "id": "subjectNounPhrase",
+                              "label": "Noun phrase"
+                            },
+                            {
+                              "children": [],
+                              "id": "subjectParticle",
+                              "label": "Case head: honorific nominative",
+                              "word": "께서"
+                            }
+                          ],
+                          "id": "subjectCaseBar",
+                          "label": "Case intermediate projection"
+                        }
+                      ],
+                      "id": "subjectRaised",
+                      "label": "Case phrase: finite subject",
+                      "lineageId": "subjectChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "subjectTrace",
+                                      "label": "Case phrase: subject A-trace",
+                                      "lineageId": "subjectChain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "book",
+                                                          "label": "Noun",
+                                                          "word": "책"
+                                                        }
+                                                      ],
+                                                      "id": "objectNounBar",
+                                                      "label": "Noun intermediate projection"
+                                                    }
+                                                  ],
+                                                  "id": "objectNounPhrase",
+                                                  "label": "Noun phrase"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "objectParticle",
+                                                  "label": "Case head: accusative",
+                                                  "word": "을"
+                                                }
+                                              ],
+                                              "id": "objectCaseBar",
+                                              "label": "Case intermediate projection"
+                                            }
+                                          ],
+                                          "id": "object",
+                                          "label": "Case phrase: direct object"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "verbTrace",
+                                          "label": "Verb head trace",
+                                          "lineageId": "lexicalVerbChain",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "verbBar",
+                                      "label": "Verb intermediate projection"
+                                    }
+                                  ],
+                                  "id": "verbPhrase",
+                                  "label": "Verb phrase"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "verbAtHonorific",
+                                      "label": "Verb head: raised",
+                                      "lineageId": "lexicalVerbChain",
+                                      "word": "읽"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "honorific",
+                                      "label": "Honorific head",
+                                      "word": "으시"
+                                    }
+                                  ],
+                                  "id": "honorificComplex",
+                                  "label": "Honorific head: complex",
+                                  "lineageId": "honorificHeadChain"
+                                }
+                              ],
+                              "id": "honorificBar",
+                              "label": "Honorific intermediate projection"
+                            }
+                          ],
+                          "id": "honorificPhrase",
+                          "label": "Honorific phrase"
+                        },
+                        {
+                          "children": [],
+                          "id": "tense",
+                          "label": "Inflection head: past tense",
+                          "word": "었"
+                        }
+                      ],
+                      "id": "inflectionBar",
+                      "label": "Inflection intermediate projection"
+                    }
+                  ],
+                  "id": "inflectionPhrase",
+                  "label": "Inflection phrase"
+                },
+                {
+                  "children": [],
+                  "id": "complementizer",
+                  "label": "Complementizer head: declarative",
+                  "word": "다"
+                }
+              ],
+              "id": "complementizerBar",
+              "label": "Complementizer intermediate projection"
+            }
+          ],
+          "id": "clause",
+          "label": "Complementizer phrase"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "teacher",
+            "subjectParticle"
+          ],
+          "tokenIndices": [
+            0
+          ]
+        },
+        {
+          "nodeIds": [
+            "book",
+            "objectParticle"
+          ],
+          "tokenIndices": [
+            1
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "host head": "tense",
+            "lower head trace": "honorificTrace",
+            "raised complex": "honorificAtInflection",
+            "resulting complex head": "inflectionComplex"
+          },
+          "priorAnchors": {
+            "attachment target": "tense",
+            "movement source": "honorificComplex"
+          },
+          "relation": "Honorific-to-inflection head movement",
+          "values": {
+            "head-movement constraint": "No intervening head is crossed",
+            "linear order": "Lexical root, honorific suffix, past-tense suffix",
+            "movement type": "Local head adjunction of the complete honorific head"
+          }
+        }
+      ],
+      "stageRecord": "The complex honorific head established in the preceding stage raises to the immediately higher inflection head, leaving a silent honorific-head trace. The entire complex moves together, so the lexical verb remains inside the moved honorific head rather than moving independently across it. Left adjunction to past-tense inflection produces the ordered combination of lexical root, subject honorific, and past tense. This separate workspace is necessary because the next movement takes this newly formed inflectional complex as its source. The declarative ending is still outside the complex, so the complete written verbal word is not yet associated with its sources.",
+      "statement": "Raise the honorific verbal complex to past-tense inflection.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "teacher",
+                                      "label": "Noun",
+                                      "word": "선생님"
+                                    }
+                                  ],
+                                  "id": "subjectNounBar",
+                                  "label": "Noun intermediate projection"
+                                }
+                              ],
+                              "id": "subjectNounPhrase",
+                              "label": "Noun phrase"
+                            },
+                            {
+                              "children": [],
+                              "id": "subjectParticle",
+                              "label": "Case head: honorific nominative",
+                              "word": "께서"
+                            }
+                          ],
+                          "id": "subjectCaseBar",
+                          "label": "Case intermediate projection"
+                        }
+                      ],
+                      "id": "subjectRaised",
+                      "label": "Case phrase: finite subject",
+                      "lineageId": "subjectChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "subjectTrace",
+                                      "label": "Case phrase: subject A-trace",
+                                      "lineageId": "subjectChain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "book",
+                                                          "label": "Noun",
+                                                          "word": "책"
+                                                        }
+                                                      ],
+                                                      "id": "objectNounBar",
+                                                      "label": "Noun intermediate projection"
+                                                    }
+                                                  ],
+                                                  "id": "objectNounPhrase",
+                                                  "label": "Noun phrase"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "objectParticle",
+                                                  "label": "Case head: accusative",
+                                                  "word": "을"
+                                                }
+                                              ],
+                                              "id": "objectCaseBar",
+                                              "label": "Case intermediate projection"
+                                            }
+                                          ],
+                                          "id": "object",
+                                          "label": "Case phrase: direct object"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "verbTrace",
+                                          "label": "Verb head trace",
+                                          "lineageId": "lexicalVerbChain",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "verbBar",
+                                      "label": "Verb intermediate projection"
+                                    }
+                                  ],
+                                  "id": "verbPhrase",
+                                  "label": "Verb phrase"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "honorificTrace",
+                                  "label": "Honorific head trace",
+                                  "lineageId": "honorificHeadChain",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "honorificBar",
+                              "label": "Honorific intermediate projection"
+                            }
+                          ],
+                          "id": "honorificPhrase",
+                          "label": "Honorific phrase"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "verbAtHonorific",
+                                  "label": "Verb head: raised",
+                                  "lineageId": "lexicalVerbChain",
+                                  "word": "읽"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "honorific",
+                                  "label": "Honorific head",
+                                  "word": "으시"
+                                }
+                              ],
+                              "id": "honorificAtInflection",
+                              "label": "Honorific head: raised complex",
+                              "lineageId": "honorificHeadChain"
+                            },
+                            {
+                              "children": [],
+                              "id": "tense",
+                              "label": "Inflection head: past tense",
+                              "word": "었"
+                            }
+                          ],
+                          "id": "inflectionComplex",
+                          "label": "Inflection head: complex",
+                          "lineageId": "inflectionHeadChain"
+                        }
+                      ],
+                      "id": "inflectionBar",
+                      "label": "Inflection intermediate projection"
+                    }
+                  ],
+                  "id": "inflectionPhrase",
+                  "label": "Inflection phrase"
+                },
+                {
+                  "children": [],
+                  "id": "complementizer",
+                  "label": "Complementizer head: declarative",
+                  "word": "다"
+                }
+              ],
+              "id": "complementizerBar",
+              "label": "Complementizer intermediate projection"
+            }
+          ],
+          "id": "clause",
+          "label": "Complementizer phrase"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "teacher",
+            "subjectParticle"
+          ],
+          "tokenIndices": [
+            0
+          ]
+        },
+        {
+          "nodeIds": [
+            "book",
+            "objectParticle"
+          ],
+          "tokenIndices": [
+            1
+          ]
+        },
+        {
+          "nodeIds": [
+            "verbAtHonorific",
+            "honorific",
+            "tense",
+            "complementizer"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "host head": "complementizer",
+            "lower head trace": "inflectionTrace",
+            "raised inflectional complex": "inflectionAtComplementizer",
+            "resulting complex head": "declarativeComplex"
+          },
+          "priorAnchors": {
+            "attachment target": "complementizer",
+            "movement source": "inflectionComplex"
+          },
+          "relation": "Inflection-to-complementizer head movement",
+          "values": {
+            "head-movement constraint": "No intervening head is crossed",
+            "linear order": "Lexical root, honorific suffix, past-tense suffix, declarative ending",
+            "movement type": "Local head adjunction of the complete inflectional head"
+          }
+        },
+        {
+          "anchors": {
+            "completed word domain": "declarativeComplex",
+            "declarative ending": "complementizer",
+            "honorific suffix": "honorific",
+            "lexical root": "verbAtHonorific",
+            "past-tense suffix": "tense"
+          },
+          "priorAnchors": {
+            "preceding inflectional complex": "inflectionComplex",
+            "previously separate ending": "complementizer"
+          },
+          "relation": "Collective verbal realization",
+          "values": {
+            "realization process": "Suffixal word realization with contraction of 시 and 었 to 셨",
+            "retained morphological sequence": "읽 + 으시 + 었 + 다",
+            "timing": "After attachment to the declarative complementizer",
+            "written realization": "읽으셨다"
+          }
+        }
+      ],
+      "stageRecord": "The previously formed inflectional complex raises to the immediately higher declarative complementizer, leaving a silent inflection-head trace. Left adjunction produces the final order of root, subject honorific, past tense, and declarative ending. This analysis treats 다 as a clause-typing head and therefore commits to local inflection-to-complementizer movement, rather than treating the ending as part of an unanalyzed lexical verb. After that attachment, the complete verbal complex receives the collective written realization 읽으셨다: the retained sequence 읽, 으시, 었, 다 is realized with the contraction of 시 and 었 reflected in 셨. This realization does not replace the syntactic heads or pronounce their traces. Together with the unchanged noun-particle realizations, the completed head-final tree yields exactly 선생님께서 책을 읽으셨다. The subject's lower trace supplies its thematic position, its higher occurrence supplies finite subject licensing, and the local head chains preserve the verbal selection and inflectional dependencies.",
+      "statement": "Complete the declarative verbal complex and its surface realization.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "teacher",
+                                      "label": "Noun",
+                                      "word": "선생님"
+                                    }
+                                  ],
+                                  "id": "subjectNounBar",
+                                  "label": "Noun intermediate projection"
+                                }
+                              ],
+                              "id": "subjectNounPhrase",
+                              "label": "Noun phrase"
+                            },
+                            {
+                              "children": [],
+                              "id": "subjectParticle",
+                              "label": "Case head: honorific nominative",
+                              "word": "께서"
+                            }
+                          ],
+                          "id": "subjectCaseBar",
+                          "label": "Case intermediate projection"
+                        }
+                      ],
+                      "id": "subjectRaised",
+                      "label": "Case phrase: finite subject",
+                      "lineageId": "subjectChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "subjectTrace",
+                                      "label": "Case phrase: subject A-trace",
+                                      "lineageId": "subjectChain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "book",
+                                                          "label": "Noun",
+                                                          "word": "책"
+                                                        }
+                                                      ],
+                                                      "id": "objectNounBar",
+                                                      "label": "Noun intermediate projection"
+                                                    }
+                                                  ],
+                                                  "id": "objectNounPhrase",
+                                                  "label": "Noun phrase"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "objectParticle",
+                                                  "label": "Case head: accusative",
+                                                  "word": "을"
+                                                }
+                                              ],
+                                              "id": "objectCaseBar",
+                                              "label": "Case intermediate projection"
+                                            }
+                                          ],
+                                          "id": "object",
+                                          "label": "Case phrase: direct object"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "verbTrace",
+                                          "label": "Verb head trace",
+                                          "lineageId": "lexicalVerbChain",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "verbBar",
+                                      "label": "Verb intermediate projection"
+                                    }
+                                  ],
+                                  "id": "verbPhrase",
+                                  "label": "Verb phrase"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "honorificTrace",
+                                  "label": "Honorific head trace",
+                                  "lineageId": "honorificHeadChain",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "honorificBar",
+                              "label": "Honorific intermediate projection"
+                            }
+                          ],
+                          "id": "honorificPhrase",
+                          "label": "Honorific phrase"
+                        },
+                        {
+                          "children": [],
+                          "id": "inflectionTrace",
+                          "label": "Inflection head trace",
+                          "lineageId": "inflectionHeadChain",
+                          "silent": true
+                        }
+                      ],
+                      "id": "inflectionBar",
+                      "label": "Inflection intermediate projection"
+                    }
+                  ],
+                  "id": "inflectionPhrase",
+                  "label": "Inflection phrase"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "verbAtHonorific",
+                              "label": "Verb head: raised",
+                              "lineageId": "lexicalVerbChain",
+                              "word": "읽"
+                            },
+                            {
+                              "children": [],
+                              "id": "honorific",
+                              "label": "Honorific head",
+                              "word": "으시"
+                            }
+                          ],
+                          "id": "honorificAtInflection",
+                          "label": "Honorific head: raised complex",
+                          "lineageId": "honorificHeadChain"
+                        },
+                        {
+                          "children": [],
+                          "id": "tense",
+                          "label": "Inflection head: past tense",
+                          "word": "었"
+                        }
+                      ],
+                      "id": "inflectionAtComplementizer",
+                      "label": "Inflection head: raised complex",
+                      "lineageId": "inflectionHeadChain"
+                    },
+                    {
+                      "children": [],
+                      "id": "complementizer",
+                      "label": "Complementizer head: declarative",
+                      "word": "다"
+                    }
+                  ],
+                  "id": "declarativeComplex",
+                  "label": "Complementizer head: complex"
+                }
+              ],
+              "id": "complementizerBar",
+              "label": "Complementizer intermediate projection"
+            }
+          ],
+          "id": "clause",
+          "label": "Complementizer phrase"
+        }
+      ]
+    }
+  ]
+}

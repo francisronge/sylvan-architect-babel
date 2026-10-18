@@ -44,7 +44,9 @@ export function loadFixtureAnalyses() {
       // As replay/replaySnapshot.ts does for a bundle without a sentence: the
       // final stage's pronounced words, in tree order.
       const sentence = saved ?? collectPronouncedTerminalSequence(value.derivationStages.at(-1)?.workspaceForest).join(' ');
-      records.push({ id, sentenceSource: saved ? 'saved' : 'final pronounced words',
+      // The input contract the analysis was authored under, when the fixture records it.
+      const contract = contextValue(context, item => typeof item.contract === 'string' && /^[\w.-]+$/.test(item.contract) ? item.contract : undefined);
+      records.push({ id, sentenceSource: saved ? 'saved' : 'final pronounced words', ...(contract ? { contract } : {}),
         record: { sentence, ...(inputTokens ? { inputTokens } : {}), derivationStages: value.derivationStages } });
     };
     visit(document, '', []);
