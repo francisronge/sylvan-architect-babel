@@ -32,14 +32,12 @@ test('the maintained fixture controls exercise a real movement, ordinary constru
 });
 
 test('a stretched completed branch and displaced final point fail while an earlier corrected point is reviewable', () => {
-  // Correct one earlier point that no rule objects to: a step owns its motion.
-  const trial = (at, id) => { const copy = structuredClone(snapshot); copy.records[0].frames[at].points.find(item => item.id === id).x -= 20; return copy; };
-  const choice = snapshot.records[0].frames.slice(0, -1).flatMap((frame, at) => frame.points.map(item => [at, item.id]))
-    .find(([at, id]) => !faults(compare(trial(at, id))).length);
-  assert(choice, 'some earlier point can be corrected without motion');
-  const corrected = trial(...choice);
+  // An earlier corrected point is only motion: the comparison reviews it but no
+  // geometry, final-tree or Replay check fails.
+  const corrected = structuredClone(snapshot);
+  corrected.records[0].frames[1].points[0].x -= 20;
   const accepted = compare(corrected);
-  assert.deepEqual(faults(accepted), []);
+  assert(faults(accepted).every(kind => kind === 'new-motion-fault'), JSON.stringify(faults(accepted)));
   assert.equal(accepted[0].changedFrames.length, 1);
   const stretched = structuredClone(snapshot), frame = stretched.records[0].frames.at(-1);
   frame.widths[0].width += 200;
@@ -105,6 +103,23 @@ test('a child that moves farther than its moving parent is a worsened fault', ()
   for (const item of frame.points) if (item.id === child.id || item.parent === child.id) item.x += 300;
   assert(compare(moved)[0].violations.some(violation => ['worsened-motion-fault', 'new-motion-fault'].includes(violation.kind)
     && violation.faults.some(item => item.node === child.id)));
+});
+
+test('a deformation the baseline already has fails when the candidate makes it larger', () => {
+  const shifted = distance => {
+    const copy = structuredClone(snapshot), frames = copy.records[0].frames;
+    // A leaf under an unchanged parent, in a frame whose neighbours keep it.
+    const at = frames.findIndex((frame, index) => index > 0 && index < frames.length - 1 && frame.points.some(item => item.parent
+      && !frame.points.some(other => other.parent === item.id) && frames[index - 1].points.some(other => other.id === item.id)));
+    const leaf = frames[at].points.find(item => item.parent && !frames[at].points.some(other => other.parent === item.id)
+      && frames[at - 1].points.some(other => other.id === item.id));
+    leaf.x += distance;
+    return { copy, node: leaf.id };
+  };
+  const baseline = shifted(20), candidate = shifted(200);
+  const [result] = compareCorpusSnapshots(baseline.copy, candidate.copy, records);
+  assert(result.violations.some(violation => violation.kind === 'worsened-motion-fault'
+    && violation.faults.some(fault => fault.node === candidate.node && fault.kind === 'shape-motion' && Math.round(fault.distance) === 200)));
 });
 
 test('semantic, authored, continuity, finite-geometry and witness-control failures cannot become a clean comparison', () => {

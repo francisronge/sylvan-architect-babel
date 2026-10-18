@@ -84,21 +84,23 @@ test('an inserted landing parent does not pull in an unrelated detached workspac
   assert.ok(find(moment.replayCanvasData, 'detached'));
 });
 
-test('a later relation retains ownership of its changed sibling', () => {
+// The new parent's moment attaches every sibling in the slot it takes over, so
+// no branch spans the row it adds; a later claim keeps the sibling's material.
+test('a later relation retains ownership of its changed sibling\'s word, not of its attachment', () => {
   const p = synthetic({ siblings: [leaf('one'), leaf('two')], pending: true });
   const first = relationMoment(p), second = relationMoment(p, 1);
-  assert.deepEqual(childrenAt(first, 'wrapper'), ['one', 'landing']);
-  assert.deepEqual(childrenAt(first, 'host'), ['wrapper', 'two', 'head']);
+  assert.deepEqual(childrenAt(first, 'wrapper'), ['one', 'two', 'landing']);
+  assert.deepEqual(childrenAt(first, 'host'), ['wrapper', 'head']);
   assert.equal(find(first.replayCanvasData, 'two').word, 'two');
   assert.deepEqual(childrenAt(second, 'wrapper'), ['one', 'two', 'landing']);
   assert.equal(find(second.replayCanvasData, 'two').word, 'changed');
 });
 
-test('a later relation owns its sibling relocation even when that sibling keeps its word', () => {
+test('a sibling whose word a later relation keeps attaches at the new parent\'s moment', () => {
   const p = synthetic({ siblings: [leaf('one'), leaf('two')], pending: 'unchanged' });
   const first = relationMoment(p), second = relationMoment(p, 1);
-  assert.deepEqual(childrenAt(first, 'wrapper'), ['one', 'landing']);
-  assert.deepEqual(childrenAt(first, 'host'), ['wrapper', 'two', 'head']);
+  assert.deepEqual(childrenAt(first, 'wrapper'), ['one', 'two', 'landing']);
+  assert.deepEqual(childrenAt(first, 'host'), ['wrapper', 'head']);
   assert.deepEqual(childrenAt(second, 'wrapper'), ['one', 'two', 'landing']);
   assert.equal(find(second.replayCanvasData, 'two').word, 'two');
 });
@@ -126,6 +128,13 @@ test('an inserted parent does not reveal unrelated new syntax before its own ste
   ] });
   const moment = relationMoment(p);
   assert.deepEqual(childrenAt(moment, 'wrapper'), ['one', 'landing']);
-  assert.equal(moment.replayVisibleNodeIds.includes('fresh'), false);
-  assert.equal(p.playbackSteps.at(-1).replayVisibleNodeIds.includes('fresh'), true);
+  // The unrelated node is ordinary construction: its own steps build it, and
+  // the merge into its retained parent attaches it, not the relation moment.
+  const steps = p.playbackSteps, first = steps.findIndex(step => step.replayVisibleNodeIds.includes('fresh'));
+  assert.equal(steps[first].replayKind, 'micro');
+  assert.equal(steps[first].replayFrameIndex, 1);
+  assert.ok(['fresh', 'fresh::__leaf'].includes(steps[first].targetNodeId), `fresh first appears at ${steps[first].operation} ${steps[first].targetNodeId}`);
+  assert.equal(childrenAt(moment, 'host').includes('fresh') && moment.replayVisibleNodeIds.includes('host'), false, 'the moment does not attach it');
+  assert.ok(steps.some(step => step.replayKind === 'micro' && step.targetNodeId === 'host' && childrenAt(step, 'host').includes('fresh')));
+  assert.equal(steps.at(-1).replayVisibleNodeIds.includes('fresh'), true);
 });

@@ -2,7 +2,9 @@
 import { type SyntaxNode } from '../types.ts';
 import { readCategoryLabel } from './categoryLabel.ts';
 import {
+  findResolvedReplayAnchorByRoles,
   findResolvedReplayAnchorsByRoles,
+  getRelationAllAnchorNodeIds,
   getRelationSourceNodeIds,
   getRelationTargetNodeId,
   relationAnchorNodeIds
@@ -33,7 +35,7 @@ import {
   replayEffectiveSilence,
   syntaxNodeMaterialSignature
 } from './syntaxForest.ts';
-import { type DerivationReplayPlanStep, type ReplayResolvedRelationAnchor } from './types.ts';
+import { type DerivationReplayPlanStep } from './types.ts';
 
 // Dispatch has already resolved the authored name and validated its signature.
 export const relationOwnsPhrasalTreeTransition = (relation: DerivationReplayPlanStep): boolean => relation.registeredEntryId === 'qr.covert';
@@ -233,10 +235,6 @@ export const buildPreMovementStructuralForest = (
       sourceId = oldParent.id;
     }
   };
-  const findAnchor = (anchors: ReplayResolvedRelationAnchor[], roles: readonly string[]): ReplayResolvedRelationAnchor | undefined => {
-    const wanted = new Set(roles.map((role) => role.toLowerCase()));
-    return anchors.find((anchor) => wanted.has(String(anchor.role || '').trim().toLowerCase()));
-  };
   relations.flatMap(movementLandingGroups).reverse().forEach((relation) => {
     if (relation.recoveredMovement && !relation.recoveredMovement.transition)
       return;
@@ -252,7 +250,7 @@ export const buildPreMovementStructuralForest = (
         .map((anchor) => String(anchor.nodeId || '')) : [])
     ].filter(Boolean)));
     const targetId = String(getRelationTargetNodeId(relation)
-      || findAnchor(anchors, targetRoles)?.nodeId
+      || findResolvedReplayAnchorByRoles(anchors, targetRoles)?.nodeId
       || '');
     const trajectoryDisplayKind = relation.recoveredMovement?.trajectoryKind || registeredTrajectoryDisplayKind(relation.relation, relation.resolvedAnchors);
     if (trajectoryDisplayKind !== 'phrasal'
@@ -372,10 +370,26 @@ const relationProductionTransitionKinds = (relation: DerivationReplayPlanStep): 
     : [];
 };
 
+/**
+ * What one neutral claim's moment owns. The node sets are its output and
+ * input; `copyPairs` say which earlier occurrence each new occurrence
+ * continues, so later-owned pronunciation keeps that occurrence's preceding
+ * form. `ambiguousCopyNodeIds` are new occurrences with several candidate
+ * earlier occurrences: none of their forms stands in for a later owner's.
+ * `hostNodeIds` and `attachments` are completed for the stage by
+ * `planNeutralTransitionAttachments`.
+ */
 export type FallbackTreeTransitionOwnership = {
   currentNodeIds: Set<string>;
   priorNodeIds: Set<string>;
   copyPairs?: Array<{ priorSourceNodeId: string; sourceNodeId: string; targetNodeId: string }>;
+  ambiguousCopyNodeIds?: string[];
+  /** The new parents the moment introduces with its output. */
+  hostNodeIds?: string[];
+  /** Each preceding node such a parent attaches at the moment. `retained`
+   * when it keeps its outer slot and changes only inside this claim's output,
+   * which licenses its rigid motion. */
+  attachments?: Array<{ host: string; wrapper: string; retained: boolean }>;
 };
 
 const ownNodeContent = (node: SyntaxNode): string => {
@@ -536,14 +550,127 @@ const resolvePriorWitnessTreeTransitionOwnership = (
   };
 };
 
+/** The same syntax and words, ignoring ids and which occurrence is pronounced or addressed. */
+const sameMaterial = (left: SyntaxNode, right: SyntaxNode): boolean => {
+  const own = ({ id: _id, children: _children, silent: _silent, tokenIndex: _tokenIndex, ...rest }: SyntaxNode) =>
+    JSON.stringify(Object.keys(rest).sort().map(key => [key, rest[key as keyof typeof rest]]));
+  return own(left) === own(right) && (left.children || []).length === (right.children || []).length
+    && (left.children || []).every((child, index) => sameMaterial(child, right.children![index]));
+};
+
+/**
+ * The occurrences a neutral claim establishes by relating them to an earlier
+ * occurrence of the same object. A new anchored node is a copy when the claim
+ * also anchors a preceding occurrence of its lineage that is displaced in this
+ * stage (removed, rewritten, re-pronounced or given another parent) or whose
+ * complete material the new node repeats; a shared lineage alone, as for an
+ * identity or coreference observation over different material, establishes
+ * nothing. Each copy names its earlier occurrence when one candidate, or one
+ * displaced candidate, identifies it. `earlierNodeIds` are the displaced
+ * occurrences, which change with the copy and keep their preceding form until
+ * its moment. `claimedNodeIds`, what the stage's recovered movements and
+ * earlier claims already own, are excluded. Relation and field names play no
+ * part.
+ */
+export const anchoredCopyDisplacement = (
+  relation: DerivationReplayPlanStep,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[],
+  claimedNodeIds: ReadonlySet<string> = new Set()
+): DerivationReplayPlanStep['anchoredCopyDisplacement'] => {
+  if (relation.recoveredMovement || !relation.neutralTransitionEvidence
+    && findRelationRegistryEntry(productionRelationRegistry, String(relation.relation || '').trim()))
+    return undefined;
+  const unique = (forest: SyntaxNode[], id: string): SyntaxNode | undefined => {
+    const matches = findExactNodesByIdInForest(forest, id);
+    return matches.length === 1 ? matches[0] : undefined;
+  };
+  const previous = indexExactForestNodeLocations(previousForest), current = indexExactForestNodeLocations(currentForest);
+  // A preceding root that gains a parent is merged, not displaced.
+  const displaced = (node: SyntaxNode): boolean => {
+    const after = unique(currentForest, node.id), before = previous.get(node.id);
+    return !after || !sameSubtree(node, after) || Boolean(before?.parentId) && before!.parentId !== current.get(node.id)?.parentId;
+  };
+  const currentIds = [...new Set(relationAnchorNodeIds(relation.anchors))];
+  const earlier = [...new Set([...currentIds, ...relationAnchorNodeIds(relation.priorAnchors)])]
+    .map(id => unique(previousForest, id))
+    .filter((node): node is SyntaxNode => Boolean(node?.lineageId));
+  const copies = currentIds
+    .filter(id => !claimedNodeIds.has(id) && !findExactNodesByIdInForest(previousForest, id).length)
+    .map(id => unique(currentForest, id))
+    .flatMap((node) => {
+      const candidates = node?.lineageId ? earlier.filter(occurrence => occurrence.lineageId === node.lineageId
+        && (displaced(occurrence) || sameMaterial(occurrence, node))) : [];
+      if (!node || !candidates.length)
+        return [];
+      const sources = candidates.length === 1 ? candidates : candidates.filter(displaced);
+      return [{ nodeId: node.id, ...(sources.length === 1 ? { earlierNodeId: sources[0].id } : {}) }];
+    });
+  if (copies.length === 0)
+    return undefined;
+  const lineages = new Set(copies.map(copy => unique(currentForest, copy.nodeId)!.lineageId));
+  return {
+    copies,
+    earlierNodeIds: earlier.filter(node => lineages.has(node.lineageId) && !claimedNodeIds.has(node.id) && displaced(node))
+      .map(node => node.id)
+  };
+};
+
+const resolveAnchoredCopyOwnership = (
+  relation: DerivationReplayPlanStep,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[]
+): FallbackTreeTransitionOwnership | null => {
+  const displacement = relation.anchoredCopyDisplacement;
+  if (!displacement)
+    return null;
+  const subtree = (forest: SyntaxNode[], id: string) => {
+    const node = findExactNodeByIdInForest(forest, id);
+    return node ? [...collectExactSubtreeNodeIds(node)] : [];
+  };
+  const previous = indexExactForestNodeLocations(previousForest), current = indexExactForestNodeLocations(currentForest);
+  // An earlier occurrence that keeps its id at a new parent is the landing,
+  // and the copy is its lower occurrence; otherwise the copy is the landing.
+  const copyPairs = displacement.copies.flatMap(({ nodeId, earlierNodeId }) => {
+    if (!earlierNodeId)
+      return [];
+    const before = previous.get(earlierNodeId), after = current.get(earlierNodeId);
+    const keptAtLanding = Boolean(after && before?.parentId && before.parentId !== after.parentId);
+    return [keptAtLanding ? { priorSourceNodeId: earlierNodeId, sourceNodeId: nodeId, targetNodeId: earlierNodeId }
+      : { priorSourceNodeId: earlierNodeId, sourceNodeId: current.get(earlierNodeId) ? earlierNodeId : nodeId, targetNodeId: nodeId }];
+  });
+  const ambiguousCopyNodeIds = displacement.copies.filter(copy => !copy.earlierNodeId).map(copy => copy.nodeId);
+  const currentNodeIds = new Set([...displacement.copies.map(copy => copy.nodeId), ...displacement.earlierNodeIds]
+    .flatMap(id => subtree(currentForest, id)));
+  return currentNodeIds.size ? {
+    currentNodeIds,
+    priorNodeIds: new Set(displacement.earlierNodeIds.flatMap(id => subtree(previousForest, id))),
+    ...(copyPairs.length ? { copyPairs } : {}),
+    ...(ambiguousCopyNodeIds.length ? { ambiguousCopyNodeIds } : {})
+  } : null;
+};
+
 export const resolveFallbackTreeTransitionOwnership = (
   relation: DerivationReplayPlanStep,
   previousForest: SyntaxNode[],
   currentForest: SyntaxNode[]
 ): FallbackTreeTransitionOwnership | null => {
+  if (relation.recoveredMovement)
+    return null;
   const witnessed = resolvePriorWitnessTreeTransitionOwnership(relation, previousForest, currentForest);
-  if (witnessed || relation.recoveredMovement || !relation.unprovenNewLandingNodeId)
-    return witnessed;
+  const copied = resolveAnchoredCopyOwnership(relation, previousForest, currentForest);
+  if (witnessed && copied) {
+    const copyPairs = [...witnessed.copyPairs ?? [], ...(copied.copyPairs ?? [])
+      .filter(pair => !witnessed.copyPairs?.some(other => other.targetNodeId === pair.targetNodeId))];
+    return {
+      currentNodeIds: new Set([...witnessed.currentNodeIds, ...copied.currentNodeIds]),
+      priorNodeIds: new Set([...witnessed.priorNodeIds, ...copied.priorNodeIds]),
+      ...(copyPairs.length ? { copyPairs } : {}),
+      ...(copied.ambiguousCopyNodeIds ? { ambiguousCopyNodeIds: copied.ambiguousCopyNodeIds } : {})
+    };
+  }
+  if (witnessed || copied || !relation.unprovenNewLandingNodeId)
+    return witnessed ?? copied;
   const landing = findExactNodesByIdInForest(currentForest, relation.unprovenNewLandingNodeId);
   if (landing.length !== 1 || findExactNodesByIdInForest(previousForest, relation.unprovenNewLandingNodeId).length)
     return null;
@@ -617,9 +744,12 @@ export interface AnchoredTransitionInput {
   activeRelations: DerivationReplayPlanStep[];
   constructedNodeIds?: Set<string>;
   withheldNodeIds?: Set<string>;
-  pendingTransitionNodeIds?: Set<string>;
   /** `keptIdLandingNodeIds` of the relations not yet active. */
   pendingKeptIdLandingNodeIds?: Set<string>;
+  /** Preceding nodes the active neutral claims' new parents attach. */
+  attachedNodeIds?: Set<string>;
+  /** Preceding nodes whose new parent's construction step has not yet run. */
+  heldAttachmentNodeIds?: Set<string>;
 }
 
 export const buildAnchoredTreeTransitionForest = ({
@@ -628,8 +758,9 @@ export const buildAnchoredTreeTransitionForest = ({
   activeRelations,
   constructedNodeIds = new Set(),
   withheldNodeIds = new Set(),
-  pendingTransitionNodeIds = new Set(),
-  pendingKeptIdLandingNodeIds = new Set()
+  pendingKeptIdLandingNodeIds = new Set(),
+  attachedNodeIds = new Set(),
+  heldAttachmentNodeIds = new Set()
 }: AnchoredTransitionInput): SyntaxNode[] => {
   const ownerships = activeRelations
     .map((relation) => {
@@ -670,7 +801,7 @@ export const buildAnchoredTreeTransitionForest = ({
   ]);
   const previousLocations = indexExactForestNodeLocations(previousForest);
   const currentLocations = indexExactForestNodeLocations(currentForest);
-  const attachmentNodeIds = new Set<string>();
+  const attachmentNodeIds = new Set<string>(attachedNodeIds);
   activeRelations.flatMap(relation => relation.recoveredMovements ?? [relation.recoveredMovement]).forEach(movement => {
     if (!movement?.transition || movement.trajectoryKind !== 'head')
       return;
@@ -685,7 +816,7 @@ export const buildAnchoredTreeTransitionForest = ({
   // Construction of a pending rewrite's new parent cannot carry an occurrence
   // that kept its id at the landing there early: it keeps its preceding
   // position until the rewrite's moment.
-  const heldNodeIds = new Set([...pendingKeptIdLandingNodeIds].filter(nodeId => !activeCurrentNodeIds.has(nodeId)));
+  const heldNodeIds = new Set([...pendingKeptIdLandingNodeIds, ...heldAttachmentNodeIds].filter(nodeId => !activeCurrentNodeIds.has(nodeId)));
   const structuralNodeIds = new Set([...activeCurrentNodeIds, ...attachmentNodeIds,
     ...[...constructedNodeIds].filter(nodeId => !heldNodeIds.has(nodeId))]);
   let result = cloneSyntaxForest(previousForest);
@@ -770,10 +901,10 @@ export const buildAnchoredTreeTransitionForest = ({
       ? currentLocation.node.children
       : [];
     // Inserting a parent around an existing sibling occupies that sibling's
-    // old slot. Attach its preceding contents with the relation's output;
-    // otherwise the old child remains beside the new parent until Stage Record.
-    // Separate workspaces and another relation's pending inputs are not part
-    // of this local attachment.
+    // old slot. Attach its preceding contents with the relation's output, so
+    // no branch spans the row the new parent adds. A later claim that owns a
+    // sibling's change still owns its material, which keeps its preceding form
+    // here; separate workspaces and pending movement are not attached.
     const retainedChildren = previousLocations.has(nodeId) ? [] : currentChildren.filter(child => {
       const previous = exactLocation(previousLocations, child.id);
       return currentLocation.parentId && previous?.parentId === currentLocation.parentId;
@@ -781,7 +912,7 @@ export const buildAnchoredTreeTransitionForest = ({
     const replacesConsecutiveChildren = retainedChildren.every((child, offset) => exactLocation(previousLocations, child.id)?.childIndex === currentLocation.childIndex + offset);
     const retainedChildIds = new Set(replacesConsecutiveChildren ? retainedChildren
       .filter(child => ![...collectExactSubtreeNodeIds(child),
-      ...collectExactSubtreeNodeIds(exactLocation(previousLocations, child.id)!.node)].some(id => withheldNodeIds.has(id) || pendingTransitionNodeIds.has(id)))
+      ...collectExactSubtreeNodeIds(exactLocation(previousLocations, child.id)!.node)].some(id => withheldNodeIds.has(id) || heldNodeIds.has(id)))
       .map(child => child.id) : []);
     for (const [childIndex, child] of currentChildren.entries()) {
       const childId = String(child.id || '');
@@ -976,6 +1107,97 @@ export const landingAttachmentPath = (
     parentNodeId = findParentNodeIdInForest(currentForest, parentNodeId);
   }
   return parentNodeId || !landingHostNodeId ? hostIds : [landingHostNodeId];
+};
+
+/**
+ * The new parents a neutral claim's moment introduces with its output: for
+ * each owned occurrence that is new, or leaves one parent for another absent
+ * from the preceding stage, the `landingAttachmentPath` to the workspace that
+ * held the claim's preceding material. A preceding root that gains a parent
+ * is merged by ordinary construction, as is everything above that path.
+ */
+export const neutralTransitionHostNodeIds = (
+  relation: DerivationReplayPlanStep,
+  ownership: FallbackTreeTransitionOwnership,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[],
+  stopBefore: (parentNodeId: string) => boolean = () => false
+): string[] => {
+  const previous = indexExactForestNodeLocations(previousForest);
+  const current = indexExactForestNodeLocations(currentForest);
+  const sourceIds = [...ownership.priorNodeIds, ...relationAnchorNodeIds(relation.anchors), ...relationAnchorNodeIds(relation.priorAnchors)]
+    .filter(id => previous.get(id));
+  return [...new Set([...ownership.currentNodeIds].flatMap((nodeId) => {
+    const before = previous.get(nodeId), after = current.get(nodeId);
+    if (!after?.parentId || ownership.currentNodeIds.has(after.parentId) || previous.get(after.parentId)
+      || (before && (!before.parentId || before.parentId === after.parentId)))
+      return [];
+    return landingAttachmentPath(currentForest, previousForest, nodeId, before ? [nodeId, ...sourceIds] : sourceIds, stopBefore);
+  }))];
+};
+
+/** Same own fields and child ids throughout, except inside `owned`. */
+const retainedOutside = (before: SyntaxNode, after: SyntaxNode, owned: ReadonlySet<string>): boolean => owned.has(after.id)
+  || ownNodeContent(before) === ownNodeContent(after) && (before.children || []).length === (after.children || []).length
+  && (after.children || []).every((child, index) => child.id === before.children![index].id
+    && retainedOutside(before.children![index], child, owned));
+
+/**
+ * Completes each neutral ownership of a stage, in authored order, with the new
+ * parents its moment introduces (`neutralTransitionHostNodeIds`, stopping below
+ * a parent an earlier claim anchors and leaving one another claim already
+ * introduces) and the preceding nodes those parents attach at the moment. A
+ * new parent takes over the consecutive slot its preceding children held, in
+ * their order; a new workspace root joins only the preceding roots that held
+ * the claim's material, never an unrelated workspace.
+ */
+export const planNeutralTransitionAttachments = (
+  relations: readonly DerivationReplayPlanStep[],
+  ownerships: Map<number, FallbackTreeTransitionOwnership>,
+  relationIndexes: readonly number[],
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[]
+): void => {
+  const outputIds = new Set(relationIndexes.flatMap(index => [...ownerships.get(index)?.currentNodeIds ?? []]));
+  const introduced = new Set<string>();
+  const previous = indexExactForestNodeLocations(previousForest), current = indexExactForestNodeLocations(currentForest);
+  const anchoredBefore = (relationIndex: number, nodeId: string) => relations.slice(0, relationIndex)
+    .some(relation => getRelationAllAnchorNodeIds(relation).some(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(currentForest, id)).includes(nodeId)));
+  [...relationIndexes].sort((left, right) => left - right).forEach((relationIndex) => {
+    const ownership = ownerships.get(relationIndex), relation = relations[relationIndex];
+    if (!ownership)
+      return;
+    const hostNodeIds = neutralTransitionHostNodeIds(relation, ownership, previousForest, currentForest,
+      parentNodeId => anchoredBefore(relationIndex, parentNodeId)).filter(id => !outputIds.has(id) && !introduced.has(id));
+    hostNodeIds.forEach(id => introduced.add(id));
+    const hosts = new Set(hostNodeIds), owned = new Set([...ownership.currentNodeIds, ...ownership.priorNodeIds]);
+    const claimRoots = new Set([...ownership.priorNodeIds, ...relationAnchorNodeIds(relation.anchors), ...relationAnchorNodeIds(relation.priorAnchors)]
+      .flatMap(id => { const location = previous.get(id); return location ? [String(previousForest[location.rootIndex]?.id || '')] : []; }));
+    // The slot a path took over is held under its nearest preceding ancestor,
+    // through any new outer projection that ordinary construction builds.
+    const slotOf = (nodeId: string): { parentId: string; childId: string } => {
+      let childId = nodeId;
+      while (hosts.has(current.get(childId)?.parentId ?? ''))
+        childId = current.get(childId)!.parentId;
+      let parentId = current.get(childId)?.parentId ?? '';
+      while (parentId && !previous.get(parentId)) {
+        childId = parentId;
+        parentId = current.get(parentId)?.parentId ?? '';
+      }
+      return { parentId, childId };
+    };
+    const attachments: NonNullable<FallbackTreeTransitionOwnership['attachments']> = [];
+    hostNodeIds.forEach((wrapper) => {
+      const { parentId, childId } = slotOf(wrapper);
+      const preceding = (current.get(wrapper)?.node.children || [])
+        .filter(child => !hosts.has(child.id) && !outputIds.has(child.id) && previous.get(child.id));
+      const candidates = preceding.filter(child => previous.get(child.id)!.parentId === parentId && (parentId || claimRoots.has(child.id)));
+      const taken = !parentId || candidates.every((child, offset) => previous.get(child.id)!.childIndex === current.get(childId)!.childIndex + offset)
+        ? candidates : [];
+      taken.forEach(child => attachments.push({ host: child.id, wrapper, retained: retainedOutside(previous.get(child.id)!.node, child, owned) }));
+    });
+    ownerships.set(relationIndex, { ...ownership, hostNodeIds, attachments });
+  });
 };
 
 export const movementLandingWrapper = (

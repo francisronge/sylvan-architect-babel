@@ -80,9 +80,13 @@ test('late wrapper refinement keeps current construction honest and preserves th
     assert.ok(step.replayVisibleNodeIds.includes(step.targetNodeId), `${step.operation} shows its exact target`);
     assert.notEqual(find([step.replayCanvasData], step.targetNodeId).replayLayoutOnly, true);
   }
-  assert.ok(steps.some(step => step.replayKind === 'micro' && step.operation === 'ExternalMerge' && step.targetNodeId === 'bar'));
   const relationMoment = steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1 && step.replayRelationIdentity.relationIndex === 0);
   assert.ok(relationMoment > 0);
+  // As for a recovered movement's landing, the moment's new parents attach the
+  // copy above the preceding base; the merges above them remain construction.
+  assert.ok(!steps.slice(0, relationMoment).some(step => step.replayVisibleNodeIds.includes('bar')));
+  assert.ok(['complex', 'bar'].every(id => steps[relationMoment].replayVisibleNodeIds.includes(id)));
+  assert.ok(steps.some(step => step.replayKind === 'micro' && step.operation === 'ExternalMerge' && step.targetNodeId === 'clause'));
   const drawings = prepared.relationRenderPlan.frames[1].items.filter(item => item.relationRef.relationIndex === 0);
   assert.ok(drawings.some(item => item.kind === 'fallback'));
   assert.ok(!drawings.some(item => item.kind === 'trajectory'));

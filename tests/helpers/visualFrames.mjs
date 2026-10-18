@@ -18,6 +18,7 @@ import * as layout from '../../replay/treeLayout.ts';
 import * as plaqueJob from '../../replay/plaqueLayoutJob.ts';
 import { CATEGORY_FONT, CATEGORY_LINE_HEIGHT, categoryTextLayout } from '../../replay/categoryTextLayout.ts';
 import { prepareReplay } from '../../replay/prepareReplay.ts';
+import { TREE_ROW_HEIGHT } from '../../replay/treeSpacing.ts';
 import { prepareTreeLabelRuns } from '../../replay/prepareTreeLabelRuns.ts';
 import { fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations/fallbackGeometry.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
@@ -266,7 +267,7 @@ function layoutGroup(visual, viewports, only, Element) {
         completedReplayStep: completedStep, g: harness.group, fitFallbackOverlays: (k, view) => { fitted = { k, view }; },
         derivationFrameFitNodes: [...nodes.values()], overlayFitBounds: null, visibleNodes: [...nodes.values()] } }));
       const marks = relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule: scene.schedule, fitted, runs });
-      return { frame: stepIndex + 1, viewport: viewport.name, zoom: fitted.k, texts: [...painted.texts, ...marks.texts],
+      return { frame: stepIndex + 1, viewport: viewport.name, zoom: fitted.k, rowHeight: TREE_ROW_HEIGHT, texts: [...painted.texts, ...marks.texts],
         chrome: frameChrome(viewport, harness.session.cameraRuntime.deferred),
         plaques: marks.plaques, lines: [...painted.lines, ...marks.lines] };
     });
@@ -373,7 +374,7 @@ export function layoutCanopyVisualFrame(visual, viewport) {
   const view = availableTreeViewport(viewport.width, viewport.height, viewportObstacles(viewport, false));
   const zoom = Math.max(viewport.width < 500 ? 0.02 : 0.06, Math.min((view.right - view.left) / box.width, (view.bottom - view.top) / box.height, 1));
   const pose = { x: (view.left + view.right) / 2 - (box.x + box.width / 2) * zoom, y: (view.top + view.bottom) / 2 - (box.y + box.height / 2) * zoom, k: zoom };
-  return { frame: 'canopy', viewport: viewport.name, zoom, texts: painted.texts, plaques: [], lines: painted.lines,
+  return { frame: 'canopy', viewport: viewport.name, zoom, rowHeight: TREE_ROW_HEIGHT, texts: painted.texts, plaques: [], lines: painted.lines,
     chrome: frameChrome(viewport, pose, false) };
 }
 

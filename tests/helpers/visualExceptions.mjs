@@ -3,8 +3,8 @@
  * 2560×1440 Fit passes). Matching follows tests/helpers/findings.mjs: a new
  * finding fails, so does one beyond its bound, and so does every listed frame
  * where the fault no longer occurs. Each frame list carries the bound of the
- * rule's measure at those frames: missing clearance or depth in CSS pixels, or a
- * mark's distance as a ratio of its reach. */
+ * rule's measure at those frames: missing clearance, depth or row deviation in
+ * CSS pixels, or a mark's distance as a ratio of its reach. */
 
 const SPOKE_ATTACHED = 'Accepted since #76: keeping the gap would cut off the spoke\'s labelled end, so attachment wins '
   + 'and the spoke meets the plaque\'s edge.';
@@ -15,12 +15,18 @@ const LANE = 'Open: a neutral counter-lane connector runs its lane through tree 
 const ROLE_CROWDED = 'Open: every preferred spot beside the witness label is taken, so the role placer steps outward until '
   + 'free and the label lands beside other syntax.';
 
-const BRANCH_TEXT = 'Open: a tree branch passes through a neighbouring category label, here the C′-to-C branch through the '
-  + 'label of the head complex that head movement builds beside it.';
-
 const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
 
+// The same findings, with the same measures, occur on origin/main for the saved
+// analyses these fixture cases copy (indexed-night 27-sv-embedded-negation,
+// bughunt2 07-en-rnr); only their frame numbers moved.
 export const EXCEPTIONS = [
+  x(ROLE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/1', 'mark-distance', 'role',
+    'role(8:1 higher Contained Heads[4])@mTAtC', { desktop: { '51': 2.82 } }),
+  x(ROLE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/1', 'mark-distance', 'role',
+    'role(8:1 lower Contained Heads[4])@mT', { desktop: { '51': 2.8 } }),
+  x(PLAQUE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/4', 'mark-distance', 'plaque',
+    'plaque(2:0 theta Agent)@v-buy', { desktop: { '29-54': 1.12 }, 'desktop-large': { '29-54': 1.12 } }),
   x(SPOKE_ATTACHED, 'performance/german-embedded.json#', 'line-clearance', 'connector-plaque',
     'connector(0:4)reportNP→reportN plaque(0:1 directed-path case-assignment)@read', { desktop: { '57': 1.44 } }),
   x(PLAQUE_CROWDED, 'movement/clause-context.json#/cases/7', 'mark-distance', 'plaque',
@@ -87,6 +93,10 @@ export const EXCEPTIONS = [
     'plaque(0:0 theta Experiencer/Theme)@v', { desktop: { '21-24': 1.53 }, 'desktop-large': { '21-24': 1.53 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/3/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:1 theta Theme)@stolen', { desktop: { '17-20': 1.24 }, 'desktop-large': { '17-20': 1.31 } }),
+  x(PLAQUE_CROWDED, 'replay-regressions/waiting-root-continuity.json#', 'mark-distance', 'plaque',
+    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
+  x(PLAQUE_CROWDED, 'replay-regressions/waiting-root-continuity.json#', 'mark-distance', 'plaque',
+    'plaque(1:0 subjectForm: Silent pronominal subject licensed )@relativeSubject', { desktop: { '21-43': 1.18 }, 'desktop-large': { '21-43': 1.18 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/es-wh-phase-edge-contour.json#', 'mark-distance', 'plaque',
     'plaque(5:0 clauseType: direct constituent question)@question', { desktop: { '27-30': 1.25 }, 'desktop-large': { '27-30': 1.25 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-arabic-continuity.json#/cases/9', 'mark-distance', 'plaque',
@@ -181,12 +191,13 @@ export const EXCEPTIONS = [
     'role(4:0 complex Head)@vComplex', { desktop: { '52': 2.87 } }),
   x(ROLE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'role',
     'role(4:2 governor)@vComplex', { desktop: { '54': 3.23 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/unrendered-head-movement.json#', 'mark-distance', 'plaque',
-    'plaque(0:4 particle heads: 을)@objectParticle', { desktop: { '37-49': 1.16 }, 'desktop-large': { '37-49': 1.16 } }),
   x(ROLE_CROWDED, 'replay-regressions/unrendered-head-movement.json#', 'mark-distance', 'role',
     'role(1:2 honorific nominative exponent)@subjectParticle', { desktop: { '41': 3.86 } }),
   x(ROLE_CROWDED, 'replay-regressions/unrendered-head-movement.json#', 'mark-distance', 'role',
     'role(3:0 lower head trace)@honorificTrace', { desktop: { '45': 4.63 } }),
-  x(BRANCH_TEXT, 'replay-regressions/unrendered-head-movement.json#', 'line-clearance', 'branch-text',
-    'complementizerBar->complementizer declarativeComplex:category', { desktop: { '47': 2.32 }, 'desktop-large': { '47': 5.43 } })
+  x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
+    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
+  x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
+    'plaque(1:0 subjectForm: Silent pronominal subject licensed )@relativeSubject',
+    { desktop: { '21-43': 1.18 }, 'desktop-large': { '21-43': 1.18 } })
 ];

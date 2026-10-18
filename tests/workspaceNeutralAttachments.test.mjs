@@ -58,6 +58,17 @@ for(const mode of ['changed-host','wrong-parent','wrong-slot','extra-sibling'])t
   assert(!result.has('object'));
 });
 
+test('compiler-proved attachment evidence releases a host whose own rewrite is inside it, and only under its new parent', () => {
+  const {before,current}=example(), changed=()=>false;
+  const proved=step({replayTreeTransition:{relationKey:'2:0',priorNodeIds:[],currentNodeIds:['landing'],
+    attachments:[{host:'object',wrapper:'wrapper'}]}});
+  assert.deepEqual(names(neutralWorkspaceAttachments(proved,before,current,changed)),['object']);
+  for(const attachment of [{host:'object',wrapper:'vp'},{host:'verb',wrapper:'wrapper'},{host:'outside',wrapper:'wrapper'}])
+    assert.deepEqual(names(neutralWorkspaceAttachments(step({replayTreeTransition:{...proved.replayTreeTransition,attachments:[attachment]}}),
+      before,current,changed)),[],JSON.stringify(attachment));
+  assert.deepEqual(names(neutralWorkspaceAttachments({...proved,replayRelationIdentity:{stageIndex:2,relationIndex:1}},before,current,changed)),[]);
+});
+
 test('compiler exports exact neutral rewrite witnesses without promoting the relation to movement', () => {
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/astra-turkish-relative-2.json', import.meta.url)));
   const unchanged = structuredClone(record);
@@ -67,7 +78,8 @@ test('compiler exports exact neutral rewrite witnesses without promoting the rel
   assert.deepEqual(moment.replayTreeTransition, {
     relationKey: '2:0',
     currentNodeIds: ['b_yesterday_low', 'b_yesterday_abar', 'b_yesterday_adv', 'b_read', 'b_yesterday_trace'],
-    priorNodeIds: ['b_yesterday', 'b_yesterday_abar', 'b_yesterday_adv']
+    priorNodeIds: ['b_yesterday', 'b_yesterday_abar', 'b_yesterday_adv'],
+    attachments: [{ host: 'b_student', wrapper: 'b_object_domain' }]
   });
   const links = moment.replayRelationLinks.filter(link => link.authoredRelationKey === '2:0');
   assert(links.length);

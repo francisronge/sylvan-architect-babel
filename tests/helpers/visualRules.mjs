@@ -5,7 +5,8 @@
  * tests/helpers/findings.mjs; the caller fills `record`.
  *
  * Frame model. Coordinates are tree units; `zoom` converts them to CSS pixels.
- *   { frame, viewport, zoom, texts, plaques, lines, chrome? }
+ *   { frame, viewport, zoom, rowHeight?, texts, plaques, lines, chrome? }
+ *   rowHeight is the layout's row in tree units, when the adapter knows it.
  *   texts   [{ id, kind, text, boxes, halo, nodes, claims, lines?, plaque?, reach?, distance? }]
  *     kind 'category' or 'word' is tree text; any other kind is a mark's own text.
  *     boxes are glyph boxes, one per painted line or index run; halo is the width
@@ -20,8 +21,9 @@
  *     joined marks a plaque tied to syntax by an arrow or collector of its own.
  *   lines   [{ id, kind, paths, halfWidth, nodes, claims, masked? }]
  *     paths are polylines of { x, y }; nodes are the tree nodes it may meet (a
- *     branch its parent and child, a stem its word, a connector its witnesses'
- *     subtrees); masked lines are painted under tree text by design.
+ *     branch its parent and child, its path running parent to child; a stem its
+ *     word; a connector its witnesses' subtrees); masked lines are painted under
+ *     tree text by design.
  *   chrome  { canvas, panel?, header? } rects, when the adapter knows the screen.
  * Ids must be stable across frames: node ids, or a mark's claim, text and anchor.
  *
@@ -30,7 +32,7 @@
  * connector lane. Index letters are counted by checkOneLetterPerLabel
  * (tests/helpers/replayInvariants.mjs, PR #75), not here. */
 
-export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-distance', 'label-typography', 'clipped']);
+export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-distance', 'label-typography', 'clipped', 'branch-geometry']);
 
 /** CSS pixels at the frame's Fit unless noted. Glyph boxes may share a two-pixel
  * sliver of outline; a stroke must keep a pixel from a plaque shell and may not
@@ -38,7 +40,7 @@ export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-dis
  * (a ratio), a mark's text also by 20 pixels; a connector this close to a plaque
  * of its own claim is that plaque's leader. */
 export const THRESHOLDS = Object.freeze({ overlapPx: 2, clearancePx: 1, crossingPx: 1, reachMargin: 0.1, textReachPx: 20,
-  leaderPx: 6, clippedPx: 2 });
+  leaderPx: 6, clippedPx: 2, rowUnits: 1 });
 
 const TREE_TEXT = new Set(['category', 'word']);
 const LOCAL_PLAQUE = 480;
@@ -294,8 +296,34 @@ export function checkClipped(frame, thresholds = THRESHOLDS) {
   return out;
 }
 
+/** branch-geometry: a visible parent→child syntax branch spans exactly one
+ * layout row (`frame.rowHeight`, tree units), and the visible children of one
+ * parent share a row (subtypes span and sisters, measured as the deviation in
+ * CSS pixels). A branch's first and last path points are its parent and child.
+ * Word stems, hanging words, trajectories and relation marks are other line
+ * kinds and never tested here. Skipped without `rowHeight`. */
+export function checkBranchGeometry(frame, thresholds = THRESHOLDS) {
+  if (!(frame.rowHeight > 0)) return [];
+  const out = [], children = new Map();
+  for (const line of frame.lines) {
+    if (line.kind !== 'branch' || !line.paths[0]?.length) continue;
+    const from = line.paths[0][0], to = line.paths[0].at(-1), deviation = Math.abs(to.y - from.y - frame.rowHeight);
+    if (deviation > thresholds.rowUnits) out.push(finding('branch-geometry', 'span', frame, line.id,
+      `branch ${line.id} spans ${Math.round(to.y - from.y)} units, not one ${frame.rowHeight}-unit row`, deviation * frame.zoom));
+    const [parent, child] = line.nodes;
+    children.set(parent, [...(children.get(parent) ?? []), { child, y: to.y }]);
+  }
+  for (const [parent, list] of children) {
+    const ys = list.map(entry => entry.y), spread = Math.max(...ys) - Math.min(...ys);
+    if (spread > thresholds.rowUnits) out.push(finding('branch-geometry', 'sisters', frame, `${parent} children`,
+      `children of ${parent} sit on different rows: ${list.map(entry => `${entry.child} ${Math.round(entry.y)}`).join(', ')}`,
+      spread * frame.zoom));
+  }
+  return out;
+}
+
 /** Every rule on one normalized frame. */
 export const checkFrame = (frame, thresholds = THRESHOLDS) => [
   ...checkGlyphOverlap(frame, thresholds), ...checkLineClearance(frame, thresholds), ...checkMarkDistance(frame, thresholds),
-  ...checkLabelTypography(frame), ...checkClipped(frame, thresholds)
+  ...checkLabelTypography(frame), ...checkClipped(frame, thresholds), ...checkBranchGeometry(frame, thresholds)
 ];
