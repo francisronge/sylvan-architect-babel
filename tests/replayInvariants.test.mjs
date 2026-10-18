@@ -207,35 +207,32 @@ const KNOWN_DEFECTS = [
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'parent-after-children', 16, 'detP portraitBar'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'no-early-reveal', 17,
     'detP portraitBar detBar nPortrait ofPP detWhich nPortrait::__leaf ofPbar detWhich::__leaf pOf npSelf pOf::__leaf selfBar nSelf nSelf::__leaf'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'attach-at-merge', 17, 'detP portraitBar'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/2', 'parent-after-children', 19, 'argumentDbar'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/2', 'no-early-reveal', 23,
     'argumentDbar demonstrativeD childrenNP demonstrativeD::__leaf childrenNbar childrenN childrenN::__leaf'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/2', 'attach-at-merge', 23, 'argumentDbar'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'parent-after-children', 37, 'sdh moh'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'no-early-reveal', 38,
     'sdh moh donoh studenth moh::__leaf donoh::__leaf studenth::__leaf'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'attach-at-merge', 38, 'sdh moh'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'parent-after-children', 37, 'sdh moh'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'no-early-reveal', 38,
     'sdh moh donoh studenth moh::__leaf donoh::__leaf studenth::__leaf'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'attach-at-merge', 38, 'sdh moh'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/independent-clause-and-realization.json#', 'parent-after-children', 20, 'operatorHighNbar'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/independent-clause-and-realization.json#', 'no-early-reveal', 21, 'operatorHighNbar operatorHighN'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/independent-clause-and-realization.json#', 'attach-at-merge', 21, 'operatorHighNbar'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/receiving-head-material.json#', 'parent-after-children', 20, 'booksDbar'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/receiving-head-material.json#', 'no-early-reveal', 21,
     'booksDbar booksD booksNP booksNbarOuter booksNbarInner demP bookN demBar bookN::__leaf dem dem::__leaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/receiving-head-material.json#', 'attach-at-merge', 21, 'booksDbar'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 11, 'rVAtT rvAtTLeaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 12, 'rVAtT rvAtTLeaf rVAtT::__leaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'attach-at-merge', 12, 'rVAtT rvAtTLeaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 28, 'mVAtT mvAtTLeaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 29, 'mVAtT mvAtTLeaf mVAtT::__leaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'attach-at-merge', 29, 'mVAtT mvAtTLeaf'],
   [ORDER_BEFORE_CONTEXT, 'normalized/what-did-mia-see.xbar.json#/analyses/0', 'parent-after-children', 15, 'cbar_question'],
   [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar']
 ];
+
+// A node revealed at a step that does not own it is one defect, reported by
+// no-early-reveal; that step's attachment of the same node is not reported again.
+const REPORTED_BY = new Map([['attach-at-merge', 'no-early-reveal']]);
+const subjectOf = violation => violation.detail.split(' ')[0];
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments',
   'no-early-reveal', 'parent-after-children', 'stable-construction', 'attach-at-merge', 'visible-in-canvas', 'marks-at-owning-moment'];
@@ -269,8 +266,11 @@ for (const rule of RULES) test(`sweep: ${rule} holds on every frame of every com
   const key = (id, frame, subject) => `${id} frame ${frame}: ${subject}`;
   const expected = new Set(KNOWN_DEFECTS.filter(entry => entry[2] === rule)
     .flatMap(([, id, , frame, subjects]) => subjects.split(' ').map(subject => key(id, frame, subject))));
-  const found = sweep.flatMap(entry => (entry.violations ?? []).filter(violation => violation.rule === rule)
-    .map(violation => ({ key: key(entry.id, violation.frame, violation.detail.split(' ')[0]), text: `${entry.id} frame ${violation.frame}: ${violation.detail}` })));
+  const reportedElsewhere = (violations, violation) => violations.some(other => other.rule === REPORTED_BY.get(rule)
+    && other.frame === violation.frame && subjectOf(other) === subjectOf(violation));
+  const found = sweep.flatMap(entry => (entry.violations ?? [])
+    .filter(violation => violation.rule === rule && !reportedElsewhere(entry.violations, violation))
+    .map(violation => ({ key: key(entry.id, violation.frame, subjectOf(violation)), text: `${entry.id} frame ${violation.frame}: ${violation.detail}` })));
   assert.deepEqual(found.filter(violation => !expected.has(violation.key)).map(violation => violation.text), [], 'new violations');
   const keys = new Set(found.map(violation => violation.key));
   assert.deepEqual([...expected].filter(entry => !keys.has(entry)), [], 'listed defects that no longer occur; remove them from KNOWN_DEFECTS');

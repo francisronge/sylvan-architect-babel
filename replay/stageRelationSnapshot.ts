@@ -304,7 +304,7 @@ export const createStageRelationSnapshots = (
     });
     // Attachments held for construction stay held under the scaffold too.
     const activeFutureLayoutScaffold = buildFrameLayoutScaffold(snapshotWorkspaceRoots,
-      Boolean(baseStep?.replayPendingAttachmentNodeIds?.length));
+      new Set(baseStep?.replayPendingAttachmentNodeIds ?? []));
     const snapshotForest = buildDerivationReplaySnapshot({
       forest: snapshotWorkspaceRoots,
       activeFrameIndex: index,

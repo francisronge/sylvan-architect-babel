@@ -385,7 +385,8 @@ export const buildStructuralDerivationPlaybackSteps = ({
     // A held attachment keeps its new child a separate root until the parent's
     // merge. Stage reservations keep its slot; the scaffold cannot attach it early.
     const activeLayoutScaffold = layoutScaffoldForest
-      && forestCanUseCurrentMaterialLayoutScaffold(constructionForest, layoutScaffoldForest, true)
+      && forestCanUseCurrentMaterialLayoutScaffold(constructionForest, layoutScaffoldForest,
+        hasAttachmentContinuity ? pendingAttachmentNodeIds : undefined)
       ? layoutScaffoldForest
       : undefined;
     const frameReplaySnapshot = buildDerivationReplaySnapshot({
