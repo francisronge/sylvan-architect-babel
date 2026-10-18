@@ -5,12 +5,13 @@ export async function waitForReplayPaint(page, index, { timeout = 30_000 } = {})
     const transform = svg?.querySelector(':scope > g')?.getAttribute('transform');
     return svg?.dataset.babelRenderedStep === String(index)
       && svg.dataset.babelCameraSettledStep === String(index)
+      && !svg.hasAttribute('data-babel-viewport-pending')
       && document.fonts.status === 'loaded' && transform && !/NaN|Infinity/.test(transform);
   };
   await page.waitForFunction(ready, index, { timeout });
   await waitForFiniteAnimations(page, { timeout });
-  // Resize can start measured preparation during the settling frames. Wait
-  // for its new paint instead of returning the stale pre-resize receipt.
+  // A resize during the settling frames keeps the earlier frame painted until
+  // the settled viewport is drawn. Wait for that paint, not the pre-resize receipt.
   await page.waitForFunction(ready, index, { timeout });
   const receipt = await inspectPaintedTree(page);
   if (receipt.renderedFrame !== String(index) || receipt.cameraFrame !== String(index)) {
@@ -20,11 +21,16 @@ export async function waitForReplayPaint(page, index, { timeout = 30_000 } = {})
 }
 
 export async function waitForCanopyPaint(page, { timeout = 30_000 } = {}) {
-  await page.waitForFunction(() => !document.querySelector('[data-babel-replay-panel]')
-    && document.querySelector('svg[data-babel-tree] .node-group text')
-    && document.querySelector('svg[data-babel-tree]')?.dataset.babelCameraSettledStep !== undefined
-    && document.fonts.status === 'loaded', null, { timeout });
+  const ready = () => {
+    const svg = document.querySelector('svg[data-babel-tree]');
+    return !document.querySelector('[data-babel-replay-panel]') && svg?.querySelector('.node-group text')
+      && svg.dataset.babelCameraSettledStep !== undefined && !svg.hasAttribute('data-babel-viewport-pending')
+      && document.fonts.status === 'loaded';
+  };
+  await page.waitForFunction(ready, null, { timeout });
   await waitForFiniteAnimations(page, { timeout });
+  // As in Replay, a resize during the settling frames needs its own completed paint.
+  await page.waitForFunction(ready, null, { timeout });
   return inspectPaintedTree(page);
 }
 
@@ -47,6 +53,7 @@ async function inspectPaintedTree(page) {
   return page.evaluate(() => {
     const svg = document.querySelector('svg[data-babel-tree]');
     if (!svg) throw new Error('No painted Babel tree.');
+    if (svg.hasAttribute('data-babel-viewport-pending')) throw new Error('Painted Babel tree has not been drawn for its resized viewport.');
     const rect = svg.getBoundingClientRect();
     if (![rect.x, rect.y, rect.width, rect.height].every(Number.isFinite) || rect.width <= 0 || rect.height <= 0
       || rect.bottom <= 0 || rect.right <= 0 || rect.top >= innerHeight || rect.left >= innerWidth) {

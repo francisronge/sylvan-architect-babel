@@ -1560,7 +1560,27 @@ not the path identity. Different explicitly named domains remain separate.
 The shared curve keeps its original route and every contributing Replay owner;
 the hull keeps its own appearance time and emphasis. Hovering the shared curve
 during a contributing relation moment selects that current claim. Prior-state
-claims and different replacement lifetimes do not compose this way.
+claims and different replacement lifetimes do not compose this way. A binding
+facet is a prior-state claim only through its own prior anchors. Movement
+evidence owned by a sibling facet, as when a relative operator's movement chain
+also earns its binding, does not keep a later restatement on a second path.
+
+An occurrence label shows each index letter once. The shared dependency-index
+allocator gives one chain one letter, so several co-visible marks can claim the
+same letter at the same label. One QR relation earns a covert path and a binding
+path that both index the operator and the variable, and a silent occurrence can
+already carry an identity coindex, or an authored subscript such as Opᵢ, in its
+label. Each claim keeps its paths and domains, but the binding painters draw
+only the letters `components/renderer/indexLetters.ts` assigns them. Letters
+meet at the physical label their refinement measures: a bound trace's letter
+sits beside its witness's word, so it meets a tᵢ written there. An inline
+coindex or written subscript shows the letter itself, and a written label then
+carries the claims, like a drawn letter. Otherwise the claim most prominent at
+the current Replay step draws the letter, because a letter inside a dimmed
+owner's group cannot be brightened; among equally prominent claims a binding
+index draws it, because its placement clears the binding path. Different letters
+at one occurrence stay separate, and a letter on an occurrence's word, such as a
+theta or identity index, does not remove a letter beside its phrase label.
 
 ## Required Verification
 

@@ -173,6 +173,26 @@ export function* measurePlaqueLayoutJob(input: StageLayoutInput): Generator<void
   return job;
 }
 
+function layoutStageIndices(input: Pick<PlaqueLayoutInput, 'plan' | 'steps'>) {
+  return [...new Set([...(input.plan?.frames ?? []).map((_, index) => index), ...input.steps.flatMap(step =>
+    Number.isInteger(step.replayFrameIndex) && step.replayCanvasData ? [step.replayFrameIndex!] : [])])].sort((a, b) => a - b);
+}
+
+/** Prepared coordinates read the viewport only through each stage's horizontal
+ * layout size; tree layout never reads its vertical size. Viewports with equal
+ * keys prepare identical coordinates and plaque placements, so a resize between
+ * them needs a new camera fit but no new layout. */
+export function plaqueLayoutViewportKey(input: Pick<PlaqueLayoutInput, 'steps' | 'plan' | 'layoutGroups' | 'width' | 'height'>) {
+  const widths: number[] = [];
+  for (const stageIndex of layoutStageIndices(input)) {
+    const size = stageTreeLayoutSize(input.steps, stageIndex, input.width, input.height, input.layoutGroups);
+    // A stage without its own size falls back to a size derived from the viewport width.
+    if (!size) return JSON.stringify({ width: input.width });
+    widths.push(size[0]);
+  }
+  return JSON.stringify(widths);
+}
+
 /** Planning and allocation both run here, with strict native-metric lookups. */
 export function runPlaqueLayoutJob(job: PlaqueLayoutJob, onProgress?: (progress: PlaqueLayoutProgress) => void): PlaqueLayoutResult {
   if (job.inputKey !== valueKey(job.input)) throw new Error('Replay layout job input changed.');
@@ -195,10 +215,8 @@ export function runPlaqueLayoutJob(job: PlaqueLayoutJob, onProgress?: (progress:
     measurePlaqueText: job.measured.plaques ? (text, style) => required(job.plaques, textKey(text, style)) : undefined
   };
   const stages = new Map<number, ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>();
-  const indices = new Set([...(input.plan?.frames ?? []).map((_, index) => index), ...input.steps.flatMap(step =>
-    Number.isInteger(step.replayFrameIndex) && step.replayCanvasData ? [step.replayFrameIndex!] : [])]);
   const sizeForStage = (index: number) => stageTreeLayoutSize(input.steps, index, input.width, input.height, input.layoutGroups);
-  for (const stageIndex of [...indices].sort((a, b) => a - b)) {
+  for (const stageIndex of layoutStageIndices(input)) {
     const size = sizeForStage(stageIndex);
     stages.set(stageIndex, size ? buildStageCoordinateReservations(input.steps, stageIndex, size, sizeForStage,
       input.direction, input.measureCategoryText, input.measureTreeInk, input.treeLabelRuns, input.measureTreeLabel) : new Map());
