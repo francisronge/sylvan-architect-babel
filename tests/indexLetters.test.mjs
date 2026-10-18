@@ -210,49 +210,6 @@ test('a written subscript such as Opᵢ shows the letter and carries the claim t
   assert.deepEqual(refs(decorations.get(opLabel)), ['0:0']);
 });
 
-test('a label hosting a shared inline index dims only when none of its owners is active', () => {
-  // Identity coindexes the operator and a silent trace whose word is t; the
-  // binding then names that trace as its witness, sharing the trace's i.
-  const replay = relative([{ relation: 'Identity', anchors: { occurrences: ['op', 'trace'] }, values: { index: 'i' } },
-    { relation: 'OperatorVariableBinding', anchors: { operator: 'op', variable: 'trace', traceWitness: 'trace' }, values: { index: 'i' } }],
-  'DP', leaf('trace', 'D', 't', { silent: true, lineageId: 'relative' }));
-  const stepIndex = replay.playbackSteps.findIndex(step => step.replayKind === 'relation'
-    && step.replayRelationIdentity?.stageIndex === 0 && step.replayRelationIdentity?.relationIndex === 1);
-  const { items, primitives, emphasis } = moment(replay, 0, 1);
-  const structure = frameStructure(replay.playbackSteps[stepIndex]);
-  const nodes = indexHierarchyNodesByIdAndAliases([...structure.nodes.values()]), resolve = id => nodes.get(id);
-  const root = new Element('g'), g = select(root);
-  for (const [id, runs] of treeLabelRunsForStep(replay, stepIndex, undefined, { includeRelationIndices: false })) for (const run of runs) {
-    const label = new Element('text', { class: `${run.kind}-label`,
-      [run.kind === 'category' ? 'data-category-node-id' : 'data-node-id']: id }, structure.nodes.get(id));
-    label.text = run.text;
-    root.appendChild(label);
-  }
-  const layer = () => g.append('g');
-  const drawing = createBindingDrawing({ activeDerivationFrameIndex: 0, overlay: g, frameItems: items, g,
-    operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], focusedRelationMoment: { stageIndex: 0, relationIndex: 1 },
-    operatorVariableBindingLayers: new Map(), operatorVariableSharedPathLayers: new Map(), acceptedRootLayerBeforeNodes: layer,
-    relationEmphasisForItem: emphasis, decorateRelationElement, resolveOverlayAnchor: resolve, terminalAmbiguities: new Map(),
-    identityTerminalOwners: new Map(), identityForestLightFamilies: [], markIdentityLensOccurrences() {},
-    indexLetterPlan: planIndexLetters(primitives, items, { ...indexLetterLabels(g, resolve),
-      emphasisRank: item => emphasis(item) === 'active' ? 2 : 0 }) });
-  for (const primitive of primitives) {
-    const item = items[primitive.itemIndex], host = g.append('g').attr('class', 'vr-item').attr('opacity', emphasis(item) === 'quiet' ? 0.3 : null);
-    decorateRelationElement(host.node(), item, emphasis(item));
-    ({ 'identity-lens': drawing.drawIdentityLens, 'operator-variable-binding': drawing.drawOperatorVariableBinding })[primitive.type]
-      ?.(primitive, item, host, emphasis(item));
-  }
-  applyRelationEmphasis(root, { stageIndex: 0, relationIndex: 1 }, null);
-  // Active styling sets opacity 1 on its own element; quiet styling sets 0.3.
-  const painted = element => !element ? 1 : (element.classList.contains('vr-relation-active') ? 1
-    : element.classList.contains('vr-relation-quiet') ? 0.3 : Number(element.attrs.opacity ?? 1)) * painted(element.parentNode);
-  const atTrace = descendants(root).filter(element => (element.attrs.class || '').includes('babel-identity-index')
-    && element.parentNode.attrs['data-node-id']?.startsWith('trace'));
-  assert.deepEqual(atTrace.map(index => [index.textContent, painted(index)]), [['i', 1]]);
-  assert.equal(descendants(root).filter(element => element.attrs['data-operator-variable-index-role'] === 'variable').length, 0,
-    'the binding draws no second i beside the trace');
-});
-
 // Painted opacity as the shared emphasis CSS resolves it on each element.
 const paintedOpacity = element => !element ? 1 : (element.classList.contains('vr-relation-active') ? 1
   : element.classList.contains('vr-relation-quiet') ? 0.3 : Number(element.attrs.opacity ?? 1)) * paintedOpacity(element.parentNode);
@@ -293,7 +250,66 @@ test('a mark inside an already quiet ancestor is not dimmed again', () => {
   applyRelationEmphasis(root, { stageIndex: 0, relationIndex: 2 }, null);
   assert.equal(paintedOpacity(index.node()), 0.3);
   applyRelationEmphasis(root, { stageIndex: 0, relationIndex: 1 }, null);
-  assert.equal(paintedOpacity(index.node()), 0.3, 'an active index inside a quiet label still follows the label');
+  assert.equal(paintedOpacity(index.node()), 1, 'a label never dims an index whose claim is in focus');
+});
+
+/** One Replay moment painted with the production relation layers, binding
+ * painters and emphasis, over the step's own tree labels. */
+function paintMoment(replay, stageIndex, relationIndex) {
+  const stepIndex = replay.playbackSteps.findIndex(step => step.replayKind === 'relation'
+    && step.replayRelationIdentity?.stageIndex === stageIndex && step.replayRelationIdentity?.relationIndex === relationIndex);
+  const { items, primitives, emphasis } = moment(replay, stageIndex, relationIndex);
+  const structure = frameStructure(replay.playbackSteps[stepIndex]);
+  const nodes = indexHierarchyNodesByIdAndAliases([...structure.nodes.values()]), resolve = id => nodes.get(id);
+  const root = new Element('g'), g = select(root);
+  for (const [id, runs] of treeLabelRunsForStep(replay, stepIndex, undefined, { includeRelationIndices: false })) for (const run of runs) {
+    const label = new Element('text', { class: `${run.kind}-label`,
+      [run.kind === 'category' ? 'data-category-node-id' : 'data-node-id']: id }, structure.nodes.get(id));
+    label.text = run.text;
+    root.appendChild(label);
+  }
+  const overlay = g.append('g');
+  const drawing = createBindingDrawing({ ...createRelationLayers({ activeDerivationFrameIndex: stageIndex, relationLayerKey, g,
+    decorateRelationElement, overlay }), activeDerivationFrameIndex: stageIndex, overlay, frameItems: items, g,
+  operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], focusedRelationMoment: { stageIndex, relationIndex },
+  relationEmphasisForItem: emphasis, decorateRelationElement, relationLayerKey, resolveOverlayAnchor: resolve, terminalAmbiguities: new Map(),
+  identityTerminalOwners: new Map(), identityForestLightFamilies: [], markIdentityLensOccurrences() {}, TARGET_EMERALD: '#34d399',
+  indexLetterPlan: planIndexLetters(primitives, items, { ...indexLetterLabels(g, resolve), emphasisRank: item => emphasis(item) === 'active' ? 2 : 0 }) });
+  const painters = { 'quantifier-raising': drawing.drawQuantifierRaising, 'operator-variable-binding': drawing.drawOperatorVariableBinding,
+    'identity-lens': drawing.drawIdentityLens, 'index-badge': drawing.drawIndexBadge };
+  for (const primitive of primitives) {
+    // As the relation scene creates each primitive's host.
+    const item = items[primitive.itemIndex], host = overlay.append('g').attr('class', 'vr-item');
+    decorateRelationElement(host.node(), item, emphasis(item));
+    host.attr('opacity', emphasis(item) === 'quiet' ? 0.3 : null);
+    painters[primitive.type](primitive, item, host, emphasis(item));
+  }
+  applyRelationEmphasis(root, { stageIndex, relationIndex }, null);
+  return root;
+}
+const identityIndices = (root, labelId) => descendants(root).filter(element => (element.attrs.class || '').includes('babel-identity-index')
+  && (element.parentNode.attrs['data-node-id'] ?? element.parentNode.attrs['data-category-node-id'])?.startsWith(labelId))
+  .map(index => [index.textContent, paintedOpacity(index)]);
+
+test('a terminal label hosting a shared index follows the binding that shares it', () => {
+  // Identity coindexes the operator and a silent trace whose word is t; the
+  // binding then names that trace as its witness, sharing the trace's i.
+  const replay = relative([{ relation: 'Identity', anchors: { occurrences: ['op', 'trace'] }, values: { index: 'i' } },
+    { relation: 'OperatorVariableBinding', anchors: { operator: 'op', variable: 'trace', traceWitness: 'trace' }, values: { index: 'i' } }],
+  'DP', leaf('trace', 'D', 't', { silent: true, lineageId: 'relative' }));
+  const root = paintMoment(replay, 0, 1);
+  assert.deepEqual(identityIndices(root, 'trace'), [['i', 1]]);
+  assert.equal(descendants(root).filter(element => element.attrs['data-operator-variable-index-role'] === 'variable').length, 0,
+    'the binding draws no second i beside the trace');
+});
+
+test('a written label such as Opᵢ never dims the active index it hosts, and a quiet one dims once', () => {
+  // The binding's i is written into Opᵢ; identity then adds j to the same label.
+  const replay = relative([{ relation: 'OperatorVariableBinding', anchors: { operator: 'op', variable: 'gap' } },
+    { relation: 'Identity', anchors: { occurrences: ['op', 'him'] }, values: { index: 'j' } },
+    { relation: 'clause typing', anchors: { clause: 'cp' } }], 'Opᵢ');
+  assert.deepEqual(identityIndices(paintMoment(replay, 0, 1), 'op'), [['j', 1]]);
+  assert.deepEqual(identityIndices(paintMoment(replay, 0, 2), 'op'), [['j', 0.3]]);
 });
 
 test('inline coindices hold their label; unplaceable ones never take a letter; unlisted letters are errors', () => {

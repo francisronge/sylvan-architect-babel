@@ -2,7 +2,8 @@ import { hierarchy } from 'd3';
 import assert from 'node:assert/strict';
 import test, { after } from 'node:test';
 import { createBindingDrawing } from '../components/renderer/bindingDrawing.ts';
-import { acceptedRelationDrawingKey, relationLayerKey } from '../components/renderer/relationOwnership.ts';
+import { applyRelationEmphasis } from '../components/renderer/relationInteraction.ts';
+import { acceptedRelationDrawingKey, decorateRelationElement, relationLayerKey } from '../components/renderer/relationOwnership.ts';
 import { createThetaDrawing } from '../components/renderer/thetaDrawing.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
@@ -63,7 +64,7 @@ test('conflicting and empty authored identity indices remain neutral instead of 
 
 const { Element, restore } = createSvgDom();
 after(restore);
-function painter(workspace = forest) {
+function painter(workspace = forest, decorate = null) {
   const root = new Element('g');
   const nodes = new Map(workspace.flatMap(tree => hierarchy(tree).descendants()).map(node => [node.data.id, node]));
   for (const node of nodes.values()) {
@@ -78,7 +79,7 @@ function painter(workspace = forest) {
   const dependencies = { terminalAmbiguities: new Map(),
     g: select(root), resolveOverlayAnchor: id => nodes.get(id),
     identityTerminalOwners: owners, identityForestLightFamilies: lights,
-    decorateRelationElement: (element, item) => decorations.set(element, item), relationEmphasisForItem: () => null,
+    decorateRelationElement: decorate ?? ((element, item) => decorations.set(element, item)), relationEmphasisForItem: () => null,
     markIdentityLensOccurrences() {},
     // Each claim here is drawn alone; tests/indexLetters.test.mjs covers shared letters.
     indexLetterPlan: () => ({ draw: 'glyph', label: null, alsoFor: [] })
@@ -266,4 +267,19 @@ test('the production Theta scheduler defers its index until after inline identit
     assert.deepEqual(alpha.children.map(span => span.textContent), ['k']);
     assert.deepEqual(planItemRelationRefs(paint.decorations.get(alpha.children[0])).map(ref => ref.relationIndex), [0, 2]);
   }
+});
+
+test('a label never dims an identity index that a later Theta claim makes active', () => {
+  // Identity coindexes two occurrences with i; a Theta role then reuses alpha's i.
+  const item = identityItems(compileRelationRenderPlan([stage([relation('Identity', { index: 'i' })])]))[0];
+  const paint = painter(forest, decorateRelationElement);
+  paint.draw(item);
+  paint.drawTheta('alpha', 'i', { ...item, familyId: 'theta.grid', relationRef: { ...item.relationRef, relationIndex: 1 } });
+  const index = paint.root.children.find(label => label.attrs['data-node-id'] === 'alpha').children.find(child => child.textContent === 'i');
+  const painted = element => !element ? 1 : (element.classList.contains('vr-relation-active') ? 1
+    : element.classList.contains('vr-relation-quiet') ? 0.3 : Number(element.attrs.opacity ?? 1)) * painted(element.parentNode);
+  applyRelationEmphasis(paint.root, { stageIndex: 0, relationIndex: 1 }, null);
+  assert.equal(painted(index), 1, 'the Theta moment shows its shared index');
+  applyRelationEmphasis(paint.root, { stageIndex: 0, relationIndex: 2 }, null);
+  assert.equal(painted(index), 0.3, 'another moment dims it once');
 });

@@ -84,7 +84,10 @@ export function applyRelationEmphasis(svg: SVGSVGElement, activeRelationMoment: 
     );
     const isVisualRoot = !ancestor || ownerKey(ancestor) !== ownerKey(element);
     const active = ownsMoment(element, focusKey);
-    const quiet = Boolean(focusKey) && !active;
+    // A tree label is never dimmed around an index it hosts whose claim is in focus.
+    const hostsActive = (element.classList.contains('category-label') || element.classList.contains('terminal-label'))
+      && Array.from(element.querySelectorAll<SVGElement>('.vr-item[data-vr-owner-refs]')).some(index => ownsMoment(index, focusKey));
+    const quiet = Boolean(focusKey) && !active && !hostsActive;
     element.setAttribute('data-vr-emphasis', active ? 'active' : quiet ? 'quiet' : 'none');
     element.classList.toggle('vr-relation-active', isVisualRoot && active);
     // Quiet dims once: inside an already quiet ancestor, a mark keeps that dimming.

@@ -408,11 +408,7 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
         })
         .each(function decorateIdentityOccurrence() {
           const previous = identityTerminalOwners.get(this);
-          // A label dims as a whole, so it carries every owner of an index it hosts.
-          const hosted = d3.select(this).selectAll<SVGTSpanElement, unknown>('.babel-identity-index').nodes()
-            .flatMap(index => identityTerminalOwners.get(index) ?? []);
-          const refs = mergeIdentityOwners(previous ? planItemRelationRefs(previous) : [],
-            [planItem, ...hosted].flatMap(planItemRelationRefs));
+          const refs = mergeIdentityOwners(previous ? planItemRelationRefs(previous) : [], planItemRelationRefs(planItem));
           const item = { ...planItem, relationRef: refs[0], composedRefs: refs.slice(1), coalescedRefs: [] };
           identityTerminalOwners.set(this, item);
           decorateRelationElement(this, item, relationEmphasisForItem(item));
