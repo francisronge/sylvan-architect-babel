@@ -25,21 +25,25 @@ class SpelloutStructureError extends Error {}
 /** Thrown when a response needs more search work than MAX_SEARCH_WORK. */
 class SpelloutWorkLimitError extends Error {}
 
-// Bounds that keep the check linear and its recursion shallow for any output.
-// Real analyses stay far below them: a stage has hundreds of nodes, not thousands.
+// Bounds on what the spelling check reads of one analysis: expanded nodes, tree
+// depth, and final words and groups. They also keep its recursion shallow. Real
+// analyses stay far below them: a stage has hundreds of nodes, not thousands.
 const MAX_STAGE_NODES = 5_000;
 const MAX_ANALYSIS_NODES = 50_000;
 const MAX_DEPTH = 256;
 const MAX_READING_UNITS = 1_000;
-// Search steps one response may take. Saved responses take at most about 1,500;
-// a response that reaches the limit stops within tens of milliseconds.
+// Spelling-check steps one response may take. Saved responses take at most
+// about 1,700; the reviewed hostile responses reach the limit in tens of
+// milliseconds of spelling-check time.
 const MAX_SEARCH_WORK = 1_000_000;
 
 /**
- * Counts the search steps of one response. Every search loop charges it:
- * alignment states, character comparisons, scans for runs and occurrences,
- * choice counting, and the leaves and positions a group reads. The rest of the
- * check is linear in the expanded output, which the node bounds cap.
+ * Counts the spelling check's steps for one response: each expanded node and
+ * each search step (alignment states, character comparisons, scans for runs
+ * and occurrences, choice counting, and the leaves and positions a group
+ * reads). The check's other loops are linear in the authored analysis, its
+ * expanded nodes, the sentence, or work already charged. The meter bounds only
+ * the spelling check, not the parsing that follows it.
  */
 const workMeter = () => {
   let used = 0;
@@ -55,9 +59,11 @@ const workMeter = () => {
  * Expands refIds as the parser does: from the latest earlier expanded
  * definition. An occurrence id may appear once per expanded workspace, so a
  * stage that references a subtree twice stops at the repeat instead of
- * copying it, and expansion stays linear in the authored size.
+ * copying it. A stage that references earlier subtrees still expands to more
+ * nodes than it authors; each node is charged to the meter before it is copied,
+ * and the node bounds cap one analysis.
  */
-const expandStages = (stages) => {
+const expandStages = (stages, meter) => {
   const definitions = new Map();
   let total = 0;
   return stages.map((stage, stageIndex) => {
@@ -65,6 +71,7 @@ const expandStages = (stages) => {
     const where = `Stage ${stageIndex + 1}`;
     let count = 0;
     const claim = (id, depth) => {
+      meter.charge();
       if (depth > MAX_DEPTH) throw new SpelloutStructureError(`${where} nests deeper than ${MAX_DEPTH} levels.`);
       if ((count += 1) > MAX_STAGE_NODES || (total += 1) > MAX_ANALYSIS_NODES) {
         throw new SpelloutStructureError(`${where} expands to more nodes than the spelling check reads.`);
@@ -461,7 +468,7 @@ const alignAnalysis = (analysis, sentence, meter) => {
   if (malformed >= 0) return { diagnostics: [failure('SPELLOUT_UNREADABLE', `Stage ${malformed + 1} is not an object.`)] };
   const shape = spelloutShapeDiagnostics(stages);
   if (shape.length) return { diagnostics: shape };
-  const readings = expandStages(stages).map(readForest);
+  const readings = expandStages(stages, meter).map(readForest);
   const finalReading = readings.at(-1);
   const finalGroups = stages.at(-1).realizations || [];
   const { units, diagnostics, observations } = alignFinalStage(finalReading, finalGroups, sentence, meter);
@@ -596,14 +603,16 @@ const convertAligned = (item, tokens) => {
 export const convertSpelloutPayload = (payload, sentence) => {
   const analyses = Array.isArray(payload?.analyses) && payload.analyses.length ? payload.analyses : [payload];
   const reading = readSentence(sentence);
-  // One meter covers every analysis, so a response's work is bounded however many it has.
+  // One meter covers the spelling check of every analysis in the response.
   const meter = workMeter();
   const aligned = analyses.map((analysis, analysisIndex) => {
     try {
+      // Once the meter is spent, later analyses are not read at all.
+      meter.charge();
       return { analysisIndex, analysis, ...alignAnalysis(analysis, reading, meter) };
     } catch (error) {
       if (error instanceof SpelloutWorkLimitError) {
-        return { analysisIndex, diagnostics: [failure('SPELLOUT_ALIGNMENT_LIMIT', 'The response needs more alignment work than the spelling check allows.')] };
+        return { analysisIndex, diagnostics: [failure('SPELLOUT_ALIGNMENT_LIMIT', 'The response needs more work than the spelling check allows.')] };
       }
       // Any other exception is still a model output Babel cannot read, never a crash.
       const detail = error instanceof SpelloutStructureError ? error.message : 'The analysis could not be read for its spelling.';

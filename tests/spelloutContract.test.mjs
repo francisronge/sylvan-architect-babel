@@ -352,7 +352,7 @@ test('the spelling check stays bounded for any output shape', () => {
   assert.equal(quick(oneStage([leaf('a', 'Mia')], [{ nodeIds: [{ toString: null }], text: 'Mia' }]), 'Mia').diagnostics[0].rule, 'SPELLOUT_GROUP_SHAPE');
 });
 
-test('a response that needs more search work than the spelling check allows stops within a fixed budget', () => {
+test('a response that needs more work than the spelling check allows stops within a fixed budget', () => {
   // Each payload took seconds of synchronous CPU before the search was metered.
   const quick = (payload, sentence) => {
     const started = performance.now();
@@ -361,7 +361,7 @@ test('a response that needs more search work than the spelling check allows stop
     return result;
   };
   const limited = result => assert.deepEqual(result.diagnostics, [{ rule: 'SPELLOUT_ALIGNMENT_LIMIT',
-    detail: 'The response needs more alignment work than the spelling check allows.' }]);
+    detail: 'The response needs more work than the spelling check allows.' }]);
   const stage = (workspaceForest, realizations) => ({ statement: 's', stageRecord: 's', relations: [], workspaceForest,
     ...(realizations ? { realizations } : {}) });
   const as = count => Array(count).fill('a');
@@ -383,6 +383,17 @@ test('a response that needs more search work than the spelling check allows stop
     stage([wrapped], Array.from({ length: 10_000 }, () => ({ nodeIds: ['r'], text: 'a' }))),
     stage([node('f', 'F', ...Array.from({ length: 300 }, (_, index) => ({ refId: `w${index}` })))])
   ] }, as(300).join(' ')));
+  // 100 compact analyses, each re-listing a 256-level chain in 194 stages, share the meter:
+  // once it is spent, the later analyses are not expanded.
+  let chain = leaf('w', 'a');
+  for (let index = 0; index < 255; index += 1) chain = node(`p${index}`, 'P', chain);
+  const compact = { derivationStages: [stage([chain]), ...Array.from({ length: 193 }, () => stage([{ refId: chain.id }]))] };
+  const started = performance.now();
+  const results = convertSpelloutPayload(JSON.parse(JSON.stringify({ analyses: Array(100).fill(compact) })), 'a');
+  assert.ok(performance.now() - started < 1_000, 'bounded');
+  const spent = results.findIndex(result => !result.ok);
+  assert.ok(spent > 0 && spent < 50, 'the meter stops the response partway');
+  results.slice(spent).forEach(limited);
   // One group of 300 pieces over 4,999 leaves is an ordinary conversion and stays quick.
   const wide = quick(oneStage([node('r', 'R', ...leaves(4_999))], [{ nodeIds: ['r'], text: as(300) }]), as(300).join(' '));
   assert.equal(wide.ok, true);
