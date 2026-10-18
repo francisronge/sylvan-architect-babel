@@ -20,7 +20,7 @@ type Node = d3.HierarchyPointNode<SyntaxNode>;
  * takes precedence. The rest of each frame is unchanged, so the coordinates must
  * share one origin across stages (see the stage alignment in stageCoordinates.ts).
  * A component keeps its planned frames when its slot would invalidate a branch or
- * add ink collisions in any of them. With `withinStage`, a lifetime stops at its
+ * add or enlarge any single ink overlap, internal pairs included, in any of them. With `withinStage`, a lifetime stops at its
  * attachment's stage boundary, for plans whose stages keep their own origins. */
 export function reserveWaitingSlots({ steps, sizes, coordinates, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, withinStage = false }: {
   steps: readonly PlaybackStep[];
@@ -72,12 +72,21 @@ export function reserveWaitingSlots({ steps, sizes, coordinates, direction, meas
     }
     return true;
   };
-  const collisions = (scene: typeof scenes[number], nodes: ReadonlyMap<string, Node>, members: ReadonlySet<string>) => {
-    const own = [...nodes].filter(([id]) => members.has(id)).map(([, node]) => node);
-    const other = [...nodes].filter(([id]) => !members.has(id)).map(([, node]) => node);
-    const areas = collisionAreas(own, other, measureCategoryText, { measureTreeInk, measureTreeLabel, treeLabelRuns: treeLabelRuns?.get(scene.canvas) });
-    return [...areas.values()].reduce((sum, area) => sum + area, 0);
+  // Ink overlap of every painted pair, internal pairs included, per reservation version.
+  const overlapCache = new WeakMap<TreeCoordinateReservation, Map<string, number>>();
+  const overlaps = (scene: typeof scenes[number]) => {
+    const points = output.get(scene.canvas)!;
+    let pairs = overlapCache.get(points);
+    if (!pairs) {
+      const nodes = [...paint(scene).values()];
+      overlapCache.set(points, pairs = collisionAreas(nodes, nodes, measureCategoryText,
+        { measureTreeInk, measureTreeLabel, treeLabelRuns: treeLabelRuns?.get(scene.canvas) }));
+    }
+    return pairs;
   };
+  // A slot may not add or enlarge any single overlap; a resolved one cannot pay for a new one.
+  const keepsOverlaps = (before: ReadonlyMap<string, number>, after: ReadonlyMap<string, number>) =>
+    [...after].every(([pair, area]) => area <= (before.get(pair) ?? 0) + 1e-6);
   for (let attach = 1; attach < scenes.length; attach++) {
     const now = paint(scenes[attach]), before = paint(scenes[attach - 1]);
     for (const [id] of now) {
@@ -112,14 +121,14 @@ export function reserveWaitingSlots({ steps, sizes, coordinates, direction, meas
       }
       const saved = new Map(changes.map(({ scene }) => [scene.canvas, output.get(scene.canvas)!]));
       const accepted = changes.every(({ scene, ids }) => {
-        const prior = paint(scene), original = collisions(scene, prior, members);
+        const original = overlaps(scene);
         const points = new Map(output.get(scene.canvas)!);
         // Right-to-left frames reflect x around their own stage width.
         const shift = direction === 'rtl' ? scene.size[0] - scenes[attach].size[0] : 0;
         for (const member of ids) points.set(member, { ...slot.get(member)!, x: slot.get(member)!.x + shift, y: slot.get(member)!.y + lift });
         output.set(scene.canvas, points);
         const placed = paint(scene);
-        return valid(placed) && collisions(scene, placed, members) <= original + 1e-6;
+        return valid(placed) && keepsOverlaps(original, overlaps(scene));
       });
       if (!accepted) for (const [canvas, points] of saved) output.set(canvas, points);
     }

@@ -311,6 +311,8 @@ const stageOffsets = new WeakMap<StageFrames, Map<string, WeakMap<object, StageO
 const completedStage = {};
 const alignedStages = new WeakMap<StageFrames, Map<string, StageFrames>>();
 const alignedChoices = new WeakMap<StageFrames, 'stage' | 'slotted' | 'aligned'>();
+// The slot pass per planned reservation, so a reused layout does not repeat it.
+const slotPlans = new WeakMap<StageFrames, Map<string, StageFrames>>();
 const stageStepOrder = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
 const stageSteps = (steps: readonly PlaybackStep[], stage: number) => steps
   .filter(step => step.replayFrameIndex === stage && step.replayCanvasData).sort((a, b) => stageStepOrder(a) - stageStepOrder(b));
@@ -321,6 +323,30 @@ function paintedSyntax(step: PlaybackStep, size: [number, number], direction: Tr
   return new Map<string, d3.HierarchyPointNode<SyntaxNode>>(layoutSyntaxTree(root, size, direction, coordinates, visible).descendants()
     .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
     .map(node => [getNodeId(node), node] as const));
+}
+
+/** The renderer's camera carry (carryCamera in components/treeViewport.ts): the
+ * median shift of shared syntax whose shared ancestors are unchanged. A moved or
+ * reattached constituent is left out unless nothing else is shared. */
+function carriedShift(before: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>, after: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>) {
+  const parentOf = (nodes: typeof before, id: string) => {
+    const parent = nodes.get(id)!.parent;
+    return parent && nodes.has(getNodeId(parent)) ? getNodeId(parent) : null;
+  };
+  const sharedAncestors = (nodes: typeof before, id: string) => {
+    const ids: string[] = [];
+    for (let parent = parentOf(nodes, id); parent; parent = parentOf(nodes, parent)) if (before.has(parent) && after.has(parent)) ids.push(parent);
+    return ids.join(' ');
+  };
+  const shared = [...before.keys()].filter(id => after.has(id));
+  const unmoved = shared.filter(id => sharedAncestors(before, id) === sharedAncestors(after, id));
+  const reference = unmoved.length ? unmoved : shared;
+  if (!reference.length) return { x: 0, y: 0 };
+  const median = (values: number[]) => {
+    values.sort((a, b) => a - b);
+    return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
+  };
+  return { x: median(reference.map(id => after.get(id)!.x - before.get(id)!.x)), y: median(reference.map(id => after.get(id)!.y - before.get(id)!.y)) };
 }
 
 /** Each stage lays out its own frame, centred on its own size. Those origins are
@@ -350,31 +376,9 @@ function stageOffset(steps: readonly PlaybackStep[], stage: number, sizeForStage
   if (next && nextSize && closing && opening) {
     const before = paintedSyntax(closing, size, direction, frames.get(closing.replayCanvasData!)!);
     const after = paintedSyntax(opening, nextSize, direction, next.get(opening.replayCanvasData!)!);
-    // The renderer's camera carry (carryCamera in components/treeViewport.ts) follows
-    // the same syntax: shared nodes whose shared ancestors are unchanged. A moved
-    // or reattached constituent is left out unless nothing else is shared.
-    const parentOf = (nodes: typeof before, id: string) => {
-      const parent = nodes.get(id)!.parent;
-      return parent && nodes.has(getNodeId(parent)) ? getNodeId(parent) : null;
-    };
-    const sharedAncestors = (nodes: typeof before, id: string) => {
-      const ids: string[] = [];
-      for (let parent = parentOf(nodes, id); parent; parent = parentOf(nodes, parent)) if (before.has(parent) && after.has(parent)) ids.push(parent);
-      return ids.join(' ');
-    };
-    const shared = [...before.keys()].filter(id => after.has(id));
-    const unmoved = shared.filter(id => sharedAncestors(before, id) === sharedAncestors(after, id));
-    const reference = unmoved.length ? unmoved : shared;
-    const median = (values: number[]) => {
-      values.sort((a, b) => a - b);
-      return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
-    };
-    if (reference.length) {
-      const x = median(reference.map(id => after.get(id)!.x - before.get(id)!.x));
-      const y = median(reference.map(id => after.get(id)!.y - before.get(id)!.y));
-      // Reservations are stored before right-to-left reflection, so a painted shift reverses x.
-      offset = { x: direction === 'rtl' ? -x : x, y };
-    }
+    const { x, y } = carriedShift(before, after);
+    // Reservations are stored before right-to-left reflection, so a painted shift reverses x.
+    offset = { x: direction === 'rtl' ? -x : x, y };
   }
   offsets.set(next ?? completedStage, offset);
   return offset;
@@ -417,10 +421,16 @@ function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep
     const parent = scene.nodes.get(id)?.parent;
     return parent && scene.nodes.has(getNodeId(parent)) ? getNodeId(parent) : null;
   };
-  const unowned = new Set(workspaceContinuityReflows(scenes, new Map(scenes.map(scene => [scene.canvas, scene.coordinates])), render)
+  const unowned = new Map(workspaceContinuityReflows(scenes, new Map(scenes.map(scene => [scene.canvas, scene.coordinates])), render)
     // A component whose painted parent changes is attaching at that step, which owns its motion.
     .filter(reflow => reflow.kind === 'unowned-component-motion' && paintedParent(scenes[reflow.index], reflow.rootId)
-      === paintedParent(scenes[reflow.index - 1], reflow.rootId)).map(reflow => `${reflow.index}:${reflow.rootId}`));
+      === paintedParent(scenes[reflow.index - 1], reflow.rootId)).map(reflow => {
+      // Across a stage crossing, distance is measured after the camera carry.
+      const before = scenes[reflow.index - 1], after = scenes[reflow.index];
+      const carry = before.step.replayFrameIndex === after.step.replayFrameIndex ? { x: 0, y: 0 } : carriedShift(before.nodes, after.nodes);
+      const from = before.nodes.get(reflow.rootId)!, to = after.nodes.get(reflow.rootId)!;
+      return [`${reflow.index}:${reflow.rootId}`, Math.hypot(to.x - from.x - carry.x, to.y - from.y - carry.y)] as const;
+    }));
   const joins = new Map<string, number>();
   scenes.forEach((scene, index) => {
     const before = scenes[index - 1], target = scene.step.targetNodeId, parent = target && scene.nodes.get(target);
@@ -453,13 +463,13 @@ function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep
 }
 
 /** An aligned plan replaces an established one only when it removes motion and
- * adds none: no new unowned component, no join that moves farther, and the same
- * final tree. */
+ * adds none: no new unowned component, no surviving one or join that moves
+ * farther, and the same final tree. */
 function alignmentImprovesMotion(before: ReturnType<typeof planMotion>, after: ReturnType<typeof planMotion>) {
   const final = new Map(before.final.map(([id, x, y]) => [id, [x, y]]));
   return after.count < before.count && after.final.length === before.final.length
     && after.final.every(([id, x, y]) => final.has(id) && Math.hypot(x - final.get(id)![0], y - final.get(id)![1]) <= 1e-6)
-    && [...after.unowned].every(key => before.unowned.has(key))
+    && [...after.unowned].every(([key, distance]) => before.unowned.has(key) && distance <= before.unowned.get(key)! + 1e-6)
     && [...after.joins].every(([key, distance]) => distance <= (before.joins.get(key) ?? 1) + 1e-6);
 }
 
@@ -513,8 +523,11 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, orderedContours, alignedStages: alignStages });
     const compact = compactCurrentRootForks(steps, sizes, planned, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
     const retained = retainMovementSourceSlots(steps, sizes, compact, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
-    const continuous = mode === 'stage' ? retained : reserveWaitingSlots({ steps, sizes, coordinates: retained, direction,
-      measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, withinStage: !alignStages });
+    let slotted = slotPlans.get(retained);
+    if (!slotted) slotPlans.set(retained, slotted = new Map());
+    let continuous = mode === 'stage' ? retained : slotted.get(mode);
+    if (!continuous) slotted.set(mode, continuous = reserveWaitingSlots({ steps, sizes, coordinates: retained, direction,
+      measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, withinStage: !alignStages }));
     return { frames: new Map([...original].map(([canvas, coordinates]) => [canvas, continuous.get(canvas) ?? coordinates])),
       key: continuous, painted: (step: PlaybackStep): PaintedFrame => {
         const stageSize = sizes.get(step.replayFrameIndex!);
@@ -544,9 +557,12 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
       const before = planMotion(steps, chosen.painted, direction);
       choice = 'stage';
       if (before.count) {
-        const aligned = plan(orderedContours, 'aligned'), slotted = plan(orderedContours, 'slotted');
+        const aligned = plan(orderedContours, 'aligned');
         if (ordered(aligned) && alignmentImprovesMotion(before, planMotion(steps, aligned.painted, direction))) choice = 'aligned';
-        else if (ordered(slotted) && slotsReduceMotion(before, planMotion(steps, slotted.painted, direction))) choice = 'slotted';
+        else {
+          const slotted = plan(orderedContours, 'slotted');
+          if (ordered(slotted) && slotsReduceMotion(before, planMotion(steps, slotted.painted, direction))) choice = 'slotted';
+        }
       }
       alignedChoices.set(chosen.key, choice);
     }
