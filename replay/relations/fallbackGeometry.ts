@@ -71,26 +71,48 @@ function lineInterval(from: Point, dx: number, dy: number, box: Rect): [number, 
   return enter < leave ? [enter, leave] : null;
 }
 
-/** A plaque is not an attachment point. A line whose stroke would meet it
- * (within `contact`) is cut where it comes within `gap`; a line passing beside
- * it stays whole. */
-type PlaqueClearance = { boxes: readonly Rect[]; contact: number; gap: number };
+/** Euclidean distance between a straight piece and a rectangle; zero when they meet. */
+function segmentRectDistance(p: Point, q: Point, box: Rect): number {
+  const dx = q.x - p.x, dy = q.y - p.y, squared = dx * dx + dy * dy;
+  if (lineInterval(p, dx, dy, box)) return 0;
+  const toBox = (point: Point) => Math.hypot(Math.max(box.x - point.x, 0, point.x - box.x - box.width),
+    Math.max(box.y - point.y, 0, point.y - box.y - box.height));
+  const toPiece = (x: number, y: number) => {
+    const t = squared ? Math.max(0, Math.min(1, ((x - p.x) * dx + (y - p.y) * dy) / squared)) : 0;
+    return Math.hypot(x - p.x - t * dx, y - p.y - t * dy);
+  };
+  return Math.min(toBox(p), toBox(q), toPiece(box.x, box.y), toPiece(box.x + box.width, box.y),
+    toPiece(box.x, box.y + box.height), toPiece(box.x + box.width, box.y + box.height));
+}
+
+/** A plaque is not an attachment point. When the line left visible beside its
+ * labels comes within `contact` of a plaque, it is cut wherever it lies inside
+ * the plaque inflated by `gap`, so each cut end keeps at least that distance.
+ * A line passing beside a plaque stays whole. A piece a plaque cut leaves
+ * shorter than `minimum` would paint as a round-capped dot and is dropped. */
+type PlaqueClearance = { boxes: readonly Rect[]; contact: number; gap: number; minimum: number };
+
+type Interval = [number, number];
+const removeInterval = (visible: Interval[], cut: Interval | null): Interval[] => !cut ? visible
+  : visible.flatMap<Interval>(([a, b]) => cut[1] <= a || cut[0] >= b ? [[a, b]]
+    : [...(a < cut[0] ? [[a, cut[0]] as Interval] : []), ...(cut[1] < b ? [[cut[1], b] as Interval] : [])]);
 
 // Keep straight connectors intact outside the measured label rectangles.
 export function clearLabelPath(from: Point, to: Point, boxes: readonly Rect[] = [], plaques?: PlaqueClearance): string {
   const dx = to.x - from.x, dy = to.y - from.y;
-  const cuts = [...boxes.map(box => lineInterval(from, dx, dy, box)),
-    ...(plaques?.boxes ?? []).map(box => lineInterval(from, dx, dy, inflateRect(box, plaques!.contact))
-      && lineInterval(from, dx, dy, inflateRect(box, plaques!.gap)))];
-  let visible: Array<[number, number]> = [[0, 1]];
-  for (const cut of cuts) {
-    if (!cut) continue;
-    const [enter, leave] = cut;
-    visible = visible.flatMap<[number, number]>(([a, b]) => leave <= a || enter >= b ? [[a, b]]
-      : [...(a < enter ? [[a, enter] as [number, number]] : []), ...(leave < b ? [[leave, b] as [number, number]] : [])]);
+  const at = (t: number): Point => ({ x: from.x + dx * t, y: from.y + dy * t });
+  const besideLabels = boxes.reduce<Interval[]>((parts, box) => removeInterval(parts, lineInterval(from, dx, dy, box)), [[0, 1]]);
+  let visible = besideLabels;
+  if (plaques) {
+    const met = plaques.boxes.filter(box => besideLabels.some(([a, b]) => segmentRectDistance(at(a), at(b), box) < plaques.contact));
+    for (const box of met) visible = removeInterval(visible, lineInterval(from, dx, dy, inflateRect(box, plaques.gap)));
   }
-  const point = (t: number) => `${(from.x + dx * t).toFixed(1)} ${(from.y + dy * t).toFixed(1)}`;
-  return visible.map(([a, b]) => `M ${point(a)} L ${point(b)}`).join(' ');
+  const point = (t: number) => `${at(t).x.toFixed(1)} ${at(t).y.toFixed(1)}`;
+  const length = Math.hypot(dx, dy);
+  const plaqueCut = ([a, b]: Interval) => !besideLabels.some(([c, e]) => c === a && e === b);
+  return visible.filter(piece => !plaqueCut(piece)
+    || point(piece[0]) !== point(piece[1]) && (piece[1] - piece[0]) * length >= plaques!.minimum)
+    .map(([a, b]) => `M ${point(a)} L ${point(b)}`).join(' ');
 }
 
 export const routeFallbackSegments = (
@@ -103,7 +125,8 @@ export const routeFallbackSegments = (
   // Counter-lane stems keep exact clipping: plaque placement reserves them.
   const clearances = [...(options.labelClearances ?? []), ...plaques];
   const shadowReach = FALLBACK_STROKE_WIDTHS.direct.shadow / 2 * markerScale;
-  const spokePlaques = { boxes: plaques, contact: shadowReach, gap: shadowReach + PLAQUE_VISIBLE_GAP * markerScale };
+  const spokePlaques = { boxes: plaques, contact: shadowReach, gap: shadowReach + PLAQUE_VISIBLE_GAP * markerScale,
+    minimum: FALLBACK_STROKE_WIDTHS.direct.line * markerScale };
   const counterSegments = segments.filter(segment => segment.route === 'counter-lane');
   const lanes = allocateSpanLanes(counterSegments.map(segment => ({
     start: Math.min(segment.from.x, segment.to.x),
