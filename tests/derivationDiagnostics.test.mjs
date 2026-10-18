@@ -12,6 +12,7 @@ import { runQualificationAttempt } from '../contractQualification/run.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { dispatchStageRelations } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 
 const node = (id) => ({ id, label: 'N', word: 'Mia', tokenIndex: 0, children: [] });
 const stage = (workspaceForest, relations = []) => ({
@@ -288,7 +289,8 @@ test('a malformed relation in an ambiguity envelope stays local to its analysis'
 });
 
 test('the generation route preserves every raw stage and diagnostic without a replacement call', async () => {
-  const raw = JSON.stringify(payloadFor(fableCases[0])).slice(0, -2);
+  // The live route receives a spell-out output: the same stages without token addresses.
+  const raw = JSON.stringify(restateAsSpellout(payloadFor(fableCases[0]), 'Mia', ['Mia'])).slice(0, -2);
   const previousKey = process.env.OPENAI_API_KEY;
   process.env.OPENAI_API_KEY = 'provider-free-test-key';
   let calls = 0;
