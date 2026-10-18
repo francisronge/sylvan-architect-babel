@@ -9,6 +9,8 @@ const STAGE_RELAYOUT = 'Open (layout): the new stage lays out the unmoved shared
   + 'first pose carried by its median shift (PR #77) still leaves it jumping or partly beyond the canvas.';
 const RELAYOUT_WITHIN_STAGE = 'Open (construction/layout, not camera): with the camera unchanged inside one stage, an inserted node '
   + 'or rebuilt workspace displaces syntax whose attachment is unchanged.';
+const SPREAD_RETENTION = 'Open (layout): the new stage spreads the unmoved shared syntax in opposite directions, so its carried '
+  + 'median shift is near zero and the retained view holds that syntax a few pixels less still than a fresh fit would.';
 const MOVED_OFF_CANVAS = 'Open (camera, low severity): the moved constituent\'s landing first paints beyond the canvas while the '
   + 'unmoved syntax stays in place; the camera then travels to it.';
 
@@ -87,17 +89,22 @@ export const EXCEPTIONS = [
     { desktop: { '9>8': 51.01 }, mobile: { '9>8': 29.98 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/workspace-spanish-continuity.json#', 'first-paint-continuity', 'jump:camera', 'stage 2',
     { desktop: { '8>9': 61.11 }, mobile: { '8>9': 37.53 } }),
-  // Catalog #24's record (47-zh-relative.r1.B a6) also carries catalog #19-#21, under review on fix/replay-stage-frame-alignment.
-  x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:relayout',
-    'stage 2', { desktop: { '16>17,17>16': 31.54 } }),
+  // Catalog #24's record (47-zh-relative.r1.B a6), also committed as the waiting-root fixture. Waiting slots
+  // fixed catalog #19-#21 (16>17) and the off-canvas first paint into stage 3; its stage relayout remains.
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:relayout',
     'stage 3', { desktop: { '48>49,49>48': 26.72 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:camera',
-    'stage 2', { desktop: { '44>43': 142.61 }, mobile: { '44>43': 61.5 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:camera',
-    'stage 3', { desktop: { '43>44': 149.9 }, mobile: { '43>44': 93.36 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'off-canvas:unmoved',
-    'stage 3', { mobile: { '43>44': 165.57 } }),
-  x(MOVED_OFF_CANVAS, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'off-canvas:moved',
-    'stage 3', { mobile: { '43>44': 46.31 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 2', { desktop: { '44>43': 54.37 }, mobile: { '44>43': 28.29 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 3', { desktop: { '43>44': 57.15 }, mobile: { '43>44': 25.84 } }),
+  x(SPREAD_RETENTION, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'settled-path-independence', 'retention',
+    'stage 3', { mobile: { '43>44': 30.09 } }),
+  x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:relayout',
+    'stage 3', { desktop: { '48>49,49>48': 26.72 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 2', { desktop: { '44>43': 54.37 }, mobile: { '44>43': 28.29 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 3', { desktop: { '43>44': 57.15 }, mobile: { '43>44': 25.84 } }),
+  x(SPREAD_RETENTION, 'replay-regressions/waiting-root-continuity.json#', 'settled-path-independence', 'retention',
+    'stage 3', { mobile: { '43>44': 30.09 } }),
 ];

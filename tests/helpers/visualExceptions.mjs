@@ -208,7 +208,6 @@ export const EXCEPTIONS = [
     'complementizerBar children', { desktop: { '47': 25.91 }, 'desktop-large': { '47': 60.7 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
-    'plaque(1:0 subjectForm: Silent pronominal subject licensed )@relativeSubject',
-    { desktop: { '21-43': 1.18 }, 'desktop-large': { '21-43': 1.18 } })
+  x(PLAQUE_CROWDED, 'replay-regressions/waiting-root-continuity.json#', 'mark-distance', 'plaque',
+    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } })
 ];
