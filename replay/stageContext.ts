@@ -266,12 +266,13 @@ export const prepareReplayStage = (
     ? buildStageRecordReplayBlocks(frame, plannedStage)
     : frameReplayBlocks;
   const frameLayoutTopology = futureLayoutScaffold || workspaceRoots;
-  const buildFrameLayoutScaffold = (snapshotRoots: SyntaxNode[]): SyntaxNode[] | undefined => {
+  // While a snapshot holds attachments back, neither scaffold may make them.
+  const buildFrameLayoutScaffold = (snapshotRoots: SyntaxNode[], keepCurrentRoots = false): SyntaxNode[] | undefined => {
     const scaffold = buildCurrentMaterialLayoutScaffold(snapshotRoots, frameLayoutTopology, preauthorizedFramePlaceholderIds);
-    if (scaffold)
+    if (scaffold && (!keepCurrentRoots || forestCanUseCurrentMaterialLayoutScaffold(snapshotRoots, scaffold, true)))
       return scaffold;
     return futureLayoutScaffold
-      && forestCanUseCurrentMaterialLayoutScaffold(snapshotRoots, futureLayoutScaffold)
+      && forestCanUseCurrentMaterialLayoutScaffold(snapshotRoots, futureLayoutScaffold, keepCurrentRoots)
       ? futureLayoutScaffold
       : undefined;
   };

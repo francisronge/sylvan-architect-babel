@@ -318,6 +318,48 @@ export function checkNoEarlyReveal(replay) {
   return out;
 }
 
+/** A parent already on screen gains a child only at a step that owns that
+ * attachment. An edge to a parent displayed at the preceding step is new when
+ * the child was not displayed under it there, either because the child is new
+ * or because it was a separate root or elsewhere. Such an edge is owned by
+ *   - the parent's own construction step, the merge that targets it;
+ *   - the child's own construction step when the child is inserted into an
+ *     existing edge: one of its children hung from that parent at the preceding
+ *     step, and the child now stands in that place;
+ *   - the construction step whose new target replaces the child's former
+ *     parent, when the child regroups under the target's parent;
+ *   - a relation moment that introduces the child, or names the child as an
+ *     owned movement endpoint or proven rewrite.
+ * Anything else, such as a node's projection attaching it to a retained parent
+ * whose merge comes later, shows the merge before its own step. A derived word
+ * leaf is its owner's pronunciation, not an attachment. */
+export function checkAttachAtMerge(replay) {
+  const steps = replay.playbackSteps, out = [];
+  let previous = EMPTY_FRAME;
+  steps.forEach((step, index) => {
+    const current = frameStructure(step), target = String(step.targetNodeId ?? ''), micro = step.replayKind === 'micro';
+    const newTarget = micro && current.displayed.has(target) && !previous.displayed.has(target);
+    const ownership = step.replayKind === 'relation' && step.replayRelationIdentity ? momentOwnership(step) : null;
+    for (const id of current.displayed) {
+      const parent = current.parent.get(id), before = previous.parent.get(id);
+      if (!parent || !previous.displayed.has(parent)) continue;
+      if (previous.displayed.has(id) && before === parent) continue;
+      const node = current.nodes.get(id);
+      if (node.data.replayOrigin?.kind === 'word') continue;
+      if (micro && parent === target) continue;
+      if (micro && id === target
+        && (current.children.get(id) ?? []).some(child => previous.parent.get(child) === parent)) continue;
+      if (newTarget && before && !current.displayed.has(before) && parent === current.parent.get(target)) continue;
+      if (ownership && (named(node, ownership.endpoints) || named(node, ownership.rewritten)
+        || !previous.displayed.has(id) && revealedByRelation(node, ownership, previous))) continue;
+      out.push(violation('attach-at-merge', index + 1,
+        `${id} attaches to ${parent} at ${step.replayKind} ${step.operation} (target ${target})`));
+    }
+    previous = current;
+  });
+  return out;
+}
+
 /** Uses the renderer's own frame selection: within a stage, the relations played
  * so far and the active moment decide which compiled marks are revealed. */
 export function checkMarksAtOwningMoment(replay) {

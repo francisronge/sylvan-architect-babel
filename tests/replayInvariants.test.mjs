@@ -3,7 +3,7 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  checkInputUnchanged, checkMarksAtOwningMoment, checkNoEarlyReveal, checkNoVisibleScaffolding,
+  checkAttachAtMerge, checkInputUnchanged, checkMarksAtOwningMoment, checkNoEarlyReveal, checkNoVisibleScaffolding,
   checkParentAfterChildren, checkRelationMoments, checkStableConstruction, checkStageCompletion, checkVisibleInCanvas,
   frameStructure
 } from './helpers/replayInvariants.mjs';
@@ -146,6 +146,25 @@ test('control: stable-construction reports retained syntax that disappears or mo
   assert(reported(checkStableConstruction(unparented), 'stable-construction', nested + 1, `${child} is detached from ${hidden}`));
 });
 
+test('control: attach-at-merge reports a child attached to its retained parent before that parent\'s merge', () => {
+  assert.deepEqual(checkAttachAtMerge(replay), []);
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/retained-parent-attachment.json#').record;
+  const held = prepare(record), projection = held.playbackSteps.findIndex(step => step.replayKind === 'micro' && step.targetNodeId === 'embeddedCP');
+  const merge = held.playbackSteps.findIndex((step, index) => index > projection && step.targetNodeId === 'matrixVBar');
+  assert.deepEqual(checkAttachAtMerge(held), []);
+  assert.equal(frameStructure(held.playbackSteps[merge]).parent.get('embeddedCP'), 'matrixVBar', 'the merge attaches the CP');
+  // Paint the merged tree at the CP's projection, as the layout scaffold once did.
+  const early = { ...held, playbackSteps: structuredClone(held.playbackSteps) };
+  Object.assign(early.playbackSteps[projection], { replayCanvasData: structuredClone(held.playbackSteps[merge].replayCanvasData),
+    replayVisibleNodeIds: [...held.playbackSteps[merge].replayVisibleNodeIds] });
+  assert.deepEqual(checkAttachAtMerge(early).map(item => [item.frame, item.detail]),
+    [[projection + 1, 'embeddedCP attaches to matrixVBar at micro Project (target embeddedCP)']]);
+  const merged = { ...held, playbackSteps: structuredClone(held.playbackSteps) };
+  merged.playbackSteps[merge].targetNodeId = 'embeddedCP';
+  assert(reported(checkAttachAtMerge(merged), 'attach-at-merge', merge + 1, 'embeddedCP attaches to matrixVBar'),
+    'the same attachment at a step that does not target the parent');
+});
+
 test('control: visible-in-canvas reports a visible id with no canvas node', () => {
   assert.deepEqual(checkVisibleInCanvas(replay), []);
   const stale = breakReplay(copy => { copy[3].replayVisibleNodeIds = [...copy[3].replayVisibleNodeIds, 'not-a-canvas-node']; });
@@ -188,30 +207,38 @@ const KNOWN_DEFECTS = [
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'parent-after-children', 16, 'detP portraitBar'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'no-early-reveal', 17,
     'detP portraitBar detBar nPortrait ofPP detWhich nPortrait::__leaf ofPbar detWhich::__leaf pOf npSelf pOf::__leaf selfBar nSelf nSelf::__leaf'],
+  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'attach-at-merge', 17, 'detP portraitBar'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/2', 'parent-after-children', 19, 'argumentDbar'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/2', 'no-early-reveal', 23,
     'argumentDbar demonstrativeD childrenNP demonstrativeD::__leaf childrenNbar childrenN childrenN::__leaf'],
+  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/2', 'attach-at-merge', 23, 'argumentDbar'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'parent-after-children', 37, 'sdh moh'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'no-early-reveal', 38,
     'sdh moh donoh studenth moh::__leaf donoh::__leaf studenth::__leaf'],
+  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'attach-at-merge', 38, 'sdh moh'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'parent-after-children', 37, 'sdh moh'],
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'no-early-reveal', 38,
     'sdh moh donoh studenth moh::__leaf donoh::__leaf studenth::__leaf'],
+  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'attach-at-merge', 38, 'sdh moh'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/independent-clause-and-realization.json#', 'parent-after-children', 20, 'operatorHighNbar'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/independent-clause-and-realization.json#', 'no-early-reveal', 21, 'operatorHighNbar operatorHighN'],
+  [FIRST_STAGE_REWRITE, 'replay-regressions/independent-clause-and-realization.json#', 'attach-at-merge', 21, 'operatorHighNbar'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/receiving-head-material.json#', 'parent-after-children', 20, 'booksDbar'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/receiving-head-material.json#', 'no-early-reveal', 21,
     'booksDbar booksD booksNP booksNbarOuter booksNbarInner demP bookN demBar bookN::__leaf dem dem::__leaf'],
+  [FIRST_STAGE_REWRITE, 'replay-regressions/receiving-head-material.json#', 'attach-at-merge', 21, 'booksDbar'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 11, 'rVAtT rvAtTLeaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 12, 'rVAtT rvAtTLeaf rVAtT::__leaf'],
+  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'attach-at-merge', 12, 'rVAtT rvAtTLeaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 28, 'mVAtT mvAtTLeaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 29, 'mVAtT mvAtTLeaf mVAtT::__leaf'],
+  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'attach-at-merge', 29, 'mVAtT mvAtTLeaf'],
   [ORDER_BEFORE_CONTEXT, 'normalized/what-did-mia-see.xbar.json#/analyses/0', 'parent-after-children', 15, 'cbar_question'],
   [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar']
 ];
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments',
-  'no-early-reveal', 'parent-after-children', 'stable-construction', 'visible-in-canvas', 'marks-at-owning-moment'];
+  'no-early-reveal', 'parent-after-children', 'stable-construction', 'attach-at-merge', 'visible-in-canvas', 'marks-at-owning-moment'];
 let sweep;
 before(() => {
   sweep = corpus.records.map(({ id, record }) => {
@@ -221,7 +248,7 @@ before(() => {
       return { id, frames: prepared.playbackSteps.length, violations: [
         ...checkInputUnchanged(snapshot, authored), ...checkNoVisibleScaffolding(prepared), ...checkStageCompletion(prepared, authored),
         ...checkRelationMoments(prepared, authored), ...checkNoEarlyReveal(prepared), ...checkParentAfterChildren(prepared),
-        ...checkStableConstruction(prepared), ...checkVisibleInCanvas(prepared),
+        ...checkStableConstruction(prepared), ...checkAttachAtMerge(prepared), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared)
       ] };
     } catch (error) { return { id, error }; }

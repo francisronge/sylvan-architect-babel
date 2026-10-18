@@ -382,8 +382,10 @@ export const buildStructuralDerivationPlaybackSteps = ({
       ? preserveConstructionAttachments(forest, previousConstructionForest, pendingAttachmentNodeIds, snapshotVisibleNodeIds)
       : forest;
     const constructionForest = restoreRegroupedConstituents(attachedForest, previousConstructionForest, pendingRegroupingIds);
+    // A held attachment keeps its new child a separate root until the parent's
+    // merge. Stage reservations keep its slot; the scaffold cannot attach it early.
     const activeLayoutScaffold = layoutScaffoldForest
-      && forestCanUseCurrentMaterialLayoutScaffold(constructionForest, layoutScaffoldForest)
+      && forestCanUseCurrentMaterialLayoutScaffold(constructionForest, layoutScaffoldForest, true)
       ? layoutScaffoldForest
       : undefined;
     const frameReplaySnapshot = buildDerivationReplaySnapshot({
