@@ -544,7 +544,7 @@ export const movementFacetPlan = {
         ? 'shell-top'
         : structuralLeafCount(nodes.get(source)) > 1 || isWordlessCategoryLeaf(nodes.get(source)!) ? 'shell-bottom' : 'terminal',
       targetAttachment: crossWorkspace ? 'shell-top'
-        : evidence.movement?.trajectoryKind === 'head' ? headTrajectoryAttachment(nodes.get(landing)!) : 'shell-bottom'
+        : evidence.movement?.trajectoryKind === 'head' ? headTrajectoryAttachment(nodes.get(landing)!, true) : 'shell-bottom'
     });
     return;
   },

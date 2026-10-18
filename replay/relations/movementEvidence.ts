@@ -68,49 +68,42 @@ const memberAtPath = (root: SyntaxNode, path: readonly number[]): SyntaxNode | u
   for (const index of path) member = member?.children?.[index];
   return member;
 };
-type MovementOccurrences = ReturnType<typeof indexMovementOccurrences>;
-type MovementWorkspaces = { current: MovementOccurrences; prior: MovementOccurrences };
-
 const readsAsProjection = (node: SyntaxNode): boolean => ['bar', 'phrase'].includes(readCategoryLabel(node.label)?.kind ?? '');
+// Explicit zero-level notation, which may be followed by an annotation.
+const HEAD_NOTATION = /^([A-Za-z][A-Za-z]*)(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u;
+const notatedHead = (label?: string): string | undefined => {
+  const shape = readCategoryLabel(label);
+  return shape ? shape.kind === 'head' ? shape.head : undefined : HEAD_NOTATION.exec(label ?? '')?.[1];
+};
 
-/** Head adjunction proved by structure alone, whatever the labels spell: a new
- * parent holds only the landing and one unchanged host with no inner syntax,
- * in that host's exact preceding slot. No node involved may read as a
- * projection. Prose labels such as "Honorific head: complex" need no category. */
+/** Head adjunction read from structure when labels are prose, such as
+ * "Honorific head: complex": a new parent holds only the landing and one
+ * unchanged terminal host, in that host's exact preceding slot. When every
+ * label reads as category notation, the notation decides instead; no label
+ * may read as a projection, and explicit parent and host heads must agree.
+ * A phrase can take the same shape beside a bare head, so callers also need
+ * an explicitly anchored receiving head or complex. */
 const adjoinsHostInPlace = (parent: SyntaxNode, landingId: string, workspaces?: MovementWorkspaces): boolean => {
   const landing = parent.children?.find(node => node.id === landingId);
   const siblings = (parent.children || []).filter(node => node.id !== landingId);
   if (!workspaces || !landing || siblings.length !== 1) return false;
   const host = siblings[0], { current, prior } = workspaces, before = prior.nodes.get(host.id);
-  const containsLineage = (node: SyntaxNode): boolean => Boolean(landing.lineageId && node.lineageId === landing.lineageId)
-    || Boolean(node.children?.some(containsLineage));
-  return Boolean(before) && !prior.nodes.has(parent.id) && onlyExponents(host) && !containsLineage(host)
+  const involved = [parent, landing, host];
+  const [parentHead, hostHead] = [notatedHead(parent.label), notatedHead(host.label)];
+  return Boolean(before) && !host.children?.length && !prior.nodes.has(parent.id)
+    && involved.some(node => !readCategoryLabel(node.label)) && !involved.some(readsAsProjection)
+    && (!parentHead || !hostHead || parentHead === hostHead)
+    && !(landing.lineageId && host.lineageId === landing.lineageId)
     && ![parent.id, host.id].some(id => current.duplicates.has(id) || prior.duplicates.has(id))
-    && ![parent, landing, host].some(readsAsProjection) && sameAuthoredValue(before, host)
-    && sameMovementSourceSlot(current, prior, parent.id, host.id);
+    && sameAuthoredValue(before, host) && sameMovementSourceSlot(current, prior, parent.id, host.id);
 };
 
-/** A branching occurrence is a moved head complex, not a phrase, when it was
- * assembled by earlier head movement: each branching member holds a head of
- * its own, and one member's lower copy remains beside the complex. */
-const isAssembledHeadComplex = (node: SyntaxNode, sisters: readonly SyntaxNode[]): boolean => {
-  const shaped = (member: SyntaxNode): boolean => !readsAsProjection(member)
-    && (!member.children?.length || member.children.some(child => !child.children?.length) && member.children.every(shaped));
-  const nodes = (root: SyntaxNode): SyntaxNode[] => [root, ...(root.children ?? []).flatMap(nodes)];
-  const members = (node.children ?? []).flatMap(nodes), lower = sisters.flatMap(nodes);
-  return Boolean(node.children?.length) && shaped(node) && members.some(member => member.lineageId
-    && member.lineageId !== node.lineageId && members.filter(other => other.lineageId === member.lineageId).length === 1
-    && lower.some(witness => witness.id !== member.id && witness.lineageId === member.lineageId));
-};
-
-const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly SyntaxNode[] = [],
-  workspaces?: MovementWorkspaces): boolean => {
+const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly SyntaxNode[] = []): boolean => {
   const landing = parent.children?.find(node => node.id === landingId);
   const siblings = (parent.children || []).filter(node => node.id !== landingId);
   const containsLowerOccurrence = (node: SyntaxNode): boolean => Boolean(landing?.lineageId
     && node.id !== landing.id && node.lineageId === landing.lineageId)
     || Boolean(node.children?.some(containsLowerOccurrence));
-  if (adjoinsHostInPlace(parent, landingId, workspaces)) return true;
   if (readCategoryLabel(parent.label)?.kind !== 'head' || readCategoryLabel(landing?.label)?.kind !== 'head') return false;
   if (parent.children?.length === 1 && parent.children[0].id === landingId) {
     const landing = parent.children[0];
@@ -137,6 +130,9 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
       && headCategory(before) === headCategory(parent)
       && sameAuthoredValue(before.children, siblings));
 };
+
+type MovementOccurrences = ReturnType<typeof indexMovementOccurrences>;
+type MovementWorkspaces = { current: MovementOccurrences; prior: MovementOccurrences };
 
 const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: SyntaxNode,
   workspaces?: MovementWorkspaces): boolean => {
@@ -196,7 +192,7 @@ const hasAssembledMemberWitness = (source: SyntaxNode, sisters: readonly SyntaxN
 
 const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly SyntaxNode[] = [],
   priorSource: PriorSourcePosition = {}, workspaces?: MovementWorkspaces,
-  headContext = false): 'head' | 'phrasal' | undefined => {
+  headContext = false, structuralHost = false): 'head' | 'phrasal' | undefined => {
   const shape = readCategoryLabel(target.label);
   const oldShape = readCategoryLabel(priorSource.node?.label), oldParent = readCategoryLabel(priorSource.parent?.label);
   // A flat receiving head also selects ordinary phrases. A branching bare
@@ -217,10 +213,10 @@ const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly
   const headUnit = !target.children?.length || Boolean(target.word?.trim()) || shape?.compound
     || Boolean(headContext && priorSource.node?.children?.length && headCategory(priorSource.node) === headCategory(target)
       && isHeadAssembly(priorSource.node) && isHeadAssembly(target))
-    || /^[A-Za-z][A-Za-z]*(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u.test(target.label) || projectedSource
-    || Boolean(parent && priorSource.node && isAssembledHeadComplex(priorSource.node, oldSisters)
-      && adjoinsHostInPlace(parent, target.id, workspaces));
-  if (headUnit && parent && (isHeadComplex(parent, target.id, previous, workspaces) || isProjectedHead(parent, target, priorSource.node, workspaces))) return 'head';
+    || HEAD_NOTATION.test(target.label) || projectedSource;
+  if (headUnit && parent && (isHeadComplex(parent, target.id, previous)
+    || structuralHost && adjoinsHostInPlace(parent, target.id, workspaces)
+    || isProjectedHead(parent, target, priorSource.node, workspaces))) return 'head';
   const parentCategory = readCategoryLabel(parent?.label);
   const specifier = parentCategory && parent?.children?.some(n => n.id !== target.id
     && headCategory(n) === parentCategory.head && !onlyExponents(n));
@@ -230,7 +226,7 @@ const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly
 /** Shared exact structural check for Tier 1 and recovered movement context. */
 export const movementContextFailure = (
   forest: readonly SyntaxNode[], landingId: string, contextId: string, kind: MovementContextKind,
-  previous: readonly SyntaxNode[] = [], sourceId?: string
+  previous: readonly SyntaxNode[] = [], sourceId?: string, hostWorkspaces?: MovementWorkspaces
 ): string | undefined => {
   const nodes: SyntaxNode[] = [];
   const visit = (node: SyntaxNode) => { nodes.push(node); (node.children || []).forEach(visit); };
@@ -260,8 +256,9 @@ export const movementContextFailure = (
     }
     return 'not-the-immediate-landing-parent';
   }
-  if (!isHeadComplex(parent, landingId, previous,
-    { current: indexMovementOccurrences(forest), prior: indexMovementOccurrences(previous) }))
+  // Callers pass `hostWorkspaces` only for an explicitly anchored receiving
+  // head or complex, which the prose-label structural reading requires.
+  if (!isHeadComplex(parent, landingId, previous) && !adjoinsHostInPlace(parent, landingId, hostWorkspaces))
     return 'landing-is-not-in-a-supported-head-complex';
   const isHost = context[0] !== landing[0] && Boolean(parent.children?.includes(context[0]));
   const valid = kind === 'head-complex' ? isParent : kind === 'head-host' ? isHost : isParent || isHost;
@@ -714,12 +711,17 @@ export function recoverMovementEvidence(
   if (current.duplicates.has(witnessId)) return fail('MOVEMENT_ENDPOINTS_AMBIGUOUS', `Witness ${witnessId} occurs more than once.`);
   if (!contains(source, witnessId)) return fail('MOVEMENT_WITNESS_OUTSIDE_SOURCE', `${witnessId} is not within source ${sourceId}.`);
   const precedingId = prior.nodes.has(sourceId) ? sourceId : priorSource || targetId;
-  const headContext = entries.some(entry => entry.ids.length === 1
+  // The prose-label structural reading needs the receiving head or complex
+  // named explicitly. A phrasal attractor names no adjunction host.
+  const anchoredHeadContext = (structural: boolean) => entries.some(entry => entry.ids.length === 1
     && (hasRole(entry.key, 'movement.host') || hasRole(entry.key, 'movement.complex') || entry.key === 'host')
-    && movementContextFailure(forest, targetId, entry.ids[0],
-      hasRole(entry.key, 'movement.complex') ? 'head-complex' : 'head-landing', previous) === undefined);
+    && !(structural && entry.key === 'attracting head')
+    && movementContextFailure(forest, targetId, entry.ids[0], hasRole(entry.key, 'movement.complex')
+      ? 'head-complex' : 'head-landing', previous, undefined, structural ? { current, prior } : undefined) === undefined);
+  const headContext = anchoredHeadContext(false), structuralHost = anchoredHeadContext(true);
   const kind = landingKind(target, current.parents.get(targetId), previous,
-    { node: prior.nodes.get(precedingId), parent: prior.parents.get(precedingId) }, { current, prior }, headContext);
+    { node: prior.nodes.get(precedingId), parent: prior.parents.get(precedingId) }, { current, prior },
+    headContext, structuralHost);
   if (!kind) return fail('MOVEMENT_CONTEXT_UNRESOLVED', `The anchored structure does not establish a supported head or phrasal landing for ${targetId}.`);
   const priorCandidates = prior.nodes.has(sourceId) ? [sourceId]
     : [...new Set(priorSources.length ? priorSources : [targetId])];
@@ -796,7 +798,8 @@ export function recoverMovementEvidence(
     if (!contextKind) return;
     const reason = e.ids.length !== 1 ? 'context-needs-one-exact-node'
       : movementContextFailure(forest, targetId, e.ids[0], contextKind, previous,
-        kind === 'phrasal' && landingContainerRole(e.key) ? sourceId : undefined);
+        kind === 'phrasal' && landingContainerRole(e.key) ? sourceId : undefined,
+        kind === 'head' && structuralHost ? { current, prior } : undefined);
     if (reason) diagnostics.push(`MOVEMENT_CONTEXT_UNPROVEN: anchors.${e.authoredKey} (${e.ids.join(', ')}) for landing ${targetId}: ${reason}. The authored field remains unresolved.`);
     else context.push({ key: e.authoredKey, nodeId: e.ids[0], kind: contextKind });
   });
