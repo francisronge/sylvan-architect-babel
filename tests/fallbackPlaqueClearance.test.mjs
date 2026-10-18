@@ -147,10 +147,21 @@ test('attachment wins over plaque clearance at a labelled end', () => {
   ]) assert.equal(routeSpoke(from, to, { labels, plaques: [plaque] }), expected);
 });
 
-test('a placed spoke near a plaque stays attached to both role labels', () => {
+// Every gap boundary in this sweep leaves end pieces that round to zero length.
+test('attached end pieces stay drawable after coordinate rounding', () => {
+  const from = { x: 0, y: 0 }, to = { x: 100, y: 0 };
+  const labels = [{ x: -20, y: -12, width: 40, height: 24 }, { x: 80, y: -12, width: 40, height: 24 }];
+  for (let i = 1; i <= 49; i++) {
+    const x = 25.8 + i / 1000, drawn = pieces(routeSpoke(from, to, { labels, plaques: [{ x, y: -5, width: 100 - 2 * x, height: 10 }] }));
+    assert(drawn[0][0].x === 20 && drawn[0][1].x > 20, `a drawn piece leaves the source label with the plaque at ${x}`);
+    assert(drawn.at(-1)[1].x === 80 && drawn.at(-1)[0].x < 80, `a drawn piece reaches the target label with the plaque at ${x}`);
+  }
+});
+
+for (const near of [{ x: 13, y: 15, width: 50, height: 30 }, { x: 13, y: 17.81, width: 50, height: 24.38 }])
+test(`a placed spoke near plaque ${JSON.stringify(near)} stays attached to both role labels`, () => {
   const nodes = { a: { x: 0, y: 0 }, b: { x: 0, y: 60 }, c: { x: 200, y: 60 } };
   const syntax = Object.fromEntries(Object.entries(nodes).map(([id, p]) => [id, { x: p.x - 10, y: p.y - 10, width: 20, height: 20 }]));
-  const near = { x: 13, y: 15, width: 50, height: 30 };
   const measurements = { labels: Object.values(syntax), obstacles: [near], visibleLabels: Object.values(syntax),
     visibleObstacles: [near], labelFor: id => syntax[id], subtreeFor: id => syntax[id], bottom: 70 };
   const stage = { statement: '', stageRecord: '', relations: [{ relation: 'Unfamiliar relation', anchors: { h: 'a', p: ['b', 'c'] } }],
@@ -173,6 +184,7 @@ test('a placed spoke near a plaque stays attached to both role labels', () => {
   const [hub, target] = [meeting.fromMark, meeting.toMark].map(order => marks.find(mark => mark.allocationOrder === order));
   assert(pointRectDistance(drawn[0][0], fallbackLabelRect(hub, 1)) < ROUNDING);
   assert(pointRectDistance(drawn.at(-1)[1], fallbackLabelRect(target, 1)) < ROUNDING);
+  for (const [p, q] of [drawn[0], drawn.at(-1)]) assert(p.x !== q.x || p.y !== q.y, 'each attached piece has length');
 });
 
 test('close plaques leave no zero-length or dot-sized fragment between their gaps', () => {
