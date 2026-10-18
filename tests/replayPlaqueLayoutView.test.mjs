@@ -422,7 +422,7 @@ test('a desktop resize keeps the painted layout through settling, a font load, a
       for (const [timer, entry] of [...timers]) if (entry.at <= now) { timers.delete(timer); entry.callback(); }
     };
     watchTreeVisualizerFonts(fonts.set, () => { content = { ...content }; }, 'Mia',
-      comparesMeasuredText ? font => `unchanged ${font}` : undefined);
+      comparesMeasuredText ? () => false : undefined);
     fonts.loads.forEach(load => load.resolve([])); fonts.ready();
     await new Promise(resolve => setImmediate(resolve));
     settler.observe(desktop);

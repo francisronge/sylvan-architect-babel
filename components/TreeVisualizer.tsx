@@ -30,7 +30,7 @@ import ReplayPanel from './ReplayPanel';
 import { createTreeInkTextMeasure } from './treeInkTextMeasure';
 import { createTreeLabelMeasure } from './treeLabelMeasure.ts';
 import { createViewportSettler } from './treeViewport.ts';
-import { canvasFontTextMetrics, watchTreeVisualizerFonts } from './treeVisualizerFonts';
+import { createMeasuredRuns, watchTreeVisualizerFonts } from './treeVisualizerFonts';
 import { useReplayPlaqueLayout } from './useReplayPlaqueLayout';
 import { useTreeDirection } from './useTreeDirection';
 import { useViewErrorHandler } from './ViewErrorBoundary';
@@ -112,7 +112,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     [data, derivationStages, sentence]);
   const [settledFontText, setSettledFontText] = useState<string | null>(null);
   const trajectoryLabelMaskId = `trajectory-labels-${useId().replace(/:/g, '')}`;
-  const measureCategoryText = useMemo(() => {
+  // Each font pass records the runs its measures are called with; a later face
+  // load re-measures them to decide whether layout must be measured again.
+  const measuredRuns = useMemo(() => createMeasuredRuns(), [fontLayoutPass]);
+  const latestMeasuredRuns = useRef(measuredRuns);
+  latestMeasuredRuns.current = measuredRuns;
+  const measureCategoryText = useMemo(() => measuredRuns.track('category', () => {
     const context = typeof document === 'undefined' ? null : document.createElement('canvas').getContext('2d');
     if (context) context.font = CATEGORY_FONT;
     const cache = new Map<string, number>();
@@ -120,21 +125,21 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       if (!cache.has(text)) cache.set(text, context?.measureText(text).width ?? [...text].length * 25);
       return cache.get(text)!;
     };
-  }, [fontLayoutPass]);
-  const measureTreeInk = useMemo(() => createTreeInkTextMeasure(
-    typeof document === 'undefined' ? undefined : document), [fontLayoutPass]);
-  const measureTreeLabel = useMemo(() => createTreeLabelMeasure(
-    typeof document === 'undefined' ? undefined : document), [fontLayoutPass]);
+  }), [measuredRuns]);
+  const measureTreeInk = useMemo(() => measuredRuns.track('ink', () => createTreeInkTextMeasure(
+    typeof document === 'undefined' ? undefined : document)), [measuredRuns]);
+  const measureTreeLabel = useMemo(() => measuredRuns.track('label', () => createTreeLabelMeasure(
+    typeof document === 'undefined' ? undefined : document)), [measuredRuns]);
   // Measured in untransformed SVG units, so a resize keeps the same measure.
-  const measurePlaqueText = useMemo<PlaqueTextMeasure>(() => {
+  const measurePlaqueText = useMemo<PlaqueTextMeasure>(() => measuredRuns.track('plaque', () => {
     const measured = new Map<string, ReturnType<PlaqueTextMeasure>>();
-    return (text, style) => {
+    return (text: string, style: Parameters<PlaqueTextMeasure>[1]) => {
       const key = JSON.stringify([text, style]);
       if (!measured.has(key)) measured.set(key,
         withPlaqueTextMeasure(d3.select(svgRef.current!), measure => measure(text, style)));
       return measured.get(key)!;
     };
-  }, [fontLayoutPass]);
+  }), [measuredRuns]);
   const [fitRevision, setFitRevision] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
@@ -142,7 +147,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   useEffect(() => watchTreeVisualizerFonts(document.fonts, () => {
     setSettledFontText(fontText);
     setFontLayoutPass(pass => pass + 1);
-  }, fontText, canvasFontTextMetrics(document)), [fontText]);
+  }, fontText, () => latestMeasuredRuns.current.changed()), [fontText]);
   const { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
     movementChainIndexCatalogue, playbackSteps } = useMemo(
       () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, includePlayback: animated }),
