@@ -254,7 +254,12 @@ avoid its pocket as they avoid any other.
 
 Reservations account for tree ink, trajectories, neutral connector stems and
 already allocated claims. The nearest clear pocket search has no arbitrary radius
-cutoff that sends an otherwise local plaque beneath the tree. Later spelling
+cutoff that sends an otherwise local plaque beneath the tree. A plaque without
+its own connector whose new pocket would lie beyond its nearby pockets may keep
+half the usual margin from syntax, trajectories and connectors when that brings
+it within reach. It keeps the full margin from other plaques, which keep the full
+margin from it, and it keeps the narrower margin for that pocket's lifetime. An
+earlier pocket that stays valid is never traded for one. Later spelling
 changes reserve the largest required box at first appearance. The planner is
 memoized across Replay steps; it does not move branches, reveal future syntax or
 alter relation timing. Transparent hulls are not obstacles.

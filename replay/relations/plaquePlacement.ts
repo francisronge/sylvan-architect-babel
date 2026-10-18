@@ -39,7 +39,9 @@ export type PlaqueRect = ObstacleRect & {
   terminalStemNodeId?: string;
   caseRowY?: number; collectionRows?: CollectionRow[]; collectionWidth?: number; drawnWidth?: number; drawnHeight?: number;
   blocksConnectors?: boolean; connectorAttachment?: string;
-  connectorInk?: { x: number; y: number; width: number; height: number } };
+  connectorInk?: { x: number; y: number; width: number; height: number };
+  /** A plaque's narrower margin from everything but other allocated plaques. */
+  inkMargin?: number };
 type CollectionRow = { sourceNodeId: string; y: number; lane?: number; ownerKeys?: string[]; featureKey?: string; edge?: CollectionEdge; portX?: number };
 type Node = HierarchyPointNode<SyntaxNode>;
 const drawnPlaque = (box: PlaqueRect): PlaqueRect =>
@@ -74,6 +76,14 @@ const nearbyPocketTops = (height: number) => [-height - 60, -height / 2, 55, 115
 const nearbyPocketGap = 110;
 /** A pocket clearly nearer than an incumbent lies within this fraction of its distance. */
 export const MIN_RELOCATION_GAIN = 0.75;
+// Plaques keep this margin from obstacles. A plaque that would otherwise strand
+// beyond its nearby pockets may keep half of it from everything but other plaques,
+// which still keep the full margin from it in both directions.
+const plaqueMargin = 24, strandedMargin = plaqueMargin / 2;
+const allocatedPlaque = (obstacle: PlaqueRect) => obstacle.blocksConnectors && obstacle.connectorAttachment === undefined;
+/** Whether an obstacle blocks a pocket at the margin that pocket keeps from it. */
+export const plaqueBlocked = (box: PlaqueRect, obstacle: PlaqueRect) => plaquesOverlap(box, obstacle,
+  box.inkMargin !== undefined && !allocatedPlaque(obstacle) ? box.inkMargin : plaqueMargin);
 /** Distances are measured from a word-bearing leaf's word, else from the anchor's label. */
 export function plaqueAnchorPoint(anchor: Pick<Node, 'x' | 'y' | 'data' | 'children'>) {
   return { x: anchor.x, y: anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0) };
@@ -706,7 +716,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const connectorsClear = space ? space.acceptsConnector(placement)
       : (!request.caseAssignment || caseAssignmentClears(attachment, placement, occupied))
         && collectionPlaqueClears(placement, nodes, occupied);
-    if (occupied.some(obstacle => plaquesOverlap(placement, obstacle)) || !connectorsClear) continue;
+    if (occupied.some(obstacle => plaqueBlocked(placement, obstacle)) || !connectorsClear) continue;
     if (lifetime?.reconsider?.has(request.index)) {
       (lifetime.relocating?.has(request.index) ? incumbentPriors : priorCandidates).set(request.index, placement);
       continue;
@@ -724,22 +734,35 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const anchor = anchors[0];
     const space = lifetime?.spaceFor(request.index, anchor, result);
     const occupied = [...(space?.obstacles ?? obstacles), ...placed];
-    let obstacleIndex: ReturnType<typeof preparePlaqueOverlapIndex> | undefined;
+    // At a narrower margin, other allocated plaques grow by the difference.
+    const marginObstacles = new Map<number, PlaqueRect[]>([[plaqueMargin, occupied]]);
+    const obstaclesAt = (margin: number) => {
+      let list = marginObstacles.get(margin);
+      if (!list) marginObstacles.set(margin, list = occupied.map(obstacle => {
+        if (!allocatedPlaque(obstacle)) return obstacle;
+        const grow = plaqueMargin - margin;
+        return { ...obstacle, x: obstacle.x - grow, y: obstacle.y - grow, width: obstacle.width + 2 * grow, height: obstacle.height + 2 * grow };
+      }));
+      return list;
+    };
+    const overlapIndexes = new Map<number, ReturnType<typeof preparePlaqueOverlapIndex>>();
     let queriedPocket = false;
-    const overlaps = (box: PlaqueRect) => {
+    const overlaps = (box: PlaqueRect, margin = box.inkMargin ?? plaqueMargin) => {
       // Most nearby plaques fit their first pocket. Its exact boolean query
       // does not need a sorted spatial hierarchy; later searches reuse one.
-      if (!queriedPocket) {
+      if (!queriedPocket && margin === plaqueMargin) {
         queriedPocket = true;
         return occupied.some(obstacle => plaquesOverlap(box, obstacle));
       }
-      return (obstacleIndex ??= preparePlaqueOverlapIndex(occupied)).overlaps(box);
+      let index = overlapIndexes.get(margin);
+      if (!index) overlapIndexes.set(margin, index = preparePlaqueOverlapIndex(obstaclesAt(margin)));
+      return index.overlaps(box, margin);
     };
     const caseClears = request.caseAssignment && !space ? prepareCasePlaqueSpace(anchor, occupied) : undefined;
     const sourceRect = request.caseAssignment ? caseSourceRect(anchor) : undefined;
-    const clear = (candidate: PlaqueRect) => {
-      if (overlaps(candidate)) return undefined;
-      const box = attach(candidate, request);
+    const clear = (candidate: PlaqueRect, margin = plaqueMargin) => {
+      if (overlaps(candidate, margin)) return undefined;
+      const box = attach(margin === plaqueMargin ? candidate : { ...candidate, inkMargin: margin }, request);
       const accepts = (box: PlaqueRect) => space ? space.acceptsConnector(box)
           : (!caseClears || caseClears(box))
             && collectionPlaqueClears(box, nodes, occupied);
@@ -789,9 +812,10 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         .map(x => ({ x, y: anchorY + dy, width, height })))
       .sort((a, b) => Math.hypot(a.x + width / 2 - anchor.x, a.y + height / 2 - anchorY)
         - Math.hypot(b.x + width / 2 - anchor.x, b.y + height / 2 - anchorY)) : [];
+    const search = (margin: number) => {
     let placement: PlaqueRect | undefined;
     for (const candidate of candidates) {
-      placement = clear(candidate);
+      placement = clear(candidate, margin);
       if (placement) break;
     }
     // A genuine participant relocation can make a valid old pocket unnecessarily
@@ -801,7 +825,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       placement = priorCandidate;
       // Search the nearest clear pocket, including one just beyond the initial
       // candidates. A radius cutoff would send a local claim below its subtree.
-      const gap = 24 + 1e-6;
+      const occupied = obstaclesAt(margin), gap = margin + 1e-6;
       const sourceX = sourceRect ? sourceRect.x + sourceRect.width / 2 : anchor.x;
       const horizontalGap = (x: number) => request.caseAssignment
         ? Math.max(x - sourceX, sourceX - x - width, 0) : Math.abs(x + width / 2 - anchor.x);
@@ -856,12 +880,22 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
           const distance = points ? points.slice(1).reduce((length, point, i) =>
             length + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0) ** 2 : dx * dx + dy * dy;
           if (!request.caseAssignment && distance >= bestDistance) break;
-          const accepted = distance < bestDistance ? clear({ x, y, width, height }) : undefined;
+          const accepted = distance < bestDistance ? clear({ x, y, width, height }, margin) : undefined;
           if (accepted) {
             placement = accepted; bestDistance = distance;
           }
         }
       }
+    }
+    return placement;
+    };
+    let placement = search(plaqueMargin);
+    // A new pocket for a plaque without its own connector strands beyond its
+    // nearby pockets only when not even the narrower margin brings it within reach.
+    const strands = (box?: PlaqueRect) => !box || beyondNearbyReach(Math.sqrt(placementDistance(box)), request);
+    if (local && !priorCandidate && !request.caseAssignment && !request.collectionRows?.length && strands(placement)) {
+      const near = search(strandedMargin);
+      if (!strands(near)) placement = near;
     }
     placement ??= priorCandidate;
     // Leaving an incumbent needs a clearly nearer pocket: a nearby one when the

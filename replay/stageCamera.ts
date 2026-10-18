@@ -21,12 +21,12 @@ import {
   nativeRelationPlaqueRects,
   beyondNearbyReach,
   plaqueAnchorPoint,
+  plaqueBlocked,
   placeStagePlaques,
   plaqueCaseConnectorObstacles,
   plaqueCollectionConnectorObstacles,
   plaqueConnectorObstacles,
   plaqueIdentity,
-  plaquesOverlap,
   plaqueTreeObstacles,
   prepareCasePlaqueSpace,
   prepareCollectionPlaqueSpace,
@@ -404,7 +404,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
         const pocket = projectPlaqueLayout(new Map([[request.index, projectPlaqueContent(prior, request)]]), id => byId.get(id)).get(request.index);
         if (!pocket) return false;
         const collections = projectPlaqueLayout(collectionReservations[phaseIndex] ?? new Map(), id => byId.get(id));
-        return [...scene.obstacles, ...collections.values()].some(obstacle => plaquesOverlap(pocket, obstacle));
+        return [...scene.obstacles, ...collections.values()].some(obstacle => plaqueBlocked(pocket, obstacle));
       });
       if (invalid) remembered.delete(key);
     });
