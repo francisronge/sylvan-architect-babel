@@ -68,12 +68,41 @@ const memberAtPath = (root: SyntaxNode, path: readonly number[]): SyntaxNode | u
   for (const index of path) member = member?.children?.[index];
   return member;
 };
-const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly SyntaxNode[] = []): boolean => {
+type MovementOccurrences = ReturnType<typeof indexMovementOccurrences>;
+type MovementWorkspaces = { current: MovementOccurrences; prior: MovementOccurrences };
+
+const readsAsProjection = (node: SyntaxNode): boolean => ['bar', 'phrase'].includes(readCategoryLabel(node.label)?.kind ?? '');
+
+/** Head adjunction proved by structure alone, whatever the labels spell: a new
+ * parent holds only the landing and one unchanged host with no inner syntax,
+ * in that host's exact preceding slot. No node involved may read as a
+ * projection. Prose labels such as "Honorific head: complex" need no category. */
+const adjoinsHostInPlace = (parent: SyntaxNode, landingId: string, workspaces?: MovementWorkspaces): boolean => {
+  const landing = parent.children?.find(node => node.id === landingId);
+  const siblings = (parent.children || []).filter(node => node.id !== landingId);
+  if (!workspaces || !landing || siblings.length !== 1) return false;
+  const host = siblings[0], { current, prior } = workspaces, before = prior.nodes.get(host.id);
+  const containsLineage = (node: SyntaxNode): boolean => Boolean(landing.lineageId && node.lineageId === landing.lineageId)
+    || Boolean(node.children?.some(containsLineage));
+  return Boolean(before) && !prior.nodes.has(parent.id) && onlyExponents(host) && !containsLineage(host)
+    && ![parent.id, host.id].some(id => current.duplicates.has(id) || prior.duplicates.has(id))
+    && ![parent, landing, host].some(readsAsProjection) && sameAuthoredValue(before, host)
+    && sameMovementSourceSlot(current, prior, parent.id, host.id);
+};
+
+/** A moved head complex: each branching member holds a head of its own. */
+const hasHeadComplexShape = (node: SyntaxNode): boolean => !readsAsProjection(node)
+  && (!node.children?.length || node.children.some(child => !child.children?.length)
+    && node.children.every(hasHeadComplexShape));
+
+const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly SyntaxNode[] = [],
+  workspaces?: MovementWorkspaces): boolean => {
   const landing = parent.children?.find(node => node.id === landingId);
   const siblings = (parent.children || []).filter(node => node.id !== landingId);
   const containsLowerOccurrence = (node: SyntaxNode): boolean => Boolean(landing?.lineageId
     && node.id !== landing.id && node.lineageId === landing.lineageId)
     || Boolean(node.children?.some(containsLowerOccurrence));
+  if (adjoinsHostInPlace(parent, landingId, workspaces)) return true;
   if (readCategoryLabel(parent.label)?.kind !== 'head' || readCategoryLabel(landing?.label)?.kind !== 'head') return false;
   if (parent.children?.length === 1 && parent.children[0].id === landingId) {
     const landing = parent.children[0];
@@ -100,9 +129,6 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
       && headCategory(before) === headCategory(parent)
       && sameAuthoredValue(before.children, siblings));
 };
-
-type MovementOccurrences = ReturnType<typeof indexMovementOccurrences>;
-type MovementWorkspaces = { current: MovementOccurrences; prior: MovementOccurrences };
 
 const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: SyntaxNode,
   workspaces?: MovementWorkspaces): boolean => {
@@ -183,8 +209,9 @@ const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly
   const headUnit = !target.children?.length || Boolean(target.word?.trim()) || shape?.compound
     || Boolean(headContext && priorSource.node?.children?.length && headCategory(priorSource.node) === headCategory(target)
       && isHeadAssembly(priorSource.node) && isHeadAssembly(target))
-    || /^[A-Za-z][A-Za-z]*(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u.test(target.label) || projectedSource;
-  if (headUnit && parent && (isHeadComplex(parent, target.id, previous) || isProjectedHead(parent, target, priorSource.node, workspaces))) return 'head';
+    || /^[A-Za-z][A-Za-z]*(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u.test(target.label) || projectedSource
+    || Boolean(parent && hasHeadComplexShape(target) && adjoinsHostInPlace(parent, target.id, workspaces));
+  if (headUnit && parent && (isHeadComplex(parent, target.id, previous, workspaces) || isProjectedHead(parent, target, priorSource.node, workspaces))) return 'head';
   const parentCategory = readCategoryLabel(parent?.label);
   const specifier = parentCategory && parent?.children?.some(n => n.id !== target.id
     && headCategory(n) === parentCategory.head && !onlyExponents(n));
@@ -224,7 +251,9 @@ export const movementContextFailure = (
     }
     return 'not-the-immediate-landing-parent';
   }
-  if (!isHeadComplex(parent, landingId, previous)) return 'landing-is-not-in-a-supported-head-complex';
+  if (!isHeadComplex(parent, landingId, previous,
+    { current: indexMovementOccurrences(forest), prior: indexMovementOccurrences(previous) }))
+    return 'landing-is-not-in-a-supported-head-complex';
   const isHost = context[0] !== landing[0] && Boolean(parent.children?.includes(context[0]));
   const valid = kind === 'head-complex' ? isParent : kind === 'head-host' ? isHost : isParent || isHost;
   return valid ? undefined : 'not-the-landing-host-or-complex';

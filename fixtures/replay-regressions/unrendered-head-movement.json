@@ -1,5 +1,5 @@
 {
-  "description": "Stage 3 authors \"Verb-to-honorific head movement\" with space-separated role names (\"raised lexical head\", \"host head\", \"lower head trace\"). Movement recognition reports MOVEMENT_CONTEXT_UNRESOLVED, so the moment (frame 43) draws no arrow, although the verb moves.",
+  "description": "Stage 3 moves the verb to the honorific head, and stages 4 and 5 move the growing complex to inflection and the complementizer. Every label is prose (\"Verb head: raised\", \"Honorific head: complex\") and spells no category notation, so head-movement recognition, which read categories from labels, reported MOVEMENT_CONTEXT_UNRESOLVED and drew no arrow at frame 43, and drew the two later head movements as phrasal. Each new complex takes its unchanged host's exact preceding slot and holds only that host and the landing, which proves the adjunction without a category.",
   "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract and English metalanguage instruction (character-spellout-v1-english-metalanguage), 18 October 2026 (metalanguage A/B batch, 44-ko-honorific.r1.B, analysis 1), uncommitted sources on e28ac57. Tokens are the shared word list of that run.",
   "contract": "character-spellout-v1-english-metalanguage",
   "sentence": "선생님께서 책을 읽으셨다.",
