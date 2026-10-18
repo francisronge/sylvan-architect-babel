@@ -52,7 +52,8 @@ for (const viewport of parseViewports(VIEWPORTS)) {
     const need = [...Array.from({ length: result.frameCount }, (_, index) => coverageKey(record.id, name, 'static', index + 1)),
       coverageKey(record.id, name, 'static', 'canopy'),
       ...Array.from({ length: result.frameCount - 1 }, (_, index) => coverageKey(record.id, name, 'motion', `${index + 1}>${index + 2}`)),
-      ...(result.stageEntries ?? []).map(frame => coverageKey(record.id, name, 'camera', frame))];
+      ...(result.stageEntries ?? []).flatMap(frame => [coverageKey(record.id, name, 'camera', `${frame - 1}>${frame}`),
+        coverageKey(record.id, name, 'camera', frame)])];
     const absent = need.filter(key => !covered.has(key));
     if (absent.length) missing.push(`${record.id} @${name}: ${absent.length} unjudged places, first ${absent[0]}`);
     const mine = report.coverage.filter(key => JSON.parse(key)[0] === record.id && JSON.parse(key)[1] === name);
@@ -68,7 +69,7 @@ const receipt = { ok: !unexpected.length && !exceeded.length && !stale.length &&
   unexpected, exceeded, stale, missing };
 fs.writeFileSync(path.join(evidence, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n');
 for (const finding of unexpected) console.error(`unexpected ${finding.rule}/${finding.subtype ?? '-'} ${finding.record} @${finding.viewport} ${finding.frame}: ${finding.detail}`);
-for (const { finding, exception } of exceeded) console.error(`beyond bound ${finding.rule} ${finding.record} ${finding.frame}: ${finding.measure} > ${exception.max}`);
+for (const { finding, bound } of exceeded) console.error(`beyond bound ${finding.rule}/${finding.subtype ?? '-'} ${finding.record} @${finding.viewport} ${finding.frame}: ${finding.measure} > ${bound}`);
 for (const entry of stale) console.error(`stale exception ${entry.exception.rule} ${entry.exception.record} @${entry.viewport} ${entry.frame}`);
 for (const entry of missing) console.error(`incomplete: ${entry}`);
 console.log(`Browser visual check ${receipt.ok ? 'passed' : 'FAILED'}: ${report.findings.length} findings, ${unexpected.length} unexpected, `

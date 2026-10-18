@@ -224,9 +224,9 @@ test('#7: the camera policy flags a stage entry that keeps a view framing none o
     direct: Object.assign([], { 1: { x: -2700, y: 0, k: 1 } }), passes: [{ name: 'next', steps: [{ from: 0, to: 1, before: { x: 300, y: 0, k: 1 },
       first: settledPose, settled: settledPose }] }] });
   const parked = checkCameraTrace(trace({ x: 300, y: 0, k: 1 }));
-  assert(parked.violations.some(item => item.rule === 'settled-path-independence' && item.frame === 2));
+  assert(parked.findings.some(item => item.rule === 'settled-path-independence' && item.subtype === 'retention' && item.frame === '1>2'));
   const kept = checkCameraTrace(trace({ x: -2698, y: 0, k: 1 }));
-  assert(!kept.violations.some(item => item.rule === 'settled-path-independence'));
+  assert(!kept.findings.some(item => item.rule === 'settled-path-independence'));
   assert.equal(kept.allowed.length, 1, 'retention that holds shared syntax as still as the fit is allowed');
   assert.deepEqual(firstPaintedPose([{ gen: 1, transform: { x: 0, y: 0, k: 1 } }, { gen: 1, transform: { x: 0, y: 0, k: 1 } },
     { gen: 2, transform: { x: 5, y: 0, k: 1 } }]), { x: 5, y: 0, k: 1 });

@@ -2,7 +2,7 @@
 // (scripts/visualAudit/reviewPage.mjs). It measures; the rules are shared:
 //   static      each audited frame and the Canopy, painted geometry converted to
 //               the frame model of tests/helpers/visualRules.mjs (checkFrame), and
-//               painted index letters counted by tests/helpers/indexLetters.mjs
+//               painted index letters counted as checkOneLetterPerLabel counts them
 //   camera      settled, stepped and directly selected poses as a trace for
 //               tests/helpers/cameraInvariants.mjs (one camera policy)
 //   continuity  settled retained syntax inside one stage, with movement ownership
@@ -165,7 +165,7 @@ const git = args => { try { return execFileSync('git', args, { cwd: root, encodi
 /** Everything that decides a receipt: the page and every module that measures or judges. */
 const SOURCE_FILES = ['scripts/auditReplayBrowser.mjs', 'scripts/browserSession.mjs', 'scripts/captureReadiness.mjs',
   ...fs.readdirSync(path.join(root, 'scripts/visualAudit')).sort().map(name => `scripts/visualAudit/${name}`),
-  'tests/helpers/visualRules.mjs', 'tests/helpers/findings.mjs', 'tests/helpers/indexLetters.mjs', 'tests/helpers/cameraInvariants.mjs',
+  'tests/helpers/visualRules.mjs', 'tests/helpers/findings.mjs', 'tests/helpers/replayInvariants.mjs', 'tests/helpers/cameraInvariants.mjs',
   'components/treeViewport.ts', 'replay/replaySurfaceNotation.ts'];
 const sourceFingerprint = fingerprint(JSON.stringify([fingerprint(pageBytes),
   ...SOURCE_FILES.map(file => [file, fingerprint(fs.readFileSync(path.join(root, file)))])]));
@@ -411,16 +411,13 @@ async function auditReplay(context, record, entry, result, anchorsFor) {
         direct = await directSelection(context, record, frame - 1, frameCount, 'reload');
         trace.direct[frame - 1] = direct.light.camera;
       }
-      result.coverage.push(coverageKey(record.id, viewport.name, 'camera', frame));
+      result.coverage.push(coverageKey(record.id, viewport.name, 'camera', `${frame - 1}>${frame}`),
+        coverageKey(record.id, viewport.name, 'camera', frame));
     }
-    const { violations, allowed } = checkCameraTrace(trace, cameraThresholds);
+    const { findings: cameraFindings, allowed } = checkCameraTrace(trace, cameraThresholds);
     result.cameraAllowed = allowed;
-    for (const violation of violations) for (const frame of violation.frames ?? [violation.frame]) {
-      const measure = violation.measure?.differencePx ?? violation.measure?.medianJumpPx ?? violation.measure?.changePx ?? null;
-      result.findings.push({ rule: violation.rule, subtype: violation.measure?.cause ?? null, record: record.id, subject: 'camera',
-        frame, viewport: viewport.name, measure, detail: violation.detail, metrics: violation.measure });
-    }
-    if (violations.length) result.evidence[coverageKey(record.id, viewport.name, 'camera', 'trace')] = keepEvidence(name('camera'),
+    result.findings.push(...cameraFindings.map(item => ({ ...item, record: record.id, viewport: viewport.name })));
+    if (cameraFindings.length) result.evidence[coverageKey(record.id, viewport.name, 'camera', 'trace')] = keepEvidence(name('camera'),
       { ...trace, frames: trace.frames.map(frame => frame && { ...frame, nodes: [...frame.nodes], movement: [...frame.movement] }) });
   }
   if (checks.has('rapid')) {

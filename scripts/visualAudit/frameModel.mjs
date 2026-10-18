@@ -1,11 +1,12 @@
 // Measurement adapter: painted DOM geometry from the page probe (CSS pixels) to
 // the shared models the rules judge. Static geometry becomes the frame model of
 // tests/helpers/visualRules.mjs (tree units, ids as the offline adapter names
-// them), index letters feed tests/helpers/indexLetters.mjs, and settled poses
+// them), index letters feed the counting step of checkOneLetterPerLabel
+// (tests/helpers/replayInvariants.mjs), and settled poses
 // become frames of the camera trace in tests/helpers/cameraInvariants.mjs.
 import { availableTreeViewport } from '../../components/treeViewport.ts';
 import { extractDisplayedSubscriptIndex } from '../../replay/replaySurfaceNotation.ts';
-import { countLabelLetters, showLetter } from '../../tests/helpers/indexLetters.mjs';
+import { countLabelLetters, showLetter } from '../../tests/helpers/replayInvariants.mjs';
 
 const VIEWPORT_NAMES = { '1440x900': 'desktop', '2560x1440': 'desktop-large', '390x844': 'mobile' };
 /** Pass names shared with the offline visual audit where the window sizes agree. */
