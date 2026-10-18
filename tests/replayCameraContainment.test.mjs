@@ -16,7 +16,7 @@ function camera(input) {
   const harness = input.harness ?? createCameraHarness(Element, { ...input, animated: true });
   harness.session.activeStepIndex = input.step ?? 0;
   const painted = harness.run(() => fitTreeCamera({ session: harness.session, layout: {
-    relationRenderPlan: null, activeDerivationFrameIndex: input.stage ?? 0,
+    relationRenderPlan: null, activeDerivationFrameIndex: input.stage ?? 0, completedReplayStep: input.completed,
     stageCameraBounds: input.bounds, stagePlaqueContainmentBounds: input.plaques ?? null,
     uiBounds: input.uiBounds, g: harness.group,
     derivationFrameFitNodes: [{}], overlayFitBounds: null, visibleNodes: input.nodes ?? []
@@ -122,6 +122,9 @@ test('1440px: Next into a stage with moved coordinates carries the view with its
   for (let step = 21; step < 24; step++) {
     assert.deepEqual(at(auto, step, 1, stage2, frame21), entered, 'one camera throughout the same authored stage');
   }
+  for (const step of [22, 21, 20]) {
+    assert.deepEqual(at(auto, step, 1, stage2, frame21), entered, `Prev to frame ${step + 1} keeps the stage camera`);
+  }
 });
 
 test('390px control: a new stage that needs a smaller scale settles on its own fit', () => {
@@ -144,6 +147,29 @@ for (const [width, height, uiBounds] of [[1440, 840, { headerBottom: 57, panelTo
     const entered = at(auto, 20, 1, stage2, frame21);
     assert.deepEqual(entered, accepted, 'forward playback does not zoom in merely because the new stage has room');
     assert(entered.k < at({ current: null }, 20, 1, stage2, frame21).k, 'direct selection still fits the stage');
+  });
+
+  test(`${width}px: Prev within a stage keeps its retained camera; Prev into an earlier stage refits`, () => {
+    const earlier = { ...stage2, minX: stage2.minX - 600, minY: stage2.minY - 900 };
+    const { themeTrace: _added, ...unchanged } = frame21;
+    const auto = { current: null };
+    at(auto, 19, 0, earlier, unchanged);
+    const retained = at(auto, 20, 1, stage2, frame21);
+    for (const step of [21, 22, 21, 20]) {
+      assert.deepEqual(at(auto, step, 1, stage2, frame21), retained, `frame ${step + 1} keeps the stage camera`);
+    }
+    assert.deepEqual(at(auto, 19, 0, earlier, unchanged), at({ current: null }, 19, 0, earlier, unchanged));
+  });
+
+  test(`${width}px: Prev out of the completed last Stage Record refits instead of keeping its pose`, () => {
+    // The completed record's own fit here frames more than its stage's earlier steps need.
+    const completedBounds = { ...stage2, minX: stage2.minX - 600, minY: stage2.minY - 900 };
+    const auto = { current: null };
+    const final = camera({ bounds: completedBounds, width, height, uiBounds, data: whoseRelative, step: 23, stage: 1,
+      completed: 23, nodes: paintedNodes(frame21), auto });
+    const back = at(auto, 22, 1, stage2, frame21);
+    assert.deepEqual(back, at({ current: null }, 22, 1, stage2, frame21), 'Prev settles on the stage fit');
+    assert.notDeepEqual(back, final);
   });
 
   test(`${width}px: an animated step into a new stage first paints its unmoved syntax where it was`, () => {
