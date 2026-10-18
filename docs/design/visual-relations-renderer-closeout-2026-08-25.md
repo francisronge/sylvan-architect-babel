@@ -604,6 +604,19 @@ movement moments, with their ancestors following by half and a quarter of that.
 No syntax outside those movements moves. The row matching relies on the shared
 220-unit row grid, which the regression suite checks for every committed fixture.
 
+A bare leaf between two sisters, such as a silent head between a raised subject
+and its vP, also occupies its column on every row below it, down to its sisters'
+deepest row. The tidy layout reserves that column as an unpainted chain below the
+leaf, so no sister descendant sits under the leaf and its branch cannot read as
+that descendant's parent. Branches stay one row long and sisters stay level; the
+sisters move apart instead. Edge daughters keep the ordinary tidy shape, in which
+a complement's descendants may pass under a head, and future scaffolding neither
+creates nor deepens such a fork. The contour check applies the same column, and
+the measured Canopy composition spaces such a leaf as if a column half a sibling
+gap to either side ran down to its sisters' deepest ink. Columns are granted
+shallowest first, adding at most one placeholder row per real node, so deeply
+nested forks cost linear work; forks beyond that budget keep the tidy shape.
+
 A previously selected standalone head can build the receiving projection needed
 by an earlier movement before a later relation adjoins another head to it. The
 later adjunction owns its complex head and lower occurrence, not the earlier
