@@ -38,14 +38,18 @@ function measureIndex(doc: Document, text: string, terminal: boolean): TreeInkTe
   }
 }
 
+/** A cached measure that lists the runs it measured, read only after a font load. */
+export type MeasuredRunSource<A extends unknown[]> = { runs(): Iterable<{ args: A; result: unknown }> };
+
 /** Call only after the visualizer's font readiness gate. A new font pass creates
  * a new cache; unavailable measurements retain the established layout envelope. */
-export function createTreeInkTextMeasure(doc: Document | undefined): TreeInkTextMeasure {
+export function createTreeInkTextMeasure(doc: Document | undefined): TreeInkTextMeasure & MeasuredRunSource<[string, TreeInkTextStyle]> {
   const context = doc?.createElement('canvas').getContext('2d');
-  const cache = new Map<string, TreeInkTextMetrics | undefined>();
-  return (text: string, style: TreeInkTextStyle) => {
+  const cache = new Map<string, { args: [string, TreeInkTextStyle]; result: TreeInkTextMetrics | undefined }>();
+  const measure = (text: string, style: TreeInkTextStyle) => {
     const key = JSON.stringify([text, style]);
-    if (cache.has(key)) return cache.get(key);
+    const cached = cache.get(key);
+    if (cached) return cached.result;
     let result: TreeInkTextMetrics | undefined;
     try {
       if (style === 'category-index' || style === 'terminal-index') {
@@ -62,7 +66,8 @@ export function createTreeInkTextMeasure(doc: Document | undefined): TreeInkText
     } catch {
       // A detached/unavailable SVG or unsupported metrics uses existing bounds.
     }
-    cache.set(key, result);
+    cache.set(key, { args: [text, style], result });
     return result;
   };
+  return Object.assign(measure, { runs: () => cache.values() });
 }
