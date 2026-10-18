@@ -283,7 +283,7 @@ const named = (node, ids) => nodeNames(node).some(name => ids.has(name));
  * occurrence: the subtrees at its own link endpoints, whatever mark draws it.
  * A neutral relation owns only the exact rewrite the compiler proved for it.
  * Other anchors are context that must already be on screen. */
-function momentOwnership(step) {
+export function momentOwnership(step) {
   const { stageIndex, relationIndex } = step.replayRelationIdentity, key = `${stageIndex}:${relationIndex}`;
   const own = (step.replayRelationLinks ?? []).filter(link => link.authoredRelationKey === key);
   const movements = own.filter(link => link.movementTransition === true);

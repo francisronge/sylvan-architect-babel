@@ -1,0 +1,1212 @@
+{
+  "description": "The analysis writes its relation names, role names and several category labels in Chinese (题元赋值, 内部合并至阶段边缘, DP（代词）) instead of Babel's metalanguage. Its relative-clause subject also moves without a recognized movement: the raised copy appears at the selection of T (frame 21).",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (character-spellout-v1), 18 October 2026 (night batch, 47-zh-relative, analysis 1), commit 53a7c7f. Tokens are the shared word list of that run.",
+  "contract": "character-spellout-v1",
+  "sentence": "我昨天看见的那个人走了。",
+  "framework": "minimalism",
+  "inputTokens": [
+    "我",
+    "昨天",
+    "看见",
+    "的",
+    "那",
+    "个",
+    "人",
+    "走",
+    "了"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "论元": "opBase",
+            "谓词": "rV"
+          },
+          "relation": "题元赋值",
+          "values": {
+            "题元角色": "被感知对象"
+          }
+        }
+      ],
+      "stageRecord": "选择词汇动词“看见”，将它与无声的名词性关系算子外部合并，形成由动词投射标签的句法对象。算子在此首次出现，获得被看见者的题元角色；它尚未移位。“看见”作为一个词汇动词处理，不另行假设“看”和“见”之间的句法移位。所有投射均是合并所得对象的标签，而非预先提供的短语结构模板。",
+      "statement": "建立关系从句中“看见”的宾语位置。",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "rV",
+              "label": "V",
+              "word": "看见"
+            },
+            {
+              "children": [],
+              "id": "opBase",
+              "label": "DP（关系算子）",
+              "lineageId": "relativeOperator",
+              "silent": true
+            }
+          ],
+          "id": "rVP",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "论元": "rSubjectBase",
+            "谓词": "rV",
+            "轻动词": "rv"
+          },
+          "relation": "题元赋值",
+          "values": {
+            "题元角色": "感知者"
+          }
+        },
+        {
+          "anchors": {
+            "原位置": "opBase",
+            "边缘位置": "opEdge",
+            "阶段头": "rv"
+          },
+          "relation": "内部合并至阶段边缘",
+          "values": {
+            "移位类型": "关系算子边缘移位"
+          }
+        },
+        {
+          "anchors": {
+            "修饰语": "yesterday",
+            "被修饰对象": "rEdgeVP"
+          },
+          "relation": "时间修饰",
+          "values": {
+            "作用域": "看见事件",
+            "时间": "昨天"
+          }
+        }
+      ],
+      "stageRecord": "先将无声的及物轻动词与动词短语合并，再外部合并“我”，使其成为“看见”的感知者。随后将已经处于宾语位置的关系算子内部合并到轻动词短语边缘，为跨越该阶段的后续关系化提供出口；宾语位置保留无声副本。最后把“昨天”附加到扩展的轻动词短语，限定看见事件的时间，而不限定尚未建立的主句离开事件。",
+      "statement": "引入关系从句的感知者、算子边缘位置和时间修饰语。",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "yesterday",
+              "label": "Adv",
+              "word": "昨天"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "opEdge",
+                  "label": "DP（关系算子）",
+                  "lineageId": "relativeOperator",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "rSubjectBase",
+                      "label": "DP（代词）",
+                      "lineageId": "relativeSubject",
+                      "word": "我"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "rv",
+                          "label": "v",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rV",
+                              "label": "V",
+                              "word": "看见"
+                            },
+                            {
+                              "children": [],
+                              "id": "opBase",
+                              "label": "DP（关系算子）",
+                              "lineageId": "relativeOperator",
+                              "silent": true
+                            }
+                          ],
+                          "id": "rVP",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "rLittleVP",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "rSubjectVP",
+                  "label": "vP"
+                }
+              ],
+              "id": "rEdgeVP",
+              "label": "vP"
+            }
+          ],
+          "id": "rTemporalVP",
+          "label": "vP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "低位": "rSubjectBase",
+            "目标头": "rT",
+            "高位": "rSubjectHigh"
+          },
+          "relation": "主语内部合并",
+          "values": {
+            "动因": "时态域主语边缘要求",
+            "发音选择": "高位副本"
+          }
+        }
+      ],
+      "stageRecord": "将无声的从属时态头与已有结构合并，再把已经在轻动词短语内出现的“我”内部合并到时态域主语位置。高位副本发音，低位副本不发音，因此“我”在线性次序上位于“昨天”之前。这里的时态头组织从属小句，不给汉语动词添加形态时态；“昨天”提供显性的时间定位。",
+      "statement": "建立关系从句的主语位置，得到“我昨天看见”的次序。",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "rSubjectHigh",
+              "label": "DP（代词）",
+              "lineageId": "relativeSubject",
+              "word": "我"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "yesterday",
+                      "label": "Adv",
+                      "word": "昨天"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "opEdge",
+                          "label": "DP（关系算子）",
+                          "lineageId": "relativeOperator",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rSubjectBase",
+                              "label": "DP（代词）",
+                              "lineageId": "relativeSubject",
+                              "silent": true,
+                              "word": "我"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "rv",
+                                  "label": "v",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "rV",
+                                      "label": "V",
+                                      "word": "看见"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "opBase",
+                                      "label": "DP（关系算子）",
+                                      "lineageId": "relativeOperator",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "rVP",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "rLittleVP",
+                              "label": "vP"
+                            }
+                          ],
+                          "id": "rSubjectVP",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "rEdgeVP",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "rTemporalVP",
+                  "label": "vP"
+                },
+                {
+                  "children": [],
+                  "id": "rT",
+                  "label": "T（从属）",
+                  "silent": true
+                }
+              ],
+              "id": "rTDomain",
+              "label": "TP"
+            }
+          ],
+          "id": "rTP",
+          "label": "TP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "从属命题": "rTP",
+            "关系域": "rCP",
+            "关系标记": "de"
+          },
+          "relation": "关系小句类型",
+          "values": {
+            "类型": "带宾语空位的限制性关系从句"
+          }
+        },
+        {
+          "anchors": {
+            "宾语位置": "opBase",
+            "来源": "opEdge",
+            "目标": "opHigh",
+            "许可头": "de"
+          },
+          "relation": "关系算子内部合并",
+          "values": {
+            "依存类型": "宾语关系化",
+            "发音选择": "算子链全部无声"
+          }
+        }
+      ],
+      "stageRecord": "将位于从属时态域右侧的关系补语标记“的”与该时态域合并，建立关系从句类型。随后把已经处于轻动词短语边缘的算子内部合并到补语域边缘，形成依次连接宾语位置、轻动词边缘和关系从句边缘的链。算子各位置均无声，所以可听见的部分是“我昨天看见的”。此处采用外部中心语分析：后面的“人”不从从句宾语位置提升出来。",
+      "statement": "用句末“的”和算子移位完成宾语关系从句。",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "opHigh",
+              "label": "DP（关系算子）",
+              "lineageId": "relativeOperator",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "rSubjectHigh",
+                      "label": "DP（代词）",
+                      "lineageId": "relativeSubject",
+                      "word": "我"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "yesterday",
+                              "label": "Adv",
+                              "word": "昨天"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "opEdge",
+                                  "label": "DP（关系算子）",
+                                  "lineageId": "relativeOperator",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "rSubjectBase",
+                                      "label": "DP（代词）",
+                                      "lineageId": "relativeSubject",
+                                      "silent": true,
+                                      "word": "我"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "rv",
+                                          "label": "v",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "rV",
+                                              "label": "V",
+                                              "word": "看见"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "opBase",
+                                              "label": "DP（关系算子）",
+                                              "lineageId": "relativeOperator",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "rVP",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "rLittleVP",
+                                      "label": "vP"
+                                    }
+                                  ],
+                                  "id": "rSubjectVP",
+                                  "label": "vP"
+                                }
+                              ],
+                              "id": "rEdgeVP",
+                              "label": "vP"
+                            }
+                          ],
+                          "id": "rTemporalVP",
+                          "label": "vP"
+                        },
+                        {
+                          "children": [],
+                          "id": "rT",
+                          "label": "T（从属）",
+                          "silent": true
+                        }
+                      ],
+                      "id": "rTDomain",
+                      "label": "TP"
+                    }
+                  ],
+                  "id": "rTP",
+                  "label": "TP"
+                },
+                {
+                  "children": [],
+                  "id": "de",
+                  "label": "C（关系）",
+                  "word": "的"
+                }
+              ],
+              "id": "rCDomain",
+              "label": "CP"
+            }
+          ],
+          "id": "rCP",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "分类词": "classifier",
+            "名词": "person",
+            "名词域": "demDP",
+            "指示词": "demonstrative"
+          },
+          "relation": "分类与指示限定",
+          "values": {
+            "分类": "个体",
+            "指示": "远指"
+          }
+        },
+        {
+          "anchors": {
+            "关系从句": "rCP",
+            "名词限制域": "personNP",
+            "完整名词短语": "mainSubjectBase",
+            "算子": "opHigh",
+            "被修饰名词域": "demDP"
+          },
+          "relation": "关系限制",
+          "values": {
+            "解释": "所指的人是我昨天看见的对象",
+            "附加位置": "指示名词域左侧"
+          }
+        },
+        {
+          "anchors": {
+            "论元": "mainSubjectBase",
+            "谓词": "leaveV",
+            "轻动词": "mainv"
+          },
+          "relation": "题元赋值",
+          "values": {
+            "题元角色": "离开者"
+          }
+        },
+        {
+          "anchors": {
+            "事件域": "mainvP",
+            "体头": "perfectiveLe"
+          },
+          "relation": "完成体作用域",
+          "values": {
+            "了的分析": "动词后完成体标记",
+            "体解释": "离开事件作为已实现的完整事件呈现"
+          }
+        }
+      ],
+      "stageRecord": "先以“人”为名词核心，依次合并分类词“个”和指示限定词“那”；“个”提供个体计数单位，“那”确定指示性的名词域。再将已完成的关系从句附加到整个指示名词域左侧，得到“我昨天看见的那个人”。这种高附加保留输入中关系从句先于“那个人”的次序，关系算子与“人”的限制域建立解释联系。随后建立不及物的“走”及其轻动词域，把完整名词短语外部合并为离开者。本分析把“走”作为可带外部行动者的离开谓词，不另设无声宾语。最后合并右置的完成体头“了”，使完成体作用于离开事件；此时尚未发生主句主语移位。",
+      "statement": "建立完整主语及带完成体的主句谓词。",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "opHigh",
+                          "label": "DP（关系算子）",
+                          "lineageId": "relativeOperator",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "rSubjectHigh",
+                                  "label": "DP（代词）",
+                                  "lineageId": "relativeSubject",
+                                  "word": "我"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "yesterday",
+                                          "label": "Adv",
+                                          "word": "昨天"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "opEdge",
+                                              "label": "DP（关系算子）",
+                                              "lineageId": "relativeOperator",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "rSubjectBase",
+                                                  "label": "DP（代词）",
+                                                  "lineageId": "relativeSubject",
+                                                  "silent": true,
+                                                  "word": "我"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "rv",
+                                                      "label": "v",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "rV",
+                                                          "label": "V",
+                                                          "word": "看见"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "opBase",
+                                                          "label": "DP（关系算子）",
+                                                          "lineageId": "relativeOperator",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "rVP",
+                                                      "label": "VP"
+                                                    }
+                                                  ],
+                                                  "id": "rLittleVP",
+                                                  "label": "vP"
+                                                }
+                                              ],
+                                              "id": "rSubjectVP",
+                                              "label": "vP"
+                                            }
+                                          ],
+                                          "id": "rEdgeVP",
+                                          "label": "vP"
+                                        }
+                                      ],
+                                      "id": "rTemporalVP",
+                                      "label": "vP"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "rT",
+                                      "label": "T（从属）",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "rTDomain",
+                                  "label": "TP"
+                                }
+                              ],
+                              "id": "rTP",
+                              "label": "TP"
+                            },
+                            {
+                              "children": [],
+                              "id": "de",
+                              "label": "C（关系）",
+                              "word": "的"
+                            }
+                          ],
+                          "id": "rCDomain",
+                          "label": "CP"
+                        }
+                      ],
+                      "id": "rCP",
+                      "label": "CP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "demonstrative",
+                          "label": "D",
+                          "word": "那"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "classifier",
+                              "label": "Cl",
+                              "word": "个"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "person",
+                                  "label": "N",
+                                  "word": "人"
+                                }
+                              ],
+                              "id": "personNP",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "classifierP",
+                          "label": "ClP"
+                        }
+                      ],
+                      "id": "demDP",
+                      "label": "DP"
+                    }
+                  ],
+                  "id": "mainSubjectBase",
+                  "label": "DP",
+                  "lineageId": "mainSubject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mainv",
+                      "label": "v",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "leaveV",
+                          "label": "V",
+                          "word": "走"
+                        }
+                      ],
+                      "id": "mainVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "mainLittleVP",
+                  "label": "vP"
+                }
+              ],
+              "id": "mainvP",
+              "label": "vP"
+            },
+            {
+              "children": [],
+              "id": "perfectiveLe",
+              "label": "Asp（完成体）",
+              "word": "了"
+            }
+          ],
+          "id": "mainAspP",
+          "label": "AspP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "原位置": "mainSubjectBase",
+            "目标头": "mainT",
+            "高位": "mainSubjectHigh"
+          },
+          "priorAnchors": {
+            "移位前名词短语": "mainSubjectBase"
+          },
+          "relation": "主句主语内部合并",
+          "values": {
+            "动因": "时态域主语边缘要求",
+            "发音选择": "高位完整名词短语",
+            "链表示": "高位完整名词短语与低位语迹"
+          }
+        }
+      ],
+      "stageRecord": "合并无声的主句时态头，再将上一阶段已位于主句轻动词域内的完整名词短语内部合并到时态域主语位置。主句这条移位链采用语迹记法：原位置保留无声的名词性语迹，高位出现保留原名词短语的全部词汇结构。因此关系从句及“那个人”只发音一次。该时态头不带显性时态形态，主句的事件时间也不必等同于关系从句的“昨天”。完成体头不参与主语移位，也不要求另设动词移位。",
+      "statement": "将完整关系名词短语提升到主句主语位置。",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "opHigh",
+                      "label": "DP（关系算子）",
+                      "lineageId": "relativeOperator",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rSubjectHigh",
+                              "label": "DP（代词）",
+                              "lineageId": "relativeSubject",
+                              "word": "我"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "yesterday",
+                                      "label": "Adv",
+                                      "word": "昨天"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "opEdge",
+                                          "label": "DP（关系算子）",
+                                          "lineageId": "relativeOperator",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "rSubjectBase",
+                                              "label": "DP（代词）",
+                                              "lineageId": "relativeSubject",
+                                              "silent": true,
+                                              "word": "我"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "rv",
+                                                  "label": "v",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "rV",
+                                                      "label": "V",
+                                                      "word": "看见"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "opBase",
+                                                      "label": "DP（关系算子）",
+                                                      "lineageId": "relativeOperator",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "rVP",
+                                                  "label": "VP"
+                                                }
+                                              ],
+                                              "id": "rLittleVP",
+                                              "label": "vP"
+                                            }
+                                          ],
+                                          "id": "rSubjectVP",
+                                          "label": "vP"
+                                        }
+                                      ],
+                                      "id": "rEdgeVP",
+                                      "label": "vP"
+                                    }
+                                  ],
+                                  "id": "rTemporalVP",
+                                  "label": "vP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "rT",
+                                  "label": "T（从属）",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "rTDomain",
+                              "label": "TP"
+                            }
+                          ],
+                          "id": "rTP",
+                          "label": "TP"
+                        },
+                        {
+                          "children": [],
+                          "id": "de",
+                          "label": "C（关系）",
+                          "word": "的"
+                        }
+                      ],
+                      "id": "rCDomain",
+                      "label": "CP"
+                    }
+                  ],
+                  "id": "rCP",
+                  "label": "CP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "demonstrative",
+                      "label": "D",
+                      "word": "那"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "classifier",
+                          "label": "Cl",
+                          "word": "个"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "person",
+                              "label": "N",
+                              "word": "人"
+                            }
+                          ],
+                          "id": "personNP",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "classifierP",
+                      "label": "ClP"
+                    }
+                  ],
+                  "id": "demDP",
+                  "label": "DP"
+                }
+              ],
+              "id": "mainSubjectHigh",
+              "label": "DP",
+              "lineageId": "mainSubject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "mainSubjectBase",
+                          "label": "DP（语迹）",
+                          "lineageId": "mainSubject",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "mainv",
+                              "label": "v",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "leaveV",
+                                  "label": "V",
+                                  "word": "走"
+                                }
+                              ],
+                              "id": "mainVP",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "mainLittleVP",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "mainvP",
+                      "label": "vP"
+                    },
+                    {
+                      "children": [],
+                      "id": "perfectiveLe",
+                      "label": "Asp（完成体）",
+                      "word": "了"
+                    }
+                  ],
+                  "id": "mainAspP",
+                  "label": "AspP"
+                },
+                {
+                  "children": [],
+                  "id": "mainT",
+                  "label": "T",
+                  "silent": true
+                }
+              ],
+              "id": "mainTDomain",
+              "label": "TP"
+            }
+          ],
+          "id": "mainTP",
+          "label": "TP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "命题": "mainTP",
+            "根句": "mainCP",
+            "语力头": "declarativeC"
+          },
+          "relation": "根句语力",
+          "values": {
+            "语力": "陈述",
+            "读法": "那位我昨天看见的人已经离开"
+          }
+        }
+      ],
+      "stageRecord": "将无声的陈述补语头与主句时态域合并，建立完整的根句。该读法断言被关系从句限定的那个人发生了离开事件；句末位置的“了”来自较低的完成体域，不另加入句末变化状态助词。树的发音次序为“我昨天看见的那个人走了”，与输入完全对应。",
+      "statement": "完成“了”为完成体标记的陈述句分析。",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "opHigh",
+                          "label": "DP（关系算子）",
+                          "lineageId": "relativeOperator",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "rSubjectHigh",
+                                  "label": "DP（代词）",
+                                  "lineageId": "relativeSubject",
+                                  "word": "我"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "yesterday",
+                                          "label": "Adv",
+                                          "word": "昨天"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "opEdge",
+                                              "label": "DP（关系算子）",
+                                              "lineageId": "relativeOperator",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "rSubjectBase",
+                                                  "label": "DP（代词）",
+                                                  "lineageId": "relativeSubject",
+                                                  "silent": true,
+                                                  "word": "我"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "rv",
+                                                      "label": "v",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "rV",
+                                                          "label": "V",
+                                                          "word": "看见"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "opBase",
+                                                          "label": "DP（关系算子）",
+                                                          "lineageId": "relativeOperator",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "rVP",
+                                                      "label": "VP"
+                                                    }
+                                                  ],
+                                                  "id": "rLittleVP",
+                                                  "label": "vP"
+                                                }
+                                              ],
+                                              "id": "rSubjectVP",
+                                              "label": "vP"
+                                            }
+                                          ],
+                                          "id": "rEdgeVP",
+                                          "label": "vP"
+                                        }
+                                      ],
+                                      "id": "rTemporalVP",
+                                      "label": "vP"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "rT",
+                                      "label": "T（从属）",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "rTDomain",
+                                  "label": "TP"
+                                }
+                              ],
+                              "id": "rTP",
+                              "label": "TP"
+                            },
+                            {
+                              "children": [],
+                              "id": "de",
+                              "label": "C（关系）",
+                              "word": "的"
+                            }
+                          ],
+                          "id": "rCDomain",
+                          "label": "CP"
+                        }
+                      ],
+                      "id": "rCP",
+                      "label": "CP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "demonstrative",
+                          "label": "D",
+                          "word": "那"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "classifier",
+                              "label": "Cl",
+                              "word": "个"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "person",
+                                  "label": "N",
+                                  "word": "人"
+                                }
+                              ],
+                              "id": "personNP",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "classifierP",
+                          "label": "ClP"
+                        }
+                      ],
+                      "id": "demDP",
+                      "label": "DP"
+                    }
+                  ],
+                  "id": "mainSubjectHigh",
+                  "label": "DP",
+                  "lineageId": "mainSubject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "mainSubjectBase",
+                              "label": "DP（语迹）",
+                              "lineageId": "mainSubject",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "mainv",
+                                  "label": "v",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "leaveV",
+                                      "label": "V",
+                                      "word": "走"
+                                    }
+                                  ],
+                                  "id": "mainVP",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "mainLittleVP",
+                              "label": "vP"
+                            }
+                          ],
+                          "id": "mainvP",
+                          "label": "vP"
+                        },
+                        {
+                          "children": [],
+                          "id": "perfectiveLe",
+                          "label": "Asp（完成体）",
+                          "word": "了"
+                        }
+                      ],
+                      "id": "mainAspP",
+                      "label": "AspP"
+                    },
+                    {
+                      "children": [],
+                      "id": "mainT",
+                      "label": "T",
+                      "silent": true
+                    }
+                  ],
+                  "id": "mainTDomain",
+                  "label": "TP"
+                }
+              ],
+              "id": "mainTP",
+              "label": "TP"
+            },
+            {
+              "children": [],
+              "id": "declarativeC",
+              "label": "C（陈述）",
+              "silent": true
+            }
+          ],
+          "id": "mainCP",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}
