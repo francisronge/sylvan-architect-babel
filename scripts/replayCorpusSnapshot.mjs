@@ -3,6 +3,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { objectHash, sha256 } from './replayCorpusInputs.mjs';
 import { layoutReplayFrames } from './replayFrameLayout.mjs';
+import { motionFrame } from './replayMotionContinuity.mjs';
 
 const entries = ['replay/prepareReplay.ts', 'replay/stageCoordinates.ts', 'replay/stageCamera.ts',
   'replay/treeLayout.ts', 'replay/displayIdentity.ts', 'replay/workspaceShapeReflows.ts'];
@@ -50,7 +51,7 @@ export async function buildCorpusSnapshot(root, records, { width, height, direct
         const roots = [...scene.nodes.values()].filter(node => !node.parent || !scene.nodes.has(display.getNodeId(node.parent)));
         return { stage: scene.step.replayFrameIndex, kind: scene.step.replayKind, operation: scene.step.operation,
           target: scene.step.targetNodeId, relationIndex: scene.step.replayRelationIdentity?.relationIndex,
-          points: [...scene.nodes].map(([id, node]) => ({ id, x: node.x, y: node.y })),
+          ...motionFrame(scene.step, scene.nodes, display.getNodeId),
           widths: scene.step.replayKind === 'macro' ? [
             { root: '@forest', width: span([...scene.nodes.values()]) },
             ...roots.map(root => ({ root: display.getNodeId(root), width: span(root.descendants()

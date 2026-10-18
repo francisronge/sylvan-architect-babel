@@ -32,8 +32,12 @@ test('the maintained fixture controls exercise a real movement, ordinary constru
 });
 
 test('a stretched completed branch and displaced final point fail while an earlier corrected point is reviewable', () => {
-  const corrected = structuredClone(snapshot);
-  corrected.records[0].frames[0].points[0].x -= 20;
+  // Correct one earlier point that no rule objects to: a step owns its motion.
+  const trial = (at, id) => { const copy = structuredClone(snapshot); copy.records[0].frames[at].points.find(item => item.id === id).x -= 20; return copy; };
+  const choice = snapshot.records[0].frames.slice(0, -1).flatMap((frame, at) => frame.points.map(item => [at, item.id]))
+    .find(([at, id]) => !faults(compare(trial(at, id))).length);
+  assert(choice, 'some earlier point can be corrected without motion');
+  const corrected = trial(...choice);
   const accepted = compare(corrected);
   assert.deepEqual(faults(accepted), []);
   assert.equal(accepted[0].changedFrames.length, 1);
@@ -44,6 +48,42 @@ test('a stretched completed branch and displaced final point fail while an earli
   assert(faults(rejected).includes('completed-width-growth'));
   assert(faults(rejected).includes('final-coordinate-change'));
   assert.notDeepEqual(rejected[0].finalCoordinates.before, rejected[0].finalCoordinates.after);
+});
+
+test('a selected word that its projection pulls back is a new joining jump', () => {
+  const joined = structuredClone(snapshot), [selection, projection] = joined.records[0].frames;
+  selection.points[0].x -= 20;
+  assert.equal(projection.points.find(point => point.id === selection.points[0].id).parent, projection.target);
+  const jumped = compare(joined);
+  assert.deepEqual(faults(jumped), ['new-motion-fault']);
+  assert.deepEqual(jumped[0].motion.new.map(fault => [fault.frame, fault.kind, fault.distance, fault.waiting]),
+    [[2, 'attachment-site-motion', 20, true]], 'joining jumps the baseline already has are not new');
+});
+
+test('a candidate that drops its planner diagnostics still fails a seeded 500-unit jump', () => {
+  const suppressed = structuredClone(snapshot), record = suppressed.records[0];
+  record.continuity = [];
+  const persists = (frame, id) => frame?.points.some(item => item.id === id && !item.parent);
+  const index = record.frames.findIndex((frame, at) => at > 0 && frame.operation === 'LexicalSelect'
+    && frame.points.some(item => !item.parent && item.id !== frame.target && persists(record.frames[at - 1], item.id)));
+  const frame = record.frames[index];
+  const bystander = frame.points.find(item => !item.parent && item.id !== frame.target && persists(record.frames[index - 1], item.id));
+  const members = new Set([bystander.id]);
+  for (const item of frame.points) if (members.has(item.parent)) members.add(item.id);
+  for (const item of frame.points) if (members.has(item.id)) item.x += 500;
+  const result = compare(suppressed);
+  assert(faults(result).includes('new-motion-fault'));
+  assert(result[0].motion.new.some(fault => fault.node === bystander.id && fault.kind === 'unowned-motion' && Math.round(fault.distance) === 500));
+});
+
+test('a joining jump the baseline already has fails when the candidate makes it longer', () => {
+  const farther = structuredClone(snapshot), record = farther.records[0];
+  const [fault] = compare(structuredClone(snapshot))[0].motion.baseline.filter(item => item.kind === 'attachment-site-motion');
+  assert(fault, 'the maintained control has a joining jump');
+  record.frames[fault.frame - 2].points.find(item => item.id === fault.node).x -= 200;
+  const result = compare(farther)[0];
+  assert(result.violations.some(violation => violation.kind === 'worsened-motion-fault'
+    && violation.faults.some(item => item.node === fault.node && item.distance > fault.distance + 1)));
 });
 
 test('semantic, authored, continuity, finite-geometry and witness-control failures cannot become a clean comparison', () => {
