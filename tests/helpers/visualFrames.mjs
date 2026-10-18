@@ -245,6 +245,18 @@ export function layoutVisualFrames(visual, viewports = VIEWPORTS, { steps: only 
 /** The measured browser layout of every frame of one prepared record at one
  * canvas size: scenes, plaque schedule and `stageCamera(stage, completedStep)`. */
 export function layoutMeasuredScenes(visual, { width, height }, metrics = TEXT_METRICS) {
+  // Callers only read the result, so the default-metrics layout is shared between
+  // the frame audit and layoutWidthFindings' reference viewport.
+  const key = metrics === TEXT_METRICS && `${width}x${height}`;
+  const cache = key && (MEASURED_SCENES.get(visual) ?? MEASURED_SCENES.set(visual, new Map()).get(visual));
+  if (cache?.has(key)) return cache.get(key);
+  const result = layoutMeasuredScenesUncached(visual, { width, height }, metrics);
+  cache?.set(key, result);
+  return result;
+}
+const MEASURED_SCENES = new WeakMap();
+
+function layoutMeasuredScenesUncached(visual, { width, height }, metrics) {
   const { prepared } = visual;
   return layoutReplayFrames({ steps: prepared.playbackSteps, stages: prepared.replayDerivationFrames, width, height,
     direction: visual.direction, measured: { plan: prepared.relationRenderPlan, protectedNodeIds: visual.protectedNodeIds,
