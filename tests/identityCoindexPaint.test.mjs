@@ -269,6 +269,10 @@ test('the production Theta scheduler defers its index until after inline identit
   }
 });
 
+// Painted opacity as the shared emphasis CSS resolves it on each element.
+const painted = element => !element ? 1 : (element.classList.contains('vr-relation-active') ? 1
+  : element.classList.contains('vr-relation-quiet') ? 0.3 : Number(element.attrs.opacity ?? 1)) * painted(element.parentNode);
+
 test('a label never dims an identity index that a later Theta claim makes active', () => {
   // Identity coindexes two occurrences with i; a Theta role then reuses alpha's i.
   const item = identityItems(compileRelationRenderPlan([stage([relation('Identity', { index: 'i' })])]))[0];
@@ -276,10 +280,21 @@ test('a label never dims an identity index that a later Theta claim makes active
   paint.draw(item);
   paint.drawTheta('alpha', 'i', { ...item, familyId: 'theta.grid', relationRef: { ...item.relationRef, relationIndex: 1 } });
   const index = paint.root.children.find(label => label.attrs['data-node-id'] === 'alpha').children.find(child => child.textContent === 'i');
-  const painted = element => !element ? 1 : (element.classList.contains('vr-relation-active') ? 1
-    : element.classList.contains('vr-relation-quiet') ? 0.3 : Number(element.attrs.opacity ?? 1)) * painted(element.parentNode);
   applyRelationEmphasis(paint.root, { stageIndex: 0, relationIndex: 1 }, null);
   assert.equal(painted(index), 1, 'the Theta moment shows its shared index');
   applyRelationEmphasis(paint.root, { stageIndex: 0, relationIndex: 2 }, null);
   assert.equal(painted(index), 0.3, 'another moment dims it once');
+});
+
+test('a label kept bright for an active index still dims its quiet sibling index once', () => {
+  // Identity(alpha, beta) uses k; a Theta role then adds i on alpha's label.
+  const item = identityItems(compileRelationRenderPlan([stage([relation('Identity', { index: 'k' })])]))[0];
+  const paint = painter(forest, decorateRelationElement);
+  paint.draw(item);
+  paint.drawTheta('alpha', 'i', { ...item, familyId: 'theta.grid', relationRef: { ...item.relationRef, relationIndex: 1 } });
+  const alpha = paint.root.children.find(label => label.attrs['data-node-id'] === 'alpha');
+  applyRelationEmphasis(paint.root, { stageIndex: 0, relationIndex: 1 }, null);
+  assert.deepEqual(alpha.children.map(index => [index.textContent, painted(index)]), [['k', 0.3], ['i', 1]]);
+  applyRelationEmphasis(paint.root, { stageIndex: 0, relationIndex: 2 }, null);
+  assert.deepEqual(alpha.children.map(index => [index.textContent, painted(index)]), [['k', 0.3], ['i', 0.3]]);
 });

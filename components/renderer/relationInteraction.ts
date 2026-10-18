@@ -90,9 +90,10 @@ export function applyRelationEmphasis(svg: SVGSVGElement, activeRelationMoment: 
     const quiet = Boolean(focusKey) && !active && !hostsActive;
     element.setAttribute('data-vr-emphasis', active ? 'active' : quiet ? 'quiet' : 'none');
     element.classList.toggle('vr-relation-active', isVisualRoot && active);
-    // Quiet dims once: inside an already quiet ancestor, a mark keeps that dimming.
+    // Quiet dims exactly once: a mark inside an ancestor rendered quiet keeps
+    // that dimming, and a quiet mark inside an undimmed host dims itself.
     const dimmed = Boolean(element.parentElement?.closest('.vr-relation-quiet'));
-    element.classList.toggle('vr-relation-quiet', isVisualRoot && quiet && !dimmed);
+    element.classList.toggle('vr-relation-quiet', quiet && !dimmed);
     // Hover changes ink and halo only; the relation moment owns opacity.
     element.classList.toggle('vr-relation-hovered', isVisualRoot && ownsMoment(element, hoverKey));
   });
