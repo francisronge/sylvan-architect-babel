@@ -27,6 +27,7 @@ import {
 import {
   buildAnchoredTreeTransitionForest,
   buildPreMovementStructuralForest,
+  keptIdLandingNodeIds,
   movementLandingWrapper,
   movementLandingGroups,
   receivingHeadMaterialNodeId
@@ -64,6 +65,8 @@ export const createStageRelationSnapshots = (
     relationLayoutNodeIds,
     frameHasTreeTransition
   } = placements;
+  const keptIdLandings = new Map([...fallbackTransitionOwnership].map(([relationIndex, ownership]) =>
+    [relationIndex, keptIdLandingNodeIds(ownership, previousFrameWorkspaceRoots, workspaceRoots)]));
   const collectInactiveTrajectoryTargetNodeIds = (activeRelationIndexes: Set<number>, preservedForest: SyntaxNode[] = []): Set<string> => {
     const inactiveTargetNodeIds = new Set<string>();
     const activeTargetNodeIds = new Set(relationPlacements
@@ -184,7 +187,8 @@ export const createStageRelationSnapshots = (
           .filter(nodeId => ordinaryStructuralNodeIds.has(nodeId))),
         withheldNodeIds: pendingMovementNodeIds,
         pendingTransitionNodeIds: new Set(Array.from(fallbackTransitionOwnership).flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex) ? []
-          : [...ownership.priorNodeIds, ...ownership.currentNodeIds]))
+          : [...ownership.priorNodeIds, ...ownership.currentNodeIds])),
+        pendingKeptIdLandingNodeIds: new Set([...keptIdLandings].flatMap(([relationIndex, nodeIds]) => activeRelationIndexes.has(relationIndex) ? [] : nodeIds))
       });
     let snapshotWorkspaceRoots = buildPreMovementStructuralForest(nonMovementTransitionForest, frameRelationSteps.flatMap((relation, relationIndex) => {
       if (activeRelationIndexes.has(relationIndex))

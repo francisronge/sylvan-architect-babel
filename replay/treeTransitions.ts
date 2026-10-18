@@ -552,6 +552,25 @@ export const resolveFallbackTreeTransitionOwnership = (
   return { currentNodeIds: collectExactSubtreeNodeIds(landing[0]), priorNodeIds: new Set() };
 };
 
+/**
+ * Landings of a neutral rewrite's copy pairs that kept the moved occurrence's
+ * id while a new lower occurrence took its source slot. Only the rewrite's
+ * moment relocates them to their new parent.
+ */
+export const keptIdLandingNodeIds = (
+  ownership: FallbackTreeTransitionOwnership,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[]
+): string[] => {
+  const previous = indexExactForestNodeLocations(previousForest);
+  const current = indexExactForestNodeLocations(currentForest);
+  return (ownership.copyPairs ?? []).filter(pair => pair.targetNodeId === pair.priorSourceNodeId).map(pair => pair.targetNodeId)
+    .filter(nodeId => {
+      const before = previous.get(nodeId), after = current.get(nodeId);
+      return Boolean(before && after) && before!.parentId !== after!.parentId;
+    });
+};
+
 export const newReceivingHeadNodeIds = (
   movement: RecoveredMovement | undefined,
   previousForest: SyntaxNode[],
@@ -599,6 +618,8 @@ export interface AnchoredTransitionInput {
   constructedNodeIds?: Set<string>;
   withheldNodeIds?: Set<string>;
   pendingTransitionNodeIds?: Set<string>;
+  /** `keptIdLandingNodeIds` of the relations not yet active. */
+  pendingKeptIdLandingNodeIds?: Set<string>;
 }
 
 export const buildAnchoredTreeTransitionForest = ({
@@ -607,7 +628,8 @@ export const buildAnchoredTreeTransitionForest = ({
   activeRelations,
   constructedNodeIds = new Set(),
   withheldNodeIds = new Set(),
-  pendingTransitionNodeIds = new Set()
+  pendingTransitionNodeIds = new Set(),
+  pendingKeptIdLandingNodeIds = new Set()
 }: AnchoredTransitionInput): SyntaxNode[] => {
   const ownerships = activeRelations
     .map((relation) => {
@@ -660,7 +682,12 @@ export const buildAnchoredTreeTransitionForest = ({
     parent.children?.filter(child => child.id !== movement.targetNodeId
       && previousLocations.get(child.id)).forEach(child => attachmentNodeIds.add(child.id));
   });
-  const structuralNodeIds = new Set([...activeCurrentNodeIds, ...attachmentNodeIds, ...constructedNodeIds]);
+  // Construction of a pending rewrite's new parent cannot carry an occurrence
+  // that kept its id at the landing there early: it keeps its preceding
+  // position until the rewrite's moment.
+  const heldNodeIds = new Set([...pendingKeptIdLandingNodeIds].filter(nodeId => !activeCurrentNodeIds.has(nodeId)));
+  const structuralNodeIds = new Set([...activeCurrentNodeIds, ...attachmentNodeIds,
+    ...[...constructedNodeIds].filter(nodeId => !heldNodeIds.has(nodeId))]);
   let result = cloneSyntaxForest(previousForest);
   const exactLocation = (locations: Map<string, ExactForestNodeLocation | null>, nodeId: string): ExactForestNodeLocation | null => locations.get(nodeId) || null;
   const hasOwnedAncestor = (
@@ -835,6 +862,8 @@ export const buildAnchoredTreeTransitionForest = ({
       insertExactNode(moved, destination.parentId, destination.childIndex, destination.rootIndex);
     });
   const cloneAvailableSubtree = (node: SyntaxNode): SyntaxNode | null => {
+    if (heldNodeIds.has(node.id))
+      return null;
     if (!activeCurrentNodeIds.has(node.id)) {
       return cloneSyntaxTree(exactLocation(indexExactForestNodeLocations(result), node.id)?.node);
     }
