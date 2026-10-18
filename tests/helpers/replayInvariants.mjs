@@ -329,13 +329,17 @@ function revealedByRelation(node, ownership, previous) {
 
 /** A node first painted at step k must be earned by step k. Structural
  * micro-steps reveal only their own target (and its derived word leaf); a
- * relation moment reveals what it introduces; a stage's completed state adds nothing. */
+ * relation moment reveals what it introduces, including the derived word of an
+ * occurrence its authored record anchors; a stage's completed state adds nothing. */
 export function checkNoEarlyReveal(replay) {
   const steps = replay.playbackSteps, out = [];
   let previous = EMPTY_FRAME;
   steps.forEach((step, index) => {
     const structure = frameStructure(step), target = String(step.targetNodeId ?? '');
-    const ownership = step.replayKind === 'relation' && step.replayRelationIdentity ? momentOwnership(step) : null;
+    const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
+    const authored = identity && replay.replayDerivationFrames?.[identity.stageIndex]?.relations?.[identity.relationIndex];
+    const ownership = identity ? momentOwnership(step) : null;
+    Object.values(authored?.anchors ?? {}).flat().forEach(id => ownership?.anchored.add(String(id)));
     for (const id of structure.displayed) {
       if (previous.displayed.has(id)) continue;
       const node = structure.nodes.get(id), origin = node.data.replayOrigin;

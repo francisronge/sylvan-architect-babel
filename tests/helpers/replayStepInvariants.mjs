@@ -85,7 +85,8 @@ function frameChange(previous, current, initialKey) {
  *   proved rewrite with their subtrees, and for removal the previous-stage
  *   witnesses it names), or a Stage Record removes or re-parents syntax its
  *   stage authors or names. An edge to a parent already displayed is left to
- *   attach-at-merge.
+ *   attach-at-merge. The derived word of an occurrence a relation names may
+ *   leave at that moment while the occurrence stays: that is its repaint.
  * - `unowned-repaint`: a node's label, word or silence changes at a step that
  *   does not own it: a structural step owns its target and word leaf, a
  *   relation moment what it owns, names or attaches new material to, a Stage
@@ -140,7 +141,10 @@ export function checkStepSemantics(replay, record) {
       const named = new Set([...anchorIds(authored?.anchors), ...prior, ...ownership.anchored]);
       const ownedIn = (structure, id, owned) => [id, ...ancestorsIn(structure, id)].some(at => owned.has(at) || owned.has(authoredOf(structure, at)));
       const removable = new Set([...structural, ...prior]);
-      change.removed.filter(id => !ownedIn(previous, id, removable)).forEach(id => report('unowned-removal', id, `${id} disappears`));
+      // A derived word leaving a named occurrence that stays is that occurrence's repaint.
+      const unvoiced = id => { const origin = previous.nodes.get(id)?.data.replayOrigin;
+        return origin?.kind === 'word' && named.has(origin.ownerId) && current.displayed.has(origin.ownerId); };
+      change.removed.filter(id => !ownedIn(previous, id, removable) && !unvoiced(id)).forEach(id => report('unowned-removal', id, `${id} disappears`));
       change.reparented.filter(id => newEdgeElsewhere(id) && !ownedIn(previous, id, removable) && !ownedIn(current, id, structural)
         && !change.added.includes(current.parent.get(id))).forEach(id => report('unowned-move', id, move(id)));
       const owned = new Set([...structural, ...named]), receiving = new Set(change.added.map(id => current.parent.get(id)).filter(Boolean));

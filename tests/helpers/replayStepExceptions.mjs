@@ -76,6 +76,6 @@ export const STEP_EXCEPTIONS = [
   x(CHAIN_ROLES, 'replay-regressions/compact-current-root.json#/cases/0', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "6:2", '55'),
   x(CHAIN_ROLES, 'replay-regressions/construction-slot-continuity.json#/cases/0', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:4", '37'),
   x(CHAIN_ROLES, 'replay-regressions/independent-clause-and-realization.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "0:2", '22'),
-  x(CHAIN_ROLES, 'replay-regressions/obsolete-plaque-pockets.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '50'),
+  x(CHAIN_ROLES, 'replay-regressions/obsolete-plaque-pockets.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '49'),
   x(CHAIN_ROLES, 'replay-regressions/renamed-head-anchors.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:1", '27'),
 ];

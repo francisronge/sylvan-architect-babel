@@ -14,9 +14,13 @@ const uniqueRefs = (refs: PlanRelationRef[]) => refs.filter((ref, i) => refs.fin
 /** The moment in this frame's stage of the first relation after a badge's own
  * that composes with its grid, or undefined when the badge yields from the
  * stage's start: no such relation plays here, or one in an earlier stage
- * already composed it. */
-const composingMoment = (badge: RelationPlanItem, refs: PlanRelationRef[], frameIndex: number) => {
-  const own = badge.relationRef;
+ * already composed it. Only another contributing grid composes with it: an
+ * identical restatement of the badge's own claim was coalesced into its grid
+ * before composition and composes nothing. */
+const composingMoment = (badge: RelationPlanItem, group: readonly Grid[], frameIndex: number) => {
+  const own = badge.relationRef, ownRefs = planItemRelationRefs(badge);
+  const refs = uniqueRefs(group.filter(grid => drawingKey(grid) !== drawingKey(badge)).flatMap(planItemRelationRefs))
+    .filter(ref => !ownRefs.some(other => other.stageIndex === ref.stageIndex && other.relationIndex === ref.relationIndex));
   const later = refs.filter(ref => ref.stageIndex > own.stageIndex || ref.stageIndex === own.stageIndex && ref.relationIndex > own.relationIndex);
   if (later.some(ref => ref.stageIndex < frameIndex)) return undefined;
   return later.filter(ref => ref.stageIndex === frameIndex).sort((left, right) => left.relationIndex - right.relationIndex)[0];
@@ -72,7 +76,7 @@ export function composeThetaGrids(items: RelationPlanItem[], predicateLineage: (
     const keys = new Set(group.map(drawingKey));
     const badges = items.filter(item => item.kind === 'node-badges' && item.badgeStyle === 'theta-role' && keys.has(drawingKey(item)));
     badges.forEach(item => {
-      const yieldAt = composingMoment(item, refs, frameIndex), prior = item.supersededAt;
+      const yieldAt = composingMoment(item, group, frameIndex), prior = item.supersededAt;
       if (!yieldAt) removed.add(item);
       else if (!(prior?.stageIndex === frameIndex && prior.relationIndex <= yieldAt.relationIndex))
         replacements.set(item, { ...item, supersededAt: yieldAt });
