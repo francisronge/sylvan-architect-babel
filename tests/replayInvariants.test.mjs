@@ -8,6 +8,10 @@ import {
   checkVisibleInCanvas, frameStructure
 } from './helpers/replayInvariants.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
+import { matchFindings } from './helpers/findings.mjs';
+import { checkContractWarnings } from './helpers/replayContractWarnings.mjs';
+import { STEP_EXCEPTIONS } from './helpers/replayStepExceptions.mjs';
+import { checkMarkPersistence, checkStepSemantics } from './helpers/replayStepInvariants.mjs';
 
 const corpus = loadFixtureAnalyses();
 const sample = corpus.records.find(entry => entry.id === 'replay-regressions/workspace-historical-continuity.json#/cases/4').record;
@@ -239,7 +243,7 @@ const KNOWN_DEFECTS = [
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 28, 'mVAtT mvAtTLeaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 29, 'mVAtT mvAtTLeaf mVAtT::__leaf'],
   [ORDER_BEFORE_CONTEXT, 'normalized/what-did-mia-see.xbar.json#/analyses/0', 'parent-after-children', 15, 'cbar_question'],
-  [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar']
+  [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar'],
 ];
 
 // A node revealed at a step that does not own it is one defect, reported by
@@ -252,7 +256,7 @@ const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 
   'one-letter-per-label'];
 let sweep;
 before(() => {
-  sweep = corpus.records.map(({ id, record }) => {
+  sweep = corpus.records.map(({ id, record, contract }) => {
     try {
       const authored = structuredClone(record), snapshot = JSON.stringify(authored);
       const prepared = prepareReplay({ ...authored, includePlayback: true });
@@ -261,7 +265,8 @@ before(() => {
         ...checkRelationMoments(prepared, authored), ...checkNoEarlyReveal(prepared), ...checkParentAfterChildren(prepared),
         ...checkStableConstruction(prepared), ...checkAttachAtMerge(prepared), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared)
-      ] };
+      ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),
+        ...checkContractWarnings(prepared, authored, { contract })] };
     } catch (error) { return { id, error }; }
   });
 });
@@ -288,4 +293,18 @@ for (const rule of RULES) test(`sweep: ${rule} holds on every frame of every com
   assert.deepEqual(found.filter(violation => !expected.has(violation.key)).map(violation => violation.text), [], 'new violations');
   const keys = new Set(found.map(violation => violation.key));
   assert.deepEqual([...expected].filter(entry => !keys.has(entry)), [], 'listed defects that no longer occur; remove them from KNOWN_DEFECTS');
+});
+
+// A step-semantics finding at the frame and subject where a construction rule
+// reports is that rule's defect, not a second one.
+const CONSTRUCTION = new Set(['no-early-reveal', 'stable-construction', 'attach-at-merge']);
+test('sweep: step semantics, mark persistence and contract warnings hold on every committed analysis, apart from listed exceptions', () => {
+  const findings = sweep.flatMap(entry => (entry.findings ?? []).filter(found => found.rule !== 'step-semantics'
+    || !(entry.violations ?? []).some(other => CONSTRUCTION.has(other.rule) && other.frame === found.frame && subjectOf(other) === found.subject))
+    .map(found => ({ ...found, record: entry.id, viewport: null, measure: null })));
+  const { unexpected, exceeded, stale } = matchFindings(findings, STEP_EXCEPTIONS);
+  assert.deepEqual(unexpected.map(found => `${found.record} frame ${found.frame} ${found.rule}/${found.subtype}: ${found.detail}`), [], 'new findings');
+  assert.deepEqual(exceeded, []);
+  assert.deepEqual(stale.map(({ exception, frame }) => `${exception.record} frame ${frame} ${exception.rule}/${exception.subtype}: ${exception.subject}`),
+    [], 'listed exceptions that no longer occur; remove them from replayStepExceptions.mjs');
 });

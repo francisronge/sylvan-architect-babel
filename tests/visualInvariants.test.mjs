@@ -8,7 +8,7 @@ import { TREE_FIRST_FAMILIES } from '../scripts/replayFrameLayout.mjs';
 import { formatFrames, frameList, matchFindings, proposeExceptions } from './helpers/findings.mjs';
 import { measurePlaqueText, measureRun } from './helpers/visualFontMetrics.mjs';
 import { auditVisualRecord, branchPoints, layoutVisualFrames, pathPolylines, plaqueRecord, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
-import { checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance } from './helpers/visualRules.mjs';
+import { checkBranchGeometry, checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance } from './helpers/visualRules.mjs';
 import { EXCEPTIONS } from './helpers/visualExceptions.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 import { checkOneLetterPerLabel } from './helpers/replayInvariants.mjs';
@@ -187,6 +187,38 @@ test('control: clipped reports text under the Replay panel or past the canvas, w
   assert.deepEqual(checkClipped({ ...frame, chrome: undefined }), []);
 });
 
+test('control: branch-geometry reports a branch stretched over two rows and sisters on different rows', () => {
+  const branch = (parent, child, from, to) => ({ id: `${parent}->${child}`, kind: 'branch', paths: [branchPoints(from, to)],
+    halfWidth: 2, nodes: [parent, child], claims: [] });
+  const rows = { ...blank(0.5), rowHeight: 220,
+    lines: [branch('p', 'a', { x: 0, y: 0 }, { x: -100, y: 220 }), branch('p', 'b', { x: 0, y: 0 }, { x: 100, y: 220 })] };
+  assert.deepEqual(checkBranchGeometry(rows), []);
+  rows.lines.push({ id: 'b:stem', kind: 'stem', paths: [[{ x: 100, y: 240 }, { x: 100, y: 285 }]], halfWidth: 1.5, nodes: ['b'], claims: [] },
+    { id: 'trajectory', kind: 'connector', paths: [[{ x: -100, y: 220 }, { x: 300, y: 900 }]], halfWidth: 2, nodes: ['a', 'z'], claims: [] });
+  assert.deepEqual(checkBranchGeometry(rows), [], 'word stems and relation connectors are not syntax branches');
+  rows.lines[1] = branch('p', 'b', { x: 0, y: 0 }, { x: 100, y: 440 });
+  assert.deepEqual(checkBranchGeometry(rows).map(found => [found.subtype, found.subject, found.measure]),
+    [['span', 'p->b', 110], ['sisters', 'p children', 110]]);
+  assert.deepEqual(checkBranchGeometry({ ...rows, rowHeight: undefined }), [], 'frames without a known row are not tested');
+
+  // Catalog #24 as rejected preview 3e4b4dc laid it out at frame 44 (1440×900): rows reserved for a parent not yet
+  // inserted stretch C′→TP and T′→T, T′→VP over two rows beside one-row sisters (the C head, the subject).
+  const at = { matrixClause: { x: 6597.2, y: 440 }, matrixTP: { x: 5795.6, y: 880 }, le: { x: 7398.8, y: 660 },
+    subjectHigher: { x: 4717.5, y: 1100 }, matrixT: { x: 6161.3, y: 1320 }, matrixVP: { x: 6873.8, y: 1320 } };
+  const goopy = { ...blank(0.1215), rowHeight: 220, lines: [['matrixClause', 'matrixTP'], ['matrixClause', 'le'],
+    ['matrixTP', 'subjectHigher'], ['matrixTP', 'matrixT'], ['matrixTP', 'matrixVP']].map(([parent, child]) => branch(parent, child, at[parent], at[child])) };
+  assert.deepEqual(checkBranchGeometry(goopy).map(found => [found.subtype, found.subject]), [['span', 'matrixClause->matrixTP'],
+    ['span', 'matrixTP->matrixT'], ['span', 'matrixTP->matrixVP'], ['sisters', 'matrixClause children'], ['sisters', 'matrixTP children']]);
+
+  // Production layout keeps every branch on one row; lowering one child a row is reported.
+  const real = sample();
+  assert.deepEqual(checkBranchGeometry(real), []);
+  const lowered = real.lines.find(line => line.kind === 'branch');
+  const stretched = { ...lowered, paths: [branchPoints(lowered.paths[0][0], { ...lowered.paths[0].at(-1), y: lowered.paths[0].at(-1).y + 220 })] };
+  assert(checkBranchGeometry({ ...real, lines: real.lines.map(line => line === lowered ? stretched : line) })
+    .some(found => found.subtype === 'span' && found.subject === lowered.id));
+});
+
 test('the frame layout keeps TreeVisualizer\'s tree-first families', () => {
   const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
   const block = /acceptedCompositionIsTreeFirst = [\s\S]*?\);/.exec(source)[0];
@@ -217,7 +249,8 @@ const CASES = [
   [2, `${CATALOG}/2/analyses/0`, 'plaque(3:2 case: Nominative)@mSubject', [], 'fixed by #74'],
   [3, `${CATALOG}/3/analyses/0`, 'plaque(0:1 theta Theme)@stolen', [[20, 'desktop'], [20, 'desktop-large']], 'open'],
   [4, `${CATALOG}/4/analyses/0`, 'connector(3:3)root-cp→subject-np plaque(3:2 clauseType: declarative)@declarative-c', [], 'fixed by #76'],
-  [9, RECORDS[1], 'juan->juan::__leaf what1::__leaf:word', [], 'fixed by #79']
+  [9, RECORDS[1], 'juan->juan::__leaf what1::__leaf:word', [], 'fixed by #79'],
+  [24, `${CATALOG}/6/analyses/0`, 'matrixClause->matrixTP', [], 'preview 3e4b4dc rejected, main keeps one row']
 ];
 for (const [number, record, subject, places, status] of CASES) test(`catalog #${number}: ${subject} (${status})`, () => {
   const found = catalog.filter(finding => finding.record === record && finding.subject === subject).map(finding => [finding.frame, finding.viewport]);

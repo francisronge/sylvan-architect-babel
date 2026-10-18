@@ -1,5 +1,6 @@
 /** Resolve exact relation participants; display aliases do not create new authored anchors. */
 import { type SyntaxNode } from '../types.ts';
+import { normalizeTier2Synonym } from './relations/tier2Synonyms.ts';
 import { findExactNodeByIdInForest } from './syntaxForest.ts';
 import { type DerivationReplayPlanStep, type ReplayResolvedRelationAnchor } from './types.ts';
 
@@ -30,14 +31,24 @@ export const getRelationAllAnchorNodeIds = (relation?: DerivationReplayPlanStep 
   .map((anchor) => String(anchor.nodeId || ''))
   .filter(Boolean);
 
+/**
+ * Membership of an authored role name in a renderer role list. Both sides use
+ * the shared normalization of case, separators and camelCase, so `lowerCopy`,
+ * `lower copy` and `lower-copy` are one role; spelling never decides a role.
+ */
+export const authoredRoleMatcher = (roles: readonly string[]): (role: unknown) => boolean => {
+  const wanted = new Set(roles.map(normalizeTier2Synonym));
+  return (role) => wanted.has(normalizeTier2Synonym(role));
+};
+
 export const findResolvedReplayAnchorByRoles = (anchors: ReplayResolvedRelationAnchor[], roles: readonly string[]): ReplayResolvedRelationAnchor | undefined => {
-  const wantedRoles = new Set(roles.map((role) => role.toLowerCase()));
-  return anchors.find((anchor) => wantedRoles.has(String(anchor.role || '').trim().toLowerCase()));
+  const wanted = authoredRoleMatcher(roles);
+  return anchors.find((anchor) => wanted(anchor.role));
 };
 
 export const findResolvedReplayAnchorsByRoles = (anchors: ReplayResolvedRelationAnchor[], roles: readonly string[]): ReplayResolvedRelationAnchor[] => {
-  const wantedRoles = new Set(roles.map((role) => role.toLowerCase()));
-  return anchors.filter((anchor) => wantedRoles.has(String(anchor.role || '').trim().toLowerCase()));
+  const wanted = authoredRoleMatcher(roles);
+  return anchors.filter((anchor) => wanted(anchor.role));
 };
 
 export const relationAnchorsExistInForest = (
