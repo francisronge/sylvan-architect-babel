@@ -101,3 +101,25 @@ test('a head carried into the complex head that head movement forms stays near a
   });
   assert(positions.size >= 3, 'V-to-T and T-to-Foc each carry T to a new position while the plaque is shown');
 });
+
+for (const [width, height] of [[1600, 1100], [390, 844]]) test(`${width}px: a relocated plaque keeps its pocket when a later plaque joins its anchor`, () => {
+  const { record } = loadFixtureAnalyses().records
+    .find(entry => entry.id === 'replay-regressions/workspace-source-continuity.json#/cases/2');
+  const { replay, steps, schedule } = prepare(record, width, height);
+  const onV = new Set();
+  let before, joined = false;
+  steps.forEach((step, stepIndex) => {
+    const items = replay.relationRenderPlan.frames[step.replayFrameIndex].items;
+    const layout = [...schedule.steps.get(stepIndex) ?? []];
+    const box = layout.find(([index]) => items[index].plaqueStyle === 'realization' && items[index].anchorNodeIds[0] === 'v')?.[1];
+    const added = layout.filter(([index, other]) => other.attachmentNodeId === 'v' && !onV.has(plaqueIdentity(items[index])));
+    added.forEach(([index]) => onV.add(plaqueIdentity(items[index])));
+    if (box && before && box.attachmentX === before.attachmentX && box.attachmentY === before.attachmentY) {
+      joined ||= added.length > 0;
+      assert(Math.hypot(...offset(box).map((value, axis) => value - offset(before)[axis])) < 1e-6,
+        `frame ${stepIndex + 1} keeps the realization plaque's offset while v stays`);
+    }
+    before = box;
+  });
+  assert(joined, 'another plaque on v appears while v and the realization plaque stay');
+});

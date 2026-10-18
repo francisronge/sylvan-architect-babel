@@ -248,9 +248,9 @@ can lie beyond all of the plaque's nearby pockets. Such a remote plaque instead
 takes a pocket for each position that an authored movement carries its anchor to,
 inside the moved phrase or the complex head that movement forms. Reflow, merges
 and other phrases' movement do not count. At each such movement it keeps its
-pocket unless a clear pocket is within reach of its nearby pockets or at least a
-quarter nearer. Other plaques keep their pockets; the relocated plaque gives way
-when a later plaque needs its space.
+pocket unless a clear pocket is at least a quarter nearer, or nearby while its own
+is not. Between those movements it keeps one offset, and plaques placed later
+avoid its pocket as they avoid any other.
 
 Reservations account for tree ink, trajectories, neutral connector stems and
 already allocated claims. The nearest clear pocket search has no arbitrary radius
