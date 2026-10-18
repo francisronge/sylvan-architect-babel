@@ -3,7 +3,7 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  checkInputUnchanged, checkMarksAtOwningMoment, checkNoEarlyReveal, checkNoVisibleScaffolding,
+  checkInputUnchanged, checkMarksAtOwningMoment, checkNoEarlyReveal, checkNoVisibleScaffolding, checkOneLetterPerLabel,
   checkParentAfterChildren, checkRelationMoments, checkStableConstruction, checkStageCompletion, checkVisibleInCanvas,
   frameStructure
 } from './helpers/replayInvariants.mjs';
@@ -152,6 +152,19 @@ test('control: visible-in-canvas reports a visible id with no canvas node', () =
   assert(reported(checkVisibleInCanvas(stale), 'visible-in-canvas', 4, 'not-a-canvas-node is visible but absent'));
 });
 
+test('control: one-letter-per-label reports a letter painted twice beside one label and a letter painted nowhere', () => {
+  // A relative operator's movement chain, its binding restatement and an identity
+  // coindex each assert i at the silent operator and its trace.
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/independent-clause-and-realization.json#').record;
+  const relative = prepare(record);
+  assert.deepEqual(checkOneLetterPerLabel(relative), []);
+  const everyLetter = checkOneLetterPerLabel(relative, () => () => ({ draw: true, alsoFor: [] }));
+  assert(reported(everyLetter, 'one-letter-per-label', 22, 'operatorHigh shows i 3 times'));
+  assert(reported(everyLetter, 'one-letter-per-label', 20, 'operatorTrace shows i 2 times'));
+  const noLetter = checkOneLetterPerLabel(relative, () => () => ({ draw: false }));
+  assert(reported(noLetter, 'one-letter-per-label', 22, 'operatorHigh shows i 0 times'));
+});
+
 test('control: marks-at-owning-moment reports a mark before its moment and a mark whose moment never plays', () => {
   assert.deepEqual(checkMarksAtOwningMoment(replay), []);
   const momentOf = (stage, relation) => steps.findIndex(step => step.replayKind === 'relation'
@@ -211,7 +224,7 @@ const KNOWN_DEFECTS = [
 ];
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments',
-  'no-early-reveal', 'parent-after-children', 'stable-construction', 'visible-in-canvas', 'marks-at-owning-moment'];
+  'no-early-reveal', 'parent-after-children', 'stable-construction', 'visible-in-canvas', 'marks-at-owning-moment', 'one-letter-per-label'];
 let sweep;
 before(() => {
   sweep = corpus.records.map(({ id, record }) => {
@@ -222,7 +235,7 @@ before(() => {
         ...checkInputUnchanged(snapshot, authored), ...checkNoVisibleScaffolding(prepared), ...checkStageCompletion(prepared, authored),
         ...checkRelationMoments(prepared, authored), ...checkNoEarlyReveal(prepared), ...checkParentAfterChildren(prepared),
         ...checkStableConstruction(prepared), ...checkVisibleInCanvas(prepared),
-        ...checkMarksAtOwningMoment(prepared)
+        ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared)
       ] };
     } catch (error) { return { id, error }; }
   });

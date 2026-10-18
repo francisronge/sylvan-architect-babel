@@ -79,7 +79,9 @@ function painter(workspace = forest) {
     g: select(root), resolveOverlayAnchor: id => nodes.get(id),
     identityTerminalOwners: owners, identityForestLightFamilies: lights,
     decorateRelationElement: (element, item) => decorations.set(element, item), relationEmphasisForItem: () => null,
-    markIdentityLensOccurrences() {}
+    markIdentityLensOccurrences() {},
+    // Each claim here is drawn alone; tests/indexLetters.test.mjs covers shared letters.
+    indexLetterPlan: () => ({ draw: true, alsoFor: [] })
   };
   const draw = createBindingDrawing(dependencies).drawIdentityLens;
   const theta = (id, index, item, deferred) => {

@@ -51,6 +51,7 @@ export function createSvgDom(measureText = (text, style) => ({
         add: name => write(name, true), remove: name => write(name, false), toggle: write
       };
     }
+    get attributes() { return Object.entries(this.attrs).map(([name, value]) => ({ name, value })); }
     get dataset() { return Object.fromEntries(Object.entries(this.attrs)
       .filter(([name]) => name.startsWith('data-'))
       .map(([name, value]) => [name.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase()), value])); }

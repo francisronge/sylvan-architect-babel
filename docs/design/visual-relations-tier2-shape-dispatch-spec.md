@@ -1560,22 +1560,26 @@ not the path identity. Different explicitly named domains remain separate.
 The shared curve keeps its original route and every contributing Replay owner;
 the hull keeps its own appearance time and emphasis. Hovering the shared curve
 during a contributing relation moment selects that current claim. Prior-state
-claims and different replacement lifetimes do not compose this way.
+claims and different replacement lifetimes do not compose this way. A binding
+facet is a prior-state claim only through its own prior anchors. Movement
+evidence owned by a sibling facet, as when a relative operator's movement chain
+also earns its binding, does not keep a later restatement on a second path.
 
 An occurrence label shows each index letter once. The shared dependency-index
 allocator gives one chain one letter, so several co-visible marks can claim the
 same letter at the same label. One QR relation earns a covert path and a binding
-path that both index the operator and the variable. Binding restatements repeat
-both ends, and a silent occurrence can already carry an identity coindex inside
-its label. Each claim keeps its own paths and domains, but only one mark paints
-the letter, and that letter carries every owning claim for hover and Replay
-emphasis. An inline coindex holds the letter because it is reserved label text.
-Otherwise the owner that is most prominent at the current Replay step holds it,
-and a binding index wins ties because its placement clears the binding path.
-`replay/relations/indexLetterOwnership.ts` makes this choice per frame from the
-drawable marks. Different letters at one occurrence stay separate. A letter on an
-occurrence's word, such as a theta or identity index, does not remove a letter
-beside that occurrence's phrase label.
+path that both index the operator and the variable, and a silent occurrence can
+already carry an identity coindex, or an authored subscript such as Opᵢ, in its
+label. Each claim keeps its paths and domains, but the binding painters draw
+only the letters `components/renderer/indexLetters.ts` assigns them. The drawn
+letter carries every claim that asserts it, for hover and Replay emphasis. An
+inline coindex or written subscript shows the letter itself. Otherwise a binding
+index draws it, because its placement clears the binding path, before a QR or
+badge letter. A binding restated by another facet (`binding.dependency` after
+`operator-binding`) still draws its own path, so between two binding marks the
+one active at the current Replay step draws the letter. Different letters at one
+occurrence stay separate, and a letter on an occurrence's word, such as a theta
+or identity index, does not remove a letter beside its phrase label.
 
 ## Required Verification
 

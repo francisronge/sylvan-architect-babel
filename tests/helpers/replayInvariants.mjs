@@ -4,10 +4,17 @@
  * where `frame` is the 1-based Replay step or null for a whole-record fact.
  * Checkers never assert; callers decide which violations are expected. */
 import * as d3 from 'd3';
+import { createBindingDrawing, indexLetterLabels } from '../../components/renderer/bindingDrawing.ts';
+import { planIndexLetters, primitiveIndexLetters } from '../../components/renderer/indexLetters.ts';
 import { applyVizIds, getNodeId } from '../../replay/displayIdentity.ts';
-import { planItemRelationRefs } from '../../replay/relations/renderPlan.ts';
+import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
+import { planItemDependencyNodeIds, planItemOwnsRelationMoment, planItemRelationRefs } from '../../replay/relations/renderPlan.ts';
 import { visiblePlanFrameItems } from '../../replay/relations/relationFrame.ts';
+import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
+import { extractDisplayedSubscriptIndex } from '../../replay/replaySurfaceNotation.ts';
+import { treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
 import { resolveSavedInputTokens } from '../../server/babelParser/surfaceTokens.js';
+import { createSvgDom, descendants, select } from './svgDom.mjs';
 
 const violation = (rule, frame, detail) => ({ rule, frame, detail });
 const isScaffold = data => data.replayLayoutOnly === true || data.replayOrigin?.kind === 'layout';
@@ -341,5 +348,91 @@ export function checkMarksAtOwningMoment(replay) {
         + `${refs.map(ref => `${ref.stageIndex}:${ref.relationIndex}`).join('/')} is revealed before its owning moment`));
     }
   });
+  return out;
+}
+
+const LETTER_KINDS = new Set(['quantifier-raising', 'operator-variable-binding', 'coindex', 'binding-domain']);
+const besideLetterAnchor = letter => {
+  const host = letter.parentNode, attrs = letter.attrs;
+  if (attrs['data-qr-index-role']) return host.parentNode.attrs[attrs['data-qr-index-role'] === 'lf' ? 'data-qr-lf' : 'data-qr-pronounced'];
+  if (attrs['data-operator-variable-index-role'] === 'operator') return host.attrs['data-operator-variable-operator'];
+  if (attrs['data-operator-variable-index-role']) return host.attrs['data-operator-variable-witness'] || host.attrs['data-operator-variable-variable'];
+  return ['data-control-anchor', 'data-binding-anchor', 'data-coreference-anchor', 'data-coindex-anchor', 'data-index-anchor']
+    .map(name => attrs[name]).find(Boolean);
+};
+
+/** Paints each frame's index letters with the production binding painters in
+ * the offline SVG DOM, over the frame's displayed labels. Each letter a drawn
+ * mark asserts at an occurrence label appears there exactly once: beside it,
+ * as an inline coindex, or as a subscript already written into the label.
+ * `planLetters` is the renderer's own unless a control replaces it. */
+export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
+  const plan = replay.relationRenderPlan, out = [], played = new Map();
+  if (!plan) return out;
+  const { Element, restore } = createSvgDom();
+  try {
+    replay.playbackSteps.forEach((step, index) => {
+      const stage = step.replayFrameIndex;
+      if (!played.has(stage)) played.set(stage, new Set());
+      const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
+      if (identity?.stageIndex === stage) played.get(stage).add(identity.relationIndex);
+      const items = visiblePlanFrameItems(plan, stage, played.get(stage), identity ? identity.relationIndex : null);
+      if (!items.some(item => LETTER_KINDS.has(item.kind))) return;
+      const structure = frameStructure(step), nodes = [...structure.nodes.values()];
+      const all = indexHierarchyNodesByIdAndAliases(nodes);
+      const shown = indexHierarchyNodesByIdAndAliases(nodes.filter(node => structure.displayed.has(getNodeId(node))));
+      const resolve = id => shown.get(id)
+        ?? (all.get(id)?.descendants().some(node => structure.displayed.has(getNodeId(node))) ? all.get(id) : undefined);
+      const frame = { ...plan, frames: plan.frames.map((candidate, stageIndex) => stageIndex === stage ? { ...candidate, items } : candidate) };
+      const primitives = bindRelationPlanFrame(frame, stage, id => all.has(String(id)) ? { x: 0, y: 0 } : null).primitives
+        .filter(primitive => primitiveIndexLetters(primitive).length && planItemDependencyNodeIds(items[primitive.itemIndex]).every(resolve));
+      if (!primitives.length) return;
+      const root = new Element('g'), g = select(root);
+      for (const [id, runs] of treeLabelRunsForStep(replay, index, undefined, { includeRelationIndices: false })) for (const run of runs) {
+        const label = new Element('text', { class: `${run.kind}-label`,
+          [run.kind === 'category' ? 'data-category-node-id' : 'data-node-id']: id }, structure.nodes.get(id));
+        label.text = run.text;
+        root.appendChild(label);
+      }
+      const labels = indexLetterLabels(g, resolve);
+      const letterPlan = planLetters(primitives, items, { ...labels, emphasisRank: item => !identity ? 1
+        : planItemOwnsRelationMoment(item, identity.stageIndex, identity.relationIndex) ? 2 : 0 });
+      const layer = () => g.append('g');
+      const drawing = createBindingDrawing({ activeDerivationFrameIndex: stage, overlay: g, frameItems: items, g,
+        operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], focusedRelationMoment: identity,
+        operatorVariableBindingLayers: new Map(), operatorVariableSharedPathLayers: new Map(), bindingRelationLayers: new Map(),
+        coindexRelationLayers: new Map(), parasiticGapCoindexLayers: new Map(), acceptedRootLayerBeforeNodes: layer,
+        acceptedRootLayerAfterNodes: layer, acceptedLayerInHost: layer, ensureControlRelationLayer: layer, appendMarker: layer,
+        relationLayerKey: item => JSON.stringify(planItemRelationRefs(item)), relationEmphasisForItem: () => null,
+        decorateRelationElement() {}, resolveOverlayAnchor: resolve, terminalAmbiguities: new Map(),
+        identityTerminalOwners: new Map(), identityForestLightFamilies: [], markIdentityLensOccurrences() {},
+        TARGET_EMERALD: '#34d399', indexLetterPlan: letterPlan });
+      const painters = { 'quantifier-raising': drawing.drawQuantifierRaising, 'operator-variable-binding': drawing.drawOperatorVariableBinding,
+        'index-badge': drawing.drawIndexBadge, 'identity-lens': drawing.drawIdentityLens };
+      for (const primitive of primitives) painters[primitive.type](primitive, items[primitive.itemIndex], g.append('g'), null);
+      const shownLetters = new Map(), show = (labelId, letter) => {
+        const key = JSON.stringify([labelId, letter]);
+        shownLetters.set(key, (shownLetters.get(key) ?? 0) + 1);
+      };
+      for (const element of descendants(root)) {
+        if (/^(category|terminal)-label$/.test(element.attrs.class || '')) {
+          const labelId = element.attrs['data-category-node-id'] ?? element.attrs['data-node-id'];
+          const written = extractDisplayedSubscriptIndex(element.text);
+          if (written) show(labelId, written);
+          for (const tspan of element.children) if ((tspan.attrs.class || '').includes('babel-identity-index')) show(labelId, tspan.textContent);
+        } else if (element.tag === 'text' && (element.attrs.class || '').split(' ').includes('babel-relation-index')) {
+          show(besideLetterAnchor(element), element.textContent);
+        }
+      }
+      const asserted = new Set(primitives.flatMap(primitiveIndexLetters).flatMap(letter => {
+        const labelId = letter.role === 'identity' ? labels.identityLabel(letter.nodeId) : letter.nodeId;
+        return labelId === null ? [] : [JSON.stringify([labelId, letter.index])];
+      }));
+      for (const key of asserted) {
+        const count = shownLetters.get(key) ?? 0, [labelId, letter] = JSON.parse(key);
+        if (count !== 1) out.push(violation('one-letter-per-label', index + 1, `${labelId} shows ${letter} ${count} times`));
+      }
+    });
+  } finally { restore(); }
   return out;
 }
