@@ -59,7 +59,8 @@ export const getCoherentWorkspaceDiagnostics = (steps: readonly PlaybackStep[]) 
  * the source's old place belongs only to its exact lower witness.
  * No syntax, branch ranks, pronunciation or relation timing is added here. */
 export function reserveWorkspaceAttachments({
-  steps, sizes, direction, coordinatesForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, minimumSiblingGap = 0
+  steps, sizes, direction, coordinatesForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, minimumSiblingGap = 0,
+  orderedContours = false
 }: {
   steps: readonly PlaybackStep[];
   sizes: ReadonlyMap<number, [number, number]>;
@@ -70,9 +71,11 @@ export function reserveWorkspaceAttachments({
   treeLabelRuns?: PreparedTreeLabelRuns;
   measureTreeLabel?: TreeLabelMeasure;
   minimumSiblingGap?: number;
+  /** End each attachment lifetime before its members interleave a sister subtree. */
+  orderedContours?: boolean;
 }): Reservations {
   const stageSizes = [...sizes].sort(([a], [b]) => a - b);
-  const key = JSON.stringify([direction, stageSizes, minimumSiblingGap]);
+  const key = JSON.stringify([direction, stageSizes, minimumSiblingGap, orderedContours]);
   let measurements = cache.get(steps);
   if (!measurements) cache.set(steps, measurements = new Map());
   const metricKey = JSON.stringify([categoryMetricKey(steps, measureCategoryText),
@@ -132,7 +135,7 @@ export function reserveWorkspaceAttachments({
   // attachment histories additionally compose each earlier scene backwards,
   // so a prior movement cannot become the new location of the same jump.
   const compute = (policy: WorkspaceAttachmentPolicy, base?: Reservations) =>
-    reserveAttachmentLifetimes({ scenes, direction, ordinaryRoots, stableRoots, base, policy });
+    reserveAttachmentLifetimes({ scenes, direction, ordinaryRoots, stableRoots, base, orderedContours, policy });
   const relationAttachments = compute({ allowOrdinary: false });
   const inkCaches = [new WeakMap<Scene, WeakMap<TreeCoordinateReservation, Map<string, number> | null>>(),
     new WeakMap<Scene, WeakMap<TreeCoordinateReservation, Map<string, number> | null>>()];

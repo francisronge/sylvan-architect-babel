@@ -78,6 +78,14 @@ test('duplicate occurrences are shown separately and ambiguous relation claims s
   assert.equal(replay.playbackSteps.filter(step => step.replayKind === 'relation').length, 1);
 });
 
+test('an output the spelling check cannot read keeps its diagnostic and withholds Replay when it has groups', async () => {
+  const payload = { derivationStages: [{ ...stage([node('one', [], { word: 'one' })]), realizations: [{ nodeIds: ['missing'], text: 'one' }] }] };
+  const analysis = (await inspectFailedOutput(raw(payload), 'one')).analyses[0];
+  assert.match(analysis.replayIssue, /could not read this analysis \(Stage 1 group 0 names missing/);
+  assert.equal(analysis.replayStages, null);
+  assert.equal(analysis.stages[0].workspaceForest[0].id, 'one');
+});
+
 test('malformed relation fields stay in raw evidence and receive a neutral diagnostic Replay moment', async () => {
   const claim = { relation: 'Agree', anchors: { goal: 4 }, values: { feature: ['plural'] } };
   const payload = { derivationStages: [stage([node('one')], [claim])] };

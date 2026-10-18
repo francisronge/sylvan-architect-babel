@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { watchTreeVisualizerFonts } from '../components/treeVisualizerFonts.ts';
+import { createMeasuredRuns, watchTreeVisualizerFonts } from '../components/treeVisualizerFonts.ts';
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const fontSet = () => {
@@ -79,4 +79,54 @@ test('unmounting before fonts finish cancels the layout invalidation', async () 
   fonts.ready();
   await flush();
   assert.equal(calls, 0);
+});
+
+// A face whose glyphs keep their widths can still change a pair: "A" stays 10,
+// while kerning makes "AA" 22 instead of 20. Only the measured run reveals that.
+// Like the production measures: a cache keyed per run that can list its runs.
+const cached = compute => {
+  const cache = new Map();
+  const measure = (...args) => {
+    const key = JSON.stringify(args);
+    if (!cache.has(key)) cache.set(key, { args, result: compute(...args) });
+    return cache.get(key).result;
+  };
+  return Object.assign(measure, { runs: () => cache.values() });
+};
+const kerningFonts = () => {
+  let kerning = 0, calls = 0;
+  const runs = createMeasuredRuns();
+  const measure = runs.track(() => cached(text => ({ width: text === 'AA' ? 20 + kerning : [...text].length * 10 })));
+  return { runs, measure, kern: amount => { kerning = amount; }, calls: () => calls, changed: () => calls++ };
+};
+
+test('a later face invalidates layout only when a measured run measures differently', async () => {
+  const fonts = fontSet(), probe = kerningFonts();
+  const dispose = watchTreeVisualizerFonts(fonts.set, probe.changed, 'AA', () => probe.runs.changed());
+  fonts.loads.forEach(load => load.resolve([]));
+  fonts.ready();
+  await flush();
+  assert.equal(probe.calls(), 1);
+  assert.deepEqual(probe.measure('AA'), { width: 20 });
+  probe.measure('A');
+  fonts.emit('JetBrains Mono');
+  fonts.emit('Quicksand');
+  assert.equal(probe.calls(), 1, 'app text loading another face of a measured family keeps the layout');
+  probe.kern(2);
+  fonts.emit('Quicksand');
+  assert.equal(probe.calls(), 2, 'a kerning change in a measured run invalidates layout');
+  dispose();
+});
+
+test('recorded runs re-measure exactly their arguments with uncached measures', () => {
+  const probe = kerningFonts(), created = [];
+  const inkRuns = createMeasuredRuns();
+  const ink = inkRuns.track(() => { created.push('ink'); return cached((text, style) => `${text}:${style.fontSize}`); });
+  ink('Mia', { fontSize: 56 }); ink('Mia', { fontSize: 56 }); ink('Mia', { fontSize: 30 });
+  assert.equal(inkRuns.changed(), false);
+  assert.equal(created.length, 2, 'one uncached measure per kind and check');
+  probe.measure('AA');
+  assert.equal(probe.runs.changed(), false);
+  probe.kern(2);
+  assert.equal(probe.runs.changed(), true, 'a changed pair is visible although each character keeps its width');
 });

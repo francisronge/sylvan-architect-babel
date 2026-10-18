@@ -20,6 +20,7 @@ test('qualification fingerprints include Replay inspection, regression inputs an
   const controls = [
     ['deterministicIngress', 'server/babelParser/realizationContract.js'],
     ['deterministicIngress', 'server/babelParser/tokenIndexRecovery.js'],
+    ['deterministicIngress', 'server/babelParser/spellout.js'],
     ['requestBoundary', 'hooks/useGeneration.ts'],
     ['requestBoundary', 'services/generationState.ts'],
     ['qualificationHarness', 'contractQualification/diagnosticReplay.ts'],

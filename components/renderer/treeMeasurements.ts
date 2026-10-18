@@ -1,5 +1,7 @@
 import * as d3 from 'd3';
 import { getNodeId, isReplayDisplayChild } from '../../replay/displayIdentity.ts';
+import { resolveUniqueDisplayTerminal } from '../../replay/relations/trajectoryAttachment.ts';
+import { isDisplayTerminalNode } from '../../replay/replaySurfaceNotation.ts';
 import { type HierNode } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
 import type { DrawingLayer } from './drawingContext.ts';
@@ -8,6 +10,22 @@ export const labelBelongsToNode = (element: SVGGraphicsElement, id: string): boo
   return element.getAttribute('data-category-node-id') === id
     || element.getAttribute('data-node-id') === id
     || Boolean(node?.data && (node.data.aliasIds?.includes(id) || isReplayDisplayChild(node.data, id)));
+};
+/** The category label that relation refinements measure as a node's shell. */
+export const shellLabelElement = (g: DrawingLayer, nodeId: string) => g.selectAll<SVGTextElement, HierNode>('.category-label')
+  .filter((candidate) => getNodeId(candidate) === nodeId)
+  .node();
+/** The label of the anchor's unique display terminal, or of the anchor itself. */
+export const terminalLabelElement = (g: DrawingLayer, anchor: d3.HierarchyNode<SyntaxNode> | undefined, nodeId: string) => {
+  const resolution = anchor
+    ? resolveUniqueDisplayTerminal(anchor, (candidate) => candidate.children || [], (candidate) => isDisplayTerminalNode(candidate.data))
+    : null;
+  const terminalId = resolution?.terminal ? getNodeId(resolution.terminal as unknown as HierNode) : nodeId;
+  return g.selectAll<SVGTextElement, HierNode>('.terminal-label')
+    .filter(function exactMeasuredTerminal(candidate) {
+      return getNodeId(candidate) === terminalId || this.getAttribute('data-node-id') === terminalId;
+    })
+    .node();
 };
 export const measureTreeGraphics = (
   g: DrawingLayer,

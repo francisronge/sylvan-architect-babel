@@ -6,7 +6,7 @@ import { isDisplayTerminalNode } from '../../replay/replaySurfaceNotation.ts';
 import { type HierNode } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
 import type { DrawingLayer } from './drawingContext.ts';
-import { labelBelongsToNode, measureScreenGraphics } from './treeMeasurements.ts';
+import { labelBelongsToNode, measureScreenGraphics, shellLabelElement, terminalLabelElement } from './treeMeasurements.ts';
 
 interface RelationMeasurementsContext {
   treeData: d3.HierarchyPointNode<SyntaxNode>;
@@ -18,30 +18,11 @@ export function createRelationMeasurements({ treeData, g, measureGraphicsElement
     treeData.descendants() as d3.HierarchyPointNode<SyntaxNode>[]
   );
   const measuredShellRect = (nodeId: string) => {
-    const label = g.selectAll<SVGTextElement, HierNode>('.category-label')
-      .filter((candidate) => getNodeId(candidate) === nodeId)
-      .node();
+    const label = shellLabelElement(g, nodeId);
     return label ? measureGraphicsElementsInTreeSpace([label]) : null;
   };
   const measuredTerminalRect = (nodeId: string) => {
-    const anchor = postFitNodeById.get(nodeId);
-    const resolution = anchor
-      ? resolveUniqueDisplayTerminal(
-        anchor,
-        (candidate) => candidate.children || [],
-        (candidate) => isDisplayTerminalNode(candidate.data)
-      )
-      : null;
-    const terminalId = resolution?.terminal
-      ? getNodeId(resolution.terminal as unknown as HierNode)
-      : nodeId;
-    const label = g.selectAll<SVGTextElement, HierNode>('.terminal-label')
-      .filter(function exactMeasuredTerminal(candidate) {
-        const candidateId = getNodeId(candidate);
-        const renderedId = this.getAttribute('data-node-id') || '';
-        return candidateId === terminalId || renderedId === terminalId;
-      })
-      .node();
+    const label = terminalLabelElement(g, postFitNodeById.get(nodeId), nodeId);
     return label ? measureGraphicsElementsInTreeSpace([label]) : null;
   };
   const measuredSubtreeRect = (nodeId: string) => {
