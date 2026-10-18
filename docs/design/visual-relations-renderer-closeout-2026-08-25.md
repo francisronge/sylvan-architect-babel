@@ -553,6 +553,15 @@ current branch. Independent workspace objects do not establish sibling-order
 constraints. Camera bounds, plaque allocation and painting use these same
 coordinates. A new authored stage can require a new reservation; its subsequent
 micro-steps keep unchanged syntax stationary.
+Every painted tree must keep sister subtrees in reading order on each row they
+share. Ordered direct daughters do not prove this: a one-word specifier's word
+leaf occupies the next row, beside a lower specifier. A retention moves only its
+own members, so a sister placed against another layout can end up under them.
+The established plan stands whenever every frame is ordered. Otherwise the stages
+and lifetimes are planned again with this requirement: a stage keeps its own
+layout instead of an interleaving retention, and a lifetime ends before the
+first scene its members would interleave. That plan is used only if every frame
+is ordered.
 
 A previously selected standalone head can build the receiving projection needed
 by an earlier movement before a later relation adjoins another head to it. The

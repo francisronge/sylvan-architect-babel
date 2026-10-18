@@ -3,6 +3,7 @@ import type { SyntaxNode } from '../types.ts';
 import { retainCurrentRootFork } from './currentRootFork.ts';
 import { retainCurrentSiblingRanks, retainCurrentUnaryRows } from './currentSiblingRanks.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import { siblingContoursOrdered } from './siblingContours.ts';
 import { sourceSiblingTranslation, unchangedSourceRankOffsets } from './sourceSiblingTranslation.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
@@ -23,6 +24,8 @@ export type WorkspaceAttachmentPolicy = {
   progressive?: boolean;
   preserveShape?: boolean;
   preserveSourceClearance?: boolean;
+  /** Stop a lifetime before its members would pass under a sister subtree. */
+  orderedContours?: boolean;
 };
 
 function lowerWitnesses(step: PlaybackStep): Map<string, string> | null {
@@ -41,7 +44,7 @@ function lowerWitnesses(step: PlaybackStep): Map<string, string> | null {
  * chooses the policy and validates the complete plan before accepting it. */
 export function reserveAttachmentLifetimes({
   scenes, direction, ordinaryRoots, stableRoots, base,
-  policy: { allowOrdinary, progressive = false, preserveShape = true, preserveSourceClearance = false }
+  policy: { allowOrdinary, progressive = false, preserveShape = true, preserveSourceClearance = false, orderedContours = false }
 }: {
   scenes: readonly WorkspaceAttachmentScene[];
   direction: TreeDirection;
@@ -51,6 +54,13 @@ export function reserveAttachmentLifetimes({
   policy: WorkspaceAttachmentPolicy;
 }): Reservations {
   const output = new Map(scenes.map(scene => [scene.canvas, new Map(base?.get(scene.canvas) ?? scene.coordinates)]));
+  const contoursOrdered = (scene: WorkspaceAttachmentScene, coordinates: TreeCoordinateReservation) => {
+    const root = d3.hierarchy(scene.canvas); applyVizIds(root);
+    const placed = new Map<string, Node>(layoutSyntaxTree(root, scene.size, direction, coordinates, new Set(scene.nodes.keys()))
+      .descendants().filter(node => scene.nodes.has(getNodeId(node))).map(node => [getNodeId(node), node] as const));
+    return siblingContoursOrdered([...placed.values()].filter(node => !visibleParentId(node, placed)),
+      node => (node.children ?? []).filter(child => placed.has(getNodeId(child))), node => node, direction);
+  };
   for (let boundary = 1; boundary < scenes.length; boundary++) {
     const before = scenes[boundary - 1], after = scenes[boundary];
     const positioned = (scene: WorkspaceAttachmentScene): Map<string, Node> => {
@@ -191,6 +201,9 @@ export function reserveAttachmentLifetimes({
                 .map(([id, node]) => [id, { x: node.x, y: node.y }]));
             }
           }
+          // The lifetime moves only its own members. A new or remaining sister
+          // keeps this scene's placement, so stop before the members pass under it.
+          if (orderedContours && !contoursOrdered(scene, coordinates)) break;
           output.set(scene.canvas, coordinates);
         }
       };
