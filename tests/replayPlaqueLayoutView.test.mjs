@@ -175,6 +175,30 @@ test('progress covering the displayed stage replaces the held layout', () => {
   assert.strictEqual(swapped.viewport, narrow);
 });
 
+test('after partial progress is displayed, uncovered stages fall back to the last complete layout', () => {
+  const app = mount(), content = { layoutGroups: [[0], [1]] }, narrow = { width: 390, height: 900 };
+  app.render(content); app.effects(); app.timers();
+  const complete = schedule('complete', 100);
+  app.jobs[0].ready(complete);
+  assert.strictEqual(app.render(content).schedule, complete);
+  app.render(content, 0, narrow); app.effects(); app.timers();
+  const early = { ...schedule('narrow early', 300), preparedStages: [0] };
+  app.jobs.at(-1).progress(early);
+  assert.strictEqual(app.render(content, 0, narrow).schedule, early);
+  // Replay advances before the replacement completes.
+  const advanced = app.render(content, 1, narrow);
+  assert(advanced.ready, 'the completed layout keeps the cover away');
+  assert.strictEqual(advanced.schedule, complete);
+  assert.strictEqual(advanced.viewport, desktop, 'the fallback keeps the viewport it was drawn for');
+  assert.strictEqual(app.render(content, 0, narrow).schedule, early, 'the covered stage keeps the newer partial layout');
+  const final = schedule('narrow complete', 300);
+  app.jobs.at(-1).ready(final);
+  const swapped = app.render(content, 1, narrow);
+  assert.strictEqual(swapped.schedule, final);
+  assert.strictEqual(swapped.viewport, narrow);
+  assertPending(app.render({ ...content }, 1, narrow));
+});
+
 test('disabling layout cancels queued measurements and a failed worker can be retried', () => {
   const app = mount(), input = {};
   app.render(input); app.effects(); app.render(null); app.effects(); app.timers(); assert.equal(app.jobs.length, 0);

@@ -98,12 +98,18 @@ export function useReplayPlaqueLayout<V extends { width: number; height: number 
   const cameraGroup = content?.layoutGroups?.find(group => group.includes(stageIndex)) ?? [stageIndex];
   const covers = (request?: LayoutRequest) => Boolean(request?.layout && (!request.preparedStages
     || cameraGroup.every(stage => request.preparedStages!.includes(stage))));
-  // Kept apart from the active request, so its partial progress cannot discard usable geometry.
-  const shown = useRef<{ content: ReplayLayoutContent; viewport: V; request: LayoutRequest }>(undefined);
-  if (content && covers(current)) shown.current = { content, viewport, request: current! };
+  // Kept apart from the active request, so its partial progress cannot discard
+  // usable geometry. The last displayed snapshot may be partial; the last
+  // complete one, with its own viewport, covers stages the partial does not.
+  type Snapshot = { content: ReplayLayoutContent; viewport: V; request: LayoutRequest };
+  const shown = useRef<Snapshot>(undefined), completed = useRef<Snapshot>(undefined);
+  if (content && covers(current)) {
+    shown.current = { content, viewport, request: current! };
+    if (!current!.preparedStages) completed.current = shown.current;
+  }
+  const usable = (snapshot?: Snapshot) => snapshot?.content === content && covers(snapshot.request) ? snapshot : undefined;
   const displayed = !content ? { viewport, request: undefined }
-    : covers(current) || (!current?.error && shown.current?.content === content && covers(shown.current.request))
-      ? shown.current : undefined;
+    : covers(current) ? shown.current : current?.error ? undefined : usable(shown.current) ?? usable(completed.current);
   const request = displayed?.request;
   // Later-stage completion must not invalidate the camera inputs of an already
   // displayed group. Keep its immutable early delivery; other groups use full data.
