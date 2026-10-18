@@ -12,33 +12,35 @@ type Point = { x: number; y: number };
  *
  * `current` holds the laid-out nodes painted in one frame. Future scaffolding and
  * workspace containers contribute no contour. Rows are matched by `y.toFixed(3)`,
- * which assumes the shared row grid of the stage layouts. */
+ * so this relies on the stage layouts' shared 220-unit row grid; the regression
+ * suite checks that every committed fixture stays on it. */
 export function siblingContoursOrdered<N extends d3.HierarchyNode<SyntaxNode> & Partial<Point>>(
   current: Iterable<N>, direction: TreeDirection = 'ltr', point: (node: N) => Point = node => ({ x: node.x!, y: node.y! })
 ): boolean {
   const syntax = new Set([...current].filter(node => !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace'));
   const sign = direction === 'rtl' ? -1 : 1;
-  // Each contour maps a row to its [first, last] position in reading order.
-  const contour = (node: N): Map<string, [number, number]> | null => {
-    const own = point(node), x = own.x * sign;
-    const result = new Map<string, [number, number]>([[own.y.toFixed(3), [x, x]]]);
-    const earlier = new Map<string, number>();
-    for (const child of (node.children ?? []) as N[]) {
-      if (!syntax.has(child)) continue;
-      const next = contour(child);
-      if (!next) return null;
-      for (const [row, [first]] of next) {
-        const last = earlier.get(row);
-        if (last !== undefined && first <= last + 1e-6) return null;
+  for (const root of syntax) {
+    if (root.parent && syntax.has(root.parent as N)) continue;
+    // One pre-order walk per tree. When a node is entered, every finished node
+    // lies in an earlier sister subtree of one of its ancestors, so the node must
+    // follow the last finished position on its row.
+    const finished = new Map<string, number>();
+    const pending: Array<{ node: N } | { row: string; position: number }> = [{ node: root }];
+    while (pending.length) {
+      const entry = pending.pop()!;
+      if (!('node' in entry)) {
+        finished.set(entry.row, Math.max(finished.get(entry.row) ?? -Infinity, entry.position));
+        continue;
       }
-      for (const [row, [first, last]] of next) {
-        earlier.set(row, Math.max(earlier.get(row) ?? -Infinity, last));
-        const span = result.get(row);
-        result.set(row, span ? [Math.min(span[0], first), Math.max(span[1], last)] : [first, last]);
+      const { x, y } = point(entry.node), row = y.toFixed(3), position = x * sign;
+      const last = finished.get(row);
+      if (last !== undefined && position <= last + 1e-6) return false;
+      pending.push({ row, position });
+      const children = (entry.node.children ?? []) as N[];
+      for (let index = children.length - 1; index >= 0; index--) {
+        if (syntax.has(children[index])) pending.push({ node: children[index] });
       }
     }
-    return result;
-  };
-  for (const node of syntax) if ((!node.parent || !syntax.has(node.parent as N)) && !contour(node)) return false;
+  }
   return true;
 }

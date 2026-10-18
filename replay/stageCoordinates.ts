@@ -308,7 +308,9 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
  * The established plan stands when every painted frame keeps its sister contours
  * ordered. Otherwise the stage-local workspace retention and the attachment
  * lifetimes are planned again with ordered contours. That plan is used only if
- * every frame is then ordered; the outcome is recorded per layout. */
+ * every frame is then ordered; the outcome is recorded per layout. It is accepted
+ * on contour order alone, without comparing motion or ink clearance: a lifetime
+ * that ends early can move a lower occurrence and its ancestors at its moment. */
 export function buildStageCoordinateReservations(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
   direction: TreeDirection = 'ltr', measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,

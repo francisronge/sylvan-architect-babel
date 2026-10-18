@@ -9,7 +9,7 @@ import { siblingContoursOrdered } from '../replay/siblingContours.ts';
 import * as camera from '../replay/stageCamera.ts';
 import * as coordinates from '../replay/stageCoordinates.ts';
 import * as layout from '../replay/treeLayout.ts';
-import { TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
+import { TREE_ROW_HEIGHT, TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
 import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 
@@ -28,16 +28,17 @@ function layoutRecord(record, [width, height], direction) {
 }
 const frames = (...args) => layoutRecord(...args).scenes;
 
-/** Nodes that persist into a frame but change position, keyed by the frame's
- * operation target, with their reading-order x displacement. */
+/** Nodes that persist into a frame but change position, keyed by frame number,
+ * kind and operation target, with their [reading-order x, y] displacement. */
 function movers(scenes, direction) {
-  const sign = direction === 'rtl' ? -1 : 1, result = {};
+  const sign = direction === 'rtl' ? -1 : 1, round = value => +value.toFixed(1) || 0, result = {};
   scenes.forEach((scene, index) => {
     const moved = Object.fromEntries([...scene.nodes].flatMap(([id, node]) => {
       const old = index ? scenes[index - 1].nodes.get(id) : undefined;
-      return old && Math.hypot(node.x - old.x, node.y - old.y) > 1e-6 ? [[id, +((node.x - old.x) * sign).toFixed(1)]] : [];
+      return old && Math.hypot(node.x - old.x, node.y - old.y) > 1e-6
+        ? [[id, [round((node.x - old.x) * sign), round(node.y - old.y)]]] : [];
     }));
-    if (Object.keys(moved).length) result[`${scene.step.replayKind}:${scene.step.targetNodeId}`] = moved;
+    if (Object.keys(moved).length) result[`f${index + 1} ${scene.step.replayKind}:${scene.step.targetNodeId}`] = moved;
   });
   return result;
 }
@@ -87,6 +88,22 @@ test('sister subtrees must stay ordered on every row, not only at their roots', 
   }
 });
 
+test('a deep unary chain is checked in linear work', () => {
+  const size = 2048;
+  let data = { id: 'leaf', label: 'X' };
+  for (let index = 0; index < size - 1; index++) data = { id: `n${index}`, label: 'X', children: [data] };
+  const root = d3.hierarchy(data);
+  root.each(node => { node.x = 0; node.y = node.depth * TREE_ROW_HEIGHT; });
+  const nodes = root.descendants(), set = Map.prototype.set;
+  let writes = 0;
+  Map.prototype.set = function (...args) { writes++; return set.apply(this, args); };
+  let ordered;
+  try { ordered = siblingContoursOrdered(nodes); } finally { Map.prototype.set = set; }
+  assert.equal(ordered, true);
+  // Copying every descendant row through every ancestor would need about size² / 2 writes.
+  assert.ok(writes <= 2 * size, `${writes} row writes for ${size} nodes`);
+});
+
 for (const viewport of viewports) for (const direction of ['ltr', 'rtl']) {
   test(`${viewport[0]}px ${direction}: a phase-edge specifier stays outside the retained subject's contour`, () => {
     const scenes = frames(phaseEdge, viewport, direction);
@@ -99,8 +116,8 @@ for (const viewport of viewports) for (const direction of ['ltr', 'rtl']) {
       assert.ok(word && juan && word.y === juan.y, 'the edge word leaf shares the row of the lower specifier');
       assert.ok((juan.x - word.x) * sign >= TREE_SIBLING_GAP, `${scene.step.replayFrameIndex}: ${word.x} vs ${juan.x}`);
     }
-    // The repair must not trade the overlap for motion of existing syntax.
-    assert.deepEqual(movers(scenes, direction), { 'relation:verb1': { v0: 187.5 } });
+    // In this record the repaired plan adds no motion: only the V-to-v moment moves v.
+    assert.deepEqual(movers(scenes, direction), { 'f18 relation:verb1': { v0: [187.5, 220] } });
     for (const id of ['juan', 'subjectDomain']) {
       const points = scenes.flatMap(scene => scene.nodes.has(id) ? [`${scene.nodes.get(id).x},${scene.nodes.get(id).y}`] : []);
       assert.equal(new Set(points).size, 1, `${id} keeps one position from its first frame`);
@@ -112,7 +129,7 @@ for (const viewport of viewports) for (const direction of ['ltr', 'rtl']) {
   test(`${viewport[0]}px ${direction}: a waiting head-final C does not merge inside TP's contour`, () => {
     const scenes = frames(headFinal, viewport, direction);
     scenes.forEach((scene, index) => assert.deepEqual(contourInversions(scene, direction), [], `frame ${index + 1}`));
-    assert.deepEqual(movers(scenes, direction), {}, 'no existing syntax moves');
+    assert.deepEqual(movers(scenes, direction), {}, 'no existing syntax moves in any frame');
   });
 
   test(`${viewport[0]}px ${direction}: a later compact slot is not carried back under the full landing`, () => {
@@ -120,12 +137,15 @@ for (const viewport of viewports) for (const direction of ['ltr', 'rtl']) {
     assert.ok(scenes.some(scene => scene.step.replayKind === 'relation' && scene.step.targetNodeId === 'rD1'),
       'the subject movement has its own moment');
     scenes.forEach((scene, index) => assert.deepEqual(contourInversions(scene, direction), [], `frame ${index + 1}`));
-    // Ending the lifetime early costs motion at both movement moments: the lower
-    // occurrence takes its compact slot and its ancestors recentre over it.
+    // The repair trades the interleaving for motion at both movement moments: the
+    // lower occurrence takes its compact slot and its ancestors recentre over it.
+    const raised = [0, -440];
     assert.deepEqual(movers(scenes, direction), {
-      'relation:rD1': { rJo: -375, rN: -375, 'rJo::__leaf': -375, 'rN::__leaf': -375, rD0: 412.5, rAP: 206.3, rTCore: 103.1 },
-      'relation:rD2': { rJo: 0, rN: 0, 'rJo::__leaf': 0, 'rN::__leaf': 0, rD1: 787.5, rTP: 393.8, rCCore: 196.9 },
-      'relation:mD1': { mVah: -525, 'mVah::__leaf': -525 }
+      'f17 relation:rD1': { rJo: [-375, -440], rN: [-375, -440], 'rJo::__leaf': [-375, -440], 'rN::__leaf': [-375, -440],
+        rD0: [412.5, 0], rAP: [206.3, 0], rTCore: [103.1, 0] },
+      'f22 relation:rD2': { rJo: raised, rN: raised, 'rJo::__leaf': raised, 'rN::__leaf': raised,
+        rD1: [787.5, 0], rTP: [393.8, 0], rCCore: [196.9, 0] },
+      'f37 relation:mD1': { mVah: [-525, -440], 'mVah::__leaf': [-525, -440] }
     });
   });
 }
@@ -136,8 +156,15 @@ test('no committed fixture is left with interleaved sister contours', () => {
     const steps = prepareReplay({ ...structuredClone(record), includePlayback: true }).playbackSteps;
     const groups = camera.buildStageLayoutGroups(steps, record.derivationStages);
     const sizes = record.derivationStages.map((_, stage) => camera.stageTreeLayoutSize(steps, stage, 1600, 948, groups));
-    // One stage request plans and checks every stage of the analysis.
-    coordinates.buildStageCoordinateReservations(steps, 0, sizes[0], stage => sizes[stage]);
+    const plans = sizes.map((size, stage) => coordinates.buildStageCoordinateReservations(steps, stage, size, index => sizes[index]));
+    // The contour check matches rows by their y; it relies on the shared row grid.
+    for (const step of steps) {
+      const points = plans[step.replayFrameIndex]?.get(step.replayCanvasData);
+      for (const node of step.replayVisibleNodeIds ?? []) {
+        const y = points?.get(node)?.y;
+        if (y !== undefined) assert.ok(Math.abs(y / TREE_ROW_HEIGHT - Math.round(y / TREE_ROW_HEIGHT)) < 1e-9, `${id}: ${node} at y=${y}`);
+      }
+    }
     const statuses = coordinates.getContourPlanStatuses(steps);
     if (statuses.includes('unresolved')) unresolved.push(id);
     else if (statuses.includes('repaired')) repaired.push(id);

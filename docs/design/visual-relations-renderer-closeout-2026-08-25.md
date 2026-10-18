@@ -574,9 +574,16 @@ check applied to two passes. The stage-local retention of a waiting workspace ke
 its stage's own layout, and each attachment lifetime ends before the first scene
 its members would interleave. Coherent solving, component lifetimes, root
 compaction and movement-source slots are unchanged. The second plan is used only
-if every frame is then ordered, and the outcome is recorded per layout. Ending a
-lifetime early has a motion cost: at the next movement moment, the lower occurrence
-can take its compact slot and its ancestors recentre over it.
+if every frame is then ordered, and the outcome is recorded per layout.
+
+The repair trades interleaving for motion. The second plan is accepted on contour
+order alone; it is not compared with the established plan for motion or ink
+clearance. Ending a lifetime early lets the lower occurrence take its compact slot
+at its own movement moment, and its ancestors recentre over it. In the committed
+Hindi correlative, the trace rD0 moves 412.5 units and rD1 787.5 units at their
+movement moments, with their ancestors following by half and a quarter of that.
+No syntax outside those movements moves. The row matching relies on the shared
+220-unit row grid, which the regression suite checks for every committed fixture.
 
 A previously selected standalone head can build the receiving projection needed
 by an earlier movement before a later relation adjoins another head to it. The
