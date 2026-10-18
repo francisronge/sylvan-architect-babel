@@ -188,6 +188,24 @@ const normalizeWithTokenIndexRecovery = (analysis, framework, sentence, modelRou
   }
 };
 
+// The deepest JSON nesting a response may have. A tree level costs about two
+// JSON levels and spell-out reads trees up to 256 levels, so real responses
+// stay far below it; within it, the parser's recursive walks and clones fit
+// comfortably on the stack.
+const MAX_RESPONSE_DEPTH = 1_024;
+
+/** Whether a parsed response nests objects and arrays deeper than limit, found without recursion. */
+const nestsDeeperThan = (value, limit) => {
+  const pending = [[value, 1]];
+  while (pending.length) {
+    const [item, depth] = pending.pop();
+    if (!item || typeof item !== 'object') continue;
+    if (depth > limit) return true;
+    for (const child of Object.values(item)) pending.push([child, depth + 1]);
+  }
+  return false;
+};
+
 /** One analysis's first spelling failure, typed like other contract failures. */
 const spelloutFailure = (result, multiple) => {
   const [first] = result.diagnostics;
@@ -212,6 +230,16 @@ export const normalizeParseBundle = (
   options = {}
 ) => {
   const parsed = value;
+  // Checked before anything walks or clones the response recursively.
+  if (nestsDeeperThan(parsed, MAX_RESPONSE_DEPTH)) {
+    const message = `The response nests deeper than ${MAX_RESPONSE_DEPTH} levels, so Babel cannot read it.`;
+    throw new ParseApiError('BAD_MODEL_RESPONSE', message, 502, withFailureDetails({}, {
+      failureClass: 'contract_misunderstanding',
+      ruleId: 'PAYLOAD_NESTING_DEPTH',
+      fieldPath: '$',
+      message
+    }));
+  }
   if (enforceDerivationRouteContract) {
     const topLevelFields = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
       ? Object.keys(parsed)
