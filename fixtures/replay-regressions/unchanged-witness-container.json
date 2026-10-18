@@ -1,0 +1,559 @@
+{
+  "description": "Stage 3 merges the verb with the retained small clause, then states exceptional Case licensing with priorAnchors naming the unchanged small-clause subject and Pred head. The small clause contains both earlier anchors, so Replay treated it as the relation's rewritten output and dropped the stage's V′ and VP construction; both appeared at the relation moment. An unchanged earlier constituent is not a rewrite output, so V′ and VP are built at their own steps.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the indexed-token contract, 18 October 2026 (night batch, 08-en-small-clause), commit 53a7c7f.",
+  "sentence": "They consider him a genius.",
+  "framework": "xbar",
+  "inputTokens": [
+    "They",
+    "consider",
+    "him",
+    "a",
+    "genius"
+  ],
+  "derivationStages": [
+    {
+      "relations": [],
+      "stageRecord": "The pronouns They and him each project an NP. In a genius, the determiner occupies the specifier of NP and genius heads N′, following an NP-based X-bar analysis rather than the DP hypothesis. Consider is introduced as the lexical verb. A silent predicational head will support the small clause, and a silent finite I bears present-tense features. This analysis treats consider as an already inflected lexical form licensed by abstract I; it does not posit syntactic affix lowering. The separate objects have not yet received their clause-level thematic and Case licensing.",
+      "statement": "Establish the nominal projections, lexical verb, and abstract functional heads.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "they",
+                  "label": "N⁰ [pronoun]",
+                  "tokenIndex": 0,
+                  "word": "They"
+                }
+              ],
+              "id": "subjectNBar",
+              "label": "N′"
+            }
+          ],
+          "id": "subjectNP",
+          "label": "NP"
+        },
+        {
+          "children": [],
+          "id": "consider",
+          "label": "V⁰",
+          "tokenIndex": 1,
+          "word": "consider"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "him",
+                  "label": "N⁰ [pronoun]",
+                  "tokenIndex": 2,
+                  "word": "him"
+                }
+              ],
+              "id": "objectNBar",
+              "label": "N′"
+            }
+          ],
+          "id": "smallClauseSubject",
+          "label": "NP"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "determiner",
+              "label": "Det",
+              "tokenIndex": 3,
+              "word": "a"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "genius",
+                  "label": "N⁰",
+                  "tokenIndex": 4,
+                  "word": "genius"
+                }
+              ],
+              "id": "predicateNBar",
+              "label": "N′"
+            }
+          ],
+          "id": "predicateNP",
+          "label": "NP"
+        },
+        {
+          "children": [],
+          "id": "predicator",
+          "label": "Pred⁰",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "finiteI",
+          "label": "I⁰ [+finite, present]",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "domain": "smallClause",
+            "mediatingHead": "predicator",
+            "predicate": "predicateNP",
+            "subject": "smallClauseSubject"
+          },
+          "relation": "Small-clause predication and theta-role assignment",
+          "values": {
+            "interpretation": "The individual denoted by him has the property expressed by a genius.",
+            "thetaRole": "property bearer"
+          }
+        },
+        {
+          "anchors": {
+            "domain": "smallClause",
+            "head": "predicator",
+            "subject": "smallClauseSubject"
+          },
+          "relation": "Defective Case domain",
+          "values": {
+            "CaseCapacity": "Pred does not assign nominative Case.",
+            "finiteness": "nonfinite and tenseless",
+            "subjectCaseStatus": "Structural Case remains unlicensed."
+          }
+        }
+      ],
+      "stageRecord": "The silent predicational head first combines with a genius to form Pred′; him then occupies Spec,PredP. PredP is the endocentric X-bar representation of the small clause. The predicate a genius, mediated by Pred, assigns its property-bearer theta-role to him: the sentence characterizes him as a genius rather than introducing a second referential object. Pred lacks finite tense and cannot assign nominative Case, so the small-clause subject still needs an external Case licenser. No copular verb or movement is introduced.",
+      "statement": "Build the subject–predicate small clause him a genius.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "they",
+                  "label": "N⁰ [pronoun]",
+                  "tokenIndex": 0,
+                  "word": "They"
+                }
+              ],
+              "id": "subjectNBar",
+              "label": "N′"
+            }
+          ],
+          "id": "subjectNP",
+          "label": "NP"
+        },
+        {
+          "children": [],
+          "id": "consider",
+          "label": "V⁰",
+          "tokenIndex": 1,
+          "word": "consider"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "him",
+                      "label": "N⁰ [pronoun]",
+                      "tokenIndex": 2,
+                      "word": "him"
+                    }
+                  ],
+                  "id": "objectNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "smallClauseSubject",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "predicator",
+                  "label": "Pred⁰",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "determiner",
+                      "label": "Det",
+                      "tokenIndex": 3,
+                      "word": "a"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "genius",
+                          "label": "N⁰",
+                          "tokenIndex": 4,
+                          "word": "genius"
+                        }
+                      ],
+                      "id": "predicateNBar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "predicateNP",
+                  "label": "NP"
+                }
+              ],
+              "id": "predBar",
+              "label": "Pred′"
+            }
+          ],
+          "id": "smallClause",
+          "label": "PredP [small clause]"
+        },
+        {
+          "children": [],
+          "id": "finiteI",
+          "label": "I⁰ [+finite, present]",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complement": "smallClause",
+            "selector": "consider"
+          },
+          "relation": "Complement selection and theta-role assignment",
+          "values": {
+            "selectedCategory": "PredP small clause",
+            "thetaRole": "content of judgment"
+          }
+        },
+        {
+          "anchors": {
+            "CaseRecipient": "smallClauseSubject",
+            "governor": "consider",
+            "pronoun": "him",
+            "transparentDomain": "smallClause"
+          },
+          "priorAnchors": {
+            "nonCaseAssigningHead": "predicator",
+            "previouslyUnlicensedSubject": "smallClauseSubject"
+          },
+          "relation": "Exceptional government and accusative Case assignment",
+          "values": {
+            "Case": "accusative",
+            "configuration": "V governs the subject of its selected, transparent small-clause complement.",
+            "movement": "none",
+            "subjectCaseStatus": "licensed"
+          }
+        }
+      ],
+      "stageRecord": "Consider combines with the completed PredP as its complement, forming V′ and VP. The verb selects the predication as the content of the judgment and assigns a content theta-role to that complement; it does not independently theta-mark him as a second matrix argument. In this GB small-clause analysis, the selected PredP is transparent to government from V and has no intervening CP barrier. Consider therefore governs the subject in Spec,PredP and assigns it exceptional accusative Case, licensing the form him. That NP stays in its original small-clause position: exceptional Case marking does not require raising it into a matrix object position.",
+      "statement": "Select the small clause and license its subject through exceptional accusative Case.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "they",
+                  "label": "N⁰ [pronoun]",
+                  "tokenIndex": 0,
+                  "word": "They"
+                }
+              ],
+              "id": "subjectNBar",
+              "label": "N′"
+            }
+          ],
+          "id": "subjectNP",
+          "label": "NP"
+        },
+        {
+          "children": [],
+          "id": "finiteI",
+          "label": "I⁰ [+finite, present]",
+          "silent": true
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "consider",
+                  "label": "V⁰",
+                  "tokenIndex": 1,
+                  "word": "consider"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "him",
+                              "label": "N⁰ [pronoun]",
+                              "tokenIndex": 2,
+                              "word": "him"
+                            }
+                          ],
+                          "id": "objectNBar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "smallClauseSubject",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "predicator",
+                          "label": "Pred⁰",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "determiner",
+                              "label": "Det",
+                              "tokenIndex": 3,
+                              "word": "a"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "genius",
+                                  "label": "N⁰",
+                                  "tokenIndex": 4,
+                                  "word": "genius"
+                                }
+                              ],
+                              "id": "predicateNBar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "predicateNP",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "predBar",
+                      "label": "Pred′"
+                    }
+                  ],
+                  "id": "smallClause",
+                  "label": "PredP [small clause]"
+                }
+              ],
+              "id": "matrixVBar",
+              "label": "V′"
+            }
+          ],
+          "id": "matrixVP",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "assigningPredicate": "matrixVP",
+            "lexicalHead": "consider",
+            "recipient": "subjectNP"
+          },
+          "relation": "External theta-role assignment",
+          "values": {
+            "movement": "none",
+            "subjectPosition": "base-generated in Spec,IP",
+            "thetaRole": "judge or cognizer"
+          }
+        },
+        {
+          "anchors": {
+            "assigner": "finiteI",
+            "pronoun": "they",
+            "recipient": "subjectNP"
+          },
+          "relation": "Nominative Case assignment",
+          "values": {
+            "Case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "finiteI",
+            "subject": "subjectNP",
+            "verb": "consider"
+          },
+          "relation": "Subject agreement and finite-verb licensing",
+          "values": {
+            "morphologicalImplementation": "The lexical finite form consider is licensed by abstract I; no syntactic affix lowering is posited.",
+            "number": "plural",
+            "person": "third",
+            "tense": "present"
+          }
+        },
+        {
+          "anchors": {
+            "governingCategory": "matrixIP",
+            "matrixPronoun": "they",
+            "potentialMatrixBinder": "subjectNP",
+            "smallClausePronoun": "him"
+          },
+          "relation": "Binding Principle B",
+          "values": {
+            "condition": "Each pronoun must be free in its governing category.",
+            "domainRationale": "The small clause lacks an accessible SUBJECT distinct from its own subject; the matrix IP supplies the governing category for him.",
+            "matrixPronounStatus": "They has no local A-binder.",
+            "smallClausePronounStatus": "Him is not locally A-bound by They."
+          }
+        }
+      ],
+      "stageRecord": "Finite I combines with VP to form I′, and They is base-generated in Spec,IP. This adopts the classical GB external-subject analysis rather than a VP-internal-subject derivation: the matrix predicate assigns its external judge theta-role to They in Spec,IP, and no subject movement is posited. Finite I assigns nominative Case to that subject. Subject–I agreement establishes third-person plural features, and abstract present I licenses the finite form consider without head movement or an independently pronounced tense terminal. Finally, both pronouns satisfy Binding Principle B. The matrix IP is the relevant governing category for They and, because the small clause lacks an accessible SUBJECT distinct from him, also for him. Neither pronoun is locally A-bound; in particular, They does not bind him. The completed structure is therefore a finite clause containing an exceptionally Case-marked small-clause subject and a nominal predicate, not a double-object construction.",
+      "statement": "Complete the finite matrix clause and establish its Case, agreement, and binding relations.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "they",
+                      "label": "N⁰ [pronoun]",
+                      "tokenIndex": 0,
+                      "word": "They"
+                    }
+                  ],
+                  "id": "subjectNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "subjectNP",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "finiteI",
+                  "label": "I⁰ [+finite, present]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "consider",
+                          "label": "V⁰",
+                          "tokenIndex": 1,
+                          "word": "consider"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "him",
+                                      "label": "N⁰ [pronoun]",
+                                      "tokenIndex": 2,
+                                      "word": "him"
+                                    }
+                                  ],
+                                  "id": "objectNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "smallClauseSubject",
+                              "label": "NP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "predicator",
+                                  "label": "Pred⁰",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "determiner",
+                                      "label": "Det",
+                                      "tokenIndex": 3,
+                                      "word": "a"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "genius",
+                                          "label": "N⁰",
+                                          "tokenIndex": 4,
+                                          "word": "genius"
+                                        }
+                                      ],
+                                      "id": "predicateNBar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "predicateNP",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "predBar",
+                              "label": "Pred′"
+                            }
+                          ],
+                          "id": "smallClause",
+                          "label": "PredP [small clause]"
+                        }
+                      ],
+                      "id": "matrixVBar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "matrixVP",
+                  "label": "VP"
+                }
+              ],
+              "id": "matrixIBar",
+              "label": "I′"
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP"
+        }
+      ]
+    }
+  ]
+}

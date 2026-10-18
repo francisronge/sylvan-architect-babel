@@ -268,22 +268,27 @@ export const buildPreMovementStructuralForest = (
         const lower = findNode(item.sourceNodeId);
         return before && lower ? restoreCurrentSourceState(lower, before) : null;
       });
-      if (!landing || restoredSources.some(restored => !restored))
+      // Another claim about the same landing may already have withdrawn it;
+      // this movement still restores its own source.
+      const withdrawn = !landing && Boolean(findNodeInForest(forest, movement.targetNodeId));
+      if ((!landing && !withdrawn) || restoredSources.some(restored => !restored))
         return;
-      // The retained ID may currently be at the landing. Remove that occurrence
-      // before restoring the complete prior object at its proven lower slot.
-      const parent = findParent(movement.targetNodeId);
-      const priorSlot = precedingLandingSlot(relation, landing);
-      if (!relation.preserveMovementLanding) {
-        if (priorSlot)
-          replaceStructuralNode(landing.id, priorSlot);
-        else if (parent)
-          parent.children = parent.children?.filter(child => child !== landing);
-        else
-          structuralForest.splice(structuralForest.indexOf(landing), 1);
+      if (landing) {
+        // The retained ID may currently be at the landing. Remove that occurrence
+        // before restoring the complete prior object at its proven lower slot.
+        const parent = findParent(movement.targetNodeId);
+        const priorSlot = precedingLandingSlot(relation, landing);
+        if (!relation.preserveMovementLanding) {
+          if (priorSlot)
+            replaceStructuralNode(landing.id, priorSlot);
+          else if (parent)
+            parent.children = parent.children?.filter(child => child !== landing);
+          else
+            structuralForest.splice(structuralForest.indexOf(landing), 1);
+        }
+        if (movement.trajectoryKind === 'head')
+          restoreHeadHost(parent);
       }
-      if (movement.trajectoryKind === 'head')
-        restoreHeadHost(parent);
       movements.forEach((item, index) => replaceStructuralNode(item.sourceNodeId, restoredSources[index]!));
       restoredSources.forEach(restored => restorePrecedingContainers(restored!.id));
       return;
@@ -377,6 +382,10 @@ const ownNodeContent = (node: SyntaxNode): string => {
   const { children: _children, ...own } = node;
   return JSON.stringify(Object.keys(own).sort().map(key => [key, own[key as keyof typeof own]]));
 };
+
+const sameSubtree = (left: SyntaxNode, right: SyntaxNode): boolean => ownNodeContent(left) === ownNodeContent(right)
+  && (left.children || []).length === (right.children || []).length
+  && (left.children || []).every((child, index) => sameSubtree(child, right.children![index]));
 
 /**
  * True when a retained witness kept its own content and exact slot, and every
@@ -508,8 +517,12 @@ const resolvePriorWitnessTreeTransitionOwnership = (
       }))
         return true;
       const containsInputs = (candidate: SyntaxNode) => priorAnchorIds.every(id => collectExactSubtreeNodeIds(candidate).has(id));
+      // An earlier constituent that is unchanged is not the output of a
+      // rewrite of its own contents, even when ordinary construction merges it.
+      const earlier = findExactNodesByIdInForest(previousForest, String(node.id || ''));
       return priorAnchorIds.length > 1 && containsInputs(node)
-        && !(node.children || []).some(containsInputs);
+        && !(node.children || []).some(containsInputs)
+        && !(earlier.length === 1 && sameSubtree(earlier[0], node));
     })
     : currentAnchors;
   if (ownedCurrentAnchors.length === 0)
