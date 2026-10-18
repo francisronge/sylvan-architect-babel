@@ -25,7 +25,7 @@ import {
   findParentNodeIdInForest,
   indexExactForestNodeLocations
 } from './syntaxForest.ts';
-import { newReceivingHeadNodeIds } from './treeTransitions.ts';
+import { keptIdLandingNodeIds, landingAttachmentPath, newReceivingHeadNodeIds } from './treeTransitions.ts';
 import { type PlaybackStep } from './types.ts';
 
 export const finalizeStageReplay = (
@@ -54,6 +54,8 @@ export const finalizeStageReplay = (
   } = stage;
   let structuralSteps = steps.map(stripSemanticPayloadFromMicrostep);
   if (plannedStage) {
+    // The new parent of each kept-id landing, by the neutral rewrite whose moment introduces it.
+    const transitionHostNodeIds = new Map<string, number>();
     if (frameHasNonMovementTreeTransition && !frameHasMovementPayload
       && !frameRelationSteps.some(relation => relation.recoveredMovement?.transition)) {
       const transitionNodeIds = new Set([...nonMovementTransitionNodeIds.values()].flatMap(ids => [...ids]));
@@ -73,20 +75,39 @@ export const finalizeStageReplay = (
           .filter(child => !transitionNodeIds.has(String(child.id || '')))
           .forEach(child => collectSyntaxSubtreeNodeIds(child).forEach(id => prerequisiteIds.add(id)));
       });
-      const availableContextIds = new Set(previousFrameWorkspaceRoots.flatMap(collectSyntaxSubtreeNodeIds)
+      // An occurrence that kept its id at the landing needs every new parent
+      // that attaches it to its source workspace, as recovered movement does.
+      // That path appears with it, even when claims name its parents, and
+      // stops below a parent that an earlier claim needs as context.
+      const anchoredBefore = (relationIndex: number, nodeId: string) => frameRelationSteps.slice(0, relationIndex)
+        .some(relation => getRelationAllAnchorNodeIds(relation).some(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, id)).includes(nodeId)));
+      fallbackTransitionOwnership.forEach((ownership, relationIndex) => keptIdLandingNodeIds(ownership, previousFrameWorkspaceRoots, workspaceRoots)
+        .forEach((nodeId) => {
+          const path = landingAttachmentPath(workspaceRoots, previousFrameWorkspaceRoots, nodeId, [nodeId], parentNodeId => anchoredBefore(relationIndex, parentNodeId));
+          path.forEach((hostId, index) => {
+            if (!transitionNodeIds.has(hostId) && !transitionHostNodeIds.has(hostId))
+              transitionHostNodeIds.set(hostId, relationIndex);
+            (findExactNodeByIdInForest(workspaceRoots, hostId)?.children || [])
+              .filter(child => child.id !== (index ? path[index - 1] : nodeId) && !transitionNodeIds.has(String(child.id || '')))
+              .forEach(child => collectSyntaxSubtreeNodeIds(child).forEach(id => prerequisiteIds.add(id)));
+          });
+        }));
+      transitionHostNodeIds.forEach((_relationIndex, nodeId) => prerequisiteIds.delete(nodeId));
+      // A merge that consumes the path's outermost parent is construction after the moment.
+      const availableContextIds = new Set([...previousFrameWorkspaceRoots.flatMap(collectSyntaxSubtreeNodeIds)
         .filter(nodeId => {
           if (!transitionNodeIds.has(nodeId))
             return true;
           const before = priorLocations.get(nodeId), after = currentLocations.get(nodeId);
           return Boolean(before && after && before.parentId === after.parentId
             && (!before.parentId || before.childIndex === after.childIndex));
-        }));
+        }), ...transitionHostNodeIds.keys()]);
       // A later rewrite can change an existing operand's fields without
       // owning new ordinary merges around it. Keep that construction, but
       // do not merge a new relation-owned output before its own moment.
       structuralSteps = structuralSteps.filter(step => {
         const nodeId = replayOwnerId(step.replayCanvasData, step.targetNodeId);
-        if (transitionNodeIds.has(nodeId))
+        if (transitionNodeIds.has(nodeId) || transitionHostNodeIds.has(nodeId))
           return false;
         const sources = (step.sourceNodeIds || []).map(id => replayOwnerId(step.replayCanvasData, id));
         const buildsAvailableContext = sources.length > 0
@@ -290,7 +311,8 @@ export const finalizeStageReplay = (
           ...getMovementCreatedLandingHostNodeIds(placement),
           ...(placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).flatMap(movement => newReceivingHeadNodeIds(movement, previousFrameWorkspaceRoots, workspaceRoots))
         ]
-        : [...(nonMovementTransitionNodeIds.get(placement.relationIndex) || [])];
+        : [...(nonMovementTransitionNodeIds.get(placement.relationIndex) || []),
+          ...[...transitionHostNodeIds].filter(([, relationIndex]) => relationIndex === placement.relationIndex).map(([nodeId]) => nodeId)];
       ownedIds.filter(nodeId => !availableNodeIds.has(nodeId)).forEach(nodeId => {
         const existingOwner = relationProducers.get(nodeId);
         // Proven movement owns both new occurrences. A contextual claim
