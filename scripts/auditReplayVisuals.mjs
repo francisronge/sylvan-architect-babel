@@ -1,47 +1,71 @@
-// Audit the static geometry of every Replay frame and the Canopy of committed
-// fixtures and saved qualification runs with the visual invariants
-// (tests/helpers/visualInvariants.mjs). Writes a JSON report and prints counts
-// per rule with the records and frames that carry them. Provider-free and
-// browser-free: text uses the bundled fonts, so a flag is a lead for a native
-// capture, not proof of a pixel. Usage:
+// Audit the static geometry of every Replay frame and the Canopy with the rules
+// in tests/helpers/visualRules.mjs, laid out offline by tests/helpers/visualFrames.mjs.
+// Text uses the bundled fonts, so a finding is a lead for a native capture, not
+// proof of a pixel. Discovery over saved runs:
 //   node scripts/auditReplayVisuals.mjs --fixtures \
 //     --batches "$HOME/Library/Application Support/Babel/codex-qualification" --out /tmp/visual-audit.json
+// `npm run verify:visual-offline` audits the committed fixtures with
+// `--exceptions tests/helpers/visualExceptions.mjs` and fails on any finding the
+// exceptions do not cover, on one beyond its bound, and on a stale exception.
 import { mkdtempSync, readdirSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { availableParallelism, tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
-import { RULES, THRESHOLDS } from '../tests/helpers/visualInvariants.mjs';
+import { matchFindings, proposeExceptions } from '../tests/helpers/findings.mjs';
+import { RULES, THRESHOLDS } from '../tests/helpers/visualRules.mjs';
 
 async function main() {
   const { values } = parseArgs({ allowNegative: true, options: {
     fixtures: { type: 'boolean', default: false }, runs: { type: 'string', multiple: true, default: [] },
     batches: { type: 'string', multiple: true, default: [] }, 'archive-manifest': { type: 'string', multiple: true, default: [] },
     only: { type: 'string' }, every: { type: 'string', default: '1' }, viewports: { type: 'string', default: 'desktop,desktop-large,mobile' },
-    canopy: { type: 'boolean', default: true }, jobs: { type: 'string', default: '2' }, out: { type: 'string' }
+    canopy: { type: 'boolean', default: true }, jobs: { type: 'string', default: '2' }, out: { type: 'string' }, exceptions: { type: 'string' }
   } });
-  if (!values.out || !(values.fixtures || values.runs.length || values.batches.length || values['archive-manifest'].length))
-    throw Error('Usage: node scripts/auditReplayVisuals.mjs --out report.json [--fixtures] [--runs DIR/runs ...] '
+  if (!(values.out || values.exceptions) || !(values.fixtures || values.runs.length || values.batches.length || values['archive-manifest'].length))
+    throw Error('Usage: node scripts/auditReplayVisuals.mjs (--out report.json | --exceptions module.mjs) [--fixtures] [--runs DIR/runs ...] '
       + '[--batches CODEX_QUALIFICATION_ROOT ...] [--archive-manifest FILE ...] [--only TEXT] [--every N] [--jobs N] [--viewports a,b] [--no-canopy]');
-  const records = await loadRecords(values);
   const every = Math.max(1, Number(values.every));
-  const selected = records.filter((record, index) => index % every === 0 && (!values.only || record.id.includes(values.only)));
+  const records = (await loadRecords(values)).filter((record, index) => index % every === 0 && (!values.only || record.id.includes(values.only)));
   const viewports = values.viewports.split(',').map(name => name.trim()).filter(Boolean);
-  const canopy = values.canopy, jobs = Math.max(1, Math.min(Number(values.jobs) || 1, availableParallelism()));
+  const jobs = Math.max(1, Math.min(Number(values.jobs) || 1, availableParallelism()));
   const started = performance.now();
-  const results = await runWorkers(selected, jobs, { viewports, canopy });
-  const durationMs = Math.round(performance.now() - started);
-  const report = summarize(results, { durationMs, viewports, canopy, thresholds: THRESHOLDS, jobs });
-  writeFileSync(path.resolve(values.out), `${JSON.stringify(report, null, 1)}\n`);
-  printSummary(report, path.resolve(values.out));
+  const results = await runWorkers(records, jobs, { viewports, canopy: values.canopy });
+  const report = { schemaVersion: 2, durationMs: Math.round(performance.now() - started), viewports, canopy: values.canopy, jobs,
+    thresholds: THRESHOLDS, records: results.length, frames: results.reduce((sum, result) => sum + (result.frames ?? 0), 0),
+    errors: results.filter(result => result.error).map(({ id, error }) => ({ id, error })),
+    findings: results.flatMap(result => result.findings ?? []) };
+  if (values.out) writeFileSync(path.resolve(values.out), `${JSON.stringify(report)}\n`);
+  console.log(`Visual audit: ${report.records} analyses, ${report.frames} laid-out frames (${viewports.join(', ')}`
+    + `${values.canopy ? ' + Canopy' : ''}) in ${(report.durationMs / 1000).toFixed(1)}s with ${jobs} jobs; ${report.errors.length} errors.`);
+  report.errors.slice(0, 10).forEach(({ id, error }) => console.log(`  error ${id}: ${error}`));
+  if (!values.exceptions) return summarize(report.findings);
+  const { EXCEPTIONS } = await import(pathToFileURL(path.resolve(values.exceptions)).href);
+  const { unexpected, exceeded, stale } = matchFindings(report.findings, EXCEPTIONS);
+  const show = (title, lines) => { if (lines.length) console.log(`\n${title} (${lines.length}):\n${lines.slice(0, 40).join('\n')}`); };
+  show('New findings; fix them, or list them after review', proposeExceptions(unexpected).map(entry => `  ${JSON.stringify(entry)}`));
+  show('Findings beyond their bound', exceeded.map(({ finding, exception }) =>
+    `  ${finding.record} ${finding.rule} ${finding.subject} frame ${finding.frame} ${finding.viewport}: ${finding.measure} > ${exception.max}`));
+  show('Stale exceptions; narrow or remove them', stale.map(({ exception, viewport, frame }) =>
+    `  ${exception.record} ${exception.rule} ${exception.subject} frame ${frame} ${viewport}`));
+  if (report.errors.length || unexpected.length || exceeded.length || stale.length) process.exitCode = 1;
+  else console.log(`All ${report.findings.length} findings are listed exceptions within their bounds.`);
+}
+
+function summarize(findings) {
+  for (const rule of RULES) {
+    const own = findings.filter(finding => finding.rule === rule), subjects = proposeExceptions(own);
+    console.log(`\n${rule}: ${own.length} findings, ${subjects.length} subjects, ${new Set(own.map(finding => finding.record)).size} analyses`);
+    subjects.slice(0, 12).forEach(entry => console.log(`  ${entry.record} [${entry.subtype}] ${entry.subject} at ${JSON.stringify(entry.at)}`));
+  }
 }
 
 async function loadRecords(values) {
   const records = [];
   if (values.fixtures) {
     const { loadFixtureAnalyses } = await import('../tests/helpers/replayInvariantCorpus.mjs');
-    for (const { id, record } of loadFixtureAnalyses().records) records.push({ id: `fixture:${id}`, input: record });
+    for (const { id, record } of loadFixtureAnalyses().records) records.push({ id, input: record });
   }
   const { runRecords } = await import('./buildCorpusArchiveManifest.mjs');
   const { loadCorpusManifest } = await import('./replayCorpusInputs.mjs');
@@ -70,19 +94,17 @@ function runWorkers(records, jobs, data) {
     const results = new Array(records.length);
     let next = 0, done = 0;
     if (!records.length) { resolve([]); return; }
-    const workers = Array.from({ length: Math.min(jobs, records.length) }, () =>
-      new Worker(fileURLToPath(import.meta.url), { workerData: data }));
+    const workers = Array.from({ length: Math.min(jobs, records.length) }, () => new Worker(fileURLToPath(import.meta.url), { workerData: data }));
     const feed = worker => {
-      if (next >= records.length) { worker.terminate(); return; }
+      if (next >= records.length) return;
       const index = next++;
       worker.postMessage({ index, id: records[index].id, input: records[index].input });
     };
     for (const worker of workers) {
       worker.on('message', result => {
         results[result.index] = result;
-        if (++done % 25 === 0) process.stderr.write(`audited ${done}/${records.length}\n`);
-        if (done === records.length) { workers.forEach(other => other.terminate()); resolve(results); }
-        else feed(worker);
+        if (++done % 50 === 0) process.stderr.write(`audited ${done}/${records.length}\n`);
+        if (done === records.length) { workers.forEach(other => other.terminate()); resolve(results); } else feed(worker);
       });
       worker.on('error', reject);
       feed(worker);
@@ -90,63 +112,12 @@ function runWorkers(records, jobs, data) {
   });
 }
 
-function summarize(results, meta) {
-  const counts = Object.fromEntries(RULES.map(rule => [rule, { violations: 0, frames: 0, records: 0 }]));
-  for (const result of results) for (const rule of RULES) {
-    const own = result.violations.filter(violation => violation.rule === rule);
-    if (!own.length) continue;
-    counts[rule].violations += own.length;
-    counts[rule].frames += new Set(own.map(violation => violation.frame)).size;
-    counts[rule].records += 1;
-  }
-  return { schemaVersion: 1, ...meta, records: results.length, frames: results.reduce((sum, result) => sum + (result.frames ?? 0), 0),
-    errors: results.filter(result => result.error).map(result => ({ id: result.id, error: result.error })),
-    counts, results: results.map(({ index: _index, ...result }) => result) };
-}
-
-const frameRange = frames => {
-  const numbers = frames.filter(frame => typeof frame === 'number').sort((a, b) => a - b);
-  const spans = [];
-  for (const frame of numbers) {
-    const last = spans.at(-1);
-    if (last && frame === last[1] + 1) last[1] = frame; else spans.push([frame, frame]);
-  }
-  return [...spans.map(([a, b]) => a === b ? `${a}` : `${a}-${b}`), ...(frames.includes('canopy') ? ['canopy'] : [])].join(',');
-};
-
-function printSummary(report, out) {
-  console.log(`Visual audit: ${report.records} analyses, ${report.frames} laid-out frames (${report.viewports.join(', ')}`
-    + `${report.canopy ? ' + Canopy' : ''}) in ${(report.durationMs / 1000).toFixed(1)}s with ${report.jobs} jobs; ${report.errors.length} errors.`);
-  for (const rule of RULES) {
-    const count = report.counts[rule];
-    console.log(`\n${rule}: ${count.violations} violations, ${count.frames} frames, ${count.records} analyses`);
-    const lines = report.results.flatMap(result => {
-      const groups = new Map();
-      for (const violation of result.violations.filter(item => item.rule === rule)) {
-        const group = groups.get(violation.subject) ?? { violation, frames: [] };
-        group.frames.push(violation.frame);
-        groups.set(violation.subject, group);
-      }
-      return [...groups.values()].map(group => `  ${result.id} frames ${frameRange(group.frames)}: ${group.violation.detail}`);
-    });
-    lines.slice(0, 12).forEach(line => console.log(line));
-    if (lines.length > 12) console.log(`  … ${lines.length - 12} more in ${out}`);
-  }
-  if (report.errors.length) console.log(`\nErrors:\n${report.errors.slice(0, 10).map(error => `  ${error.id}: ${error.error}`).join('\n')}`);
-}
-
 if (!isMainThread) {
-  const { auditVisualRecord } = await import('../tests/helpers/visualAudit.mjs');
-  const { VIEWPORTS } = await import('../tests/helpers/visualFrames.mjs');
+  const { auditVisualRecord, VIEWPORTS } = await import('../tests/helpers/visualFrames.mjs');
   const viewports = VIEWPORTS.filter(viewport => workerData.viewports.includes(viewport.name));
   parentPort.on('message', ({ index, id, input }) => {
-    const started = performance.now();
-    try {
-      const result = auditVisualRecord(input, { viewports, canopy: workerData.canopy });
-      parentPort.postMessage({ index, id, ...result, ms: Math.round(performance.now() - started) });
-    } catch (error) {
-      parentPort.postMessage({ index, id, error: String(error?.stack ?? error).split('\n').slice(0, 3).join(' | '), violations: [],
-        ms: Math.round(performance.now() - started) });
+    try { parentPort.postMessage({ index, id, ...auditVisualRecord(id, input, { viewports, canopy: workerData.canopy }) }); } catch (error) {
+      parentPort.postMessage({ index, id, error: String(error?.stack ?? error).split('\n').slice(0, 3).join(' | ') });
     }
   });
 } else await main();

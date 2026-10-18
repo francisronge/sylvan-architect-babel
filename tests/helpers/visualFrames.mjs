@@ -1,24 +1,25 @@
-/** Offline laid-out frames for the visual invariants (tests/helpers/visualInvariants.mjs).
+/** The offline adapter for tests/helpers/visualRules.mjs: every Replay frame
+ * and the Canopy, laid out as the browser lays them out and normalized to the
+ * rules' frame model.
  *
- * Each Replay frame follows the browser's own order: Replay preparation, the
- * plaque worker job (measure, run, bind), the stage tree layout with its
- * reserved coordinates, the step's plaque schedule, the stage camera bounds and
- * Fit, and the relation binder with its neutral-label refit at that Fit. Only
- * the DOM reads are replaced: text is measured from the bundled fonts
- * (visualFontMetrics.mjs), so painted label boxes, relation ink and the camera
- * are close to, but not identical with, a native capture.
- *
- * A frame lists painted geometry in tree units: `labels` (category labels and
- * words with their index runs), `stems`, `branches`, `plaques`, `roles`
- * (neutral role labels) and `connectors` (neutral links and fan spokes), plus
- * the Fit `zoom` that converts tree units to CSS pixels. */
+ * scripts/replayFrameLayout.mjs runs the measured browser path (plaque worker
+ * job, stage tree layout, unary alignment, stage camera bounds); the real
+ * fitTreeCamera picks each viewport's Fit; the relation binder and the
+ * neutral-label refit place role labels and connectors at that Fit, as
+ * paintRelationScene does. Only DOM reads are replaced: text is measured from
+ * the bundled fonts (visualFontMetrics.mjs), so boxes, plaque sizes and the Fit
+ * approximate a native capture and never replace one. */
 import * as d3 from 'd3';
+import * as canvas from '../../replay/replayCanvas.ts';
+import * as camera from '../../replay/stageCamera.ts';
+import * as coordinates from '../../replay/stageCoordinates.ts';
+import * as display from '../../replay/displayIdentity.ts';
+import * as layout from '../../replay/treeLayout.ts';
+import * as plaqueJob from '../../replay/plaqueLayoutJob.ts';
 import { CATEGORY_FONT, CATEGORY_LINE_HEIGHT, categoryTextLayout } from '../../replay/categoryTextLayout.ts';
-import { applyVizIds, getNodeId } from '../../replay/displayIdentity.ts';
-import { bindPlaqueLayoutResult, measurePlaqueLayoutJob, runPlaqueLayoutJob } from '../../replay/plaqueLayoutJob.ts';
 import { prepareReplay } from '../../replay/prepareReplay.ts';
 import { prepareTreeLabelRuns } from '../../replay/prepareTreeLabelRuns.ts';
-import { fallbackLabelRect, fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations/fallbackGeometry.ts';
+import { fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations/fallbackGeometry.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
 import { projectVisibleAnchorSetOrganization } from '../../replay/relations/relationFrame.ts';
@@ -28,64 +29,46 @@ import {
 import { projectThetaGrid } from '../../replay/relations/thetaGridComposition.ts';
 import { resolveUniqueDisplayTerminal } from '../../replay/relations/trajectoryAttachment.ts';
 import {
-  buildDerivationCanvasData, buildRenderableCommittedCanvasData, buildRenderableDerivationCanvasData,
-  indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode
-} from '../../replay/replayCanvas.ts';
-import {
   isDisplayTerminalNode, isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf
 } from '../../replay/replaySurfaceNotation.ts';
-import {
-  buildStageCameraBounds, buildStageLayoutGroups, selectReplayPlaqueLayout, STAGE_CAMERA_PADDING,
-  stageTreeLayoutSize, treeLayoutSize
-} from '../../replay/stageCamera.ts';
-import { cloneSyntaxTree } from '../../replay/syntaxForest.ts';
-import { layoutSyntaxTree } from '../../replay/treeLayout.ts';
 import { treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
 import { buildMovementProtectedNodeIds, isUnderTriangulation } from '../../replay/triangulation.ts';
+import * as notation from '../../components/renderer/treeNotation.ts';
+import { fitTreeCamera } from '../../components/renderer/frameCamera.ts';
 import { createPrimitiveVisibility } from '../../components/renderer/relationVisibility.ts';
-import { alignReplayUnaryTerminalLeaves } from '../../components/renderer/treeNotation.ts';
 import { createTreeInkTextMeasure, TERMINAL_FONT } from '../../components/treeInkTextMeasure.ts';
 import { createTreeLabelMeasure } from '../../components/treeLabelMeasure.ts';
-import { availableTreeViewport, containCamera } from '../../components/treeViewport.ts';
-import {
-  createMeasuringDocument, measureCategoryText, measurePlaqueText, measureRun, parseFont
-} from './visualFontMetrics.mjs';
+import { availableTreeViewport } from '../../components/treeViewport.ts';
+import { layoutReplayFrames } from '../../scripts/replayFrameLayout.mjs';
+import { createCameraHarness } from './cameraHarness.mjs';
+import { createSvgDom } from './svgDom.mjs';
+import { checkFrame, THRESHOLDS } from './visualRules.mjs';
+import { createMeasuringDocument, measureCategoryText, measurePlaqueText, measureRun, parseFont } from './visualFontMetrics.mjs';
 
 /** Browser windows the audit fits. The tree canvas sits below the app bar: a
- * 1600×1000 capture measured a 1596×876 canvas. The Replay header, panel
- * (styles.css: `height: min(260px, 40%)`, at least 148px) and right-hand
- * controls are the obstacles TreeVisualizer measures for fitting; with these
- * estimates the Fit of that capture is reproduced within 1.1%. The mobile
- * canvas and controls have not been checked against a capture. */
+ * 1600×1000 capture measured a 1596×876 canvas. The Replay header and panel
+ * (styles.css: `height: min(260px, 40%)`, at least 148px) and the right-hand
+ * controls (App.tsx: `right-4 md:right-8`, 44 or 56px wide, 12px clearance) are
+ * the obstacles TreeVisualizer measures for fitting. With these estimates the
+ * Fit of that capture is reproduced within 1.1%; the mobile canvas has not been
+ * checked against a capture. */
 export const VIEWPORTS = Object.freeze([
   { name: 'desktop', window: [1440, 900] },
   { name: 'desktop-large', window: [2560, 1440] },
   { name: 'mobile', window: [390, 844] }
 ].map(({ name, window: [width, height] }) => Object.freeze({ name, width: width - 4, height: height - 124 })));
 
-export function viewportObstacles({ width, height }, replay) {
+export function viewportObstacles({ width, height }, replay = true) {
   const panel = Math.max(148, Math.min(260, 0.4 * height, height - 100));
-  return { top: 0, right: width < 500 ? 16 : 100, bottom: 16, headerBottom: replay ? 66 : 42,
+  return { top: 0, right: width < 768 ? 72 : 100, bottom: 16, headerBottom: replay ? 66 : 42,
     panelTop: replay ? height - 16 - panel : Infinity };
 }
 
-// TreeVisualizer: plans whose accepted compositions draw over the tree first.
-const TREE_FIRST_FAMILIES = new Set(['copy.multiple-pronunciation', 'copy.partial-deletion', 'multidominance.shared-node',
-  'argument-sharing.domains', 'pf.phrasal-spellout', 'pf.correspondence', 'pf.fission', 'pf.impoverishment',
-  'pf.local-dislocation', 'pf.cyclic-linearization', 'cooper-storage.ledger', 'scope.operator-variable', 'accord.link',
-  'accord.strong-npi', 'focus.prominence', 'focus.f-projection', 'theta.grid']);
-
-// The first strong character decides the browser's `dir="auto"`.
-const RTL = /[\p{Script=Hebrew}\p{Script=Arabic}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
-export const treeDirection = sentence => {
-  const strong = [...String(sentence ?? '')].find(char => /\p{L}/u.test(char));
-  return strong && RTL.test(strong) ? 'rtl' : 'ltr';
-};
-
 // The renderer's own tree-ink and styled-label measures, reading the bundled fonts.
-const document = createMeasuringDocument();
-const measureTreeInk = createTreeInkTextMeasure(document);
-const measureTreeLabel = createTreeLabelMeasure(document);
+const measuringDocument = createMeasuringDocument();
+const measureTreeInk = createTreeInkTextMeasure(measuringDocument);
+const measureTreeLabel = createTreeLabelMeasure(measuringDocument);
+const MODULES = { coordinates, camera, layout, display, d3, plaqueJob, notation, canvas };
 
 const rect = (x, y, width, height) => ({ x, y, width, height });
 const union = rects => {
@@ -94,13 +77,14 @@ const union = rects => {
 };
 const isCategory = node => Boolean(node.children?.length) || shouldExpandPreterminalLeaf(node.data) || isWordlessCategoryLeaf(node.data);
 const isTerminal = node => !node.children?.length && !isWordlessCategoryLeaf(node.data);
+const refsOf = item => planItemRelationRefs(item).map(ref => `${ref.stageIndex}:${ref.relationIndex}`);
 const INDEX_FONT = { family: 'Crimson Pro', italic: true, weight: 900 };
 
 /** Painted label geometry: `boxes` holds one glyph box per painted line and
- * per index run, `ink` their union, and `cell` the SVG text box the renderer
- * measures (font cells). Index runs follow treeLabelIndexAttributes: dx 5, a
- * subscript shift or a theta dy. Separate boxes keep the empty corner beside a
- * short line or below a word next to its lowered index out of the glyphs. */
+ * per index run, and `cell` the SVG text box the renderer measures (font cells).
+ * Index runs follow treeLabelIndexAttributes: dx 5, a subscript shift or a theta
+ * dy. Separate boxes keep the empty corner beside a short line, or below a word
+ * next to its lowered index, out of the glyphs. */
 export function labelGeometry(node, run) {
   const terminal = run.kind === 'terminal', font = parseFont(terminal ? TERMINAL_FONT : CATEGORY_FONT);
   const lines = terminal ? [run.text] : run.lines ?? [run.text];
@@ -112,8 +96,7 @@ export function labelGeometry(node, run) {
       font: { ...INDEX_FONT, size: terminal ? 30 : 22 }, dx: 5,
       shift: indexRun.mode === 'identity' ? (terminal ? 6 : 4.4) : terminal ? 14 : 9 });
     const measured = pieces.map(piece => ({ ...piece, run: measureRun(piece.text, piece.font) }));
-    const width = measured.reduce((sum, piece) => sum + piece.dx + piece.run.width, 0);
-    let pen = node.x - width / 2;
+    let pen = node.x - measured.reduce((sum, piece) => sum + piece.dx + piece.run.width, 0) / 2;
     for (const piece of measured) {
       pen += piece.dx;
       const y = baseline + piece.shift;
@@ -123,7 +106,7 @@ export function labelGeometry(node, run) {
       pen += piece.run.width;
     }
   });
-  return { boxes, ink: boxes.length ? union(boxes) : null, cell: union(cells), lines };
+  return { boxes, cell: union(cells), lines };
 }
 
 /** Sampled d3.linkVertical cubic from a parent to a child position. */
@@ -136,343 +119,249 @@ export function branchPoints(source, target, samples = 24) {
   });
 }
 
-/** Straight pieces of an SVG path drawn with M, L, H, V and Q commands. */
-export function pathPieces(d) {
+/** Polylines of an SVG path drawn with M, L, H, V and Q commands. */
+export function pathPolylines(d) {
   const tokens = String(d || '').trim().match(/[MLHVQ]|-?\d*\.?\d+(?:e-?\d+)?/gi) ?? [];
-  const pieces = [];
+  const paths = [];
   let at = null, index = 0;
   const number = () => Number(tokens[index++]);
+  const to = point => { paths.at(-1).push(point); at = point; };
   while (index < tokens.length) {
     const command = tokens[index++];
-    if (command === 'M') at = { x: number(), y: number() };
-    else if (command === 'L') { const next = { x: number(), y: number() }; pieces.push([at, next]); at = next; }
-    else if (command === 'H') { const next = { x: number(), y: at.y }; pieces.push([at, next]); at = next; }
-    else if (command === 'V') { const next = { x: at.x, y: number() }; pieces.push([at, next]); at = next; }
+    if (command === 'M') { at = { x: number(), y: number() }; paths.push([at]); }
+    else if (command === 'L') to({ x: number(), y: number() });
+    else if (command === 'H') to({ x: number(), y: at.y });
+    else if (command === 'V') to({ x: at.x, y: number() });
     else if (command === 'Q') {
-      const control = { x: number(), y: number() }, end = { x: number(), y: number() };
-      let previous = at;
+      const start = at, control = { x: number(), y: number() }, end = { x: number(), y: number() };
       for (let step = 1; step <= 12; step++) {
         const t = step / 12, u = 1 - t;
-        const point = { x: u * u * at.x + 2 * u * t * control.x + t * t * end.x, y: u * u * at.y + 2 * u * t * control.y + t * t * end.y };
-        pieces.push([previous, point]); previous = point;
+        to({ x: u * u * start.x + 2 * u * t * control.x + t * t * end.x, y: u * u * start.y + 2 * u * t * control.y + t * t * end.y });
       }
-      at = end;
     } else throw Error(`Unsupported path command ${command} in ${d}`);
   }
-  return pieces;
+  return paths.filter(path => path.length > 1);
 }
 
-/** The allocator's nearby pockets for a proximity plaque (plaquePlacement.ts,
- * placeStagePlaques): three columns at six heights around the anchor, measured
- * from a word-bearing leaf's word. Returns the farthest pocket's centre distance. */
-export function plaqueNearbyReach(anchor, width, height) {
-  const anchorY = anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0);
-  let reach = 0;
-  for (const dy of [-height - 60, -height / 2, 55, 115, 175, 235]) for (const x of [anchor.x + 110, anchor.x - width - 110, anchor.x - width / 2])
-    reach = Math.max(reach, Math.hypot(x + width / 2 - anchor.x, anchorY + dy + height / 2 - anchorY));
-  return { reach, anchorY };
-}
-
-const relationKey = item => planItemRelationRefs(item).map(ref => `${ref.stageIndex}:${ref.relationIndex}`).join('/');
-
-/** One painted plaque: its shell at the projected placement, and its distance
- * from the anchor as the allocator measures it. Plaques with their own Case
- * arrow or collector (`connector`) and large plaques placed below their
- * subtree by design (`local` false) are not held to the nearby reach. */
+/** A placed plaque in the rules' model. The allocator measures from a
+ * word-bearing leaf's word, 140 units below it. A Case route or a feature
+ * collector joins the plaque to syntax. */
 export function plaqueRecord(item, box, anchor) {
-  const width = box.drawnWidth ?? box.width, height = box.drawnHeight ?? box.height;
-  const theta = item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid';
-  const text = item.kind === 'node-plaque' ? (theta ? `theta ${(item.thetaRoles ?? []).map(role => role.role ?? role.label).join('/')}`
+  const grid = item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid';
+  const text = item.kind === 'node-plaque' ? (grid ? `theta ${(item.thetaRoles ?? []).map(role => role.role ?? role.label).join('/')}`
     : (item.rows ?? []).map(row => `${row.label}: ${row.value}`).join('; ')) : `${item.kind} ${item.pathStyle ?? ''}`.trim();
-  const { reach, anchorY } = anchor ? plaqueNearbyReach(anchor, box.width, box.height) : { reach: Infinity, anchorY: 0 };
-  // Identities hold across frames; plan item indices do not.
-  return { id: `plaque(${relationKey(item)} ${text.slice(0, 48)})@${box.attachmentNodeId}`, relation: relationKey(item),
-    anchorId: box.attachmentNodeId, text, rect: rect(box.x, box.y, width, height), theta,
-    local: Math.max(box.width, box.height) <= 480 || (theta && box.height <= 480),
-    connector: item.kind === 'directed-path' || Boolean(box.collectionRows?.length),
-    anchor: anchor ? { x: anchor.x, y: anchorY } : null, reach,
-    distance: anchor ? Math.hypot(box.x + box.width / 2 - anchor.x, box.y + box.height / 2 - anchorY) : 0 };
+  return { id: `plaque(${refsOf(item).join('/')} ${text.slice(0, 48)})@${box.attachmentNodeId}`, text, claims: refsOf(item),
+    rect: rect(box.x, box.y, box.drawnWidth ?? box.width, box.drawnHeight ?? box.height), radius: 14,
+    size: { width: box.width, height: box.height }, grid,
+    joined: item.kind === 'directed-path' || Boolean(box.collectionRows?.length),
+    anchor: anchor && { x: anchor.x, y: anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0) } };
 }
 
 /** The neutral role placer's preferred spots (fallbackGeometry.ts,
- * placeFallbackMark), including its viewport alternatives above and below. */
-export function roleNearbyReach(mark, scale) {
+ * placeFallbackMark), with its viewport alternatives above and below. */
+function roleReach(mark, scale) {
   const r = mark.labelRect, gap = (mark.textWidth / 2 + 7) * scale, center = { x: r.x + r.width / 2, y: r.y + r.height / 2 };
   const spots = [{ x: r.x + r.width + gap, y: center.y }, { x: r.x - gap, y: center.y }, { x: center.x, y: r.y - 15 * scale },
     { x: r.x + r.width + gap, y: r.y - 15 * scale }, { x: r.x - gap, y: r.y - 15 * scale }, { x: center.x, y: r.y + r.height + 15 * scale }];
-  return { center, reach: Math.max(...spots.map(spot => Math.hypot(spot.x - center.x, spot.y - center.y))) };
+  return { reach: Math.max(...spots.map(spot => Math.hypot(spot.x - center.x, spot.y - center.y))),
+    distance: Math.hypot(mark.x - center.x, mark.y - center.y) };
 }
 
-const drain = iterator => { let next = iterator.next(); while (!next.done) next = iterator.next(); return next.value; };
+/** The browser resolves Replay direction from the sentence's first strong character. */
+const RTL = /[\p{Script=Hebrew}\p{Script=Arabic}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Nko}]/u;
+const directionOf = sentence => RTL.test([...String(sentence ?? '')].find(char => /\p{L}/u.test(char)) ?? '') ? 'rtl' : 'ltr';
 
 /** Replay preparation shared by every viewport of one record. */
 export function prepareVisualRecord(record) {
   const prepared = prepareReplay({ derivationStages: structuredClone(record.derivationStages), sentence: record.sentence,
     inputTokens: record.inputTokens, includePlayback: true });
   const runs = new Map();
-  return {
-    record, prepared, direction: treeDirection(record.sentence),
+  return { record, prepared, direction: directionOf(record.sentence),
     treeLabelRuns: prepareTreeLabelRuns(prepared, measureCategoryText, { includeRelationIndices: true }),
     protectedNodeIds: buildMovementProtectedNodeIds(prepared.committedDerivationVisualLinks),
     stepRuns(index) {
       if (!runs.has(index)) runs.set(index, treeLabelRunsForStep(prepared, index, measureCategoryText, { includeRelationIndices: true }));
       return runs.get(index);
-    }
-  };
+    } };
 }
 
 const firstRun = (runs, kind) => runs?.find(run => run.kind === kind);
 
-/** Tree material painted by paintSyntaxTree for one laid-out frame. */
+/** Tree text, stems and branches painted by paintSyntaxTree. */
 function paintedTree(tree, visible, runsFor) {
-  const nodes = tree.descendants().filter(node => !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
-    && (!visible || visible.has(getNodeId(node))));
-  const shown = new Set(nodes);
-  const labels = [], stems = [], branches = [];
+  const nodes = tree.descendants().filter(node => !isUnderTriangulation(node) && !canvas.isSyntheticWorkspaceRootNode(node)
+    && (!visible || visible.has(display.getNodeId(node))));
+  const shown = new Set(nodes), texts = [], lines = [];
   for (const node of nodes) {
-    const id = getNodeId(node), runs = runsFor(node);
+    const id = display.getNodeId(node), runs = runsFor(node);
     if (isCategory(node)) {
-      const run = firstRun(runs, 'category') ?? { kind: 'category', text: node.data.label || '', lines: categoryTextLayout(node.data.label || '', measureCategoryText).lines, indices: [] };
-      const geometry = labelGeometry(node, run);
-      if (geometry.ink) labels.push({ id: `${id}:category`, node: id, kind: 'category', text: run.text, lines: geometry.lines,
-        indices: run.indices.map(index => index.text), boxes: geometry.boxes, ink: geometry.ink, cell: geometry.cell, halo: 5 });
+      const run = firstRun(runs, 'category') ?? { kind: 'category', text: node.data.label || '',
+        lines: categoryTextLayout(node.data.label || '', measureCategoryText).lines, indices: [] };
+      const { boxes, cell, lines: wrapped } = labelGeometry(node, run);
+      if (boxes.length) texts.push({ id: `${id}:category`, kind: 'category', text: run.text, boxes, cell, halo: 5, nodes: [id], claims: [], lines: wrapped });
     }
     if (isTerminal(node)) {
       const run = firstRun(runs, 'terminal') ?? { kind: 'terminal', text: resolveLeafSurface(node).trim(), indices: [] };
-      const geometry = labelGeometry(node, run);
-      if (geometry.ink) labels.push({ id: `${id}:word`, node: id, kind: 'word', text: run.text,
-        indices: run.indices.map(index => index.text), boxes: geometry.boxes, ink: geometry.ink, cell: geometry.cell, halo: 4 });
-      stems.push({ id: `${id}:stem`, node: id, points: [{ x: node.x, y: node.y + 20 }, { x: node.x, y: node.y + 65 }] });
+      const { boxes, cell } = labelGeometry(node, run);
+      if (boxes.length) texts.push({ id: `${id}:word`, kind: 'word', text: run.text, boxes, cell, halo: 4, nodes: [id], claims: [] });
+      lines.push({ id: `${id}:stem`, kind: 'stem', paths: [[{ x: node.x, y: node.y + 20 }, { x: node.x, y: node.y + 65 }]],
+        halfWidth: 1.5, nodes: [id], claims: [] });
     }
-    if (node.parent && shown.has(node.parent))
-      branches.push({ id: `${getNodeId(node.parent)}->${id}`, parent: getNodeId(node.parent), child: id,
-        points: branchPoints(node.parent, node) });
+    if (node.parent && shown.has(node.parent)) lines.push({ id: `${display.getNodeId(node.parent)}->${id}`, kind: 'branch',
+      paths: [branchPoints(node.parent, node)], halfWidth: 2, nodes: [display.getNodeId(node.parent), id], claims: [] });
   }
-  return { nodes, labels, stems, branches };
+  return { nodes, texts, lines };
 }
 
-/** Fit as fitTreeCamera computes it for a fresh frame (no retained manual or
- * advanced pose): stage camera bounds when Replay has them, else painted bounds. */
-function fitCamera(bounds, viewport, obstacles, minimum, containment) {
-  const view = availableTreeViewport(viewport.width, viewport.height, obstacles);
-  const availableWidth = Math.max(1, view.right - view.left), availableHeight = Math.max(1, view.bottom - view.top);
-  const contentWidth = Math.max(1, bounds.maxX - bounds.minX + 2 * STAGE_CAMERA_PADDING.x);
-  const contentHeight = Math.max(1, bounds.maxY - bounds.minY + 2 * STAGE_CAMERA_PADDING.y);
-  const k = Math.max(minimum, Math.min(availableWidth / contentWidth, availableHeight / contentHeight, 1));
-  let transform = { x: view.left + availableWidth / 2 - (bounds.minX + bounds.maxX) / 2 * k,
-    y: view.top + availableHeight / 2 - (bounds.minY + bounds.maxY) / 2 * k, k };
-  if (containment) transform = containCamera(transform, containment, view);
-  return { ...transform, view };
-}
-
-/** Every painted Replay frame of one record at each viewport. Layout depends
- * on the viewport only through the stage layout sizes, so viewports with equal
- * sizes share one plaque job, tree layout and stage camera bounds; each still
- * gets its own Fit and neutral-label refit. */
-export function layoutReplayVisualFrames(visual, viewports = VIEWPORTS, { steps: only } = {}) {
-  const { prepared } = visual;
-  const steps = prepared.playbackSteps, stages = prepared.replayDerivationFrames;
+/** Every painted Replay frame of one record at each viewport. Layout depends on
+ * the viewport only through the stage layout sizes, so viewports with equal
+ * sizes share one layout; each gets its own Fit and neutral-label refit. */
+export function layoutVisualFrames(visual, viewports = VIEWPORTS, { steps: only } = {}) {
+  const { prepared } = visual, steps = prepared.playbackSteps, stages = prepared.replayDerivationFrames;
   if (!steps.length || !stages.length) return [];
-  const layoutGroups = buildStageLayoutGroups(steps, stages);
-  const shared = new Map();
-  for (const viewport of [viewports].flat()) {
-    const key = JSON.stringify(stages.map((_, stage) => stageTreeLayoutSize(steps, stage, viewport.width, viewport.height, layoutGroups)));
-    if (!shared.has(key)) shared.set(key, []);
-    shared.get(key).push(viewport);
+  const groups = camera.buildStageLayoutGroups(steps, stages), shared = new Map();
+  for (const viewport of viewports) {
+    const key = JSON.stringify(stages.map((_, stage) => camera.stageTreeLayoutSize(steps, stage, viewport.width, viewport.height, groups)));
+    shared.set(key, [...(shared.get(key) ?? []), viewport]);
   }
-  return [...shared.values()].flatMap(group => layoutGroupFrames(visual, group, layoutGroups, only));
+  const { Element, restore } = createSvgDom();
+  try { return [...shared.values()].flatMap(group => layoutGroup(visual, group, only, Element)); } finally { restore(); }
 }
 
-function layoutGroupFrames(visual, viewports, layoutGroups, only) {
-  const { prepared, direction, treeLabelRuns, protectedNodeIds } = visual;
-  const steps = prepared.playbackSteps, plan = prepared.relationRenderPlan, stages = prepared.replayDerivationFrames;
-  const { width, height } = viewports[0];
-  const completedCanvas = buildRenderableDerivationCanvasData(stages.at(-1).workspaceForest || []);
-  const input = { steps, stageIndex: 0, completedCanvas, plan, width, height, direction, abstractionMode: false,
-    protectedNodeIds, layoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel };
-  const job = drain(measurePlaqueLayoutJob(input));
-  const { schedule, coordinates } = bindPlaqueLayoutResult(input, job, runPlaqueLayoutJob(job));
-  const cameras = new Map();
-  const frames = [];
-  steps.forEach((step, stepIndex) => {
-    if (only && !only.includes(stepIndex + 1)) return;
-    const stage = step.replayFrameIndex, canvas = step.replayCanvasData;
-    if (!canvas || !Number.isInteger(stage)) return;
-    const size = stageTreeLayoutSize(steps, stage, width, height, layoutGroups);
-    const stageCoordinates = coordinates.get(stage)?.get(canvas);
-    const visible = step.replayVisibleNodeIds?.length ? new Set(step.replayVisibleNodeIds.map(String)) : null;
-    const root = d3.hierarchy(cloneSyntaxTree(canvas)); applyVizIds(root);
-    const tree = layoutSyntaxTree(root, size ?? treeLayoutSize(root.descendants().length, root.height, width, height), direction,
-      stageCoordinates, stageCoordinates ? visible ?? undefined : undefined, { measureCategoryText, measureTreeInk });
-    alignReplayUnaryTerminalLeaves(tree, visible);
-    const runs = visual.stepRuns(stepIndex);
-    const painted = paintedTree(tree, visible, node => runs.get(getNodeId(node)));
-    // Camera: one stage-wide fit, except the completed final frame.
-    const completedReplayStep = stepIndex === steps.length - 1 && step.replayKind === 'macro' ? stepIndex : undefined;
-    const items = plan?.frames[stage]?.items ?? [];
-    const treeFirst = items.some(item => TREE_FIRST_FAMILIES.has(item.familyId));
-    const cameraKey = `${stage}:${completedReplayStep}`;
-    if (!cameras.has(cameraKey)) {
-      const stagePlaqueLayout = selectReplayPlaqueLayout(schedule, stage);
-      const common = { steps, stageIndex: stage, stepIndex: completedReplayStep,
-        completedCanvas: buildRenderableDerivationCanvasData(stages[stage].workspaceForest || []), plan, width, height, direction,
-        abstractionMode: false, protectedNodeIds, plaqueLayout: stagePlaqueLayout, plaqueSchedule: schedule, coordinates,
-        layoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel };
-      const bounds = buildStageCameraBounds({ ...common, includeOverlays: !treeFirst });
-      const containment = bounds && (treeFirst || items.some(item => item.kind === 'binding-domain'))
-        ? buildStageCameraBounds({ ...common, includeOverlays: false, includePlaques: true, includeBindingDomains: true }) : null;
-      cameras.set(cameraKey, { bounds, containment });
-    }
-    const { bounds, containment } = cameras.get(cameraKey);
-    const fitBounds = bounds ?? (() => {
-      const xs = painted.nodes.map(node => node.x), ys = painted.nodes.map(node => node.y);
-      return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) + 130 };
-    })();
-    const stageFit = containment && bounds ? {
-      minX: Math.min(containment.minX, bounds.minX - STAGE_CAMERA_PADDING.x), maxX: Math.max(containment.maxX, bounds.maxX + STAGE_CAMERA_PADDING.x),
-      minY: Math.min(containment.minY, bounds.minY - STAGE_CAMERA_PADDING.y), maxY: Math.max(containment.maxY, bounds.maxY + STAGE_CAMERA_PADDING.y)
-    } : null;
-    const { nodes: _nodes, ...syntax } = painted;
-    for (const viewport of viewports) {
-      const camera = fitCamera(fitBounds, viewport, viewportObstacles(viewport, true), viewport.width < 500 ? 0.02 : 0.06, stageFit);
-      frames.push({ view: 'replay', frame: stepIndex + 1, stage, kind: step.replayKind, operation: step.operation,
-        viewport: viewport.name, zoom: camera.k, ...syntax,
-        ...relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule, camera, runs }) });
-    }
+function layoutGroup(visual, viewports, only, Element) {
+  const { prepared } = visual, steps = prepared.playbackSteps, plan = prepared.relationRenderPlan;
+  const scene = layoutReplayFrames({ steps, stages: prepared.replayDerivationFrames, width: viewports[0].width, height: viewports[0].height,
+    direction: visual.direction, measured: { plan, protectedNodeIds: visual.protectedNodeIds, treeLabelRuns: visual.treeLabelRuns,
+      measurePlaqueText, measureCategoryText, measureTreeInk, measureTreeLabel } }, MODULES);
+  return scene.scenes.flatMap(({ step, tree, visible, nodes }, stepIndex) => {
+    if (only && !only.includes(stepIndex + 1) || !step.replayCanvasData || !Number.isInteger(step.replayFrameIndex)) return [];
+    const stage = step.replayFrameIndex, runs = visual.stepRuns(stepIndex);
+    const shown = step.replayVisibleNodeIds?.length ? visible : null;
+    const painted = paintedTree(tree, shown, node => runs.get(display.getNodeId(node)));
+    const completedStep = stepIndex === steps.length - 1 && step.replayKind === 'macro' ? stepIndex : undefined;
+    const { bounds, containment } = scene.stageCamera(stage, completedStep);
+    return viewports.map(viewport => {
+      // The real Fit of a directly loaded frame; fitFallbackOverlays reports it.
+      const harness = createCameraHarness(Element, { width: viewport.width, height: viewport.height, animated: true, step: stepIndex });
+      let fitted = null;
+      harness.run(() => fitTreeCamera({ session: harness.session, layout: { relationRenderPlan: plan, activeDerivationFrameIndex: stage,
+        uiBounds: viewportObstacles(viewport), stageCameraBounds: bounds, stagePlaqueContainmentBounds: containment,
+        completedReplayStep: completedStep, g: harness.group, fitFallbackOverlays: (k, view) => { fitted = { k, view }; },
+        derivationFrameFitNodes: [...nodes.values()], overlayFitBounds: null, visibleNodes: [...nodes.values()] } }));
+      const marks = relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule: scene.schedule, fitted, runs });
+      return { frame: stepIndex + 1, viewport: viewport.name, zoom: fitted.k, texts: [...painted.texts, ...marks.texts],
+        plaques: marks.plaques, lines: [...painted.lines, ...marks.lines] };
+    });
   });
-  return frames;
 }
 
-/** Plaques, neutral role labels and connectors, as paintRelationScene binds
- * them for this step and fitFallbackOverlays refits them at the Fit. */
-function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule, camera, runs }) {
-  const stage = step.replayFrameIndex, empty = { plaques: [], roles: [], connectors: [] };
-  if (!plan?.frames[stage]) return empty;
-  const steps = visual.prepared.playbackSteps;
-  const played = new Set();
+/** Plaques, neutral role labels and connectors, bound as paintRelationScene
+ * binds them for this step and refit at the Fit as fitFallbackOverlays does. */
+function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule, fitted, runs }) {
+  const stage = step.replayFrameIndex, none = { texts: [], plaques: [], lines: [] };
+  if (!plan?.frames[stage]) return none;
+  const steps = visual.prepared.playbackSteps, played = new Set();
   for (let index = 0; index <= stepIndex; index++) {
     const identity = steps[index].replayRelationIdentity;
     if (steps[index].replayKind === 'relation' && identity?.stageIndex === stage) played.add(identity.relationIndex);
   }
-  const active = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
-  const activeIndex = active?.stageIndex === stage ? active.relationIndex : null;
-  const all = tree.descendants();
-  const laidOut = indexHierarchyNodesByIdAndAliases(all);
-  const overlay = indexHierarchyNodesByIdAndAliases(painted.nodes);
-  const visibleIds = new Set(overlay.keys());
+  const active = step.replayKind === 'relation' && step.replayRelationIdentity?.stageIndex === stage ? step.replayRelationIdentity.relationIndex : null;
+  const all = tree.descendants(), laidOut = canvas.indexHierarchyNodesByIdAndAliases(all);
+  const overlay = canvas.indexHierarchyNodesByIdAndAliases(painted.nodes), visibleIds = new Set(overlay.keys());
   const resolveOverlayAnchor = id => overlay.get(id) ?? (() => {
     const node = laidOut.get(id);
-    return node?.descendants().some(descendant => visibleIds.has(getNodeId(descendant))) ? node : undefined;
+    return node?.descendants().some(descendant => visibleIds.has(display.getNodeId(descendant))) ? node : undefined;
   })();
-  const labelCells = new Map(painted.labels.map(label => [label.id, label.cell]));
-  const framePositionFor = (id, attachment = 'position') => {
+  const cells = new Map(painted.texts.map(text => [text.id, text.cell]));
+  const positionFor = (id, attachment = 'position') => {
     const anchor = laidOut.get(String(id || ''));
     if (!anchor) return null;
     if (attachment === 'terminal') {
       const { terminal } = resolveUniqueDisplayTerminal(anchor, node => node.children || [], node => isDisplayTerminalNode(node.data));
-      if (!terminal) return null;
-      const cell = labelCells.get(`${getNodeId(terminal)}:word`);
-      return cell ? { x: cell.x + cell.width / 2, y: cell.y + cell.height + 6 } : { x: terminal.x, y: terminal.y + 140 };
+      const cell = terminal && cells.get(`${display.getNodeId(terminal)}:word`);
+      return !terminal ? null : cell ? { x: cell.x + cell.width / 2, y: cell.y + cell.height + 6 } : { x: terminal.x, y: terminal.y + 140 };
     }
     if (attachment === 'parent') return anchor.parent ? { x: anchor.parent.x, y: anchor.parent.y } : null;
-    const cell = labelCells.get(`${getNodeId(anchor)}:category`);
+    const cell = cells.get(`${display.getNodeId(anchor)}:category`);
     if (attachment === 'shell-top') return cell ? { x: cell.x + cell.width / 2, y: cell.y - 8 } : { x: anchor.x, y: anchor.y - 8 };
     if (attachment === 'shell-bottom') return cell ? { x: cell.x + cell.width / 2, y: cell.y + cell.height + 6 } : { x: anchor.x, y: anchor.y + 6 };
     return { x: anchor.x, y: anchor.y };
   };
-  const placements = projectPlaqueLayout(selectReplayPlaqueLayout(schedule, stage, stepIndex), id => laidOut.get(id) ?? null);
-  const frameItems = projectVisibleAnchorSetOrganization(plan.frames[stage].items.map(item => resolveDisplayedTrajectoryAttachments(
+  const placements = projectPlaqueLayout(camera.selectReplayPlaqueLayout(schedule, stage, stepIndex), id => laidOut.get(id) ?? null);
+  const items = projectVisibleAnchorSetOrganization(plan.frames[stage].items.map(item => resolveDisplayedTrajectoryAttachments(
     projectThetaGrid(item, stage, played), id => overlay.get(id)?.data, { stageIndex: stage, playedRelationIndices: played })),
-  item => isPlanItemRevealed(item, stage, played, activeIndex) && planItemDependencyNodeIds(item).every(id => Boolean(resolveOverlayAnchor(id))));
-  const revealed = new Set(frameItems.flatMap((item, index) => isPlanItemRevealed(item, stage, played, activeIndex) ? [index] : []));
-  const shown = index => revealed.has(index) && planItemDependencyNodeIds(frameItems[index]).every(id => Boolean(resolveOverlayAnchor(id)));
-  const plaques = [...placements].filter(([index]) => frameItems[index] && shown(index))
-    .map(([index, box]) => ({ ...plaqueRecord(frameItems[index], box, laidOut.get(box.attachmentNodeId)), itemIndex: index }));
-  if (!frameItems.some(item => item.kind === 'fallback')) return { ...empty, plaques };
+  item => isPlanItemRevealed(item, stage, played, active) && planItemDependencyNodeIds(item).every(id => Boolean(resolveOverlayAnchor(id))));
+  const revealed = new Set(items.flatMap((item, index) => isPlanItemRevealed(item, stage, played, active) ? [index] : []));
+  const shown = index => revealed.has(index) && planItemDependencyNodeIds(items[index]).every(id => Boolean(resolveOverlayAnchor(id)));
+  const visiblePlacements = [...placements].filter(([index]) => items[index] && shown(index));
+  const plaques = visiblePlacements.map(([index, box]) => plaqueRecord(items[index], box, laidOut.get(box.attachmentNodeId)));
+  if (!items.some(item => item.kind === 'fallback')) return { ...none, plaques };
   // measureFallbackLabels: plain label cells for every laid-out node.
-  const fallbackLabelRects = new Map();
-  for (const node of all) {
-    if (isSyntheticWorkspaceRootNode(node) || isUnderTriangulation(node)) continue;
-    const category = isCategory(node), base = runs.get(getNodeId(node));
-    const run = category ? { kind: 'category', text: node.data.label || '', lines: categoryTextLayout(node.data.label || '', measureCategoryText).lines, indices: [] }
-      : { kind: 'terminal', text: firstRun(base, 'terminal')?.text ?? resolveLeafSurface(node).trim(), indices: [] };
-    fallbackLabelRects.set(getNodeId(node), labelGeometry(node, run).cell);
-  }
+  const labelRects = new Map(all.filter(node => !canvas.isSyntheticWorkspaceRootNode(node) && !isUnderTriangulation(node)).map(node => {
+    const run = isCategory(node) ? { kind: 'category', text: node.data.label || '', lines: categoryTextLayout(node.data.label || '', measureCategoryText).lines, indices: [] }
+      : { kind: 'terminal', text: firstRun(runs.get(display.getNodeId(node)), 'terminal')?.text ?? resolveLeafSurface(node).trim(), indices: [] };
+    return [display.getNodeId(node), labelGeometry(node, run).cell];
+  }));
   const rectFor = (id, subtree) => {
     const anchor = laidOut.get(id);
-    const rects = anchor ? (subtree ? anchor.descendants() : [anchor]).flatMap(node => fallbackLabelRects.get(getNodeId(node)) ?? []) : [];
+    const rects = anchor ? (subtree ? anchor.descendants() : [anchor]).flatMap(node => labelRects.get(display.getNodeId(node)) ?? []) : [];
     return rects.length ? union(rects) : null;
   };
-  const visibleObstacles = [...placements].filter(([index]) => frameItems[index] && shown(index)).map(([, box]) => box);
-  const fallbackMeasurements = {
-    labels: [...fallbackLabelRects.values()], obstacles: [...placements.values()],
-    visibleLabels: [...fallbackLabelRects].filter(([id]) => visibleIds.has(id)).map(([, value]) => value),
-    visibleObstacles, labelFor: id => rectFor(id, false), subtreeFor: id => rectFor(id, true),
-    bottom: Math.max(0, ...[...fallbackLabelRects.values()].map(value => value.y + value.height))
-  };
-  const markerScale = Math.min(1 / camera.k, 3);
-  const frameMaxNodeY = d3.max(all, node => node.y) ?? 0;
-  const textTop = d3.min(painted.labels, label => label.cell.y) ?? -90;
-  const displayed = { ...plan, frames: plan.frames.map((frame, index) => index === stage ? { ...frame, items: frameItems } : frame) };
+  const fallbackMeasurements = { labels: [...labelRects.values()], obstacles: [...placements.values()],
+    visibleLabels: [...labelRects].filter(([id]) => visibleIds.has(id)).map(([, value]) => value),
+    visibleObstacles: visiblePlacements.map(([, box]) => box), labelFor: id => rectFor(id, false), subtreeFor: id => rectFor(id, true),
+    bottom: Math.max(0, ...[...labelRects.values()].map(value => value.y + value.height)) };
+  const markerScale = Math.min(1 / fitted.k, 3), maxY = d3.max(all, node => node.y) ?? 0;
+  const textTop = d3.min(painted.texts, text => text.cell.y) ?? -90;
   const runText = (id, text) => (runs.get(id) ?? []).some(run => run.text + run.indices.map(index => index.text).join('') === text);
-  const bound = bindRelationPlanFrame(displayed, stage, framePositionFor, {
-    labelWidth: 150, labelHeight: 70, badgeGap: 46, laneGap: 60, markerScale,
-    hasExistingGapNotation: (id, text) => runText(id, text),
-    plaqueTextLayout: { measureText: measurePlaqueText }, fallbackMeasurements, separateFallbackMoments: true,
-    isItemRevealed: index => revealed.has(index), trajectoryCeilingY: textTop - 90, trajectoryFloorY: frameMaxNodeY + 180,
-    connectorBaselineY: frameMaxNodeY + 130, railBaseY: frameMaxNodeY + 240
-  });
-  const scale = fallbackMarkerScale(camera.k, fallbackMeasurements.labels.map(value => value.height));
-  const view = camera.view;
+  const bound = bindRelationPlanFrame({ ...plan, frames: plan.frames.map((frame, index) => index === stage ? { ...frame, items } : frame) },
+    stage, positionFor, { labelWidth: 150, labelHeight: 70, badgeGap: 46, laneGap: 60, markerScale,
+      hasExistingGapNotation: runText, plaqueTextLayout: { measureText: measurePlaqueText }, fallbackMeasurements,
+      separateFallbackMoments: true, isItemRevealed: index => revealed.has(index), trajectoryCeilingY: textTop - 90,
+      trajectoryFloorY: maxY + 180, connectorBaselineY: maxY + 130, railBaseY: maxY + 240 });
+  const scale = fallbackMarkerScale(fitted.k, fallbackMeasurements.labels.map(value => value.height));
   // measureRelationInkObstacles reserves filled plaque shells with five units of padding.
-  const relationInkObstacles = plaques.map(plaque => rect(plaque.rect.x - 5, plaque.rect.y - 5, plaque.rect.width + 10, plaque.rect.height + 10));
-  const fitted = fitFallbackGeometry(bound, { markerScale, fittedMarkerScale: scale, fittedAnchorScale: Math.min(1 / camera.k, 3),
-    badgeGap: 46, laneGap: 60, fallbackMeasurements, railBaseY: frameMaxNodeY + 240, relationInkObstacles, separateFallbackMoments: true,
-    fittedViewport: { x: (view.left - camera.x) / camera.k, y: (view.top - camera.y) / camera.k,
-      width: (view.right - view.left) / camera.k, height: (view.bottom - view.top) / camera.k } });
-  const witnessesVisible = createPrimitiveVisibility(frameItems, resolveOverlayAnchor);
-  const drawn = primitive => revealed.has(primitive.itemIndex) && witnessesVisible(primitive);
-  const roles = [], connectors = [];
-  for (const primitive of bound.primitives) {
-    if (primitive.type !== 'fallback-mark' || !drawn(primitive)) continue;
-    const mark = fitted.get(primitive) ?? primitive;
-    const { center, reach } = roleNearbyReach(mark, scale);
-    const box = fallbackLabelRect(mark, scale), textHeight = (mark.textHeight ?? 20) * scale;
+  const refit = fitFallbackGeometry(bound, { markerScale, fittedMarkerScale: scale, fittedAnchorScale: Math.min(1 / fitted.k, 3),
+    badgeGap: 46, laneGap: 60, fallbackMeasurements, railBaseY: maxY + 240, separateFallbackMoments: true, fittedViewport: fitted.view,
+    relationInkObstacles: plaques.map(({ rect: shell }) => rect(shell.x - 5, shell.y - 5, shell.width + 10, shell.height + 10)) });
+  const drawable = createPrimitiveVisibility(items, resolveOverlayAnchor);
+  const marks = bound.primitives.filter(primitive => revealed.has(primitive.itemIndex) && drawable(primitive));
+  const texts = marks.filter(primitive => primitive.type === 'fallback-mark').map(primitive => {
+    const mark = refit.get(primitive) ?? primitive, height = (mark.textHeight ?? 20) * scale, claims = refsOf(items[primitive.itemIndex]);
     // The placement box adds two units per side for the three-unit round outline.
-    const role = { id: `role(${relationKey(frameItems[primitive.itemIndex])} ${primitive.text})@${primitive.nodeId}`, itemIndex: primitive.itemIndex,
-      relation: relationKey(frameItems[primitive.itemIndex]), witness: primitive.nodeId, text: primitive.text, rect: box,
-      ink: rect(mark.x - mark.textWidth / 2 * scale, mark.y - textHeight / 2, mark.textWidth * scale, textHeight), halo: 1.5 * scale,
-      labelRect: mark.labelRect, reach, distance: Math.hypot(mark.x - center.x, mark.y - center.y) };
-    roles.push(role);
-  }
-  for (const primitive of bound.primitives) {
-    if (primitive.type !== 'segment' || !drawn(primitive)) continue;
-    const segment = fitted.get(primitive) ?? primitive;
-    connectors.push({ id: `connector(${relationKey(frameItems[primitive.itemIndex])})${primitive.witnessNodeIds.join('→')}`,
-      itemIndex: primitive.itemIndex, relation: relationKey(frameItems[primitive.itemIndex]), route: segment.route,
-      witnesses: primitive.witnessNodeIds,
-      own: primitive.witnessNodeIds.flatMap(id => laidOut.get(id)?.descendants().map(getNodeId) ?? [id]),
-      pieces: pathPieces(segment.d), halfWidth: (segment.route === 'direct' ? 1.5 : 1.9) * scale / 2 });
-  }
-  return { plaques, roles, connectors };
+    return { id: `role(${claims.join('/')} ${primitive.text})@${primitive.nodeId}`, kind: 'role', text: primitive.text, nodes: [], claims,
+      boxes: [rect(mark.x - mark.textWidth / 2 * scale, mark.y - height / 2, mark.textWidth * scale, height)], halo: 1.5 * scale,
+      ...roleReach(mark, scale) };
+  });
+  const lines = marks.filter(primitive => primitive.type === 'segment').map(primitive => {
+    const segment = refit.get(primitive) ?? primitive, claims = refsOf(items[primitive.itemIndex]);
+    return { id: `connector(${claims.join('/')})${primitive.witnessNodeIds.join('→')}`, kind: 'connector', claims,
+      nodes: primitive.witnessNodeIds.flatMap(id => laidOut.get(id)?.descendants().map(display.getNodeId) ?? [id]),
+      paths: pathPolylines(segment.d), halfWidth: (segment.route === 'direct' ? 1.5 : 1.9) * scale / 2 };
+  });
+  return { texts, plaques, lines };
 }
 
-/** The Canopy: the final stage's forest (the analysis's final forest) without
- * relation marks, fitted to its painted bounds. */
+/** The Canopy: the final stage's forest without relation marks, fitted to its
+ * painted bounds as fitTreeCamera fits a frame without stage bounds. */
 export function layoutCanopyVisualFrame(visual, viewport) {
-  const { record, direction } = visual;
-  const forest = record.derivationStages.at(-1)?.workspaceForest ?? [];
-  const data = buildDerivationCanvasData(forest);
+  const data = canvas.buildDerivationCanvasData(visual.record.derivationStages.at(-1)?.workspaceForest ?? []);
   if (!data) return null;
-  const canvas = buildRenderableCommittedCanvasData(data);
-  const root = d3.hierarchy(cloneSyntaxTree(canvas)); applyVizIds(root);
-  const size = treeLayoutSize(root.descendants().length, root.height, viewport.width, viewport.height);
-  const tree = layoutSyntaxTree(root, size, direction, undefined, undefined, { measureCategoryText, measureTreeInk });
+  const root = d3.hierarchy(canvas.buildRenderableCommittedCanvasData(data)); display.applyVizIds(root);
+  const tree = layout.layoutSyntaxTree(root, camera.treeLayoutSize(root.descendants().length, root.height, viewport.width, viewport.height),
+    visual.direction, undefined, undefined, { measureCategoryText, measureTreeInk });
   const painted = paintedTree(tree, null, () => undefined);
-  const boxes = [...painted.labels.map(label => label.cell), ...painted.branches.map(branch => union(branch.points.map(p => rect(p.x, p.y, 0, 0))))];
-  const box = union(boxes);
+  const box = union([...painted.texts.map(text => text.cell), ...painted.lines.flatMap(line => line.paths.flat().map(p => rect(p.x, p.y, 0, 0)))]);
   const view = availableTreeViewport(viewport.width, viewport.height, viewportObstacles(viewport, false));
-  const k = Math.max(viewport.width < 500 ? 0.02 : 0.06, Math.min((view.right - view.left) / box.width, (view.bottom - view.top) / box.height, 1));
-  return { view: 'canopy', frame: null, stage: null, kind: 'canopy', operation: 'Canopy', viewport: viewport.name, zoom: k,
-    labels: painted.labels, stems: painted.stems, branches: painted.branches, plaques: [], roles: [], connectors: [] };
+  const zoom = Math.max(viewport.width < 500 ? 0.02 : 0.06, Math.min((view.right - view.left) / box.width, (view.bottom - view.top) / box.height, 1));
+  return { frame: 'canopy', viewport: viewport.name, zoom, texts: painted.texts, plaques: [], lines: painted.lines };
+}
+
+/** One record's findings: every Replay frame at each viewport and the Canopy. */
+export function auditVisualRecord(id, record, { viewports = VIEWPORTS, canopy = true, thresholds = THRESHOLDS } = {}) {
+  const visual = prepareVisualRecord(record);
+  const frames = layoutVisualFrames(visual, viewports);
+  if (canopy) frames.push(...viewports.map(viewport => layoutCanopyVisualFrame(visual, viewport)).filter(Boolean));
+  return { steps: visual.prepared.playbackSteps.length, frames: frames.length,
+    findings: frames.flatMap(frame => checkFrame(frame, thresholds)).map(finding => ({ ...finding, record: id })) };
 }
