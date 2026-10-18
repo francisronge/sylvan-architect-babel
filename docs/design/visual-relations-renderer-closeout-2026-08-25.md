@@ -243,15 +243,14 @@ stage-wide union still reserves its later visible placement before reveal.
 The worker, painter and camera consume the same stage and step maps.
 
 A plaque without its own Case arrow or collector shows its owner only by
-proximity. Its one anchor-relative pocket must be clear at every position of a
-moving anchor, so it can end up beyond all of its nearby candidates. A second
-allocation pass then places that plaque again. It searches anew whenever an
-authored movement carries the anchor, inside the moved phrase or the complex
-head that movement forms. Reflow, merges and other phrases' movement start no
-new search. The second pass leaves the first-pass pocket only for one within
-reach of the nearby candidates or at least a quarter nearer. Every other plaque
-keeps its first-pass pocket exactly, so the relocated plaque can shift when a
-later plaque claims its space.
+proximity. One anchor-relative pocket clear at every position of a moving anchor
+can lie beyond all of the plaque's nearby pockets. Such a remote plaque instead
+takes a pocket for each position that an authored movement carries its anchor to,
+inside the moved phrase or the complex head that movement forms. Reflow, merges
+and other phrases' movement do not count. At each such movement it keeps its
+pocket unless a clear pocket is at least a quarter nearer, or nearby while its own
+is not. Between those movements it keeps one offset, and plaques placed later
+avoid its pocket as they avoid any other.
 
 Reservations account for tree ink, trajectories, neutral connector stems and
 already allocated claims. The nearest clear pocket search has no arbitrary radius
@@ -401,7 +400,13 @@ and so on; equal positions across paired lists retain their correspondence.
 Two scalar witnesses have the accepted connector
 below their subtrees, a scalar plus an array has a fan, and unpaired witnesses
 have no invented links. Fan paths leave measured gaps around syntax and role
-labels. Scalar connector stems use the same label clearance. Repeated witnesses retain every authored role label; a fan does not draw
+labels. Scalar connector stems use the same label clearance. A fan spoke whose
+stroke would meet a visible plaque stops short of it on each side, leaving four
+marker units of dark space beyond the spoke's shadow at every automatic Fit.
+Spokes that only pass beside a plaque stay whole, and role labels do not move.
+Attachment wins over plaque clearance: when the gap would separate a spoke from
+either of its role labels, that plaque cuts the spoke only at its own edge, or
+not at all if even its edge reaches the label. Repeated witnesses retain every authored role label; a fan does not draw
 a spoke from a node to itself.
 
 The existing Replay rows identify previous-stage references with
@@ -761,14 +766,16 @@ completed last Stage Record releases earlier source-position bounds and fits the
 finished drawing; Fit uses those same final bounds. This does not compact or
 recenter the tree's internal coordinates.
 Forward playback also retains an already fitting view when a new stage could
-merely zoom in. Actual overflow can still pan or reduce scale. Each stage lays
+merely zoom in. Actual overflow can still pan or reduce scale. Prev within the
+same stage keeps that stage's current view rather than refitting, so a stage
+keeps one camera in both directions. Each stage lays
 out its syntax in its own coordinates, so a step into another stage translates
 both that view and the animation's starting pose by the median coordinate shift
 of the shared syntax whose shared ancestors are unchanged. This removes the
 common translation between the two layouts; residual layout changes still move,
 and a reattached constituent appears at its new place. Explicit Fit, nonadjacent
-frame selection and the completed last Stage Record retain their existing
-fitting behavior.
+frame selection, Prev into an earlier stage and the completed last Stage Record,
+including Prev out of it, retain their existing fitting behavior.
 Stage framing retains its existing margins for ordinary labels. When a revealed
 label exceeds those margins, expand the shared stage envelope by only that
 excess, using the same styled text bounds as layout. Include every revealed

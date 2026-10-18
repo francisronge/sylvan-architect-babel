@@ -290,6 +290,7 @@ function momentOwnership(step) {
   return {
     endpoints: new Set(movements.flatMap(link => [link.sourceNodeId, link.targetNodeId, link.witnessNodeId, link.priorSourceNodeId]).filter(Boolean)),
     sources: new Set(movements.flatMap(link => [link.sourceNodeId, link.witnessNodeId, link.priorSourceNodeId]).filter(Boolean)),
+    inputs: new Set(movements.length ? [] : step.replayTreeTransition?.priorNodeIds ?? []),
     rewritten: new Set(step.replayTreeTransition?.currentNodeIds ?? []),
     anchored: new Set(own.flatMap(link => (link.anchors ?? []).map(anchor => anchor.nodeId)).filter(Boolean))
   };
@@ -298,11 +299,12 @@ function momentOwnership(step) {
 /** Whether a node first painted at a relation moment belongs to it. Besides
  * what the moment owns, it introduces the shortest new ancestor chain that
  * joins owned syntax to existing syntax (for a movement, the workspace that
- * held its source), the new sisters created where a landing attaches (a new
+ * held its source; for a rewrite, the shown workspace that held its prior
+ * input), the new sisters created where a landing attaches (a new
  * parent over an existing subtree, or a receiving head's new inner head), and
  * the word a relation realizes on an occurrence it anchors that is already shown. */
 function revealedByRelation(node, ownership, previous) {
-  const { endpoints, sources, rewritten, anchored } = ownership;
+  const { endpoints, sources, inputs, rewritten, anchored } = ownership;
   const isOwned = candidate => named(candidate, endpoints) || named(candidate, rewritten);
   const shownBefore = candidate => previous.displayed.has(getNodeId(candidate));
   if (node.ancestors().some(ancestor => named(ancestor, endpoints))) return true;
@@ -310,7 +312,8 @@ function revealedByRelation(node, ownership, previous) {
   if (named(node, rewritten) || origin?.kind === 'word' && rewritten.has(origin.ownerId)) return true;
   if (origin?.kind === 'word' && anchored.has(origin.ownerId) && node.parent && shownBefore(node.parent)) return true;
   const rootBefore = id => { while (previous.parent.get(id)) id = previous.parent.get(id); return id; };
-  const sourceRoots = new Set([...previous.displayed].filter(id => sources.size ? named(previous.nodes.get(id), sources) : true).map(rootBefore));
+  const rootsOf = ids => new Set([...previous.displayed].filter(id => !ids || named(previous.nodes.get(id), ids)).map(rootBefore));
+  const sourceRoots = sources.size ? rootsOf(sources) : inputs.size && rootsOf(inputs).size ? rootsOf(inputs) : rootsOf();
   const existing = candidate => candidate.descendants().some(descendant => shownBefore(descendant)
     && sourceRoots.has(rootBefore(getNodeId(descendant))));
   for (const descendant of node.descendants()) {
