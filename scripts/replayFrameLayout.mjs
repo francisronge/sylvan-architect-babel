@@ -2,26 +2,76 @@
  * stage sizes, stage coordinate reservations, then one tree layout per frame.
  * Replay modules are injected so the corpus comparator can measure another
  * checkout's sources with this harness. Each scene's `nodes` holds only the
- * visible, non-scaffold syntax the frame paints. */
-export function layoutReplayFrames({ steps, stages, width, height, direction }, { coordinates, camera, layout, display, d3 }) {
+ * visible, non-scaffold syntax the frame paints.
+ *
+ * With `measured`, layout follows the browser rather than the unmeasured
+ * reservations: the plaque worker job (module `plaqueJob`) supplies coordinates
+ * and the plaque `schedule` from measured text, each scene keeps its whole
+ * laid-out `tree` and `visible` ids with unary terminals aligned as the painter
+ * aligns them (module `notation`), and `stageCamera(stage, completedStep)` gives
+ * the stage camera `bounds` and plaque `containment` that TreeVisualizer passes
+ * to fitTreeCamera (module `canvas` builds each stage's completed canvas).
+ * `measured` = { plan, protectedNodeIds, treeLabelRuns, measurePlaqueText,
+ * measureCategoryText, measureTreeInk, measureTreeLabel }. */
+export function layoutReplayFrames({ steps, stages, width, height, direction, measured },
+  { coordinates, camera, layout, display, d3, plaqueJob, notation, canvas }) {
   const groups = camera.buildStageLayoutGroups(steps, stages);
   const sizes = new Map(stages.map((_, index) => [index,
     camera.stageTreeLayoutSize(steps, index, width, height, groups)]));
-  const positions = new Map([...sizes].flatMap(([index, size]) => {
+  const completed = stage => canvas.buildRenderableDerivationCanvasData(stages[stage]?.workspaceForest || []);
+  const input = measured && { ...measured, steps, stageIndex: 0, completedCanvas: completed(stages.length - 1),
+    width, height, direction, abstractionMode: false, layoutGroups: groups };
+  let positions, schedule = null, stageCoordinates = null;
+  if (measured) {
+    const measuring = plaqueJob.measurePlaqueLayoutJob(input);
+    let next = measuring.next();
+    while (!next.done) next = measuring.next();
+    const prepared = plaqueJob.bindPlaqueLayoutResult(input, next.value, plaqueJob.runPlaqueLayoutJob(next.value));
+    ({ schedule, coordinates: stageCoordinates } = prepared);
+    positions = new Map([...prepared.coordinates.values()].flatMap(stage => [...stage]));
+  } else positions = new Map([...sizes].flatMap(([index, size]) => {
     if (!size) throw Error(`Missing layout size for stage ${index}`);
     return [...coordinates.buildStageCoordinateReservations(steps, index, size, stage => sizes.get(stage), direction)];
   }));
-  const render = (scene, points) => {
+  const draw = (scene, points) => {
     const tree = d3.hierarchy(scene.canvas); display.applyVizIds(tree);
-    const visible = new Set(scene.step.replayVisibleNodeIds);
-    return layout.layoutSyntaxTree(tree, sizes.get(scene.step.replayFrameIndex), direction, points, visible)
-      .descendants().filter(node => visible.has(display.getNodeId(node))
-        && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace');
+    if (!measured) return layout.layoutSyntaxTree(tree, sizes.get(scene.step.replayFrameIndex), direction, points, scene.visible);
+    const visible = scene.step.replayVisibleNodeIds?.length ? scene.visible : null;
+    const laid = layout.layoutSyntaxTree(tree, sizes.get(scene.step.replayFrameIndex), direction, points,
+      points ? visible ?? undefined : undefined, { measureCategoryText: measured.measureCategoryText, measureTreeInk: measured.measureTreeInk });
+    notation.alignReplayUnaryTerminalLeaves(laid, visible);
+    return laid;
   };
+  const render = (scene, points) => draw(scene, points).descendants().filter(node => scene.visible.has(display.getNodeId(node))
+    && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace');
   const scenes = steps.map(step => {
-    const scene = { step, canvas: step.replayCanvasData };
-    scene.nodes = new Map(render(scene, positions.get(scene.canvas)).map(node => [display.getNodeId(node), node]));
+    const scene = { step, canvas: step.replayCanvasData, visible: new Set((step.replayVisibleNodeIds ?? []).map(String)) };
+    if (measured) scene.tree = draw(scene, positions.get(scene.canvas));
+    scene.nodes = new Map((measured ? scene.tree.descendants().filter(node => scene.visible.has(display.getNodeId(node))
+      && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace') : render(scene, positions.get(scene.canvas)))
+      .map(node => [display.getNodeId(node), node]));
     return scene;
   });
-  return { sizes, positions, render, scenes };
+  const cameras = new Map();
+  const stageCamera = (stage, completedStep) => {
+    const key = `${stage}:${completedStep}`;
+    if (!cameras.has(key)) {
+      const items = measured.plan?.frames[stage]?.items ?? [];
+      const treeFirst = items.some(item => TREE_FIRST_FAMILIES.includes(item.familyId));
+      const common = { ...input, stageIndex: stage, stepIndex: completedStep, completedCanvas: completed(stage),
+        plaqueLayout: camera.selectReplayPlaqueLayout(schedule, stage), plaqueSchedule: schedule, coordinates: stageCoordinates };
+      const bounds = camera.buildStageCameraBounds({ ...common, includeOverlays: !treeFirst });
+      cameras.set(key, { bounds, containment: bounds && (treeFirst || items.some(item => item.kind === 'binding-domain'))
+        ? camera.buildStageCameraBounds({ ...common, includeOverlays: false, includePlaques: true, includeBindingDomains: true }) : null });
+    }
+    return cameras.get(key);
+  };
+  return { sizes, positions, render, scenes, schedule, ...(measured ? { stageCamera } : {}) };
 }
+
+/** TreeVisualizer's `acceptedCompositionIsTreeFirst` families: their stage
+ * camera omits overlays and contains plaques separately. */
+export const TREE_FIRST_FAMILIES = Object.freeze(['copy.multiple-pronunciation', 'copy.partial-deletion',
+  'multidominance.shared-node', 'argument-sharing.domains', 'pf.phrasal-spellout', 'pf.correspondence', 'pf.fission',
+  'pf.impoverishment', 'pf.local-dislocation', 'pf.cyclic-linearization', 'cooper-storage.ledger', 'scope.operator-variable',
+  'accord.link', 'accord.strong-npi', 'focus.prominence', 'focus.f-projection', 'theta.grid']);

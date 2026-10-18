@@ -33,6 +33,9 @@ jobs:
       - name: Typecheck and verify provider-free contract
         run: npm run verify:all
 
+      - name: Verify static Replay geometry offline
+        run: npm run verify:visual-offline
+
       - name: Build production frontend
         run: npm run build
 

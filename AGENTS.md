@@ -129,12 +129,19 @@ prerequisites, not rendered correctness, and starts no server or provider reques
 | Engine and review-page compatibility | `npm run verify:browser-webkit` runs the bounded Chromium/WebKit renderer and comparison-visibility matrix. This does not substitute for macOS in-app-browser review of relevant UI changes. |
 | Shared Replay/layout changes | `npm run verify:corpus -- --baseline-root /base --candidate-root /candidate --output /tmp/comparison.json` compares the same explicit records in two checkouts. `--archive-manifest /private/index.json` adds private saved records; unknown mechanism coverage is reported. |
 | Renderer preparation or startup | `npm run verify:renderer-performance -- --baseline-root /base --report /tmp/timing.json` preserves the first-paint budget and reports full preparation separately. Both checkouts need locked dependencies. Preparation distributions are informational until a separate budget is established. |
+| Renderer, layout, font or Replay changes; release work | `npm run verify:visual-offline` lays out every committed fixture frame and Canopy offline at 1440×900 and 2560×1440 and checks overlapping text, lines through plaques or text, distant plaques and role labels, broken label wraps and clipping. It fails on findings not listed in `tests/helpers/visualExceptions.mjs`, on findings beyond their bound and on stale exceptions. For discovery over saved runs, `node scripts/auditReplayVisuals.mjs --fixtures --batches /path/codex-qualification --out /tmp/visual-audit.json` (mobile included). |
 
 Browser receipts, TAP output and failure captures go outside the worktree. Use
 `-- --evidence /tmp/babel-browser-check` for a named directory. CI retains browser
 and timing artifacts. Native-browser checks and the offline corpus comparator
 prove different things: the comparator checks Replay, plans and unmeasured tree
 reservations; it does not measure fonts, plaques, connector painting or the camera.
+The visual audit runs the production layout, plaque allocation, camera Fit and
+neutral-label placement with text measured from the bundled fonts, so its
+findings are leads for a native capture, not proof of a pixel. It does not see
+positions that only screen refinements set, index letters, or motion between
+frames. Its rules (`tests/helpers/visualRules.mjs`) judge normalized frames, so a
+browser probe can reuse them; findings and exceptions follow `tests/helpers/findings.mjs`.
 
 The corpus manifest links representative existing fixtures for movement and
 ordinary wrappers, later movement, separately established pronunciation,
