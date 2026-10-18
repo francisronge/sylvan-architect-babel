@@ -39,7 +39,7 @@ export const createStageRelationSnapshots = (
   stage: ReplayStageContext,
   placements: StageRelationPlan,
   ordinaryStructuralNodeIds: ReadonlySet<string>,
-  /** `laterAttachments` whose new parent's construction step has not run. */
+  /** Ordinary attachments whose construction step has not run. */
   heldAttachmentNodeIds: () => ReadonlySet<string> = () => new Set()
 ) => {
   const { frames, identity } = compilation;
@@ -222,12 +222,11 @@ export const createStageRelationSnapshots = (
       });
     // Copy construction and realization may share a completed stage. Preserve
     // the prior lexical fields until the later authored realization owns them.
-    // A null source has no preceding form to keep: the occurrence shows none.
-    const retainPendingPronunciation = (nodeId: string, priorNodeId: string | null, ownerIndex: number, receivingHead = false) => {
+    const retainPendingPronunciation = (nodeId: string, priorNodeId: string, ownerIndex: number, receivingHead = false) => {
       const realizationIndex = frameRelationSteps.findIndex((relation, relationIndex) => relationIndex > ownerIndex && relation.pronunciationNodeIds?.includes(nodeId));
       if (realizationIndex < 0 || activeRelationIndexes.has(realizationIndex))
         return;
-      const prior = priorNodeId === null ? { id: '', label: '' } as SyntaxNode : findExactNodeByIdInForest(previousFrameWorkspaceRoots, priorNodeId);
+      const prior = findExactNodeByIdInForest(previousFrameWorkspaceRoots, priorNodeId);
       const current = findExactNodeByIdInForest(snapshotWorkspaceRoots, nodeId);
       if (!prior || !current || prior.children?.length || !receivingHead && current.children?.length)
         return;
@@ -242,15 +241,35 @@ export const createStageRelationSnapshots = (
       else
         current.tokenIndex = prior.tokenIndex;
     };
-    // A copied phrase continues its earlier occurrence position by position, so
-    // each terminal keeps its counterpart's form until a later claim owns its
-    // own. Where the shapes differ, no earlier terminal stands in.
+    // A copied phrase continues its earlier occurrence position by position.
+    // Until the claim that owns a node's pronunciation (by naming it or an
+    // ancestor) reaches its moment, each node shows its exact counterpart's
+    // pronunciation state: word, input address and silence on terminals, and
+    // silence above them. Without an exact counterpart it shows none.
     const retainCopiedPronunciation = (nodeId: string, priorNodeId: string | null, ownerIndex: number) => {
+      const pending = (id: string): boolean => {
+        const named = new Set([id]);
+        for (let parentId = findParentNodeIdInForest(workspaceRoots, id); parentId; parentId = findParentNodeIdInForest(workspaceRoots, parentId))
+          named.add(parentId);
+        const owner = frameRelationSteps.findIndex((relation, relationIndex) => relationIndex > ownerIndex
+          && relation.pronunciationNodeIds?.some(named.has, named));
+        return owner >= 0 && !activeRelationIndexes.has(owner);
+      };
+      const restore = (id: string, prior: SyntaxNode | null, keys: readonly ('word' | 'tokenIndex' | 'silent')[]) => {
+        const current = findExactNodeByIdInForest(snapshotWorkspaceRoots, id) as unknown as Record<string, unknown> | null;
+        keys.forEach(key => {
+          if (current && prior?.[key] === undefined)
+            delete current[key];
+          else if (current)
+            current[key] = prior![key];
+        });
+      };
       const walk = (node: SyntaxNode, prior: SyntaxNode | null): void => {
-        if (!node.children?.length)
-          return retainPendingPronunciation(node.id, prior ? prior.id : null, ownerIndex);
-        const aligned = prior && prior.children?.length === node.children.length ? prior.children : null;
-        node.children.forEach((child, childIndex) => walk(child, aligned ? aligned[childIndex] : null));
+        const terminal = !node.children?.length, exact = prior && Boolean(prior.children?.length) !== terminal ? prior : null;
+        if (pending(node.id))
+          restore(node.id, exact, terminal ? ['word', 'tokenIndex', 'silent'] : ['silent']);
+        const aligned = exact && exact.children?.length === node.children?.length ? exact.children! : null;
+        (node.children || []).forEach((child, childIndex) => walk(child, aligned ? aligned[childIndex] : null));
       };
       const node = findExactNodeByIdInForest(workspaceRoots, nodeId);
       if (node)

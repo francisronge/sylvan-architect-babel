@@ -22,10 +22,40 @@ import {
   collectSyntaxSubtreeNodeIds,
   findExactNodeByIdInForest,
   findNodeByIdInForest,
-  findParentNodeIdInForest
+  findParentNodeIdInForest,
+  indexExactForestNodeLocations
 } from './syntaxForest.ts';
 import { newReceivingHeadNodeIds } from './treeTransitions.ts';
 import { type PlaybackStep } from './types.ts';
+
+/**
+ * Preceding nodes each construction step attaches to their parent in the
+ * completed stage, read from the steps' own painted structure: a node is
+ * attached where it first appears under that parent.
+ */
+const precedingAttachmentsBySteps = (steps: readonly PlaybackStep[], previousForest: SyntaxNode[], currentForest: SyntaxNode[]) => {
+  const previous = indexExactForestNodeLocations(previousForest), current = indexExactForestNodeLocations(currentForest);
+  const attached = new Map<PlaybackStep, string[]>(), done = new Set<string>();
+  steps.forEach((step) => {
+    const visible = new Set(step.replayVisibleNodeIds ?? []), nodeIds: string[] = [];
+    const shown = (node?: SyntaxNode | null) => Boolean(node && visible.has(node.id) && !(node as { replayLayoutOnly?: boolean }).replayLayoutOnly
+      && node.replayOrigin?.kind !== 'layout' && node.replayOrigin?.kind !== 'workspace');
+    const visit = (node: SyntaxNode, parent: SyntaxNode | null) => {
+      const before = previous.get(node.id), after = current.get(node.id);
+      if (shown(node) && before && after && !done.has(node.id) && before.parentId !== after.parentId
+        && (shown(parent) ? parent!.id : '') === after.parentId) {
+        done.add(node.id);
+        nodeIds.push(node.id);
+      }
+      (node.children || []).forEach(child => visit(child, node));
+    };
+    if (step.replayCanvasData)
+      visit(step.replayCanvasData, null);
+    if (nodeIds.length)
+      attached.set(step, nodeIds);
+  });
+  return attached;
+};
 
 export const finalizeStageReplay = (
   compilation: ReplayCompilation,
@@ -56,11 +86,18 @@ export const finalizeStageReplay = (
     const placements = planStageRelations(compilation, stage);
     const { relationPlacements, getMovementCreatedLandingHostNodeIds, getMovementCreatedLandingHostPaths, transitionHostNodeIds } = placements;
     const transitionNodeIds = new Set([...nonMovementTransitionNodeIds.values()].flatMap(ids => [...ids]));
-    // A new parent that also gains material outside its claim keeps its own
-    // construction step after the moment; until that step, the material stays put.
+    // A construction step for a claim's new parent can also complete ordinary
+    // attachments: material that parent, or a surviving parent it regroups,
+    // gains outside every claim. That step stays after the moment, and its
+    // material stays where it was until the step runs.
+    const claimed = new Set([...fallbackTransitionOwnership.values()].flatMap(ownership => [...ownership.currentNodeIds,
+      ...(ownership.attachments ?? []).map(attachment => attachment.host)]));
     const laterAttachments = new Map<string, string[]>();
-    fallbackTransitionOwnership.forEach(ownership => ownership.laterAttachments?.forEach(({ host, wrapper }) =>
-      laterAttachments.set(wrapper, [...laterAttachments.get(wrapper) ?? [], host])));
+    precedingAttachmentsBySteps(structuralSteps, previousFrameWorkspaceRoots, workspaceRoots).forEach((nodeIds, step) => {
+      const target = replayOwnerId(step.replayCanvasData, step.targetNodeId), remaining = nodeIds.filter(id => !claimed.has(id));
+      if (transitionHostNodeIds.has(target) && remaining.length)
+        laterAttachments.set(target, remaining);
+    });
     const releasedWrappers = new Set<string>();
     const foldedHost = (nodeId: string) => transitionHostNodeIds.has(nodeId) && !laterAttachments.has(nodeId);
     if (frameHasNonMovementTreeTransition && !frameHasMovementPayload
@@ -219,6 +256,7 @@ export const finalizeStageReplay = (
         .filter(child => findExactNodeByIdInForest(previousFrameWorkspaceRoots, child.id))
         .forEach(child => ordinaryStructuralNodeIds.add(child.id));
     });
+    laterAttachments.forEach(nodeIds => nodeIds.forEach(id => ordinaryStructuralNodeIds.add(id)));
     const { rebuildStructuralStepForActiveRelations, buildRelationPlaybackStep } = createStageRelationSnapshots(
       compilation, stage, placements, ordinaryStructuralNodeIds,
       () => new Set([...laterAttachments].flatMap(([wrapper, hosts]) => releasedWrappers.has(wrapper) ? [] : hosts))

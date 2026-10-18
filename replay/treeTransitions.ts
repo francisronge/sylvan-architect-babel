@@ -390,9 +390,6 @@ export type FallbackTreeTransitionOwnership = {
    * when it keeps its outer slot and changes only inside this claim's output,
    * which licenses its rigid motion. */
   attachments?: Array<{ host: string; wrapper: string; retained: boolean }>;
-  /** Preceding nodes that such a parent gains outside this claim's material.
-   * They stay where they were until the parent's own construction step. */
-  laterAttachments?: Array<{ host: string; wrapper: string }>;
 };
 
 const ownNodeContent = (node: SyntaxNode): string => {
@@ -1192,7 +1189,6 @@ export const planNeutralTransitionAttachments = (
       return { parentId, childId };
     };
     const attachments: NonNullable<FallbackTreeTransitionOwnership['attachments']> = [];
-    const laterAttachments: NonNullable<FallbackTreeTransitionOwnership['laterAttachments']> = [];
     hostNodeIds.forEach((wrapper) => {
       const { parentId, childId } = slotOf(wrapper);
       const preceding = (current.get(wrapper)?.node.children || [])
@@ -1201,9 +1197,8 @@ export const planNeutralTransitionAttachments = (
       const taken = !parentId || candidates.every((child, offset) => previous.get(child.id)!.childIndex === current.get(childId)!.childIndex + offset)
         ? candidates : [];
       taken.forEach(child => attachments.push({ host: child.id, wrapper, retained: retainedOutside(previous.get(child.id)!.node, child, owned) }));
-      preceding.filter(child => !taken.includes(child)).forEach(child => laterAttachments.push({ host: child.id, wrapper }));
     });
-    ownerships.set(relationIndex, { ...ownership, hostNodeIds, attachments, ...(laterAttachments.length ? { laterAttachments } : {}) });
+    ownerships.set(relationIndex, { ...ownership, hostNodeIds, attachments });
   });
 };
 

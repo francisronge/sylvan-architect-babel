@@ -278,3 +278,52 @@ test('a copied phrase keeps its earlier occurrence\'s words until a later claim 
   assert.equal(node(realization, 'vHigh').word, 'walked', 'the later claim changes the word');
   assertStageRecordAddsNothing(steps, 1);
 });
+
+test('material a surviving parent gains while its old container dissolves attaches before the Stage Record', () => {
+  const old = { ...phrase('old', 'book', 'book'), lineageId: 'book' }, extra = leafNode('extra', 'Adv', { word: 'again' });
+  const { prepared } = compile(twoStages([branch('base', 'XP', branch('inner', 'YP', old)), extra],
+    [branch('base', 'XP', branch('host', 'ZP', { ...phrase('new', 'book', 'book'), lineageId: 'book' }),
+      { ...structuredClone(old), silent: true }, structuredClone(extra))],
+    [{ relation: 'shared occurrence', anchors: { first: 'old', second: 'new' } }]));
+  const steps = prepared.playbackSteps, at = moment(steps, 1, 0);
+  const attached = steps.findIndex(step => step.replayFrameIndex === 1 && frameStructure(step).parent.get('extra') === 'base');
+  assert.ok(attached >= 0 && steps[attached].replayKind === 'micro', `extra attaches at ${describeStep(steps, attached)}`);
+  assert.equal(frameStructure(steps[at]).parent.get('new'), 'host');
+  assertStageRecordAddsNothing(steps, 1);
+});
+
+const laterPronunciation = ({ low, high, pf, after = node => node }) => {
+  const other = { id: 'other', label: 'Adv', word: 'again', children: [] };
+  return compile(twoStages([branch('base', 'XP', low, other)], [branch('root', 'XP', high,
+    branch('base', 'XP', after(structuredClone(low)), structuredClone(other)))], [
+    { relation: 'Opaque occurrence update', anchors: { higher: high.id, lower: low.id } },
+    { relation: 'PFRealization', anchors: { terminal: pf }, values: { realization: 'walked' } }])).prepared.playbackSteps;
+};
+const silence = node => ({ ...node, silent: true, children: (node.children || []).map(silence) });
+const verb = (id, word, extra = {}) => ({ id, label: 'V', word, lineageId: 'verb', children: [], ...extra });
+
+test('a copied terminal whose counterpart is a projection shows no earlier word before its owner\'s moment', () => {
+  const steps = laterPronunciation({ pf: 'vHigh', after: silence,
+    low: { id: 'low', label: 'VP', lineageId: 'predicate', children: [{ id: 'vbar', label: 'V′', children: [verb('vLow', 'walk')] }] },
+    high: { id: 'high', label: 'VP', lineageId: 'predicate', children: [verb('vHigh', 'walked')] } });
+  assert.equal(node(steps[moment(steps, 1, 0)], 'vHigh').word, undefined);
+  assert.equal(node(steps[moment(steps, 1, 1)], 'vHigh').word, 'walked', 'the later claim changes the word');
+  assertStageRecordAddsNothing(steps, 1);
+});
+
+test('a later claim that names a copied phrase owns the words of its terminals', () => {
+  const steps = laterPronunciation({ pf: 'high', after: silence,
+    low: { id: 'low', label: 'VP', lineageId: 'predicate', children: [verb('vLow', 'walk')] },
+    high: { id: 'high', label: 'VP', lineageId: 'predicate', children: [verb('vHigh', 'walked')] } });
+  assert.equal(node(steps[moment(steps, 1, 0)], 'vHigh').word, 'walk');
+  assert.equal(node(steps[moment(steps, 1, 1)], 'vHigh').word, 'walked', 'the later claim changes the word');
+  assertStageRecordAddsNothing(steps, 1);
+});
+
+test('a copy keeps its earlier occurrence\'s pronunciation, silence included, until a later claim owns it', () => {
+  const steps = laterPronunciation({ pf: 'higher', low: verb('lower', 'walk'), high: verb('higher', 'walk', { silent: true }) });
+  const copy = node(steps[moment(steps, 1, 0)], 'higher'), realization = node(steps[moment(steps, 1, 1)], 'higher');
+  assert.deepEqual([copy.word, copy.silent], ['walk', undefined], 'the copy is pronounced like its source until then');
+  assert.equal(realization.silent, true, 'the later claim makes it silent');
+  assertStageRecordAddsNothing(steps, 1);
+});
