@@ -95,7 +95,7 @@ const FailedOutputInspection: React.FC<Props> = ({ rawOutput, failure, sentence,
   }, [rawOutput, sentence, inputTokens]);
   if (!result) return <p role="status" className="text-xs text-emerald-200">Reading the retained output…</p>;
   if (result.error) return <p role="status" className="text-xs text-amber-200">{result.error}</p>;
-  return <InspectionContents record={result.record!} failure={failure} sentence={sentence} inputTokens={inputTokens} />;
+  return <InspectionContents record={result.record!} failure={failure} sentence={sentence} inputTokens={result.record!.inputTokens ?? inputTokens} />;
 };
 
 export default FailedOutputInspection;

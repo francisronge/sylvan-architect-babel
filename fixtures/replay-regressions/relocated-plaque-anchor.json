@@ -1,0 +1,669 @@
+{
+  "description": "The subject DP's nominative feature plaque has one anchor, which moves from Spec-VP to Spec-IP to Spec-CP. The only pocket clear at all three positions lies about 600 units above the subject, detached from Ingen above the CP root.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, 17 October 2026 (rare-relations batch, 07-swedish-negative-polarity, analysis 1 of 1).",
+  "framework": "xbar",
+  "sentence": "Ingen såg någonting.",
+  "inputTokens": [
+    "Ingen",
+    "såg",
+    "någonting"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "experiencer": "subject",
+            "predicate": "v",
+            "theme": "object"
+          },
+          "relation": "Theta-role assignment",
+          "values": {
+            "experiencerRole": "Experiencer",
+            "themeRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "v",
+            "object": "object"
+          },
+          "relation": "Government and structural object Case",
+          "values": {
+            "case": "accusative"
+          }
+        }
+      ],
+      "stageRecord": "The Swedish input is analyzed as a declarative clause with a negative pronominal subject and an indefinite pronominal object. Ingen and någonting each project a DP headed by a pronominal D; neither requires an unpronounced lexical noun. Within the VP-internal subject analysis adopted here, Ingen occupies Spec-VP, while någonting is the complement of såg. The verb assigns the subject the Experiencer role and the object the Theme role. As a transitive verb, it also governs its object and assigns structural accusative Case. IP contains this VP and a silent finite past-tense I; declarative C is initially a separate head. Såg is introduced in its attested, lexically inflected form, not assembled from separately pronounced tense material. Its subsequent head movement will establish its relation to I. The negative subject and the indefinite object are not two negative expressions: någonting is available here as an existential indefinite under negative scope.",
+      "statement": "Establish the argument structure, lexical Case, and initial clausal workspace.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "i",
+                  "label": "I⁰[finite, past]",
+                  "lineageId": "finiteI",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "subjectD",
+                              "label": "D⁰[negative quantifier]",
+                              "tokenIndex": 0,
+                              "word": "Ingen"
+                            }
+                          ],
+                          "id": "subjectDbar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "subject",
+                      "label": "DP",
+                      "lineageId": "subjectChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v",
+                          "label": "V⁰",
+                          "lineageId": "verbChain",
+                          "tokenIndex": 1,
+                          "word": "såg"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "objectD",
+                                  "label": "D⁰[indefinite]",
+                                  "tokenIndex": 2,
+                                  "word": "någonting"
+                                }
+                              ],
+                              "id": "objectDbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "object",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        },
+        {
+          "children": [],
+          "id": "c",
+          "label": "C⁰[declarative]",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "movedVerb": "v",
+            "resultingHead": "finiteHead",
+            "tenseHead": "i",
+            "verbalTrace": "vTrace"
+          },
+          "priorAnchors": {
+            "sourceVerb": "v",
+            "targetHead": "i"
+          },
+          "relation": "V-to-I head movement and tense matching",
+          "values": {
+            "movementType": "head adjunction",
+            "tense": "past"
+          }
+        },
+        {
+          "anchors": {
+            "governingTrace": "vTrace",
+            "object": "object",
+            "raisedVerb": "v"
+          },
+          "relation": "Preservation of object Case through the verbal chain",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "landingProjection": "ip",
+            "raisedSubject": "subject",
+            "subjectTrace": "subjectVTrace"
+          },
+          "priorAnchors": {
+            "sourceProjection": "vp",
+            "sourceSubject": "subject"
+          },
+          "relation": "Subject A-movement",
+          "values": {
+            "chainType": "A-chain",
+            "landingPosition": "Spec-IP",
+            "sourcePosition": "Spec-VP"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "finiteHead",
+            "subject": "subject"
+          },
+          "relation": "Finite subject Case licensing",
+          "values": {
+            "case": "nominative"
+          }
+        }
+      ],
+      "stageRecord": "First, såg moves from V to the previously introduced I, forming a complex finite head and leaving a silent V-trace. This local head movement relates the lexically past-tense verb to finite past I without positing a separate overt tense exponent. The V-chain preserves the object's accusative licensing through the governed verbal trace. Ingen then raises from Spec-VP to Spec-IP, leaving a DP-trace in its theta position. This A-movement gives the subject access to nominative Case from finite I; it does not assign another theta role. Both movements start from positions present in the preceding workspace. The derivation uses traces rather than unpronounced lexical copies.",
+      "statement": "Raise the verb to I and the subject to Spec-IP.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subjectD",
+                      "label": "D⁰[negative quantifier]",
+                      "tokenIndex": 0,
+                      "word": "Ingen"
+                    }
+                  ],
+                  "id": "subjectDbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "subject",
+              "label": "DP",
+              "lineageId": "subjectChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "v",
+                      "label": "V⁰",
+                      "lineageId": "verbChain",
+                      "tokenIndex": 1,
+                      "word": "såg"
+                    },
+                    {
+                      "children": [],
+                      "id": "i",
+                      "label": "I⁰[finite, past]",
+                      "lineageId": "finiteI",
+                      "silent": true
+                    }
+                  ],
+                  "id": "finiteHead",
+                  "label": "I⁰",
+                  "lineageId": "finiteHeadChain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subjectVTrace",
+                      "label": "DP trace",
+                      "lineageId": "subjectChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vTrace",
+                          "label": "V⁰ trace",
+                          "lineageId": "verbChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "objectD",
+                                  "label": "D⁰[indefinite]",
+                                  "tokenIndex": 2,
+                                  "word": "någonting"
+                                }
+                              ],
+                              "id": "objectDbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "object",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        },
+        {
+          "children": [],
+          "id": "c",
+          "label": "C⁰[declarative]",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complement": "ip",
+            "complementizer": "c"
+          },
+          "relation": "Declarative complement selection",
+          "values": {
+            "clauseType": "declarative",
+            "selectedCategory": "finite IP"
+          }
+        },
+        {
+          "anchors": {
+            "inflectionalTrace": "iTrace",
+            "lowerVerbalTrace": "vTrace",
+            "movedFiniteHead": "finiteHead",
+            "resultingHead": "cHead",
+            "targetComplementizer": "c"
+          },
+          "priorAnchors": {
+            "sourceFiniteHead": "finiteHead",
+            "targetComplementizer": "c"
+          },
+          "relation": "I-to-C head movement",
+          "values": {
+            "headMovementPath": "V-to-I-to-C",
+            "movementType": "head adjunction"
+          }
+        }
+      ],
+      "stageRecord": "Declarative C takes the existing IP as its complement. The complex finite I head then raises to C, leaving an I-trace in its immediately preceding position. The result is successive-cyclic V-to-I-to-C movement, not a direct jump from V to C. This is the head-movement component of Swedish main-clause verb-second syntax. Spec-CP is not yet filled, so this intermediate workspace does not yet represent the completed surface order. The subject remains in Spec-IP, and its nominative and theta dependencies are preserved.",
+      "statement": "Build the declarative CP and move the finite head to C.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v",
+                          "label": "V⁰",
+                          "lineageId": "verbChain",
+                          "tokenIndex": 1,
+                          "word": "såg"
+                        },
+                        {
+                          "children": [],
+                          "id": "i",
+                          "label": "I⁰[finite, past]",
+                          "lineageId": "finiteI",
+                          "silent": true
+                        }
+                      ],
+                      "id": "finiteHead",
+                      "label": "I⁰",
+                      "lineageId": "finiteHeadChain"
+                    },
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰[declarative]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "cHead",
+                  "label": "C⁰"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "subjectD",
+                              "label": "D⁰[negative quantifier]",
+                              "tokenIndex": 0,
+                              "word": "Ingen"
+                            }
+                          ],
+                          "id": "subjectDbar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "subject",
+                      "label": "DP",
+                      "lineageId": "subjectChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "iTrace",
+                          "label": "I⁰ trace",
+                          "lineageId": "finiteHeadChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "subjectVTrace",
+                              "label": "DP trace",
+                              "lineageId": "subjectChain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vTrace",
+                                  "label": "V⁰ trace",
+                                  "lineageId": "verbChain",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "objectD",
+                                          "label": "D⁰[indefinite]",
+                                          "tokenIndex": 2,
+                                          "word": "någonting"
+                                        }
+                                      ],
+                                      "id": "objectDbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "object",
+                                  "label": "DP"
+                                }
+                              ],
+                              "id": "vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "vp",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "ip",
+                  "label": "IP"
+                }
+              ],
+              "id": "cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "cp",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "frontedSubject": "subject",
+            "inflectionalSubjectTrace": "subjectITrace",
+            "landingProjection": "cp",
+            "thematicSubjectTrace": "subjectVTrace"
+          },
+          "priorAnchors": {
+            "sourceProjection": "ip",
+            "sourceSubject": "subject"
+          },
+          "relation": "Subject prefield A-bar movement",
+          "values": {
+            "landingPosition": "Spec-CP",
+            "movementType": "A-bar movement",
+            "sourcePosition": "Spec-IP"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "cp",
+            "finiteComplementizerHead": "cHead",
+            "finiteVerb": "v",
+            "prefieldConstituent": "subject"
+          },
+          "relation": "Completed declarative verb-second configuration",
+          "values": {
+            "construction": "Swedish main-clause V2",
+            "surfaceOrder": "subject–finite verb–object"
+          }
+        },
+        {
+          "anchors": {
+            "licensedIndefinite": "object",
+            "negativeQuantifier": "subject",
+            "predicate": "v",
+            "scopeDomain": "ip"
+          },
+          "relation": "Negative scope and polarity licensing",
+          "values": {
+            "indefiniteInterpretation": "existential under negation",
+            "negativeConcord": "absent",
+            "negativeQuantifierMeaning": "no person",
+            "scope": "¬∃x[person(x) ∧ ∃y[thing(y) ∧ see.past(x,y)]]"
+          }
+        },
+        {
+          "anchors": {
+            "binder": "subject",
+            "boundPositions": [
+              "subjectITrace",
+              "subjectVTrace"
+            ]
+          },
+          "relation": "Subject-chain binding and interpretation",
+          "values": {
+            "boundPositions": [
+              "nominative Case position",
+              "Experiencer theta position"
+            ]
+          }
+        }
+      ],
+      "stageRecord": "Ingen moves from the already established Spec-IP to Spec-CP, leaving a subject trace in Spec-IP. This is A-bar movement into the Swedish declarative prefield; it need not imply a contrastive discourse topic. The resulting subject chain retains its nominative position in Spec-IP and its theta position in Spec-VP. With one constituent in Spec-CP and the finite verb in C, the pronounced order is exactly Ingen såg någonting. The negative quantificational subject c-commands the object, licensing the polarity-sensitive existential use of någonting. Its interpretation is that no person saw anything, not negative concord between two negative DPs. No additional scope movement is required for this reading. The subject's quantificational dependency binds its silent subject positions, and the head-movement chains connect the finite verb to its lower traces; there are no overt anaphors requiring a separate binding analysis.",
+      "statement": "Complete subject-initial V2 order and establish negative scope over the object indefinite.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subjectD",
+                      "label": "D⁰[negative quantifier]",
+                      "tokenIndex": 0,
+                      "word": "Ingen"
+                    }
+                  ],
+                  "id": "subjectDbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "subject",
+              "label": "DP",
+              "lineageId": "subjectChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v",
+                          "label": "V⁰",
+                          "lineageId": "verbChain",
+                          "tokenIndex": 1,
+                          "word": "såg"
+                        },
+                        {
+                          "children": [],
+                          "id": "i",
+                          "label": "I⁰[finite, past]",
+                          "lineageId": "finiteI",
+                          "silent": true
+                        }
+                      ],
+                      "id": "finiteHead",
+                      "label": "I⁰",
+                      "lineageId": "finiteHeadChain"
+                    },
+                    {
+                      "children": [],
+                      "id": "c",
+                      "label": "C⁰[declarative]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "cHead",
+                  "label": "C⁰"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subjectITrace",
+                      "label": "DP trace",
+                      "lineageId": "subjectChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "iTrace",
+                          "label": "I⁰ trace",
+                          "lineageId": "finiteHeadChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "subjectVTrace",
+                              "label": "DP trace",
+                              "lineageId": "subjectChain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vTrace",
+                                  "label": "V⁰ trace",
+                                  "lineageId": "verbChain",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "objectD",
+                                          "label": "D⁰[indefinite]",
+                                          "tokenIndex": 2,
+                                          "word": "någonting"
+                                        }
+                                      ],
+                                      "id": "objectDbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "object",
+                                  "label": "DP"
+                                }
+                              ],
+                              "id": "vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "vp",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "ip",
+                  "label": "IP"
+                }
+              ],
+              "id": "cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "cp",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

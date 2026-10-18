@@ -2,9 +2,7 @@ import fs from 'node:fs';
 
 import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
-import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 import { resolveResearchModelSelection } from '../server/babelParser/researchModelCatalog.js';
-import { buildSpelloutContentsPrompt, buildSpelloutSystemInstruction } from './spelloutContract.js';
 import { qualificationResponseHeaders, qualificationTransportError } from './telemetry.js';
 
 // Subscription transport only; this module is not part of Babel's public provider routes.
@@ -15,9 +13,9 @@ const CODEX_QUALIFICATION_MODEL_IDS = new Set([
   DEFAULT_CODEX_QUALIFICATION_MODEL, 'openai:gpt-6-astra', 'openai:gpt-6-sol'
 ]);
 
-/** `contract: 'spellout'` selects the segmentation experiment's variant, which sends no token list. */
+/** Babel's exact prompts: the system instruction and the sentence alone. */
 export const buildCodexQualificationRequest = ({
-  sentence, framework, model = DEFAULT_CODEX_QUALIFICATION_MODEL, effort, contract = 'indexed'
+  sentence, framework, model = DEFAULT_CODEX_QUALIFICATION_MODEL, effort
 }) => {
   if (typeof sentence !== 'string' || !sentence.trim()) throw new Error('A sentence is required.');
   if (!['xbar', 'minimalism'].includes(framework)) throw new Error('Use xbar or minimalism.');
@@ -26,19 +24,12 @@ export const buildCodexQualificationRequest = ({
   }
   const selection = resolveResearchModelSelection(model, effort ? { 'reasoning.effort': effort } : {});
   if (selection.provider !== 'openai') throw new Error('Codex OAuth requires an OpenAI model.');
-  if (!['indexed', 'spellout'].includes(contract)) throw new Error('Use the indexed or spellout contract.');
-  const spellout = contract === 'spellout';
-  const inputTokens = spellout ? undefined : tokenizeSentenceSurfaceOrder(sentence);
   return {
     selection,
-    inputTokens,
     body: {
       model: selection.providerModel,
-      instructions: spellout ? buildSpelloutSystemInstruction(framework) : buildSystemInstruction(framework, 'gpt'),
-      input: [{ role: 'user', content: [{
-        type: 'input_text',
-        text: spellout ? buildSpelloutContentsPrompt(sentence) : buildParseContentsPrompt(sentence, framework, 'gpt', inputTokens)
-      }] }],
+      instructions: buildSystemInstruction(framework, 'gpt'),
+      input: [{ role: 'user', content: [{ type: 'input_text', text: buildParseContentsPrompt(sentence) }] }],
       reasoning: { effort: selection.nativeSettings['reasoning.effort'] },
       store: false,
       stream: true

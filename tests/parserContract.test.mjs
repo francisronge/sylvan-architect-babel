@@ -8,7 +8,6 @@ import { normalizeParseBundle } from '../server/babelParser/parseNormalization.j
 import { parseModelJson } from '../server/babelParser/modelJson.js';
 import { buildSystemInstruction, DERIVATION_STAGES_BASE_INSTRUCTION } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
-import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 
 const buildCurrentContractPayload = () => ({
   derivationStages: [
@@ -130,7 +129,7 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.doesNotMatch(instruction, /with prerequisites before dependent relations/);
     assert.doesNotMatch(instruction, /their sequence is represented by the ordered relations/);
     assert.match(instruction, /Label each node according to the selected framework, preserving the distinctions made in the analysis\./);
-    assert.match(instruction, /The supplied input-token boundaries are for reference; they do not prescribe syntactic or morpheme boundaries\./);
+    assert.match(instruction, /The writing of the sentence, including its spacing, does not prescribe word, syntactic or morpheme boundaries\./);
     assert.doesNotMatch(instruction, /A projection's label names the projection, not merely its head/);
     assert.match(instruction, /values: a nonempty object with nonblank entry names/);
     assert.match(instruction, /Each entry contains a literal string or a nonempty array of literal strings/);
@@ -156,17 +155,19 @@ test('the model-facing contract specifies the framework and exact input without 
     const relationsInstruction = instruction.split('\nRelations\n')[1].split('\nInput words\n')[0];
     assert.match(relationsInstruction, /Relation names, anchor roles, and value-entry names are open; choose them to describe this analysis\./);
     assert.doesNotMatch(instruction, /\b(?:ungrammatical|illicit|grammaticality|judgment|convergence)\b/i);
-    assert.match(instruction, /In the final stage, ordinary pronounced terminals and explicit realization groups together account for every supplied input token exactly once\./);
-    assert.match(instruction, /Without groups, the pronounced terminals in tree order match the supplied input tokens\./);
+    assert.match(instruction, /In the final stage, ordinary pronounced terminals and explicit realization groups together spell out the input sentence exactly once, in order, ignoring letter case, whitespace and punctuation\./);
+    assert.match(instruction, /Without groups, the pronounced terminals in tree order spell the sentence\./);
+    assert.match(instruction, /You decide where words begin and end; Babel checks the spelling character by character\./);
+    assert.doesNotMatch(instruction, /tokenIndex|tokenIndices|input token/i);
   }
 });
 
-test('sentence requests preserve quoted, multiline and multilingual input as data', () => {
+test('sentence requests carry only the sentence, preserving quoted, multiline and multilingual input as data', () => {
   for (const sentence of ['Which book did John buy?', 'She said "yes".\nThen left.', 'איזה ספר קנתה נועה?']) {
     const request = buildParseContentsPrompt(sentence, 'xbar', 'gpt');
-    const [input, tokens] = request.split('\n');
-    assert.equal(JSON.parse(input.slice('Sentence: '.length)), sentence);
-    assert.deepEqual(JSON.parse(tokens.slice('Input tokens, indexed from zero: '.length)), tokenizeSentenceSurfaceOrder(sentence));
+    assert.ok(request.startsWith('Sentence: '));
+    assert.equal(JSON.parse(request.slice('Sentence: '.length)), sentence);
+    assert.equal(request.split('\n').length, 1, 'no token list follows the sentence');
     assert.equal(buildParseContentsPrompt(sentence, 'minimalism', 'claude'), request);
   }
 });
