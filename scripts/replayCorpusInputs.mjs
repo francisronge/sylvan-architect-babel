@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { replayMotionFaults } from './replayMotionContinuity.mjs';
 
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
 export const objectHash = value => sha256(JSON.stringify(value));
@@ -124,6 +125,14 @@ export function compareCorpusSnapshots(baseline, candidate, records) {
     const oldFaults = new Set(before.continuity.map(objectHash));
     const newContinuityFaults = after.continuity.filter(fault => !oldFaults.has(objectHash(fault)));
     if (newContinuityFaults.length) violations.push({ kind: 'new-continuity-fault', faults: newContinuityFaults });
+    // Unowned motion is already a continuity fault; attachment-site motion is
+    // owned by its step, so only this rule can reject a new joining jump.
+    const motionKey = fault => JSON.stringify([fault.kind, fault.frame, fault.node]);
+    const motion = { baseline: replayMotionFaults(before), candidate: replayMotionFaults(after) };
+    const oldMotion = new Set(motion.baseline.map(motionKey));
+    motion.new = motion.candidate.filter(fault => !oldMotion.has(motionKey(fault)));
+    const newJoins = motion.new.filter(fault => fault.kind === 'attachment-site-motion');
+    if (newJoins.length) violations.push({ kind: 'new-motion-fault', faults: newJoins });
     if (after.invalid.length) violations.push({ kind: 'invalid-geometry', faults: after.invalid });
     if (after.expectationFailures.length) violations.push({ kind: 'mechanism-control-failed', failures: after.expectationFailures });
     return { ...inputIdentity,
@@ -132,7 +141,7 @@ export function compareCorpusSnapshots(baseline, candidate, records) {
         authoredAfter: after.authoredAfterSha256, replay: after.replaySha256, plan: after.planSha256 } },
       frames: after.frames.length, replayChanged, planChanged, changedFrames, completedWidths,
       finalCoordinates: { before: finalBefore, after: finalAfter }, finalChanges,
-      continuity: { baseline: before.continuity, candidate: after.continuity, new: newContinuityFaults },
+      continuity: { baseline: before.continuity, candidate: after.continuity, new: newContinuityFaults }, motion,
       geometry: { baseline: before.invalid, candidate: after.invalid },
       controls: after.evidence, controlFailures: { baseline: before.expectationFailures, candidate: after.expectationFailures }, violations };
   });

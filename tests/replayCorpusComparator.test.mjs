@@ -32,8 +32,15 @@ test('the maintained fixture controls exercise a real movement, ordinary constru
 });
 
 test('a stretched completed branch and displaced final point fail while an earlier corrected point is reviewable', () => {
-  const corrected = structuredClone(snapshot);
-  corrected.records[0].frames[0].points[0].x -= 20;
+  const corrected = structuredClone(snapshot), frames = corrected.records[0].frames;
+  // Correct a point that neither its own step nor the next one attaches; moving
+  // a daughter that a new parent then joins would be an attachment-site fault.
+  const attaches = (frame, id) => frame?.kind === 'micro' && ['ExternalMerge', 'Project'].includes(frame.operation)
+    && frame.points.some(point => point.id === id && point.parent === frame.target);
+  const index = frames.findIndex((frame, at) => at < frames.length - 1
+    && !attaches(frame, frame.points[0].id) && !attaches(frames[at + 1], frame.points[0].id));
+  assert(index >= 0);
+  frames[index].points[0].x -= 20;
   const accepted = compare(corrected);
   assert.deepEqual(faults(accepted), []);
   assert.equal(accepted[0].changedFrames.length, 1);
@@ -44,6 +51,16 @@ test('a stretched completed branch and displaced final point fail while an earli
   assert(faults(rejected).includes('completed-width-growth'));
   assert(faults(rejected).includes('final-coordinate-change'));
   assert.notDeepEqual(rejected[0].finalCoordinates.before, rejected[0].finalCoordinates.after);
+});
+
+test('a selected word that its projection pulls back is a new joining jump', () => {
+  const joined = structuredClone(snapshot), [selection, projection] = joined.records[0].frames;
+  selection.points[0].x -= 20;
+  assert.equal(projection.points.find(point => point.id === selection.points[0].id).parent, projection.target);
+  const jumped = compare(joined);
+  assert.deepEqual(faults(jumped), ['new-motion-fault']);
+  assert.deepEqual(jumped[0].motion.new.map(fault => [fault.frame, fault.kind, fault.distance, fault.waiting]),
+    [[2, 'attachment-site-motion', 20, true]], 'joining jumps the baseline already has are not new');
 });
 
 test('semantic, authored, continuity, finite-geometry and witness-control failures cannot become a clean comparison', () => {

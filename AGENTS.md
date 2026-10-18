@@ -135,6 +135,10 @@ Browser receipts, TAP output and failure captures go outside the worktree. Use
 and timing artifacts. Native-browser checks and the offline corpus comparator
 prove different things: the comparator checks Replay, plans and unmeasured tree
 reservations; it does not measure fonts, plaques, connector painting or the camera.
+Its motion rule (`scripts/replayMotionContinuity.mjs`) reports syntax that moves at
+a step that does not own it, and material that moves at the step attaching it,
+in raw stage coordinates. A new attachment-site jump fails the comparison; the
+summary counts the faults each checkout already has.
 
 The corpus manifest links representative existing fixtures for movement and
 ordinary wrappers, later movement, separately established pronunciation,
