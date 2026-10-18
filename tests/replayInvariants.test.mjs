@@ -158,10 +158,10 @@ test('control: one-letter-per-label reports a letter painted twice beside one la
   const record = corpus.records.find(entry => entry.id === 'replay-regressions/independent-clause-and-realization.json#').record;
   const relative = prepare(record);
   assert.deepEqual(checkOneLetterPerLabel(relative), []);
-  const everyLetter = checkOneLetterPerLabel(relative, () => () => ({ draw: true, alsoFor: [] }));
+  const everyLetter = checkOneLetterPerLabel(relative, () => () => ({ draw: 'glyph', label: null, alsoFor: [] }));
   assert(reported(everyLetter, 'one-letter-per-label', 22, 'operatorHigh shows i 3 times'));
   assert(reported(everyLetter, 'one-letter-per-label', 20, 'operatorTrace shows i 2 times'));
-  const noLetter = checkOneLetterPerLabel(relative, () => () => ({ draw: false }));
+  const noLetter = checkOneLetterPerLabel(relative, () => () => ({ draw: 'none' }));
   assert(reported(noLetter, 'one-letter-per-label', 22, 'operatorHigh shows i 0 times'));
 });
 

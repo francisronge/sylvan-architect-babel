@@ -7,6 +7,7 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { isPlanItemRevealed, planItemOwnsRelationMoment, planItemRelationRefs } from '../replay/relations/renderPlan.ts';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
+import { checkOneLetterPerLabel } from './helpers/replayInvariants.mjs';
 import { createSvgDom, descendants, select } from './helpers/svgDom.mjs';
 
 // "Everyone loves someone." with the existential raised over the universal,
@@ -58,9 +59,10 @@ const stages = [{
 const prepare = derivationStages => prepareReplay({ derivationStages, sentence: 'Everyone loves someone.',
   inputTokens: ['Everyone', 'loves', 'someone'], includePlayback: true });
 const refs = item => planItemRelationRefs(item).map(ref => `${ref.stageIndex}:${ref.relationIndex}`);
+const byNode = { labelOf: letter => letter.nodeId, writtenSubscript: () => null };
 
 /** The drawable letter marks at one authored relation moment, and their plan. */
-function moment(replay, stageIndex, relationIndex) {
+function moment(replay, stageIndex, relationIndex, labels = byNode) {
   const step = replay.playbackSteps.findIndex(candidate => candidate.replayKind === 'relation'
     && candidate.replayRelationIdentity?.stageIndex === stageIndex && candidate.replayRelationIdentity?.relationIndex === relationIndex);
   const played = new Set(replay.playbackSteps.slice(0, step + 1).flatMap(candidate => candidate.replayKind === 'relation'
@@ -69,13 +71,14 @@ function moment(replay, stageIndex, relationIndex) {
   const primitives = bindRelationPlanFrame(plan, stageIndex, () => ({ x: 0, y: 0 })).primitives
     .filter(primitive => isPlanItemRevealed(items[primitive.itemIndex], stageIndex, played, relationIndex)
       && primitiveIndexLetters(primitive).length);
-  const letterPlan = planIndexLetters(primitives, items, { identityLabel: nodeId => nodeId, writtenSubscript: () => null,
-    emphasisRank: item => planItemOwnsRelationMoment(item, stageIndex, relationIndex) ? 2 : 0 });
-  return { items, primitives, letterPlan };
+  const emphasis = item => planItemOwnsRelationMoment(item, stageIndex, relationIndex) ? 'active' : 'quiet';
+  const letterPlan = planIndexLetters(primitives, items, { ...labels, emphasisRank: item => emphasis(item) === 'active' ? 2 : 0 });
+  return { items, primitives, letterPlan, emphasis };
 }
 const letterCounts = letters => [...letters.reduce((counts, { nodeId, index }) =>
   counts.set(`${nodeId}:${index}`, (counts.get(`${nodeId}:${index}`) ?? 0) + 1), new Map())].sort();
-const drawnLetters = ({ primitives, letterPlan }) => primitives.flatMap(primitiveIndexLetters).filter(letter => letterPlan(letter).draw);
+const drawnLetters = ({ primitives, letterPlan }) => primitives.flatMap(primitiveIndexLetters)
+  .filter(letter => letterPlan(letter).draw === 'glyph');
 
 test('a QR relation draws each chain letter once per occurrence, from its binding path', () => {
   const { items, primitives, letterPlan } = moment(prepare(stages), 2, 0);
@@ -90,41 +93,47 @@ test('a QR relation draws each chain letter once per occurrence, from its bindin
 
 const { Element, restore } = createSvgDom();
 after(restore);
-function paint({ items, primitives, letterPlan }) {
-  const root = new Element('g'), layers = new Map();
+const opacity = element => element ? Number(element.attrs.opacity ?? 1) * opacity(element.parentNode) : 1;
+/** Paints with the production binding painters, dimming quiet hosts and layers as the scene does. */
+function paint({ items, primitives, letterPlan }, emphasis = () => null) {
+  const root = new Element('g'), layers = new Map(), decorations = new Map();
+  const layer = (_layers, item, layerEmphasis, className) => {
+    const key = JSON.stringify([refs(item), className]);
+    if (!layers.has(key)) layers.set(key, select(root).append('g').attr('class', className).attr('opacity', layerEmphasis === 'quiet' ? 0.3 : null));
+    return layers.get(key);
+  };
   const drawing = createBindingDrawing({
     activeDerivationFrameIndex: 0, overlay: select(root), frameItems: items, g: select(root),
     operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], focusedRelationMoment: null,
-    operatorVariableBindingLayers: new Map(), operatorVariableSharedPathLayers: new Map(),
-    acceptedRootLayerBeforeNodes: (_layers, item, _emphasis, className) => {
-      const key = JSON.stringify([refs(item), className]);
-      if (!layers.has(key)) layers.set(key, select(root).append('g').attr('class', className));
-      return layers.get(key);
-    },
-    relationEmphasisForItem: () => null, decorateRelationElement() {},
+    operatorVariableBindingLayers: new Map(), operatorVariableSharedPathLayers: new Map(), coindexRelationLayers: new Map(),
+    acceptedRootLayerBeforeNodes: layer, acceptedRootLayerAfterNodes: layer, relationLayerKey: item => JSON.stringify(refs(item)),
+    relationEmphasisForItem: emphasis, decorateRelationElement: (element, item) => decorations.set(element, item), TARGET_EMERALD: '#34d399',
     resolveOverlayAnchor: () => undefined, terminalAmbiguities: new Map(), identityTerminalOwners: new Map(),
     identityForestLightFamilies: [], markIdentityLensOccurrences() {}, indexLetterPlan: letterPlan
   });
+  const painters = { 'quantifier-raising': drawing.drawQuantifierRaising, 'operator-variable-binding': drawing.drawOperatorVariableBinding,
+    'index-badge': drawing.drawIndexBadge };
   for (const primitive of primitives) {
-    const host = select(root).append('g').attr('class', 'vr-item');
-    if (primitive.type === 'quantifier-raising') drawing.drawQuantifierRaising(primitive, items[primitive.itemIndex], host, null);
-    if (primitive.type === 'operator-variable-binding') drawing.drawOperatorVariableBinding(primitive, items[primitive.itemIndex], host, null);
+    const item = items[primitive.itemIndex];
+    painters[primitive.type]?.(primitive, item, select(root).append('g').attr('opacity', emphasis(item) === 'quiet' ? 0.3 : null), emphasis(item));
   }
   // Every letter names the exact occurrence its painter binds it to.
-  return descendants(root).filter(element => element.tag === 'text').map(element => {
+  const letters = descendants(root).filter(element => element.tag === 'text').map(element => {
     const role = element.attrs['data-qr-index-role'] || element.attrs['data-operator-variable-index-role'];
     const host = element.attrs['data-qr-index-role'] ? element.parentNode.parentNode : element.parentNode;
     const nodeId = { pronounced: host.attrs['data-qr-pronounced'], lf: host.attrs['data-qr-lf'],
-      operator: host.attrs['data-operator-variable-operator'], variable: host.attrs['data-operator-variable-variable'] }[role];
-    return { nodeId, index: element.textContent, role };
+      operator: host.attrs['data-operator-variable-operator'], variable: host.attrs['data-operator-variable-variable'] }[role]
+      ?? element.attrs['data-coreference-anchor'];
+    return { nodeId, index: element.textContent, role, opacity: opacity(element) };
   });
+  return { letters, decorations };
 }
 
 test('the production painters draw only their assigned letters', () => {
   const existential = moment(prepare(stages), 2, 0);
-  const everyLetter = paint({ ...existential, letterPlan: () => ({ draw: true, alsoFor: [] }) });
+  const everyLetter = paint({ ...existential, letterPlan: () => ({ draw: 'glyph', label: null, alsoFor: [] }) }).letters;
   assert.equal(everyLetter.filter(letter => letter.nodeId === 'objhigh').length, 2, 'both marks own the landing letter');
-  const letters = paint(existential);
+  const { letters } = paint(existential);
   assert.deepEqual(letterCounts(letters), [['obj:j', 1], ['objhigh:j', 1], ['subj:i', 1], ['subjhigh:i', 1]]);
   assert.deepEqual(letters.filter(letter => letter.nodeId === 'objhigh').map(letter => letter.role), ['operator']);
 });
@@ -154,28 +163,66 @@ test('a binding restated by another facet keeps its path, and the active claim h
   }
 });
 
-const binding = (relationIndex, operatorNodeId = 'operator') => ({ kind: 'operator-variable-binding', familyId: 'scope.operator-variable',
-  relationRef: { stageIndex: 0, relationIndex }, appearsAtStage: 0, operatorNodeId, variableNodeId: 'trace', index: 'i' });
-const bindingPrimitive = (item, itemIndex) => ({ type: 'operator-variable-binding', operatorNodeId: item.operatorNodeId,
-  variableNodeId: item.variableNodeId, index: item.index, itemIndex });
+// A relative clause whose silent operator binds the object position.
+const leaf = (id, label, word, extra = {}) => ({ id, label, ...(word ? { word } : {}), ...extra, children: [] });
+const relative = (relations, opLabel = 'DP', gap = leaf('gap', 'DP', '', { silent: true, lineageId: 'relative' })) => prepareReplay({
+  derivationStages: [{ statement: 'Bind the gap.', stageRecord: 'The operator binds its variable.', relations, workspaceForest: [
+    { id: 'cp', label: 'CP', children: [leaf('op', opLabel, '', { silent: true, lineageId: 'relative' }),
+      { id: 'tp', label: 'TP', children: [leaf('subj', 'D', 'Mia', { tokenIndex: 0 }), { id: 'vp', label: 'VP', children: [
+        leaf('v', 'V', 'saw', { tokenIndex: 1 }), gap, leaf('him', 'D', 'him', { tokenIndex: 2 })] }] }] }] }],
+  sentence: 'Mia saw him', inputTokens: ['Mia', 'saw', 'him'], includePlayback: true });
 
-test('an inline coindex or written subscript on the same label shows the letter; other labels keep theirs', () => {
+test('a bound trace shares its word label, where the trace already shows its index', () => {
+  const witnessed = relative([{ relation: 'OperatorVariableBinding', anchors: { operator: 'op', variable: 'trace', traceWitness: 'trace' } }],
+    'DP', leaf('trace', 'D', 'tᵢ', { silent: true, lineageId: 'relative' }));
+  assert.deepEqual(checkOneLetterPerLabel(witnessed), []);
+  // Keyed by authored ID, the letter misses the word tᵢ it is drawn beside.
+  const byAuthoredId = (primitives, items, context) => planIndexLetters(primitives, items, { ...context,
+    labelOf: (letter, primitive) => letter.role === 'identity' ? context.labelOf(letter, primitive) : letter.nodeId,
+    writtenSubscript: label => typeof label === 'string' ? null : context.writtenSubscript(label) });
+  assert(checkOneLetterPerLabel(witnessed, byAuthoredId).some(violation => violation.detail === 'trace::__leaf shows i 2 times'));
+});
+
+test('the active claim draws a shared letter, so it is never dimmed inside a quiet owner', () => {
+  const coreferent = relative([{ relation: 'OperatorVariableBinding', anchors: { operator: 'op', variable: 'gap' }, values: { index: 'i' } },
+    { relation: 'Coreference', anchors: { antecedent: 'op', pronoun: 'him' }, values: { index: 'i' } }]);
+  const current = moment(coreferent, 0, 1);
+  const atOperator = current => paint(current, current.emphasis).letters.filter(letter => letter.nodeId === 'op');
+  assert.deepEqual(atOperator(current).map(letter => [letter.index, letter.opacity]), [['i', 1]]);
+  const roleFirst = planIndexLetters(current.primitives, current.items, { ...byNode, emphasisRank: () => 0 });
+  assert.deepEqual(atOperator({ ...current, letterPlan: roleFirst }).map(letter => [letter.index, letter.opacity]), [['i', 0.3]],
+    'ranking the binding first leaves the active letter at the quiet binding opacity');
+});
+
+test('a written subscript such as Opᵢ shows the letter and carries the claim that asserts it', () => {
+  const opLabel = new Element('text', { class: 'category-label', 'data-category-node-id': 'op' }, { __vizId: 'op' });
+  opLabel.text = 'Opᵢ';
+  const labels = { labelOf: letter => letter.nodeId === 'op' ? opLabel : letter.nodeId,
+    writtenSubscript: label => label === opLabel ? 'i' : null };
+  const current = moment(relative([{ relation: 'OperatorVariableBinding', anchors: { operator: 'op', variable: 'gap' } }], 'Opᵢ'), 0, 0, labels);
+  const { letters, decorations } = paint(current, current.emphasis);
+  assert.deepEqual(letters.map(letter => letter.nodeId), ['gap'], 'no second i beside Opᵢ');
+  assert.deepEqual(refs(decorations.get(opLabel)), ['0:0']);
+});
+
+test('inline coindices hold their label; unplaceable ones never take a letter; unlisted letters are errors', () => {
+  const binding = { kind: 'operator-variable-binding', familyId: 'scope.operator-variable', relationRef: { stageIndex: 0, relationIndex: 1 },
+    appearsAtStage: 0, operatorNodeId: 'operator', variableNodeId: 'trace', index: 'i' };
   const identity = { kind: 'coindex', familyId: 'identity.occurrences', nodeIds: ['operator', 'trace'], index: 'i',
     relationRef: { stageIndex: 0, relationIndex: 0 }, appearsAtStage: 0 };
-  const items = [identity, binding(1)];
-  const primitives = [{ type: 'identity-lens', nodeIds: identity.nodeIds, index: 'i', itemIndex: 0 }, bindingPrimitive(items[1], 1)];
+  const items = [identity, binding];
+  const primitives = [{ type: 'identity-lens', nodeIds: identity.nodeIds, index: 'i', itemIndex: 0 },
+    { type: 'operator-variable-binding', operatorNodeId: 'operator', variableNodeId: 'trace', index: 'i', itemIndex: 1 }];
   // The silent trace shows the coindex in its own label; the operator shows it on its word.
-  const context = { identityLabel: nodeId => nodeId === 'trace' ? 'trace' : 'operator-word', writtenSubscript: () => null, emphasisRank: () => 0 };
+  const context = { labelOf: letter => letter.role !== 'identity' ? letter.nodeId : letter.nodeId === 'trace' ? 'trace' : 'operator-word',
+    writtenSubscript: () => null, emphasisRank: item => item === binding ? 2 : 0 };
   const letter = (letterPlan, itemIndex, role, nodeId) => letterPlan({ itemIndex, role, nodeId, index: 'i' });
   const letterPlan = planIndexLetters(primitives, items, context);
-  assert.deepEqual(letter(letterPlan, 0, 'identity', 'trace'), { draw: true, alsoFor: [1] });
-  assert.deepEqual(letter(letterPlan, 1, 'variable', 'trace'), { draw: false });
-  assert.deepEqual(letter(letterPlan, 1, 'operator', 'operator'), { draw: true, alsoFor: [] });
-  const written = planIndexLetters(primitives, items, { ...context, writtenSubscript: nodeId => nodeId === 'operator' ? 'i' : null });
-  assert.deepEqual(letter(written, 1, 'operator', 'operator'), { draw: false }, 'Opᵢ needs no second i');
-  const unplaced = planIndexLetters(primitives, items, { ...context, identityLabel: () => null });
-  assert.deepEqual(letter(unplaced, 1, 'variable', 'trace'), { draw: true, alsoFor: [] },
-    'a coindex no single label can show never takes the letter');
+  assert.deepEqual(letter(letterPlan, 0, 'identity', 'trace'), { draw: 'glyph', label: 'trace', alsoFor: [1] }, 'even against an active binding');
+  assert.deepEqual(letter(letterPlan, 1, 'variable', 'trace'), { draw: 'none' });
+  assert.deepEqual(letter(letterPlan, 1, 'operator', 'operator'), { draw: 'glyph', label: 'operator', alsoFor: [] });
+  const unplaced = planIndexLetters(primitives, items, { ...context, labelOf: (item, primitive) => item.role === 'identity' ? null : context.labelOf(item, primitive) });
+  assert.deepEqual(letter(unplaced, 1, 'variable', 'trace'), { draw: 'glyph', label: 'trace', alsoFor: [] });
   assert.throws(() => letter(letterPlan, 1, 'operator', 'elsewhere'), /not among the drawable primitives/);
 });
 

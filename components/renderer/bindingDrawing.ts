@@ -22,7 +22,7 @@ import { type SyntaxNode } from '../../types.ts';
 import { mergeIdentityOwners } from '../identityForestLight.ts';
 import type { ClaimDrawing, DrawingLayer, RelationEmphasis, RelationLayers, TreeMeasurements } from './drawingContext.ts';
 import { primitiveIndexLetters, type IndexLetter, type IndexLetterContext, type IndexLetterPlan } from './indexLetters.ts';
-import { labelBelongsToNode } from './treeMeasurements.ts';
+import { labelBelongsToNode, shellLabelElement, terminalLabelElement } from './treeMeasurements.ts';
 interface BindingDrawingContext extends Pick<RelationLayers,
   | 'acceptedRootLayerBeforeNodes'
   | 'operatorVariableBindingLayers'
@@ -54,8 +54,11 @@ interface BindingDrawingContext extends Pick<RelationLayers,
   TARGET_EMERALD: string;
   appendMarker: (markX: number, markY: number, treeNotation?: boolean, stackIndex?: number) => DrawingLayer;
   /** Which drawable mark draws each index letter (see indexLetters.ts). */
-  indexLetterPlan: IndexLetterPlan;
+  indexLetterPlan: IndexLetterPlan<IndexLetterLabel>;
 }
+
+/** A painted tree label, or a stand-in for a letter with no measurable label. */
+export type IndexLetterLabel = SVGTextElement | string;
 
 type OverlayAnchor = (nodeId: string) => d3.HierarchyPointNode<SyntaxNode> | undefined;
 /** The one label that shows an identity coindex for this occurrence. */
@@ -68,19 +71,29 @@ const identityIndexLabels = (g: DrawingLayer, resolveOverlayAnchor: OverlayAncho
   return { labelTarget, terminal, labelId, labels };
 };
 
-/** Reads the painted labels exactly as these painters place their letters. */
+/** The label each binding refinement measures to place a letter, found with
+ * the same lookups, so letters at one physical label share one plan entry. */
 export const indexLetterLabels = (g: DrawingLayer, resolveOverlayAnchor: OverlayAnchor):
-  Omit<IndexLetterContext, 'emphasisRank'> => ({
-  identityLabel: (nodeId) => {
-    const { labels, labelId } = identityIndexLabels(g, resolveOverlayAnchor, nodeId);
-    return labels.size() === 1 ? labelId : null;
-  },
-  writtenSubscript: (nodeId) => {
-    const label = ['.category-label', '.terminal-label'].map(selector => g.selectAll<SVGTextElement, HierNode>(selector)
-      .filter(function exactLetterLabel() { return labelBelongsToNode(this, nodeId); }).node()).find(Boolean);
-    return label ? extractDisplayedSubscriptIndex(label.textContent || '') : null;
-  }
-});
+  Omit<IndexLetterContext<IndexLetterLabel>, 'emphasisRank'> => {
+  const shell = (nodeId: string) => shellLabelElement(g, nodeId);
+  const terminal = (nodeId: string) => terminalLabelElement(g, resolveOverlayAnchor(nodeId), nodeId);
+  const accepted = (nodeId: string) => shell(nodeId) ?? terminal(nodeId);
+  return {
+    labelOf: (letter, primitive) => {
+      if (letter.role === 'identity') {
+        const { labels } = identityIndexLabels(g, resolveOverlayAnchor, letter.nodeId);
+        return labels.size() === 1 ? labels.node() : null;
+      }
+      // A bound trace's letter sits beside its witness's word, as refinement measures it.
+      const label = primitive.type === 'operator-variable-binding' && letter.role === 'variable' && primitive.traceWitnessNodeId
+        ? terminal(primitive.traceWitnessNodeId) ?? accepted(primitive.variableNodeId)
+        : letter.role === 'variable' || letter.role === 'badge' ? accepted(letter.nodeId) : shell(letter.nodeId);
+      // Refinement cannot position a letter without its label, so it shares nothing.
+      return label ?? `unplaced:${letter.nodeId}`;
+    },
+    writtenSubscript: label => typeof label === 'string' ? null : extractDisplayedSubscriptIndex(label.textContent || '')
+  };
+};
 
 /** A shared letter's decoration: its host's owner plus every other claim it shows. */
 const letterOwner = (host: RelationPlanItem, others: readonly RelationPlanItem[]): RelationPlanItem => {
@@ -127,9 +140,18 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
     drawLetter: (letter: IndexLetter) => SVGElement | null) => {
     for (const letter of primitiveIndexLetters(primitive)) {
       const assigned = indexLetterPlan(letter);
-      if (!assigned.draw) continue;
+      if (assigned.draw === 'none') continue;
+      const others = assigned.alsoFor.map(itemIndex => frameItems[itemIndex]);
+      if (assigned.draw === 'label') {
+        // A written subscript (Opᵢ) is the letter, so the label carries its claims.
+        if (typeof assigned.label === 'string') continue;
+        const owner = letterOwner(identityTerminalOwners.get(assigned.label) ?? hostItem, [hostItem, ...others]);
+        identityTerminalOwners.set(assigned.label, owner);
+        decorateRelationElement(assigned.label, owner, relationEmphasisForItem(owner));
+        continue;
+      }
       const element = drawLetter(letter);
-      const owner = letterOwner(hostItem, assigned.alsoFor.map(itemIndex => frameItems[itemIndex]));
+      const owner = letterOwner(hostItem, others);
       if (element && planItemRelationRefs(owner).length > planItemRelationRefs(letterOwner(hostItem, [])).length) {
         decorateRelationElement(element, owner, relationEmphasisForItem(owner));
       }
@@ -343,7 +365,7 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
       if (labelTarget?.ambiguityCount) terminalAmbiguities.set(nodeId, labelTarget.ambiguityCount);
       if (labels.size() !== 1) return;
       const assigned = indexLetterPlan(letter);
-      if (!assigned.draw) return;
+      if (assigned.draw === 'none') return;
       labels.each(function appendIdentityIndex() {
         const label = d3.select(this);
         if (!label.attr('data-identity-base-label')) label.attr('data-identity-base-label', this.textContent || '');

@@ -1571,15 +1571,16 @@ same letter at the same label. One QR relation earns a covert path and a binding
 path that both index the operator and the variable, and a silent occurrence can
 already carry an identity coindex, or an authored subscript such as Opᵢ, in its
 label. Each claim keeps its paths and domains, but the binding painters draw
-only the letters `components/renderer/indexLetters.ts` assigns them. The drawn
-letter carries every claim that asserts it, for hover and Replay emphasis. An
-inline coindex or written subscript shows the letter itself. Otherwise a binding
-index draws it, because its placement clears the binding path, before a QR or
-badge letter. A binding restated by another facet (`binding.dependency` after
-`operator-binding`) still draws its own path, so between two binding marks the
-one active at the current Replay step draws the letter. Different letters at one
-occurrence stay separate, and a letter on an occurrence's word, such as a theta
-or identity index, does not remove a letter beside its phrase label.
+only the letters `components/renderer/indexLetters.ts` assigns them. Letters
+meet at the physical label their refinement measures: a bound trace's letter
+sits beside its witness's word, so it meets a tᵢ written there. An inline
+coindex or written subscript shows the letter itself, and a written label then
+carries the claims, like a drawn letter. Otherwise the claim most prominent at
+the current Replay step draws the letter, because a letter inside a dimmed
+owner's group cannot be brightened; among equally prominent claims a binding
+index draws it, because its placement clears the binding path. Different letters
+at one occurrence stay separate, and a letter on an occurrence's word, such as a
+theta or identity index, does not remove a letter beside its phrase label.
 
 ## Required Verification
 

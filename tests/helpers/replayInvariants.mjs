@@ -5,6 +5,7 @@
  * Checkers never assert; callers decide which violations are expected. */
 import * as d3 from 'd3';
 import { createBindingDrawing, indexLetterLabels } from '../../components/renderer/bindingDrawing.ts';
+import { labelBelongsToNode, shellLabelElement, terminalLabelElement } from '../../components/renderer/treeMeasurements.ts';
 import { planIndexLetters, primitiveIndexLetters } from '../../components/renderer/indexLetters.ts';
 import { applyVizIds, getNodeId } from '../../replay/displayIdentity.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
@@ -12,7 +13,7 @@ import { planItemDependencyNodeIds, planItemOwnsRelationMoment, planItemRelation
 import { visiblePlanFrameItems } from '../../replay/relations/relationFrame.ts';
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
 import { extractDisplayedSubscriptIndex } from '../../replay/replaySurfaceNotation.ts';
-import { treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
+import { identityLabelTarget, treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
 import { resolveSavedInputTokens } from '../../server/babelParser/surfaceTokens.js';
 import { createSvgDom, descendants, select } from './svgDom.mjs';
 
@@ -352,20 +353,13 @@ export function checkMarksAtOwningMoment(replay) {
 }
 
 const LETTER_KINDS = new Set(['quantifier-raising', 'operator-variable-binding', 'coindex', 'binding-domain']);
-const besideLetterAnchor = letter => {
-  const host = letter.parentNode, attrs = letter.attrs;
-  if (attrs['data-qr-index-role']) return host.parentNode.attrs[attrs['data-qr-index-role'] === 'lf' ? 'data-qr-lf' : 'data-qr-pronounced'];
-  if (attrs['data-operator-variable-index-role'] === 'operator') return host.attrs['data-operator-variable-operator'];
-  if (attrs['data-operator-variable-index-role']) return host.attrs['data-operator-variable-witness'] || host.attrs['data-operator-variable-variable'];
-  return ['data-control-anchor', 'data-binding-anchor', 'data-coreference-anchor', 'data-coindex-anchor', 'data-index-anchor']
-    .map(name => attrs[name]).find(Boolean);
-};
 
 /** Paints each frame's index letters with the production binding painters in
  * the offline SVG DOM, over the frame's displayed labels. Each letter a drawn
- * mark asserts at an occurrence label appears there exactly once: beside it,
- * as an inline coindex, or as a subscript already written into the label.
- * `planLetters` is the renderer's own unless a control replaces it. */
+ * mark asserts appears exactly once at the physical label it is placed at:
+ * beside it, as an inline coindex, or as a subscript written into the label.
+ * Placement restates the binding refinements' label lookups, independently of
+ * the letter plan. `planLetters` is the renderer's own unless a control replaces it. */
 export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
   const plan = replay.relationRenderPlan, out = [], played = new Map();
   if (!plan) return out;
@@ -394,8 +388,22 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
         label.text = run.text;
         root.appendChild(label);
       }
-      const labels = indexLetterLabels(g, resolve);
-      const letterPlan = planLetters(primitives, items, { ...labels, emphasisRank: item => !identity ? 1
+      const shell = id => id ? shellLabelElement(g, id) : null;
+      const terminal = id => id ? terminalLabelElement(g, resolve(id), id) : null;
+      const accepted = id => shell(id) ?? terminal(id);
+      const placed = (role, { nodeId, operatorNodeId, variableNodeId, witnessNodeId, family }) => {
+        if (role === 'identity') {
+          const target = identityLabelTarget(resolve(nodeId), nodeId);
+          const labels = g.selectAll(target?.kind === 'terminal' ? '.terminal-label' : '.category-label')
+            .filter(function exactIdentityLabel() { return labelBelongsToNode(this, target?.labelId || nodeId); });
+          return labels.size() === 1 ? labels.node() : null;
+        }
+        if (role === 'operator') return shell(operatorNodeId);
+        if (role === 'variable') return (witnessNodeId && terminal(witnessNodeId)) || accepted(variableNodeId);
+        return role === 'badge' && family !== 'parasitic-gap.composition' ? accepted(nodeId) : shell(nodeId);
+      };
+      const letterLabels = indexLetterLabels(g, resolve);
+      const letterPlan = planLetters(primitives, items, { ...letterLabels, emphasisRank: item => !identity ? 1
         : planItemOwnsRelationMoment(item, identity.stageIndex, identity.relationIndex) ? 2 : 0 });
       const layer = () => g.append('g');
       const drawing = createBindingDrawing({ activeDerivationFrameIndex: stage, overlay: g, frameItems: items, g,
@@ -410,26 +418,36 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
       const painters = { 'quantifier-raising': drawing.drawQuantifierRaising, 'operator-variable-binding': drawing.drawOperatorVariableBinding,
         'index-badge': drawing.drawIndexBadge, 'identity-lens': drawing.drawIdentityLens };
       for (const primitive of primitives) painters[primitive.type](primitive, items[primitive.itemIndex], g.append('g'), null);
-      const shownLetters = new Map(), show = (labelId, letter) => {
-        const key = JSON.stringify([labelId, letter]);
-        shownLetters.set(key, (shownLetters.get(key) ?? 0) + 1);
+      const shownLetters = new Map(), show = (label, letter) => {
+        if (!label || !letter) return;
+        const letters = shownLetters.get(label) ?? new Map();
+        shownLetters.set(label, letters.set(letter, (letters.get(letter) ?? 0) + 1));
       };
       for (const element of descendants(root)) {
-        if (/^(category|terminal)-label$/.test(element.attrs.class || '')) {
-          const labelId = element.attrs['data-category-node-id'] ?? element.attrs['data-node-id'];
-          const written = extractDisplayedSubscriptIndex(element.text);
-          if (written) show(labelId, written);
-          for (const tspan of element.children) if ((tspan.attrs.class || '').includes('babel-identity-index')) show(labelId, tspan.textContent);
-        } else if (element.tag === 'text' && (element.attrs.class || '').split(' ').includes('babel-relation-index')) {
-          show(besideLetterAnchor(element), element.textContent);
+        const attrs = element.attrs;
+        if (/^(category|terminal)-label$/.test(attrs.class || '')) {
+          show(element, extractDisplayedSubscriptIndex(element.text));
+          for (const tspan of element.children) if ((tspan.attrs.class || '').includes('babel-identity-index')) show(element, tspan.textContent);
+          continue;
         }
+        if (element.tag !== 'text' || !(attrs.class || '').split(' ').includes('babel-relation-index')) continue;
+        const host = element.parentNode, qrRole = attrs['data-qr-index-role'], role = attrs['data-operator-variable-index-role'];
+        show(qrRole ? shell(host.parentNode.attrs[qrRole === 'lf' ? 'data-qr-lf' : 'data-qr-pronounced'])
+          : role ? placed(role, { operatorNodeId: host.attrs['data-operator-variable-operator'],
+            variableNodeId: host.attrs['data-operator-variable-variable'], witnessNodeId: host.attrs['data-operator-variable-witness'] })
+          : attrs['data-coindex-anchor'] ? shell(attrs['data-coindex-anchor'])
+          : accepted(attrs['data-control-anchor'] || attrs['data-binding-anchor'] || attrs['data-coreference-anchor'] || attrs['data-index-anchor']),
+        element.textContent);
       }
-      const asserted = new Set(primitives.flatMap(primitiveIndexLetters).flatMap(letter => {
-        const labelId = letter.role === 'identity' ? labels.identityLabel(letter.nodeId) : letter.nodeId;
-        return labelId === null ? [] : [JSON.stringify([labelId, letter.index])];
-      }));
-      for (const key of asserted) {
-        const count = shownLetters.get(key) ?? 0, [labelId, letter] = JSON.parse(key);
+      const asserted = new Map();
+      for (const primitive of primitives) for (const letter of primitiveIndexLetters(primitive)) {
+        const label = placed(letter.role, { nodeId: letter.nodeId, operatorNodeId: letter.nodeId, variableNodeId: primitive.variableNodeId,
+          witnessNodeId: primitive.traceWitnessNodeId, family: items[letter.itemIndex].familyId });
+        if (label) asserted.set(label, (asserted.get(label) ?? new Set()).add(letter.index));
+      }
+      for (const [label, letters] of asserted) for (const letter of letters) {
+        const count = shownLetters.get(label)?.get(letter) ?? 0;
+        const labelId = label.attrs['data-category-node-id'] ?? label.attrs['data-node-id'];
         if (count !== 1) out.push(violation('one-letter-per-label', index + 1, `${labelId} shows ${letter} ${count} times`));
       }
     });

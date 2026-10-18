@@ -81,7 +81,7 @@ function painter(workspace = forest) {
     decorateRelationElement: (element, item) => decorations.set(element, item), relationEmphasisForItem: () => null,
     markIdentityLensOccurrences() {},
     // Each claim here is drawn alone; tests/indexLetters.test.mjs covers shared letters.
-    indexLetterPlan: () => ({ draw: true, alsoFor: [] })
+    indexLetterPlan: () => ({ draw: 'glyph', label: null, alsoFor: [] })
   };
   const draw = createBindingDrawing(dependencies).drawIdentityLens;
   const theta = (id, index, item, deferred) => {
