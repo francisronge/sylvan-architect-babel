@@ -109,7 +109,7 @@ test('a temporary construction container changes no intrinsic or retained subtre
 });
 
 for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
-  test(`review #8, ${width}px ${direction}: a pending adjunct wrapper adds no early branch rank`, () => {
+  test(`review #8, ${width}px ${direction}: a pending adjunct wrapper finds its host already on its final row`, () => {
     const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/adjunct-attachment-continuity.json', import.meta.url)));
     const steps = prepareReplay({ ...record, includePlayback: true }).playbackSteps;
     const sizeFor = stage => stageTreeLayoutSize(steps, stage, width, height);
@@ -121,20 +121,19 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
       return new Map(layoutSyntaxTree(root, size, direction, reservations.get(step.replayCanvasData), visible)
         .descendants().filter(node => visible.has(getNodeId(node))).map(node => [getNodeId(node), node]));
     };
+    const final = positions(56).get('ibarB').y;
     for (const frame of [43, 51, 52, 55]) {
       const nodes = positions(frame);
-      assert.equal(nodes.get('subjB').y, nodes.get('ibarB').y, `frame ${frame}: current sisters share one rank`);
+      assert.equal(nodes.get('ibarB').y, final, `frame ${frame}: the host stands on the row its wrapper will give it`);
+      assert(nodes.get('subjB').y < nodes.get('ibarB').y, `frame ${frame}: its branch spans the wrapper's future row`);
     }
     const previous = positions(51), before = positions(55), after = positions(56);
     for (const [id, point] of previous) {
       assert.equal(before.get(id).x, point.x, `${id} keeps its x across the construction boundary`);
       assert.equal(before.get(id).y, point.y, `${id} keeps its y across the construction boundary`);
     }
-    const dy = after.get('ibarB').y - before.get('ibarB').y;
-    assert(dy > 0, 'the new wrapper adds its level only at the merge');
     for (const node of before.get('ibarB').descendants()) {
-      assert(Math.abs(after.get(getNodeId(node)).y - node.y - dy) < 1e-8,
-        'the existing predicate translates as a whole and preserves its internal branch lengths');
+      assert(Math.abs(after.get(getNodeId(node)).y - node.y) < 1e-8, 'the wrapper appears without lowering the existing predicate');
     }
   });
 }

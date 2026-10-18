@@ -13,8 +13,8 @@
  *   daughters that was already painted moved in that same step. A waiting
  *   workspace or a selected head that does not stand at its merge site makes
  *   the joining step jump. `waiting` marks a daughter that was a workspace root.
- *   A daughter whose old row the new parent now occupies may descend below it,
- *   as reserved hosts do; its horizontal motion still counts.
+ *   A host must not drop below a parent inserted above it either: its branch is
+ *   drawn long enough for that parent from the start.
  *
  * - `shape-motion`: a node moved, and moved relative to its painted parent,
  *   while that parent kept exactly the same painted children. Whoever owns the step, a
@@ -94,9 +94,7 @@ export function replayMotionFaults({ frames }, { threshold = MOTION_FAULT_THRESH
     for (const point of frames[index].points) {
       const old = point.parent === target && prior.get(point.id);
       if (!old) continue;
-      const shift = motion(index, point.id);
-      const descends = old.parent && Math.abs(parent.y + carried[index].y - old.y) < 1e-6 && point.y > parent.y;
-      const distance = descends ? Math.abs(shift.x) : length(shift);
+      const distance = length(motion(index, point.id));
       if (distance > threshold) faults.push({ frame: index + 1, step: stepKeys[index], node: point.id, kind: 'attachment-site-motion',
         operation, distance, waiting: !old.parent });
     }

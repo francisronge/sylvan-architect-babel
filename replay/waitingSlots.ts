@@ -14,13 +14,22 @@ type Node = d3.HierarchyPointNode<SyntaxNode>;
 /** A waiting workspace stands, from the first frame it is painted, where it will
  * attach. Each attachment (a painted root that gains a painted parent) fixes the
  * positions of its component in that frame. Every earlier frame in which those
- * members are painted only as detached pieces of that component, with no other
- * syntax inside it, takes those positions; a later attachment of the same pieces
+ * members are painted only as detached pieces of that component, each painted
+ * member under the parent it attaches with and no other syntax inside it, takes
+ * those positions; a later attachment of the same pieces
  * takes precedence. The rest of each frame is unchanged, so the coordinates must
  * share one origin across stages (see the stage alignment in stageCoordinates.ts).
  * A component keeps its planned frames when its slot would invalidate a branch or
  * add ink collisions in any of them. With `withinStage`, a lifetime stops at its
- * attachment's stage boundary, for plans whose stages keep their own origins. */
+ * attachment's stage boundary, for plans whose stages keep their own origins.
+ *
+ * First, every node is drawn on its final row from its first frame: the last row
+ * it occupies in the plan's scope, when that row lies below its current parent;
+ * otherwise, as for material that later moves up, it keeps its own offset below
+ * that parent. A branch to a node that a parent will later be inserted above is
+ * then longer, spanning the rows that parent will occupy, and the insertion only
+ * adds the parent and its branches. A frame keeps its planned rows when the
+ * final rows would make it invalid or add ink collisions. */
 export function reserveWaitingSlots({ steps, sizes, coordinates, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, withinStage = false }: {
   steps: readonly PlaybackStep[];
   sizes: ReadonlyMap<number, [number, number]>;
@@ -77,6 +86,32 @@ export function reserveWaitingSlots({ steps, sizes, coordinates, direction, meas
     const areas = collisionAreas(own, other, measureCategoryText, { measureTreeInk, measureTreeLabel, treeLabelRuns: treeLabelRuns?.get(scene.canvas) });
     return [...areas.values()].reduce((sum, area) => sum + area, 0);
   };
+  // Rows first: each node stands on the last row it occupies in this plan's scope
+  // (its stage, or the whole Replay on aligned frames) when that row is below its
+  // current parent; otherwise it keeps its own offset below that parent.
+  const lastRows = new Map<string, number>();
+  scenes.forEach((scene, index) => {
+    const key = (id: string) => withinStage ? `${scene.step.replayFrameIndex}:${id}` : id;
+    for (const [id, node] of paint(scenes[index])) lastRows.set(key(id), node.y);
+  });
+  for (const scene of scenes) {
+    const nodes = paint(scene), row = (id: string) => lastRows.get(withinStage ? `${scene.step.replayFrameIndex}:${id}` : id);
+    const points = new Map(output.get(scene.canvas)!), assigned = new Map<string, number>();
+    let changed = false;
+    for (const [id, node] of nodes) {
+      const parent = parentOf(nodes, id), last = row(id)!;
+      const y = !parent ? last : last > assigned.get(parent)! + 1e-6 ? last : assigned.get(parent)! + node.y - nodes.get(parent)!.y;
+      assigned.set(id, y);
+      if (Math.abs(y - node.y) < 1e-6) continue;
+      points.set(id, { ...points.get(id)!, y });
+      changed = true;
+    }
+    if (!changed) continue;
+    const saved = output.get(scene.canvas)!, original = collisions(scene, nodes, new Set());
+    output.set(scene.canvas, points);
+    const placed = paint(scene);
+    if (!valid(placed) || collisions(scene, placed, new Set()) > original + 1e-6) output.set(scene.canvas, saved);
+  }
   for (let attach = 1; attach < scenes.length; attach++) {
     const now = paint(scenes[attach]), before = paint(scenes[attach - 1]);
     for (const [id] of now) {
@@ -93,9 +128,11 @@ export function reserveWaitingSlots({ steps, sizes, coordinates, direction, meas
         if (withinStage && scenes[index].step.replayFrameIndex !== scenes[attach].step.replayFrameIndex) break;
         const nodes = index === attach - 1 ? before : paint(scenes[index]);
         const present = [...members].filter(member => nodes.has(member));
+        // The pieces keep the internal structure they attach with; only detached
+        // parts still being built may lack their later parent.
         if (!present.length || present.some(member => {
           const parent = parentOf(nodes, member);
-          return parent !== null && !members.has(parent)
+          return parent !== null && (member === id || parent !== parentOf(now, member))
             || (nodes.get(member)!.children ?? []).some(child => nodes.has(getNodeId(child)) && !members.has(getNodeId(child)));
         })) break;
         changes.push({ scene: scenes[index], ids: present });

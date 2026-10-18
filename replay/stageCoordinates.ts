@@ -337,7 +337,8 @@ function stageOffset(steps: readonly PlaybackStep[], stage: number, sizeForStage
   // An offset depends on this stage's local frames and on the aligned frames of
   // every later stage, which the next stage's aligned frames already embody.
   const frames = local(stage, size);
-  const next = nextSize ? alignedStageCoordinates(steps, stage + 1, nextSize, sizeForStage, direction, local) : undefined;
+  const next = nextSize && stageSteps(steps, stage + 1).length
+    ? alignedStageCoordinates(steps, stage + 1, nextSize, sizeForStage, direction, local) : undefined;
   let byDirection = stageOffsets.get(frames);
   if (!byDirection) stageOffsets.set(frames, byDirection = new Map());
   let offsets = byDirection.get(direction);
@@ -403,8 +404,8 @@ export function alignedStageFrames(steps: readonly PlaybackStep[], stage: number
 }
 
 /** Motion a plan's own frames show: components the step does not own that move,
- * and existing daughters that move as a new parent joins them. A host lowered
- * below an inserted parent that takes its row keeps only its horizontal motion. */
+ * and existing daughters that move as a new parent joins them, including a host
+ * that drops below an inserted parent. */
 function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep) => PaintedFrame, direction: TreeDirection) {
   const scenes = steps.flatMap(step => {
     const [coordinates, size] = step.replayCanvasData && painted(step) || [];
@@ -422,9 +423,7 @@ function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep
     for (const node of parent.children ?? []) {
       const id = getNodeId(node), now = scene.nodes.get(id), prior = before.nodes.get(id);
       if (!now || !prior) continue;
-      const hadParent = prior.parent && before.nodes.has(getNodeId(prior.parent));
-      const descends = hadParent && Math.abs(parent.y - prior.y) < 1e-6 && now.y > parent.y;
-      const distance = descends ? Math.abs(now.x - prior.x) : Math.hypot(now.x - prior.x, now.y - prior.y);
+      const distance = Math.hypot(now.x - prior.x, now.y - prior.y);
       if (distance > 1) joins.set(`${index}:${id}`, distance);
     }
   });

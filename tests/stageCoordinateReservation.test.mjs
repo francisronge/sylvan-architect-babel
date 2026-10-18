@@ -330,7 +330,11 @@ test('plaque allocation, camera bounds and painted nodes use the same reserved c
     const bounds = buildStageCameraBounds({ ...input, plaqueLayout: placements });
     let firstRects;
     for (const [index, step] of steps.entries()) {
-      const tree = laidOut(step, steps, size, direction), nodes = new Map(tree.descendants().map(node => [getNodeId(node), node]));
+      // Paint through the planned reservations, as the camera and plaque paths do.
+      const root = d3.hierarchy(step.replayCanvasData); applyVizIds(root);
+      const tree = layoutSyntaxTree(root, size, direction, buildStageCoordinateReservations(steps, 0, size, () => size, direction)
+        .get(step.replayCanvasData), new Set(step.replayVisibleNodeIds));
+      const nodes = new Map(tree.descendants().map(node => [getNodeId(node), node]));
       for (const measured of space.scenes[index].nodes) assert.deepEqual({ x: measured.x, y: measured.y }, positions(tree).get(getNodeId(measured)));
       const rects = projectPlaqueLayout(placements, id => nodes.get(id) ?? null);
       if (firstRects) assert.deepEqual(rects, firstRects, 'the unchanged owner keeps the plaque and connector ports fixed');
