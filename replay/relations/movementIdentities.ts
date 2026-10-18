@@ -23,6 +23,7 @@
  */
 
 
+import { authoredRoleMatcher } from '../relationAnchors.ts';
 import { findRelationRegistryEntry } from '../relationDispatch/relationRegistry.js';
 
 import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
@@ -102,13 +103,12 @@ export const registeredTrajectoryDisplayKind = (
   const family = PRODUCTION_RENDER_FAMILIES[entry.id];
   if (!family?.trajectoryKind) return '';
   if (anchors !== undefined) {
-    const roles = authoredAnchorRoles(anchors);
-    const hasSource = TRAJECTORY_SOURCE_ROLES.some((role) => roles.has(role));
-    const hasTarget = TRAJECTORY_TARGET_ROLES.some((role) => roles.has(role));
-    const hasWitness = TRAJECTORY_WITNESS_ROLES.some((role) => roles.has(role));
-    if (!hasSource || !hasTarget) return '';
+    const roles = [...authoredAnchorRoles(anchors)];
+    const has = (list: readonly string[]) => roles.some(authoredRoleMatcher(list));
+    const hasWitness = has(TRAJECTORY_WITNESS_ROLES);
+    if (!has(TRAJECTORY_SOURCE_ROLES) || !has(TRAJECTORY_TARGET_ROLES)) return '';
     if (entry.id === 'identity.occurrences' && !hasWitness) {
-      return roles.has('source') && roles.has('target') ? 'head' : '';
+      return has(['source']) && has(['target']) ? 'head' : '';
     }
     if (
       family.trajectoryKind !== 'head'

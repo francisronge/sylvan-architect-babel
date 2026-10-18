@@ -18,6 +18,7 @@ import {
 } from './movementLinks.ts';
 import { productionRelationRegistry } from './relationDispatch/productionRegistry.js';
 import { findRelationRegistryEntry } from './relationDispatch/relationRegistry.js';
+import { authoredRoleMatcher } from './relationAnchors.ts';
 import { TRAJECTORY_SOURCE_ROLES, TRAJECTORY_TARGET_ROLES } from './relations/renderFamilies.ts';
 import {
   describeReplayNodePosition,
@@ -191,9 +192,9 @@ const buildAuthoredRelationAnchorLines = (
       if (!anchor)
         return false;
       return (movementLines.some(line => line.label === 'Source') && link.sourceNodeId === value
-        && (TRAJECTORY_SOURCE_ROLES as readonly string[]).includes(anchor.role))
+        && authoredRoleMatcher(TRAJECTORY_SOURCE_ROLES)(anchor.role))
         || (movementLines.some(line => line.label === 'Landing') && link.targetNodeId === value
-          && (TRAJECTORY_TARGET_ROLES as readonly string[]).includes(anchor.role));
+          && authoredRoleMatcher(TRAJECTORY_TARGET_ROLES)(anchor.role));
     });
   };
   const current = Object.entries(relation.anchors ?? {}).flatMap(([role, value]) => {

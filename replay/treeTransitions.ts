@@ -2,6 +2,7 @@
 import { type SyntaxNode } from '../types.ts';
 import { readCategoryLabel } from './categoryLabel.ts';
 import {
+  findResolvedReplayAnchorByRoles,
   findResolvedReplayAnchorsByRoles,
   getRelationSourceNodeIds,
   getRelationTargetNodeId,
@@ -33,7 +34,7 @@ import {
   replayEffectiveSilence,
   syntaxNodeMaterialSignature
 } from './syntaxForest.ts';
-import { type DerivationReplayPlanStep, type ReplayResolvedRelationAnchor } from './types.ts';
+import { type DerivationReplayPlanStep } from './types.ts';
 
 // Dispatch has already resolved the authored name and validated its signature.
 export const relationOwnsPhrasalTreeTransition = (relation: DerivationReplayPlanStep): boolean => relation.registeredEntryId === 'qr.covert';
@@ -233,10 +234,6 @@ export const buildPreMovementStructuralForest = (
       sourceId = oldParent.id;
     }
   };
-  const findAnchor = (anchors: ReplayResolvedRelationAnchor[], roles: readonly string[]): ReplayResolvedRelationAnchor | undefined => {
-    const wanted = new Set(roles.map((role) => role.toLowerCase()));
-    return anchors.find((anchor) => wanted.has(String(anchor.role || '').trim().toLowerCase()));
-  };
   relations.flatMap(movementLandingGroups).reverse().forEach((relation) => {
     if (relation.recoveredMovement && !relation.recoveredMovement.transition)
       return;
@@ -252,7 +249,7 @@ export const buildPreMovementStructuralForest = (
         .map((anchor) => String(anchor.nodeId || '')) : [])
     ].filter(Boolean)));
     const targetId = String(getRelationTargetNodeId(relation)
-      || findAnchor(anchors, targetRoles)?.nodeId
+      || findResolvedReplayAnchorByRoles(anchors, targetRoles)?.nodeId
       || '');
     const trajectoryDisplayKind = relation.recoveredMovement?.trajectoryKind || registeredTrajectoryDisplayKind(relation.relation, relation.resolvedAnchors);
     if (trajectoryDisplayKind !== 'phrasal'
