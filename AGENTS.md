@@ -145,6 +145,14 @@ positions that only screen refinements set, index letters, or motion between
 frames. Its rules (`tests/helpers/visualRules.mjs`) judge normalized frames, so a
 browser probe can reuse them; findings and exceptions follow `tests/helpers/findings.mjs`.
 
+The corpus comparator's motion rule (`scripts/replayMotionContinuity.mjs`) decides ownership from each
+frame's own step, not from either checkout's planner diagnostics. It reports syntax
+that moves at a step that does not own it, and material that moves at the step
+attaching it. Within a stage it measures layout motion; across a stage boundary it
+first removes the camera carry (`carryCamera`), as the screen does. A new fault, or
+an existing one that moves farther, fails the comparison; the summary counts the
+faults each checkout has.
+
 The corpus manifest links representative existing fixtures for movement and
 ordinary wrappers, later movement, separately established pronunciation,
 multiple roots, nonmovement construction, Tier 2 persistence and malformed claims.
