@@ -20,6 +20,50 @@ test('long categories wrap to measured width without losing text or changing sho
   assert(uneven.lines.every(line => unevenMeasure(line) <= 380));
 });
 
+test('a closing mark hangs past the width instead of starting a line, and a word breaks before its bracket', () => {
+  const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+  const measure = s => [...graphemes.segment(s)].length * 22;
+  const lines = text => categoryTextLayout(text, measure).lines;
+  // When only the closing mark overflows, it hangs by its own width.
+  assert.deepEqual(lines('Coord[alternative]'), ['Coord[alternative]']);
+  assert.equal(categoryTextLayout('Coord[alternative]', measure).width, 396);
+  assert.deepEqual(lines('ChangeOfStateHead\u2032'), ['ChangeOfStateHead\u2032']);
+  const comma = lines('Asp\u2070+Pred+v+V[PST, 3SG]');
+  assert.equal(comma.length, 2);
+  assert.equal(comma[0], 'Asp\u2070+Pred+v+V[PST,');
+  // A space break needs no hanging mark.
+  assert.deepEqual(lines('V [raised, finite]'), ['V [raised, ', 'finite]']);
+  // A word that overflows breaks before a bracket group that fits on its own line.
+  assert.deepEqual(lines('Neg[interrogatives]'), ['Neg', '[interrogatives]']);
+  assert.deepEqual(lines('ChangeOfStateParticleHead'), ['ChangeOfStatePart', 'icleHead']);
+  // A bracket group too wide for a line of its own keeps the existing grapheme break.
+  assert.deepEqual(lines('C[interrogativeness]'), ['C[interrogativene', 'ss]']);
+  // Space and comma breaks keep their existing positions.
+  assert.deepEqual(lines('C[alternative question]'), ['C[alternative ', 'question]']);
+  assert.deepEqual(lines('V[past, third-person feminine singular]'), ['V[past, ', 'third-person ', 'feminine ', 'singular]']);
+  const accented = 'e\u0301'.repeat(17) + '\u2032';
+  assert.deepEqual(lines(accented), [accented]);
+  assert.deepEqual(lines(`X[${'e\u0301'.repeat(16)}]`), [`X[${'e\u0301'.repeat(15)}`, 'e\u0301]']);
+});
+
+test('a hyphenated word breaks after its hyphen when the rest of the label fits on one line', () => {
+  const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+  const measure = s => [...graphemes.segment(s)].length * 22;
+  const lines = text => categoryTextLayout(text, measure).lines;
+  assert.deepEqual(lines('T[personal-infinitive]'), ['T[personal-', 'infinitive]']);
+  assert.deepEqual(lines('T[personal\u2010infinitive]'), ['T[personal\u2010', 'infinitive]']);
+  assert.deepEqual(lines('V[unaccusative, personal-infinitive]'), ['V[unaccusative, ', 'personal-', 'infinitive]']);
+  assert.deepEqual(lines('T[persone\u0301-infinitive]'), ['T[persone\u0301-', 'infinitive]']);
+  // A later hyphen wins over an earlier bracket break.
+  assert.deepEqual(lines('Asp[non-progressive]'), ['Asp[non-', 'progressive]']);
+  // A hyphen break that would push the remaining text onto an extra line is not taken.
+  assert.deepEqual(lines('T[finite, indirect-evidential, agreement]'), ['T[finite, ', 'indirect-evidenti', 'al, agreement]']);
+  // A hyphenated word followed by the overflowing space is already a whole word.
+  assert.equal(lines('Experiencer-voice head')[0], 'Experiencer-voice');
+  // A minus feature value is not a word-joining hyphen, so it never ends a line on its own.
+  assert.deepEqual(lines('Neg[-interrogatives]'), ['Neg', '[-interrogatives]']);
+});
+
 test('a selected determiner retains its authored nominal context before its projection exists', () => {
   const forest = [{ id: 'phrase', label: 'D', children: [
     { id: 'determiner', label: 'D[negative]', word: 'No' }, { id: 'noun', label: 'N', word: 'student' }
