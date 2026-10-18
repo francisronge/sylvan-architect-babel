@@ -32,6 +32,7 @@ function wrapCategoryText(text: string, measure: CategoryTextMeasure) {
   for (let end = 1; end < segments.length; end++) {
     while (start < end && !fits(start, end + 1)) {
       const split = lineBreak(segments, start, end, fits);
+      if (split > end) break;
       lines.push(segments.slice(start, split).join(''));
       start = split;
     }
@@ -49,20 +50,22 @@ const openingBracket = /^\p{Ps}/u, closingBracket = /^\p{Pe}/u;
 const completesPrevious = /^[\p{Pe}\p{Pf},.;:!?、。，．：；！？′″‴'°⁰]/u;
 
 /** Choose where a line ends when grapheme `end` overflows the graphemes from
- * `start`; the line keeps graphemes before the returned index. Prefer the last
- * space or comma, then a break before an overflowing space, which already ends
- * a word. Otherwise take the latest of two word-preserving breaks: after
- * a hyphen joining two word characters when the rest of the label fits on one
- * line, so the break never adds a line, or before an opening bracket whose
- * complete group, with any text attached up to the next space or comma, fits on
- * one line. Otherwise break at the latest grapheme boundary. No choice starts a
- * line with a completing mark, and lines stay within the width unless a single
- * grapheme exceeds it. */
+ * `start`; the line keeps graphemes before the returned index, and an index
+ * past `end` keeps the overflowing grapheme on the line. Prefer the last space
+ * or comma, then a break before an overflowing space, which already ends a
+ * word. An overflowing completing mark then hangs past the width rather than
+ * start a line, so it never adds one. Otherwise take the latest of two
+ * word-preserving breaks: after a hyphen joining two word characters when the
+ * rest of the label fits on one line, so the break never adds a line, or before
+ * an opening bracket whose complete group, with any text attached up to the
+ * next space or comma, fits on one line. Otherwise break before the overflowing
+ * grapheme. Lines exceed the width only by hanging marks or a single wider
+ * grapheme. */
 function lineBreak(segments: string[], start: number, end: number, fits: (from: number, to: number) => boolean) {
-  const opensLine = (index: number) => !completesPrevious.test(segments[index]);
   for (let index = end; index > start; index--)
-    if (breakAfter.test(segments[index - 1]) && opensLine(index)) return index;
+    if (breakAfter.test(segments[index - 1]) && !completesPrevious.test(segments[index])) return index;
   if (/^\s/u.test(segments[end])) return end;
+  if (completesPrevious.test(segments[end])) return end + 1;
   const afterHyphen = (index: number) => index - 1 > start && hyphen.test(segments[index - 1])
     && wordCharacter.test(segments[index - 2]) && wordCharacter.test(segments[index]) && fits(index, segments.length);
   const beforeBracket = (index: number) => {
@@ -77,6 +80,5 @@ function lineBreak(segments: string[], start: number, end: number, fits: (from: 
     return fits(index, group);
   };
   for (let index = end; index > start; index--) if (afterHyphen(index) || beforeBracket(index)) return index;
-  for (let index = end; index > start; index--) if (opensLine(index)) return index;
   return end;
 }

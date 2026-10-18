@@ -20,23 +20,30 @@ test('long categories wrap to measured width without losing text or changing sho
   assert(uneven.lines.every(line => unevenMeasure(line) <= 380));
 });
 
-test('a label breaks before its feature bracket instead of starting a line with closing punctuation', () => {
+test('a closing mark hangs past the width instead of starting a line, and a word breaks before its bracket', () => {
   const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
   const measure = s => [...graphemes.segment(s)].length * 22;
   const lines = text => categoryTextLayout(text, measure).lines;
-  assert.deepEqual(lines('Coord[alternative]'), ['Coord', '[alternative]']);
-  assert.deepEqual(lines('Asp⁰+Pred+v+V[PST, 3SG]'), ['Asp⁰+Pred+v+V', '[PST, 3SG]']);
-  // Without a bracket the overflowing closing mark takes its preceding grapheme along.
-  assert.deepEqual(lines('ChangeOfStateHead′'), ['ChangeOfStateHea', 'd′']);
+  // When only the closing mark overflows, it hangs by its own width.
+  assert.deepEqual(lines('Coord[alternative]'), ['Coord[alternative]']);
+  assert.equal(categoryTextLayout('Coord[alternative]', measure).width, 396);
+  assert.deepEqual(lines('ChangeOfStateHead\u2032'), ['ChangeOfStateHead\u2032']);
+  const comma = lines('Asp\u2070+Pred+v+V[PST, 3SG]');
+  assert.equal(comma.length, 2);
+  assert.equal(comma[0], 'Asp\u2070+Pred+v+V[PST,');
+  // A space break needs no hanging mark.
+  assert.deepEqual(lines('V [raised, finite]'), ['V [raised, ', 'finite]']);
+  // A word that overflows breaks before a bracket group that fits on its own line.
+  assert.deepEqual(lines('Neg[interrogatives]'), ['Neg', '[interrogatives]']);
   assert.deepEqual(lines('ChangeOfStateParticleHead'), ['ChangeOfStatePart', 'icleHead']);
   // A bracket group too wide for a line of its own keeps the existing grapheme break.
   assert.deepEqual(lines('C[interrogativeness]'), ['C[interrogativene', 'ss]']);
   // Space and comma breaks keep their existing positions.
   assert.deepEqual(lines('C[alternative question]'), ['C[alternative ', 'question]']);
   assert.deepEqual(lines('V[past, third-person feminine singular]'), ['V[past, ', 'third-person ', 'feminine ', 'singular]']);
-  const accented = 'e\u0301'.repeat(17) + '′';
-  assert.deepEqual(lines(accented), ['e\u0301'.repeat(16), 'e\u0301′']);
-  assert.deepEqual(lines(`X[${'e\u0301'.repeat(15)}]`), ['X', `[${'e\u0301'.repeat(15)}]`]);
+  const accented = 'e\u0301'.repeat(17) + '\u2032';
+  assert.deepEqual(lines(accented), [accented]);
+  assert.deepEqual(lines(`X[${'e\u0301'.repeat(16)}]`), [`X[${'e\u0301'.repeat(15)}`, 'e\u0301]']);
 });
 
 test('a hyphenated word breaks after its hyphen when the rest of the label fits on one line', () => {
