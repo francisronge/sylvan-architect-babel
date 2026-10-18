@@ -114,8 +114,12 @@ export const inspectFailedPayload = (payload: unknown, rawText: string, sentence
   const inspectionBudget = { remainingOccurrences: 10_000, maxDepth: 128, remainingFieldValues: 200_000 };
   const analyses = authors.map((authoredAnalysis: unknown, analysisIndex: number): FailedAnalysisInspection => {
     const spelled = spellout?.[analysisIndex];
-    const unspelled = spelled && !spelled.ok ? spelled.diagnostics[0] : undefined;
-    const inspected = spelled?.ok ? spelled.analysis : unspelled && record(authoredAnalysis) && Array.isArray(authoredAnalysis.derivationStages)
+    // A workspace the spelling check cannot read (a repeated occurrence or a
+    // missing reference) is inspected as authored, like any malformed output;
+    // only a readable analysis that misspells the sentence loses its Replay.
+    const unreadable = spelled && !spelled.ok && spelled.diagnostics[0]?.rule === 'SPELLOUT_UNREADABLE';
+    const unspelled = spelled && !spelled.ok && !unreadable ? spelled.diagnostics[0] : undefined;
+    const inspected = spelled?.ok ? spelled.analysis : (unspelled || unreadable) && record(authoredAnalysis) && Array.isArray(authoredAnalysis.derivationStages)
       ? { ...authoredAnalysis, derivationStages: authoredAnalysis.derivationStages.map((stage: unknown) => {
         if (!record(stage)) return stage;
         const { realizations: _realizations, ...rest } = stage;
@@ -136,6 +140,15 @@ export const inspectFailedPayload = (payload: unknown, rawText: string, sentence
       return entry;
     };
     if (!stages?.length) { entry.replayIssue = 'No readable derivation stages were returned.'; return entry; }
+    if (unreadable) {
+      // Groups that cannot be placed would misstate pronunciation, so Replay waits for readable groups.
+      const hasGroups = record(authoredAnalysis) && Array.isArray(authoredAnalysis.derivationStages)
+        && authoredAnalysis.derivationStages.some((stage: unknown) => record(stage) && Array.isArray(stage.realizations) && stage.realizations.length);
+      entry.replayIssue = `The spelling check could not read this analysis (${spelled.diagnostics[0].detail}).${hasGroups
+        ? ' Its realization groups cannot be shown, so diagnostic Replay is unavailable; its stages remain available.'
+        : ' Diagnostic Replay shows its stages as authored.'}`;
+      if (hasGroups) return showAuthored();
+    }
     if (unspelled) {
       entry.replayIssue = `This analysis does not spell the sentence (${unspelled.detail}), so it has no word list for diagnostic Replay. Its stages remain available without realization groups.`;
       return showAuthored();
