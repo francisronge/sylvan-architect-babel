@@ -189,8 +189,6 @@ export const createStageRelationSnapshots = (
           .map(nodeId => replayOwnerId(baseStep?.replayCanvasData, nodeId))
           .filter(nodeId => ordinaryStructuralNodeIds.has(nodeId))),
         withheldNodeIds: pendingMovementNodeIds,
-        pendingTransitionNodeIds: new Set(Array.from(fallbackTransitionOwnership).flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex) ? []
-          : [...ownership.priorNodeIds, ...ownership.currentNodeIds])),
         pendingKeptIdLandingNodeIds: new Set([...keptIdLandings].flatMap(([relationIndex, nodeIds]) => activeRelationIndexes.has(relationIndex) ? [] : nodeIds)),
         attachedNodeIds: new Set([...fallbackTransitionOwnership].flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex)
           ? (ownership.attachments ?? []).map(attachment => attachment.host) : [])),

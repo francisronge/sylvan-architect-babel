@@ -32,18 +32,31 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
       manifests: manifests.map(({ filename, sha256, coverage }) => ({ filename, sha256, coverage })),
       harness: { node: process.version, sources: await Promise.all([
         fileURLToPath(import.meta.url), worker, fileURLToPath(new URL('./replayCorpusInputs.mjs', import.meta.url)),
-        fileURLToPath(new URL('./replayFrameLayout.mjs', import.meta.url))
+        fileURLToPath(new URL('./replayFrameLayout.mjs', import.meta.url)),
+        fileURLToPath(new URL('./replayMotionContinuity.mjs', import.meta.url)),
+        // The motion rule measures stage crossings through the renderer's camera carry.
+        fileURLToPath(new URL('../components/treeViewport.ts', import.meta.url))
       ].map(async filename => ({ filename, sha256: sha256(await readFile(filename)) }))) },
       baseline: snapshots[0].identity, candidate: snapshots[1].identity,
       summary: { analyses: compared.length, frames: compared.reduce((count, record) => count + (record.frames ?? 0), 0),
         uniqueInputs: new Set(records.map(record => record.inputSha256)).size,
         recordsWithoutMechanismLabels: records.filter(record => !record.mechanisms.length).length,
         changedAnalyses: compared.filter(record => record.changedFrames?.length).length, failures: failures.length,
-        existingContinuityFaults: snapshots[0].records.reduce((count, record) => count + (record.continuity?.length ?? 0), 0) },
+        existingContinuityFaults: snapshots[0].records.reduce((count, record) => count + (record.continuity?.length ?? 0), 0),
+        existingMotionFaults: motionCounts(compared, 'baseline'), candidateMotionFaults: motionCounts(compared, 'candidate') },
       records: compared };
     if (output) await writeFile(path.resolve(output), JSON.stringify(report, null, 2) + '\n');
     return report;
   } finally { await rm(scratch, { recursive: true, force: true }); }
+}
+
+/** Motion faults by kind, with the analyses and frames that contain any. */
+function motionCounts(records, side) {
+  const faults = records.flatMap(record => (record.motion?.[side] ?? []).map(fault => ({ ...fault, record: record.id })));
+  const kinds = {};
+  for (const fault of faults) kinds[fault.kind] = (kinds[fault.kind] ?? 0) + 1;
+  return { faults: faults.length, kinds, analyses: new Set(faults.map(fault => fault.record)).size,
+    frames: new Set(faults.map(fault => `${fault.record}#${fault.frame}`)).size };
 }
 
 function parseArgs(args) {

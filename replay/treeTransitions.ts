@@ -744,7 +744,6 @@ export interface AnchoredTransitionInput {
   activeRelations: DerivationReplayPlanStep[];
   constructedNodeIds?: Set<string>;
   withheldNodeIds?: Set<string>;
-  pendingTransitionNodeIds?: Set<string>;
   /** `keptIdLandingNodeIds` of the relations not yet active. */
   pendingKeptIdLandingNodeIds?: Set<string>;
   /** Preceding nodes the active neutral claims' new parents attach. */
@@ -759,7 +758,6 @@ export const buildAnchoredTreeTransitionForest = ({
   activeRelations,
   constructedNodeIds = new Set(),
   withheldNodeIds = new Set(),
-  pendingTransitionNodeIds = new Set(),
   pendingKeptIdLandingNodeIds = new Set(),
   attachedNodeIds = new Set(),
   heldAttachmentNodeIds = new Set()
@@ -903,10 +901,10 @@ export const buildAnchoredTreeTransitionForest = ({
       ? currentLocation.node.children
       : [];
     // Inserting a parent around an existing sibling occupies that sibling's
-    // old slot. Attach its preceding contents with the relation's output;
-    // otherwise the old child remains beside the new parent until Stage Record.
-    // Separate workspaces and another relation's pending inputs are not part
-    // of this local attachment.
+    // old slot. Attach its preceding contents with the relation's output, so
+    // no branch spans the row the new parent adds. A later claim that owns a
+    // sibling's change still owns its material, which keeps its preceding form
+    // here; separate workspaces and pending movement are not attached.
     const retainedChildren = previousLocations.has(nodeId) ? [] : currentChildren.filter(child => {
       const previous = exactLocation(previousLocations, child.id);
       return currentLocation.parentId && previous?.parentId === currentLocation.parentId;
@@ -914,7 +912,7 @@ export const buildAnchoredTreeTransitionForest = ({
     const replacesConsecutiveChildren = retainedChildren.every((child, offset) => exactLocation(previousLocations, child.id)?.childIndex === currentLocation.childIndex + offset);
     const retainedChildIds = new Set(replacesConsecutiveChildren ? retainedChildren
       .filter(child => ![...collectExactSubtreeNodeIds(child),
-      ...collectExactSubtreeNodeIds(exactLocation(previousLocations, child.id)!.node)].some(id => withheldNodeIds.has(id) || pendingTransitionNodeIds.has(id) || heldNodeIds.has(id)))
+      ...collectExactSubtreeNodeIds(exactLocation(previousLocations, child.id)!.node)].some(id => withheldNodeIds.has(id) || heldNodeIds.has(id)))
       .map(child => child.id) : []);
     for (const [childIndex, child] of currentChildren.entries()) {
       const childId = String(child.id || '');
