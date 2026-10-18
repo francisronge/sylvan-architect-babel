@@ -247,7 +247,7 @@ export function layoutVisualFrames(visual, viewports = VIEWPORTS, { steps: only 
 export function layoutMeasuredScenes(visual, { width, height }, metrics = TEXT_METRICS) {
   // Callers only read the result, so the default-metrics layout is shared between
   // the frame audit and layoutWidthFindings' reference viewport.
-  const key = metrics === TEXT_METRICS && `${width}x${height}`;
+  const key = metrics === TEXT_METRICS ? `${width}x${height}` : null;
   const cache = key && (MEASURED_SCENES.get(visual) ?? MEASURED_SCENES.set(visual, new Map()).get(visual));
   if (cache?.has(key)) return cache.get(key);
   const result = layoutMeasuredScenesUncached(visual, { width, height }, metrics);
