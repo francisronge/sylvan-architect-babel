@@ -75,6 +75,8 @@ export const EXCEPTIONS = [
     'plaque(3:1 clauseType: declarative personal infinitive)@infinitivalC', { desktop: '33-48', 'desktop-large': '33-48' }, 1.2),
   x(PLAQUE_CROWDED, 'replay-regressions/relocated-plaque-anchor.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta Experiencer/Theme)@v', { desktop: '21-24', 'desktop-large': '21-24' }, 1.53),
+  x(PLAQUE_CROWDED, 'replay-regressions/retained-head-attachment.json#', 'mark-distance', 'plaque',
+    'plaque(1:2 auxiliaryForm: did)@tDid', { desktop: '44-49', 'desktop-large': '44-49' }, 1.16),
   x(PLAQUE_CROWDED, 'replay-regressions/review-workspace-boundaries.json#/cases/0', 'mark-distance', 'plaque',
     'plaque(3:1 agreement: third person singular; case: nominati)@rT', { desktop: '34-58', 'desktop-large': '34-58' }, 1.59),
   x(PLAQUE_CROWDED, 'replay-regressions/reviewed-construction.json#/cases/2', 'mark-distance', 'plaque',
