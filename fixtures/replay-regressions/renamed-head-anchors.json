@@ -1,0 +1,678 @@
+{
+  "description": "Stage 3 raises the enclitic verbal complex to I and writes both copies under new ids: v1 becomes v2 above and vt below, o2 becomes o3, verbalComplex1 becomes verbalComplex2. The theta grid, Case path and inflection plaque of stage 1 anchor v1, so they end at the V-to-I moment (frame 26) although the same verb, by lineage, is still on screen. Replay ends them for an authored reason; the rename is a contract-level warning.",
+  "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run with the indexed-token contract, 18 October 2026 (second bug-hunt batch, 34-pt-enclisis, analysis 1), commit ee11d20.",
+  "sentence": "Vi-o ontem.",
+  "framework": "xbar",
+  "inputTokens": [
+    "Vi",
+    "o",
+    "ontem"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "experiencer": "subject1",
+            "predicate": "v1",
+            "theme": "object"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "experiencerRole": "Experiencer",
+            "themeRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "object",
+            "governor": "v1"
+          },
+          "relation": "government and accusative Case",
+          "values": {
+            "case": "accusative",
+            "configuration": "V governs its DP complement"
+          }
+        },
+        {
+          "anchors": {
+            "modifiedProjection": "vbarInner",
+            "modifier": "advp"
+          },
+          "relation": "temporal modification",
+          "values": {
+            "interpretation": "The seeing event occurs yesterday relative to the contextual utterance time."
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "i1",
+            "verb": "v1"
+          },
+          "relation": "finite inflectional specification",
+          "values": {
+            "agreement": "first-person singular",
+            "morphologicalCommitment": "Vi is an inflected lexical V; I is abstract and unpronounced.",
+            "tense": "preterite"
+          }
+        }
+      ],
+      "stageRecord": "The sentence is Portuguese, with Vi interpreted as the first-person singular preterite of ver. This analysis uses a VP-internal subject and an IP clause structure. The verb assigns an Experiencer role to the silent subject pro and a Theme role to the object DP headed by o. The object is the unstressed third-person singular accusative pronoun, not an article with an omitted noun. In its complement position, the object receives accusative Case under government by V. Ontem projects an AdvP right-adjoined to V′ and locates the seeing event on the day before the contextual utterance time. The abstract, silent I head bears finite preterite tense and first-person singular agreement; Vi is entered as an already inflected lexical form, so no decomposition of its spelling is required. The subject is initially in Spec-VP, and neither head movement nor subject movement has yet occurred.",
+      "statement": "Establish the finite clause, its argument structure, and the temporal adjunct.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "i1",
+                  "label": "I⁰[finite, preterite, 1sg]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "pro1",
+                              "label": "D⁰[pro, 1sg]",
+                              "lineageId": "nullPronoun",
+                              "silent": true
+                            }
+                          ],
+                          "id": "subjectDbar1",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "subject1",
+                      "label": "DP",
+                      "lineageId": "subject"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "v1",
+                              "label": "V⁰",
+                              "lineageId": "lexicalVerb",
+                              "tokenIndex": 0,
+                              "word": "Vi"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "o1",
+                                      "label": "D⁰[clitic, accusative, 3sg]",
+                                      "lineageId": "objectClitic",
+                                      "tokenIndex": 1,
+                                      "word": "o"
+                                    }
+                                  ],
+                                  "id": "objectDbar",
+                                  "label": "D′"
+                                }
+                              ],
+                              "id": "object",
+                              "label": "DP"
+                            }
+                          ],
+                          "id": "vbarInner",
+                          "label": "V′"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "adv",
+                                  "label": "Adv⁰",
+                                  "tokenIndex": 2,
+                                  "word": "ontem"
+                                }
+                              ],
+                              "id": "advbar",
+                              "label": "Adv′"
+                            }
+                          ],
+                          "id": "advp",
+                          "label": "AdvP"
+                        }
+                      ],
+                      "id": "vbarOuter",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argumentDomain": "object",
+            "host": "v1",
+            "movedClitic": "o2",
+            "resultingHead": "verbalComplex1",
+            "sourceTrace": "ot"
+          },
+          "priorAnchors": {
+            "host": "v1",
+            "sourceClitic": "o1"
+          },
+          "relation": "enclitic head movement",
+          "values": {
+            "adjunctionSide": "right",
+            "dependency": "The clitic chain retains the object DP's Theme interpretation and accusative Case.",
+            "operation": "D-to-V head adjunction"
+          }
+        }
+      ],
+      "stageRecord": "The clitic D head moves from the previously established object DP and right-adjoins to V, leaving a silent D trace inside that DP. This is a head-movement analysis of cliticization: the object DP remains the verb's thematic and Case-marked complement, while its pronounced head becomes part of the verbal head. The resulting head is ordered Vi followed by o. Right adjunction implements the enclisis exhibited by this affirmative clause, which contains no negation or other overt proclisis trigger. The hyphen in the supplied sentence marks the orthographic attachment of the clitic; it is not an additional syntactic terminal or input token. Both lexical heads retain their whole-token associations.",
+      "statement": "Form the enclitic verbal head by adjoining the object clitic to V.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "i1",
+                  "label": "I⁰[finite, preterite, 1sg]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "pro1",
+                              "label": "D⁰[pro, 1sg]",
+                              "lineageId": "nullPronoun",
+                              "silent": true
+                            }
+                          ],
+                          "id": "subjectDbar1",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "subject1",
+                      "label": "DP",
+                      "lineageId": "subject"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "v1",
+                                  "label": "V⁰",
+                                  "lineageId": "lexicalVerb",
+                                  "tokenIndex": 0,
+                                  "word": "Vi"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "o2",
+                                  "label": "D⁰[clitic, accusative, 3sg]",
+                                  "lineageId": "objectClitic",
+                                  "tokenIndex": 1,
+                                  "word": "o"
+                                }
+                              ],
+                              "id": "verbalComplex1",
+                              "label": "V⁰",
+                              "lineageId": "encliticVerbalComplex"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "ot",
+                                      "label": "D⁰[trace]",
+                                      "lineageId": "objectClitic",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "objectDbar",
+                                  "label": "D′"
+                                }
+                              ],
+                              "id": "object",
+                              "label": "DP"
+                            }
+                          ],
+                          "id": "vbarInner",
+                          "label": "V′"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "adv",
+                                  "label": "Adv⁰",
+                                  "tokenIndex": 2,
+                                  "word": "ontem"
+                                }
+                              ],
+                              "id": "advbar",
+                              "label": "Adv′"
+                            }
+                          ],
+                          "id": "advp",
+                          "label": "AdvP"
+                        }
+                      ],
+                      "id": "vbarOuter",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "carriedClitic": "o3",
+            "landingHead": "i1",
+            "raisedHead": "verbalComplex2",
+            "resultingHead": "finiteHead",
+            "sourceTrace": "vt"
+          },
+          "priorAnchors": {
+            "carriedClitic": "o2",
+            "landingHead": "i1",
+            "sourceHead": "verbalComplex1"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "chainFunction": "The lower V position preserves the lexical predicate's government and thematic dependencies.",
+            "operation": "The complex V head left-adjoins to I."
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "i1",
+            "raisedVerb": "v2"
+          },
+          "relation": "finite feature association",
+          "values": {
+            "agreement": "first-person singular",
+            "realization": "Vi remains the whole-word realization of the inflected verb.",
+            "tense": "preterite"
+          }
+        }
+      ],
+      "stageRecord": "The complete V head formed in the preceding stage raises to I, leaving a V trace in the lexical predicate. The verb and its attached clitic move together; the clitic does not independently cross an intervening verbal head. The raised complex left-adjoins to the abstract I head, preserving its internal Vi–o order. The finite verb is thereby associated with the preterite and first-person singular features of I. This analysis treats the operation as syntactic head movement of an already inflected verb, not as an operation that changes Vi's spelling. The object dependency continues through the lower verbal position, and ontem remains inside VP.",
+      "statement": "Raise the enclitic verbal complex to finite I.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v2",
+                          "label": "V⁰",
+                          "lineageId": "lexicalVerb",
+                          "tokenIndex": 0,
+                          "word": "Vi"
+                        },
+                        {
+                          "children": [],
+                          "id": "o3",
+                          "label": "D⁰[clitic, accusative, 3sg]",
+                          "lineageId": "objectClitic",
+                          "tokenIndex": 1,
+                          "word": "o"
+                        }
+                      ],
+                      "id": "verbalComplex2",
+                      "label": "V⁰",
+                      "lineageId": "encliticVerbalComplex"
+                    },
+                    {
+                      "children": [],
+                      "id": "i1",
+                      "label": "I⁰[finite, preterite, 1sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "finiteHead",
+                  "label": "I⁰"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "pro1",
+                              "label": "D⁰[pro, 1sg]",
+                              "lineageId": "nullPronoun",
+                              "silent": true
+                            }
+                          ],
+                          "id": "subjectDbar1",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "subject1",
+                      "label": "DP",
+                      "lineageId": "subject"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "vt",
+                              "label": "V⁰[trace]",
+                              "lineageId": "encliticVerbalComplex",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "ot",
+                                      "label": "D⁰[trace]",
+                                      "lineageId": "objectClitic",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "objectDbar",
+                                  "label": "D′"
+                                }
+                              ],
+                              "id": "object",
+                              "label": "DP"
+                            }
+                          ],
+                          "id": "vbarInner",
+                          "label": "V′"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "adv",
+                                  "label": "Adv⁰",
+                                  "tokenIndex": 2,
+                                  "word": "ontem"
+                                }
+                              ],
+                              "id": "advbar",
+                              "label": "Adv′"
+                            }
+                          ],
+                          "id": "advp",
+                          "label": "AdvP"
+                        }
+                      ],
+                      "id": "vbarOuter",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingProjection": "ip",
+            "raisedSubject": "subject2",
+            "sourceTrace": "subjectTrace"
+          },
+          "priorAnchors": {
+            "sourceSubject": "subject1"
+          },
+          "relation": "subject A-movement",
+          "values": {
+            "path": "Spec-VP to Spec-IP",
+            "thetaDependency": "The subject chain receives its Experiencer role at its lower position."
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "subject2",
+            "licensor": "i1"
+          },
+          "relation": "nominative Case licensing",
+          "values": {
+            "case": "nominative",
+            "configuration": "finite I and its IP specifier"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "i1",
+            "nullPronoun": "pro2",
+            "subject": "subject2"
+          },
+          "relation": "null-subject licensing and identification",
+          "values": {
+            "identification": "First-person singular agreement identifies the subject as the speaker.",
+            "licensing": "Portuguese permits referential pro in the finite subject position."
+          }
+        },
+        {
+          "anchors": {
+            "argumentPosition": "object",
+            "localDomain": "ip",
+            "localSubject": "subject2",
+            "pronoun": "o3"
+          },
+          "relation": "Principle B",
+          "values": {
+            "requirement": "The object pronoun's argument chain is free in its local binding domain.",
+            "subjectObjectRelation": "The first-person subject does not bind the third-person object pronoun."
+          }
+        }
+      ],
+      "stageRecord": "The silent subject DP moves from Spec-VP to Spec-IP, leaving an A-trace in its Experiencer position. Finite I licenses nominative Case on the resulting subject chain through the Spec–head relation. Portuguese null-subject licensing allows pro to remain unpronounced, and the first-person singular agreement identifies its referent as the speaker. The object clitic is a nonreflexive pronoun: its argument chain must be locally free under Principle B and is not bound by the first-person subject. Its referent may be an appropriate masculine entity or a contextually supplied neutral referent; that interpretive difference does not require a different syntactic derivation. The completed root IP represents the unmarked declarative without positing an additional CP layer. Its pronounced terminals, in order, are exactly Vi, o, ontem, yielding the interpretation 'I saw him/it yesterday.'",
+      "statement": "Complete the null-subject clause and establish its Case and binding dependencies.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "pro2",
+                      "label": "D⁰[pro, 1sg]",
+                      "lineageId": "nullPronoun",
+                      "silent": true
+                    }
+                  ],
+                  "id": "subjectDbar2",
+                  "label": "D′"
+                }
+              ],
+              "id": "subject2",
+              "label": "DP",
+              "lineageId": "subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v2",
+                          "label": "V⁰",
+                          "lineageId": "lexicalVerb",
+                          "tokenIndex": 0,
+                          "word": "Vi"
+                        },
+                        {
+                          "children": [],
+                          "id": "o3",
+                          "label": "D⁰[clitic, accusative, 3sg]",
+                          "lineageId": "objectClitic",
+                          "tokenIndex": 1,
+                          "word": "o"
+                        }
+                      ],
+                      "id": "verbalComplex2",
+                      "label": "V⁰",
+                      "lineageId": "encliticVerbalComplex"
+                    },
+                    {
+                      "children": [],
+                      "id": "i1",
+                      "label": "I⁰[finite, preterite, 1sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "finiteHead",
+                  "label": "I⁰"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subjectTrace",
+                      "label": "DP[A-trace]",
+                      "lineageId": "subject",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "vt",
+                              "label": "V⁰[trace]",
+                              "lineageId": "encliticVerbalComplex",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "ot",
+                                      "label": "D⁰[trace]",
+                                      "lineageId": "objectClitic",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "objectDbar",
+                                  "label": "D′"
+                                }
+                              ],
+                              "id": "object",
+                              "label": "DP"
+                            }
+                          ],
+                          "id": "vbarInner",
+                          "label": "V′"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "adv",
+                                  "label": "Adv⁰",
+                                  "tokenIndex": 2,
+                                  "word": "ontem"
+                                }
+                              ],
+                              "id": "advbar",
+                              "label": "Adv′"
+                            }
+                          ],
+                          "id": "advp",
+                          "label": "AdvP"
+                        }
+                      ],
+                      "id": "vbarOuter",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "ip",
+          "label": "IP"
+        }
+      ]
+    }
+  ]
+}

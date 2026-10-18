@@ -368,13 +368,18 @@ test('fallback relation frames reveal only their own anchored tree transition', 
   assert.equal(findNode(leftStep.replayCanvasData, 'left_before'), null);
   assert.ok(findNode(leftStep.replayCanvasData, 'right_before'));
   assert.equal(findNode(leftStep.replayCanvasData, 'right_after'), null);
-  assert.equal(leftStep.replayVisibleNodeIds.includes('unowned_after'), false);
 
   assert.ok(findNode(rightStep.replayCanvasData, 'left_after'));
   assert.ok(findNode(rightStep.replayCanvasData, 'right_after'));
   assert.equal(findNode(rightStep.replayCanvasData, 'right_before'), null);
-  assert.equal(rightStep.replayVisibleNodeIds.includes('unowned_after'), false);
 
+  // The unrelated addition is ordinary construction with its own steps; no
+  // relation moment reveals it.
+  for (const id of ['unowned_after', 'unowned_scoped']) {
+    const first = steps.findIndex(step => step.replayVisibleNodeIds.includes(id));
+    assert.equal(steps[first].replayKind, 'micro', `${id} first appears at a construction step`);
+    assert.equal(steps[first].visualFrameIndex, 1);
+  }
   assert.ok(macroStep.replayVisibleNodeIds.includes('unowned_after'));
 });
 
