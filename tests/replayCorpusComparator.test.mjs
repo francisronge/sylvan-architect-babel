@@ -32,10 +32,12 @@ test('the maintained fixture controls exercise a real movement, ordinary constru
 });
 
 test('a stretched completed branch and displaced final point fail while an earlier corrected point is reviewable', () => {
+  // An earlier corrected point is only motion: the comparison reviews it but no
+  // geometry, final-tree or Replay check fails.
   const corrected = structuredClone(snapshot);
-  corrected.records[0].frames[0].points[0].x -= 20;
+  corrected.records[0].frames[1].points[0].x -= 20;
   const accepted = compare(corrected);
-  assert.deepEqual(faults(accepted), []);
+  assert(faults(accepted).every(kind => kind === 'new-motion-fault'), JSON.stringify(faults(accepted)));
   assert.equal(accepted[0].changedFrames.length, 1);
   const stretched = structuredClone(snapshot), frame = stretched.records[0].frames.at(-1);
   frame.widths[0].width += 200;
@@ -44,6 +46,80 @@ test('a stretched completed branch and displaced final point fail while an earli
   assert(faults(rejected).includes('completed-width-growth'));
   assert(faults(rejected).includes('final-coordinate-change'));
   assert.notDeepEqual(rejected[0].finalCoordinates.before, rejected[0].finalCoordinates.after);
+});
+
+test('a selected word that its projection pulls back is a new joining jump', () => {
+  const joined = structuredClone(snapshot), [selection, projection] = joined.records[0].frames;
+  selection.points[0].x -= 20;
+  assert.equal(projection.points.find(point => point.id === selection.points[0].id).parent, projection.target);
+  const jumped = compare(joined);
+  assert.deepEqual(faults(jumped), ['new-motion-fault']);
+  assert.deepEqual(jumped[0].motion.new.map(fault => [fault.frame, fault.kind, fault.distance, fault.waiting]),
+    [[2, 'attachment-site-motion', 20, true]], 'joining jumps the baseline already has are not new');
+});
+
+test('a candidate that drops its planner diagnostics still fails a seeded 500-unit jump', () => {
+  const suppressed = structuredClone(snapshot), record = suppressed.records[0];
+  record.continuity = [];
+  const persists = (frame, id) => frame?.points.some(item => item.id === id && !item.parent);
+  const index = record.frames.findIndex((frame, at) => at > 0 && frame.operation === 'LexicalSelect'
+    && frame.points.some(item => !item.parent && item.id !== frame.target && persists(record.frames[at - 1], item.id)));
+  const frame = record.frames[index];
+  const bystander = frame.points.find(item => !item.parent && item.id !== frame.target && persists(record.frames[index - 1], item.id));
+  const members = new Set([bystander.id]);
+  for (const item of frame.points) if (members.has(item.parent)) members.add(item.id);
+  for (const item of frame.points) if (members.has(item.id)) item.x += 500;
+  const result = compare(suppressed);
+  assert(faults(result).includes('new-motion-fault'));
+  assert(result[0].motion.new.some(fault => fault.node === bystander.id && fault.kind === 'unowned-motion' && Math.round(fault.distance) === 500));
+});
+
+test('a joining jump the baseline already has fails when the candidate makes it longer', () => {
+  const farther = structuredClone(snapshot), record = farther.records[0];
+  const [fault] = compare(structuredClone(snapshot))[0].motion.baseline.filter(item => item.kind === 'attachment-site-motion');
+  assert(fault, 'the maintained control has a joining jump');
+  record.frames[fault.frame - 2].points.find(item => item.id === fault.node).x -= 200;
+  const result = compare(farther)[0];
+  assert(result.violations.some(violation => violation.kind === 'worsened-motion-fault'
+    && violation.faults.some(item => item.node === fault.node && item.distance > fault.distance + 1)));
+});
+
+test('faults are matched by step, so an inserted frame neither invents nor hides one', () => {
+  const baseline = compare(structuredClone(snapshot))[0].motion.baseline;
+  assert(baseline.length, 'the maintained control has a fault');
+  const inserted = structuredClone(snapshot), frames = inserted.records[0].frames;
+  frames.splice(1, 0, structuredClone(frames[0]));
+  const shifted = compare(inserted)[0].motion;
+  assert.deepEqual([shifted.new, shifted.worsened], [[], []]);
+  assert.deepEqual(shifted.candidate.map(fault => fault.frame), baseline.map(fault => fault.frame + 1));
+});
+
+test('a child that moves farther than its moving parent is a worsened fault', () => {
+  const [fault] = compare(structuredClone(snapshot))[0].motion.baseline;
+  const moved = structuredClone(snapshot), frame = moved.records[0].frames[fault.frame - 1];
+  const node = frame.points.find(item => item.id === fault.node);
+  const child = frame.points.find(item => item.parent === node.id);
+  assert(child, 'the fault has a painted child');
+  for (const item of frame.points) if (item.id === child.id || item.parent === child.id) item.x += 300;
+  assert(compare(moved)[0].violations.some(violation => ['worsened-motion-fault', 'new-motion-fault'].includes(violation.kind)
+    && violation.faults.some(item => item.node === child.id)));
+});
+
+test('a deformation the baseline already has fails when the candidate makes it larger', () => {
+  const shifted = distance => {
+    const copy = structuredClone(snapshot), frames = copy.records[0].frames;
+    // A leaf under an unchanged parent, in a frame whose neighbours keep it.
+    const at = frames.findIndex((frame, index) => index > 0 && index < frames.length - 1 && frame.points.some(item => item.parent
+      && !frame.points.some(other => other.parent === item.id) && frames[index - 1].points.some(other => other.id === item.id)));
+    const leaf = frames[at].points.find(item => item.parent && !frames[at].points.some(other => other.parent === item.id)
+      && frames[at - 1].points.some(other => other.id === item.id));
+    leaf.x += distance;
+    return { copy, node: leaf.id };
+  };
+  const baseline = shifted(20), candidate = shifted(200);
+  const [result] = compareCorpusSnapshots(baseline.copy, candidate.copy, records);
+  assert(result.violations.some(violation => violation.kind === 'worsened-motion-fault'
+    && violation.faults.some(fault => fault.node === candidate.node && fault.kind === 'shape-motion' && Math.round(fault.distance) === 200)));
 });
 
 test('semantic, authored, continuity, finite-geometry and witness-control failures cannot become a clean comparison', () => {
@@ -79,6 +155,7 @@ test('the actual CLI retains evidence and exits nonzero when a required control 
     const good = JSON.parse(await readFile(output, 'utf8'));
     assert.equal(good.ok, true); assert.equal(good.summary.analyses, 1);
     assert.equal(good.baseline.sha256, good.candidate.sha256);
+    assert(good.harness.sources.some(source => source.filename.endsWith('components/treeViewport.ts')), 'the camera rule is fingerprinted');
     assert.equal(good.records[0].rawSha256, records[1].rawSha256);
     record.expect.facets[1].present = false;
     await writeFile(manifest, JSON.stringify({ records: [record] }));
