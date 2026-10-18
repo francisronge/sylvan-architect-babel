@@ -5,7 +5,16 @@
     "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
     "capturedAt": "2026-10-02T02:00:25.678Z",
     "captureSha256": "8390b0bc7133938490546eec115b192da5844cc4c2eda8b92fa9a41294901bd3",
-    "description": "Production font measurements for complete Replay lifetime and attachment regressions; categories use Quicksand 700 42px, terminals Quicksand italic 900 56px, and indices Crimson Pro italic 900 30px/22px. Additional measurements cover the synthetic lower-Case/Fin Replay regression."
+    "description": "Production font measurements for complete Replay lifetime and attachment regressions; categories use Quicksand 700 42px, terminals Quicksand italic 900 56px, and indices Crimson Pro italic 900 30px/22px. Additional measurements cover the synthetic lower-Case/Fin Replay regression.",
+    "additions": [
+      {
+        "capturedAt": "2026-10-18T11:45:16.328Z",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+        "categories": 19,
+        "treeInk": 2,
+        "description": "Category wrap probes for Neg[past-oriented, jussive-licensing] after hanging completing marks; every existing category entry reproduced exactly."
+      }
+    ]
   },
   "categories": [
     [
@@ -1171,6 +1180,82 @@
     [
       "مريم",
       75.81642150878906
+    ],
+    [
+      "Neg[past-oriented, ",
+      401.7298583984375
+    ],
+    [
+      " j",
+      23.309982299804688
+    ],
+    [
+      " ju",
+      47.96397399902344
+    ],
+    [
+      " jus",
+      68.20796203613281
+    ],
+    [
+      " juss",
+      88.45195007324219
+    ],
+    [
+      " jussi",
+      98.36393737792969
+    ],
+    [
+      " jussiv",
+      121.96792602539062
+    ],
+    [
+      " jussive",
+      146.5379180908203
+    ],
+    [
+      " jussive-",
+      163.16990661621094
+    ],
+    [
+      " jussive-l",
+      174.50990295410156
+    ],
+    [
+      " jussive-li",
+      184.42189025878906
+    ],
+    [
+      " jussive-lic",
+      206.2618865966797
+    ],
+    [
+      " jussive-lice",
+      231.04188537597656
+    ],
+    [
+      " jussive-licen",
+      256.0738830566406
+    ],
+    [
+      " jussive-licens",
+      276.31787109375
+    ],
+    [
+      " jussive-licensi",
+      286.2298583984375
+    ],
+    [
+      " jussive-licensin",
+      311.2618408203125
+    ],
+    [
+      " jussive-licensing",
+      338.057861328125
+    ],
+    [
+      " jussive-licensing]",
+      355.15185546875
     ]
   ],
   "treeInk": [
@@ -2852,6 +2937,30 @@
         "descent": 21.46835708618164,
         "fontAscent": 56,
         "fontDescent": 14
+      }
+    ],
+    [
+      "[\"Neg[past-oriented,\",\"category\"]",
+      {
+        "width": 389.9698486328125,
+        "left": 3.1500000953674316,
+        "right": 387.5338439941406,
+        "ascent": 31.079999923706055,
+        "descent": 8.400003433227539,
+        "fontAscent": 42,
+        "fontDescent": 11
+      }
+    ],
+    [
+      "[\" jussive-licensing]\",\"category\"]",
+      {
+        "width": 355.15185546875,
+        "left": 10.919994354248047,
+        "right": 351.7918395996094,
+        "ascent": 31.079999923706055,
+        "descent": 8.400003433227539,
+        "fontAscent": 42,
+        "fontDescent": 11
       }
     ]
   ]
