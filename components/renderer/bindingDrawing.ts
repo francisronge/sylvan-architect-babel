@@ -162,19 +162,18 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
     const rank = operatorVariableScopeRankByItem.get(primitive.itemIndex) || 0;
     const palette = ['#10b981', '#c98a3d', '#e6efeb'];
     const color = palette[rank % palette.length];
-    // The relation layer applies this claim's emphasis once; the host's own
-    // quiet opacity would dim its hull, path and letters a second time.
+    // The layer only places hosts beneath the tree; each host keeps its claim's emphasis.
     const relationLayer = acceptedRootLayerBeforeNodes(
       operatorVariableBindingLayers,
       planItem,
-      relationEmphasisForItem(planItem),
-      'babel-operator-variable-relation-layer'
+      null,
+      'babel-operator-variable-relation-layer',
+      true
     );
     const hostNode = host.node();
     if (hostNode && hostNode.parentNode !== relationLayer.node()) {
       relationLayer.node()?.appendChild(hostNode);
     }
-    host.attr('opacity', null);
     host
       .attr('data-operator-variable-operator', primitive.operatorNodeId)
       .attr('data-operator-variable-variable', primitive.variableNodeId)

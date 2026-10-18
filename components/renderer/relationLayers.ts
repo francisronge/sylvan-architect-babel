@@ -46,7 +46,8 @@ export function createRelationLayers({ activeDerivationFrameIndex, relationLayer
     layers: Map<string, DrawingLayer>,
     item: RelationPlanItem,
     emphasis: RelationEmphasis,
-    className: string
+    className: string,
+    ordersOwnedHosts = false
   ) => {
     const key = relationLayerKey(item);
     const existing = layers.get(key);
@@ -54,9 +55,13 @@ export function createRelationLayers({ activeDerivationFrameIndex, relationLayer
     const root = g.node();
     const layerNode = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     layerNode.setAttribute('class', className);
-    decorateRelationElement(layerNode, item, emphasis);
-    (layerNode as SVGGElement & { __babelProductionRelation?: true }).__babelProductionRelation = true;
-    if (emphasis === 'quiet') layerNode.setAttribute('opacity', '0.3');
+    // A layer that only orders hosts carrying their own claims is not itself a
+    // relation element, so emphasis dims each host once rather than the layer too.
+    if (!ordersOwnedHosts) {
+      decorateRelationElement(layerNode, item, emphasis);
+      (layerNode as SVGGElement & { __babelProductionRelation?: true }).__babelProductionRelation = true;
+      if (emphasis === 'quiet') layerNode.setAttribute('opacity', '0.3');
+    }
     const firstNodeGroup = g.select<SVGGElement>('.node-group').node();
     if (root && firstNodeGroup?.parentNode === root) root.insertBefore(layerNode, firstNodeGroup);
     else root?.appendChild(layerNode);

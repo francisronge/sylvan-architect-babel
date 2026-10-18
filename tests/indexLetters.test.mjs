@@ -312,6 +312,31 @@ test('a written label such as Opᵢ never dims the active index it hosts, and a 
   assert.deepEqual(identityIndices(paintMoment(replay, 0, 2), 'op'), [['j', 0.3]]);
 });
 
+test('a restated binding shares its path at the restatement moment while the domain keeps its own quiet emphasis', () => {
+  // Offline mirror of tests/browser/operatorBindingComposition.test.mjs.
+  const tree = { id: 'cp', label: 'CP', children: [{ id: 'operator', label: 'D', lineageId: 'relative' },
+    { id: 'domain', label: 'TP', children: [{ id: 'subject', label: 'D', word: 'Mia' },
+      { id: 'vp', label: 'VP', children: [{ id: 'verb', label: 'V', word: 'bought' }, { id: 'variable', label: 'D[trace]', lineageId: 'relative' }] }] }] };
+  const replay = prepareReplay({ sentence: 'Mia bought', includePlayback: true, derivationStages: [
+    { statement: 'Bind the object.', stageRecord: 'An operator binds the object position.', workspaceForest: [tree],
+      relations: [{ relation: 'relative abstraction', anchors: { operator: 'operator', variable: 'variable', domain: 'domain' } }] },
+    { statement: 'Restate the dependency.', stageRecord: 'The same binding continues.', workspaceForest: [tree],
+      relations: [{ relation: 'relative operator dependency', anchors: { operator: 'operator', variable: 'variable' } }] }] });
+  // The owning relation element's own opacity, as the browser spec reads it, and the painted result.
+  const ownOpacity = element => element.classList.contains('vr-relation-active') ? 1
+    : element.classList.contains('vr-relation-quiet') ? 0.3 : Number(element.attrs.opacity ?? 1);
+  const inspect = root => Object.fromEntries(['path', 'domain'].map(piece => {
+    const marks = descendants(root).filter(element => (element.attrs.class || '') === `babel-operator-variable-${piece}`);
+    const owner = marks[0].parentNode.closest('.vr-item');
+    return [piece, { count: marks.length, owners: owner.attrs['data-vr-owner-refs'].split(' ').sort(), own: ownOpacity(owner), painted: paintedOpacity(marks[0]) }];
+  }));
+  const first = inspect(paintMoment(replay, 0, 0));
+  assert.deepEqual([first.path.own, first.domain.own, first.path.count, first.domain.count], [1, 1, 1, 1]);
+  const restated = inspect(paintMoment(replay, 1, 0));
+  assert.deepEqual(restated.path, { count: 1, owners: ['0:0', '1:0'], own: 1, painted: 1 });
+  assert.deepEqual(restated.domain, { count: 1, owners: ['0:0'], own: 0.3, painted: 0.3 });
+});
+
 test('inline coindices hold their label; unplaceable ones never take a letter; unlisted letters are errors', () => {
   const binding = { kind: 'operator-variable-binding', familyId: 'scope.operator-variable', relationRef: { stageIndex: 0, relationIndex: 1 },
     appearsAtStage: 0, operatorNodeId: 'operator', variableNodeId: 'trace', index: 'i' };
