@@ -7,6 +7,7 @@ import { parseModelJsonDetailed } from '../server/babelParser/modelJson.js';
 import { ParseApiError } from '../server/babelParser/error.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { createTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
+import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 
 const fixturesDirectory = new URL('../fixtures/raw/', import.meta.url);
 
@@ -163,7 +164,7 @@ test('successful repair diagnostics persist through normalization and Tree Bank 
 
 test('the local route returns successful repair diagnostics in parse provenance', async () => {
   const fixture = JSON.parse(await readFile(new URL('mia-laughed.xbar.json', fixturesDirectory), 'utf8'));
-  const candidate = JSON.stringify(fixture.payload).slice(0, -1);
+  const candidate = JSON.stringify(restateAsSpellout(fixture.payload, fixture.sentence)).slice(0, -1);
   const bundle = await createLocalRoutes(candidate).parseSentenceWithLocalModel(
     fixture.sentence,
     fixture.framework

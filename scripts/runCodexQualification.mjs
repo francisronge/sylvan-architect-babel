@@ -7,20 +7,18 @@ import { Agent } from 'undici';
 
 import { buildCodexQualificationRequest, readCodexCredentials,
   requestCodexQualification, CODEX_RESPONSES_URL } from '../contractQualification/codexOAuth.js';
-import { writeQualificationAttempt } from '../contractQualification/artifacts.js';
 import { hashQualificationBytes, stableQualificationJson } from '../contractQualification/run.js';
 import { createQualificationTelemetry, qualificationTransportError } from '../contractQualification/telemetry.js';
 import { createTransportDiagnostics } from '../contractQualification/transportDiagnostics.js';
 import { estimateApiTokenCost } from '../contractQualification/apiCost.js';
 import { describeInputTokenization } from '../server/babelParser/generationRecord.js';
-import { SPELLOUT_CONTRACT_VERSION } from '../contractQualification/spelloutContract.js';
 import { writeSpelloutAttempts } from '../contractQualification/spelloutArtifacts.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const { values } = parseArgs({ options: {
   sentence: { type: 'string' }, framework: { type: 'string' }, model: { type: 'string' },
   effort: { type: 'string' }, out: { type: 'string' }, 'auth-file': { type: 'string' },
-  contract: { type: 'string', default: 'indexed' }, 'working-tree': { type: 'boolean', default: false },
+  'working-tree': { type: 'boolean', default: false },
   run: { type: 'boolean', default: false }, help: { type: 'boolean', default: false }
 } });
 
@@ -28,20 +26,17 @@ if (values.help) {
   console.log(`Babel-only generation through a ChatGPT Codex subscription.
   --sentence TEXT --framework minimalism|xbar
   [--model openai:gpt-6.1-sol|openai:gpt-6-sol|openai:gpt-6-astra]
-  --out NEW_DIRECTORY [--effort high] [--auth-file PATH] [--contract indexed|spellout] [--run]
+  --out NEW_DIRECTORY [--effort high] [--auth-file PATH] [--run]
 Without --run, only saves the exact request and contract fingerprint; no login or network access.
 Each invocation makes at most one request. No retries, API-key fallback, tools or agent context.
 The Codex OAuth default is GPT-6.1 Sol at high reasoning effort.
---contract spellout runs the input-segmentation experiment: no token list is sent,
-and the model's own words, checked against the sentence, become the tokens.
 Requires committed contract sources unless --working-tree explicitly fingerprints current sources.
 Build Replay review with:
   npm run qualification:review -- --run NEW_DIRECTORY`);
   process.exit(0);
 }
 
-const { body, selection, inputTokens } = buildCodexQualificationRequest(values);
-const spellout = values.contract === 'spellout';
+const { body, selection } = buildCodexQualificationRequest(values);
 if (!values.out) throw new Error('--out must name a new artifact directory.');
 const outputPath = path.resolve(values.out);
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -58,9 +53,7 @@ const receipt = {
   schemaVersion: 1,
   transport: 'codex-oauth', endpoint: CODEX_RESPONSES_URL,
   request: { sentence: values.sentence, framework: values.framework,
-    ...(spellout ? { contractVariant: SPELLOUT_CONTRACT_VERSION }
-      : { inputTokens, inputTokenization: describeInputTokenization() }),
-    model: selection },
+    inputTokenization: describeInputTokenization(), model: selection },
   requestBody: { artifact: 'request.json', sha256: hashQualificationBytes(requestBytes) },
   contract,
   transportDifferencesFromApi: {
@@ -122,15 +115,11 @@ if (values.run) {
     if (result.status === 'completed') {
       runnerPhase = 'babel-processing';
       const processingStart = performance.now();
-      const attempt = { id: 'parse', request: { sentence: values.sentence, framework: values.framework, inputTokens },
-        model: selection, source: { kind: 'raw-text-file', path: 'output.txt' } };
-      const written = spellout
-        ? writeSpelloutAttempts({ outputPath, sentence: values.sentence, framework: values.framework, model: selection, text })
-        : [writeQualificationAttempt({ outputPath, attempt, rawBytes: Buffer.from(text, 'utf8') })];
+      const written = writeSpelloutAttempts({ outputPath, sentence: values.sentence, framework: values.framework, model: selection, text });
       receipt.processingDurationMs = Math.round((performance.now() - processingStart) * 1000) / 1000;
       receipt.attempts = written.map(artifacts => ({ attemptId: artifacts.reviewEntry.attemptId, outcome: artifacts.receipt.outcome }));
       writeJson('review-manifest.json', { schemaVersion: 1, entries: written.map(artifacts => artifacts.reviewEntry) });
-      written.forEach(artifacts => console.log(`Babel processing${spellout ? ` (${artifacts.reviewEntry.attemptId})` : ''}: ${artifacts.receipt.outcome.status}`));
+      written.forEach(artifacts => console.log(`Babel processing (${artifacts.reviewEntry.attemptId}): ${artifacts.receipt.outcome.status}`));
       if (written.some(artifacts => artifacts.receipt.outcome.status === 'failed')) process.exitCode = 1;
     } else {
       process.exitCode = 1;

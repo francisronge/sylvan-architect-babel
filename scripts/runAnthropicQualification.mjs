@@ -6,7 +6,7 @@ import { Agent } from 'undici';
 
 import { buildAnthropicQualificationRequest, readAnthropicApiKey, requestAnthropicQualification,
   ANTHROPIC_API_VERSION, ANTHROPIC_MESSAGES_URL, DEFAULT_ANTHROPIC_KEYCHAIN_SERVICE } from '../contractQualification/anthropicApi.js';
-import { writeQualificationAttempt } from '../contractQualification/artifacts.js';
+import { writeSpelloutAttempts } from '../contractQualification/spelloutArtifacts.js';
 import { hashQualificationBytes, stableQualificationJson } from '../contractQualification/run.js';
 import { createQualificationTelemetry, qualificationTransportError } from '../contractQualification/telemetry.js';
 import { createTransportDiagnostics } from '../contractQualification/transportDiagnostics.js';
@@ -36,7 +36,7 @@ Build Replay review with:
   process.exit(0);
 }
 
-const { body, selection, inputTokens } = buildAnthropicQualificationRequest(values);
+const { body, selection } = buildAnthropicQualificationRequest(values);
 if (!values.out) throw new Error('--out must name a new artifact directory.');
 const keychainService = values['keychain-service'] || DEFAULT_ANTHROPIC_KEYCHAIN_SERVICE;
 const outputPath = path.resolve(values.out);
@@ -53,7 +53,7 @@ const contract = JSON.parse(fs.readFileSync(path.join(outputPath, 'contract.mani
 const receipt = {
   schemaVersion: 1,
   transport: 'anthropic-api', endpoint: ANTHROPIC_MESSAGES_URL, anthropicVersion: ANTHROPIC_API_VERSION,
-  request: { sentence: values.sentence, framework: values.framework, inputTokens,
+  request: { sentence: values.sentence, framework: values.framework,
     inputTokenization: describeInputTokenization(), model: selection },
   requestBody: { artifact: 'request.json', sha256: hashQualificationBytes(requestBytes) },
   contract,
@@ -115,14 +115,12 @@ if (values.run) {
     if (result.status === 'completed') {
       runnerPhase = 'babel-processing';
       const processingStart = performance.now();
-      const attempt = { id: 'parse', request: { sentence: values.sentence, framework: values.framework, inputTokens },
-        model: selection, source: { kind: 'raw-text-file', path: 'output.txt' } };
-      const artifacts = writeQualificationAttempt({ outputPath, attempt, rawBytes: Buffer.from(text, 'utf8') });
+      const written = writeSpelloutAttempts({ outputPath, sentence: values.sentence, framework: values.framework, model: selection, text });
       receipt.processingDurationMs = Math.round((performance.now() - processingStart) * 1000) / 1000;
-      receipt.attempts = [{ attemptId: attempt.id, outcome: artifacts.receipt.outcome }];
-      writeJson('review-manifest.json', { schemaVersion: 1, entries: [artifacts.reviewEntry] });
-      console.log(`Babel processing: ${artifacts.receipt.outcome.status}`);
-      if (artifacts.receipt.outcome.status === 'failed') process.exitCode = 1;
+      receipt.attempts = written.map(artifacts => ({ attemptId: artifacts.reviewEntry.attemptId, outcome: artifacts.receipt.outcome }));
+      writeJson('review-manifest.json', { schemaVersion: 1, entries: written.map(artifacts => artifacts.reviewEntry) });
+      written.forEach(artifacts => console.log(`Babel processing (${artifacts.reviewEntry.attemptId}): ${artifacts.receipt.outcome.status}`));
+      if (written.some(artifacts => artifacts.receipt.outcome.status === 'failed')) process.exitCode = 1;
     } else {
       process.exitCode = 1;
       console.error(result.error);

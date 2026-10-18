@@ -5,7 +5,7 @@ import {
   buildGenerationRecord,
   describeInputTokenization
 } from '../server/babelParser/generationRecord.js';
-import { SURFACE_TOKENIZATION_VERSION } from '../server/babelParser/surfaceTokens.js';
+import { SPELLOUT_CONTRACT_VERSION } from '../server/babelParser/spellout.js';
 import {
   buildAnthropicRequestBody,
   buildGeminiGenerationRequest,
@@ -166,11 +166,11 @@ test('Tree Bank snapshots preserve generationRecord as bundle metadata', () => {
   assert.equal('transientBundleField' in snapshot, false);
 });
 
-test('generation records name the tokenizer and the runtime Unicode data that produced the input tokens', () => {
+test('generation records name the spell-out version and the runtime Unicode data that derived the input tokens', () => {
   const record = buildGenerationRecord({ provider: 'gpt', framework: 'xbar', promptRoute: 'gpt', sentRequest: { model: 'm', input: [] },
     requestStartedAt: Date.parse('2026-10-17T00:00:00Z'), durationMs: 1 });
-  assert.deepEqual(record.inputTokenization, { version: SURFACE_TOKENIZATION_VERSION,
+  assert.deepEqual(record.inputTokenization, { version: SPELLOUT_CONTRACT_VERSION,
     unicode: process.versions.unicode, icu: process.versions.icu, cldr: process.versions.cldr });
   assert.deepEqual(describeInputTokenization({ unicode: '15.1', icu: '74.2' }),
-    { version: SURFACE_TOKENIZATION_VERSION, unicode: '15.1', icu: '74.2', cldr: null });
+    { version: SPELLOUT_CONTRACT_VERSION, unicode: '15.1', icu: '74.2', cldr: null });
 });

@@ -4,7 +4,6 @@ import { attachAggregateParseTokenCounts } from './provenance.js';
 import { buildGenerationRecord } from './generationRecord.js';
 import { buildSystemInstruction } from './systemInstruction.js';
 import { buildParseContentsPrompt } from './prompts.js';
-import { tokenizeSentenceSurfaceOrder } from './surfaceTokens.js';
 import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './researchModelCatalog.js';
 import {
   buildGeminiThinkingConfig,
@@ -228,7 +227,6 @@ export const createParseRoutes = ({
     sentence,
     modelRoute,
     model,
-    inputTokens,
     primaryDebugPayloadPath
   }) => {
     let payload;
@@ -282,7 +280,7 @@ export const createParseRoutes = ({
         sentence,
         modelRoute,
         true,
-        { inputTokens, payloadIntegrityFlags, payloadRepairDiagnostics }
+        { spellout: true, payloadIntegrityFlags, payloadRepairDiagnostics }
       );
       if (normalized?.analyses?.[0]) {
         normalized = mapBundleAnalyses(
@@ -327,14 +325,8 @@ export const createParseRoutes = ({
   const parseSentenceWithLocalModel = async (sentence, framework = 'xbar') => {
     // The local runtime is its own route; provenance must not claim Gemini.
     const promptRoute = 'local';
-    const inputTokens = tokenizeSentenceSurfaceOrder(sentence);
     const systemInstruction = buildSystemInstruction(framework, promptRoute);
-    const prompt = buildParseContentsPrompt(
-      sentence,
-      framework,
-      promptRoute,
-      inputTokens
-    );
+    const prompt = buildParseContentsPrompt(sentence);
     const temperature = resolveRouteTemperature(promptRoute);
     const maxOutputTokens = resolveLocalMaxOutputTokens(resolveRouteMaxOutputTokens(promptRoute));
     const modelUsed = `local:${LOCAL_MODEL_NAME}`;
@@ -389,7 +381,7 @@ export const createParseRoutes = ({
         promptRoute,
         true,
         {
-          inputTokens,
+          spellout: true,
           payloadIntegrityFlags: parsedPayload.integrityFlags,
           payloadRepairDiagnostics
         }
@@ -465,14 +457,8 @@ export const createParseRoutes = ({
 
     const ai = new GoogleGenAI({ apiKey });
     const normalizedModelRoute = 'gemini';
-    const inputTokens = tokenizeSentenceSurfaceOrder(sentence);
     const systemInstruction = buildSystemInstruction(framework, normalizedModelRoute);
-    const fullContents = buildParseContentsPrompt(
-      sentence,
-      framework,
-      normalizedModelRoute,
-      inputTokens
-    );
+    const fullContents = buildParseContentsPrompt(sentence);
     const routeTemperature = resolveRouteTemperature(normalizedModelRoute);
     const routeMaxOutputTokens = resolveRouteMaxOutputTokens(normalizedModelRoute);
     const selectedModel = GEMINI_MODEL;
@@ -576,7 +562,6 @@ export const createParseRoutes = ({
         sentence,
         modelRoute: normalizedModelRoute,
         model: selectedModel,
-        inputTokens,
         primaryDebugPayloadPath
       });
 
@@ -629,9 +614,8 @@ export const createParseRoutes = ({
       throw new ParseApiError('API_KEY_MISSING', `${providerLabel} API key is not configured on the server.`, 500);
     }
 
-    const inputTokens = tokenizeSentenceSurfaceOrder(sentence);
     const systemInstruction = buildSystemInstruction(framework, modelRoute);
-    const fullContents = buildParseContentsPrompt(sentence, framework, modelRoute, inputTokens);
+    const fullContents = buildParseContentsPrompt(sentence);
     const routeMaxOutputTokens = selection
       ? selection.requestPolicy.maxOutputTokens ?? selection.requestPolicy.maxCompletionTokens
       : resolveRouteMaxOutputTokens(modelRoute);
@@ -746,7 +730,6 @@ export const createParseRoutes = ({
         sentence,
         modelRoute,
         model: selectedModel,
-        inputTokens,
         primaryDebugPayloadPath
       });
 

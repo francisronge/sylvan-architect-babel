@@ -52,7 +52,7 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 - `components/AsyncTreeVisualizer.tsx` owns preparation and view recovery. `components/ReplayPanel.tsx` owns controls and detail presentation. `components/FailurePanel.tsx` preserves failure diagnostics and downloads; view retries must retain the analysis without a provider request.
 - `server/babelParser/systemInstruction.js` and `server/babelParser/prompts.js` define the model-facing prompt contract.
 - `server/babelParser/routeConfig.js`, `modelRuntime.js`, and `parseRoutes.js` own provider configuration and transport behavior.
-- `server/babelParser/parseNormalization.js` and `derivationCompiler.js` own parser normalization and derived structures.
+- `server/babelParser/parseNormalization.js` and `derivationCompiler.js` own parser normalization and derived structures. `server/babelParser/spellout.js` owns the input spelling check and the derived word list.
 - `replay/` owns React-free replay construction and replay fixture projection. Its modules must remain importable in Node and must not import React or components. `replayCompiler.ts` orchestrates stage preparation, construction and relation scheduling. `replay/relations/renderPlan.ts` owns the compiled relation contract; `relationFrame.ts` selects each frame's marks. Geometry consumes that contract without importing its compiler.
 - `components/TreeVisualizer.tsx` owns React renderer state and view lifecycle. `components/renderer/` owns D3 frame painting, camera behavior, and rendered-geometry refinement. Keep pure replay construction in `replay/`.
 - `types.ts` mirrors the browser-visible parse contract.
@@ -66,12 +66,13 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 
 ## Derivation contract
 
-- `derivationStages` is the sole model-authored derivation source. Every stage requires `statement`, `stageRecord`, `relations`, and `workspaceForest`; optional `realizations` groups associate current syntax occurrence IDs with exact input-token positions. No other stage fields are allowed.
+- `derivationStages` is the sole model-authored derivation source. Every stage requires `statement`, `stageRecord`, `relations`, and `workspaceForest`; optional `realizations` groups associate current syntax occurrence IDs with the exact text of the sentence they realize. No other stage fields are allowed.
+- The model receives only the sentence and decides where its words are. In the final stage, each group's text claims its stretches of the sentence (one string, or pieces in sentence order), and the remaining pronounced terminals, in tree order, spell the rest. `server/babelParser/spellout.js` checks the spelling and converts the analyses into token positions over one word list, cut wherever any analysis or stage divides a word; parsing, Replay and saved records keep that token form. Records saved earlier keep their tokenizer word lists.
 - Final trees, surface order, relation render plans, Replay steps, and stage explanations are derived from those stages. Do not reintroduce parallel authored ledgers, growth frames, commitment graphs, or compatibility aliases.
 - Derivation stages are completed syntactic states, not display frames.
 - `relations` uses an open ontology. Keep model-facing relation and anchor names open; finite classifications belong in derived renderer logic.
 - Models return the contract as plain-text JSON. No provider JSON mode or response schema is used, so every provider answers under the same conditions; strict schemas cannot express open relation and anchor names.
-- When final pronounced words independently match the complete input, normalization may omit a demonstrably mismatched optional `tokenIndex` and validate again. Record each omission in `provenance.tokenIndexCorrections` without a user-facing warning; preserve the original response. This recovery does not change syntax, words, silence or relations, and excludes pronunciation groups, ambiguous repeated-word addresses and malformed ownership.
+- Older outputs authored `tokenIndex` against a supplied token list. When their final pronounced words independently match the complete input, normalization may omit a demonstrably mismatched optional `tokenIndex` and validate again. Record each omission in `provenance.tokenIndexCorrections` without a user-facing warning; preserve the original response. This recovery does not change syntax, words, silence or relations, and excludes pronunciation groups, ambiguous repeated-word addresses and malformed ownership.
 
 ## Product boundaries
 
@@ -236,13 +237,11 @@ complete response enters Babel processing. Partial output remains available in
 `output.txt` and `response.sse`. Cancellation saves what has arrived. There is no
 client-imposed generation time limit.
 
-`--contract spellout` runs the input-segmentation experiment in
-`docs/research/input-segmentation.md`. The model receives only the sentence, with
-no token list, and its final words must spell the sentence.
-`contractQualification/spelloutContract.js` checks that spelling and converts each
-analysis into the current contract, using the model's own words as tokens, so the
-parser, Replay and review run unchanged. `spellout.json` keeps the alignment. No
-product route uses this variant.
+Both runners send Babel's prompts unchanged and apply Babel's spelling check
+through `contractQualification/spelloutArtifacts.js`. The analyses that pass
+become one ordinary attempt over their shared word list; each analysis that
+fails is recorded as its own attempt, and `spellout.json` keeps the alignment.
+The app instead rejects a response when any analysis fails the check.
 
 The subscription endpoint requires streaming and `store: false`; background
 polling and the API output-token limit are omitted and recorded as transport
