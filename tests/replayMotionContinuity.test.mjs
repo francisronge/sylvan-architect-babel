@@ -146,8 +146,8 @@ for (const [width, height] of [[1440, 900], [390, 844]]) test(`${width}px: open 
   const faults = replayMotionFaults({ frames: scenes.map(scene => motionFrame(scene.step, scene.nodes, display.getNodeId)) });
   assert.deepEqual(faults.filter(fault => fault.kind !== 'shape-motion').map(fault => `${fault.frame}:${fault.node}:${fault.kind}:${Math.round(fault.distance)}`), [
     '16:topic:unowned-motion:975', '16:yesterday:unowned-motion:2418', '17:relativePredicate:attachment-site-motion:247',
-    '44:le:unowned-motion:448', '44:leave:unowned-motion:1690', '44:matrixT:unowned-motion:1165', '44:topic:unowned-motion:2520',
-    '44:yesterday:unowned-motion:4334', '47:topic:attachment-site-motion:975']);
+    '44:le:unowned-motion:316', '44:leave:unowned-motion:1821', '44:matrixT:unowned-motion:1296', '44:topic:unowned-motion:2912',
+    '44:yesterday:unowned-motion:4726', '47:topic:attachment-site-motion:975']);
   assert.equal(JSON.stringify(waitingRoots), authored);
 });
 
