@@ -1,6 +1,6 @@
 # Babel Roadmap
 
-Status date: 2026-10-17
+Status date: 2026-10-18
 
 This is Babel's single list of remaining work, in order. Completed work and its
 evidence live in Git history. Durable rules and contracts live in the canonical
@@ -12,36 +12,29 @@ syntactic rules. Desktop remains the primary experience.
 
 ## Current work order
 
-1. Run the approved 20-sentence GPT-6.1 Sol/high batch through Codex OAuth
-   (`npm run qualification:codex`) aimed at rarely drawn relations: binding,
-   scope, control, ellipsis, across-the-board and right-node raising, focus, copy
-   pronunciation and object agreement.
-2. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
+1. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
    the Max plan's monthly API credits can be claimed (around 2026-10-24). Spend
    only those credits.
-3. Input segmentation ([study](docs/research/input-segmentation.md)): record the
-   runtime's Unicode, ICU and CLDR versions in generation provenance, and stop the
-   browser from tokenizing again. Then, with Francis's approval, run the proposed
-   comparison of today's tokens against character spell-out and decide the
-   contract.
-4. Clean up the tests:
-   - Replace hand-picked per-frame Replay checks with one sweep that checks every
-     rule on every frame of every saved parse, each rule first shown to fail on a
-     known-bad case.
+2. Input segmentation ([study](docs/research/input-segmentation.md)): with
+   Francis, decide between today's supplied tokens and character spell-out
+   (`--contract spellout`) from the saved comparison batches, then apply the
+   decision to the product contract.
+3. Clean up the tests:
+   - Retire hand-picked per-frame Replay checks that the invariant sweep
+     (`tests/replayInvariants.test.mjs`) now covers.
    - Move the design lab's example cards into fixture data, so the checks on
      them read data instead of slicing the lab's source text.
    - Check right-to-left once, as a mirror of left-to-right across the saved
      parses, then run continuity checks once per width.
-5. Recognition:
-   - Delete the recovery rules that fire on only one past sentence.
+4. Recognition:
    - Run an offline, geometry-first recognition experiment over every saved
      parse: measure the wrong-picture rate where Babel already draws, and build
      a review page for relations Babel does not yet draw.
    - Later, consider Jev as a fallback.
-6. Remove the legacy server model-route picker (Gemini default, stale model names,
+5. Remove the legacy server model-route picker (Gemini default, stale model names,
    legacy environment variables) and the `.artifacts` harnesses that depend on it.
    Treat this as an explicit endpoint-contract change.
-7. Merge duplicated layout checks without changing a pixel, proving identical
+6. Merge duplicated layout checks without changing a pixel, proving identical
    coordinates with `npm run verify:corpus`, and fix the one remaining stretched
    branch in Indonesian control analysis 2.
 
