@@ -535,10 +535,13 @@ layout sizes once followed the window width, and workspace placement combined
 stages sized differently at different widths. If a layout key ever changes with
 the viewport, the earlier frame stays on screen with its own viewport until the
 new layout is ready, and the swap is one redraw. The offline visual audit reports
-`layout-width` when two audited viewports lay out a frame beyond one translation
-per stage. The layout cover belongs to opening and non-viewport changes. Until the
-settled viewport is drawn, the tree carries `data-babel-viewport-pending` and
-capture readiness waits for it to clear.
+`layout-width` when any audited viewport lays out a Replay frame or the Canopy
+differently from the first one, beyond one translation per stage.
+`verify:visual-offline` compares the two desktop sizes;
+`tests/visualInvariants.test.mjs` compares mobile and proves that text measured
+wider at one viewport is reported. The layout cover belongs to opening and
+non-viewport changes. Until the settled viewport is drawn, the tree carries
+`data-babel-viewport-pending` and capture readiness waits for it to clear.
 
 ## Replay preparation
 
