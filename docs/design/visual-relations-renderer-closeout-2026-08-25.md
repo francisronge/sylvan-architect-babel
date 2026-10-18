@@ -243,15 +243,14 @@ stage-wide union still reserves its later visible placement before reveal.
 The worker, painter and camera consume the same stage and step maps.
 
 A plaque without its own Case arrow or collector shows its owner only by
-proximity. Its one anchor-relative pocket must be clear at every position of a
-moving anchor, so it can end up beyond all of its nearby candidates. A second
-allocation pass then places that plaque again. It searches anew whenever an
-authored movement carries the anchor, inside the moved phrase or the complex
-head that movement forms. Reflow, merges and other phrases' movement start no
-new search. The second pass leaves the first-pass pocket only for one within
-reach of the nearby candidates or at least a quarter nearer. Every other plaque
-keeps its first-pass pocket exactly, so the relocated plaque can shift when a
-later plaque claims its space.
+proximity. One anchor-relative pocket clear at every position of a moving anchor
+can lie beyond all of the plaque's nearby pockets. Such a remote plaque instead
+takes a pocket for each position that an authored movement carries its anchor to,
+inside the moved phrase or the complex head that movement forms. Reflow, merges
+and other phrases' movement do not count. At each such movement it keeps its
+pocket unless a clear pocket is within reach of its nearby pockets or at least a
+quarter nearer. Other plaques keep their pockets; the relocated plaque gives way
+when a later plaque needs its space.
 
 Reservations account for tree ink, trajectories, neutral connector stems and
 already allocated claims. The nearest clear pocket search has no arbitrary radius
