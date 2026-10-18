@@ -285,14 +285,143 @@ test('a live response is checked and converted inside parsing, with typed failur
   });
   assert.deepEqual(outcomes.map(outcome => [outcome.analysisIndex, outcome.status]), [[1, 'failed']]);
   // A failure after the spelling check carries the derived word list.
-  const duplicate = oneStage([node('s', 'S', leaf('w', 'Mia'), leaf('w', 'laughed'))]);
-  assert.throws(() => normalizeParseBundle(duplicate, 'xbar', 'Mia laughed.', 'gpt', true, { spellout: true }), (error) => {
+  // Spelling ignores a node whose children are not a list; the parser rejects it.
+  const badField = oneStage([node('s', 'S', leaf('a', 'Mia'), leaf('b', 'laughed'), { id: 'x', label: 'X', children: 'none' })]);
+  assert.throws(() => normalizeParseBundle(badField, 'xbar', 'Mia laughed.', 'gpt', true, { spellout: true }), (error) => {
     assert.deepEqual(error.details.inputTokens, ['Mia', 'laughed']);
     return true;
   });
   // The envelope is still checked first.
   assert.throws(() => normalizeParseBundle({ ...grouped, extra: true }, 'xbar', sentence, 'gpt', true, { spellout: true }),
     error => error.failure.ruleId === 'PAYLOAD_ENVELOPE_EXACT');
+});
+
+test('a workspace that repeats an occurrence stops at the repeat instead of expanding it', () => {
+  // Each stage references the previous root twice; full expansion would double every stage.
+  const stages = [{ statement: 's', stageRecord: 's', relations: [], workspaceForest: [node('r0', 'X', leaf('w', 'Mia'))] }];
+  for (let index = 1; index < 40; index += 1) {
+    stages.push({ statement: 's', stageRecord: 's', relations: [], workspaceForest: [node(`r${index}`, 'X', { refId: `r${index - 1}` }, { refId: `r${index - 1}` })] });
+  }
+  const started = performance.now();
+  const [result] = convertSpelloutPayload({ derivationStages: stages }, 'Mia');
+  assert.ok(performance.now() - started < 250, 'expansion stays linear');
+  assert.equal(result.diagnostics[0].rule, 'SPELLOUT_UNREADABLE');
+  assert.match(result.diagnostics[0].detail, /^Stage 2 repeats occurrence id r0\./);
+  const unknownGroupNode = oneStage([node('s', 'S', leaf('a', 'Mia'), leaf('b', 'laughed'))], [{ nodeIds: ['missing'], text: 'laughed' }]);
+  assert.match(convertOne(unknownGroupNode, 'Mia laughed.').diagnostics[0].detail, /group 0 names missing, which is not in its workspace/);
+  const unknownRef = oneStage([{ refId: 'nowhere' }]);
+  assert.match(convertOne(unknownRef, 'Mia').diagnostics[0].detail, /refId nowhere has no earlier definition/);
+});
+
+test('the spelling check stays bounded for any output shape', () => {
+  const quick = (payload, sentence) => {
+    const started = performance.now();
+    const [result] = convertSpelloutPayload(payload, sentence);
+    assert.ok(performance.now() - started < 1_000, 'bounded');
+    return result;
+  };
+  // An earlier group whose pieces repeat a word: the piece search counts choices instead of listing them.
+  const words = Array.from({ length: 40 }, (_, index) => leaf(`a${index}`, 'a'));
+  const repeated = { derivationStages: [
+    { statement: 's', stageRecord: 's', relations: [], workspaceForest: [node('r', 'R', ...words)],
+      realizations: [{ nodeIds: ['r'], text: [...Array(20).fill('a'), 'b'] }] },
+    { statement: 's', stageRecord: 's', relations: [], workspaceForest: [{ refId: 'r' }] }
+  ] };
+  assert.match(quick(repeated, Array(40).fill('a').join(' ')).diagnostics[0].detail, /matches no place/);
+  // Re-listing every earlier root in each stage grows quadratically, so the total is capped.
+  const growing = [];
+  for (let index = 0; index < 400; index += 1) {
+    growing.push({ statement: 's', stageRecord: 's', relations: [],
+      workspaceForest: [...Array.from({ length: index }, (_, earlier) => ({ refId: `n${earlier}` })), leaf(`n${index}`, 'Mia')] });
+  }
+  assert.match(quick({ derivationStages: growing }, 'Mia').diagnostics[0].detail, /expands to more nodes than the spelling check reads/);
+  // Wrapping the previous root once per stage is caught by the depth bound.
+  const wrapping = [{ statement: 's', stageRecord: 's', relations: [], workspaceForest: [node('n0', 'X', leaf('w', 'Mia'))] }];
+  for (let index = 1; index < 400; index += 1) {
+    wrapping.push({ statement: 's', stageRecord: 's', relations: [], workspaceForest: [node(`n${index}`, 'X', { refId: `n${index - 1}` })] });
+  }
+  assert.match(quick({ derivationStages: wrapping }, 'Mia').diagnostics[0].detail, /nests deeper than/);
+  // Deep nesting and very long stages fail as unreadable or too long, not with a stack overflow.
+  let deep = leaf('d', 'Mia');
+  for (let index = 0; index < 4_000; index += 1) deep = node(`p${index}`, 'X', deep);
+  assert.match(quick(oneStage([deep]), 'Mia').diagnostics[0].detail, /nests deeper than/);
+  const long = Array.from({ length: 1_500 }, (_, index) => leaf(`w${index}`, 'a'));
+  assert.equal(quick(oneStage([node('s', 'S', ...long)]), Array(1_500).fill('a').join(' ')).diagnostics[0].rule, 'SPELLOUT_ALIGNMENT_LIMIT');
+  // Malformed stages and group ids are typed diagnostics, never exceptions.
+  assert.equal(quick({ derivationStages: [null] }, 'Mia').diagnostics[0].rule, 'SPELLOUT_UNREADABLE');
+  assert.equal(quick(oneStage([leaf('a', 'Mia')], [{ nodeIds: [{ toString: null }], text: 'Mia' }]), 'Mia').diagnostics[0].rule, 'SPELLOUT_GROUP_SHAPE');
+});
+
+test('a response that needs more work than the spelling check allows stops within a fixed budget', () => {
+  // Each payload took seconds of synchronous CPU before the search was metered.
+  const quick = (payload, sentence) => {
+    const started = performance.now();
+    const [result] = convertSpelloutPayload(payload, sentence);
+    assert.ok(performance.now() - started < 1_000, 'bounded');
+    return result;
+  };
+  const limited = result => assert.deepEqual(result.diagnostics, [{ rule: 'SPELLOUT_ALIGNMENT_LIMIT',
+    detail: 'The response needs more work than the spelling check allows.' }]);
+  const stage = (workspaceForest, realizations) => ({ statement: 's', stageRecord: 's', relations: [], workspaceForest,
+    ...(realizations ? { realizations } : {}) });
+  const as = count => Array(count).fill('a');
+  const leaves = (count, word = () => 'a') => Array.from({ length: count }, (_, index) => leaf(`w${index}`, word(index)));
+  // 100 earlier stages repeat a group whose pieces repeat a word; each costs pieces × words² choices.
+  const repeating = () => [{ nodeIds: ['r'], text: [...as(150), 'b'] }];
+  limited(quick({ derivationStages: [
+    stage([node('r', 'R', ...leaves(300, index => (index ? 'a' : 'b')))], repeating()),
+    ...Array.from({ length: 99 }, () => stage([{ refId: 'r' }], repeating())),
+    stage([{ refId: 'r' }])
+  ] }, ['b', ...as(299)].join(' ')));
+  // 300 one-word groups against 299 words: each subset of groups read so far is its own alignment state.
+  const singles = leaves(300);
+  limited(quick(oneStage(singles, singles.map(({ id }) => ({ nodeIds: [id], text: 'a' }))), as(299).join(' ')));
+  // 10,000 earlier groups each read the 1,000 leaves of a subtree under 100 wrappers.
+  let wrapped = node('r', 'R', ...leaves(1_000));
+  for (let index = 0; index < 100; index += 1) wrapped = node(`p${index}`, 'P', wrapped);
+  limited(quick({ derivationStages: [
+    stage([wrapped], Array.from({ length: 10_000 }, () => ({ nodeIds: ['r'], text: 'a' }))),
+    stage([node('f', 'F', ...Array.from({ length: 300 }, (_, index) => ({ refId: `w${index}` })))])
+  ] }, as(300).join(' ')));
+  // 100 compact analyses, each re-listing a 256-level chain in 194 stages, share the meter:
+  // once it is spent, the later analyses are not expanded.
+  let chain = leaf('w', 'a');
+  for (let index = 0; index < 255; index += 1) chain = node(`p${index}`, 'P', chain);
+  const compact = { derivationStages: [stage([chain]), ...Array.from({ length: 193 }, () => stage([{ refId: chain.id }]))] };
+  const started = performance.now();
+  const results = convertSpelloutPayload(JSON.parse(JSON.stringify({ analyses: Array(100).fill(compact) })), 'a');
+  assert.ok(performance.now() - started < 1_000, 'bounded');
+  const spent = results.findIndex(result => !result.ok);
+  assert.ok(spent > 0 && spent < 50, 'the meter stops the response partway');
+  results.slice(spent).forEach(limited);
+  // One group of 300 pieces over 4,999 leaves is an ordinary conversion and stays quick.
+  const wide = quick(oneStage([node('r', 'R', ...leaves(4_999))], [{ nodeIds: ['r'], text: as(300) }]), as(300).join(' '));
+  assert.equal(wide.ok, true);
+  assert.deepEqual(wide.analysis.derivationStages[0].realizations, [{ nodeIds: ['r'], tokenIndices: [...as(300).keys()] }]);
+});
+
+test('a response nested too deeply fails as a typed contract failure before any recursive walk', () => {
+  let deep = leaf('w', 'a');
+  for (let index = 0; index < 10_000; index += 1) deep = node(`p${index}`, 'P', deep);
+  assert.equal(convertOne(oneStage([deep]), 'a').diagnostics[0].detail, 'Stage 1 nests deeper than 256 levels.');
+  // An unrecognized field nested 6,000 arrays deep once overflowed the parser's clone.
+  const nestedField = JSON.parse(`{"derivationStages":[{"statement":"s","stageRecord":"s","relations":[],"workspaceForest":[{"id":"w","label":"X","word":"a","children":[],"extra":${'['.repeat(6_000)}0${']'.repeat(6_000)}}]}]}`);
+  for (const payload of [oneStage([deep]), nestedField]) {
+    for (const spellout of [true, false]) {
+      assert.throws(() => normalizeParseBundle(payload, 'xbar', 'a', 'gpt', true, { spellout }), (error) => {
+        assert.equal(error.code, 'BAD_MODEL_RESPONSE');
+        assert.equal(error.status, 502);
+        assert.equal(error.failure.class, 'contract_misunderstanding');
+        assert.equal(error.failure.ruleId, 'PAYLOAD_NESTING_DEPTH');
+        assert.equal(error.message, 'The response nests deeper than 1024 levels, so Babel cannot read it.');
+        return true;
+      });
+    }
+  }
+  // The deepest tree the spelling check reads still passes the whole parser.
+  let deepest = leaf('w', 'a');
+  for (let index = 0; index < 256; index += 1) deepest = node(`p${index}`, 'P', deepest);
+  assert.equal(normalizeParseBundle(oneStage([deepest]), 'xbar', 'a', 'gpt', true, { spellout: true }).analyses.length, 1);
 });
 
 test('an analysis that does not spell another analysis\'s punctuation word fails', () => {

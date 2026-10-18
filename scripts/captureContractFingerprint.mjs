@@ -69,7 +69,8 @@ const explicitSections = {
     'server/babelParser/treeBasics.js',
     'server/babelParser/validationErrors.js',
     'server/babelParser/failureRecord.js',
-    'server/babelParser/realizationContract.js'
+    'server/babelParser/realizationContract.js',
+    'server/babelParser/spellout.js'
   ],
   dependencyLock: [
     'package.json',

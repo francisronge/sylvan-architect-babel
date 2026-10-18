@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
-import { parseModelJson } from '../server/babelParser/modelJson.js';
+import { parseModelJson, parseModelJsonDetailed } from '../server/babelParser/modelJson.js';
 import { ParseApiError } from '../server/babelParser/error.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { attachGenerationFailureEvidence } from '../server/babelParser/routeErrors.js';
@@ -546,6 +546,36 @@ test('unexpected normalization crashes remain deterministic engine failures', as
   } finally {
     if (typeof previousApiKey === 'undefined') delete process.env.OPENAI_API_KEY;
     else process.env.OPENAI_API_KEY = previousApiKey;
+  }
+});
+
+test('a response nested too deeply is a typed contract failure on the parse route, not an engine failure', async () => {
+  const previousApiKey = process.env.OPENAI_API_KEY;
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.OPENAI_API_KEY = 'provider-free-test-key';
+  process.env.NODE_ENV = 'production';
+  const rawText = `{"derivationStages":[{"statement":"s","stageRecord":"s","relations":[],"workspaceForest":[{"id":"w","label":"X","word":"Mia","children":[],"extra":${'['.repeat(6_000)}0${']'.repeat(6_000)}}]}]}`;
+  try {
+    const routes = createParseRoutes({
+      ParseApiError,
+      normalizeParseBundle,
+      parseModelJsonDetailed,
+      generateOpenAI: async () => ({ text: rawText, status: 'completed', candidates: [{ finishReason: 'COMPLETED' }] })
+    });
+    await assert.rejects(() => routes.parseSentenceWithOpenAI('Mia'), (error) => {
+      const { status, body } = formatApiError(error);
+      assert.equal(status, 502);
+      assert.equal(body.error.code, 'BAD_MODEL_RESPONSE');
+      assert.equal(body.error.failure.class, FAILURE_CLASSES.CONTRACT_MISUNDERSTANDING);
+      assert.equal(body.error.failure.ruleId, 'PAYLOAD_NESTING_DEPTH');
+      assert.equal(Buffer.from(body.error.rawOutput.data, 'base64').toString('utf8'), rawText);
+      return true;
+    });
+  } finally {
+    if (typeof previousApiKey === 'undefined') delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previousApiKey;
+    if (typeof previousNodeEnv === 'undefined') delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
   }
 });
 
