@@ -3,6 +3,7 @@ import type { SyntaxNode } from '../types.ts';
 import { retainCurrentRootFork } from './currentRootFork.ts';
 import { retainCurrentSiblingRanks, retainCurrentUnaryRows } from './currentSiblingRanks.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
+import { siblingContoursOrdered } from './siblingContours.ts';
 import { sourceSiblingTranslation, unchangedSourceRankOffsets } from './sourceSiblingTranslation.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
@@ -38,9 +39,11 @@ function lowerWitnesses(step: PlaybackStep): Map<string, string> | null {
 }
 
 /** Propose coordinates over each unchanged attachment lifetime. The caller
- * chooses the policy and validates the complete plan before accepting it. */
+ * chooses the policy and validates the complete plan before accepting it.
+ * With `orderedContours`, a lifetime ends before the first scene in which its
+ * members would interleave with a sister subtree. */
 export function reserveAttachmentLifetimes({
-  scenes, direction, ordinaryRoots, stableRoots, base,
+  scenes, direction, ordinaryRoots, stableRoots, base, orderedContours = false,
   policy: { allowOrdinary, progressive = false, preserveShape = true, preserveSourceClearance = false }
 }: {
   scenes: readonly WorkspaceAttachmentScene[];
@@ -48,6 +51,7 @@ export function reserveAttachmentLifetimes({
   ordinaryRoots: ReadonlySet<string>;
   stableRoots: ReadonlySet<string>;
   base?: Reservations;
+  orderedContours?: boolean;
   policy: WorkspaceAttachmentPolicy;
 }): Reservations {
   const output = new Map(scenes.map(scene => [scene.canvas, new Map(base?.get(scene.canvas) ?? scene.coordinates)]));
@@ -162,31 +166,32 @@ export function reserveAttachmentLifetimes({
               : position.y + (sameBranch && futurePoint && parentPoint ? futurePoint.y - parentPoint.y : node.y - anchor.y);
             coordinates.set(id, { x: direction === 'rtl' ? scene.size[0] - x : x, y });
           }
-          if (ordinary) {
-            if (progressive && !useWitnesses) {
-              const current = { nodes: scene.nodes, visible: new Set(scene.nodes.keys()), coordinates };
-              const future = { nodes: referenceNodes, visible: new Set(referenceNodes.keys()), coordinates: lifetimePositions };
-              // A later wrapper, whether constructed or movement-owned,
-              // cannot deepen a current daughter while its sister stays put.
-              // Carry the corrected rank back through its construction life.
-              retainCurrentSiblingRanks(current, future, undefined, relocated);
-              retainCurrentRootFork(current, future);
-              // Future rows reserved for later insertions must not stretch a
-              // current unary branch.
-              retainCurrentUnaryRows(current, future);
-            }
+          if (ordinary && progressive && !useWitnesses) {
+            const current = { nodes: scene.nodes, visible: new Set(scene.nodes.keys()), coordinates };
+            const future = { nodes: referenceNodes, visible: new Set(referenceNodes.keys()), coordinates: lifetimePositions };
+            // A later wrapper, whether constructed or movement-owned,
+            // cannot deepen a current daughter while its sister stays put.
+            // Carry the corrected rank back through its construction life.
+            retainCurrentSiblingRanks(current, future, undefined, relocated);
+            retainCurrentRootFork(current, future);
+            // Future rows reserved for later insertions must not stretch a
+            // current unary branch.
+            retainCurrentUnaryRows(current, future);
+          }
+          if (ordinary || orderedContours) {
             const hierarchy = d3.hierarchy(scene.canvas); applyVizIds(hierarchy);
             const visible = new Set(scene.nodes.keys());
-            const tree = layoutSyntaxTree(hierarchy, scene.size, direction, coordinates, visible);
-            const valid = tree.descendants().filter(node => visible.has(getNodeId(node))).every(node => {
+            const placed = layoutSyntaxTree(hierarchy, scene.size, direction, coordinates, visible).descendants()
+              .filter(node => visible.has(getNodeId(node)));
+            const valid = !ordinary || placed.every(node => {
               if (node.parent && visible.has(getNodeId(node.parent)) && node.y <= node.parent.y) return false;
               const children = (node.children ?? []).filter(child => visible.has(getNodeId(child)));
               return children.slice(1).every((child, index) => direction === 'rtl'
                 ? children[index].x > child.x : children[index].x < child.x);
             });
-            if (!valid) break;
-            if (progressive && !useWitnesses) {
-              referenceNodes = new Map(tree.descendants().filter(node => visible.has(getNodeId(node))).map(node => [getNodeId(node), node] as const));
+            if (!valid || orderedContours && !siblingContoursOrdered(placed, direction)) break;
+            if (ordinary && progressive && !useWitnesses) {
+              referenceNodes = new Map(placed.map(node => [getNodeId(node), node] as const));
               lifetimePositions = new Map([...referenceNodes].filter(([id]) => memberIds.has(id))
                 .map(([id, node]) => [id, { x: node.x, y: node.y }]));
             }
