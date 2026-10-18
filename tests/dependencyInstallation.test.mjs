@@ -54,9 +54,13 @@ test('Doctor writes a receipt when Playwright and installed dependencies are mis
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'babel-missing-browser-doctor-'));
   try {
     await fs.mkdir(path.join(root, 'scripts'));
-    for (const name of ['verifyBabelEnvironment.mjs', 'browserSuites.mjs', 'replayCorpusInputs.mjs', 'verifyDependencyInstallation.mjs']) {
+    for (const name of ['verifyBabelEnvironment.mjs', 'browserSuites.mjs', 'replayCorpusInputs.mjs', 'replayMotionContinuity.mjs',
+      'verifyDependencyInstallation.mjs']) {
       await fs.copyFile(new URL(`../scripts/${name}`, import.meta.url), path.join(root, 'scripts', name));
     }
+    // The corpus inputs load the motion rule, which measures through the camera carry.
+    await fs.mkdir(path.join(root, 'components'));
+    await fs.copyFile(new URL('../components/treeViewport.ts', import.meta.url), path.join(root, 'components', 'treeViewport.ts'));
     for (const name of ['package.json', 'package-lock.json']) {
       await fs.copyFile(new URL(`../${name}`, import.meta.url), path.join(root, name));
     }
