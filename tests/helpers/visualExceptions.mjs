@@ -40,6 +40,13 @@ export const EXCEPTIONS = [
     'plaque(1:3/2:3 theta Experiencer/Proposition)@vWant', { desktop: { '35-55': 1.3 }, 'desktop-large': { '35-55': 1.3 } }),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
     'plaque(1:3/2:3/3:3 theta Experiencer/Proposition)@vWant', { desktop: { '56-69': 1.3 }, 'desktop-large': { '56-69': 1.3 } }),
+  // Identical on origin/main for the saved analysis this fixture copies
+  // (spellout-metalanguage-ab 47-zh-relative.r1.B #6); its leaf-column fix moves only frames 44–51.
+  x(PLAQUE_CROWDED, 'replay-regressions/zh-relative-middle-head-column.json#', 'mark-distance', 'plaque',
+    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
+  x(PLAQUE_CROWDED, 'replay-regressions/zh-relative-middle-head-column.json#', 'mark-distance', 'plaque',
+    'plaque(1:0 subjectForm: Silent pronominal subject licensed )@relativeSubject',
+    { desktop: { '21-43': 1.18 }, 'desktop-large': { '21-43': 1.18 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/case-source-transfer.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta Experiencer/Theme)@v1', { desktop: { '15-19': 1.13 }, 'desktop-large': { '15-19': 1.13 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/case-source-transfer.json#', 'mark-distance', 'plaque',

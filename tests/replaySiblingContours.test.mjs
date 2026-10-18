@@ -17,6 +17,7 @@ const read = name => JSON.parse(readFileSync(new URL(`../fixtures/replay-regress
 const phaseEdge = read('es-wh-phase-edge-contour.json');
 const headFinal = read('diverse-recovery.json').examples.find(example => example.id === 'sol-korean-long-negation');
 const compactLanding = read('hi-correlative-landing-contour.json');
+const middleHead = read('zh-relative-middle-head-column.json');
 const viewports = [[1600, 948], [390, 844]];
 
 function layoutRecord(record, [width, height], direction) {
@@ -88,6 +89,28 @@ test('sister subtrees must stay ordered on every row, not only at their roots', 
   }
 });
 
+test('a bare leaf between two sisters keeps its column clear of their deeper descendants', () => {
+  // p has daughters a (deep), the bare leaf t and c. a's grandchild aDeep sits two rows under t.
+  const ordered = ({ aDeep, tLast = false, direction = 'ltr' }) => {
+    const at = { p: [150, 0], a: [0, 1], aMid: [0, 2], aDeep: [aDeep, 3], t: [200, 1], c: [400, 1], cWord: [400, 2] };
+    const node = id => ({ id, label: id });
+    const daughters = [{ ...node('a'), children: [{ ...node('aMid'), children: [node('aDeep')] }] }, node('t'),
+      { ...node('c'), children: [node('cWord')] }];
+    const root = d3.hierarchy({ ...node('p'), children: tLast ? [daughters[0], daughters[2], daughters[1]] : daughters });
+    if (tLast) Object.assign(at, { t: [600, 1] });
+    const sign = direction === 'rtl' ? -1 : 1;
+    return siblingContoursOrdered(root.descendants(), direction,
+      current => ({ x: at[current.data.id][0] * sign, y: at[current.data.id][1] * 220 }));
+  };
+  for (const direction of ['ltr', 'rtl']) {
+    assert.equal(ordered({ aDeep: 100, direction }), true);
+    assert.equal(ordered({ aDeep: 200, direction }), false, 'a descendant in the leaf column');
+    assert.equal(ordered({ aDeep: 250, direction }), false, 'a descendant past the leaf column');
+    // An edge daughter has no column: the tidy layout keeps that familiar shape.
+    assert.equal(ordered({ aDeep: 700, tLast: true, direction }), true);
+  }
+});
+
 test('a deep unary chain is checked in linear work', () => {
   const size = 2048;
   let data = { id: 'leaf', label: 'X' };
@@ -147,6 +170,29 @@ for (const viewport of viewports) for (const direction of ['ltr', 'rtl']) {
         rD1: [787.5, 0], rTP: [393.8, 0], rCCore: [196.9, 0] },
       'f37 relation:mD1': { mVah: [-525, -440], 'mVah::__leaf': [-525, -440] }
     });
+  });
+}
+
+for (const viewport of viewports) for (const direction of ['ltr', 'rtl']) {
+  test(`${viewport[0]}px ${direction}: a silent T between the subject and the vP clears the subject's columns`, () => {
+    const scenes = frames(middleHead, viewport, direction), sign = direction === 'rtl' ? -1 : 1;
+    const ternary = scenes.filter(scene => {
+      const t = scene.nodes.get('matrixT');
+      return t && display.getNodeId(t.parent) === 'matrixTP' && scene.nodes.has('subjectHigher') && scene.nodes.has('matrixVP');
+    });
+    assert.ok(ternary.length >= 5, 'the stage shows T between the raised subject and the vP');
+    for (const scene of ternary) {
+      const t = scene.nodes.get('matrixT'), tp = scene.nodes.get('matrixTP');
+      const subject = scene.nodes.get('subjectHigher'), vp = scene.nodes.get('matrixVP');
+      const frame = `frame ${scenes.indexOf(scene) + 1}`;
+      // One-row branches and level sisters, with no stretched branch.
+      assert.deepEqual([t.y - tp.y, subject.y, vp.y], [TREE_ROW_HEIGHT, t.y, t.y], frame);
+      const below = (root, side) => root.descendants().filter(node => scene.nodes.has(display.getNodeId(node)) && node.y > t.y)
+        .map(node => node.x * sign).reduce((a, b) => Math[side](a, b), side === 'max' ? -Infinity : Infinity);
+      assert.ok(t.x * sign - below(subject, 'max') >= TREE_SIBLING_GAP, `${frame}: T clears 人's column`);
+      assert.ok(below(vp, 'min') - t.x * sign >= TREE_SIBLING_GAP, `${frame}: T stays left of the vP`);
+    }
+    scenes.forEach((scene, index) => assert.deepEqual(contourInversions(scene, direction), [], `frame ${index + 1}`));
   });
 }
 

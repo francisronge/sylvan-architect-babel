@@ -18,12 +18,47 @@ type TreeLayoutMeasurements = {
   measureTreeLabel?: TreeLabelMeasure;
 };
 
+/** Tidy positions in which a bare leaf between two sisters also occupies the
+ * rows below it, down to its sisters' deepest row. Otherwise a sister's deeper
+ * descendant can sit in the leaf's column, and the leaf's branch reads as that
+ * descendant's parent. The column is layout-only and is never painted. */
+function tidyTree(root: d3.HierarchyNode<SyntaxNode>): d3.HierarchyPointNode<SyntaxNode> {
+  const layout = d3.tree<SyntaxNode>().nodeSize([TREE_SIBLING_GAP / 2.5, TREE_ROW_HEIGHT])
+    .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5);
+  const deepest = new Map<d3.HierarchyNode<SyntaxNode>, number>(), columns = new Map<SyntaxNode, number>();
+  // Future scaffolding neither creates such a fork nor deepens one.
+  const syntax = (node: d3.HierarchyNode<SyntaxNode>) => (node.children ?? []).filter(child => !child.data.replayLayoutOnly);
+  root.eachAfter(node => deepest.set(node, Math.max(node.depth, ...syntax(node).map(child => deepest.get(child)!))));
+  root.each(node => {
+    const children = syntax(node);
+    if (children.length < 3 || node.data.replayOrigin?.kind === 'workspace') return;
+    const bottom = Math.max(...children.map(child => deepest.get(child)!));
+    for (const child of children.slice(1, -1))
+      if (!child.children?.length && bottom > child.depth) columns.set(child.data, bottom - child.depth);
+  });
+  if (!columns.size) return layout(root);
+  const column = new WeakMap<SyntaxNode, SyntaxNode[]>();
+  for (const [leaf, rows] of columns) {
+    let below: SyntaxNode[] = [];
+    for (let row = 0; row < rows; row++) {
+      const part = { id: '', label: '' } as SyntaxNode;
+      column.set(part, below);
+      below = [part];
+    }
+    column.set(leaf, below);
+  }
+  const placed = new Map<SyntaxNode, { x: number; y: number }>();
+  layout(d3.hierarchy(root.data, data => column.get(data) ?? data.children))
+    .each(({ data, x, y }) => placed.set(data, { x, y }));
+  root.each(node => Object.assign(node, placed.get(node.data)));
+  return root as d3.HierarchyPointNode<SyntaxNode>;
+}
+
 /** Reflect coordinates, never child order or glyphs. All geometry binds after this layout. */
 export function layoutSyntaxTree(root: d3.HierarchyNode<SyntaxNode>, size: [number, number], direction: TreeDirection = 'ltr',
   reservation?: ReadonlyMap<string, { x: number; y: number }>, visibleIds?: ReadonlySet<string>, measurements: TreeLayoutMeasurements = {}) {
   applyVizIds(root);
-  const tree = d3.tree<SyntaxNode>().nodeSize([TREE_SIBLING_GAP / 2.5, TREE_ROW_HEIGHT])
-    .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
+  const tree = tidyTree(root);
   tree.each(node => { node.x += size[0] / 2; });
   if (!reservation && (measurements.measureCategoryText || measurements.measureTreeInk
     || measurements.treeLabelRuns || measurements.measureTreeLabel)) {
