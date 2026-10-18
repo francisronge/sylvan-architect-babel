@@ -26,6 +26,7 @@ import {
   resolvedRelationLinkKey
 } from './syntaxForest.ts';
 import {
+  landingAttachmentPath,
   movementLandingWrapper,
   relationOwnedPhrasalSourceRoles,
   relationOwnedPhrasalTargetRoles,
@@ -136,17 +137,9 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     const landingWrapper = movementLandingWrapper(workspaceRoots, previousFrameWorkspaceRoots, authoredTargetNodeId);
     if (landingWrapper)
       return [landingWrapper.wrapperId];
-    if (findNodeByIdInForest(previousFrameWorkspaceRoots, landingHostNodeId))
-      return [];
     const priorSourceIds = placement.relation.recoveredMovement
       ? (placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).filter(movement => movement.targetNodeId === authoredTargetNodeId).map(movement => movement.priorSourceNodeId)
       : placement.sourceNodeIds;
-    const sourceWorkspaceIds = new Set(previousFrameWorkspaceRoots
-      .filter(root => priorSourceIds.some(id => findNodeByIdInForest([root], id)))
-      .flatMap(root => collectSyntaxSubtreeNodeIds(root)));
-    const hostIds: string[] = [];
-    let branchNodeId = authoredTargetNodeId;
-    let parentNodeId = landingHostNodeId;
     const earlierRelationNeedsContext = (contextId: string): boolean => relationPlacements
       .filter(candidate => candidate.relationIndex < placement.relationIndex)
       .some(candidate => {
@@ -160,23 +153,14 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     // the source workspace. An old, separately selected head in the
     // landing complex does not yet attach it to that workspace.
     // Higher projections retain their own micro-steps.
-    while (parentNodeId && !findNodeByIdInForest(previousFrameWorkspaceRoots, parentNodeId)) {
+    return landingAttachmentPath(workspaceRoots, previousFrameWorkspaceRoots, authoredTargetNodeId, priorSourceIds, (parentNodeId, branchNodeId, hostIds) => {
       const structuralParent = findNodeByIdInForest(structuralWorkspaceRoots, parentNodeId);
       // Keep the attachment atomic by default. An earlier authored claim
       // can require this independently buildable receiving context first.
-      if ((trajectoryDisplayKind === 'head' && hostIds.length > 0 || trajectoryDisplayKind === 'phrasal') && structuralParent
-        && !(structuralParent.children || []).some(child => child.id === branchNodeId)
-        && earlierRelationNeedsContext(parentNodeId))
-        return hostIds;
-      hostIds.push(parentNodeId);
-      const parent = findNodeByIdInForest(workspaceRoots, parentNodeId);
-      const attachesToExistingSyntax = (parent?.children || []).some(child => child.id !== branchNodeId && collectSyntaxSubtreeNodeIds(child).some(nodeId => sourceWorkspaceIds.has(nodeId)));
-      if (attachesToExistingSyntax)
-        return hostIds;
-      branchNodeId = parentNodeId;
-      parentNodeId = findParentNodeIdInForest(workspaceRoots, parentNodeId);
-    }
-    return parentNodeId ? hostIds : [landingHostNodeId];
+      return (trajectoryDisplayKind === 'head' && hostIds.length > 0 || trajectoryDisplayKind === 'phrasal') && Boolean(structuralParent)
+        && !(structuralParent!.children || []).some(child => child.id === branchNodeId)
+        && earlierRelationNeedsContext(parentNodeId);
+    });
   };
   const getMovementCreatedLandingHostPaths = (placement: RelationPlacement) => placement.authoredTargetNodeIds.map(id => landingHostPath(placement, id)).filter(path => path.length);
   const getMovementCreatedLandingHostNodeIds = (placement: RelationPlacement): string[] => [...new Set(getMovementCreatedLandingHostPaths(placement).flat())];

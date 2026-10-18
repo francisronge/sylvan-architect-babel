@@ -944,6 +944,40 @@ export const relationOwnsNonMovementTreeTransition = (
   return true;
 };
 
+/**
+ * The new ancestors that attach a landing to the workspace that held its prior
+ * source: each parent absent from the preceding stage, up to the first whose
+ * other material belongs to that workspace. When no such parent exists, only
+ * the landing's own parent. `stopBefore` ends the path below a parent that must
+ * be built first.
+ */
+export const landingAttachmentPath = (
+  currentForest: SyntaxNode[],
+  previousForest: SyntaxNode[],
+  landingNodeId: string,
+  priorSourceIds: readonly string[],
+  stopBefore: (parentNodeId: string, branchNodeId: string, hostIds: readonly string[]) => boolean = () => false
+): string[] => {
+  const landingHostNodeId = findParentNodeIdInForest(currentForest, landingNodeId);
+  const sourceWorkspaceIds = new Set(previousForest
+    .filter(root => priorSourceIds.some(id => findNodeByIdInForest([root], id)))
+    .flatMap(root => collectSyntaxSubtreeNodeIds(root)));
+  const hostIds: string[] = [];
+  let branchNodeId = landingNodeId;
+  let parentNodeId = landingHostNodeId;
+  while (parentNodeId && !findNodeByIdInForest(previousForest, parentNodeId)) {
+    if (stopBefore(parentNodeId, branchNodeId, hostIds))
+      return hostIds;
+    hostIds.push(parentNodeId);
+    const parent = findNodeByIdInForest(currentForest, parentNodeId);
+    if ((parent?.children || []).some(child => child.id !== branchNodeId && collectSyntaxSubtreeNodeIds(child).some(nodeId => sourceWorkspaceIds.has(nodeId))))
+      return hostIds;
+    branchNodeId = parentNodeId;
+    parentNodeId = findParentNodeIdInForest(currentForest, parentNodeId);
+  }
+  return parentNodeId || !landingHostNodeId ? hostIds : [landingHostNodeId];
+};
+
 export const movementLandingWrapper = (
   currentForest: SyntaxNode[],
   previousForest: SyntaxNode[],

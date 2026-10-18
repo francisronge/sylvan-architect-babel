@@ -23,8 +23,13 @@ const assertSourceUntilMoment = (steps, { stageIndex, relationIndex, source, lan
   const at = frameStructure(moment.step);
   assert.equal(at.parent.get('a-taro-np'), landingParent, 'the moment places the landing under its new parent');
   assert.equal(at.parent.get(trace), source, 'the moment leaves the trace at the source');
+  const rootOf = id => { while (at.parent.get(id)) id = at.parent.get(id); return id; };
+  assert.equal(rootOf('a-taro-np'), rootOf(source), 'the moment attaches the landing to the syntax that held its source');
   return { before, at };
 };
+
+const assertNoTimingConflict = steps => assert.deepEqual(steps.flatMap(step => (step.movementDiagnostics ?? [])
+  .filter(diagnostic => diagnostic.startsWith('RELATION_TIMING_CONFLICT'))), []);
 
 test('an occurrence that keeps its id at the landing stays at its source until its rewrite moment', () => {
   const replay = prepareReplay({ ...structuredClone(fixture), includePlayback: true });
@@ -35,7 +40,24 @@ test('an occurrence that keeps its id at the landing stays at its source until i
   assert.equal(raising.at.parent.get('a-ibar'), 'a-ip');
   const topicalization = assertSourceUntilMoment(replay.playbackSteps,
     { stageIndex: 4, relationIndex: 0, source: 'a-ip', landingParent: 'a-topic-kp', trace: 'a-topic-trace' });
-  assert.equal(topicalization.before.some(({ step }) => frameStructure(step).displayed.has('a-topic-kp')), false);
+  // The topic KP and the CP that attaches it above C′ appear with the landing.
+  for (const parent of ['a-topic-kp', 'a-cp'])
+    assert.equal(topicalization.before.some(({ step }) => frameStructure(step).displayed.has(parent)), false, `${parent} waits for the moment`);
+  assert.equal(topicalization.at.parent.get('a-cbar'), 'a-cp');
+  assertNoTimingConflict(replay.playbackSteps);
+  assert.deepEqual(checkStableConstruction(replay), []);
+});
+
+test('the moment introduces every new parent between a kept-id landing and its source workspace', () => {
+  const record = structuredClone(fixture);
+  record.derivationStages = record.derivationStages.slice(0, 3);
+  const ip = record.derivationStages[2].workspaceForest[0];
+  ip.children[0] = { id: 'a-subject-shell', label: 'NP', children: [ip.children[0]] };
+  const replay = prepareReplay({ ...record, includePlayback: true });
+  const { before } = assertSourceUntilMoment(replay.playbackSteps,
+    { stageIndex: 2, relationIndex: 0, source: 'a-upper-vp', landingParent: 'a-subject-shell', trace: 'a-subject-trace' });
+  assert.equal(before.some(({ step }) => ['a-subject-shell', 'a-ip'].some(id => frameStructure(step).displayed.has(id))), false);
+  assertNoTimingConflict(replay.playbackSteps);
   assert.deepEqual(checkStableConstruction(replay), []);
 });
 

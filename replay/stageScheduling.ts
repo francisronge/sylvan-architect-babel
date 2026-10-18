@@ -25,7 +25,7 @@ import {
   findParentNodeIdInForest,
   indexExactForestNodeLocations
 } from './syntaxForest.ts';
-import { keptIdLandingNodeIds, newReceivingHeadNodeIds } from './treeTransitions.ts';
+import { keptIdLandingNodeIds, landingAttachmentPath, newReceivingHeadNodeIds } from './treeTransitions.ts';
 import { type PlaybackStep } from './types.ts';
 
 export const finalizeStageReplay = (
@@ -75,19 +75,25 @@ export const finalizeStageReplay = (
           .filter(child => !transitionNodeIds.has(String(child.id || '')))
           .forEach(child => collectSyntaxSubtreeNodeIds(child).forEach(id => prerequisiteIds.add(id)));
       });
-      // That holds when a claim names the parent of an occurrence that kept its
-      // id at the landing, unless an earlier claim needs the parent as context.
+      // An occurrence that kept its id at the landing needs every new parent
+      // that attaches it to its source workspace, as recovered movement does.
+      // That path appears with it, even when claims name its parents, and
+      // stops below a parent that an earlier claim needs as context.
       const anchoredBefore = (relationIndex: number, nodeId: string) => frameRelationSteps.slice(0, relationIndex)
         .some(relation => getRelationAllAnchorNodeIds(relation).some(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, id)).includes(nodeId)));
       fallbackTransitionOwnership.forEach((ownership, relationIndex) => keptIdLandingNodeIds(ownership, previousFrameWorkspaceRoots, workspaceRoots)
         .forEach((nodeId) => {
-          const parentId = findParentNodeIdInForest(workspaceRoots, nodeId);
-          if (parentId && !transitionNodeIds.has(parentId) && !priorLocations.has(parentId)
-            && !transitionHostNodeIds.has(parentId) && !anchoredBefore(relationIndex, parentId))
-            transitionHostNodeIds.set(parentId, relationIndex);
+          const path = landingAttachmentPath(workspaceRoots, previousFrameWorkspaceRoots, nodeId, [nodeId], parentNodeId => anchoredBefore(relationIndex, parentNodeId));
+          path.forEach((hostId, index) => {
+            if (!transitionNodeIds.has(hostId) && !transitionHostNodeIds.has(hostId))
+              transitionHostNodeIds.set(hostId, relationIndex);
+            (findExactNodeByIdInForest(workspaceRoots, hostId)?.children || [])
+              .filter(child => child.id !== (index ? path[index - 1] : nodeId) && !transitionNodeIds.has(String(child.id || '')))
+              .forEach(child => collectSyntaxSubtreeNodeIds(child).forEach(id => prerequisiteIds.add(id)));
+          });
         }));
       transitionHostNodeIds.forEach((_relationIndex, nodeId) => prerequisiteIds.delete(nodeId));
-      // A higher merge of that parent stays ordinary construction after the moment.
+      // A merge that consumes the path's outermost parent is construction after the moment.
       const availableContextIds = new Set([...previousFrameWorkspaceRoots.flatMap(collectSyntaxSubtreeNodeIds)
         .filter(nodeId => {
           if (!transitionNodeIds.has(nodeId))
