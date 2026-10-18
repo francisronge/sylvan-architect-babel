@@ -7,6 +7,9 @@
 // `npm run verify:visual-offline` audits the committed fixtures with
 // `--exceptions tests/helpers/visualExceptions.mjs` and fails on any finding the
 // exceptions do not cover, on one beyond its bound, and on a stale exception.
+// `--audit camera` instead checks the camera across steps with
+// tests/helpers/cameraInvariants.mjs, traced by tests/helpers/cameraTrace.mjs;
+// `npm run verify:camera-offline` matches the fixtures to tests/helpers/cameraExceptions.mjs.
 import { mkdtempSync, readdirSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { availableParallelism, tmpdir } from 'node:os';
 import path from 'node:path';
@@ -15,32 +18,37 @@ import { parseArgs } from 'node:util';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { matchFindings, proposeExceptions } from '../tests/helpers/findings.mjs';
 import { RULES, THRESHOLDS } from '../tests/helpers/visualRules.mjs';
+import { CAMERA_RULES, CAMERA_THRESHOLDS } from '../tests/helpers/cameraInvariants.mjs';
 
 async function main() {
   const { values } = parseArgs({ allowNegative: true, options: {
     fixtures: { type: 'boolean', default: false }, runs: { type: 'string', multiple: true, default: [] },
     batches: { type: 'string', multiple: true, default: [] }, 'archive-manifest': { type: 'string', multiple: true, default: [] },
     only: { type: 'string' }, every: { type: 'string', default: '1' }, viewports: { type: 'string', default: 'desktop,desktop-large,mobile' },
-    canopy: { type: 'boolean', default: true }, jobs: { type: 'string', default: '2' }, out: { type: 'string' }, exceptions: { type: 'string' }
+    canopy: { type: 'boolean', default: true }, jobs: { type: 'string', default: '2' }, out: { type: 'string' }, exceptions: { type: 'string' },
+    audit: { type: 'string', default: 'visual' }
   } });
+  if (!['visual', 'camera'].includes(values.audit)) throw Error('--audit is visual or camera');
+  const camera = values.audit === 'camera';
+  if (camera) values.canopy = false;
   if (!(values.out || values.exceptions) || !(values.fixtures || values.runs.length || values.batches.length || values['archive-manifest'].length))
     throw Error('Usage: node scripts/auditReplayVisuals.mjs (--out report.json | --exceptions module.mjs) [--fixtures] [--runs DIR/runs ...] '
-      + '[--batches CODEX_QUALIFICATION_ROOT ...] [--archive-manifest FILE ...] [--only TEXT] [--every N] [--jobs N] [--viewports a,b] [--no-canopy]');
+      + '[--batches CODEX_QUALIFICATION_ROOT ...] [--archive-manifest FILE ...] [--only TEXT] [--every N] [--jobs N] [--viewports a,b] [--no-canopy] [--audit visual|camera]');
   const every = Math.max(1, Number(values.every));
   const records = (await loadRecords(values)).filter((record, index) => index % every === 0 && (!values.only || record.id.includes(values.only)));
   const viewports = values.viewports.split(',').map(name => name.trim()).filter(Boolean);
   const jobs = Math.max(1, Math.min(Number(values.jobs) || 1, availableParallelism()));
   const started = performance.now();
-  const results = await runWorkers(records, jobs, { viewports, canopy: values.canopy });
-  const report = { schemaVersion: 2, durationMs: Math.round(performance.now() - started), viewports, canopy: values.canopy, jobs,
-    thresholds: THRESHOLDS, records: results.length, frames: results.reduce((sum, result) => sum + (result.frames ?? 0), 0),
+  const results = await runWorkers(records, jobs, { viewports, canopy: values.canopy, audit: values.audit });
+  const report = { schemaVersion: 2, audit: values.audit, durationMs: Math.round(performance.now() - started), viewports, canopy: values.canopy, jobs,
+    thresholds: camera ? CAMERA_THRESHOLDS : THRESHOLDS, records: results.length, frames: results.reduce((sum, result) => sum + (result.frames ?? 0), 0),
     errors: results.filter(result => result.error).map(({ id, error }) => ({ id, error })),
     findings: results.flatMap(result => result.findings ?? []) };
   if (values.out) writeFileSync(path.resolve(values.out), `${JSON.stringify(report)}\n`);
-  console.log(`Visual audit: ${report.records} analyses, ${report.frames} laid-out frames (${viewports.join(', ')}`
+  console.log(`${camera ? 'Camera' : 'Visual'} audit: ${report.records} analyses, ${report.frames} laid-out frames (${viewports.join(', ')}`
     + `${values.canopy ? ' + Canopy' : ''}) in ${(report.durationMs / 1000).toFixed(1)}s with ${jobs} jobs; ${report.errors.length} errors.`);
   report.errors.slice(0, 10).forEach(({ id, error }) => console.log(`  error ${id}: ${error}`));
-  if (!values.exceptions) return summarize(report.findings);
+  if (!values.exceptions) return summarize(report.findings, camera ? CAMERA_RULES : RULES);
   const { EXCEPTIONS } = await import(pathToFileURL(path.resolve(values.exceptions)).href);
   const { unexpected, exceeded, stale } = matchFindings(report.findings, EXCEPTIONS);
   const show = (title, lines) => { if (lines.length) console.log(`\n${title} (${lines.length}):\n${lines.slice(0, 40).join('\n')}`); };
@@ -53,8 +61,8 @@ async function main() {
   else console.log(`All ${report.findings.length} findings are listed exceptions within their bounds.`);
 }
 
-function summarize(findings) {
-  for (const rule of RULES) {
+function summarize(findings, rules) {
+  for (const rule of rules) {
     const own = findings.filter(finding => finding.rule === rule), subjects = proposeExceptions(own);
     console.log(`\n${rule}: ${own.length} findings, ${subjects.length} subjects, ${new Set(own.map(finding => finding.record)).size} analyses`);
     subjects.slice(0, 12).forEach(entry => console.log(`  ${entry.record} [${entry.subtype}] ${entry.subject} at ${JSON.stringify(entry.at)}`));
@@ -114,9 +122,15 @@ function runWorkers(records, jobs, data) {
 
 if (!isMainThread) {
   const { auditVisualRecord, VIEWPORTS } = await import('../tests/helpers/visualFrames.mjs');
-  const viewports = VIEWPORTS.filter(viewport => workerData.viewports.includes(viewport.name));
+  const { auditCameraRecord, CAMERA_VIEWPORTS } = await import('../tests/helpers/cameraTrace.mjs');
+  const camera = workerData.audit === 'camera';
+  const viewports = (camera ? CAMERA_VIEWPORTS : VIEWPORTS).filter(viewport => workerData.viewports.includes(viewport.name));
+  if (viewports.length !== workerData.viewports.length) throw Error(`Unknown viewport in ${workerData.viewports.join(', ')}`);
   parentPort.on('message', ({ index, id, input }) => {
-    try { parentPort.postMessage({ index, id, ...auditVisualRecord(id, input, { viewports, canopy: workerData.canopy }) }); } catch (error) {
+    try {
+      parentPort.postMessage({ index, id, ...(camera ? auditCameraRecord(id, input, { viewports })
+        : auditVisualRecord(id, input, { viewports, canopy: workerData.canopy })) });
+    } catch (error) {
       parentPort.postMessage({ index, id, error: String(error?.stack ?? error).split('\n').slice(0, 3).join(' | ') });
     }
   });

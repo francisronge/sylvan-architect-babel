@@ -52,11 +52,10 @@ import { createMeasuringDocument, measureCategoryText, measurePlaqueText, measur
  * the obstacles TreeVisualizer measures for fitting. With these estimates the
  * Fit of that capture is reproduced within 1.1%; the mobile canvas has not been
  * checked against a capture. */
+export const viewportForWindow = (name, [width, height]) => Object.freeze({ name, width: width - 4, height: height - 124 });
 export const VIEWPORTS = Object.freeze([
-  { name: 'desktop', window: [1440, 900] },
-  { name: 'desktop-large', window: [2560, 1440] },
-  { name: 'mobile', window: [390, 844] }
-].map(({ name, window: [width, height] }) => Object.freeze({ name, width: width - 4, height: height - 124 })));
+  viewportForWindow('desktop', [1440, 900]), viewportForWindow('desktop-large', [2560, 1440]), viewportForWindow('mobile', [390, 844])
+]);
 
 export function viewportObstacles({ width, height }, replay = true) {
   const panel = Math.max(148, Math.min(260, 0.4 * height, height - 100));
@@ -239,11 +238,18 @@ export function layoutVisualFrames(visual, viewports = VIEWPORTS, { steps: only 
   try { return [...shared.values()].flatMap(group => layoutGroup(visual, group, only, Element)); } finally { restore(); }
 }
 
+/** The measured browser layout of every frame of one prepared record at one
+ * canvas size: scenes, plaque schedule and `stageCamera(stage, completedStep)`. */
+export function layoutMeasuredScenes(visual, { width, height }) {
+  const { prepared } = visual;
+  return layoutReplayFrames({ steps: prepared.playbackSteps, stages: prepared.replayDerivationFrames, width, height,
+    direction: visual.direction, measured: { plan: prepared.relationRenderPlan, protectedNodeIds: visual.protectedNodeIds,
+      treeLabelRuns: visual.treeLabelRuns, measurePlaqueText, measureCategoryText, measureTreeInk, measureTreeLabel } }, MODULES);
+}
+
 function layoutGroup(visual, viewports, only, Element) {
   const { prepared } = visual, steps = prepared.playbackSteps, plan = prepared.relationRenderPlan;
-  const scene = layoutReplayFrames({ steps, stages: prepared.replayDerivationFrames, width: viewports[0].width, height: viewports[0].height,
-    direction: visual.direction, measured: { plan, protectedNodeIds: visual.protectedNodeIds, treeLabelRuns: visual.treeLabelRuns,
-      measurePlaqueText, measureCategoryText, measureTreeInk, measureTreeLabel } }, MODULES);
+  const scene = layoutMeasuredScenes(visual, viewports[0]);
   return scene.scenes.flatMap(({ step, tree, visible, nodes }, stepIndex) => {
     if (only && !only.includes(stepIndex + 1) || !step.replayCanvasData || !Number.isInteger(step.replayFrameIndex)) return [];
     const stage = step.replayFrameIndex, runs = visual.stepRuns(stepIndex);
