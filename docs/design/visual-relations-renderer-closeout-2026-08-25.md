@@ -671,6 +671,20 @@ and clearance checks. Incoming fork branches must also clear the other
 children's label envelopes. Keep the prior plan and an infeasibility diagnostic
 when those constraints cannot be satisfied. Already stable plans remain intact.
 
+Syntax stands from its first frame where it will be once attached. A waiting
+workspace or a newly selected head appears at its attachment slot and keeps it
+until its own merge, which then moves nothing already on screen. A piece that
+attaches through a parent inserted above an existing host waits at its final x
+beside that host's current row: branches keep their one-row length, and the
+insertion lowers the host and the piece together. A slot holds only while every
+painted member keeps the parent it attaches with, every frame stays valid and
+no ink collision is added. Placements that span stages use stage frames
+translated, as a whole, by the median shift of the unmoved syntax they share
+with the next stage, as the camera carry does, with the completed stage as the
+anchor. A plan that still shows motion is replaced by such a plan only when it
+removes motion, adds none, moves no join farther and keeps the final tree
+exactly, or, within stages, when no painted node moves farther.
+
 A later locked fork may require more clearance than its earlier incarnation
 reserved. Carry that measured requirement back only through the same ordered
 children to a fork with a free separating side. Adjust that earlier preference,

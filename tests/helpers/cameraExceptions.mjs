@@ -87,32 +87,18 @@ export const EXCEPTIONS = [
     { desktop: { '9>8': 51.01 }, mobile: { '9>8': 29.98 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/workspace-spanish-continuity.json#', 'first-paint-continuity', 'jump:camera', 'stage 2',
     { desktop: { '8>9': 61.11 }, mobile: { '8>9': 37.53 } }),
-  // Catalog #24's record (47-zh-relative.r1.B a6) also carries catalog #19-#21, under review on fix/replay-stage-frame-alignment.
-  x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:relayout',
-    'stage 2', { desktop: { '16>17,17>16': 31.54 } }),
+  // Catalog #24's record (47-zh-relative.r1.B a6), also committed as the waiting-root fixture. Waiting slots
+  // fixed catalog #19-#21 (16>17) and the off-canvas first paint into stage 3; with the middle-head column (#94) its mobile stage crossing is also clear, and the desktop stage relayout remains.
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:relayout',
     'stage 3', { desktop: { '48>49,49>48': 26.72 } }),
-  // The bare T between subject and vP now keeps its column, so stage 3 is a sister gap wider and these
-  // stage-boundary measures grew (desktop 43>44 from 149.9, mobile off-canvas from 165.57 and 46.31).
-  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:camera',
-    'stage 2', { desktop: { '44>43': 158.55 }, mobile: { '44>43': 62.6 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:camera',
-    'stage 3', { desktop: { '43>44': 166.66 }, mobile: { '43>44': 103.8 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'off-canvas:unmoved',
-    'stage 3', { mobile: { '43>44': 196.88 } }),
-  x(MOVED_OFF_CANVAS, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'off-canvas:moved',
-    'stage 3', { mobile: { '43>44': 77.61 } }),
-  // The waiting-root fixture is the same record as catalog case 6, so it carries the same entries.
-  x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:relayout',
-    'stage 2', { desktop: { '16>17,17>16': 31.54 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 2', { desktop: { '44>43': 54.37 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 3', { desktop: { '43>44': 57.15 } }),
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:relayout',
     'stage 3', { desktop: { '48>49,49>48': 26.72 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:camera',
-    'stage 2', { desktop: { '44>43': 158.55 }, mobile: { '44>43': 62.6 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:camera',
-    'stage 3', { desktop: { '43>44': 166.66 }, mobile: { '43>44': 103.8 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'off-canvas:unmoved',
-    'stage 3', { mobile: { '43>44': 196.88 } }),
-  x(MOVED_OFF_CANVAS, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'off-canvas:moved',
-    'stage 3', { mobile: { '43>44': 77.61 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 2', { desktop: { '44>43': 54.37 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 3', { desktop: { '43>44': 57.15 } }),
 ];
