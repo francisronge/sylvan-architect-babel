@@ -142,6 +142,13 @@ An intentional comparison exception requires an explicit reason. New guards
 should fail on the historical defect or a controlled bad result before a passing
 candidate is accepted; passing counts alone do not establish protection.
 
+For a wider comparison, `node scripts/buildCorpusArchiveManifest.mjs --fixtures
+--runs /path/batch/runs --out /tmp/archive.json` names every committed fixture
+analysis with a saved sentence and every analysis of saved qualification runs;
+pass the file as `--archive-manifest`, with a larger `--timeout-ms` for a large
+archive. Fixture analyses without a saved sentence are listed as skipped. Every
+changed record still needs its own review.
+
 For archived Replay captures, run `node scripts/captureReplayArtifact.mjs --bundle
 /path/input.json --out /tmp/capture --app-url http://127.0.0.1:5177`. The loopback
 app must already be running. Captures wait for the requested painted frame and
