@@ -16,56 +16,133 @@ const SPACE = /[\p{White_Space}​]/u;
 const IGNORED = /[\p{White_Space}​\p{P}]/u;
 const codePoints = (text) => [...String(text).normalize('NFC')];
 const significant = (text) => codePoints(text).filter(character => !IGNORED.test(character));
-const sameCharacter = (a, b) => a === b || a.toLowerCase() === b.toLowerCase();
 const isPlainObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const failure = (rule, detail) => ({ rule, detail });
 
-/** Expands refIds as the parser does: from the latest earlier expanded definition. */
-const expandStages = (stages) => {
+/** Thrown when a workspace cannot be read; the parser reports structure in detail. */
+class SpelloutStructureError extends Error {}
+
+/** Thrown when a response needs more search work than MAX_SEARCH_WORK. */
+class SpelloutWorkLimitError extends Error {}
+
+// Bounds on what the spelling check reads of one analysis: expanded nodes, tree
+// depth, and final words and groups. They also keep its recursion shallow. Real
+// analyses stay far below them: a stage has hundreds of nodes, not thousands.
+const MAX_STAGE_NODES = 5_000;
+const MAX_ANALYSIS_NODES = 50_000;
+const MAX_DEPTH = 256;
+const MAX_READING_UNITS = 1_000;
+// Spelling-check steps one response may take. Saved responses take at most
+// about 1,700; the reviewed hostile responses reach the limit in tens of
+// milliseconds of spelling-check time.
+const MAX_SEARCH_WORK = 1_000_000;
+
+/**
+ * Counts the spelling check's steps for one response: each expanded node and
+ * each search step (alignment states, character comparisons, scans for runs
+ * and occurrences, choice counting, and the leaves and positions a group
+ * reads). The check's other loops are linear in the authored analysis, its
+ * expanded nodes, the sentence, or work already charged. The meter bounds only
+ * the spelling check, not the parsing that follows it.
+ */
+const workMeter = () => {
+  let used = 0;
+  return {
+    charge(steps = 1) {
+      used += steps;
+      if (used > MAX_SEARCH_WORK) throw new SpelloutWorkLimitError();
+    }
+  };
+};
+
+/**
+ * Expands refIds as the parser does: from the latest earlier expanded
+ * definition. An occurrence id may appear once per expanded workspace, so a
+ * stage that references a subtree twice stops at the repeat instead of
+ * copying it. A stage that references earlier subtrees still expands to more
+ * nodes than it authors; each node is charged to the meter before it is copied,
+ * and the node bounds cap one analysis.
+ */
+const expandStages = (stages, meter) => {
   const definitions = new Map();
+  let total = 0;
   return stages.map((stage, stageIndex) => {
-    const expand = (node) => {
-      if (isPlainObject(node) && Object.keys(node).length === 1 && typeof node.refId === 'string') {
-        if (!definitions.has(node.refId)) throw new Error(`Stage ${stageIndex + 1} refId ${node.refId} has no earlier definition.`);
-        return definitions.get(node.refId);
+    const seen = new Set();
+    const where = `Stage ${stageIndex + 1}`;
+    let count = 0;
+    const claim = (id, depth) => {
+      meter.charge();
+      if (depth > MAX_DEPTH) throw new SpelloutStructureError(`${where} nests deeper than ${MAX_DEPTH} levels.`);
+      if ((count += 1) > MAX_STAGE_NODES || (total += 1) > MAX_ANALYSIS_NODES) {
+        throw new SpelloutStructureError(`${where} expands to more nodes than the spelling check reads.`);
       }
-      if (!isPlainObject(node)) throw new Error(`Stage ${stageIndex + 1} contains a malformed node.`);
-      return { ...node, children: Array.isArray(node.children) ? node.children.map(expand) : [] };
+      if (typeof id !== 'string') return;
+      if (seen.has(id)) throw new SpelloutStructureError(`${where} repeats occurrence id ${id}.`);
+      seen.add(id);
     };
-    const forest = (Array.isArray(stage?.workspaceForest) ? stage.workspaceForest : []).map(expand);
+    const expandDefinition = (node, depth) => {
+      claim(node.id, depth);
+      return { ...node, children: node.children.map(child => expandDefinition(child, depth + 1)) };
+    };
+    const expand = (node, depth = 0) => {
+      if (isPlainObject(node) && Object.keys(node).length === 1 && typeof node.refId === 'string') {
+        if (!definitions.has(node.refId)) throw new SpelloutStructureError(`${where} refId ${node.refId} has no earlier definition.`);
+        return expandDefinition(definitions.get(node.refId), depth);
+      }
+      if (!isPlainObject(node)) throw new SpelloutStructureError(`${where} contains a malformed node.`);
+      claim(node.id, depth);
+      return { ...node, children: Array.isArray(node.children) ? node.children.map(child => expand(child, depth + 1)) : [] };
+    };
+    const forest = (Array.isArray(stage?.workspaceForest) ? stage.workspaceForest : []).map(root => expand(root, 0));
     const record = (node) => { if (typeof node.id === 'string') definitions.set(node.id, node); node.children.forEach(record); };
     forest.forEach(record);
+    (Array.isArray(stage?.realizations) ? stage.realizations : []).forEach((group, groupIndex) => group.nodeIds
+      .filter(id => !seen.has(id))
+      .forEach((id) => { throw new SpelloutStructureError(`${where} group ${groupIndex} names ${id}, which is not in its workspace.`); }));
     return forest;
   });
 };
 
-/** Leaves in tree order with inherited silence, and each node's pronounced leaves. */
+/**
+ * Reads an expanded stage once: its leaves in tree order with inherited
+ * silence, and each node's leaves as a range [start, end) of that list. A
+ * node's pronounced leaves are the non-silent leaves in its range.
+ */
 const readForest = (forest) => {
-  const leaves = [], pronouncedUnder = new Map();
+  const leaves = [], ranges = new Map();
   const visit = (node, inheritedSilence) => {
     const silent = inheritedSilence || node.silent === true;
     const start = leaves.length;
     if (!node.children.length) leaves.push({ node, silent });
     else node.children.forEach(child => visit(child, silent));
-    if (typeof node.id === 'string') {
-      pronouncedUnder.set(node.id, leaves.slice(start).filter(leaf => !leaf.silent).map(leaf => leaf.node));
-    }
+    if (typeof node.id === 'string') ranges.set(node.id, [start, leaves.length]);
   };
   forest.forEach(root => visit(root, false));
-  return { leaves, pronouncedUnder };
+  return { leaves, ranges };
+};
+
+/** Visits the pronounced leaves under a node of a read stage, with their leaf indices. */
+const eachPronounced = ({ leaves, ranges }, id, meter, visit) => {
+  const range = ranges.get(id);
+  if (!range) return;
+  meter.charge(range[1] - range[0]);
+  for (let index = range[0]; index < range[1]; index += 1) {
+    if (!leaves[index].silent) visit(leaves[index].node, index);
+  }
 };
 
 /** Spell-out's own field rules; the parser checks everything else after conversion. */
 const spelloutShapeDiagnostics = (stages) => {
   const diagnostics = [];
-  const visit = (node, path) => {
-    if (!isPlainObject(node)) return;
+  const visit = (node, path, depth) => {
+    // Expansion reports deeper nesting; stopping here keeps this walk shallow.
+    if (!isPlainObject(node) || depth > MAX_DEPTH) return;
     if (Object.hasOwn(node, 'tokenIndex')) diagnostics.push(failure('SPELLOUT_TOKEN_INDEX', `${path} has tokenIndex, which this contract does not define.`));
-    (Array.isArray(node.children) ? node.children : []).forEach((child, index) => visit(child, `${path}.children[${index}]`));
+    (Array.isArray(node.children) ? node.children : []).forEach((child, index) => visit(child, `${path}.children[${index}]`, depth + 1));
   };
   stages.forEach((stage, stageIndex) => {
     const path = `derivationStages[${stageIndex}]`;
-    (Array.isArray(stage?.workspaceForest) ? stage.workspaceForest : []).forEach((root, index) => visit(root, `${path}.workspaceForest[${index}]`));
+    (Array.isArray(stage?.workspaceForest) ? stage.workspaceForest : []).forEach((root, index) => visit(root, `${path}.workspaceForest[${index}]`, 0));
     if (!Object.hasOwn(stage || {}, 'realizations')) return;
     if (!Array.isArray(stage.realizations)) {
       diagnostics.push(failure('SPELLOUT_GROUP_SHAPE', `${path}.realizations is not an array.`));
@@ -75,7 +152,8 @@ const spelloutShapeDiagnostics = (stages) => {
       const text = group?.text;
       const validText = (typeof text === 'string' && text.trim()) || (Array.isArray(text) && text.length > 0
         && text.every(piece => typeof piece === 'string' && piece.trim()));
-      const valid = isPlainObject(group) && Object.keys(group).length === 2 && Array.isArray(group.nodeIds) && validText;
+      const valid = isPlainObject(group) && Object.keys(group).length === 2 && Array.isArray(group.nodeIds)
+        && group.nodeIds.every(id => typeof id === 'string' && id.trim()) && validText;
       if (!valid) diagnostics.push(failure('SPELLOUT_GROUP_SHAPE',
         `${path}.realizations[${index}] needs exactly nodeIds and text: a nonblank string or a nonempty array of nonblank strings.`));
     });
@@ -94,6 +172,19 @@ const graphemeBoundaries = (text) => {
   return boundaries;
 };
 
+/** The sentence's code points with their lower case and character classes, read once per response. */
+const readSentence = (sentence) => {
+  const text = sentence.normalize('NFC');
+  const chars = codePoints(text);
+  return {
+    chars,
+    lower: chars.map(character => character.toLowerCase()),
+    ignored: chars.map(character => IGNORED.test(character)),
+    space: chars.map(character => SPACE.test(character)),
+    boundaries: graphemeBoundaries(text)
+  };
+};
+
 /** A group's text as its pieces, in sentence order. */
 const textPieces = (text) => (Array.isArray(text) ? text : [text]).map(piece => piece.trim());
 
@@ -107,36 +198,43 @@ const edgePunctuation = (text) => {
   return { lead, trail };
 };
 
-/**
- * Spells text at position, after any separators, as final words are matched.
- * Punctuation that the word itself writes at its edges (’s, etc.) joins its
- * span when the sentence has punctuation there.
- */
-const spellAt = (chars, position, text) => {
+/** What a word or piece must match in the sentence, prepared once per text. */
+const spellingOf = (text) => {
   const wanted = significant(text);
   // A word made only of punctuation spells that punctuation literally.
   const literal = wanted.length === 0;
   const target = literal ? codePoints(text) : wanted;
+  return { literal, target, lower: target.map(character => character.toLowerCase()), ...edgePunctuation(text) };
+};
+
+/**
+ * Spells a word or piece at position, after any separators, as final words
+ * are matched. Punctuation that the word itself writes at its edges (’s, etc.)
+ * joins its span when the sentence has punctuation there.
+ */
+const spellAt = (sentence, position, spelling, meter) => {
+  const { chars, lower, ignored, space } = sentence;
+  const { literal, target } = spelling;
   const from = position;
-  while (position < chars.length && (literal ? SPACE : IGNORED).test(chars[position])) position += 1;
+  const separator = literal ? space : ignored;
+  while (position < chars.length && separator[position]) position += 1;
   let start = position;
   let matched = 0;
   while (matched < target.length && position < chars.length) {
-    if (!literal && IGNORED.test(chars[position])) { position += 1; continue; }
-    if (!sameCharacter(chars[position], target[matched])) break;
+    if (!literal && ignored[position]) { position += 1; continue; }
+    if (chars[position] !== target[matched] && lower[position] !== spelling.lower[matched]) break;
     position += 1; matched += 1;
   }
   const complete = matched === target.length;
   if (complete && !literal) {
-    const mark = character => IGNORED.test(character) && !SPACE.test(character);
-    let { lead, trail } = edgePunctuation(text);
-    while (lead > 0 && start > from && mark(chars[start - 1])) { start -= 1; lead -= 1; }
-    while (trail > 0 && position < chars.length && mark(chars[position])) { position += 1; trail -= 1; }
+    const mark = index => ignored[index] && !space[index];
+    let { lead, trail } = spelling;
+    while (lead > 0 && start > from && mark(start - 1)) { start -= 1; lead -= 1; }
+    while (trail > 0 && position < chars.length && mark(position)) { position += 1; trail -= 1; }
   }
+  meter.charge(1 + position - from);
   return { start, end: position, complete, length: target.length };
 };
-
-const ALIGNMENT_STATE_LIMIT = 200_000;
 
 /**
  * Aligns the final stage's spelling to the sentence. Each group's text claims
@@ -146,16 +244,19 @@ const ALIGNMENT_STATE_LIMIT = 200_000;
  * terminal is read, so an alignment that reads straight through the tree is
  * always kept, and repeated text resolves through the tree.
  */
-const alignFinalStage = (forest, groups, sentence) => {
-  const { leaves, pronouncedUnder } = readForest(forest);
-  const groupLeaves = groups.map(group => new Set(group.nodeIds.flatMap(id => pronouncedUnder.get(id) || [])));
+const alignFinalStage = (reading, groups, sentence, meter) => {
+  const { leaves } = reading;
   const groupPieces = groups.map(group => textPieces(group.text));
+  // The groups that pronounce each leaf, in group order.
+  const covering = leaves.map(() => []);
+  groups.forEach((group, index) => group.nodeIds.forEach(id => eachPronounced(reading, id, meter, (_, leaf) => {
+    if (covering[leaf].at(-1) !== index) covering[leaf].push(index);
+  })));
   const words = [], preferred = [], placed = new Set(), diagnostics = [];
-  for (const { node, silent } of leaves) {
-    if (silent) continue;
-    const covering = groups.map((_, index) => index).filter(index => groupLeaves[index].has(node));
-    if (covering.length) {
-      covering.filter(index => !placed.has(index)).forEach(index => {
+  leaves.forEach(({ node, silent }, leaf) => {
+    if (silent) return;
+    if (covering[leaf].length) {
+      covering[leaf].filter(index => !placed.has(index)).forEach(index => {
         placed.add(index);
         groupPieces[index].forEach((_, piece) => preferred.push({ group: index, piece }));
       });
@@ -163,52 +264,75 @@ const alignFinalStage = (forest, groups, sentence) => {
       preferred.push({ word: words.length });
       words.push({ text: authoredWord(node), nodeId: node.id });
     }
-  }
+  });
   groups.forEach((_, index) => {
     if (!placed.has(index)) diagnostics.push(failure('SPELLOUT_GROUP_UNPLACED', `Final-stage group ${index} covers no pronounced terminal.`));
   });
   if (diagnostics.length) return { units: [], diagnostics, observations: [] };
-  const text = sentence.normalize('NFC');
-  const chars = codePoints(text);
+  if (preferred.length > MAX_READING_UNITS) {
+    return { units: [], diagnostics: [failure('SPELLOUT_ALIGNMENT_LIMIT', `The final stage has more than ${MAX_READING_UNITS} words and groups to align.`)], observations: [] };
+  }
+  const { chars, ignored } = sentence;
   const textOf = item => (item.word === undefined ? groupPieces[item.group][item.piece] : words[item.word].text);
+  const wordSpellings = words.map(word => spellingOf(word.text));
+  const pieceSpellings = groupPieces.map(pieces => pieces.map(piece => spellingOf(piece)));
+  const spellingFor = item => (item.word === undefined ? pieceSpellings[item.group][item.piece] : wordSpellings[item.word]);
+  // Each word's and piece's place when the tree is read straight through.
+  const wordOrder = [], pieceOrder = groups.map(() => []);
+  preferred.forEach((item, order) => {
+    if (item.word === undefined) pieceOrder[item.group][item.piece] = order;
+    else wordOrder[item.word] = order;
+  });
+  // A reading takes the next word (WORD) or the next piece of a group (its index).
+  const WORD = -1;
   const next = groups.map(() => 0), trail = [], failed = new Set();
-  let word = 0, explored = 0;
+  let word = 0, read = 0;
+  const unread = kind => (kind === WORD ? word < words.length : next[kind] < groupPieces[kind].length);
+  // The unread reading that comes first in the tree.
+  const pending = () => {
+    let kind = WORD, order = unread(WORD) ? wordOrder[word] : Infinity;
+    next.forEach((piece, group) => {
+      if (unread(group) && pieceOrder[group][piece] < order) { kind = group; order = pieceOrder[group][piece]; }
+    });
+    return kind;
+  };
   const finished = (position) => {
-    while (position < chars.length && IGNORED.test(chars[position])) position += 1;
+    while (position < chars.length && ignored[position]) position += 1;
     return position === chars.length;
   };
+  const attempt = (kind, position) => {
+    const item = kind === WORD ? { word } : { group: kind, piece: next[kind] };
+    const spelled = spellAt(sentence, position, spellingFor(item), meter);
+    if (!spelled.complete) return false;
+    if (kind === WORD) word += 1; else next[kind] += 1;
+    read += 1;
+    trail.push({ item, span: [spelled.start, spelled.end] });
+    if (search(spelled.end)) return true;
+    trail.pop();
+    read -= 1;
+    if (kind === WORD) word -= 1; else next[kind] -= 1;
+    return false;
+  };
+  // Tries the pending reading, then the next word, then each group's next piece.
   const search = (position) => {
-    if (word === words.length && next.every((piece, group) => piece === groupPieces[group].length)) return finished(position);
+    if (read === preferred.length) return finished(position);
+    meter.charge(1 + groups.length);
     const key = `${position}|${word}|${next.join(',')}`;
-    if (failed.has(key) || (explored += 1) > ALIGNMENT_STATE_LIMIT) return false;
-    const pending = preferred.find(item => (item.word === undefined ? next[item.group] <= item.piece : item.word >= word));
-    const candidates = [pending, ...(word < words.length ? [{ word }] : []), ...groups.map((_, group) => ({ group, piece: next[group] }))
-      .filter(item => item.piece < groupPieces[item.group].length)];
-    const tried = new Set();
-    for (const item of candidates) {
-      const kind = item.word === undefined ? `group ${item.group}` : 'word';
-      if (tried.has(kind)) continue;
-      tried.add(kind);
-      const spelled = spellAt(chars, position, textOf(item));
-      if (!spelled.complete) continue;
-      if (item.word === undefined) next[item.group] += 1; else word += 1;
-      trail.push({ item, span: [spelled.start, spelled.end] });
-      if (search(spelled.end)) return true;
-      trail.pop();
-      if (item.word === undefined) next[item.group] -= 1; else word -= 1;
+    if (failed.has(key)) return false;
+    const first = pending();
+    if (attempt(first, position)) return true;
+    if (first !== WORD && unread(WORD) && attempt(WORD, position)) return true;
+    for (let group = 0; group < groups.length; group += 1) {
+      if (group !== first && unread(group) && attempt(group, position)) return true;
     }
     failed.add(key);
     return false;
   };
   if (!search(0)) {
-    if (explored > ALIGNMENT_STATE_LIMIT) {
-      diagnostics.push(failure('SPELLOUT_ALIGNMENT_LIMIT', 'The final stage has too many possible alignments to check.'));
-      return { units: [], diagnostics, observations: [] };
-    }
     // Report where reading straight through the tree stops matching.
     let position = 0;
     for (const item of preferred) {
-      const spelled = spellAt(chars, position, textOf(item));
+      const spelled = spellAt(sentence, position, spellingFor(item), meter);
       if (!spelled.complete) {
         diagnostics.push(failure('SPELLOUT_MISMATCH',
           `"${textOf(item)}" does not spell the sentence at "${chars.slice(spelled.start, spelled.start + spelled.length + 2).join('')}".`));
@@ -216,13 +340,12 @@ const alignFinalStage = (forest, groups, sentence) => {
       }
       position = spelled.end;
     }
-    while (position < chars.length && IGNORED.test(chars[position])) position += 1;
+    while (position < chars.length && ignored[position]) position += 1;
     diagnostics.push(position < chars.length
       ? failure('SPELLOUT_INCOMPLETE', `The final stage leaves "${chars.slice(position).join('')}" unspelled.`)
       : failure('SPELLOUT_MISMATCH', 'The groups and the remaining words cannot spell the sentence in order.'));
     return { units: [], diagnostics, observations: [] };
   }
-  const graphemes = graphemeBoundaries(text);
   const observations = [];
   const units = trail.map(({ item, span: [start, end] }) => {
     const unit = item.word === undefined ? { text: textOf(item), group: item.group, piece: item.piece } : { ...words[item.word] };
@@ -233,45 +356,42 @@ const alignFinalStage = (forest, groups, sentence) => {
     if (!literal && [...unit.token].some(character => IGNORED.test(character) && !SPACE.test(character))) {
       observations.push({ rule: 'SPELLOUT_SPAN_CONTAINS_PUNCTUATION', token: unit.token });
     }
-    if (!graphemes.has(start) || !graphemes.has(end)) observations.push({ rule: 'SPELLOUT_SPAN_SPLITS_GRAPHEME', token: unit.token, span: unit.span });
+    if (!sentence.boundaries.has(start) || !sentence.boundaries.has(end)) {
+      observations.push({ rule: 'SPELLOUT_SPAN_SPLITS_GRAPHEME', token: unit.token, span: unit.span });
+    }
     return unit;
   });
   return { units, diagnostics, observations };
 };
 
-/** Final positions of the pronounced leaves under a group's nodes in its own stage. */
-const groupPositions = (group, forest, positionByLeafId) => {
-  const { pronouncedUnder } = readForest(forest);
-  return new Set(group.nodeIds.flatMap(id => (pronouncedUnder.get(id) || [])
-    .flatMap(leaf => [...(positionByLeafId.get(leaf.id) || [])])));
-};
-
-/** Runs of whole final words that spell text. */
-const wholeWordRuns = (text, tokens) => {
+/** Runs of whole final words that spell text; tokens holds each word's significant spelling. */
+const wholeWordRuns = (text, tokens, meter) => {
   const wanted = significant(text).join('').toLowerCase();
   const runs = [];
   for (let first = 0; first < tokens.length; first += 1) {
     let spelled = '';
     for (let last = first; last < tokens.length && spelled.length < wanted.length; last += 1) {
-      spelled += significant(tokens[last]).join('').toLowerCase();
+      meter.charge(1 + tokens[last].length);
+      spelled += tokens[last];
       if (spelled === wanted) runs.push([first, last]);
     }
   }
   return runs;
 };
 
-/** Spans where text spells the sentence, matched as final words are. */
-const occurrences = (chars, text) => {
-  const wanted = significant(text), spans = [];
-  for (let start = 0; wanted.length && start < chars.length; start += 1) {
-    if (IGNORED.test(chars[start])) continue;
+/** Spans where a spelling occurs in the sentence, matched as final words are. */
+const occurrences = ({ chars, lower, ignored }, { literal, target, lower: wanted }, meter) => {
+  const spans = [];
+  for (let start = 0; !literal && start < chars.length; start += 1) {
+    if (ignored[start]) continue;
     let position = start, matched = 0;
-    while (matched < wanted.length && position < chars.length) {
-      if (IGNORED.test(chars[position])) { position += 1; continue; }
-      if (!sameCharacter(chars[position], wanted[matched])) break;
+    while (matched < target.length && position < chars.length) {
+      if (ignored[position]) { position += 1; continue; }
+      if (chars[position] !== target[matched] && lower[position] !== wanted[matched]) break;
       position += 1; matched += 1;
     }
-    if (matched === wanted.length) spans.push([start, position]);
+    meter.charge(1 + position - start);
+    if (matched === target.length) spans.push([start, position]);
   }
   return spans;
 };
@@ -283,54 +403,99 @@ const occurrences = (chars, text) => {
  * final words may name part of a word that grows later (吃完 before 吃完了);
  * it resolves to its occurrence inside those final words.
  */
-const locateEarlierGroup = (group, forest, units, positionByLeafId, chars, boundaries) => {
-  const tokens = units.map(unit => unit.token);
-  const positions = [...groupPositions(group, forest, positionByLeafId)];
-  const low = Math.min(...positions.map(index => units[index].span[0]));
-  const high = Math.max(...positions.map(index => units[index].span[1]));
-  const candidates = textPieces(group.text).map((piece) => {
-    const runs = wholeWordRuns(piece, tokens);
-    const owned = runs.filter(([first, last]) => positions.some(index => index >= first && index <= last));
-    const spans = (runs.length > 1 && owned.length ? owned : runs).map(([first, last]) => [units[first].span[0], units[last].span[1]]);
-    if (spans.length || !positions.length) return spans;
-    return occurrences(chars, piece).filter(([start, end]) => start >= low && end <= high && boundaries.has(start) && boundaries.has(end));
+const locateEarlierGroup = (group, reading, final, sentence, meter) => {
+  const { units, tokens, positionByLeafId } = final;
+  const pieces = textPieces(group.text);
+  // Each piece needs its own stretch of the sentence, after the previous piece's.
+  if (pieces.length > sentence.chars.length) return { matches: 0 };
+  const positions = new Set();
+  group.nodeIds.forEach(id => eachPronounced(reading, id, meter, leaf => (positionByLeafId.get(leaf.id) || []).forEach((index) => {
+    meter.charge();
+    positions.add(index);
+  })));
+  let low = Infinity, high = -Infinity;
+  positions.forEach((index) => {
+    low = Math.min(low, units[index].span[0]);
+    high = Math.max(high, units[index].span[1]);
   });
-  const choices = [];
-  const choose = (index, after, chosen) => {
-    if (choices.length > 1) return;
-    if (index === candidates.length) { choices.push(chosen); return; }
-    candidates[index].filter(([start]) => start >= after).forEach(span => choose(index + 1, span[1], [...chosen, span]));
+  const owns = ([first, last]) => {
+    for (let index = first; index <= last; index += 1) {
+      meter.charge();
+      if (positions.has(index)) return true;
+    }
+    return false;
   };
-  choose(0, 0, []);
-  return choices.length === 1 ? { spans: choices[0] } : { matches: choices.length };
+  const candidates = pieces.map((piece) => {
+    const runs = wholeWordRuns(piece, tokens, meter);
+    const owned = runs.length > 1 ? runs.filter(owns) : [];
+    const spans = (owned.length ? owned : runs).map(([first, last]) => [units[first].span[0], units[last].span[1]]);
+    if (spans.length || !positions.size) return spans;
+    return occurrences(sentence, spellingOf(piece), meter)
+      .filter(([start, end]) => start >= low && end <= high && sentence.boundaries.has(start) && sentence.boundaries.has(end));
+  });
+  // Counts the in-order choices of one span per piece, capped at two, so the
+  // search is polynomial however often a piece's text repeats.
+  const counts = new Map();
+  const count = (index, after) => {
+    if (index === candidates.length) return 1;
+    const key = `${index}:${after}`;
+    if (!counts.has(key)) {
+      let found = 0;
+      for (const span of candidates[index]) {
+        meter.charge();
+        if (span[0] >= after && (found += count(index + 1, span[1])) > 1) break;
+      }
+      counts.set(key, Math.min(found, 2));
+    }
+    return counts.get(key);
+  };
+  const matches = count(0, 0);
+  if (matches !== 1) return { matches };
+  const spans = [];
+  for (let index = 0, after = 0; index < candidates.length; index += 1) {
+    const span = candidates[index].find(([start, end]) => start >= after && count(index + 1, end) === 1);
+    spans.push(span);
+    after = span[1];
+  }
+  return { spans };
 };
 
 /** Checks one analysis's spelling and locates every group it authors in the sentence. */
-const alignAnalysis = (analysis, sentence) => {
+const alignAnalysis = (analysis, sentence, meter) => {
   const stages = Array.isArray(analysis?.derivationStages) ? analysis.derivationStages : [];
   if (!stages.length) return { diagnostics: [failure('SPELLOUT_NO_STAGES', 'The analysis has no derivation stages.')] };
+  const malformed = stages.findIndex(stage => !isPlainObject(stage));
+  if (malformed >= 0) return { diagnostics: [failure('SPELLOUT_UNREADABLE', `Stage ${malformed + 1} is not an object.`)] };
   const shape = spelloutShapeDiagnostics(stages);
   if (shape.length) return { diagnostics: shape };
-  const forests = expandStages(stages);
+  const readings = expandStages(stages, meter).map(readForest);
+  const finalReading = readings.at(-1);
   const finalGroups = stages.at(-1).realizations || [];
-  const { units, diagnostics, observations } = alignFinalStage(forests.at(-1), finalGroups, sentence);
+  const { units, diagnostics, observations } = alignFinalStage(finalReading, finalGroups, sentence, meter);
   if (diagnostics.length) return { diagnostics, observations, units };
-  const { pronouncedUnder } = readForest(forests.at(-1));
-  const positionByLeafId = new Map();
-  const assign = (id, index) => positionByLeafId.set(id, new Set([...(positionByLeafId.get(id) || []), index]));
-  units.forEach((unit, index) => {
-    if (unit.group === undefined) assign(unit.nodeId, index);
-    else finalGroups[unit.group].nodeIds.forEach(id => (pronouncedUnder.get(id) || []).forEach(leaf => assign(leaf.id, index)));
-  });
-  const chars = codePoints(sentence.normalize('NFC'));
-  const boundaries = graphemeBoundaries(chars.join(''));
+  const earlierGroups = stages.slice(0, -1).flatMap((stage, stageIndex) => (Array.isArray(stage.realizations) ? stage.realizations : [])
+    .map((group, groupIndex) => ({ group, stageIndex, groupIndex })));
   const earlier = [];
-  stages.slice(0, -1).forEach((stage, stageIndex) => (Array.isArray(stage.realizations) ? stage.realizations : []).forEach((group, groupIndex) => {
-    const located = locateEarlierGroup(group, forests[stageIndex], units, positionByLeafId, chars, boundaries);
-    if (located.spans) earlier.push({ stageIndex, groupIndex, spans: located.spans });
-    else diagnostics.push(failure('SPELLOUT_GROUP_UNRESOLVED',
-      `Stage ${stageIndex + 1} group ${groupIndex} text ${JSON.stringify(group.text)} matches ${located.matches} places in the final words.`));
-  }));
+  if (earlierGroups.length) {
+    // Each final leaf's positions among the final words; earlier groups resolve through them.
+    const positionByLeafId = new Map();
+    const assign = (id, index) => {
+      meter.charge();
+      if (!positionByLeafId.has(id)) positionByLeafId.set(id, new Set());
+      positionByLeafId.get(id).add(index);
+    };
+    units.forEach((unit, index) => {
+      if (unit.group === undefined) assign(unit.nodeId, index);
+      else finalGroups[unit.group].nodeIds.forEach(id => eachPronounced(finalReading, id, meter, leaf => assign(leaf.id, index)));
+    });
+    const final = { units, positionByLeafId, tokens: units.map(unit => significant(unit.token).join('').toLowerCase()) };
+    earlierGroups.forEach(({ group, stageIndex, groupIndex }) => {
+      const located = locateEarlierGroup(group, readings[stageIndex], final, sentence, meter);
+      if (located.spans) earlier.push({ stageIndex, groupIndex, spans: located.spans });
+      else diagnostics.push(failure('SPELLOUT_GROUP_UNRESOLVED',
+        `Stage ${stageIndex + 1} group ${groupIndex} text ${JSON.stringify(group.text)} matches ${located.matches ? 'more than one place' : 'no place'} in the final words.`));
+    });
+  }
   return { diagnostics, observations, units, earlier, stages, finalGroups };
 };
 
@@ -339,21 +504,30 @@ const alignAnalysis = (analysis, sentence) => {
  * starts or ends a final word or an earlier group. A word that another
  * analysis or an earlier stage divides then covers several tokens.
  */
-const segmentSentence = (aligned, sentence) => {
-  const chars = codePoints(sentence.normalize('NFC'));
+const segmentSentence = (aligned, { chars, ignored }) => {
   const spans = aligned.flatMap(item => [...item.units.map(unit => unit.span), ...item.earlier.flatMap(group => group.spans)]);
   const cuts = [...new Set(spans.flat())].sort((a, b) => a - b);
   const literal = new Set(aligned.flatMap(item => item.units
     .filter(unit => !significant(unit.text).length).map(unit => unit.span.join(':'))));
   // A word's own edges keep its punctuation; other cuts drop separators.
   const edges = new Set(aligned.flatMap(item => item.units.flatMap(unit => unit.span)));
+  // Every final word's edges are cuts, so the stretch between two consecutive
+  // cuts lies inside a word or outside every word; open counts the words around it.
+  const cutIndex = new Map(cuts.map((cut, index) => [cut, index]));
+  const opening = cuts.map(() => 0);
+  aligned.forEach(item => item.units.forEach(({ span: [start, end] }) => {
+    opening[cutIndex.get(start)] += 1;
+    opening[cutIndex.get(end)] -= 1;
+  }));
   const tokens = [];
+  let open = 0;
   cuts.slice(0, -1).forEach((cut, index) => {
+    open += opening[index];
+    if (!open) return;
     let start = cut, end = cuts[index + 1];
-    if (!aligned.some(item => item.units.some(unit => unit.span[0] <= start && end <= unit.span[1]))) return;
     if (!literal.has(`${start}:${end}`)) {
-      if (!edges.has(start)) while (start < end && IGNORED.test(chars[start])) start += 1;
-      if (!edges.has(end)) while (end > start && IGNORED.test(chars[end - 1])) end -= 1;
+      if (!edges.has(start)) while (start < end && ignored[start]) start += 1;
+      if (!edges.has(end)) while (end > start && ignored[end - 1]) end -= 1;
       if (!significant(chars.slice(start, end).join('')).length) return;
     }
     tokens.push({ span: [start, end], text: chars.slice(start, end).join('') });
@@ -361,10 +535,31 @@ const segmentSentence = (aligned, sentence) => {
   return tokens;
 };
 
+/** The first index below length at which a test that stays true once true holds, or length. */
+const firstIndex = (length, holds) => {
+  let low = 0, high = length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (holds(middle)) high = middle; else low = middle + 1;
+  }
+  return low;
+};
+
 /** One aligned analysis in Babel's current contract over the shared word list. */
 const convertAligned = (item, tokens) => {
-  const within = ([start, end]) => tokens.flatMap((token, index) => (token.span[0] >= start && token.span[1] <= end ? [index] : []));
-  const uncovered = tokens.filter(token => !item.units.some(unit => unit.span[0] <= token.span[0] && token.span[1] <= unit.span[1]));
+  // Tokens and this analysis's words are nonempty, disjoint and in sentence
+  // order: the tokens inside a span are one consecutive run, and a token lies
+  // inside a word only if it lies inside the last word starting at or before it.
+  const within = ([start, end]) => {
+    const first = firstIndex(tokens.length, index => tokens[index].span[0] >= start);
+    const after = firstIndex(tokens.length, index => tokens[index].span[1] > end);
+    return Array.from({ length: Math.max(0, after - first) }, (_, offset) => first + offset);
+  };
+  const covered = ({ span: [start, end] }) => {
+    const unit = item.units[firstIndex(item.units.length, index => item.units[index].span[0] > start) - 1];
+    return Boolean(unit) && end <= unit.span[1];
+  };
+  const uncovered = tokens.filter(token => !covered(token));
   if (uncovered.length) {
     return { diagnostics: uncovered.map(token => failure('SPELLOUT_SEGMENTATION_CONFLICT',
       `"${token.text}" is a word in another analysis but this analysis does not spell it.`)), observations: item.observations };
@@ -380,7 +575,9 @@ const convertAligned = (item, tokens) => {
   const earlierSpans = new Map(item.earlier.map(group => [`${group.stageIndex}:${group.groupIndex}`, group.spans]));
   const groupTokens = new Map();
   units.forEach((unit) => {
-    if (unit.group !== undefined) groupTokens.set(unit.group, [...(groupTokens.get(unit.group) || []), ...unit.tokenIndices]);
+    if (unit.group === undefined) return;
+    if (!groupTokens.has(unit.group)) groupTokens.set(unit.group, []);
+    groupTokens.get(unit.group).push(...unit.tokenIndices);
   });
   const last = item.stages.length - 1;
   const derivationStages = item.stages.map((stage, stageIndex) => {
@@ -405,15 +602,25 @@ const convertAligned = (item, tokens) => {
  */
 export const convertSpelloutPayload = (payload, sentence) => {
   const analyses = Array.isArray(payload?.analyses) && payload.analyses.length ? payload.analyses : [payload];
+  const reading = readSentence(sentence);
+  // One meter covers the spelling check of every analysis in the response.
+  const meter = workMeter();
   const aligned = analyses.map((analysis, analysisIndex) => {
     try {
-      return { analysisIndex, analysis, ...alignAnalysis(analysis, sentence) };
+      // Once the meter is spent, later analyses are not read at all.
+      meter.charge();
+      return { analysisIndex, analysis, ...alignAnalysis(analysis, reading, meter) };
     } catch (error) {
-      return { analysisIndex, diagnostics: [failure('SPELLOUT_UNREADABLE', String(error.message))] };
+      if (error instanceof SpelloutWorkLimitError) {
+        return { analysisIndex, diagnostics: [failure('SPELLOUT_ALIGNMENT_LIMIT', 'The response needs more work than the spelling check allows.')] };
+      }
+      // Any other exception is still a model output Babel cannot read, never a crash.
+      const detail = error instanceof SpelloutStructureError ? error.message : 'The analysis could not be read for its spelling.';
+      return { analysisIndex, diagnostics: [failure('SPELLOUT_UNREADABLE', detail)] };
     }
   });
   const passing = aligned.filter(item => !item.diagnostics.length);
-  const tokens = segmentSentence(passing, sentence);
+  const tokens = segmentSentence(passing, reading);
   return aligned.map((item) => {
     const result = item.diagnostics.length
       ? { diagnostics: item.diagnostics, observations: item.observations, units: item.units }
