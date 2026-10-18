@@ -629,7 +629,14 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
 type PlaqueLifetime = {
   sizes: ReadonlyMap<string, Pick<PlaqueRect, 'width' | 'height' | 'collectionWidth'>>;
   collectionsOnly?: boolean;
+  /** Allocate only these claims; the caller reserves every other pocket. */
+  includes?: (index: number) => boolean;
+  /** Clear pockets a new search keeps unless it finds a nearer one. */
+  incumbents?: ReadonlyMap<number, PlaquePlacement>;
   reconsider?: ReadonlySet<number>;
+  /** Receives each newly searched plaque without its own connector whose pocket
+   * lies farther from its anchor than every nearby candidate. */
+  remote?: (index: number) => void;
   spaceFor: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>) => {
     obstacles: PlaqueRect[];
     acceptsConnector: (box: PlaqueRect) => boolean;
@@ -658,7 +665,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
   const requests = prepareStagePlaqueRequests(items, nodes, measureText).map(request => ({ ...request,
     drawnWidth: request.width, drawnHeight: request.height,
     ...lifetime?.sizes.get(plaqueIdentity(items[request.index])) }))
-    .filter(request => !lifetime?.collectionsOnly || request.collectionRows?.length);
+    .filter(request => (!lifetime?.collectionsOnly || request.collectionRows?.length)
+      && (!lifetime?.includes || lifetime.includes(request.index)));
   // Lifetime reservations already cover future syntax. Standalone one-stage
   // callers must still reject an obsolete pocket supplied by their caller.
   for (const request of requests) {
@@ -733,10 +741,6 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const terminal = request.caseAssignment ? anchor.descendants().filter(node => !node.children?.length && node.data.word) : [];
     const anchorY = terminal.length === 1 ? terminal[0].y + 140
       : anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0);
-    const prior = priorCandidates.get(request.index);
-    const priorCandidate = prior && !overlaps(prior)
-      && (space ? space.acceptsConnector(prior)
-        : (!caseClears || caseClears(prior)) && collectionPlaqueClears(prior, nodes, occupied)) ? prior : undefined;
     const placementDistance = (box: PlaqueRect) => {
       if (!sourceRect) return (box.x + width / 2 - anchor.x) ** 2 + (box.y + height / 2 - anchorY) ** 2;
       const curve = caseAssignmentPlaqueCurve(sourceRect,
@@ -745,6 +749,11 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       return points.slice(1).reduce((length, point, i) =>
         length + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0) ** 2;
     };
+    const clearPrior = (prior?: PlaquePlacement) => prior && !overlaps(prior)
+      && (space ? space.acceptsConnector(prior)
+        : (!caseClears || caseClears(prior)) && collectionPlaqueClears(prior, nodes, occupied)) ? prior : undefined;
+    const prior = clearPrior(priorCandidates.get(request.index)), incumbent = clearPrior(lifetime?.incumbents?.get(request.index));
+    const priorCandidate = incumbent && (!prior || placementDistance(incumbent) < placementDistance(prior)) ? incumbent : prior;
     const priorDistance = priorCandidate ? placementDistance(priorCandidate) : Infinity;
     const candidates = request.caseAssignment ? [70, 140, -height - 70].flatMap(dy =>
       [anchor.x + 110, anchor.x - width - 110, anchor.x - width / 2]
@@ -860,6 +869,9 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       }
       placement = attach({ x: best.x, y: best.y, width, height }, request);
     }
+    // Case arrows and collectors join their plaques to syntax; others rely on proximity.
+    if (lifetime?.remote && !request.caseAssignment && !request.collectionRows?.length && candidates.length
+      && placementDistance(placement) > Math.max(...candidates.map(placementDistance))) lifetime.remote(request.index);
     const attachment = anchor;
     result.set(request.index, { ...placement, location, domainId: idOf(domain),
       ...(request.scrollHeight ? { scrollHeight: request.scrollHeight } : {}),
