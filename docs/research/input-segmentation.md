@@ -234,6 +234,52 @@ prompt only inside the qualification runner:
 - **Adoption** only if validity does not drop, repair work falls, and review finds
   no analyses shaped by segmentation.
 
+## Results
+
+GPT-6.1 Sol at high effort through Codex OAuth, with contract sources from
+commit 53a7c7f; the model-facing contract did not change through #68. Raw
+artifacts stay in the local qualification archive.
+
+| Set | Sentences | Today's tokens: valid, analyses, final groups | Spell-out: valid, analyses, final groups |
+|---|---|---|---|
+| Study set, 17 October | 16 in 10 languages | 16/16, 28, 32 | 16/16, 31, 27 |
+| Broad set, 18 October | 60 in 36 languages | 60/60, 88, 40 | 60/60, 93, 23 |
+
+- **Validity did not drop.** Every request in both conditions returned a valid
+  response, with no ingress repairs or token-index corrections. Spell-out
+  checked all 93 broad-set analyses without error.
+- **Repair work fell.** Final-stage realization groups went from 40 to 23 in the
+  broad set, and from 32 to 27 in the study set.
+- **Segmentation stopped shaping analyses.** With today's tokens, models wrote
+  a split Japanese verb in romanization (*kak*, *ase*), kept ICU's fragment 読ん
+  as a word, and split the names 张伟 and 小李 into two words each. Under
+  spell-out the words were 読んだ, 書かせなかった, 张伟 and 小李, and the verb
+  kept its script. In the broad set, 7 of 60 sentences were segmented differently from
+  ICU, all in Japanese, Chinese, Cantonese, Thai or Romanian. Where a model
+  split a word ICU had kept, such as the resultative 打|破, that was its own
+  analysis.
+
+Four points remain before adoption:
+
+- **A word that grows across stages.** In a further 32 spell-out requests, 2 of
+  65 analyses failed one rule. An earlier stage grouped 吃完 or 打破, and the
+  final stage spelled the word 吃完了 or 打破了. A group must cover whole final
+  words, so the variant cannot express a word completed by a later stage.
+  Today's tokens (吃完|了) accept the same derivation.
+- **Metalanguage.** On Mandarin and Cantonese sentences a model sometimes wrote
+  the analysis in Chinese, including relation and role names, which Babel's
+  relation drawing cannot classify, so those relations took the neutral
+  fallback. It happened under both prompts: in 2 of 13 such runs with today's
+  tokens and 2 of 27 with spell-out. A sentence fixing English as the
+  metalanguage gave 0 of 10 in a 32-request comparison and caused no harm.
+  Stating the metalanguage is therefore a decision separate from segmentation.
+- **"Written word" in unspaced scripts.** For a Thai sentence, one run grouped
+  all five terminals under the whole sentence as a single written word, though
+  each terminal spelled its own word. The record then has one token. The
+  variant's wording should not tie words to spaces.
+- **Discontinuous groups.** As noted above, a group cannot cover a
+  discontinuous stretch.
+
 ## Fixes independent of the contract
 
 Both are done.
