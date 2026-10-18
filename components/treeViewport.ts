@@ -26,6 +26,7 @@ export function createViewportSettler({ apply, painted, schedule, cancel, delay 
   const stop = () => { if (timer !== null) cancel(timer); timer = null; };
   return {
     get pending() { return timer !== null; },
+    get committed() { return committed; },
     observe(size: ViewportSize) {
       latest = size;
       const unchanged = committed?.width === size.width && committed.height === size.height;

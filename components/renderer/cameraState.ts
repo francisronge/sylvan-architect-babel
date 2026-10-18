@@ -1,9 +1,16 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../../types.ts';
 
+/** A manual pose is a screen pose of the live SVG; `width` and `height` are that SVG's size. */
 export type TreeCameraState = {
   data: SyntaxNode; signature: string; width: number; height: number; transform: d3.ZoomTransform;
 };
+
+/** The SVG takes a new size at once, while a held frame keeps the viewport it
+ * was drawn for. Manual poses are recorded and restored against the SVG itself. */
+export function liveViewportSize(svg: SVGSVGElement | null, fallback: { width: number; height: number }) {
+  return svg && svg.clientWidth > 0 && svg.clientHeight > 0 ? { width: svg.clientWidth, height: svg.clientHeight } : fallback;
+}
 
 /** Retained camera interaction state for one mounted tree, shared across frame draws. */
 export interface CameraSession {

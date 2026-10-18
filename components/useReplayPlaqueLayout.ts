@@ -1,26 +1,36 @@
 import { recentLayoutResults } from '../replay/layoutResultCache.ts';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReplayPlaqueSchedule, StageLayoutInput } from '../replay/stageCamera.ts';
-import { bindPlaqueLayoutResult, bindPlaqueLayoutProgress, completePlaqueLayoutResult, measurePlaqueLayoutJob, type PlaqueLayoutResult, type PlaqueLayoutProgress, type PreparedPlaqueLayout, type PlaqueLayoutJob } from '../replay/plaqueLayoutJob.ts';
+import { bindPlaqueLayoutResult, bindPlaqueLayoutProgress, completePlaqueLayoutResult, measurePlaqueLayoutJob, plaqueLayoutViewportKey, type PlaqueLayoutResult, type PlaqueLayoutProgress, type PreparedPlaqueLayout, type PlaqueLayoutJob } from '../replay/plaqueLayoutJob.ts';
 import { startQueuedLayoutJob } from '../replay/layoutWorkerQueue.ts';
 const empty: ReplayPlaqueSchedule = { stages: [], steps: new Map() };
 
-function differsOnlyInViewport(previous: StageLayoutInput, next: StageLayoutInput) {
-  const a = previous as Record<string, unknown>, b = next as Record<string, unknown>;
-  return [...new Set([...Object.keys(a), ...Object.keys(b)])]
-    .every(key => key === 'width' || key === 'height' || Object.is(a[key], b[key]));
-}
+/** Everything a Replay layout depends on except the viewport. Each object is
+ * one immutable content revision; any change must pass a new object. */
+export type ReplayLayoutContent = Omit<StageLayoutInput, 'width' | 'height'>;
+type LayoutRequest = { input: StageLayoutInput; attempt: number; layout?: PreparedPlaqueLayout;
+  preparedStages?: readonly number[]; earlyDelivery?: { layout: PreparedPlaqueLayout; preparedStages: readonly number[] }; error?: string };
 
-/** `preparedInput` names the input the returned layout belongs to. After a
- * viewport-only change it stays the preceding input, whose completed layout
- * remains displayable until the new viewport's layout is ready; consumers lay
- * out and fit with that input's own viewport. Every other change hides it. */
-export function useReplayPlaqueLayout(input: StageLayoutInput | null, stageIndex = 0) {
+/**
+ * Prepares one content revision for a viewport. The returned `viewport`,
+ * `schedule` and `coordinates` are one displayed snapshot and always belong
+ * together. A viewport with an unchanged layout key reuses the prepared layout
+ * at once. Otherwise the last displayed snapshot of the same revision stays,
+ * with the viewport it was drawn for, until the new request covers the
+ * displayed camera group. A new revision never displays earlier geometry.
+ */
+export function useReplayPlaqueLayout<V extends { width: number; height: number }>(
+  content: ReplayLayoutContent | null, viewport: V, stageIndex = 0) {
   const requestedStage = useRef(stageIndex);
   requestedStage.current = stageIndex;
   const [attempt, setAttempt] = useState(0);
-  const [state, setState] = useState<{ input: StageLayoutInput; attempt: number; layout?: PreparedPlaqueLayout;
-    preparedStages?: readonly number[]; earlyDelivery?: { layout: PreparedPlaqueLayout; preparedStages: readonly number[] }; error?: string }>();
+  const [state, setState] = useState<LayoutRequest>();
+  const key = useMemo(() => content && viewport.width > 0
+    ? plaqueLayoutViewportKey({ ...content, width: viewport.width, height: viewport.height }) : null,
+  [content, viewport.width, viewport.height]);
+  // Viewports with equal keys prepare the same layout, so a request keeps its first viewport.
+  const input = useMemo<StageLayoutInput | null>(() => content && key !== null
+    ? { ...content, width: viewport.width, height: viewport.height } : null, [content, key]);
   useEffect(() => {
     if (!input) return;
     let active = true;
@@ -85,17 +95,20 @@ export function useReplayPlaqueLayout(input: StageLayoutInput | null, stageIndex
     return () => { active = false; clearTimeout(timer); stopWorker?.(); measurements.return(undefined); };
   }, [input, attempt]);
   const current = state?.input === input && state.attempt === attempt ? state : undefined;
-  const cameraGroup = input?.layoutGroups?.find(group => group.includes(stageIndex)) ?? [stageIndex];
-  const prepared = (entry: typeof state) => Boolean(entry?.layout && (!entry.preparedStages
-    || cameraGroup.every(stage => entry.preparedStages!.includes(stage))));
-  const retained = !current && input && state && state.attempt === attempt && prepared(state)
-    && differsOnlyInViewport(state.input, input) ? state : undefined;
-  const shown = retained ?? current;
+  const cameraGroup = content?.layoutGroups?.find(group => group.includes(stageIndex)) ?? [stageIndex];
+  const covers = (request?: LayoutRequest) => Boolean(request?.layout && (!request.preparedStages
+    || cameraGroup.every(stage => request.preparedStages!.includes(stage))));
+  // Kept apart from the active request, so its partial progress cannot discard usable geometry.
+  const shown = useRef<{ content: ReplayLayoutContent; viewport: V; request: LayoutRequest }>(undefined);
+  if (content && covers(current)) shown.current = { content, viewport, request: current! };
+  const displayed = !content ? { viewport, request: undefined }
+    : covers(current) || (!current?.error && shown.current?.content === content && covers(shown.current.request))
+      ? shown.current : undefined;
+  const request = displayed?.request;
   // Later-stage completion must not invalidate the camera inputs of an already
   // displayed group. Keep its immutable early delivery; other groups use full data.
-  const layout = shown?.earlyDelivery && cameraGroup.every(stage => shown.earlyDelivery!.preparedStages.includes(stage))
-    ? shown.earlyDelivery.layout : shown?.layout;
-  return { schedule: layout?.schedule ?? empty, coordinates: layout?.coordinates,
-    ready: !input || prepared(shown), preparedInput: layout ? shown!.input : undefined,
-    error: current?.error, retry: () => setAttempt(value => value + 1) };
+  const layout = request?.earlyDelivery && cameraGroup.every(stage => request.earlyDelivery!.preparedStages.includes(stage))
+    ? request.earlyDelivery.layout : request?.layout;
+  return { viewport: displayed?.viewport, schedule: layout?.schedule ?? empty, coordinates: layout?.coordinates,
+    ready: Boolean(displayed), error: current?.error, retry: () => setAttempt(value => value + 1) };
 }

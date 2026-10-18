@@ -7,7 +7,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { openCaptureSession } from '../../scripts/browserSession.mjs';
-import { waitForReplayPaint, waitForDecodedImages } from '../../scripts/captureReadiness.mjs';
+import { waitForCanopyPaint, waitForReplayPaint, waitForDecodedImages } from '../../scripts/captureReadiness.mjs';
 import { startBrowserTestServer } from '../helpers/browserTestServer.mjs';
 import { normalizeParseBundle } from '../../server/babelParser/parseNormalization.js';
 
@@ -67,6 +67,38 @@ test('a cached payload does not satisfy painted-frame readiness, and failures re
     assert.throws(() => session.assertHealthy(), /capture-negative-control/);
   } finally { await session.close(); await session.close(); }
   await fs.writeFile(path.join(output, 'readiness-diagnostics.json'), JSON.stringify(session.diagnostics, null, 2));
+});
+
+test('a resize during settling holds Canopy and Replay captures until the resized viewport is drawn', { timeout: 30_000 }, async () => {
+  const session = await openCaptureSession({ viewport: { width: 800, height: 600 } });
+  try {
+    for (const [view, wait] of [['Canopy', options => waitForCanopyPaint(session.page, options)],
+      ['Replay', options => waitForReplayPaint(session.page, 8, options)]]) {
+      await session.page.setContent(paintedSvg);
+      await session.page.evaluate(() => {
+        const request = window.requestAnimationFrame;
+        let settlingFrames = 0;
+        window.requestAnimationFrame = callback => request.call(window, time => {
+          callback(time);
+          if (++settlingFrames !== 2) return;
+          const svg = document.querySelector('svg');
+          svg.setAttribute('data-babel-viewport-pending', 'true');
+          setTimeout(() => {
+            svg.removeAttribute('data-babel-viewport-pending');
+            window.resizedViewportDrawn = true;
+            window.requestAnimationFrame = request;
+          }, 80);
+        });
+      });
+      const receipt = await wait({ timeout: 2000 });
+      assert.equal(await session.page.evaluate(() => window.resizedViewportDrawn), true,
+        `${view} capture must not accept the pre-resize frame`);
+      assert(receipt.visibleLabelCount > 0);
+      await session.page.evaluate(() => document.querySelector('svg').setAttribute('data-babel-viewport-pending', 'true'));
+      await assert.rejects(wait({ timeout: 150 }), /Timeout/, `${view} capture waits while the viewport is pending`);
+    }
+    session.assertHealthy();
+  } finally { await session.close(); }
 });
 
 test('image decoding waits for actual bytes and rejects missing image data', { timeout: 30_000 }, async () => {

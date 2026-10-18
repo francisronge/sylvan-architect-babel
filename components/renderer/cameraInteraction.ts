@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
 import { guardViewCallback } from '../viewErrorHandling.ts';
-import type { CameraSession } from './cameraState.ts';
+import { liveViewportSize, type CameraSession } from './cameraState.ts';
 import type { DrawingLayer } from './drawingContext.ts';
 import { rescaleOverlayMarkers } from './treeNotation.ts';
 
@@ -55,7 +55,8 @@ export function installCameraInteraction(session: Pick<CameraSession,
         cameraAnimationRef.current = null;
         svg.attr('data-babel-camera-settled-step', activeStepIndex);
         effects.finishCollectionReveal?.();
-        manualCameraRef.current = { data, signature: derivationStagesSignature, width: containerWidth, height: containerHeight, transform: event.transform };
+        manualCameraRef.current = { data, signature: derivationStagesSignature,
+          ...liveViewportSize(svg.node(), { width: containerWidth, height: containerHeight }), transform: event.transform };
       }
       // Overlay markers keep a stable screen size: their world position is
       // carried on data attributes and their local scale counteracts zoom.

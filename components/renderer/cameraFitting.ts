@@ -6,7 +6,7 @@ import {
 import { animateReplayCamera } from '../replayCameraMotion.ts';
 import { advanceFittedCamera, containCamera } from '../treeViewport.ts';
 import { guardViewCallback } from '../viewErrorHandling.ts';
-import type { CameraSession } from './cameraState.ts';
+import { liveViewportSize, type CameraSession } from './cameraState.ts';
 import type { DrawingLayer } from './drawingContext.ts';
 
 interface CameraFitGeometry {
@@ -102,11 +102,12 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     });
     const manual = manualCameraRef.current;
     if (manual?.data === data && manual.signature === derivationStagesSignature) {
+      const live = liveViewportSize(svgRef.current, { width: containerWidth, height: containerHeight });
       const transform = d3.zoomIdentity.translate(
-        manual.transform.x + (containerWidth - manual.width) / 2,
-        manual.transform.y + (containerHeight - manual.height) / 2
+        manual.transform.x + (live.width - manual.width) / 2,
+        manual.transform.y + (live.height - manual.height) / 2
       ).scale(manual.transform.k);
-      manualCameraRef.current = { ...manual, width: containerWidth, height: containerHeight, transform };
+      manualCameraRef.current = { ...manual, ...live, transform };
       cameraRuntime.deferred = transform;
       cameraAnimationRef.current = null;
       applyCameraTransform(session, transform);
