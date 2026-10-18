@@ -68,6 +68,25 @@ const candidateWeights = Array.from({ length: 65 }, (_, index) => {
   return u ** 3 + 3 * u * u * t;
 });
 const fitsLocalPocket = ({ width, height }: Pick<PlaqueRect, 'width' | 'height'>) => Math.max(width, height) <= localPlaqueSize;
+// The local search first tries pockets beside and above or below the anchor point:
+// these box tops, each centred or this far to either side.
+const nearbyPocketTops = (height: number) => [-height - 60, -height / 2, 55, 115, 175, 235];
+const nearbyPocketGap = 110;
+/** A pocket clearly nearer than an incumbent lies within this fraction of its distance. */
+export const MIN_RELOCATION_GAIN = 0.75;
+/** Distances are measured from a word-bearing leaf's word, else from the anchor's label. */
+export function plaqueAnchorPoint(anchor: Pick<Node, 'x' | 'y' | 'data' | 'children'>) {
+  return { x: anchor.x, y: anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0) };
+}
+/** Distance from the anchor point to the centre of the farthest nearby pocket. A
+ * plaque beyond it is remote; one too large for the local search has no reach. */
+export function nearbyPlaqueReach({ width, height, thetaGrid }: Pick<PlaqueRect, 'width' | 'height'> & { thetaGrid?: boolean }) {
+  if (!fitsLocalPocket({ width, height }) && !(thetaGrid && height <= localPlaqueSize)) return Infinity;
+  return Math.hypot(nearbyPocketGap + width / 2, Math.max(...nearbyPocketTops(height).map(top => Math.abs(top + height / 2))));
+}
+/** The farthest nearby pocket itself is nearby; the margin absorbs rounding. */
+export const beyondNearbyReach = (distance: number, box: Parameters<typeof nearbyPlaqueReach>[0]) =>
+  distance > nearbyPlaqueReach(box) + 1e-6;
 export function thetaGridPredicateLabel(anchor: Pick<Node, 'data' | 'children'>): string {
   let node = anchor;
   // A unary display shell can expose its own word; branching cannot select a head.
@@ -571,10 +590,12 @@ export function plaqueCaseConnectorObstacles(items: RelationPlanItem[], nodes: N
 }
 
 /** Measure content independently of allocation so its whole lifetime can reserve one size. */
-export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Node[], measureText?: PlaqueTextMeasure): PlaqueRequest[] {
+export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Node[], measureText?: PlaqueTextMeasure,
+  includes?: (index: number) => boolean): PlaqueRequest[] {
   const byId = new Map(nodes.map(node => [idOf(node), node]));
   const requests: PlaqueRequest[] = [];
   items.forEach((item, index) => {
+    if (includes && !includes(index)) return;
     if (item.kind === 'node-plaque') {
       if (item.plaqueStyle === 'feature') {
         if (featurePlaqueAssignment(items, index) !== undefined) return;
@@ -626,31 +647,35 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
   return requests;
 }
 
+type PlaqueSpace = {
+  obstacles: PlaqueRect[];
+  acceptsConnector: (box: PlaqueRect) => boolean;
+  connectorCandidateXs?: (box: PlaqueRect) => number[];
+  connectorCandidateYs?: (box: PlaqueRect) => number[];
+};
 type PlaqueLifetime = {
   sizes: ReadonlyMap<string, Pick<PlaqueRect, 'width' | 'height' | 'collectionWidth'>>;
   collectionsOnly?: boolean;
   /** Allocate only these claims; the caller reserves every other pocket. */
   includes?: (index: number) => boolean;
-  /** Clear pockets a new search keeps unless it finds a nearby pocket or one at
-   * least a quarter nearer. */
+  /** Clear pockets a new search keeps unless it finds a clearly nearer one. */
   incumbents?: ReadonlyMap<number, PlaquePlacement>;
+  /** Reconsidered prior pockets a new search keeps unless it finds a nearer one. */
   reconsider?: ReadonlySet<number>;
-  /** Receives each newly searched plaque without its own connector whose pocket
-   * lies farther from its anchor than every nearby candidate. */
-  remote?: (index: number) => void;
-  spaceFor: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>) => {
-    obstacles: PlaqueRect[];
-    acceptsConnector: (box: PlaqueRect) => boolean;
-    connectorCandidateXs?: (box: PlaqueRect) => number[];
-    connectorCandidateYs?: (box: PlaqueRect) => number[];
-  };
+  /** Reconsidered claims whose prior pocket is an incumbent instead. */
+  relocating?: ReadonlySet<number>;
+  spaceFor: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>) => PlaqueSpace;
+  /** Offered each newly searched pocket. A returned shorter lifetime is searched
+   * again at once, keeping this pocket as the incumbent, so later claims avoid the
+   * pocket actually chosen. */
+  relocate?: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>, box: PlaqueRect) => PlaqueSpace | undefined;
 };
 
 /** Geometry only: a common enclosing subtree locates a plaque, never establishes a linguistic domain. */
 export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obstacles = plaqueTreeObstacles(nodes),
   previous = new Map<string, PlaquePlacement>(), measureText?: PlaqueTextMeasure, lifetime?: PlaqueLifetime) {
   const result = new Map<number, PlaquePlacement>();
-  const priorCandidates = new Map<number, PlaquePlacement>();
+  const priorCandidates = new Map<number, PlaquePlacement>(), incumbentPriors = new Map<number, PlaquePlacement>();
   const byId = new Map(nodes.map(node => [idOf(node), node]));
   const placed: PlaqueRect[] = [];
   const attachmentSpace = prepareCollectionPlaqueSpace(nodes, obstacles);
@@ -663,11 +688,10 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       return previousRow?.edge ? { ...row, edge: previousRow.edge, portX: previousRow.portX } : row;
     })
   }, sidesOnly, false);
-  const requests = prepareStagePlaqueRequests(items, nodes, measureText).map(request => ({ ...request,
+  const requests = prepareStagePlaqueRequests(items, nodes, measureText, lifetime?.includes).map(request => ({ ...request,
     drawnWidth: request.width, drawnHeight: request.height,
     ...lifetime?.sizes.get(plaqueIdentity(items[request.index])) }))
-    .filter(request => (!lifetime?.collectionsOnly || request.collectionRows?.length)
-      && (!lifetime?.includes || lifetime.includes(request.index)));
+    .filter(request => !lifetime?.collectionsOnly || request.collectionRows?.length);
   // Lifetime reservations already cover future syntax. Standalone one-stage
   // callers must still reject an obsolete pocket supplied by their caller.
   for (const request of requests) {
@@ -684,7 +708,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         && collectionPlaqueClears(placement, nodes, occupied);
     if (occupied.some(obstacle => plaquesOverlap(placement, obstacle)) || !connectorsClear) continue;
     if (lifetime?.reconsider?.has(request.index)) {
-      priorCandidates.set(request.index, placement);
+      (lifetime.relocating?.has(request.index) ? incumbentPriors : priorCandidates).set(request.index, placement);
       continue;
     }
     result.set(request.index, placement);
@@ -753,14 +777,15 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const clearPrior = (prior?: PlaquePlacement) => prior && !overlaps(prior)
       && (space ? space.acceptsConnector(prior)
         : (!caseClears || caseClears(prior)) && collectionPlaqueClears(prior, nodes, occupied)) ? prior : undefined;
-    const prior = clearPrior(priorCandidates.get(request.index)), incumbent = clearPrior(lifetime?.incumbents?.get(request.index));
+    const prior = clearPrior(priorCandidates.get(request.index));
+    const incumbent = clearPrior(incumbentPriors.get(request.index) ?? lifetime?.incumbents?.get(request.index));
     const priorCandidate = incumbent && (!prior || placementDistance(incumbent) < placementDistance(prior)) ? incumbent : prior;
     const priorDistance = priorCandidate ? placementDistance(priorCandidate) : Infinity;
     const candidates = request.caseAssignment ? [70, 140, -height - 70].flatMap(dy =>
       [anchor.x + 110, anchor.x - width - 110, anchor.x - width / 2]
         .map(x => ({ x, y: anchorY + dy - ((request.caseRowY ?? 93) - 93), width, height })))
-      : local ? [-height - 60, -height / 2, 55, 115, 175, 235]
-      .flatMap(dy => [anchor.x + 110, anchor.x - width - 110, anchor.x - width / 2]
+      : local ? nearbyPocketTops(height)
+      .flatMap(dy => [anchor.x + nearbyPocketGap, anchor.x - width - nearbyPocketGap, anchor.x - width / 2]
         .map(x => ({ x, y: anchorY + dy, width, height })))
       .sort((a, b) => Math.hypot(a.x + width / 2 - anchor.x, a.y + height / 2 - anchorY)
         - Math.hypot(b.x + width / 2 - anchor.x, b.y + height / 2 - anchorY)) : [];
@@ -839,11 +864,13 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       }
     }
     placement ??= priorCandidate;
-    // The farthest pocket the ordinary nearby search proposes.
-    const nearbyReach = () => candidates.length ? Math.max(...candidates.map(placementDistance)) : Infinity;
-    // Leaving the incumbent needs a nearby pocket or one at least a quarter nearer.
-    if (incumbent && placement && placement !== incumbent && placementDistance(placement) > nearbyReach()
-      && placementDistance(placement) > 0.75 ** 2 * placementDistance(incumbent)) placement = incumbent;
+    // Leaving an incumbent needs a clearly nearer pocket: a nearby one when the
+    // incumbent is not nearby, or one within MIN_RELOCATION_GAIN of its distance.
+    if (incumbent && placement && placement !== incumbent) {
+      const fresh = Math.sqrt(placementDistance(placement)), kept = Math.sqrt(placementDistance(incumbent));
+      if (fresh > MIN_RELOCATION_GAIN * kept && (beyondNearbyReach(fresh, request) || !beyondNearbyReach(kept, request)))
+        placement = incumbent;
+    }
     const kept = [priorCandidate, incumbent].find(box => box && box === placement);
     const location = placement ? kept ? kept.location : 'local' : 'below';
     if (!placement) {
@@ -876,13 +903,18 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       }
       placement = attach({ x: best.x, y: best.y, width, height }, request);
     }
-    // Case arrows and collectors join their plaques to syntax; others rely on proximity.
-    if (lifetime?.remote && !request.caseAssignment && !request.collectionRows?.length
-      && placementDistance(placement) > nearbyReach()) lifetime.remote(request.index);
     const attachment = anchor;
-    result.set(request.index, { ...placement, location, domainId: idOf(domain),
+    let chosen: PlaquePlacement = { ...placement, location, domainId: idOf(domain),
       ...(request.scrollHeight ? { scrollHeight: request.scrollHeight } : {}),
-      attachmentNodeId: idOf(attachment), attachmentX: attachment.x, attachmentY: attachment.y });
+      attachmentNodeId: idOf(attachment), attachmentX: attachment.x, attachmentY: attachment.y };
+    const shorter = lifetime?.relocate?.(request.index, anchor, result, chosen);
+    if (shorter) {
+      chosen = placeStagePlaques(items, nodes, obstacles, new Map(), measureText, { sizes: lifetime!.sizes,
+        includes: index => index === request.index, incumbents: new Map([[request.index, chosen]]),
+        spaceFor: () => shorter }).get(request.index) ?? chosen;
+      placement = chosen;
+    }
+    result.set(request.index, chosen);
     placed.push({ ...placement, blocksConnectors: true },
       ...(request.caseAssignment ? caseRouteRects(anchor, placement) : []));
   }
