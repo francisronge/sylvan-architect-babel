@@ -306,7 +306,9 @@ export const createStageRelationSnapshots = (
         }
       });
     });
-    const activeFutureLayoutScaffold = buildFrameLayoutScaffold(snapshotWorkspaceRoots);
+    // Attachments held for construction stay held under the scaffold too.
+    const activeFutureLayoutScaffold = buildFrameLayoutScaffold(snapshotWorkspaceRoots,
+      new Set(baseStep?.replayPendingAttachmentNodeIds ?? []));
     const snapshotForest = buildDerivationReplaySnapshot({
       forest: snapshotWorkspaceRoots,
       activeFrameIndex: index,
