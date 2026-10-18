@@ -15,8 +15,6 @@ const LANE = 'Open: a neutral counter-lane connector runs its lane through tree 
 const ROLE_CROWDED = 'Open: every preferred spot beside the witness label is taken, so the role placer steps outward until '
   + 'free and the label lands beside other syntax.';
 
-
-
 const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
 
 // The same findings, with the same measures, occur on origin/main for the saved
