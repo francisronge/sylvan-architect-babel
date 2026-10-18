@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -87,5 +87,55 @@ test('the actual CLI retains evidence and exits nonzero when a required control 
     const bad = JSON.parse(await readFile(output, 'utf8'));
     assert.equal(bad.ok, false);
     assert.equal(bad.records[0].violations[0].kind, 'mechanism-control-failed');
+  } finally { await rm(scratch, { recursive: true, force: true }); }
+});
+
+// A candidate checkout whose prepareReplay passes its result through a hook, so a
+// test can seed one change beneath the compared hashes and require the
+// comparator to report it.
+async function seededCandidate(scratch) {
+  // Top-level dot entries are skipped so local credentials such as .env are never copied.
+  const skipped = new Set(['node_modules', 'bench', 'docs', 'fixtures', 'public', 'test', 'tests', 'dist']);
+  const candidate = path.join(scratch, 'candidate');
+  await cp(root, candidate, { recursive: true, filter: source => {
+    const [top] = path.relative(root, source).split(path.sep);
+    return !top || !top.startsWith('.') && !skipped.has(top);
+  } });
+  await symlink(path.join(root, 'node_modules'), path.join(candidate, 'node_modules'), 'dir');
+  await rename(path.join(candidate, 'replay/prepareReplay.ts'), path.join(candidate, 'replay/prepareReplay.unseeded.ts'));
+  await writeFile(path.join(candidate, 'replay/prepareReplay.ts'), [
+    "import { prepareReplay as prepareUnseeded } from './prepareReplay.unseeded.ts';",
+    'export const prepareReplay = (input: Parameters<typeof prepareUnseeded>[0]) => {',
+    '  const prepared = prepareUnseeded(input);',
+    '  (globalThis as { babelSeededChange?: (value: typeof prepared) => void }).babelSeededChange?.(prepared);',
+    '  return prepared;',
+    '};', ''].join('\n'));
+  return candidate;
+}
+
+test('a seeded change to one Replay step or one relation-plan field is reported for its record', async () => {
+  const scratch = await mkdtemp(path.join(tmpdir(), 'babel-corpus-seed-'));
+  try {
+    const candidate = await seededCandidate(scratch);
+    // Seeds only the second record, so the others prove the report stays per record.
+    const seeded = async change => {
+      const measured = [];
+      for (const [index, record] of records.entries()) {
+        globalThis.babelSeededChange = index === 1 ? change : undefined;
+        measured.push(...(await buildCorpusSnapshot(candidate, [record], { width: 1600, height: 948, direction: 'ltr' })).records);
+      }
+      delete globalThis.babelSeededChange;
+      return compare({ records: measured }).map(result => result.violations.map(fault => fault.kind));
+    };
+    const micro = prepared => prepared.playbackSteps.find(step => step.replayKind === 'micro' && step.replayVisibleNodeIds.length > 2);
+    assert.deepEqual(await seeded(() => {}), [[], [], []], 'an unseeded candidate is clean');
+    assert.deepEqual((await seeded(prepared => { micro(prepared).operation = 'InternalMerge'; }))[1], ['replay-change']);
+    assert.deepEqual((await seeded(prepared => { micro(prepared).targetNodeId += '-seeded'; }))[1], ['replay-change']);
+    assert.deepEqual((await seeded(prepared => { micro(prepared).replayVisibleNodeIds.pop(); }))[1], ['replay-change'],
+      'visibility alone is compared');
+    assert.deepEqual(await seeded(prepared => {
+      const item = prepared.relationRenderPlan.frames.find(frame => frame.items.length).items[0];
+      item.backward = !item.backward;
+    }), [[], ['relation-plan-change'], []]);
   } finally { await rm(scratch, { recursive: true, force: true }); }
 });
