@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import { type PlanPositionProvider } from '../../replay/relations/boundGeometry.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { boundOverlayBounds, type OverlayBounds } from '../../replay/relations/geometryBounds.ts';
+import { assignIndexLetterOwners } from '../../replay/relations/indexLetterOwnership.ts';
 import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
@@ -19,7 +20,7 @@ import { projectThetaGrid } from '../../replay/relations/thetaGridComposition.ts
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
 import { type HierNode } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
-import { createBindingDrawing } from './bindingDrawing.ts';
+import { createBindingDrawing, identityIndexLabels } from './bindingDrawing.ts';
 import { createCaseFeatureDrawing } from './caseFeatureDrawing.ts';
 import { paintGhostLenses, queueCopyDrawings } from './copyDrawing.ts';
 import type { DrawingLayer, RelationEmphasis } from './drawingContext.ts';
@@ -623,6 +624,21 @@ export function paintRelationScene({
       ensureTrajectoryRelationLayer,
       trajectoryMarkerIds
     });
+    // The same marks the loop below draws decide who paints each shared letter.
+    const indexLetters = assignIndexLetterOwners(boundFrame.primitives.flatMap(primitive => {
+      const item = frameItems[primitive.itemIndex];
+      return item && revealedItemIndices.has(primitive.itemIndex) && primitiveWitnessesVisible(primitive)
+        ? [{ primitive, item }] : [];
+    }), {
+      emphasisRank: item => {
+        const emphasis = relationEmphasisForItem(item);
+        return emphasis === 'active' ? 2 : emphasis === 'quiet' ? 0 : 1;
+      },
+      inlineLabelNodeId: nodeId => {
+        const { labels, labelId } = identityIndexLabels(g, resolveOverlayAnchor, nodeId);
+        return labels.size() === 1 ? labelId : null;
+      }
+    });
     const {
       drawSplitAntecedence,
       drawOperatorVariableBinding,
@@ -661,7 +677,8 @@ export function paintRelationScene({
       TARGET_EMERALD,
       acceptedLayerInHost,
       parasiticGapCoindexLayers,
-      appendMarker
+      appendMarker,
+      indexLetters
     });
     const { drawGappingAlignment, drawDomainRegion } = createPhraseDrawing({
       resolveOverlayAnchor,

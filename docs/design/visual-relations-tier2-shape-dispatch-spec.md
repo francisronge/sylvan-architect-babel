@@ -1562,6 +1562,21 @@ the hull keeps its own appearance time and emphasis. Hovering the shared curve
 during a contributing relation moment selects that current claim. Prior-state
 claims and different replacement lifetimes do not compose this way.
 
+An occurrence label shows each index letter once. The shared dependency-index
+allocator gives one chain one letter, so several co-visible marks can claim the
+same letter at the same label. One QR relation earns a covert path and a binding
+path that both index the operator and the variable. Binding restatements repeat
+both ends, and a silent occurrence can already carry an identity coindex inside
+its label. Each claim keeps its own paths and domains, but only one mark paints
+the letter, and that letter carries every owning claim for hover and Replay
+emphasis. An inline coindex holds the letter because it is reserved label text.
+Otherwise the owner that is most prominent at the current Replay step holds it,
+and a binding index wins ties because its placement clears the binding path.
+`replay/relations/indexLetterOwnership.ts` makes this choice per frame from the
+drawable marks. Different letters at one occurrence stay separate. A letter on an
+occurrence's word, such as a theta or identity index, does not remove a letter
+beside that occurrence's phrase label.
+
 ## Required Verification
 
 ### Evidence accounting
