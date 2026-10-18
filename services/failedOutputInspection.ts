@@ -114,8 +114,12 @@ export const inspectFailedPayload = (payload: unknown, rawText: string, sentence
   const inspectionBudget = { remainingOccurrences: 10_000, maxDepth: 128, remainingFieldValues: 200_000 };
   const analyses = authors.map((authoredAnalysis: unknown, analysisIndex: number): FailedAnalysisInspection => {
     const spelled = spellout?.[analysisIndex];
-    const unspelled = spelled && !spelled.ok ? spelled.diagnostics[0] : undefined;
-    const inspected = spelled?.ok ? spelled.analysis : unspelled && record(authoredAnalysis) && Array.isArray(authoredAnalysis.derivationStages)
+    // A workspace the spelling check cannot read (a repeated occurrence or a
+    // missing reference) is inspected as authored, like any malformed output;
+    // only a readable analysis that misspells the sentence loses its Replay.
+    const unreadable = spelled && !spelled.ok && spelled.diagnostics[0]?.rule === 'SPELLOUT_UNREADABLE';
+    const unspelled = spelled && !spelled.ok && !unreadable ? spelled.diagnostics[0] : undefined;
+    const inspected = spelled?.ok ? spelled.analysis : (unspelled || unreadable) && record(authoredAnalysis) && Array.isArray(authoredAnalysis.derivationStages)
       ? { ...authoredAnalysis, derivationStages: authoredAnalysis.derivationStages.map((stage: unknown) => {
         if (!record(stage)) return stage;
         const { realizations: _realizations, ...rest } = stage;

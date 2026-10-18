@@ -285,14 +285,32 @@ test('a live response is checked and converted inside parsing, with typed failur
   });
   assert.deepEqual(outcomes.map(outcome => [outcome.analysisIndex, outcome.status]), [[1, 'failed']]);
   // A failure after the spelling check carries the derived word list.
-  const duplicate = oneStage([node('s', 'S', leaf('w', 'Mia'), leaf('w', 'laughed'))]);
-  assert.throws(() => normalizeParseBundle(duplicate, 'xbar', 'Mia laughed.', 'gpt', true, { spellout: true }), (error) => {
+  // Spelling ignores a node whose children are not a list; the parser rejects it.
+  const badField = oneStage([node('s', 'S', leaf('a', 'Mia'), leaf('b', 'laughed'), { id: 'x', label: 'X', children: 'none' })]);
+  assert.throws(() => normalizeParseBundle(badField, 'xbar', 'Mia laughed.', 'gpt', true, { spellout: true }), (error) => {
     assert.deepEqual(error.details.inputTokens, ['Mia', 'laughed']);
     return true;
   });
   // The envelope is still checked first.
   assert.throws(() => normalizeParseBundle({ ...grouped, extra: true }, 'xbar', sentence, 'gpt', true, { spellout: true }),
     error => error.failure.ruleId === 'PAYLOAD_ENVELOPE_EXACT');
+});
+
+test('a workspace that repeats an occurrence stops at the repeat instead of expanding it', () => {
+  // Each stage references the previous root twice; full expansion would double every stage.
+  const stages = [{ statement: 's', stageRecord: 's', relations: [], workspaceForest: [node('r0', 'X', leaf('w', 'Mia'))] }];
+  for (let index = 1; index < 40; index += 1) {
+    stages.push({ statement: 's', stageRecord: 's', relations: [], workspaceForest: [node(`r${index}`, 'X', { refId: `r${index - 1}` }, { refId: `r${index - 1}` })] });
+  }
+  const started = performance.now();
+  const [result] = convertSpelloutPayload({ derivationStages: stages }, 'Mia');
+  assert.ok(performance.now() - started < 250, 'expansion stays linear');
+  assert.equal(result.diagnostics[0].rule, 'SPELLOUT_UNREADABLE');
+  assert.match(result.diagnostics[0].detail, /^Stage 2 repeats occurrence id r0\./);
+  const unknownGroupNode = oneStage([node('s', 'S', leaf('a', 'Mia'), leaf('b', 'laughed'))], [{ nodeIds: ['missing'], text: 'laughed' }]);
+  assert.match(convertOne(unknownGroupNode, 'Mia laughed.').diagnostics[0].detail, /group 0 names missing, which is not in its workspace/);
+  const unknownRef = oneStage([{ refId: 'nowhere' }]);
+  assert.match(convertOne(unknownRef, 'Mia').diagnostics[0].detail, /refId nowhere has no earlier definition/);
 });
 
 test('an analysis that does not spell another analysis\'s punctuation word fails', () => {

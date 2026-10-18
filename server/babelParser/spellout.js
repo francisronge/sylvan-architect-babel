@@ -20,21 +20,44 @@ const sameCharacter = (a, b) => a === b || a.toLowerCase() === b.toLowerCase();
 const isPlainObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const failure = (rule, detail) => ({ rule, detail });
 
-/** Expands refIds as the parser does: from the latest earlier expanded definition. */
+/** Thrown when a workspace cannot be read; the parser reports structure in detail. */
+class SpelloutStructureError extends Error {}
+
+/**
+ * Expands refIds as the parser does: from the latest earlier expanded
+ * definition. An occurrence id may appear once per expanded workspace, so a
+ * stage that references a subtree twice stops at the repeat instead of
+ * copying it, and expansion stays linear in the authored size.
+ */
 const expandStages = (stages) => {
   const definitions = new Map();
   return stages.map((stage, stageIndex) => {
+    const seen = new Set();
+    const where = `Stage ${stageIndex + 1}`;
+    const claim = (id) => {
+      if (typeof id !== 'string') return;
+      if (seen.has(id)) throw new SpelloutStructureError(`${where} repeats occurrence id ${id}.`);
+      seen.add(id);
+    };
+    const expandDefinition = (node) => {
+      claim(node.id);
+      return { ...node, children: node.children.map(expandDefinition) };
+    };
     const expand = (node) => {
       if (isPlainObject(node) && Object.keys(node).length === 1 && typeof node.refId === 'string') {
-        if (!definitions.has(node.refId)) throw new Error(`Stage ${stageIndex + 1} refId ${node.refId} has no earlier definition.`);
-        return definitions.get(node.refId);
+        if (!definitions.has(node.refId)) throw new SpelloutStructureError(`${where} refId ${node.refId} has no earlier definition.`);
+        return expandDefinition(definitions.get(node.refId));
       }
-      if (!isPlainObject(node)) throw new Error(`Stage ${stageIndex + 1} contains a malformed node.`);
+      if (!isPlainObject(node)) throw new SpelloutStructureError(`${where} contains a malformed node.`);
+      claim(node.id);
       return { ...node, children: Array.isArray(node.children) ? node.children.map(expand) : [] };
     };
     const forest = (Array.isArray(stage?.workspaceForest) ? stage.workspaceForest : []).map(expand);
     const record = (node) => { if (typeof node.id === 'string') definitions.set(node.id, node); node.children.forEach(record); };
     forest.forEach(record);
+    (Array.isArray(stage?.realizations) ? stage.realizations : []).forEach((group, groupIndex) => group.nodeIds
+      .filter(id => !seen.has(id))
+      .forEach((id) => { throw new SpelloutStructureError(`${where} group ${groupIndex} names ${id}, which is not in its workspace.`); }));
     return forest;
   });
 };
@@ -409,7 +432,8 @@ export const convertSpelloutPayload = (payload, sentence) => {
     try {
       return { analysisIndex, analysis, ...alignAnalysis(analysis, sentence) };
     } catch (error) {
-      return { analysisIndex, diagnostics: [failure('SPELLOUT_UNREADABLE', String(error.message))] };
+      if (!(error instanceof SpelloutStructureError)) throw error;
+      return { analysisIndex, diagnostics: [failure('SPELLOUT_UNREADABLE', error.message)] };
     }
   });
   const passing = aligned.filter(item => !item.diagnostics.length);
