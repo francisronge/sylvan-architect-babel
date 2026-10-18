@@ -88,8 +88,8 @@ function segmentRectDistance(p: Point, q: Point, box: Rect): number {
 /** A plaque is not an attachment point. When the line left visible beside its
  * labels comes within `contact` of a plaque, it is cut wherever it lies inside
  * the plaque inflated by `gap`, so each cut end keeps at least that distance.
- * A line passing beside a plaque stays whole. A piece a plaque cut leaves
- * shorter than `minimum` would paint as a round-capped dot and is dropped. */
+ * A line passing beside a plaque stays whole. An isolated piece left between
+ * cuts, shorter than `minimum`, would paint as a round-capped dot and is dropped. */
 type PlaqueClearance = { boxes: readonly Rect[]; contact: number; gap: number; minimum: number };
 
 type Interval = [number, number];
@@ -109,10 +109,11 @@ export function clearLabelPath(from: Point, to: Point, boxes: readonly Rect[] = 
   }
   const point = (t: number) => `${at(t).x.toFixed(1)} ${at(t).y.toFixed(1)}`;
   const length = Math.hypot(dx, dy);
-  const plaqueCut = ([a, b]: Interval) => !besideLabels.some(([c, e]) => c === a && e === b);
-  return visible.filter(piece => !plaqueCut(piece)
-    || point(piece[0]) !== point(piece[1]) && (piece[1] - piece[0]) * length >= plaques!.minimum)
-    .map(([a, b]) => `M ${point(a)} L ${point(b)}`).join(' ');
+  // A piece that still leaves a labelled end keeps the spoke attached, however short.
+  const start = besideLabels[0]?.[0], end = besideLabels.at(-1)?.[1];
+  const kept = ([a, b]: Interval) => a === start || b === end || besideLabels.some(([c, e]) => c === a && e === b)
+    || point(a) !== point(b) && (b - a) * length >= plaques!.minimum;
+  return visible.filter(kept).map(([a, b]) => `M ${point(a)} L ${point(b)}`).join(' ');
 }
 
 export const routeFallbackSegments = (

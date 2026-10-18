@@ -123,6 +123,20 @@ for (const markerScale of [0.5, 1, 3]) test(`a spoke starting inside a plaque be
   assertCutClear(d, host, markerScale);
 });
 
+test('a short piece still attached to a role label is kept', () => {
+  const from = { x: 0, y: 0 }, to = { x: 100, y: 0 };
+  const labels = [{ x: -20, y: -12, width: 40, height: 24 }, { x: 80, y: -12, width: 40, height: 24 }];
+  for (const [plaque, expected] of [
+    [{ x: 26.8, y: -5, width: 10, height: 10 }, 'M 20.0 0.0 L 21.0 0.0 M 42.6 0.0 L 80.0 0.0'],
+    // Both one-unit end pieces remain, so the spoke never becomes an empty path.
+    [{ x: 26.8, y: -5, width: 46.4, height: 10 }, 'M 20.0 0.0 L 21.0 0.0 M 79.0 0.0 L 80.0 0.0']
+  ]) {
+    const d = routeSpoke(from, to, { labels, plaques: [plaque] });
+    assert.equal(d, expected);
+    assertCutClear(d, plaque, 1);
+  }
+});
+
 test('close plaques leave no zero-length or dot-sized fragment between their gaps', () => {
   const from = { x: -50, y: 0 }, to = { x: 80, y: 0 };
   const first = { x: 0, y: -5, width: 10, height: 10 };
