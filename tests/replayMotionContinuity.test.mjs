@@ -84,10 +84,33 @@ test('a step owns its target, its trajectory participants, reattached syntax and
   assert.deepEqual(replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Movement', 'x', moved, 'relation', ['source'])] }), [],
     'the trajectory participant, its subtree and its ancestors move');
   assert.deepEqual(kinds(replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Movement', 'x', moved, 'relation')] })),
-    ['2:root:unowned-motion'], 'without that link the same motion is unowned');
+    ['2:right:unowned-motion', '2:root:unowned-motion'], 'without that link the motion is unowned; right moves farther than its parent');
   const reattached = moved.map(item => item.id === 'right' ? { ...item, parent: null } : item);
   assert.deepEqual(kinds(replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Rewrite', 'x', reattached, 'relation')] })),
     ['2:root:unowned-motion'], 'a detached subtree is owned; the root that recentres without it is not');
+});
+
+test('a child is reported when it moves differently from its moving parent', () => {
+  const before = [point('parent', 0, 0), point('child', 0, 220, 'parent'), point('word', 0, 440, 'child')];
+  const after = [point('parent', 10, 0), point('child', 100, 220, 'parent'), point('word', 100, 440, 'child')];
+  const faults = replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Select', 'y', after)] });
+  assert.deepEqual(faults.map(fault => [fault.node, fault.distance]), [['child', 100], ['parent', 10]], 'the word rides with its child');
+});
+
+test('a later seed that is an earlier seed\'s ancestor still owns its other branches', () => {
+  const before = [point('root', 0, 0), point('right', 300, 220, 'root'), point('leafA', 200, 440, 'right'), point('leafB', 400, 440, 'right')];
+  const after = before.map(item => item.id === 'leafB' ? { ...item, x: 500 } : item);
+  assert.deepEqual(replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Movement', 'leafA', after, 'relation', ['right'])] }), []);
+});
+
+test('a host lowered under an inserted parent across a stage crossing is compared after the carry', () => {
+  const before = [point('root', 0, 0), point('host', 200, 220, 'root'), point('word', 200, 440, 'host'),
+    ...[-200, -400, -600].map((x, index) => point(`sister${index}`, x, 220, 'root'))];
+  const shifted = before.filter(item => !['host', 'word'].includes(item.id)).map(item => ({ ...item, x: item.x + 400, y: item.y + 220 }));
+  const after = [...shifted, point('wrap', 600, 440, 'root'), point('host', 600, 660, 'wrap'), point('word', 600, 880, 'host'), point('adjunct', 800, 660, 'wrap')];
+  const frames = [{ ...frame('StageRecord', 'root', before, 'macro'), stage: 0 }, { ...frame('ExternalMerge', 'wrap', after), stage: 1 }];
+  assert.deepEqual(replayMotionFaults({ frames }).filter(fault => fault.kind === 'attachment-site-motion'), [],
+    'the new parent takes the carried row the host left');
 });
 
 // Defects 19–21 (open): GPT-6.1 Sol, 我昨天看见的那个人走了。 Select T jumps 我 and 昨天

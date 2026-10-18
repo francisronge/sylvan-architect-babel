@@ -128,7 +128,7 @@ export function compareCorpusSnapshots(baseline, candidate, records) {
     // The motion rule decides ownership from each frame's own step, not from the
     // checkout's planner diagnostics. A fault the baseline already has still
     // fails if the candidate makes it move farther.
-    const motionKey = fault => JSON.stringify([fault.kind, fault.frame, fault.node]);
+    const motionKey = fault => JSON.stringify([fault.kind, fault.step, fault.node]);
     const motion = { baseline: replayMotionFaults(before), candidate: replayMotionFaults(after) };
     const oldMotion = new Map(motion.baseline.map(fault => [motionKey(fault), fault]));
     motion.new = motion.candidate.filter(fault => !oldMotion.has(motionKey(fault)));

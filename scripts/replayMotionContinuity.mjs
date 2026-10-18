@@ -35,20 +35,32 @@ export function replayMotionFaults({ frames }, { threshold = MOTION_FAULT_THRESH
     return before && after ? { x: after.x + carried[index].x - before.x, y: after.y + carried[index].y - before.y } : undefined;
   };
   const length = shift => Math.hypot(shift.x, shift.y);
+  // Faults name their step semantically, so an inserted or removed frame elsewhere
+  // does not make an unchanged fault look new.
+  const seen = new Map();
+  const stepKeys = frames.map(frame => {
+    const identity = JSON.stringify([frame.stage, frame.kind, frame.operation, frame.target, frame.relationIndex]);
+    const occurrence = seen.get(identity) ?? 0;
+    seen.set(identity, occurrence + 1);
+    return `${identity}#${occurrence}`;
+  });
   const faults = [];
   for (let index = 1; index < frames.length; index++) {
     const { kind, operation, target, links = [] } = frames[index], current = points[index], prior = points[index - 1];
     const children = new Map();
     for (const point of frames[index].points) if (point.parent) children.set(point.parent, [...(children.get(point.parent) ?? []), point.id]);
-    const owned = new Set(), seeds = [target, ...links].filter(id => current.has(id));
+    const owned = new Set(), expanded = new Set(), seeds = [target, ...links].filter(id => current.has(id));
     for (const point of frames[index].points) {
       const old = prior.get(point.id);
       if (!old || old.parent !== point.parent) seeds.push(point.id);
     }
     for (const seed of seeds) {
+      // Ancestors are owned without owning their other branches, so subtree
+      // expansion is tracked apart from ownership.
       for (const pending = [seed]; pending.length;) {
         const id = pending.pop();
-        if (owned.has(id)) continue;
+        if (expanded.has(id)) continue;
+        expanded.add(id);
         owned.add(id);
         pending.push(...(children.get(id) ?? []));
       }
@@ -56,8 +68,12 @@ export function replayMotionFaults({ frames }, { threshold = MOTION_FAULT_THRESH
     }
     const moved = new Set(frames[index].points.filter(point => !owned.has(point.id) && prior.has(point.id)
       && length(motion(index, point.id)) > threshold).map(point => point.id));
-    for (const id of moved) if (!moved.has(current.get(id).parent)) {
-      faults.push({ frame: index + 1, node: id, kind: 'unowned-motion', operation, distance: length(motion(index, id)) });
+    // A node riding with its moving parent is reported once, at the parent; one
+    // that moves differently from its parent is reported as well.
+    for (const id of moved) {
+      const parentId = current.get(id).parent, shift = motion(index, id), carriedBy = moved.has(parentId) && motion(index, parentId);
+      if (carriedBy && length({ x: shift.x - carriedBy.x, y: shift.y - carriedBy.y }) <= threshold) continue;
+      faults.push({ frame: index + 1, step: stepKeys[index], node: id, kind: 'unowned-motion', operation, distance: length(shift) });
     }
     const parent = current.get(target);
     if (kind !== 'micro' || !['ExternalMerge', 'Project'].includes(operation) || !parent || prior.has(target)) continue;
@@ -65,9 +81,9 @@ export function replayMotionFaults({ frames }, { threshold = MOTION_FAULT_THRESH
       const old = point.parent === target && prior.get(point.id);
       if (!old) continue;
       const shift = motion(index, point.id);
-      const descends = old.parent && Math.abs(parent.y - old.y) < 1e-6 && point.y > parent.y;
+      const descends = old.parent && Math.abs(parent.y + carried[index].y - old.y) < 1e-6 && point.y > parent.y;
       const distance = descends ? Math.abs(shift.x) : length(shift);
-      if (distance > threshold) faults.push({ frame: index + 1, node: point.id, kind: 'attachment-site-motion',
+      if (distance > threshold) faults.push({ frame: index + 1, step: stepKeys[index], node: point.id, kind: 'attachment-site-motion',
         operation, distance, waiting: !old.parent });
     }
   }

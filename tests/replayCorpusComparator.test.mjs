@@ -86,6 +86,27 @@ test('a joining jump the baseline already has fails when the candidate makes it 
     && violation.faults.some(item => item.node === fault.node && item.distance > fault.distance + 1)));
 });
 
+test('faults are matched by step, so an inserted frame neither invents nor hides one', () => {
+  const baseline = compare(structuredClone(snapshot))[0].motion.baseline;
+  assert(baseline.length, 'the maintained control has a fault');
+  const inserted = structuredClone(snapshot), frames = inserted.records[0].frames;
+  frames.splice(1, 0, structuredClone(frames[0]));
+  const shifted = compare(inserted)[0].motion;
+  assert.deepEqual([shifted.new, shifted.worsened], [[], []]);
+  assert.deepEqual(shifted.candidate.map(fault => fault.frame), baseline.map(fault => fault.frame + 1));
+});
+
+test('a child that moves farther than its moving parent is a worsened fault', () => {
+  const [fault] = compare(structuredClone(snapshot))[0].motion.baseline;
+  const moved = structuredClone(snapshot), frame = moved.records[0].frames[fault.frame - 1];
+  const node = frame.points.find(item => item.id === fault.node);
+  const child = frame.points.find(item => item.parent === node.id);
+  assert(child, 'the fault has a painted child');
+  for (const item of frame.points) if (item.id === child.id || item.parent === child.id) item.x += 300;
+  assert(compare(moved)[0].violations.some(violation => ['worsened-motion-fault', 'new-motion-fault'].includes(violation.kind)
+    && violation.faults.some(item => item.node === child.id)));
+});
+
 test('semantic, authored, continuity, finite-geometry and witness-control failures cannot become a clean comparison', () => {
   const bad = structuredClone(snapshot), record = bad.records[0];
   record.replaySha256 = 'changed Replay'; record.planSha256 = 'changed plan';
@@ -119,6 +140,7 @@ test('the actual CLI retains evidence and exits nonzero when a required control 
     const good = JSON.parse(await readFile(output, 'utf8'));
     assert.equal(good.ok, true); assert.equal(good.summary.analyses, 1);
     assert.equal(good.baseline.sha256, good.candidate.sha256);
+    assert(good.harness.sources.some(source => source.filename.endsWith('components/treeViewport.ts')), 'the camera rule is fingerprinted');
     assert.equal(good.records[0].rawSha256, records[1].rawSha256);
     record.expect.facets[1].present = false;
     await writeFile(manifest, JSON.stringify({ records: [record] }));
