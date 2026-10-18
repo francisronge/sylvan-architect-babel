@@ -85,12 +85,15 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
       fitted = d3.zoomIdentity.translate(contained.x, contained.y).scale(contained.k);
     }
     const previousFit = autoCameraRef.current;
-    // Font and geometry refinements can repaint the same step. Keep its
-    // accepted pose under the same containment rule as a forward advance.
+    const step = activeStepIndex - (previousFit?.stepIndex ?? NaN);
+    // Keep the accepted pose, under the containment rule, when the same step
+    // repaints (font and geometry refinements), on Next, and on Prev within one
+    // stage, so a stage keeps one camera in both directions. Prev out of the
+    // completed last Stage Record or into an earlier stage refits.
     if (animated && completedReplayStep === undefined && stageFitContainmentBounds && previousFit?.data === data
       && previousFit.signature === derivationStagesSignature && previousFit.fitRevision === fitRevision
       && previousFit.width === containerWidth && previousFit.height === containerHeight
-      && (previousFit.stepIndex === activeStepIndex || previousFit.stepIndex + 1 === activeStepIndex)) {
+      && (step === 0 || step === 1 || (step === -1 && previousFit.stageIndex === stageIndex && !previousFit.completed))) {
       // Stages lay out syntax in their own coordinates, so a stage crossing first
       // carries the accepted pose by the common shift of unmoved shared syntax.
       const accepted = previousFit.stageIndex === stageIndex ? previousFit.transform
@@ -101,7 +104,8 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     }
     autoCameraRef.current = {
       data, signature: derivationStagesSignature, width: containerWidth,
-      height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted, stageIndex, paintedNodes
+      height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted, stageIndex, paintedNodes,
+      completed: completedReplayStep !== undefined
     };
     // Labels and complete fallback badges keep their accepted automatic-Fit
     // size, then scale with the tree. Their connectors use the same reference
