@@ -6,8 +6,8 @@
  * warnings are facts about authored data at 'record'; the movement warning is
  * placed at its relation's moment. */
 
-const UNRECOGNIZED_MOVEMENT = 'Defect: movement recognition does not resolve this movement, so the moved copy is built at an unrelated '
-  + 'step or only at the Stage Record, and the chain\'s marks have no landing at their moments.';
+const UNRESOLVED_ENDPOINTS = 'Open: movement recognition finds no single source and landing (list-valued or competing landing '
+  + 'fields), so the claim stays neutral and draws no path; its own moment still introduces the copy.';
 const RESTATED_BEFORE_MOMENT = 'Defect: a feature or pronunciation change on retained syntax that a relation of the stage names is '
   + 'painted at the stage\'s first step, before that relation\'s moment.';
 const ORDER_BEFORE_CONTEXT = 'Defect (authored relation order): the relation precedes the movement moment that introduces its anchor, '
@@ -27,14 +27,12 @@ const CHAIN_ROLES = 'Open: a chain or licensing relation with movement-shaped ro
 const x = (reason, record, rule, subtype, subject, frames) => ({ reason, record, rule, subtype, subject, at: { '-': { [frames]: null } } });
 
 export const STEP_EXCEPTIONS = [
-  x(UNRECOGNIZED_MOVEMENT, 'replay-regressions/landing-at-stage-record.json#', 'step-semantics', 'child-count', "outerCbar", '30'),
-  x(UNRECOGNIZED_MOVEMENT, 'replay-regressions/landing-at-stage-record.json#', 'mark-persistence', 'never-paints', "fallback 2:0", '31'),
-  x(UNRECOGNIZED_MOVEMENT, 'replay-regressions/landing-at-stage-record.json#', 'mark-persistence', 'never-paints', "fallback 2:1", '32'),
-  x(UNRECOGNIZED_MOVEMENT, 'replay-regressions/landing-at-stage-record.json#', 'mark-persistence', 'never-paints', "fallback 2:3", '34'),
-  x(UNRECOGNIZED_MOVEMENT, 'replay-regressions/landing-at-stage-record.json#', 'mark-persistence', 'late-start', "coindex identity.occurrences 2:0", '35'),
-  x(UNRECOGNIZED_MOVEMENT, 'replay-regressions/landing-at-stage-record.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:0", '31'),
-  x(UNRECOGNIZED_MOVEMENT, 'replay-regressions/object-language-metalanguage.json#', 'step-semantics', 'unowned-repaint', "rSubjectBase", '21'),
-  x(UNRECOGNIZED_MOVEMENT, 'replay-regressions/object-language-metalanguage.json#', 'step-semantics', 'unowned-repaint', "rSubjectBase::__leaf", '21'),
+  x(UNRESOLVED_ENDPOINTS, 'replay-regressions/landing-at-stage-record.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:0", '30'),
+  x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/1', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "8:1", '51'),
+  x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/2', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '29'),
+  x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/2', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "7:0", '42'),
+  x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/3', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:0", '30'),
+  x(ORDER_BEFORE_CONTEXT, 'replay-regressions/unrecognized-movement.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 7:0", '42'),
   x(RESTATED_BEFORE_MOMENT, 'movement/holdout-transitions.json#/1', 'step-semantics', 'unowned-repaint', "matrixI", '32'),
   x(RESTATED_BEFORE_MOMENT, 'replay-regressions/obsolete-plaque-pockets.json#', 'step-semantics', 'unowned-repaint', "v", '43'),
   x(RESTATED_BEFORE_MOMENT, 'replay-regressions/workspace-reservation.json#/cases/2', 'step-semantics', 'unowned-repaint', "matrixI", '35'),
@@ -69,6 +67,8 @@ export const STEP_EXCEPTIONS = [
   x(RENAMED, 'replay-regressions/unrendered-head-movement.json#', 'contract-output', 'renamed-anchor', "3:verb", 'record'),
   x(SELF_SPELLED, 'replay-regressions/self-spelled-realization.json#', 'contract-output', 'self-spelled-realization', "3:bPronoun,bRun,bGo,bBuy,bRice", 'record'),
   x(OBJECT_LANGUAGE, 'replay-regressions/object-language-metalanguage.json#', 'contract-output', 'object-language-metalanguage', "Han", 'record'),
+  x(OBJECT_LANGUAGE, 'replay-regressions/unrecognized-movement.json#/cases/0', 'contract-output', 'object-language-metalanguage', "Han", 'record'),
+  x(OBJECT_LANGUAGE, 'replay-regressions/unrecognized-movement.json#/cases/5', 'contract-output', 'object-language-metalanguage', "Han", 'record'),
   x(SPACED_ROLES, 'replay-regressions/unrendered-head-movement.json#', 'movement-unrendered', 'MOVEMENT_CONTEXT_UNRESOLVED', "2:0", '43'),
   x(PRIOR_SOURCE, 'movement/clause-context.json#/cases/6', 'movement-unrendered', 'MOVEMENT_PRIOR_SOURCE_UNPROVEN', "0:0", '4'),
   x(PRIOR_SOURCE, 'movement/holdout-transitions.json#/0', 'movement-unrendered', 'MOVEMENT_PRIOR_SOURCE_UNPROVEN', "0:0", '16'),

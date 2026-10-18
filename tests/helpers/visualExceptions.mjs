@@ -20,7 +20,16 @@ const BRANCH_TEXT = 'Open: a tree branch passes through a neighbouring category 
 
 const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
 
+// The same findings, with the same measures, occur on origin/main for the saved
+// analyses these fixture cases copy (indexed-night 27-sv-embedded-negation,
+// bughunt2 07-en-rnr); only their frame numbers moved.
 export const EXCEPTIONS = [
+  x(ROLE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/1', 'mark-distance', 'role',
+    'role(8:1 higher Contained Heads[4])@mTAtC', { desktop: { '51': 2.82 } }),
+  x(ROLE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/1', 'mark-distance', 'role',
+    'role(8:1 lower Contained Heads[4])@mT', { desktop: { '51': 2.8 } }),
+  x(PLAQUE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/4', 'mark-distance', 'plaque',
+    'plaque(2:0 theta Agent)@v-buy', { desktop: { '29-54': 1.12 }, 'desktop-large': { '29-54': 1.12 } }),
   x(SPOKE_ATTACHED, 'performance/german-embedded.json#', 'line-clearance', 'connector-plaque',
     'connector(0:4)reportNP→reportN plaque(0:1 directed-path case-assignment)@read', { desktop: { '57': 1.44 } }),
   x(PLAQUE_CROWDED, 'movement/clause-context.json#/cases/7', 'mark-distance', 'plaque',

@@ -219,8 +219,6 @@ const ORDER_BEFORE_CONTEXT = 'Defect (diagnosed RELATION_TIMING_CONFLICT): wh-mo
   + 'that builds C′; Replay keeps authored order and shows CP with its landing but without C′.';
 const CONTEXT_MERGE_AT_MOMENT = 'Defect (diagnosed RELATION_TIMING_CONFLICT): continued V-to-I is authored before the I-to-C movement '
   + 'that builds its context; its moment reveals the ordinary merge C′ instead of giving C′ its own step.';
-const UNRECOGNIZED_MOVEMENT = 'Defect: movement recognition does not resolve this movement, so its moved copy '
-  + 'is built at an unrelated construction step or appears only at the Stage Record.';
 
 const KNOWN_DEFECTS = [
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'parent-after-children', 16, 'detP portraitBar'],
@@ -246,9 +244,6 @@ const KNOWN_DEFECTS = [
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 29, 'mVAtT mvAtTLeaf mVAtT::__leaf'],
   [ORDER_BEFORE_CONTEXT, 'normalized/what-did-mia-see.xbar.json#/analyses/0', 'parent-after-children', 15, 'cbar_question'],
   [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar'],
-  [UNRECOGNIZED_MOVEMENT, 'replay-regressions/landing-at-stage-record.json#', 'no-early-reveal', 35,
-    'frontedObject frontedObjectDbar frontedObjectD frontedObjectD::__leaf'],
-  [UNRECOGNIZED_MOVEMENT, 'replay-regressions/object-language-metalanguage.json#', 'no-early-reveal', 21, 'rSubjectHigh rSubjectHigh::__leaf']
 ];
 
 // A node revealed at a step that does not own it is one defect, reported by
