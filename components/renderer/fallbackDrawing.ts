@@ -3,7 +3,7 @@ import { CATEGORY_LINE_HEIGHT, categoryTextLayout } from '../../replay/categoryT
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import type { BoundFallbackMark, BoundFrame, FallbackMeasurements } from '../../replay/relations/boundGeometry.ts';
 import { type BoundAnchorSetRail, type BoundPrimitive, type BoundSegment, type PlanPositionProvider } from '../../replay/relations/boundGeometry.ts';
-import { anchorSetRailPaths, FALLBACK_ROLE_STYLE, fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations/fallbackGeometry.ts';
+import { anchorSetRailPaths, FALLBACK_ROLE_STYLE, FALLBACK_STROKE_WIDTHS, fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations/fallbackGeometry.ts';
 import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
@@ -175,8 +175,9 @@ export function createFallbackPlacement({ fallbackMeasurements, boundFrame, mark
       } else if (original.type === 'segment' && fitted.type === 'segment') {
         const group = fallbackConnectorPaths.get(original);
         group?.selectAll('path').attr('d', fitted.d);
-        group?.select('.vr-fallback-segment').attr('stroke-width', (original.route === 'direct' ? 1.5 : 1.9) * scale);
-        group?.select('.vr-fallback-shadow').attr('stroke-width', (original.route === 'direct' ? 3.6 : 4.4) * scale);
+        const strokes = FALLBACK_STROKE_WIDTHS[original.route];
+        group?.select('.vr-fallback-segment').attr('stroke-width', strokes.line * scale);
+        group?.select('.vr-fallback-shadow').attr('stroke-width', strokes.shadow * scale);
       } else if (original.type === 'anchor-set-rail' && fitted.type === 'anchor-set-rail') {
         const paths = anchorSetRailPaths(fitted, anchorScale, scale);
         const group = fallbackRailGroups.get(original);
