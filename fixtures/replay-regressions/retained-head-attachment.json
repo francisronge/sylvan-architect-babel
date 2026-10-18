@@ -1,0 +1,1280 @@
+{
+  "description": "Stage 2 supplies the auxiliary did by do-support as a new first daughter of the retained head tI. The stage's layout scaffold drew did under I° as soon as it was projected, before the merge into I°. Withdrawing the scaffold only once did is visible is not enough: its selection step then kept the scaffold, the stage reservation read the change from the scaffold's I° to a separate root as a reparenting, and the selected word jumped at the projection. did now stays a separate workspace at its reserved slot from its selection until the merge into I°.",
+  "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run with the indexed-token contract, 18 October 2026 (second bug-hunt batch, 22-en-tag), commit ee11d20.",
+  "sentence": "John left, didn't he?",
+  "framework": "xbar",
+  "inputTokens": [
+    "John",
+    "left",
+    "didn't",
+    "he"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "hSubject",
+            "predicate": "hV"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "role": "sole participant of intransitive leave"
+          }
+        },
+        {
+          "anchors": {
+            "licenser": "hPast",
+            "subject": "hSubject"
+          },
+          "relation": "finite nominative licensing",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "tSubject",
+            "predicate": "tV"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "role": "sole participant of intransitive leave"
+          }
+        },
+        {
+          "anchors": {
+            "licenser": "tPast",
+            "subject": "tSubject"
+          },
+          "relation": "finite nominative licensing",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "negativeHead": "tNeg",
+            "scope": "tVP"
+          },
+          "relation": "negative scope",
+          "values": {
+            "interpretation": "negation of the tag proposition"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "tI",
+            "interrogativeHead": "tQ"
+          },
+          "relation": "interrogative head requirement",
+          "values": {
+            "requirement": "the finite auxiliary must occupy C in the completed tag"
+          }
+        }
+      ],
+      "stageRecord": "The host is an IP with John in Spec-IP, past tense in I, and an intransitive VP headed by leave. This uses the classical GB external-subject configuration rather than a VP-internal subject derivation. Leave assigns its sole participant theta-role to John, and finite I licenses John's nominative Case. The prospective tag is a separate CP with an interrogative C and an IP containing he, past tense, and NegP. Its initially unelided VP also contains leave: this supplies the predicate that will subsequently undergo VP ellipsis. The tag predicate assigns its participant theta-role to he, and tag I licenses nominative Case. Neg takes scope over the tag VP, not over the host. The negative head is represented by the clitic allomorph n't, whose attachment and association with the input token didn't have not yet been established. Both past-tense heads are initially abstract; the host's irregular past realization and the tag's auxiliary support are established in the next stage. No subject movement is required in this version of GB.",
+      "statement": "Establish the declarative host and the underlying, unelided tag clause.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "hJohn",
+                      "label": "N°",
+                      "tokenIndex": 0,
+                      "word": "John"
+                    }
+                  ],
+                  "id": "hNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "hSubject",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "hPast",
+                  "label": "I°[past, finite]",
+                  "lineageId": "host-tense"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "hV",
+                          "label": "V°",
+                          "word": "leave"
+                        }
+                      ],
+                      "id": "hVbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "hVP",
+                  "label": "VP"
+                }
+              ],
+              "id": "hIbar",
+              "label": "I′"
+            }
+          ],
+          "id": "hIP",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tQ",
+                      "label": "C°[interrogative]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "tC",
+                  "label": "C°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tHe",
+                              "label": "N°[pronoun]",
+                              "tokenIndex": 3,
+                              "word": "he"
+                            }
+                          ],
+                          "id": "tNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "tSubject",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tPast",
+                              "label": "I°[past, finite]"
+                            }
+                          ],
+                          "id": "tI",
+                          "label": "I°",
+                          "lineageId": "tag-finite-head"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "tNeg",
+                                  "label": "Neg°[clitic]",
+                                  "lineageId": "tag-negation",
+                                  "word": "n't"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "tV",
+                                          "label": "V°",
+                                          "word": "leave"
+                                        }
+                                      ],
+                                      "id": "tVbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "tVP",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "tNegbar",
+                              "label": "Neg′"
+                            }
+                          ],
+                          "id": "tNegP",
+                          "label": "NegP"
+                        }
+                      ],
+                      "id": "tIbar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "tIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "tCbar",
+              "label": "C′"
+            }
+          ],
+          "id": "tCP",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "hV",
+            "hPastLowered"
+          ],
+          "tokenIndices": [
+            1
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "lexicalHost": "hV",
+            "loweredAffix": "hPastLowered",
+            "resultingHead": "hVcomplex",
+            "sourceTrace": "hPastTrace"
+          },
+          "priorAnchors": {
+            "lexicalHost": "hV",
+            "unloweredAffix": "hPast"
+          },
+          "relation": "past affix lowering",
+          "values": {
+            "operation": "morphological I-to-V lowering"
+          }
+        },
+        {
+          "anchors": {
+            "lexicalStem": "hV",
+            "pastAffix": "hPastLowered"
+          },
+          "relation": "irregular past realization",
+          "values": {
+            "surfaceForm": "left"
+          }
+        },
+        {
+          "anchors": {
+            "auxiliary": "tDid",
+            "interveningProjection": "tNegP",
+            "supportedHead": "tI",
+            "tense": "tPast"
+          },
+          "priorAnchors": {
+            "unsupportedHead": "tI"
+          },
+          "relation": "do-support",
+          "values": {
+            "auxiliaryForm": "did",
+            "motivation": "support finite past tense when intervening negation blocks direct lowering to the lexical verb"
+          }
+        }
+      ],
+      "stageRecord": "Host past I lowers to the lexical verb, leaving a silent tense trace in its earlier position. This is morphological affix lowering, not theta-position movement; John's Case licensing remains associated with the finite I chain. The resulting verbal complex, containing leave and lowered past tense, receives the irregular realization left. Its two morphological contributors jointly correspond to input token 1. In the tag, NegP intervenes between I and VP, so the host's direct affix-lowering derivation is unavailable. Do-support instead supplies did in the existing finite I, realizing its past features without introducing another theta-role. This supported auxiliary is also what can survive the forthcoming VP ellipsis and undergo inversion. Did is not yet associated separately with an input token because the exact input contains the contracted whole token didn't.",
+      "statement": "Realize host past tense by affix lowering and supply the tag auxiliary by do-support.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "hJohn",
+                      "label": "N°",
+                      "tokenIndex": 0,
+                      "word": "John"
+                    }
+                  ],
+                  "id": "hNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "hSubject",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "hPastTrace",
+                  "label": "t_I",
+                  "lineageId": "host-tense",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "hV",
+                              "label": "V°",
+                              "word": "leave"
+                            },
+                            {
+                              "children": [],
+                              "id": "hPastLowered",
+                              "label": "I°[past, finite]",
+                              "lineageId": "host-tense"
+                            }
+                          ],
+                          "id": "hVcomplex",
+                          "label": "V°"
+                        }
+                      ],
+                      "id": "hVbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "hVP",
+                  "label": "VP"
+                }
+              ],
+              "id": "hIbar",
+              "label": "I′"
+            }
+          ],
+          "id": "hIP",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tQ",
+                      "label": "C°[interrogative]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "tC",
+                  "label": "C°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tHe",
+                              "label": "N°[pronoun]",
+                              "tokenIndex": 3,
+                              "word": "he"
+                            }
+                          ],
+                          "id": "tNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "tSubject",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tDid",
+                              "label": "I°[auxiliary]",
+                              "word": "did"
+                            },
+                            {
+                              "children": [],
+                              "id": "tPast",
+                              "label": "I°[past, finite]"
+                            }
+                          ],
+                          "id": "tI",
+                          "label": "I°",
+                          "lineageId": "tag-finite-head"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "tNeg",
+                                  "label": "Neg°[clitic]",
+                                  "lineageId": "tag-negation",
+                                  "word": "n't"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "tV",
+                                          "label": "V°",
+                                          "word": "leave"
+                                        }
+                                      ],
+                                      "id": "tVbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "tVP",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "tNegbar",
+                              "label": "Neg′"
+                            }
+                          ],
+                          "id": "tNegP",
+                          "label": "NegP"
+                        }
+                      ],
+                      "id": "tIbar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "tIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "tCbar",
+              "label": "C′"
+            }
+          ],
+          "id": "tCP",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "hV",
+            "hPastLowered"
+          ],
+          "tokenIndices": [
+            1
+          ]
+        },
+        {
+          "nodeIds": [
+            "tDid",
+            "tPast",
+            "tNegHigh"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "auxiliaryHost": "tIbase",
+            "incorporatedNegative": "tNegHigh",
+            "interpretedScope": "tVP",
+            "resultingHead": "tI",
+            "sourceTrace": "tNegTrace"
+          },
+          "priorAnchors": {
+            "receivingHead": "tI",
+            "unincorporatedNegative": "tNeg"
+          },
+          "relation": "negative clitic incorporation",
+          "values": {
+            "operation": "Neg-to-I head adjunction",
+            "scopePreservation": "the negative chain is interpreted in its original NegP position"
+          }
+        },
+        {
+          "anchors": {
+            "auxiliary": "tDid",
+            "negativeClitic": "tNegHigh",
+            "tense": "tPast"
+          },
+          "relation": "contracted auxiliary realization",
+          "values": {
+            "surfaceForm": "didn't"
+          }
+        }
+      ],
+      "stageRecord": "The negative clitic moves from the Neg head already present below I and adjoins to the supported finite head. A silent Neg trace remains in the original position, preserving the interpretation of negation over the tag predicate. This local head movement forms the complex auxiliary before inversion, so the later movement to C can carry negation with did. The inner auxiliary head retains did and the past feature; the adjoined negative occurrence retains n't. Together these contributors receive the contracted realization didn't at input token 2. This analysis therefore does not treat didn't as an unanalyzed lexical item or leave an independently pronounced negative word below the subject.",
+      "statement": "Attach negative n't to the supported tag auxiliary.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "hJohn",
+                      "label": "N°",
+                      "tokenIndex": 0,
+                      "word": "John"
+                    }
+                  ],
+                  "id": "hNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "hSubject",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "hPastTrace",
+                  "label": "t_I",
+                  "lineageId": "host-tense",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "hV",
+                              "label": "V°",
+                              "word": "leave"
+                            },
+                            {
+                              "children": [],
+                              "id": "hPastLowered",
+                              "label": "I°[past, finite]",
+                              "lineageId": "host-tense"
+                            }
+                          ],
+                          "id": "hVcomplex",
+                          "label": "V°"
+                        }
+                      ],
+                      "id": "hVbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "hVP",
+                  "label": "VP"
+                }
+              ],
+              "id": "hIbar",
+              "label": "I′"
+            }
+          ],
+          "id": "hIP",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tQ",
+                      "label": "C°[interrogative]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "tC",
+                  "label": "C°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tHe",
+                              "label": "N°[pronoun]",
+                              "tokenIndex": 3,
+                              "word": "he"
+                            }
+                          ],
+                          "id": "tNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "tSubject",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "tDid",
+                                  "label": "I°[auxiliary]",
+                                  "word": "did"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "tPast",
+                                  "label": "I°[past, finite]"
+                                }
+                              ],
+                              "id": "tIbase",
+                              "label": "I°"
+                            },
+                            {
+                              "children": [],
+                              "id": "tNegHigh",
+                              "label": "Neg°[clitic]",
+                              "lineageId": "tag-negation",
+                              "word": "n't"
+                            }
+                          ],
+                          "id": "tI",
+                          "label": "I°",
+                          "lineageId": "tag-finite-head"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "tNegTrace",
+                                  "label": "t_Neg",
+                                  "lineageId": "tag-negation",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "tV",
+                                          "label": "V°",
+                                          "word": "leave"
+                                        }
+                                      ],
+                                      "id": "tVbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "tVP",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "tNegbar",
+                              "label": "Neg′"
+                            }
+                          ],
+                          "id": "tNegP",
+                          "label": "NegP"
+                        }
+                      ],
+                      "id": "tIbar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "tIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "tCbar",
+              "label": "C′"
+            }
+          ],
+          "id": "tCP",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "hV",
+            "hPastLowered"
+          ],
+          "tokenIndices": [
+            1
+          ]
+        },
+        {
+          "nodeIds": [
+            "tDid",
+            "tPast",
+            "tNegHigh"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "interrogativeFeature": "tQ",
+            "landingHead": "tC",
+            "movedFiniteHead": "tIMoved",
+            "sourceTrace": "tITrace",
+            "subject": "tSubject"
+          },
+          "priorAnchors": {
+            "landingHead": "tC",
+            "preinversionFiniteHead": "tI"
+          },
+          "relation": "subject–auxiliary inversion",
+          "values": {
+            "chainLicensing": "the finite I chain retains nominative licensing of the tag subject",
+            "movementDomain": "the tag clause only",
+            "operation": "I-to-C head movement"
+          }
+        },
+        {
+          "anchors": {
+            "adjunctionProjection": "sentenceIP",
+            "host": "hIP",
+            "tag": "tCP"
+          },
+          "relation": "supplemental tag attachment",
+          "values": {
+            "attachment": "CP right-adjunction to IP",
+            "selectionStatus": "supplement, not a selected argument"
+          }
+        },
+        {
+          "anchors": {
+            "affirmativeHost": "hIP",
+            "hostTense": "hPastLowered",
+            "interrogativeTag": "tCP",
+            "tagNegation": "tNegHigh",
+            "tagTense": "tPast"
+          },
+          "relation": "reversed-polarity tag licensing",
+          "values": {
+            "interpretation": "the tag requests confirmation of the host proposition",
+            "polarityPattern": "affirmative host with negative tag",
+            "tenseCorrespondence": "past in both clauses"
+          }
+        },
+        {
+          "anchors": {
+            "hostDomain": "hIP",
+            "pronounLocalDomain": "tIP",
+            "referentialAntecedent": "hSubject",
+            "tagPronoun": "tSubject"
+          },
+          "relation": "tag-subject coreference and binding conditions",
+          "values": {
+            "agreement": "third-person singular",
+            "coreference": "he refers to John",
+            "dependencyType": "referential anaphora without antecedent c-command",
+            "principleB": "the pronoun is free in its local finite clause",
+            "principleC": "John is not bound"
+          }
+        }
+      ],
+      "stageRecord": "The complex finite I established in the preceding stage moves to interrogative C, leaving an I trace. Because n't has already incorporated, did and n't move together; the tag subject remains in Spec-IP and follows the auxiliary. This local I-to-C movement satisfies the interrogative head requirement without moving the host verb or either subject. The tag CP is then right-adjoined to the host IP, yielding a recursive IP configuration. This treats the tag as a supplemental clause, not as an argument selected by leave or as coordination with an unpronounced conjunction. The attached clause is licensed as a reversed-polarity tag: the affirmative host supplies the proposition, and the negative tag queries its confirmation. He is referentially identified with John and matches the host subject in third-person singular reference. This is anaphoric coreference rather than syntactic binding: John inside the host IP does not c-command into the adjoined CP. He has no local c-commanding coindexed antecedent in its own finite clause, satisfying Binding Principle B; John likewise has no c-commanding coindexed binder, satisfying Principle C. The full tag VP is retained at this stage so its subsequent ellipsis has an explicit syntactic source.",
+      "statement": "Invert the complex auxiliary and attach the interrogative tag to its declarative host.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "hJohn",
+                          "label": "N°",
+                          "tokenIndex": 0,
+                          "word": "John"
+                        }
+                      ],
+                      "id": "hNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "hSubject",
+                  "label": "NP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "hPastTrace",
+                      "label": "t_I",
+                      "lineageId": "host-tense",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "hV",
+                                  "label": "V°",
+                                  "word": "leave"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "hPastLowered",
+                                  "label": "I°[past, finite]",
+                                  "lineageId": "host-tense"
+                                }
+                              ],
+                              "id": "hVcomplex",
+                              "label": "V°"
+                            }
+                          ],
+                          "id": "hVbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "hVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "hIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "hIP",
+              "label": "IP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "tDid",
+                                  "label": "I°[auxiliary]",
+                                  "word": "did"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "tPast",
+                                  "label": "I°[past, finite]"
+                                }
+                              ],
+                              "id": "tIbase",
+                              "label": "I°"
+                            },
+                            {
+                              "children": [],
+                              "id": "tNegHigh",
+                              "label": "Neg°[clitic]",
+                              "lineageId": "tag-negation",
+                              "word": "n't"
+                            }
+                          ],
+                          "id": "tIMoved",
+                          "label": "I°",
+                          "lineageId": "tag-finite-head"
+                        },
+                        {
+                          "children": [],
+                          "id": "tQ",
+                          "label": "C°[interrogative]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "tC",
+                      "label": "C°"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "tHe",
+                                  "label": "N°[pronoun]",
+                                  "tokenIndex": 3,
+                                  "word": "he"
+                                }
+                              ],
+                              "id": "tNbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "tSubject",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tITrace",
+                              "label": "t_I",
+                              "lineageId": "tag-finite-head",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "tNegTrace",
+                                      "label": "t_Neg",
+                                      "lineageId": "tag-negation",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "tV",
+                                              "label": "V°",
+                                              "word": "leave"
+                                            }
+                                          ],
+                                          "id": "tVbar",
+                                          "label": "V′"
+                                        }
+                                      ],
+                                      "id": "tVP",
+                                      "label": "VP"
+                                    }
+                                  ],
+                                  "id": "tNegbar",
+                                  "label": "Neg′"
+                                }
+                              ],
+                              "id": "tNegP",
+                              "label": "NegP"
+                            }
+                          ],
+                          "id": "tIbar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "tIP",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "tCbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "tCP",
+              "label": "CP"
+            }
+          ],
+          "id": "sentenceIP",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "hV",
+            "hPastLowered"
+          ],
+          "tokenIndices": [
+            1
+          ]
+        },
+        {
+          "nodeIds": [
+            "tDid",
+            "tPast",
+            "tNegHigh"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "antecedentPredicate": "hV",
+            "antecedentVP": "hVP",
+            "elidedPredicate": "tV",
+            "ellipsisSite": "tVP",
+            "licensingAuxiliary": "tIMoved",
+            "survivingNegative": "tNegHigh"
+          },
+          "priorAnchors": {
+            "predeletionVP": "tVP"
+          },
+          "relation": "VP ellipsis",
+          "values": {
+            "deletionBoundary": "VP only; the subject, finite auxiliary, and negation are excluded",
+            "identityCondition": "identity of the lexical predicate leave, with finite past independently matched",
+            "interpretiveStatus": "the elided predicate remains syntactically represented and theta-interpreted",
+            "operation": "PF nonpronunciation of the tag VP"
+          }
+        }
+      ],
+      "stageRecord": "The tag VP already present beneath NegP is made unpronounced under identity with the host's leave predicate. This is PF deletion of a syntactically represented VP, not movement of the predicate or replacement by a theta-less empty element. Its interpreted structure therefore continues to support the tag subject's theta-role. The antecedent and elided VP share the lexical predicate leave; the host's lowered tense morphology does not obstruct predicate identity because the corresponding finite past feature is independently present in the tag auxiliary. NegP is outside the deletion site, so negative polarity survives, and the finite auxiliary in C also remains pronounced. The resulting pronunciation is exactly John, left, didn't, he. The host stem and lowered tense jointly realize left; did, finite past, and the incorporated negative jointly realize didn't. The supplied comma and question mark are punctuation, not additional input tokens or syntactic terminals. Different confirmation-seeking intonations do not require additional structural analyses of these words.",
+      "statement": "Apply tag VP ellipsis and complete the analysis of John left, didn't he?",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "hJohn",
+                          "label": "N°",
+                          "tokenIndex": 0,
+                          "word": "John"
+                        }
+                      ],
+                      "id": "hNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "hSubject",
+                  "label": "NP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "hPastTrace",
+                      "label": "t_I",
+                      "lineageId": "host-tense",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "hV",
+                                  "label": "V°",
+                                  "word": "leave"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "hPastLowered",
+                                  "label": "I°[past, finite]",
+                                  "lineageId": "host-tense"
+                                }
+                              ],
+                              "id": "hVcomplex",
+                              "label": "V°"
+                            }
+                          ],
+                          "id": "hVbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "hVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "hIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "hIP",
+              "label": "IP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "tDid",
+                                  "label": "I°[auxiliary]",
+                                  "word": "did"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "tPast",
+                                  "label": "I°[past, finite]"
+                                }
+                              ],
+                              "id": "tIbase",
+                              "label": "I°"
+                            },
+                            {
+                              "children": [],
+                              "id": "tNegHigh",
+                              "label": "Neg°[clitic]",
+                              "lineageId": "tag-negation",
+                              "word": "n't"
+                            }
+                          ],
+                          "id": "tIMoved",
+                          "label": "I°",
+                          "lineageId": "tag-finite-head"
+                        },
+                        {
+                          "children": [],
+                          "id": "tQ",
+                          "label": "C°[interrogative]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "tC",
+                      "label": "C°"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "tHe",
+                                  "label": "N°[pronoun]",
+                                  "tokenIndex": 3,
+                                  "word": "he"
+                                }
+                              ],
+                              "id": "tNbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "tSubject",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tITrace",
+                              "label": "t_I",
+                              "lineageId": "tag-finite-head",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "tNegTrace",
+                                      "label": "t_Neg",
+                                      "lineageId": "tag-negation",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "tV",
+                                              "label": "V°",
+                                              "word": "leave"
+                                            }
+                                          ],
+                                          "id": "tVbar",
+                                          "label": "V′"
+                                        }
+                                      ],
+                                      "id": "tVP",
+                                      "label": "VP",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "tNegbar",
+                                  "label": "Neg′"
+                                }
+                              ],
+                              "id": "tNegP",
+                              "label": "NegP"
+                            }
+                          ],
+                          "id": "tIbar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "tIP",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "tCbar",
+                  "label": "C′"
+                }
+              ],
+              "id": "tCP",
+              "label": "CP"
+            }
+          ],
+          "id": "sentenceIP",
+          "label": "IP"
+        }
+      ]
+    }
+  ]
+}
