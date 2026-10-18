@@ -193,22 +193,26 @@ export const buildTier2FacetOutputIdentities = (
   // A current-state claim follows its exact occurrences as the workspace grows.
   // Operations and references to earlier states retain their authored moment.
   // Full facet identity still owns dispatch, dependencies and replacement.
-  const persistent = input.recipe.kind === 'claim'
+  const currentState = input.recipe.kind === 'claim'
     && input.recipe.persistence.kind !== 'while-active'
-    && input.recipe.transitionRules.length === 0
+    && input.recipe.transitionRules.length === 0;
+  const persistent = currentState
     // Conservatively retain timing even for prior evidence owned by a sibling facet.
     && !Object.values(input.evidence.priorAnchors ?? {}).some(ids => ids.length > 0);
   const facetIdentity = buildFacetIdentity(input, persistent);
   if (!facetIdentity) return [];
+  // A binding path claims only its current operator and variable. Prior evidence
+  // owned by a sibling facet, such as the movement that created the operator,
+  // does not make a later restatement a second path; the path's own prior
+  // anchors still do. The domain owns the hull, so a restatement without that
+  // optional domain does not introduce another path either.
+  const bindingPath = currentState && input.recipe.id === 'operator-binding'
+    ? JSON.parse(buildFacetIdentity(input, true) ?? 'null') : null;
+  if (bindingPath) delete bindingPath.currentAnchors['scope.domain'];
+  const pathIdentity = bindingPath && Object.keys(bindingPath.priorAnchors).length === 0
+    ? JSON.stringify(canonicalizeIdentity(bindingPath)) : null;
   return input.evaluation.outputs.map((piece) => {
-    let pieceIdentity = facetIdentity;
-    if (persistent && input.recipe.id === 'operator-binding' && piece === 'Variable-binding path') {
-      // The domain owns the hull. Restating the same binding without that
-      // optional domain does not introduce another operator-variable path.
-      const binding = JSON.parse(facetIdentity);
-      delete binding.currentAnchors['scope.domain'];
-      pieceIdentity = JSON.stringify(canonicalizeIdentity(binding));
-    }
+    const pieceIdentity = pathIdentity && piece === 'Variable-binding path' ? pathIdentity : facetIdentity;
     return { piece, key: JSON.stringify(canonicalizeIdentity({ facetIdentity: pieceIdentity, piece })) };
   });
 };

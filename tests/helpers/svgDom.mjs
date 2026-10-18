@@ -2,10 +2,13 @@ import { select } from 'd3';
 
 export { select };
 export const descendants = node => node.children.flatMap(child => [child, ...descendants(child)]);
+// Attribute presence ([name]) is supported; valued attribute selectors never match.
 export const matches = (node, selector) => selector.split(',').some(part => {
-  const [tag, ...classes] = part.trim().split('.');
+  const attributes = [...part.matchAll(/\[([\w-]+)\]/g)].map(match => match[1]);
+  const [tag, ...classes] = part.replace(/\[[\w-]+\]/g, '').trim().split('.');
   return (!tag || tag === '*' || tag === node.tag)
-    && classes.every(name => node.classList.contains(name));
+    && classes.every(name => node.classList.contains(name))
+    && attributes.every(name => Object.hasOwn(node.attrs, name));
 });
 
 // A deterministic SVG DOM for running the real D3 painters. Native browser
@@ -51,6 +54,7 @@ export function createSvgDom(measureText = (text, style) => ({
         add: name => write(name, true), remove: name => write(name, false), toggle: write
       };
     }
+    get attributes() { return Object.entries(this.attrs).map(([name, value]) => ({ name, value })); }
     get dataset() { return Object.fromEntries(Object.entries(this.attrs)
       .filter(([name]) => name.startsWith('data-'))
       .map(([name, value]) => [name.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase()), value])); }
