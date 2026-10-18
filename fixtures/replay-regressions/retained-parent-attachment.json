@@ -1,0 +1,500 @@
+{
+  "description": "Stage 1 builds the matrix V′ (matrixVBar) over wonder with no complement. Stage 2 builds the embedded CP and makes it the second child of that retained V′. The stage borrows the completed topology as a layout scaffold, and that scaffold drew embeddedCP under the visible V′ as soon as embeddedCP was revealed: \"Project CP\" showed the attachment, and the following merge into V′ changed nothing. The CP now stays a separate workspace at its reserved place until the merge that targets V′.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract, 18 October 2026 (night batch, 12-en-embedded-question), commit 53a7c7f. Tokens are the model's own final words.",
+  "sentence": "I wonder whether John left.",
+  "framework": "xbar",
+  "inputTokens": [
+    "I",
+    "wonder",
+    "whether",
+    "John",
+    "left"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "johnNP",
+            "lexicalHead": "leftV",
+            "predicate": "embeddedVP"
+          },
+          "relation": "external theta-role assignment",
+          "values": {
+            "subjectAnalysis": "base-generated in Spec-IP",
+            "thetaRole": "Agent"
+          }
+        },
+        {
+          "anchors": {
+            "agreementController": "johnNP",
+            "inflection": "embeddedI",
+            "verb": "leftV"
+          },
+          "relation": "finite inflection licensing",
+          "values": {
+            "agreement": "third-person singular",
+            "morphologicalAnalysis": "lexically inflected V licensed by abstract I; no head movement",
+            "tense": "past"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "johnNP",
+            "governor": "embeddedI"
+          },
+          "relation": "nominative Case assignment",
+          "values": {
+            "case": "nominative"
+          }
+        }
+      ],
+      "stageRecord": "Construct the embedded IP with John in Spec-IP and the intransitive predicate left inside VP. This analysis uses the GB option in which subjects are generated in Spec-IP: John receives the external Agent theta-role through predication by the VP headed by left, so no subject movement or subject trace is posited. The silent embedded I carries past tense and third-person singular agreement; it licenses the lexically inflected verb left in V. This is a lexical-inflection analysis, not an analysis with V-to-I movement or affix lowering. The same finite I governs the subject position and assigns nominative Case to John. Separately construct the matrix subject I and the initial verbal projection headed by wonder; its selected clausal complement has not yet been attached. The pronoun I and the category I for inflection are distinct syntactic objects.",
+      "statement": "Establish the embedded finite proposition and the matrix lexical material.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "johnN",
+                      "label": "N",
+                      "word": "John"
+                    }
+                  ],
+                  "id": "johnNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "johnNP",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "embeddedI",
+                  "label": "I[past, third-person singular]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "leftV",
+                          "label": "V",
+                          "word": "left"
+                        }
+                      ],
+                      "id": "embeddedVBar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "embeddedVP",
+                  "label": "VP"
+                }
+              ],
+              "id": "embeddedIBar",
+              "label": "I′"
+            }
+          ],
+          "id": "embeddedIP",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "speakerN",
+                  "label": "N[pronoun]",
+                  "word": "I"
+                }
+              ],
+              "id": "speakerNBar",
+              "label": "N′"
+            }
+          ],
+          "id": "speakerNP",
+          "label": "NP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "wonderV",
+                  "label": "V",
+                  "word": "wonder"
+                }
+              ],
+              "id": "matrixVBar",
+              "label": "V′"
+            }
+          ],
+          "id": "matrixVP",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "clause": "embeddedCP",
+            "complementizer": "whetherC",
+            "propositionalComplement": "embeddedIP"
+          },
+          "relation": "embedded interrogative clause typing",
+          "values": {
+            "alternatives": [
+              "John left",
+              "John did not leave"
+            ],
+            "clauseType": "embedded polar interrogative",
+            "whetherAnalysis": "base-generated interrogative complementizer"
+          }
+        },
+        {
+          "anchors": {
+            "complement": "embeddedCP",
+            "selector": "wonderV"
+          },
+          "relation": "clausal complement selection",
+          "values": {
+            "selectedCategory": "CP",
+            "selectedClauseType": "interrogative"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "embeddedCP",
+            "predicate": "wonderV"
+          },
+          "relation": "internal theta-role assignment",
+          "values": {
+            "thetaRole": "Content"
+          }
+        }
+      ],
+      "stageRecord": "Project whether as an interrogative C taking the previously constructed embedded IP as its complement. Whether marks the embedded clause as a polar question, presenting the alternatives that John left and that John did not leave. It is base-generated in C in this analysis, rather than moved to Spec-CP, so there is no wh-trace or wh-movement chain. Attach the resulting CP as the sister of wonder within the matrix V′. Wonder selects an interrogative CP, and this CP satisfies that selectional requirement. The verb also assigns its internal Content theta-role to this clausal argument. The embedded clause retains ordinary subject–I–VP order; nothing in this embedded C requires I-to-C inversion.",
+      "statement": "Form the embedded polar interrogative CP and attach it as the complement of wonder.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "speakerN",
+                  "label": "N[pronoun]",
+                  "word": "I"
+                }
+              ],
+              "id": "speakerNBar",
+              "label": "N′"
+            }
+          ],
+          "id": "speakerNP",
+          "label": "NP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "wonderV",
+                  "label": "V",
+                  "word": "wonder"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "whetherC",
+                          "label": "C[interrogative]",
+                          "word": "whether"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "johnN",
+                                      "label": "N",
+                                      "word": "John"
+                                    }
+                                  ],
+                                  "id": "johnNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "johnNP",
+                              "label": "NP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "embeddedI",
+                                  "label": "I[past, third-person singular]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "leftV",
+                                          "label": "V",
+                                          "word": "left"
+                                        }
+                                      ],
+                                      "id": "embeddedVBar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "embeddedVP",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "embeddedIBar",
+                              "label": "I′"
+                            }
+                          ],
+                          "id": "embeddedIP",
+                          "label": "IP"
+                        }
+                      ],
+                      "id": "embeddedCBar",
+                      "label": "C′"
+                    }
+                  ],
+                  "id": "embeddedCP",
+                  "label": "CP"
+                }
+              ],
+              "id": "matrixVBar",
+              "label": "V′"
+            }
+          ],
+          "id": "matrixVP",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "speakerNP",
+            "lexicalHead": "wonderV",
+            "predicate": "matrixVP"
+          },
+          "relation": "external theta-role assignment",
+          "values": {
+            "subjectAnalysis": "base-generated in Spec-IP",
+            "thetaRole": "Experiencer"
+          }
+        },
+        {
+          "anchors": {
+            "agreementController": "speakerNP",
+            "inflection": "matrixI",
+            "verb": "wonderV"
+          },
+          "relation": "finite inflection licensing",
+          "values": {
+            "agreement": "first-person singular",
+            "morphologicalAnalysis": "lexically inflected V licensed by abstract I; no head movement",
+            "tense": "present"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "speakerNP",
+            "governor": "matrixI"
+          },
+          "relation": "nominative Case assignment",
+          "values": {
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "matrixCP",
+            "complementizer": "matrixC",
+            "propositionalComplement": "matrixIP"
+          },
+          "relation": "matrix declarative clause typing",
+          "values": {
+            "clauseType": "declarative",
+            "scope": "matrix clause"
+          }
+        }
+      ],
+      "stageRecord": "Construct the matrix IP with the pronoun I in Spec-IP and the completed VP as the complement of a silent present-tense I. As in the embedded clause, the subject is base-generated in Spec-IP; predication by the VP headed by wonder assigns this subject the external Experiencer theta-role. Matrix I licenses the first-person singular present form wonder without moving the verb out of V, and it governs the subject position and assigns nominative Case to the pronoun. Finally, project a silent declarative C above the matrix IP. This C types the whole sentence as declarative, while whether continues to type only the selected embedded clause as interrogative. Consequently, the sentence contains neither matrix subject–auxiliary inversion nor a matrix question dependency. Each subject bears one theta-role and nominative Case, and the embedded CP bears the selected internal theta-role. The completed tree pronounces I wonder whether John left in that order.",
+      "statement": "Complete the finite declarative matrix clause.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "matrixC",
+                  "label": "C[declarative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "speakerN",
+                              "label": "N[pronoun]",
+                              "word": "I"
+                            }
+                          ],
+                          "id": "speakerNBar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "speakerNP",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "matrixI",
+                          "label": "I[present, first-person singular]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "wonderV",
+                                  "label": "V",
+                                  "word": "wonder"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "whetherC",
+                                          "label": "C[interrogative]",
+                                          "word": "whether"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "johnN",
+                                                      "label": "N",
+                                                      "word": "John"
+                                                    }
+                                                  ],
+                                                  "id": "johnNBar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "johnNP",
+                                              "label": "NP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "embeddedI",
+                                                  "label": "I[past, third-person singular]",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "leftV",
+                                                          "label": "V",
+                                                          "word": "left"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedVBar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedVP",
+                                                  "label": "VP"
+                                                }
+                                              ],
+                                              "id": "embeddedIBar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "embeddedIP",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "embeddedCBar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "embeddedCP",
+                                  "label": "CP"
+                                }
+                              ],
+                              "id": "matrixVBar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "matrixVP",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "matrixIBar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "matrixIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "matrixCBar",
+              "label": "C′"
+            }
+          ],
+          "id": "matrixCP",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}
