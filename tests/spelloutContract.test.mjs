@@ -352,6 +352,67 @@ test('the spelling check stays bounded for any output shape', () => {
   assert.equal(quick(oneStage([leaf('a', 'Mia')], [{ nodeIds: [{ toString: null }], text: 'Mia' }]), 'Mia').diagnostics[0].rule, 'SPELLOUT_GROUP_SHAPE');
 });
 
+test('a response that needs more search work than the spelling check allows stops within a fixed budget', () => {
+  // Each payload took seconds of synchronous CPU before the search was metered.
+  const quick = (payload, sentence) => {
+    const started = performance.now();
+    const [result] = convertSpelloutPayload(payload, sentence);
+    assert.ok(performance.now() - started < 1_000, 'bounded');
+    return result;
+  };
+  const limited = result => assert.deepEqual(result.diagnostics, [{ rule: 'SPELLOUT_ALIGNMENT_LIMIT',
+    detail: 'The response needs more alignment work than the spelling check allows.' }]);
+  const stage = (workspaceForest, realizations) => ({ statement: 's', stageRecord: 's', relations: [], workspaceForest,
+    ...(realizations ? { realizations } : {}) });
+  const as = count => Array(count).fill('a');
+  const leaves = (count, word = () => 'a') => Array.from({ length: count }, (_, index) => leaf(`w${index}`, word(index)));
+  // 100 earlier stages repeat a group whose pieces repeat a word; each costs pieces × words² choices.
+  const repeating = () => [{ nodeIds: ['r'], text: [...as(150), 'b'] }];
+  limited(quick({ derivationStages: [
+    stage([node('r', 'R', ...leaves(300, index => (index ? 'a' : 'b')))], repeating()),
+    ...Array.from({ length: 99 }, () => stage([{ refId: 'r' }], repeating())),
+    stage([{ refId: 'r' }])
+  ] }, ['b', ...as(299)].join(' ')));
+  // 300 one-word groups against 299 words: each subset of groups read so far is its own alignment state.
+  const singles = leaves(300);
+  limited(quick(oneStage(singles, singles.map(({ id }) => ({ nodeIds: [id], text: 'a' }))), as(299).join(' ')));
+  // 10,000 earlier groups each read the 1,000 leaves of a subtree under 100 wrappers.
+  let wrapped = node('r', 'R', ...leaves(1_000));
+  for (let index = 0; index < 100; index += 1) wrapped = node(`p${index}`, 'P', wrapped);
+  limited(quick({ derivationStages: [
+    stage([wrapped], Array.from({ length: 10_000 }, () => ({ nodeIds: ['r'], text: 'a' }))),
+    stage([node('f', 'F', ...Array.from({ length: 300 }, (_, index) => ({ refId: `w${index}` })))])
+  ] }, as(300).join(' ')));
+  // One group of 300 pieces over 4,999 leaves is an ordinary conversion and stays quick.
+  const wide = quick(oneStage([node('r', 'R', ...leaves(4_999))], [{ nodeIds: ['r'], text: as(300) }]), as(300).join(' '));
+  assert.equal(wide.ok, true);
+  assert.deepEqual(wide.analysis.derivationStages[0].realizations, [{ nodeIds: ['r'], tokenIndices: [...as(300).keys()] }]);
+});
+
+test('a response nested too deeply fails as a typed contract failure before any recursive walk', () => {
+  let deep = leaf('w', 'a');
+  for (let index = 0; index < 10_000; index += 1) deep = node(`p${index}`, 'P', deep);
+  assert.equal(convertOne(oneStage([deep]), 'a').diagnostics[0].detail, 'Stage 1 nests deeper than 256 levels.');
+  // An unrecognized field nested 6,000 arrays deep once overflowed the parser's clone.
+  const nestedField = JSON.parse(`{"derivationStages":[{"statement":"s","stageRecord":"s","relations":[],"workspaceForest":[{"id":"w","label":"X","word":"a","children":[],"extra":${'['.repeat(6_000)}0${']'.repeat(6_000)}}]}]}`);
+  for (const payload of [oneStage([deep]), nestedField]) {
+    for (const spellout of [true, false]) {
+      assert.throws(() => normalizeParseBundle(payload, 'xbar', 'a', 'gpt', true, { spellout }), (error) => {
+        assert.equal(error.code, 'BAD_MODEL_RESPONSE');
+        assert.equal(error.status, 502);
+        assert.equal(error.failure.class, 'contract_misunderstanding');
+        assert.equal(error.failure.ruleId, 'PAYLOAD_NESTING_DEPTH');
+        assert.equal(error.message, 'The response nests deeper than 1024 levels, so Babel cannot read it.');
+        return true;
+      });
+    }
+  }
+  // The deepest tree the spelling check reads still passes the whole parser.
+  let deepest = leaf('w', 'a');
+  for (let index = 0; index < 256; index += 1) deepest = node(`p${index}`, 'P', deepest);
+  assert.equal(normalizeParseBundle(oneStage([deepest]), 'xbar', 'a', 'gpt', true, { spellout: true }).analyses.length, 1);
+});
+
 test('an analysis that does not spell another analysis\'s punctuation word fails', () => {
   const results = convertSpelloutPayload({ analyses: [flat('Mia', 'laughed', '.'), flat('Mia', 'laughed')] }, 'Mia laughed.');
   assert.deepEqual(results.map(result => result.ok), [true, false]);
