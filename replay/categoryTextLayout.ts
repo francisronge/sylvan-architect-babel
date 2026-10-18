@@ -42,23 +42,31 @@ function wrapCategoryText(text: string, measure: CategoryTextMeasure) {
   return { lines, width, height, x: -width / 2, y: -height - 4 };
 }
 
-const breakAfter = /^[\s,]/u, openingBracket = /^\p{Ps}/u, closingBracket = /^\p{Pe}/u;
+const breakAfter = /^[\s,]/u, hyphen = /^[-\u2010]/u, wordCharacter = /^[\p{L}\p{N}]/u;
+const openingBracket = /^\p{Ps}/u, closingBracket = /^\p{Pe}/u;
 // Closing brackets and quotes, clause punctuation, primes and bar-level marks
 // complete the text before them, so no line starts with one.
 const completesPrevious = /^[\p{Pe}\p{Pf},.;:!?、。，．：；！？′″‴'°⁰]/u;
 
 /** Choose where a line ends when grapheme `end` overflows the graphemes from
  * `start`; the line keeps graphemes before the returned index. Prefer the last
- * space or comma; then the last opening bracket whose complete group, with any
- * text attached up to the next space or comma, fits on one line; then the
- * latest grapheme boundary. No choice starts a line with a completing mark, and
- * lines stay within the width unless a single grapheme exceeds it. */
+ * space or comma, then a break before an overflowing space, which already ends
+ * a word. Otherwise take the latest of two word-preserving breaks: after
+ * a hyphen joining two word characters when the rest of the label fits on one
+ * line, so the break never adds a line, or before an opening bracket whose
+ * complete group, with any text attached up to the next space or comma, fits on
+ * one line. Otherwise break at the latest grapheme boundary. No choice starts a
+ * line with a completing mark, and lines stay within the width unless a single
+ * grapheme exceeds it. */
 function lineBreak(segments: string[], start: number, end: number, fits: (from: number, to: number) => boolean) {
   const opensLine = (index: number) => !completesPrevious.test(segments[index]);
   for (let index = end; index > start; index--)
     if (breakAfter.test(segments[index - 1]) && opensLine(index)) return index;
-  for (let index = end - 1; index > start; index--) {
-    if (!openingBracket.test(segments[index])) continue;
+  if (/^\s/u.test(segments[end])) return end;
+  const afterHyphen = (index: number) => index - 1 > start && hyphen.test(segments[index - 1])
+    && wordCharacter.test(segments[index - 2]) && wordCharacter.test(segments[index]) && fits(index, segments.length);
+  const beforeBracket = (index: number) => {
+    if (index === end || !openingBracket.test(segments[index])) return false;
     let depth = 0, group = index;
     while (group < segments.length) {
       const segment = segments[group++];
@@ -66,8 +74,9 @@ function lineBreak(segments: string[], start: number, end: number, fits: (from: 
       else if (closingBracket.test(segment)) depth--;
       else if (depth <= 0 && breakAfter.test(segment)) break;
     }
-    if (fits(index, group)) return index;
-  }
+    return fits(index, group);
+  };
+  for (let index = end; index > start; index--) if (afterHyphen(index) || beforeBracket(index)) return index;
   for (let index = end; index > start; index--) if (opensLine(index)) return index;
   return end;
 }

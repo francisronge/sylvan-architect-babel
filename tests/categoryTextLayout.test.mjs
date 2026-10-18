@@ -30,13 +30,31 @@ test('a label breaks before its feature bracket instead of starting a line with 
   assert.deepEqual(lines('ChangeOfStateHead′'), ['ChangeOfStateHea', 'd′']);
   assert.deepEqual(lines('ChangeOfStateParticleHead'), ['ChangeOfStatePart', 'icleHead']);
   // A bracket group too wide for a line of its own keeps the existing grapheme break.
-  assert.deepEqual(lines('T[personal-infinitive]'), ['T[personal-infini', 'tive]']);
+  assert.deepEqual(lines('C[interrogativeness]'), ['C[interrogativene', 'ss]']);
   // Space and comma breaks keep their existing positions.
   assert.deepEqual(lines('C[alternative question]'), ['C[alternative ', 'question]']);
   assert.deepEqual(lines('V[past, third-person feminine singular]'), ['V[past, ', 'third-person ', 'feminine ', 'singular]']);
   const accented = 'e\u0301'.repeat(17) + '′';
   assert.deepEqual(lines(accented), ['e\u0301'.repeat(16), 'e\u0301′']);
   assert.deepEqual(lines(`X[${'e\u0301'.repeat(15)}]`), ['X', `[${'e\u0301'.repeat(15)}]`]);
+});
+
+test('a hyphenated word breaks after its hyphen when the rest of the label fits on one line', () => {
+  const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+  const measure = s => [...graphemes.segment(s)].length * 22;
+  const lines = text => categoryTextLayout(text, measure).lines;
+  assert.deepEqual(lines('T[personal-infinitive]'), ['T[personal-', 'infinitive]']);
+  assert.deepEqual(lines('T[personal\u2010infinitive]'), ['T[personal\u2010', 'infinitive]']);
+  assert.deepEqual(lines('V[unaccusative, personal-infinitive]'), ['V[unaccusative, ', 'personal-', 'infinitive]']);
+  assert.deepEqual(lines('T[persone\u0301-infinitive]'), ['T[persone\u0301-', 'infinitive]']);
+  // A later hyphen wins over an earlier bracket break.
+  assert.deepEqual(lines('Asp[non-progressive]'), ['Asp[non-', 'progressive]']);
+  // A hyphen break that would push the remaining text onto an extra line is not taken.
+  assert.deepEqual(lines('T[finite, indirect-evidential, agreement]'), ['T[finite, ', 'indirect-evidenti', 'al, agreement]']);
+  // A hyphenated word followed by the overflowing space is already a whole word.
+  assert.equal(lines('Experiencer-voice head')[0], 'Experiencer-voice');
+  // A minus feature value is not a word-joining hyphen, so it never ends a line on its own.
+  assert.deepEqual(lines('Neg[-interrogatives]'), ['Neg', '[-interrogatives]']);
 });
 
 test('a selected determiner retains its authored nominal context before its projection exists', () => {
