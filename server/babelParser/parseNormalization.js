@@ -10,6 +10,7 @@ import {
 import { collectOvertTerminalNodes } from './syntaxTree.js';
 import { authoredWord } from './nodePronunciation.js';
 import { omitMismatchedOptionalTokenIndices } from './tokenIndexRecovery.js';
+import { convertSpelloutPayload } from './spellout.js';
 
 const normalizeOptionalText = (value) => {
   const text = String(value || '').trim();
@@ -187,6 +188,21 @@ const normalizeWithTokenIndexRecovery = (analysis, framework, sentence, modelRou
   }
 };
 
+/** One analysis's first spelling failure, typed like other contract failures. */
+const spelloutFailure = (result, multiple) => {
+  const [first] = result.diagnostics;
+  const fieldPath = multiple ? `$.analyses[${result.analysisIndex}]` : '$';
+  const message = `${multiple ? `Analysis ${result.analysisIndex + 1}: ` : ''}${first.detail}`;
+  return new ParseApiError('BAD_MODEL_RESPONSE', message, 502, withFailureDetails({}, {
+    failureClass: 'contract_misunderstanding',
+    ruleId: first.rule,
+    analysisIndex: result.analysisIndex,
+    fieldPath,
+    processingStep: 'spellout-alignment',
+    message
+  }));
+};
+
 export const normalizeParseBundle = (
   value,
   framework = 'xbar',
@@ -234,13 +250,25 @@ export const normalizeParseBundle = (
   }
   // ParseBundle is an internal/product envelope. Each analysis inside it still
   // has the same authored derivation-stage contract.
-  const analysesSource = Array.isArray(parsed?.analyses)
+  let analysesSource = Array.isArray(parsed?.analyses)
     ? parsed.analyses
     : parsed
       ? [parsed]
       : [];
 
-  const inputTokens = resolveSavedInputTokens(sentence, options.inputTokens ?? tokenizeSentenceSurfaceOrder(sentence));
+  let inputTokens;
+  if (options.spellout) {
+    // A model response names words by spelling them. Babel checks each
+    // analysis and derives one shared word list before parsing.
+    const results = convertSpelloutPayload(parsed, sentence);
+    const failed = results.filter(result => !result.ok).map(result => spelloutFailure(result, Array.isArray(parsed?.analyses)));
+    failed.forEach(error => options.analysisOutcomes?.push({ analysisIndex: error.failure.analysisIndex, status: 'failed', failure: error.failure }));
+    if (failed.length) throw failed[0];
+    analysesSource = results.map(result => result.analysis);
+    inputTokens = results[0].inputTokens;
+  } else {
+    inputTokens = resolveSavedInputTokens(sentence, options.inputTokens ?? tokenizeSentenceSurfaceOrder(sentence));
+  }
   let firstError;
   const analyses = analysesSource.map((analysis, analysisIndex) => {
     try {
@@ -259,7 +287,10 @@ export const normalizeParseBundle = (
       const message = Array.isArray(parsed?.analyses)
         ? `Analysis ${analysisIndex + 1}: ${error.message.replace(failure.fieldPath, fieldPath)}`
         : error.message;
-      const annotatedError = new ParseApiError(error.code, message, error.status, withFailureDetails(error.details, {
+      // A failure after the spell-out check carries the derived word list, so
+      // failure inspection reads the output against the same words.
+      const details = options.spellout ? { ...error.details, inputTokens } : error.details;
+      const annotatedError = new ParseApiError(error.code, message, error.status, withFailureDetails(details, {
         ...failure,
         failureClass: failure.class,
         analysisIndex,

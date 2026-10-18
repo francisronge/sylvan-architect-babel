@@ -250,3 +250,28 @@ Both are done.
 - The browser no longer tokenizes again (#56). Failure inspection uses the tokens
   the server sent, and records saved without a token list recover them from
   their own final words where they can.
+
+## Adoption
+
+Babel adopted spell-out on 18 October 2026 for every provider route and both
+qualification runners, as `character-spellout-v3`.
+`server/babelParser/spellout.js` checks the spelling and converts each response
+into token positions over one word list, so parsing, Replay and saved records
+keep their form. The open points were resolved as follows:
+
+- **A word that grows.** The word list is cut wherever any analysis or stage
+  divides a word (version 2), so 吃完 and 吃完了 share it.
+- **Unspaced scripts.** The writing, including its spacing, does not prescribe
+  word boundaries, and groups are omitted when the pronounced terminals' own
+  words, in tree order, spell the sentence. Under version 2's wording Sol split
+  Thai into words, but Astra still grouped a whole Thai sentence in 2 runs;
+  version 3 states the rule by the terminals' own words.
+- **Nothing the token list allowed is lost.** Token positions let a group cover
+  separate words and claim its words anywhere, while the remaining terminals
+  matched in tree order. Version 3 keeps both: a group's text may be an array
+  of pieces in sentence order, and each group claims its own stretches. Babel
+  first tries each group where its first covered terminal is read, so every
+  analysis that passed before converts identically: 219 of 221 saved analyses,
+  and the other 2 are the growing-word failures, which now pass.
+- **Metalanguage** is unchanged. It occurs under either prompt and is a
+  separate decision.

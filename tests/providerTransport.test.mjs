@@ -4,9 +4,11 @@ import { readFileSync } from 'node:fs';
 import http from 'node:http';
 import test from 'node:test';
 import { Agent, getGlobalDispatcher, setGlobalDispatcher } from 'undici';
+import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/raw/what-did-mia-see.xbar.json', import.meta.url)));
-const rawOutput = JSON.stringify(fixture.payload);
+// Live routes receive spell-out outputs: the saved analysis without token addresses.
+const rawOutput = JSON.stringify(restateAsSpellout(fixture.payload, fixture.sentence));
 const endpoints = new Set([
   'https://api.openai.com/v1/responses', 'https://api.anthropic.com/v1/messages',
   'https://api.moonshot.ai/v1/chat/completions', 'https://api.x.ai/v1/responses'
