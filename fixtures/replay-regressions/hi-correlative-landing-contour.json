@@ -1,0 +1,764 @@
+{
+  "description": "Stage 1 raises rD1 (जो लड़की) from inside AP to Spec-TP, and stage 2 moves लड़की again, so the completed tree gives rD1 a compact slot. A construction lifetime carried that compact placement back through stages 0 and 1, where rD1 still contains लड़की. From the movement moment (Replay frame 17) through frame 21, the N लड़की sat on AP’s row 75 units right of AP, and its word leaf sat 262.5 units right of the trace in AP. Every pair of direct daughters stayed ordered, so the existing branch checks accepted it. Replay now plans this record again with sister subtrees kept in order on every shared row; the lifetime ends before the first interleaving scene, and stages 0 and 1 keep their own layout.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character-spellout-v3 contract, 18 October 2026 (spellout-v3-product batch, 39-hi-correlative, analysis 1 of 2), commit a84ade3.",
+  "sentence": "जो लड़की खड़ी है वह लंबी है।",
+  "framework": "minimalism",
+  "inputTokens": [
+    "जो",
+    "लड़की",
+    "खड़ी",
+    "है",
+    "वह",
+    "लंबी",
+    "है"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "determiner": "rJo",
+            "relativeDP": "rD0",
+            "restrictor": "rN"
+          },
+          "relation": "relative nominal restriction",
+          "values": {
+            "restriction": "girl"
+          }
+        },
+        {
+          "anchors": {
+            "predicate": "rA",
+            "subject": "rD0"
+          },
+          "relation": "adjectival predication",
+          "values": {
+            "interpretation": "the girl is standing"
+          }
+        },
+        {
+          "anchors": {
+            "adjective": "rA",
+            "controller": "rD0"
+          },
+          "relation": "adjectival concord",
+          "values": {
+            "gender": "feminine",
+            "number": "singular"
+          }
+        }
+      ],
+      "stageRecord": "Merge relative determiner जो with लड़की to form the relative DP. The nominal restrictor identifies the variable as a girl. Externally merge this DP as the subject of adjectival खड़ी, establishing the standing predication; खड़ी is a feminine singular adjective here, not a separately posited finite lexical verb. Its feminine singular form agrees with लड़की. The ordered binary objects are Bare Phrase Structure objects: their category labels identify the projecting lexical item, not additional X-bar levels.",
+      "statement": "Build the adjectival predication inside the relative clause.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "rJo",
+                  "label": "D[relative]",
+                  "word": "जो"
+                },
+                {
+                  "children": [],
+                  "id": "rN",
+                  "label": "N",
+                  "word": "लड़की"
+                }
+              ],
+              "id": "rD0",
+              "label": "D",
+              "lineageId": "relative-subject"
+            },
+            {
+              "children": [],
+              "id": "rA",
+              "label": "A",
+              "word": "खड़ी"
+            }
+          ],
+          "id": "rAP",
+          "label": "A"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "finiteHead": "rT",
+            "goalAtSource": "rD0"
+          },
+          "relation": "finite subject agreement",
+          "values": {
+            "number": "singular",
+            "person": "third",
+            "tense": "present"
+          }
+        },
+        {
+          "anchors": {
+            "landingDP": "rD1",
+            "licensingHead": "rT",
+            "sourceTrace": "rD0"
+          },
+          "priorAnchors": {
+            "unmovedSubject": "rD0"
+          },
+          "relation": "subject Internal Merge",
+          "values": {
+            "representation": "trace",
+            "requirement": "T subject edge"
+          }
+        }
+      ],
+      "stageRecord": "Merge present copular T है above the adjectival predication. T agrees with the subject already present inside that predication, yielding third-person singular finiteness. Internal Merge then raises that DP to the outer edge of T to satisfy the subject requirement. Movement is represented with a silent trace at the previously displayed source and an overt DP at the landing site; their shared lineage expresses identity. The determiner and noun remain pronounced only in the raised DP. Head-final T follows its predicate, giving जो लड़की खड़ी है at this stage.",
+      "statement": "Establish finite relative-clause TP and raise its subject.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "rJo",
+                  "label": "D[relative]",
+                  "word": "जो"
+                },
+                {
+                  "children": [],
+                  "id": "rN",
+                  "label": "N",
+                  "word": "लड़की"
+                }
+              ],
+              "id": "rD1",
+              "label": "D",
+              "lineageId": "relative-subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "rD0",
+                      "label": "D trace",
+                      "lineageId": "relative-subject",
+                      "silent": true
+                    },
+                    {
+                      "children": [],
+                      "id": "rA",
+                      "label": "A",
+                      "word": "खड़ी"
+                    }
+                  ],
+                  "id": "rAP",
+                  "label": "A"
+                },
+                {
+                  "children": [],
+                  "id": "rT",
+                  "label": "T[present]",
+                  "word": "है"
+                }
+              ],
+              "id": "rTCore",
+              "label": "T"
+            }
+          ],
+          "id": "rTP",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "licensedDPAtSource": "rD1",
+            "relativeHead": "rC"
+          },
+          "relation": "relative feature licensing",
+          "values": {
+            "feature": "relative"
+          }
+        },
+        {
+          "anchors": {
+            "landingOperator": "rD2",
+            "licensingHead": "rC",
+            "sourceTrace": "rD1"
+          },
+          "priorAnchors": {
+            "subjectAtTEdge": "rD1"
+          },
+          "relation": "relative Internal Merge",
+          "values": {
+            "landingSite": "relative C edge",
+            "representation": "trace"
+          }
+        }
+      ],
+      "stageRecord": "Merge a silent relative C with the completed relative TP. C licenses the relative feature on the subject DP at the T edge. Internal Merge then places that DP at the C edge, leaving a second silent trace in its previously displayed T-edge position. The earlier predicate-internal trace remains. This analysis therefore treats जो लड़की as the overt relative operator phrase, rather than adding an independently moving null operator. The relative clause is now complete but has not yet been attached to the matrix clause.",
+      "statement": "Form the relative CP with its overt relative DP at the left edge.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "rJo",
+                  "label": "D[relative]",
+                  "word": "जो"
+                },
+                {
+                  "children": [],
+                  "id": "rN",
+                  "label": "N",
+                  "word": "लड़की"
+                }
+              ],
+              "id": "rD2",
+              "label": "D[relative operator]",
+              "lineageId": "relative-subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "rD1",
+                      "label": "D trace",
+                      "lineageId": "relative-subject",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rD0",
+                              "label": "D trace",
+                              "lineageId": "relative-subject",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "rA",
+                              "label": "A",
+                              "word": "खड़ी"
+                            }
+                          ],
+                          "id": "rAP",
+                          "label": "A"
+                        },
+                        {
+                          "children": [],
+                          "id": "rT",
+                          "label": "T[present]",
+                          "word": "है"
+                        }
+                      ],
+                      "id": "rTCore",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "rTP",
+                  "label": "T"
+                },
+                {
+                  "children": [],
+                  "id": "rC",
+                  "label": "C[relative]",
+                  "silent": true
+                }
+              ],
+              "id": "rCCore",
+              "label": "C[relative]"
+            }
+          ],
+          "id": "rCP",
+          "label": "C[relative]"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "predicate": "mA",
+            "subject": "mD0"
+          },
+          "relation": "adjectival predication",
+          "values": {
+            "interpretation": "the demonstrative referent is tall"
+          }
+        },
+        {
+          "anchors": {
+            "adjective": "mA",
+            "controller": "mD0"
+          },
+          "relation": "adjectival concord",
+          "values": {
+            "gender": "feminine",
+            "number": "singular"
+          }
+        }
+      ],
+      "stageRecord": "Select pronominal demonstrative वह as the matrix subject and merge it with adjectival लंबी. This establishes the tallness predication. The feminine singular adjective characterizes the demonstrative's referent as feminine singular, compatible with लड़की in the still-separate relative CP. The two clauses are not yet structurally connected, so the correlative dependency is not established at this stage.",
+      "statement": "Build the separate matrix adjectival predication.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "rJo",
+                  "label": "D[relative]",
+                  "word": "जो"
+                },
+                {
+                  "children": [],
+                  "id": "rN",
+                  "label": "N",
+                  "word": "लड़की"
+                }
+              ],
+              "id": "rD2",
+              "label": "D[relative operator]",
+              "lineageId": "relative-subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "rD1",
+                      "label": "D trace",
+                      "lineageId": "relative-subject",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rD0",
+                              "label": "D trace",
+                              "lineageId": "relative-subject",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "rA",
+                              "label": "A",
+                              "word": "खड़ी"
+                            }
+                          ],
+                          "id": "rAP",
+                          "label": "A"
+                        },
+                        {
+                          "children": [],
+                          "id": "rT",
+                          "label": "T[present]",
+                          "word": "है"
+                        }
+                      ],
+                      "id": "rTCore",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "rTP",
+                  "label": "T"
+                },
+                {
+                  "children": [],
+                  "id": "rC",
+                  "label": "C[relative]",
+                  "silent": true
+                }
+              ],
+              "id": "rCCore",
+              "label": "C[relative]"
+            }
+          ],
+          "id": "rCP",
+          "label": "C[relative]"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "mVah",
+                  "label": "D",
+                  "word": "वह"
+                }
+              ],
+              "id": "mD0",
+              "label": "D[demonstrative pronoun]",
+              "lineageId": "matrix-subject"
+            },
+            {
+              "children": [],
+              "id": "mA",
+              "label": "A",
+              "word": "लंबी"
+            }
+          ],
+          "id": "mAP",
+          "label": "A"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "finiteHead": "mT",
+            "goalAtSource": "mD0"
+          },
+          "relation": "finite subject agreement",
+          "values": {
+            "number": "singular",
+            "person": "third",
+            "tense": "present"
+          }
+        },
+        {
+          "anchors": {
+            "landingDP": "mD1",
+            "licensingHead": "mT",
+            "sourceTrace": "mD0"
+          },
+          "priorAnchors": {
+            "unmovedSubject": "mD0"
+          },
+          "relation": "subject Internal Merge",
+          "values": {
+            "representation": "trace",
+            "requirement": "T subject edge"
+          }
+        }
+      ],
+      "stageRecord": "Merge matrix present copular T है with the matrix adjectival predication. T first agrees with the predicate-internal demonstrative subject. Internal Merge then raises that subject to the T edge, leaving a silent trace at its earlier position. The complete relative CP remains a separate workspace object: it is not contained in the raised demonstrative DP in this analysis.",
+      "statement": "Establish matrix finiteness and raise the demonstrative subject.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "rJo",
+                  "label": "D[relative]",
+                  "word": "जो"
+                },
+                {
+                  "children": [],
+                  "id": "rN",
+                  "label": "N",
+                  "word": "लड़की"
+                }
+              ],
+              "id": "rD2",
+              "label": "D[relative operator]",
+              "lineageId": "relative-subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "rD1",
+                      "label": "D trace",
+                      "lineageId": "relative-subject",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rD0",
+                              "label": "D trace",
+                              "lineageId": "relative-subject",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "rA",
+                              "label": "A",
+                              "word": "खड़ी"
+                            }
+                          ],
+                          "id": "rAP",
+                          "label": "A"
+                        },
+                        {
+                          "children": [],
+                          "id": "rT",
+                          "label": "T[present]",
+                          "word": "है"
+                        }
+                      ],
+                      "id": "rTCore",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "rTP",
+                  "label": "T"
+                },
+                {
+                  "children": [],
+                  "id": "rC",
+                  "label": "C[relative]",
+                  "silent": true
+                }
+              ],
+              "id": "rCCore",
+              "label": "C[relative]"
+            }
+          ],
+          "id": "rCP",
+          "label": "C[relative]"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "mVah",
+                  "label": "D",
+                  "word": "वह"
+                }
+              ],
+              "id": "mD1",
+              "label": "D[demonstrative pronoun]",
+              "lineageId": "matrix-subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mD0",
+                      "label": "D trace",
+                      "lineageId": "matrix-subject",
+                      "silent": true
+                    },
+                    {
+                      "children": [],
+                      "id": "mA",
+                      "label": "A",
+                      "word": "लंबी"
+                    }
+                  ],
+                  "id": "mAP",
+                  "label": "A"
+                },
+                {
+                  "children": [],
+                  "id": "mT",
+                  "label": "T[present]",
+                  "word": "है"
+                }
+              ],
+              "id": "mTCore",
+              "label": "T"
+            }
+          ],
+          "id": "mTP",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "matrixDemonstrative": "mD1",
+            "matrixHost": "mTP",
+            "relativeClause": "rCP",
+            "relativeOperator": "rD2"
+          },
+          "relation": "clause-level correlative dependency",
+          "values": {
+            "attachment": "relative CP left-adjoined to matrix TP",
+            "interpretation": "the standing girl and the tall demonstrative referent are the same individual"
+          }
+        }
+      ],
+      "stageRecord": "Externally merge the relative CP as a left adjunct to the completed matrix TP. The resulting object retains the matrix T label; the relative C does not select the matrix clause. This attachment establishes the correlative dependency between the relative operator जो लड़की and the matrix demonstrative वह: the girl satisfying the standing description is the individual asserted to be tall. Finally merge silent declarative C above the augmented matrix TP. This is the clause-level attachment analysis: the initial relative CP is outside the matrix subject DP. The overt terminal order is exactly जो लड़की खड़ी है वह लंबी है, with punctuation supplied by the input.",
+      "statement": "Complete the clause-adjoined correlative analysis.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "rJo",
+                          "label": "D[relative]",
+                          "word": "जो"
+                        },
+                        {
+                          "children": [],
+                          "id": "rN",
+                          "label": "N",
+                          "word": "लड़की"
+                        }
+                      ],
+                      "id": "rD2",
+                      "label": "D[relative operator]",
+                      "lineageId": "relative-subject"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rD1",
+                              "label": "D trace",
+                              "lineageId": "relative-subject",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "rD0",
+                                      "label": "D trace",
+                                      "lineageId": "relative-subject",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "rA",
+                                      "label": "A",
+                                      "word": "खड़ी"
+                                    }
+                                  ],
+                                  "id": "rAP",
+                                  "label": "A"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "rT",
+                                  "label": "T[present]",
+                                  "word": "है"
+                                }
+                              ],
+                              "id": "rTCore",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "rTP",
+                          "label": "T"
+                        },
+                        {
+                          "children": [],
+                          "id": "rC",
+                          "label": "C[relative]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "rCCore",
+                      "label": "C[relative]"
+                    }
+                  ],
+                  "id": "rCP",
+                  "label": "C[relative]"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "mVah",
+                          "label": "D",
+                          "word": "वह"
+                        }
+                      ],
+                      "id": "mD1",
+                      "label": "D[demonstrative pronoun]",
+                      "lineageId": "matrix-subject"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "mD0",
+                              "label": "D trace",
+                              "lineageId": "matrix-subject",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "mA",
+                              "label": "A",
+                              "word": "लंबी"
+                            }
+                          ],
+                          "id": "mAP",
+                          "label": "A"
+                        },
+                        {
+                          "children": [],
+                          "id": "mT",
+                          "label": "T[present]",
+                          "word": "है"
+                        }
+                      ],
+                      "id": "mTCore",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "mTP",
+                  "label": "T"
+                }
+              ],
+              "id": "mAugmentedTP",
+              "label": "T"
+            },
+            {
+              "children": [],
+              "id": "mC",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ],
+          "id": "mCP",
+          "label": "C[declarative]"
+        }
+      ]
+    }
+  ]
+}

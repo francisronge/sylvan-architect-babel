@@ -37,30 +37,95 @@ export const fallbackLabelRect = (mark: Pick<BoundFallbackMark, 'x' | 'y' | 'tex
   };
 };
 
-// Keep straight connectors intact outside the measured label rectangles.
-export function clearLabelPath(from: Point, to: Point, boxes: readonly Rect[] = []): string {
-  const dx = to.x - from.x, dy = to.y - from.y;
-  let visible: Array<[number, number]> = [[0, 1]];
-  for (const box of boxes) {
-    let enter = 0, leave = 1;
-    for (const [origin, delta, min, max] of [
-      [from.x, dx, box.x, box.x + box.width],
-      [from.y, dy, box.y, box.y + box.height]
-    ]) {
-      if (Math.abs(delta) < 1e-9) {
-        if (origin < min || origin > max) { enter = 1; leave = 0; break; }
-      } else {
-        const a = (min - origin) / delta, b = (max - origin) / delta;
-        enter = Math.max(enter, Math.min(a, b));
-        leave = Math.min(leave, Math.max(a, b));
-      }
+/** Painted connector strokes in marker units; each round-capped line is drawn over its shadow. */
+export const FALLBACK_STROKE_WIDTHS = {
+  'direct': { line: 1.5, shadow: 3.6 },
+  'counter-lane': { line: 1.9, shadow: 4.4 }
+} as const;
+
+// Connector clearances in marker units, so every automatic Fit keeps the same
+// screen spacing and manual zoom scales it with the tree.
+const LABEL_CLEARANCE = 3;
+const ROUTE_CLEARANCE = 12;
+// Dark space a spoke leaves between its shadow and a plaque it would meet.
+const PLAQUE_VISIBLE_GAP = 4;
+
+const inflateRect = (rect: Rect, by: number): Rect =>
+  ({ x: rect.x - by, y: rect.y - by, width: rect.width + 2 * by, height: rect.height + 2 * by });
+
+/** Parameters along from→to where the straight line is inside the box, if any. */
+function lineInterval(from: Point, dx: number, dy: number, box: Rect): [number, number] | null {
+  let enter = 0, leave = 1;
+  for (const [origin, delta, min, max] of [
+    [from.x, dx, box.x, box.x + box.width],
+    [from.y, dy, box.y, box.y + box.height]
+  ]) {
+    if (Math.abs(delta) < 1e-9) {
+      if (origin < min || origin > max) return null;
+    } else {
+      const a = (min - origin) / delta, b = (max - origin) / delta;
+      enter = Math.max(enter, Math.min(a, b));
+      leave = Math.min(leave, Math.max(a, b));
     }
-    if (enter >= leave) continue;
-    visible = visible.flatMap<[number, number]>(([a, b]) => leave <= a || enter >= b ? [[a, b]]
-      : [...(a < enter ? [[a, enter] as [number, number]] : []), ...(leave < b ? [[leave, b] as [number, number]] : [])]);
   }
-  const point = (t: number) => `${(from.x + dx * t).toFixed(1)} ${(from.y + dy * t).toFixed(1)}`;
-  return visible.map(([a, b]) => `M ${point(a)} L ${point(b)}`).join(' ');
+  return enter < leave ? [enter, leave] : null;
+}
+
+/** Euclidean distance between a straight piece and a rectangle; zero when they meet. */
+function segmentRectDistance(p: Point, q: Point, box: Rect): number {
+  const dx = q.x - p.x, dy = q.y - p.y, squared = dx * dx + dy * dy;
+  if (lineInterval(p, dx, dy, box)) return 0;
+  const toBox = (point: Point) => Math.hypot(Math.max(box.x - point.x, 0, point.x - box.x - box.width),
+    Math.max(box.y - point.y, 0, point.y - box.y - box.height));
+  const toPiece = (x: number, y: number) => {
+    const t = squared ? Math.max(0, Math.min(1, ((x - p.x) * dx + (y - p.y) * dy) / squared)) : 0;
+    return Math.hypot(x - p.x - t * dx, y - p.y - t * dy);
+  };
+  return Math.min(toBox(p), toBox(q), toPiece(box.x, box.y), toPiece(box.x + box.width, box.y),
+    toPiece(box.x, box.y + box.height), toPiece(box.x + box.width, box.y + box.height));
+}
+
+/** A plaque is not an attachment point. When the line left visible beside its
+ * labels comes within `contact` of a plaque, it is cut wherever it lies inside
+ * the plaque inflated by `gap`, so each cut end keeps at least that distance.
+ * A line passing beside a plaque stays whole. No cut may remove the piece at
+ * either labelled end or round it to nothing: the plaque then cuts at its own
+ * edge, or not at all.
+ * An isolated piece left between cuts, shorter than `minimum`, would paint as
+ * a round-capped dot and is dropped. */
+type PlaqueClearance = { boxes: readonly Rect[]; contact: number; gap: number; minimum: number };
+
+type Interval = [number, number];
+const removeInterval = (visible: Interval[], cut: Interval | null): Interval[] => !cut ? visible
+  : visible.flatMap<Interval>(([a, b]) => cut[1] <= a || cut[0] >= b ? [[a, b]]
+    : [...(a < cut[0] ? [[a, cut[0]] as Interval] : []), ...(cut[1] < b ? [[cut[1], b] as Interval] : [])]);
+
+// Keep straight connectors intact outside the measured label rectangles.
+export function clearLabelPath(from: Point, to: Point, boxes: readonly Rect[] = [], plaques?: PlaqueClearance): string {
+  const dx = to.x - from.x, dy = to.y - from.y;
+  const at = (t: number): Point => ({ x: from.x + dx * t, y: from.y + dy * t });
+  const besideLabels = boxes.reduce<Interval[]>((parts, box) => removeInterval(parts, lineInterval(from, dx, dy, box)), [[0, 1]]);
+  const start = besideLabels[0]?.[0], end = besideLabels.at(-1)?.[1];
+  // SVG reads -0.0 and 0.0 as one coordinate; writing only 0.0 keeps equal points equal.
+  const coordinate = (value: number) => value.toFixed(1).replace(/^-(0\.0)$/, '$1');
+  const point = (t: number) => `${coordinate(at(t).x)} ${coordinate(at(t).y)}`;
+  const length = Math.hypot(dx, dy);
+  // Judge attachment on pieces as they are written, so the check and the path cannot disagree.
+  const drawn = ([a, b]: Interval) => point(a) !== point(b);
+  const ends = [(piece: Interval) => piece[0] === start, (piece: Interval) => piece[1] === end]
+    .filter(atEnd => besideLabels.some(piece => atEnd(piece) && drawn(piece)));
+  const attached = (parts: Interval[]) => ends.every(atEnd => parts.some(piece => atEnd(piece) && drawn(piece)));
+  let visible = besideLabels;
+  if (plaques) {
+    const met = plaques.boxes.filter(box => besideLabels.some(([a, b]) => segmentRectDistance(at(a), at(b), box) < plaques.contact));
+    // Attachment wins over clearance: keep the gap, else cut at the plaque's edge, else leave the spoke uncut.
+    for (const box of met) visible = removeInterval(visible, [inflateRect(box, plaques.gap), box]
+      .map(rect => lineInterval(from, dx, dy, rect)).find(cut => attached(removeInterval(visible, cut))) ?? null);
+  }
+  // A piece that still leaves a labelled end keeps the spoke attached, however short.
+  const kept = ([a, b]: Interval) => a === start || b === end || besideLabels.some(([c, e]) => c === a && e === b)
+    || drawn([a, b]) && (b - a) * length >= plaques!.minimum;
+  return visible.filter(kept).map(([a, b]) => `M ${point(a)} L ${point(b)}`).join(' ');
 }
 
 export const routeFallbackSegments = (
@@ -69,6 +134,12 @@ export const routeFallbackSegments = (
 ): BoundSegment[] => {
   const markerScale = Math.max(0.1, options.markerScale ?? 1);
   const laneGap = options.laneGap ?? 24;
+  const plaques = options.occlusions ?? options.obstacles ?? [];
+  // Counter-lane stems keep exact clipping: plaque placement reserves them.
+  const clearances = [...(options.labelClearances ?? []), ...plaques];
+  const shadowReach = FALLBACK_STROKE_WIDTHS.direct.shadow / 2 * markerScale;
+  const spokePlaques = { boxes: plaques, contact: shadowReach, gap: shadowReach + PLAQUE_VISIBLE_GAP * markerScale,
+    minimum: FALLBACK_STROKE_WIDTHS.direct.line * markerScale };
   const counterSegments = segments.filter(segment => segment.route === 'counter-lane');
   const lanes = allocateSpanLanes(counterSegments.map(segment => ({
     start: Math.min(segment.from.x, segment.to.x),
@@ -82,7 +153,7 @@ export const routeFallbackSegments = (
     ? participantBottom + 34 * markerScale
     : options.connectorBaselineY ?? participantBottom + 46 * markerScale;
   // Move the common floor, not individual lanes, so distinct links stay distinct.
-  const clearance = 12 * markerScale;
+  const clearance = ROUTE_CLEARANCE * markerScale;
   for (const box of [...(options.obstacles ?? [])].sort((a, b) => a.y - b.y)) {
     if (box.y - clearance <= measuredBaseline + Math.max(0, ...lanes) * laneGap
       && counterSegments.some(segment => box.x - clearance < Math.max(segment.from.x, segment.to.x)
@@ -92,10 +163,7 @@ export const routeFallbackSegments = (
   let counterIndex = 0;
   return segments.map(segment => {
     if (segment.route === 'direct') {
-      return {
-        ...segment, lane: null,
-        d: clearLabelPath(segment.from, segment.to, [...(options.labelClearances ?? []), ...(options.occlusions ?? options.obstacles ?? [])])
-      };
+      return { ...segment, lane: null, d: clearLabelPath(segment.from, segment.to, options.labelClearances, spokePlaques) };
     }
     const from = segment.from.x <= segment.to.x ? segment.from : segment.to;
     const to = from === segment.from ? segment.to : segment.from;
@@ -103,7 +171,6 @@ export const routeFallbackSegments = (
     const laneY = measuredBaseline + lane * laneGap;
     const stem = 6 * markerScale;
     const corner = 9 * markerScale;
-    const clearances = [...(options.labelClearances ?? []), ...(options.occlusions ?? options.obstacles ?? [])];
     const leftTurn = { x: from.x, y: laneY - 8 * markerScale };
     const rightTurn = { x: to.x, y: leftTurn.y };
     const d = [
@@ -219,11 +286,11 @@ export const fitFallbackGeometry = (
   // around long text or allowing later role labels to cover its stems.
   for (const segment of routed) {
     const points = [segment.from, { x: segment.from.x, y: segment.laneY! },
-    { x: segment.to.x, y: segment.laneY! }, segment.to], pad = 12 * scale;
-    points.slice(1).forEach((point, i) => occupied.push({
-      x: Math.min(point.x, points[i].x) - pad, y: Math.min(point.y, points[i].y) - pad,
-      width: Math.abs(point.x - points[i].x) + pad * 2, height: Math.abs(point.y - points[i].y) + pad * 2
-    }));
+    { x: segment.to.x, y: segment.laneY! }, segment.to];
+    points.slice(1).forEach((point, i) => occupied.push(inflateRect({
+      x: Math.min(point.x, points[i].x), y: Math.min(point.y, points[i].y),
+      width: Math.abs(point.x - points[i].x), height: Math.abs(point.y - points[i].y)
+    }, ROUTE_CLEARANCE * scale)));
   }
   const updates = new Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail>();
   const centers = new Map<number, Point>();
@@ -244,10 +311,8 @@ export const fitFallbackGeometry = (
     obstacles: options.fallbackMeasurements?.obstacles,
     occlusions: options.fallbackMeasurements?.visibleObstacles,
     labelClearances: [
-      ...(options.fallbackMeasurements?.visibleLabels ?? options.fallbackMeasurements?.labels ?? []).map(rect => ({
-        x: rect.x - 3 * scale, y: rect.y - 3 * scale,
-        width: rect.width + 6 * scale, height: rect.height + 6 * scale
-      })),
+      ...(options.fallbackMeasurements?.visibleLabels ?? options.fallbackMeasurements?.labels ?? [])
+        .map(rect => inflateRect(rect, LABEL_CLEARANCE * scale)),
       ...[...updates.values()].filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')
         .map(mark => fallbackLabelRect(mark, scale))
     ]
