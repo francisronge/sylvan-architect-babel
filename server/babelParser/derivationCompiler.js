@@ -7,16 +7,20 @@ import { authoredWord } from './nodePronunciation.js';
 import { collectOvertTerminalNodes, sameTokenSequence, deriveCanonicalSurfaceSpans } from './syntaxTree.js';
 import { createAuthoredWorkspaceHelpers } from './authoredWorkspace.js';
 
-const { cloneJson, expandWorkspaceForest, ...authoredWorkspace } =
+const { cloneJson, expandWorkspaceForest, createExpansionBudget, ...authoredWorkspace } =
   createAuthoredWorkspaceHelpers({ ParseApiError, createFailure, withFailureDetails,
     resolveRealizations, validateRealizations, tokenizeSentenceSurfaceOrder });
 
+export { createExpansionBudget };
+
+/** Expands each frame's workspace; options.expansionBudget may be shared by every analysis of a response. */
 export const normalizeDerivationFrames = (value, options = {}) => {
   if (!Array.isArray(value)) return [];
   const integrityFlags = Array.isArray(options?.integrityFlags)
     ? options.integrityFlags
     : [];
   const priorNodes = new Map();
+  const expansionBudget = options.expansionBudget ?? createExpansionBudget();
 
   return value.map((frame, stageIndex) => {
     const rawForest = frame?.after?.workspaceForest;
@@ -26,7 +30,9 @@ export const normalizeDerivationFrames = (value, options = {}) => {
       stageIndex,
       integrityFlags,
       undefined,
-      options.nodeFieldPaths
+      options.nodeFieldPaths,
+      undefined,
+      expansionBudget
     );
     if (frame?.after?.realizations?.length > 0) {
       const surface = resolveRealizations(workspaceForest, frame.after.realizations, options.sentenceTokens,

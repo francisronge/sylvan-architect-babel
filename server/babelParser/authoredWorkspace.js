@@ -2,6 +2,11 @@
 // authored fields, and the server-derived surfaceSpan.
 const DERIVATION_NODE_FIELDS = new Set(['id', 'label', 'children', 'word', 'tokenIndex', 'silent', 'lineageId', 'surfaceSpan']);
 
+// JSON values of node fields, other than children, that expansion may copy for
+// one response, counted at every expanded occurrence. Saved responses copy at
+// most about 2,000; ignored metadata referenced across many stages reaches it.
+const MAX_EXPANDED_FIELD_VALUES = 1_000_000;
+
 /** Canonical authored-stage rules. The server supplies error-envelope policy;
  * browser inspection reuses this pure factory without importing provider or
  * Node runtimes. Inspection never accepts or repairs a failed analysis. */
@@ -231,7 +236,8 @@ export const createAuthoredWorkspaceHelpers = ({
     integrityFlags,
     diagnostics,
     nodeFieldPaths,
-    inspectionBudget
+    inspectionBudget,
+    expansionBudget
   ) => {
     const throwMalformedWorkspace = (message, fieldPath, offendingValue, expectedForm, inspectable = false) => {
       const details = withFailureDetails({}, {
@@ -271,6 +277,18 @@ export const createAuthoredWorkspaceHelpers = ({
       if (Array.isArray(value)) return value.map(item => cloneInspectedField(item, path));
       if (!value || typeof value !== 'object') return value;
       return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneInspectedField(item, path)]));
+    };
+    // Copies one node field, charging each JSON value to the response's budget.
+    const cloneExpandedField = (value, path) => {
+      if (expansionBudget && --expansionBudget.remainingFieldValues < 0) {
+        throwMalformedWorkspace(
+          `Stage ${stageIndex + 1}, ${path}: expanded node fields exceed ${MAX_EXPANDED_FIELD_VALUES} values across the response.`,
+          path, null, `node fields with at most ${MAX_EXPANDED_FIELD_VALUES} JSON values across every expanded occurrence`
+        );
+      }
+      if (Array.isArray(value)) return value.map(item => cloneExpandedField(item, path));
+      if (!value || typeof value !== 'object') return value;
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneExpandedField(item, path)]));
     };
 
     const expandNode = (rawNode, path, carriedFrom = null, depth = 0) => {
@@ -350,12 +368,15 @@ export const createAuthoredWorkspaceHelpers = ({
           integrityFlags.push(`node_field_ignored:${stageIndex + 1}:${path}.${field}`);
         }
       });
-      // Inspection checks descendants before allocating them. Cloning the whole
-      // referenced subtree here would allocate unchecked descendants first.
+      // Only the node's own fields are copied here; its children are expanded
+      // once below, so each occurrence is copied once rather than once per
+      // ancestor. The placeholder keeps children at its authored key position.
+      // Inspection checks descendants before allocating them.
       const fields = inspectionBudget
         ? Object.fromEntries(Object.entries(rawNode).filter(([key]) => key !== 'children')
           .map(([key, item]) => [key, cloneInspectedField(item, `${path}.${key}`)]))
-        : cloneJson(rawNode);
+        : Object.fromEntries(Object.entries(rawNode)
+          .map(([key, item]) => [key, key === 'children' ? null : cloneExpandedField(item, `${path}.${key}`)]));
       const expanded = {
         ...fields,
         children: rawNode.children.map((child, childIndex) => (
@@ -372,6 +393,9 @@ export const createAuthoredWorkspaceHelpers = ({
       expandNode(root, `$.derivationStages[${stageIndex}].workspaceForest[${rootIndex}]`)
     ));
   };
+
+  /** One response's allowance of copied node-field values; see MAX_EXPANDED_FIELD_VALUES. */
+  const createExpansionBudget = () => ({ remainingFieldValues: MAX_EXPANDED_FIELD_VALUES });
 
   const sameExpandedBody = (left, right) => {
     if (left === right) return true;
@@ -490,7 +514,7 @@ export const createAuthoredWorkspaceHelpers = ({
         if (unambiguousBodies) {
           // Inspection only reads cached nodes and expansion always copies them.
           // Reusing those immutable inputs avoids a second subtree copy per ID.
-          nodes.forEach(([{ node }], nodeId) => priorNodes.set(nodeId, options.inspectionBudget ? node : cloneJson(node)));
+          nodes.forEach(([{ node }], nodeId) => priorNodes.set(nodeId, node));
         } else {
           priorNodes.clear();
         }
@@ -587,6 +611,6 @@ export const createAuthoredWorkspaceHelpers = ({
     return entries;
   };
 
-  return { cloneJson, normalizeDerivationStagesToDerivationFrames, expandWorkspaceForest, inspectDerivationWorkspaces };
+  return { cloneJson, normalizeDerivationStagesToDerivationFrames, expandWorkspaceForest, createExpansionBudget, inspectDerivationWorkspaces };
 };
 
