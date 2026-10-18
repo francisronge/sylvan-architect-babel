@@ -4,6 +4,7 @@ import { createReplayCompilation, type ReplayCompilationInput } from './compilat
 import { normalizePlaybackSequence } from './playbackVisibility.ts';
 import { attachReplayRealizations } from './realizationReplay.ts';
 import { normalizeReplaySentenceInitialCasing } from './replayCasing.ts';
+import { retainRestatementsUntilNamingMoment } from './restatementTiming.ts';
 import { buildStageConstruction } from './stageConstruction.ts';
 import { prepareReplayStage } from './stageContext.ts';
 import { orderDetachedReplayWorkspaces } from './stageLayout.ts';
@@ -26,5 +27,6 @@ export const buildPlaybackStepsFromDerivationFrames = (input: ReplayCompilationI
   const { pendingProjectionReveals, sentenceInitialSurface } = compilation;
   const countedSteps = normalizePlaybackSequence(frameBackedSteps, pendingProjectionReveals, replayPlan);
   const positionedSteps = orderDetachedReplayWorkspaces(countedSteps, frames);
-  return attachReplayRealizations(normalizeReplaySentenceInitialCasing(positionedSteps, sentenceInitialSurface), frames, resolveSavedInputTokens(sentence, inputTokens));
+  const timedSteps = retainRestatementsUntilNamingMoment(positionedSteps, frames);
+  return attachReplayRealizations(normalizeReplaySentenceInitialCasing(timedSteps, sentenceInitialSurface), frames, resolveSavedInputTokens(sentence, inputTokens));
 };

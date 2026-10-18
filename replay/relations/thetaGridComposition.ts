@@ -11,9 +11,24 @@ const drawingKey = (item: RelationPlanItem) => JSON.stringify([
 const uniqueRefs = (refs: PlanRelationRef[]) => refs.filter((ref, i) => refs.findIndex(other =>
   other.stageIndex === ref.stageIndex && other.relationIndex === ref.relationIndex) === i);
 
+/** The moment in this frame's stage of the first relation after a badge's own
+ * that composes with its grid, or undefined when the badge yields from the
+ * stage's start: no such relation plays here, or one in an earlier stage
+ * already composed it. */
+const composingMoment = (badge: RelationPlanItem, refs: PlanRelationRef[], frameIndex: number) => {
+  const own = badge.relationRef;
+  const later = refs.filter(ref => ref.stageIndex > own.stageIndex || ref.stageIndex === own.stageIndex && ref.relationIndex > own.relationIndex);
+  if (later.some(ref => ref.stageIndex < frameIndex)) return undefined;
+  return later.filter(ref => ref.stageIndex === frameIndex).sort((left, right) => left.relationIndex - right.relationIndex)[0];
+};
+
 /** Combine overlapping inventories of the same exact predicate. Each row keeps
- * its own authored moments; neither whole relations nor their history merge. */
-export function composeThetaGrids(items: RelationPlanItem[], predicateLineage: (grid: Grid) => string | undefined): RelationPlanItem[] {
+ * its own authored moments; neither whole relations nor their history merge.
+ * The composed grid replaces its contributors' theta badges. A badge that was
+ * already on screen yields at the moment of the relation that composes with
+ * it, not at the start of that relation's stage. */
+export function composeThetaGrids(items: RelationPlanItem[], predicateLineage: (grid: Grid) => string | undefined,
+  frameIndex: number): RelationPlanItem[] {
   const groups: Grid[][] = [];
   for (const item of items) {
     if (!isGrid(item) || item.backward || new Set(item.thetaRoles.map(role => role.nodeId)).size !== item.thetaRoles.length) continue;
@@ -56,7 +71,12 @@ export function composeThetaGrids(items: RelationPlanItem[], predicateLineage: (
     group.slice(1).forEach(item => removed.add(item));
     const keys = new Set(group.map(drawingKey));
     const badges = items.filter(item => item.kind === 'node-badges' && item.badgeStyle === 'theta-role' && keys.has(drawingKey(item)));
-    badges.forEach(item => removed.add(item));
+    badges.forEach(item => {
+      const yieldAt = composingMoment(item, refs, frameIndex), prior = item.supersededAt;
+      if (!yieldAt) removed.add(item);
+      else if (!(prior?.stageIndex === frameIndex && prior.relationIndex <= yieldAt.relationIndex))
+        replacements.set(item, { ...item, supersededAt: yieldAt });
+    });
   }
   return items.filter(item => !removed.has(item)).map(item => replacements.get(item) ?? item);
 }
