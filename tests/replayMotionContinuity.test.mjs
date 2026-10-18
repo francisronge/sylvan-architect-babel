@@ -4,11 +4,13 @@ import fs from 'node:fs';
 import * as d3 from '../node_modules/d3/src/index.js';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import * as coordinates from '../replay/stageCoordinates.ts';
+import { alignedStageFrames } from '../replay/stageCoordinates.ts';
 import * as camera from '../replay/stageCamera.ts';
 import * as layout from '../replay/treeLayout.ts';
 import * as display from '../replay/displayIdentity.ts';
 import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
 import { motionFrame, replayMotionFaults } from '../scripts/replayMotionContinuity.mjs';
+import { carryCamera } from '../components/treeViewport.ts';
 
 const point = (id, x, y, parent = null) => ({ id, x, y, parent });
 const frame = (operation, target, points, kind = 'micro', links = []) => ({ kind, operation, target, links, points });
@@ -130,24 +132,60 @@ test('a word that shifts under a stationary phrase is reported, whoever owns the
     .filter(fault => fault.kind === 'shape-motion'), [], 'a parent that recentres alone does not deform its still child');
 });
 
-// Defects 19–21 (open): GPT-6.1 Sol, 我昨天看见的那个人走了。 Select T jumps 我 and 昨天
-// (frame 16), T + v moves the retained vP a row (17), and D + Top pulls 我 across
-// the tree (47). Stage 0 borrows the stage-2 tree, while stage 1 lays its waiting
-// roots out beside its own clause. Aligning stage frames removes the first three
-// jumps, but it lengthens 昨天's remaining jumps at frames 16 and 44, and holding
-// 昨天 at its stage-1 slot widens stage 0. This test pins the open faults; a fix
-// must make it fail before it is updated.
+// Defects 19–21: GPT-6.1 Sol, 我昨天看见的那个人走了。 Select T jumped 我 and 昨天 (frame
+// 16), T + v moved the waiting vP a row (17), the stage-2 subject movement moved 我
+// and 昨天 across the clause (44), and D + Top pulled 我 across the tree (47). Each
+// waiting piece now stands where it attaches from its first frame; 昨天, which
+// attaches under the T inserted at frame 49, waits beside that T's host and
+// descends with it. The clause pieces that close the raised subject's gap still
+// move at 44, as on main.
 const waitingRoots = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/waiting-root-continuity.json', import.meta.url)));
-for (const [width, height] of [[1440, 900], [390, 844]]) test(`${width}px: open defects 19–21 — the rule reports the waiting-root jumps of the historical record`, () => {
-  const authored = JSON.stringify(waitingRoots);
-  const { playbackSteps: steps } = prepareReplay({ ...waitingRoots, includePlayback: true });
-  const { scenes } = layoutReplayFrames({ steps, stages: waitingRoots.derivationStages, width, height,
-    direction: 'ltr' }, { coordinates, camera, layout, display, d3 });
-  const faults = replayMotionFaults({ frames: scenes.map(scene => motionFrame(scene.step, scene.nodes, display.getNodeId)) });
-  assert.deepEqual(faults.filter(fault => fault.kind !== 'shape-motion').map(fault => `${fault.frame}:${fault.node}:${fault.kind}:${Math.round(fault.distance)}`), [
-    '16:topic:unowned-motion:975', '16:yesterday:unowned-motion:2418', '17:relativePredicate:attachment-site-motion:247',
-    '44:le:unowned-motion:448', '44:leave:unowned-motion:1690', '44:matrixT:unowned-motion:1165', '44:topic:unowned-motion:2520',
-    '44:yesterday:unowned-motion:4334', '47:topic:attachment-site-motion:975']);
-  assert.equal(JSON.stringify(waitingRoots), authored);
-});
+for (const [width, height] of [[1440, 900], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
+  test(`${width}px ${direction}: defects 19–21 — 我 and 昨天 keep their place in the tree from their first frame`, () => {
+    const authored = JSON.stringify(waitingRoots);
+    const { playbackSteps: steps } = prepareReplay({ ...waitingRoots, includePlayback: true });
+    const { scenes } = layoutReplayFrames({ steps, stages: waitingRoots.derivationStages, width, height, direction },
+      { coordinates, camera, layout, display, d3 });
+    const frames = scenes.map(scene => motionFrame(scene.step, scene.nodes, display.getNodeId));
+    const faults = replayMotionFaults({ frames });
+    const pieces = ['topic', 'topic::__leaf', 'yesterday', 'yesterday::__leaf'];
+    assert.deepEqual(faults.filter(fault => pieces.includes(fault.node) || [16, 17, 47].includes(fault.frame)), []);
+    // The camera carry is the only motion a stage crossing may show for them; at
+    // its own merge under the inserted T, 昨天 descends with its host matrixTP.
+    const painted = frame => new Map(frame.points.map(item => [item.id, { x: item.x, y: item.y, parentId: item.parent }]));
+    for (let index = 1; index < frames.length; index++) {
+      const crossing = frames[index].stage !== frames[index - 1].stage;
+      const carry = crossing ? carryCamera({ x: 0, y: 0, k: 1 }, painted(frames[index - 1]), painted(frames[index])) : { x: 0, y: 0 };
+      for (const id of pieces) {
+        const before = frames[index - 1].points.find(item => item.id === id), after = frames[index].points.find(item => item.id === id);
+        if (!before || !after) continue;
+        const host = { before: frames[index - 1].points.find(item => item.id === 'matrixTP'), after: frames[index].points.find(item => item.id === 'matrixTP') };
+        const own = frames[index].points.find(item => item.id === 'yesterday'), prior = frames[index - 1].points.find(item => item.id === 'yesterday');
+        const joins = id.startsWith('yesterday') && Boolean(own?.parent && !prior?.parent);
+        const expected = joins ? { x: 0, y: host.after.y - host.before.y } : { x: 0, y: 0 };
+        assert(Math.hypot(after.x + carry.x - before.x - expected.x, after.y + carry.y - before.y - expected.y) < 1e-6, `${id} moves at frame ${index + 1}`);
+        if (joins) assert.equal(own.parent, 'timedMatrixTP');
+      }
+    }
+    if (direction === 'ltr') assert.deepEqual(faults.filter(fault => fault.kind !== 'shape-motion')
+      .map(fault => `${fault.frame}:${fault.node}:${fault.kind}:${Math.round(fault.distance)}`),
+      ['44:le:unowned-motion:448', '44:leave:unowned-motion:1690', '44:matrixT:unowned-motion:1165']);
+    assert.equal(JSON.stringify(waitingRoots), authored);
+  });
+}
 
+test('stage alignment offsets follow every later stage, not only the next stage size', () => {
+  const sizesFor = (steps, extra) => {
+    const groups = camera.buildStageLayoutGroups(steps, waitingRoots.derivationStages);
+    const sizes = waitingRoots.derivationStages.map((_, stage) => camera.stageTreeLayoutSize(steps, stage, 1440, 900, groups));
+    sizes[2] = [sizes[2][0] + extra, sizes[2][1]];
+    return stage => sizes[stage];
+  };
+  const prepare = () => prepareReplay({ ...structuredClone(waitingRoots), includePlayback: true }).playbackSteps;
+  const frames = (steps, sizeFor) => JSON.stringify([...alignedStageFrames(steps, 0, sizeFor(0), sizeFor)].map(([, points]) => [...points]));
+  const reused = prepare();
+  const narrow = frames(reused, sizesFor(reused, 0)), changed = frames(reused, sizesFor(reused, 600));
+  assert.notEqual(changed, narrow, 'a wider final stage moves the earlier stages it anchors');
+  const fresh = prepare();
+  assert.equal(changed, frames(fresh, sizesFor(fresh, 600)), 'reused preparation matches a fresh one');
+});
