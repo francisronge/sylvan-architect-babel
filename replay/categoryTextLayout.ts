@@ -26,19 +26,48 @@ function wrapCategoryText(text: string, measure: CategoryTextMeasure) {
   const unwrappedWidth = measure(text);
   if (unwrappedWidth <= maxWidth) return { lines: [text], width: unwrappedWidth, height: 52, x: -unwrappedWidth / 2, y: -56 };
   const segments = [...graphemes.segment(text)].map(part => part.segment);
+  const fits = (from: number, to: number) => measure(segments.slice(from, to).join('')) <= maxWidth;
   const lines: string[] = [];
-  let line = '';
-  for (const segment of segments) {
-    while (line && measure(line + segment) > maxWidth) {
-      const boundary = [...line.matchAll(/[\s,]/gu)].at(-1);
-      const split = boundary ? boundary.index! + boundary[0].length : line.length;
-      lines.push(line.slice(0, split));
-      line = line.slice(split);
+  let start = 0;
+  for (let end = 1; end < segments.length; end++) {
+    while (start < end && !fits(start, end + 1)) {
+      const split = lineBreak(segments, start, end, fits);
+      lines.push(segments.slice(start, split).join(''));
+      start = split;
     }
-    line += segment;
   }
-  if (line || !lines.length) lines.push(line);
+  lines.push(segments.slice(start).join(''));
   const width = Math.max(...lines.map(measure));
   const height = 52 + (lines.length - 1) * CATEGORY_LINE_HEIGHT;
   return { lines, width, height, x: -width / 2, y: -height - 4 };
+}
+
+const breakAfter = /^[\s,]/u, openingBracket = /^\p{Ps}/u, closingBracket = /^\p{Pe}/u;
+// Closing brackets and quotes, clause punctuation, primes and bar-level marks
+// complete the text before them, so no line starts with one.
+const completesPrevious = /^[\p{Pe}\p{Pf},.;:!?、。，．：；！？′″‴'°⁰]/u;
+
+/** Choose where a line ends when grapheme `end` overflows the graphemes from
+ * `start`; the line keeps graphemes before the returned index. Prefer the last
+ * space or comma; then the last opening bracket whose complete group, with any
+ * text attached up to the next space or comma, fits on one line; then the
+ * latest grapheme boundary. No choice starts a line with a completing mark, and
+ * lines stay within the width unless a single grapheme exceeds it. */
+function lineBreak(segments: string[], start: number, end: number, fits: (from: number, to: number) => boolean) {
+  const opensLine = (index: number) => !completesPrevious.test(segments[index]);
+  for (let index = end; index > start; index--)
+    if (breakAfter.test(segments[index - 1]) && opensLine(index)) return index;
+  for (let index = end - 1; index > start; index--) {
+    if (!openingBracket.test(segments[index])) continue;
+    let depth = 0, group = index;
+    while (group < segments.length) {
+      const segment = segments[group++];
+      if (openingBracket.test(segment)) depth++;
+      else if (closingBracket.test(segment)) depth--;
+      else if (depth <= 0 && breakAfter.test(segment)) break;
+    }
+    if (fits(index, group)) return index;
+  }
+  for (let index = end; index > start; index--) if (opensLine(index)) return index;
+  return end;
 }

@@ -20,6 +20,25 @@ test('long categories wrap to measured width without losing text or changing sho
   assert(uneven.lines.every(line => unevenMeasure(line) <= 380));
 });
 
+test('a label breaks before its feature bracket instead of starting a line with closing punctuation', () => {
+  const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+  const measure = s => [...graphemes.segment(s)].length * 22;
+  const lines = text => categoryTextLayout(text, measure).lines;
+  assert.deepEqual(lines('Coord[alternative]'), ['Coord', '[alternative]']);
+  assert.deepEqual(lines('Asp⁰+Pred+v+V[PST, 3SG]'), ['Asp⁰+Pred+v+V', '[PST, 3SG]']);
+  // Without a bracket the overflowing closing mark takes its preceding grapheme along.
+  assert.deepEqual(lines('ChangeOfStateHead′'), ['ChangeOfStateHea', 'd′']);
+  assert.deepEqual(lines('ChangeOfStateParticleHead'), ['ChangeOfStatePart', 'icleHead']);
+  // A bracket group too wide for a line of its own keeps the existing grapheme break.
+  assert.deepEqual(lines('T[personal-infinitive]'), ['T[personal-infini', 'tive]']);
+  // Space and comma breaks keep their existing positions.
+  assert.deepEqual(lines('C[alternative question]'), ['C[alternative ', 'question]']);
+  assert.deepEqual(lines('V[past, third-person feminine singular]'), ['V[past, ', 'third-person ', 'feminine ', 'singular]']);
+  const accented = 'e\u0301'.repeat(17) + '′';
+  assert.deepEqual(lines(accented), ['e\u0301'.repeat(16), 'e\u0301′']);
+  assert.deepEqual(lines(`X[${'e\u0301'.repeat(15)}]`), ['X', `[${'e\u0301'.repeat(15)}]`]);
+});
+
 test('a selected determiner retains its authored nominal context before its projection exists', () => {
   const forest = [{ id: 'phrase', label: 'D', children: [
     { id: 'determiner', label: 'D[negative]', word: 'No' }, { id: 'noun', label: 'N', word: 'student' }
