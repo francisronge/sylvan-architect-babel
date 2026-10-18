@@ -30,7 +30,7 @@ Its optional fields are word, silent, and lineageId:
 - word is a string holding a terminal's lexical content. A wordless abstract item may remain wordless.
 - silent is a boolean. On a terminal, true means unpronounced in this stage, even if word retains lexical content. On a non-terminal, true means every terminal beneath it is unpronounced. Represent each occurrence's current status, not the status it will acquire later.
 - lineageId is a nonblank string shared by distinct occurrences of the same continuing syntactic object. It expresses identity, not a particular dependency type.
-Keep an occurrence's id while it persists across stages. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis, including its choice of copy or trace representation.
+Keep an occurrence's id while it persists across stages. When an occurrence moves, either the landing or the occurrence left at the source keeps its id. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis, including its choice of copy or trace representation.
 
 Earlier subtrees
 An earlier-subtree reference is an object containing only refId, whose value is an exact earlier node id. It carries that node's latest earlier definition and all its descendants into the current workspace. It cannot refer to a node first introduced in the current or a later stage.
