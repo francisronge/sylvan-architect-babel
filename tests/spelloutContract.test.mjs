@@ -313,6 +313,45 @@ test('a workspace that repeats an occurrence stops at the repeat instead of expa
   assert.match(convertOne(unknownRef, 'Mia').diagnostics[0].detail, /refId nowhere has no earlier definition/);
 });
 
+test('the spelling check stays bounded for any output shape', () => {
+  const quick = (payload, sentence) => {
+    const started = performance.now();
+    const [result] = convertSpelloutPayload(payload, sentence);
+    assert.ok(performance.now() - started < 1_000, 'bounded');
+    return result;
+  };
+  // An earlier group whose pieces repeat a word: the piece search counts choices instead of listing them.
+  const words = Array.from({ length: 40 }, (_, index) => leaf(`a${index}`, 'a'));
+  const repeated = { derivationStages: [
+    { statement: 's', stageRecord: 's', relations: [], workspaceForest: [node('r', 'R', ...words)],
+      realizations: [{ nodeIds: ['r'], text: [...Array(20).fill('a'), 'b'] }] },
+    { statement: 's', stageRecord: 's', relations: [], workspaceForest: [{ refId: 'r' }] }
+  ] };
+  assert.match(quick(repeated, Array(40).fill('a').join(' ')).diagnostics[0].detail, /matches no place/);
+  // Re-listing every earlier root in each stage grows quadratically, so the total is capped.
+  const growing = [];
+  for (let index = 0; index < 400; index += 1) {
+    growing.push({ statement: 's', stageRecord: 's', relations: [],
+      workspaceForest: [...Array.from({ length: index }, (_, earlier) => ({ refId: `n${earlier}` })), leaf(`n${index}`, 'Mia')] });
+  }
+  assert.match(quick({ derivationStages: growing }, 'Mia').diagnostics[0].detail, /expands to more nodes than the spelling check reads/);
+  // Wrapping the previous root once per stage is caught by the depth bound.
+  const wrapping = [{ statement: 's', stageRecord: 's', relations: [], workspaceForest: [node('n0', 'X', leaf('w', 'Mia'))] }];
+  for (let index = 1; index < 400; index += 1) {
+    wrapping.push({ statement: 's', stageRecord: 's', relations: [], workspaceForest: [node(`n${index}`, 'X', { refId: `n${index - 1}` })] });
+  }
+  assert.match(quick({ derivationStages: wrapping }, 'Mia').diagnostics[0].detail, /nests deeper than/);
+  // Deep nesting and very long stages fail as unreadable or too long, not with a stack overflow.
+  let deep = leaf('d', 'Mia');
+  for (let index = 0; index < 4_000; index += 1) deep = node(`p${index}`, 'X', deep);
+  assert.match(quick(oneStage([deep]), 'Mia').diagnostics[0].detail, /nests deeper than/);
+  const long = Array.from({ length: 1_500 }, (_, index) => leaf(`w${index}`, 'a'));
+  assert.equal(quick(oneStage([node('s', 'S', ...long)]), Array(1_500).fill('a').join(' ')).diagnostics[0].rule, 'SPELLOUT_ALIGNMENT_LIMIT');
+  // Malformed stages and group ids are typed diagnostics, never exceptions.
+  assert.equal(quick({ derivationStages: [null] }, 'Mia').diagnostics[0].rule, 'SPELLOUT_UNREADABLE');
+  assert.equal(quick(oneStage([leaf('a', 'Mia')], [{ nodeIds: [{ toString: null }], text: 'Mia' }]), 'Mia').diagnostics[0].rule, 'SPELLOUT_GROUP_SHAPE');
+});
+
 test('an analysis that does not spell another analysis\'s punctuation word fails', () => {
   const results = convertSpelloutPayload({ analyses: [flat('Mia', 'laughed', '.'), flat('Mia', 'laughed')] }, 'Mia laughed.');
   assert.deepEqual(results.map(result => result.ok), [true, false]);

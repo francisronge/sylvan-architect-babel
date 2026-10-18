@@ -23,6 +23,13 @@ const failure = (rule, detail) => ({ rule, detail });
 /** Thrown when a workspace cannot be read; the parser reports structure in detail. */
 class SpelloutStructureError extends Error {}
 
+// Bounds that keep the check linear and its recursion shallow for any output.
+// Real analyses stay far below them: a stage has hundreds of nodes, not thousands.
+const MAX_STAGE_NODES = 5_000;
+const MAX_ANALYSIS_NODES = 50_000;
+const MAX_DEPTH = 256;
+const MAX_READING_UNITS = 1_000;
+
 /**
  * Expands refIds as the parser does: from the latest earlier expanded
  * definition. An occurrence id may appear once per expanded workspace, so a
@@ -31,28 +38,34 @@ class SpelloutStructureError extends Error {}
  */
 const expandStages = (stages) => {
   const definitions = new Map();
+  let total = 0;
   return stages.map((stage, stageIndex) => {
     const seen = new Set();
     const where = `Stage ${stageIndex + 1}`;
-    const claim = (id) => {
+    let count = 0;
+    const claim = (id, depth) => {
+      if (depth > MAX_DEPTH) throw new SpelloutStructureError(`${where} nests deeper than ${MAX_DEPTH} levels.`);
+      if ((count += 1) > MAX_STAGE_NODES || (total += 1) > MAX_ANALYSIS_NODES) {
+        throw new SpelloutStructureError(`${where} expands to more nodes than the spelling check reads.`);
+      }
       if (typeof id !== 'string') return;
       if (seen.has(id)) throw new SpelloutStructureError(`${where} repeats occurrence id ${id}.`);
       seen.add(id);
     };
-    const expandDefinition = (node) => {
-      claim(node.id);
-      return { ...node, children: node.children.map(expandDefinition) };
+    const expandDefinition = (node, depth) => {
+      claim(node.id, depth);
+      return { ...node, children: node.children.map(child => expandDefinition(child, depth + 1)) };
     };
-    const expand = (node) => {
+    const expand = (node, depth = 0) => {
       if (isPlainObject(node) && Object.keys(node).length === 1 && typeof node.refId === 'string') {
         if (!definitions.has(node.refId)) throw new SpelloutStructureError(`${where} refId ${node.refId} has no earlier definition.`);
-        return expandDefinition(definitions.get(node.refId));
+        return expandDefinition(definitions.get(node.refId), depth);
       }
       if (!isPlainObject(node)) throw new SpelloutStructureError(`${where} contains a malformed node.`);
-      claim(node.id);
-      return { ...node, children: Array.isArray(node.children) ? node.children.map(expand) : [] };
+      claim(node.id, depth);
+      return { ...node, children: Array.isArray(node.children) ? node.children.map(child => expand(child, depth + 1)) : [] };
     };
-    const forest = (Array.isArray(stage?.workspaceForest) ? stage.workspaceForest : []).map(expand);
+    const forest = (Array.isArray(stage?.workspaceForest) ? stage.workspaceForest : []).map(root => expand(root, 0));
     const record = (node) => { if (typeof node.id === 'string') definitions.set(node.id, node); node.children.forEach(record); };
     forest.forEach(record);
     (Array.isArray(stage?.realizations) ? stage.realizations : []).forEach((group, groupIndex) => group.nodeIds
@@ -98,7 +111,8 @@ const spelloutShapeDiagnostics = (stages) => {
       const text = group?.text;
       const validText = (typeof text === 'string' && text.trim()) || (Array.isArray(text) && text.length > 0
         && text.every(piece => typeof piece === 'string' && piece.trim()));
-      const valid = isPlainObject(group) && Object.keys(group).length === 2 && Array.isArray(group.nodeIds) && validText;
+      const valid = isPlainObject(group) && Object.keys(group).length === 2 && Array.isArray(group.nodeIds)
+        && group.nodeIds.every(id => typeof id === 'string' && id.trim()) && validText;
       if (!valid) diagnostics.push(failure('SPELLOUT_GROUP_SHAPE',
         `${path}.realizations[${index}] needs exactly nodeIds and text: a nonblank string or a nonempty array of nonblank strings.`));
     });
@@ -191,6 +205,9 @@ const alignFinalStage = (forest, groups, sentence) => {
     if (!placed.has(index)) diagnostics.push(failure('SPELLOUT_GROUP_UNPLACED', `Final-stage group ${index} covers no pronounced terminal.`));
   });
   if (diagnostics.length) return { units: [], diagnostics, observations: [] };
+  if (preferred.length > MAX_READING_UNITS) {
+    return { units: [], diagnostics: [failure('SPELLOUT_ALIGNMENT_LIMIT', `The final stage has more than ${MAX_READING_UNITS} words and groups to align.`)], observations: [] };
+  }
   const text = sentence.normalize('NFC');
   const chars = codePoints(text);
   const textOf = item => (item.word === undefined ? groupPieces[item.group][item.piece] : words[item.word].text);
@@ -318,20 +335,38 @@ const locateEarlierGroup = (group, forest, units, positionByLeafId, chars, bound
     if (spans.length || !positions.length) return spans;
     return occurrences(chars, piece).filter(([start, end]) => start >= low && end <= high && boundaries.has(start) && boundaries.has(end));
   });
-  const choices = [];
-  const choose = (index, after, chosen) => {
-    if (choices.length > 1) return;
-    if (index === candidates.length) { choices.push(chosen); return; }
-    candidates[index].filter(([start]) => start >= after).forEach(span => choose(index + 1, span[1], [...chosen, span]));
+  // Counts the in-order choices of one span per piece, capped at two, so the
+  // search is polynomial however often a piece's text repeats.
+  const counts = new Map();
+  const count = (index, after) => {
+    if (index === candidates.length) return 1;
+    const key = `${index}:${after}`;
+    if (!counts.has(key)) {
+      let found = 0;
+      for (const span of candidates[index]) {
+        if (span[0] >= after && (found += count(index + 1, span[1])) > 1) break;
+      }
+      counts.set(key, Math.min(found, 2));
+    }
+    return counts.get(key);
   };
-  choose(0, 0, []);
-  return choices.length === 1 ? { spans: choices[0] } : { matches: choices.length };
+  const matches = count(0, 0);
+  if (matches !== 1) return { matches };
+  const spans = [];
+  for (let index = 0, after = 0; index < candidates.length; index += 1) {
+    const span = candidates[index].find(([start, end]) => start >= after && count(index + 1, end) === 1);
+    spans.push(span);
+    after = span[1];
+  }
+  return { spans };
 };
 
 /** Checks one analysis's spelling and locates every group it authors in the sentence. */
 const alignAnalysis = (analysis, sentence) => {
   const stages = Array.isArray(analysis?.derivationStages) ? analysis.derivationStages : [];
   if (!stages.length) return { diagnostics: [failure('SPELLOUT_NO_STAGES', 'The analysis has no derivation stages.')] };
+  const malformed = stages.findIndex(stage => !isPlainObject(stage));
+  if (malformed >= 0) return { diagnostics: [failure('SPELLOUT_UNREADABLE', `Stage ${malformed + 1} is not an object.`)] };
   const shape = spelloutShapeDiagnostics(stages);
   if (shape.length) return { diagnostics: shape };
   const forests = expandStages(stages);
@@ -352,7 +387,7 @@ const alignAnalysis = (analysis, sentence) => {
     const located = locateEarlierGroup(group, forests[stageIndex], units, positionByLeafId, chars, boundaries);
     if (located.spans) earlier.push({ stageIndex, groupIndex, spans: located.spans });
     else diagnostics.push(failure('SPELLOUT_GROUP_UNRESOLVED',
-      `Stage ${stageIndex + 1} group ${groupIndex} text ${JSON.stringify(group.text)} matches ${located.matches} places in the final words.`));
+      `Stage ${stageIndex + 1} group ${groupIndex} text ${JSON.stringify(group.text)} matches ${located.matches ? 'more than one place' : 'no place'} in the final words.`));
   }));
   return { diagnostics, observations, units, earlier, stages, finalGroups };
 };
@@ -432,8 +467,9 @@ export const convertSpelloutPayload = (payload, sentence) => {
     try {
       return { analysisIndex, analysis, ...alignAnalysis(analysis, sentence) };
     } catch (error) {
-      if (!(error instanceof SpelloutStructureError)) throw error;
-      return { analysisIndex, diagnostics: [failure('SPELLOUT_UNREADABLE', error.message)] };
+      // Any other exception is still a model output Babel cannot read, never a crash.
+      const detail = error instanceof SpelloutStructureError ? error.message : 'The analysis could not be read for its spelling.';
+      return { analysisIndex, diagnostics: [failure('SPELLOUT_UNREADABLE', detail)] };
     }
   });
   const passing = aligned.filter(item => !item.diagnostics.length);

@@ -140,6 +140,15 @@ export const inspectFailedPayload = (payload: unknown, rawText: string, sentence
       return entry;
     };
     if (!stages?.length) { entry.replayIssue = 'No readable derivation stages were returned.'; return entry; }
+    if (unreadable) {
+      // Groups that cannot be placed would misstate pronunciation, so Replay waits for readable groups.
+      const hasGroups = record(authoredAnalysis) && Array.isArray(authoredAnalysis.derivationStages)
+        && authoredAnalysis.derivationStages.some((stage: unknown) => record(stage) && Array.isArray(stage.realizations) && stage.realizations.length);
+      entry.replayIssue = `The spelling check could not read this analysis (${spelled.diagnostics[0].detail}).${hasGroups
+        ? ' Its realization groups cannot be shown, so diagnostic Replay is unavailable; its stages remain available.'
+        : ' Diagnostic Replay shows its stages as authored.'}`;
+      if (hasGroups) return showAuthored();
+    }
     if (unspelled) {
       entry.replayIssue = `This analysis does not spell the sentence (${unspelled.detail}), so it has no word list for diagnostic Replay. Its stages remain available without realization groups.`;
       return showAuthored();
