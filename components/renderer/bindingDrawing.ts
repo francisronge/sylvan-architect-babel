@@ -11,6 +11,7 @@ import {
   planItemRelationRefs,
   type RelationPlanItem
 } from '../../replay/relations/renderPlan.ts';
+import { extractDisplayedSubscriptIndex } from '../../replay/replaySurfaceNotation.ts';
 import {
   identityIndexAction,
   identityLabelTarget,
@@ -20,7 +21,8 @@ import { type HierNode } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
 import { mergeIdentityOwners } from '../identityForestLight.ts';
 import type { ClaimDrawing, DrawingLayer, RelationEmphasis, RelationLayers, TreeMeasurements } from './drawingContext.ts';
-import { labelBelongsToNode } from './treeMeasurements.ts';
+import { primitiveIndexLetters, type IndexLetter, type IndexLetterContext, type IndexLetterPlan } from './indexLetters.ts';
+import { labelBelongsToNode, shellLabelElement, terminalLabelElement } from './treeMeasurements.ts';
 interface BindingDrawingContext extends Pick<RelationLayers,
   | 'acceptedRootLayerBeforeNodes'
   | 'operatorVariableBindingLayers'
@@ -51,7 +53,54 @@ interface BindingDrawingContext extends Pick<RelationLayers,
   markIdentityLensOccurrences: (nodeIds: string[]) => void;
   TARGET_EMERALD: string;
   appendMarker: (markX: number, markY: number, treeNotation?: boolean, stackIndex?: number) => DrawingLayer;
+  /** Which drawable mark draws each index letter (see indexLetters.ts). */
+  indexLetterPlan: IndexLetterPlan<IndexLetterLabel>;
 }
+
+/** A painted tree label, or a stand-in for a letter with no measurable label. */
+export type IndexLetterLabel = SVGTextElement | string;
+
+type OverlayAnchor = (nodeId: string) => d3.HierarchyPointNode<SyntaxNode> | undefined;
+/** The one label that shows an identity coindex for this occurrence. */
+const identityIndexLabels = (g: DrawingLayer, resolveOverlayAnchor: OverlayAnchor, nodeId: string) => {
+  const labelTarget = identityLabelTarget(resolveOverlayAnchor(nodeId), nodeId);
+  const terminal = labelTarget?.kind === 'terminal';
+  const labelId = labelTarget?.labelId || nodeId;
+  const labels = g.selectAll<SVGTextElement, HierNode>(terminal ? '.terminal-label' : '.category-label')
+    .filter(function exactIdentityLabel() { return labelBelongsToNode(this, labelId); });
+  return { labelTarget, terminal, labelId, labels };
+};
+
+/** The label each binding refinement measures to place a letter, found with
+ * the same lookups, so letters at one physical label share one plan entry. */
+export const indexLetterLabels = (g: DrawingLayer, resolveOverlayAnchor: OverlayAnchor):
+  Omit<IndexLetterContext<IndexLetterLabel>, 'emphasisRank'> => {
+  const shell = (nodeId: string) => shellLabelElement(g, nodeId);
+  const terminal = (nodeId: string) => terminalLabelElement(g, resolveOverlayAnchor(nodeId), nodeId);
+  const accepted = (nodeId: string) => shell(nodeId) ?? terminal(nodeId);
+  return {
+    labelOf: (letter, primitive) => {
+      if (letter.role === 'identity') {
+        const { labels } = identityIndexLabels(g, resolveOverlayAnchor, letter.nodeId);
+        return labels.size() === 1 ? labels.node() : null;
+      }
+      // A bound trace's letter sits beside its witness's word, as refinement measures it.
+      const label = primitive.type === 'operator-variable-binding' && letter.role === 'variable' && primitive.traceWitnessNodeId
+        ? terminal(primitive.traceWitnessNodeId) ?? accepted(primitive.variableNodeId)
+        : letter.role === 'variable' || letter.role === 'badge' ? accepted(letter.nodeId) : shell(letter.nodeId);
+      // Refinement cannot position a letter without its label, so it shares nothing.
+      return label ?? `unplaced:${letter.nodeId}`;
+    },
+    writtenSubscript: label => typeof label === 'string' ? null : extractDisplayedSubscriptIndex(label.textContent || '')
+  };
+};
+
+/** A shared letter's decoration: its host's owner plus every other claim it shows. */
+const letterOwner = (host: RelationPlanItem, others: readonly RelationPlanItem[]): RelationPlanItem => {
+  const refs = mergeIdentityOwners(planItemRelationRefs(host), others.flatMap(planItemRelationRefs));
+  return { ...host, relationRef: refs[0], composedRefs: refs.slice(1), coalescedRefs: [] };
+};
+
 export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
   operatorVariableScopeRankByItem,
   acceptedRootLayerBeforeNodes,
@@ -82,18 +131,44 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
   TARGET_EMERALD,
   acceptedLayerInHost,
   parasiticGapCoindexLayers,
-  appendMarker
+  appendMarker,
+  indexLetterPlan
 }: BindingDrawingContext) {
+  /** Draws the letters assigned to this primitive inside a host decorated with
+   * `hostItem`; claims sharing a letter but not the host are added to it. */
+  const drawIndexLetters = (primitive: BoundPrimitive, hostItem: RelationPlanItem,
+    drawLetter: (letter: IndexLetter) => SVGElement | null) => {
+    for (const letter of primitiveIndexLetters(primitive)) {
+      const assigned = indexLetterPlan(letter);
+      if (assigned.draw === 'none') continue;
+      const others = assigned.alsoFor.map(itemIndex => frameItems[itemIndex]);
+      if (assigned.draw === 'label') {
+        // A written subscript (Opᵢ) is the letter, so the label carries its claims.
+        if (typeof assigned.label === 'string') continue;
+        const owner = letterOwner(identityTerminalOwners.get(assigned.label) ?? hostItem, [hostItem, ...others]);
+        identityTerminalOwners.set(assigned.label, owner);
+        decorateRelationElement(assigned.label, owner, relationEmphasisForItem(owner));
+        continue;
+      }
+      const element = drawLetter(letter);
+      const owner = letterOwner(hostItem, others);
+      if (element && planItemRelationRefs(owner).length > planItemRelationRefs(letterOwner(hostItem, [])).length) {
+        decorateRelationElement(element, owner, relationEmphasisForItem(owner));
+      }
+    }
+  };
 
   const drawOperatorVariableBinding = (primitive: Extract<BoundPrimitive, { type: 'operator-variable-binding' }>, planItem: RelationPlanItem, host: DrawingLayer, _emphasis: RelationEmphasis) => {
     const rank = operatorVariableScopeRankByItem.get(primitive.itemIndex) || 0;
     const palette = ['#10b981', '#c98a3d', '#e6efeb'];
     const color = palette[rank % palette.length];
+    // The layer only places hosts beneath the tree; each host keeps its claim's emphasis.
     const relationLayer = acceptedRootLayerBeforeNodes(
       operatorVariableBindingLayers,
       planItem,
       null,
-      'babel-operator-variable-relation-layer'
+      'babel-operator-variable-relation-layer',
+      true
     );
     const hostNode = host.node();
     if (hostNode && hostNode.parentNode !== relationLayer.node()) {
@@ -121,13 +196,29 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
         .attr('stroke-linejoin', 'round')
         .attr('vector-effect', 'non-scaling-stroke');
     }
-    if (planItem.kind === 'operator-variable-binding' && planItem.bindingPathSuppressed) return;
+    const drawLetters = (letterHost: DrawingLayer, hostItem: RelationPlanItem) => drawIndexLetters(primitive, hostItem,
+      letter => letterHost.append('text')
+        .attr('class', 'babel-binding-index babel-relation-index babel-operator-variable-index')
+        .attr('data-operator-variable-index-role', letter.role)
+        .attr('fill', color)
+        .style('font-size', '28px')
+        .style('font-weight', '900')
+        .style('font-style', 'italic')
+        .style('paint-order', 'stroke')
+        .style('stroke', '#020806')
+        .style('stroke-width', '7px')
+        .style('stroke-linejoin', 'round')
+        .text(letter.index)
+        .node());
+    // A restatement whose path another item draws still draws any letter assigned to it.
+    if (planItem.kind === 'operator-variable-binding' && planItem.bindingPathSuppressed) return drawLetters(host, planItem);
     let pathHost = host;
+    let pathItem: RelationPlanItem = planItem;
     if (planItem.kind === 'operator-variable-binding' && planItem.bindingPathRefs) {
       const pathOwner = planItem.bindingPathRefs.find(ref =>
         ref.stageIndex === focusedRelationMoment?.stageIndex
         && ref.relationIndex === focusedRelationMoment?.relationIndex) ?? planItem.relationRef;
-      const pathItem = {
+      pathItem = {
         ...planItem, relationRef: pathOwner, composedRefs: [],
         coalescedRefs: planItem.bindingPathRefs.filter(ref =>
           ref.stageIndex !== pathOwner.stageIndex
@@ -170,20 +261,7 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
       .attr('stroke-linecap', 'round')
       .attr('marker-end', `url(#${markerId})`)
       .attr('vector-effect', 'non-scaling-stroke');
-    ['operator', 'variable'].forEach((role) => {
-      pathHost.append('text')
-        .attr('class', 'babel-binding-index babel-relation-index babel-operator-variable-index')
-        .attr('data-operator-variable-index-role', role)
-        .attr('fill', color)
-        .style('font-size', '28px')
-        .style('font-weight', '900')
-        .style('font-style', 'italic')
-        .style('paint-order', 'stroke')
-        .style('stroke', '#020806')
-        .style('stroke-width', '7px')
-        .style('stroke-linejoin', 'round')
-        .text(primitive.index);
-    });
+    drawLetters(pathHost, pathItem);
     return;
   };
   const drawQuantifierRaising = (primitive: Extract<BoundPrimitive, { type: 'quantifier-raising' }>, planItem: RelationPlanItem, host: DrawingLayer, _emphasis: RelationEmphasis) => {
@@ -194,16 +272,13 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
 
     const coindexLayer = host.append('g')
       .attr('class', 'babel-coindex-relation-layer');
-    coindexLayer.append('text')
+    drawIndexLetters(primitive, planItem, letter => coindexLayer.append('text')
       .attr('class', 'babel-binding-index babel-relation-index')
+      .attr('data-qr-index-role', letter.role)
       .attr('x', 0)
       .attr('y', 0)
-      .text(primitive.index);
-    coindexLayer.append('text')
-      .attr('class', 'babel-binding-index babel-relation-index')
-      .attr('x', 0)
-      .attr('y', 0)
-      .text(primitive.index);
+      .text(letter.index)
+      .node());
 
     const layer = host.append('g')
       .attr('class', 'babel-lf-relation-layer');
@@ -286,15 +361,13 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
     return;
   };
   const drawIdentityLens = (primitive: Extract<BoundPrimitive, { type: 'identity-lens' }>, planItem: RelationPlanItem, _host: DrawingLayer, emphasis: RelationEmphasis) => {
-    if (primitive.index) primitive.nodeIds.forEach((nodeId) => {
-      const occurrence = resolveOverlayAnchor(nodeId);
-      const labelTarget = identityLabelTarget(occurrence, nodeId);
+    primitiveIndexLetters(primitive).forEach((letter) => {
+      const { nodeId } = letter;
+      const { labelTarget, terminal, labels } = identityIndexLabels(g, resolveOverlayAnchor, nodeId);
       if (labelTarget?.ambiguityCount) terminalAmbiguities.set(nodeId, labelTarget.ambiguityCount);
-      const terminal = labelTarget?.kind === 'terminal';
-      const labelId = labelTarget?.labelId || nodeId;
-      const labels = g.selectAll<SVGTextElement, HierNode>(terminal ? '.terminal-label' : '.category-label')
-        .filter(function exactIdentityLabel() { return labelBelongsToNode(this, labelId); });
       if (labels.size() !== 1) return;
+      const assigned = indexLetterPlan(letter);
+      if (assigned.draw === 'none') return;
       labels.each(function appendIdentityIndex() {
         const label = d3.select(this);
         if (!label.attr('data-identity-base-label')) label.attr('data-identity-base-label', this.textContent || '');
@@ -309,9 +382,9 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
           })
           .text(primitive.index).node());
         if (!indexElement) return;
-        const previous = identityTerminalOwners.get(indexElement);
-        const refs = mergeIdentityOwners(previous ? planItemRelationRefs(previous) : [], planItemRelationRefs(planItem));
-        const owner = { ...planItem, relationRef: refs[0], composedRefs: refs.slice(1), coalescedRefs: [] };
+        // Beside letters ceded to this inline coindex keep their claims on it.
+        const owner = letterOwner(identityTerminalOwners.get(indexElement) ?? planItem,
+          [planItem, ...assigned.alsoFor.map(itemIndex => frameItems[itemIndex])]);
         identityTerminalOwners.set(indexElement, owner);
         decorateRelationElement(indexElement, owner, relationEmphasisForItem(owner));
       });
@@ -344,6 +417,9 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
     return;
   };
   const drawIndexBadge = (primitive: Extract<BoundPrimitive, { type: 'index-badge' }>, planItem: RelationPlanItem, host: DrawingLayer, emphasis: RelationEmphasis) => {
+    drawIndexLetters(primitive, planItem, () => drawIndexBadgeLetter(primitive, planItem, host, emphasis));
+  };
+  const drawIndexBadgeLetter = (primitive: Extract<BoundPrimitive, { type: 'index-badge' }>, planItem: RelationPlanItem, host: DrawingLayer, emphasis: RelationEmphasis): SVGElement | null => {
     if (planItem.familyId === 'control.dependency' && planItem.kind === 'coindex') {
       const controlPath = frameItems.find((candidate) =>
         candidate.familyId === 'control.dependency'
@@ -353,18 +429,18 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
         && primitive.nodeId === controlPath.fromNodeId
         ? 'controller'
         : 'controllee';
-      ensureControlRelationLayer(planItem, emphasis).append('text')
+      return ensureControlRelationLayer(planItem, emphasis).append('text')
         .attr('class', 'babel-control-index babel-relation-index')
         .attr('data-control-role', role)
         .attr('data-control-anchor', primitive.nodeId)
         .attr('x', primitive.x.toFixed(1))
         .attr('y', primitive.y.toFixed(1))
-        .text(primitive.index);
-      return;
+        .text(primitive.index)
+        .node();
     }
     if (planItem.familyId === 'binding.domain' && planItem.kind === 'binding-domain') {
       const role = primitive.nodeId === planItem.binderNodeId ? 'binder' : 'bound';
-      acceptedRootLayerAfterNodes(
+      return acceptedRootLayerAfterNodes(
         bindingRelationLayers,
         planItem,
         emphasis,
@@ -376,11 +452,11 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
         .attr('data-binding-anchor', primitive.nodeId)
         .attr('x', primitive.x.toFixed(1))
         .attr('y', primitive.y.toFixed(1))
-        .text(primitive.index);
-      return;
+        .text(primitive.index)
+        .node();
     }
     if (planItem.familyId === 'coreference.coindex' && planItem.kind === 'coindex') {
-      acceptedRootLayerAfterNodes(
+      return acceptedRootLayerAfterNodes(
         coindexRelationLayers,
         planItem,
         emphasis,
@@ -393,8 +469,8 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
         .attr('y', primitive.y.toFixed(1))
         .attr('fill', TARGET_EMERALD)
         .style('fill', TARGET_EMERALD, 'important')
-        .text(primitive.index);
-      return;
+        .text(primitive.index)
+        .node();
     }
     if (planItem.familyId === 'parasitic-gap.composition') {
       const layer = acceptedLayerInHost(
@@ -403,24 +479,25 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
         'babel-coindex-relation-layer',
         host
       );
-      layer.append('text')
+      return layer.append('text')
         .attr('class', 'babel-binding-index babel-relation-index')
         .attr('data-coindex-anchor', primitive.nodeId)
         .attr('x', primitive.x.toFixed(1))
         .attr('y', primitive.y.toFixed(1))
-        .text(primitive.index);
-      return;
+        .text(primitive.index)
+        .node();
     }
     const marker = appendMarker(primitive.x, primitive.y, true, primitive.stackIndex);
-    marker.append('text')
+    return marker.append('text')
       .attr('class', 'vr-index-badge babel-relation-index')
+      .attr('data-index-anchor', primitive.nodeId)
       .attr('x', 8)
       .attr('y', 4)
       .attr('font-size', '13px')
       .attr('fill', '#a7f3d0')
       .attr('font-family', "'IBM Plex Mono', monospace")
-      .text(primitive.index);
-    return;
+      .text(primitive.index)
+      .node();
   };
   const drawSplitAntecedence = (primitive: Extract<BoundPrimitive, { type: 'split-antecedence' }>, planItem: Extract<RelationPlanItem, { kind: 'split-antecedence' }>, host: DrawingLayer) => {
 

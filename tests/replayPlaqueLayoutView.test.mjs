@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import ts from 'typescript';
+import { createViewportSettler, VIEWPORT_SETTLE_MS } from '../components/treeViewport.ts';
+import { watchTreeVisualizerFonts } from '../components/treeVisualizerFonts.ts';
 // Run the complete hook with controlled effects and worker completions to
 // exercise stale-result races without adding a React testing runtime.
 const source = readFileSync(new URL('../components/useReplayPlaqueLayout.ts', import.meta.url), 'utf8');
@@ -9,6 +11,9 @@ const parsed = ts.createSourceFile('layout.ts', source, ts.ScriptTarget.Latest, 
 const body = parsed.statements.filter(node => !ts.isImportDeclaration(node))
   .map(node => node.getText(parsed).replace(/^export /, '')).join('\n').replaceAll('import.meta.url', '"file:///test/layout.ts"');
 const code = ts.transpile(body + '\nreturn useReplayPlaqueLayout;', { target: ts.ScriptTarget.ES2023 });
+const desktop = { width: 1200, height: 900 };
+// The harness measures by returning the hook's own request input as its job.
+const requested = (content, viewport = desktop) => ({ ...content, width: viewport.width, height: viewport.height });
 const mount = (cache = { get: () => undefined, put: () => {} }) => {
   const slots = [], effects = [], jobs = [], completions = [], timers = new Map(); let cursor = 0, id = 0;
   const useRef = initial => {
@@ -20,6 +25,11 @@ const mount = (cache = { get: () => undefined, put: () => {} }) => {
     const index = cursor++;
     if (!(index in slots)) slots[index] = initial;
     return [slots[index], value => { slots[index] = typeof value === 'function' ? value(slots[index]) : value; }];
+  };
+  const useMemo = (create, deps) => {
+    const index = cursor++;
+    if (!slots[index] || deps.some((value, i) => value !== slots[index].deps[i])) slots[index] = { deps, value: create() };
+    return slots[index].value;
   };
   const useEffect = (create, deps) => {
     const index = cursor++;
@@ -41,11 +51,14 @@ const mount = (cache = { get: () => undefined, put: () => {} }) => {
     completions.push({ input, job, result, early });
     return bind(input, job, result);
   };
-  const hook = new Function('useState', 'useRef', 'useEffect', 'measurePlaqueLayoutJob', 'bindPlaqueLayoutResult',
-    'bindPlaqueLayoutProgress', 'completePlaqueLayoutResult', 'startQueuedLayoutJob', 'setTimeout', 'clearTimeout', 'recentLayoutResults', code)(
-    useState, useRef, useEffect, measure, bind, bind, complete, start,
+  // Only the width enters this key, so a height change reuses the prepared layout.
+  const viewportKey = ({ width }) => String(width);
+  const hook = new Function('useState', 'useRef', 'useMemo', 'useEffect', 'measurePlaqueLayoutJob', 'bindPlaqueLayoutResult',
+    'bindPlaqueLayoutProgress', 'completePlaqueLayoutResult', 'startQueuedLayoutJob', 'plaqueLayoutViewportKey',
+    'setTimeout', 'clearTimeout', 'recentLayoutResults', code)(
+    useState, useRef, useMemo, useEffect, measure, bind, bind, complete, start, viewportKey,
     callback => { timers.set(++id, callback); return id; }, id => timers.delete(id), cache);
-  return { jobs, completions, render: (input, stageIndex = 0) => { cursor = 0; return hook(input, stageIndex); },
+  return { jobs, completions, render: (content, stageIndex = 0, viewport = desktop) => { cursor = 0; return hook(content, viewport, stageIndex); },
     effects: () => { while (effects.length) effects.shift()(); },
     timers: () => { for (const [id, callback] of timers) { timers.delete(id); callback(); } },
     unmount: () => { for (const slot of slots) slot?.cleanup?.(); } };
@@ -61,36 +74,133 @@ const assertPending = view => {
   assert.equal(view.schedule.stages.length, 0, 'old completed-stage placements are hidden');
   assert.equal(view.schedule.steps.size, 0, 'old movement-phase placements are hidden');
   assert.equal(view.coordinates, undefined, 'old coordinates are hidden');
+  assert.equal(view.viewport, undefined, 'no viewport is displayed without its layout');
   assert.equal(view.error, undefined);
 };
-for (const change of ['viewport', 'analysis']) {
+for (const change of ['analysis', 'analysis and viewport']) {
   test(`a new ${change} hides every old placement and ignores stale worker completions`, () => {
-    const app = mount(), first = { width: 1200, steps: ['analysis-one'] };
-    const next = change === 'viewport' ? { ...first, width: 390 } : { ...first, steps: ['analysis-two'] };
+    const app = mount(), first = { steps: ['analysis-one'] }, next = { steps: ['analysis-two'] };
+    const nextViewport = change === 'analysis' ? desktop : { width: 390, height: 844 };
     const initial = schedule('first', 100), stale = schedule('late', 900), expected = schedule('next', 300);
     assertPending(app.render(first)); app.effects(); app.timers();
     app.jobs[0].ready(initial);
     assert.strictEqual(app.render(first).schedule, initial);
     assert(app.render(first).ready);
-    assertPending(app.render(next));
-    // React has rendered the new input, but the preceding effect can still finish.
+    assertPending(app.render(next, 0, nextViewport));
+    // React has rendered the new content, but the preceding effect can still finish.
     app.jobs[0].ready(stale);
-    assertPending(app.render(next));
+    assertPending(app.render(next, 0, nextViewport));
     app.effects(); app.timers(); assert(app.jobs[0].cancelled);
     app.jobs[0].ready(stale); app.jobs[0].error(new Error('late old worker failure'));
-    assertPending(app.render(next));
+    assertPending(app.render(next, 0, nextViewport));
     app.jobs.at(-1).ready(expected);
-    const current = app.render(next);
+    const current = app.render(next, 0, nextViewport);
+    assert.strictEqual(current.viewport, nextViewport);
     assert(current.ready);
     assert.strictEqual(current.schedule, expected);
     assert.equal(current.schedule.stages[0].get(0).x, 300);
     assert.equal(current.schedule.steps.get(12).get(0).x, 400,
       'the active movement phase is distinct from the completed-stage placement');
     app.jobs[0].ready(stale); app.jobs[0].error(new Error('late failure after the new result'));
-    assert.strictEqual(app.render(next).schedule, expected);
-    assert.equal(app.render(next).error, undefined);
+    assert.strictEqual(app.render(next, 0, nextViewport).schedule, expected);
+    assert.equal(app.render(next, 0, nextViewport).error, undefined);
   });
 }
+test('a viewport keeps the displayed layout, with the viewport it was drawn for, until its own layout is ready', () => {
+  const app = mount(), content = { steps: ['analysis-one'] };
+  const taller = { width: 1200, height: 1000 }, narrow = { width: 390, height: 900 };
+  const initial = schedule('first', 100), expected = schedule('narrow', 300);
+  assertPending(app.render(content)); app.effects(); app.timers();
+  app.jobs[0].ready(initial);
+  assert.strictEqual(app.render(content).viewport, desktop);
+  const reused = app.render(content, 0, taller); app.effects(); app.timers();
+  assert.strictEqual(reused.schedule, initial, 'an unchanged layout key reuses the prepared layout');
+  assert.strictEqual(reused.viewport, taller, 'and displays it at once for the new viewport');
+  assert.equal(app.jobs.length, 1, 'no preparation starts');
+  const held = app.render(content, 0, narrow);
+  assert(held.ready, 'the painted tree stays displayable while the new viewport is prepared');
+  assert.strictEqual(held.schedule, initial);
+  assert.strictEqual(held.viewport, taller, 'held geometry keeps the viewport it was drawn for');
+  assertPending(app.render({ ...content }, 0, narrow));
+  // The preceding request finishing again before cleanup cannot replace the displayed snapshot.
+  app.jobs[0].ready(schedule('late first request', 900));
+  assert.strictEqual(app.render(content, 0, narrow).schedule, initial);
+  app.effects(); app.timers(); assert(app.jobs[0].cancelled);
+  app.jobs[0].ready(schedule('after cleanup', 700)); app.jobs[0].error(new Error('late old worker failure'));
+  assert.strictEqual(app.render(content, 0, narrow).viewport, taller);
+  app.jobs.at(-1).ready(expected);
+  const swapped = app.render(content, 0, narrow);
+  assert(swapped.ready);
+  assert.strictEqual(swapped.schedule, expected);
+  assert.strictEqual(swapped.viewport, narrow);
+  app.render(content, 0, desktop); app.effects(); app.timers();
+  app.jobs.at(-1).error(new Error('new viewport failed'));
+  const failed = app.render(content, 0, desktop);
+  assert.equal(failed.ready, false);
+  assert.equal(failed.error, 'new viewport failed');
+  assert.equal(failed.viewport, undefined, 'a failed preparation is not hidden behind the earlier viewport');
+});
+
+test('progress for another stage cannot replace a held layout or bring back the cover', () => {
+  const app = mount(), content = { steps: ['analysis-one'], layoutGroups: [[0], [1], [2]] }, narrow = { width: 390, height: 900 };
+  app.render(content); app.effects(); app.timers();
+  const complete = schedule('complete', 100);
+  app.jobs[0].ready(complete);
+  assert(app.render(content).ready);
+  app.render(content, 0, narrow); app.effects(); app.timers();
+  assert.equal(app.jobs.at(-1).input.progressStage, 0);
+  // Replay advances while the new viewport is prepared.
+  const advanced = app.render(content, 1, narrow);
+  assert(advanced.ready);
+  assert.strictEqual(advanced.viewport, desktop);
+  app.jobs.at(-1).progress({ ...schedule('narrow early', 300), preparedStages: [0] });
+  const held = app.render(content, 1, narrow);
+  assert(held.ready, 'partial progress for the preceding stage keeps the usable layout');
+  assert.strictEqual(held.schedule, complete);
+  assert.strictEqual(held.viewport, desktop);
+  const final = schedule('narrow complete', 300);
+  app.jobs.at(-1).ready(final);
+  const swapped = app.render(content, 1, narrow);
+  assert.strictEqual(swapped.schedule, final);
+  assert.strictEqual(swapped.viewport, narrow);
+});
+
+test('progress covering the displayed stage replaces the held layout', () => {
+  const app = mount(), content = { layoutGroups: [[0], [1]] }, narrow = { width: 390, height: 900 };
+  app.render(content); app.effects(); app.timers();
+  app.jobs[0].ready(schedule('complete', 100));
+  app.render(content, 0, narrow); app.effects(); app.timers();
+  const early = { ...schedule('narrow early', 300), preparedStages: [0] };
+  app.jobs.at(-1).progress(early);
+  const swapped = app.render(content, 0, narrow);
+  assert.strictEqual(swapped.schedule, early);
+  assert.strictEqual(swapped.viewport, narrow);
+});
+
+test('after partial progress is displayed, uncovered stages fall back to the last complete layout', () => {
+  const app = mount(), content = { layoutGroups: [[0], [1]] }, narrow = { width: 390, height: 900 };
+  app.render(content); app.effects(); app.timers();
+  const complete = schedule('complete', 100);
+  app.jobs[0].ready(complete);
+  assert.strictEqual(app.render(content).schedule, complete);
+  app.render(content, 0, narrow); app.effects(); app.timers();
+  const early = { ...schedule('narrow early', 300), preparedStages: [0] };
+  app.jobs.at(-1).progress(early);
+  assert.strictEqual(app.render(content, 0, narrow).schedule, early);
+  // Replay advances before the replacement completes.
+  const advanced = app.render(content, 1, narrow);
+  assert(advanced.ready, 'the completed layout keeps the cover away');
+  assert.strictEqual(advanced.schedule, complete);
+  assert.strictEqual(advanced.viewport, desktop, 'the fallback keeps the viewport it was drawn for');
+  assert.strictEqual(app.render(content, 0, narrow).schedule, early, 'the covered stage keeps the newer partial layout');
+  const final = schedule('narrow complete', 300);
+  app.jobs.at(-1).ready(final);
+  const swapped = app.render(content, 1, narrow);
+  assert.strictEqual(swapped.schedule, final);
+  assert.strictEqual(swapped.viewport, narrow);
+  assertPending(app.render({ ...content }, 1, narrow));
+});
+
 test('disabling layout cancels queued measurements and a failed worker can be retried', () => {
   const app = mount(), input = {};
   app.render(input); app.effects(); app.render(null); app.effects(); app.timers(); assert.equal(app.jobs.length, 0);
@@ -126,7 +236,7 @@ test('a measured cache hit binds before display and starts no worker', () => {
   assertPending(app.render(input)); app.effects();
   assert.equal(measured.length, 0, 'lookup waits for fresh measurements');
   app.timers();
-  assert.deepEqual(measured, [input]);
+  assert.deepEqual(measured, [requested(input)]);
   assert.equal(app.jobs.length, 0);
   assert.strictEqual(app.render(input).schedule, expected);
   const invalid = mount({ get: () => ({ invalid: true }), put: () => assert.fail('invalid hit') });
@@ -146,7 +256,7 @@ test('only an active, successfully bound worker result enters the cache', () => 
   app.jobs[0].ready(expected);
   assert.equal(inserted.length, 0, 'cancelled attempt cannot populate the cache');
   app.jobs[1].ready(expected);
-  assert.deepEqual(inserted, [[input, expected]]);
+  assert.deepEqual(inserted, [[{ ...requested(input), progressStage: 0 }, expected]]);
 });
 
 test('prepared progress displays only ready stages and completion checks the exact early delivery', () => {
@@ -163,8 +273,8 @@ test('prepared progress displays only ready stages and completion checks the exa
 
   const waiting = app.render(input, 1); app.effects(); app.timers();
   assert.equal(waiting.ready, false, 'navigation cannot display a stage with unfinished plaques');
-  assert.strictEqual(waiting.schedule, prepared.schedule);
-  assert.equal(waiting.schedule.stages[1], undefined, 'the unfinished stage has no published layout');
+  assert.equal(waiting.schedule.stages.length, 0, 'the unfinished stage displays no geometry');
+  assert.equal(prepared.schedule.stages[1], undefined, 'the unfinished stage has no published layout');
   assert.equal(app.jobs.length, 1, 'stage navigation keeps the existing worker');
   assert(app.render(input, 0).ready, 'navigation back to a prepared stage remains available');
 
@@ -190,7 +300,7 @@ test('prepared progress displays only ready stages and completion checks the exa
   assert.strictEqual(app.completions[0].early.progress, progress);
   assert.strictEqual(app.completions[0].early.layout.schedule, prepared.schedule);
   assert.strictEqual(app.completions[0].early.layout.coordinates, prepared.coordinates);
-  assert.deepEqual(inserted, [[input, result]]);
+  assert.deepEqual(inserted, [[{ ...requested(input), progressStage: 0 }, result]]);
 });
 
 test('a shared camera group remains unavailable until every member is prepared', () => {
@@ -226,7 +336,7 @@ test('the current requested stage is read after deferred measurements finish', (
 });
 
 test('input replacement hides early geometry and rejects late progress before and after cleanup', () => {
-  const app = mount(), input = {}, replacement = {};
+  const app = mount(), input = { steps: ['analysis-one'] }, replacement = { steps: ['analysis-two'] };
   const early = { ...schedule('early', 100), preparedStages: [0] };
   app.render(input); app.effects(); app.timers(); app.jobs[0].progress(early);
   assert(app.render(input).ready);
@@ -271,7 +381,7 @@ test('a cold opening warms the worker during font measurement and only posts com
   let posted; app.jobs[0].input.then(job => { posted = job; });
   await Promise.resolve(); assert.equal(posted, undefined);
   app.render(input, 2); app.timers(); await Promise.resolve();
-  assert.strictEqual(posted, input); assert.equal(posted.progressStage, 2);
+  assert.deepEqual(posted, { ...requested(input), progressStage: 2 });
   app.unmount(); assert(app.jobs[0].cancelled);
 });
 
@@ -282,4 +392,79 @@ test('an early worker failure cancels cold measurements and remains visible', ()
   assert(app.jobs[0].cancelled);
   assert.equal(app.render(input).error, 'worker initialization failed');
   app.unmount();
+});
+
+const fontSet = () => {
+  const set = new EventTarget(), loads = [];
+  let ready;
+  set.ready = new Promise(resolve => { ready = resolve; });
+  set.load = (font, text) => new Promise(resolve => loads.push({ font, text, resolve }));
+  const emit = family => {
+    const event = new Event('loadingdone');
+    Object.defineProperty(event, 'fontfaces', { value: [{ family }] });
+    set.dispatchEvent(event);
+  };
+  return { set, loads, ready: () => ready(), emit };
+};
+
+// The browser audit's desktop resize: the canvas resizes, a face used only by app
+// text finishes loading inside the settle window, the settled size needs a new
+// layout key, and the new layout completes.
+test('a desktop resize keeps the painted layout through settling, a font load, a new layout key and completion', async () => {
+  for (const comparesMeasuredText of [true, false]) {
+    const app = mount(), timers = new Map(), fonts = fontSet();
+    let now = 0, id = 0, painted = false, content = { steps: ['analysis-one'] }, viewport = desktop;
+    const settler = createViewportSettler({ apply: size => { viewport = size; }, painted: () => painted,
+      schedule: (callback, delay) => { timers.set(++id, { callback, at: now + delay }); return id; },
+      cancel: timer => timers.delete(timer) });
+    const advance = ms => {
+      now += ms;
+      for (const [timer, entry] of [...timers]) if (entry.at <= now) { timers.delete(timer); entry.callback(); }
+    };
+    watchTreeVisualizerFonts(fonts.set, () => { content = { ...content }; }, 'Mia',
+      comparesMeasuredText ? () => false : undefined);
+    fonts.loads.forEach(load => load.resolve([])); fonts.ready();
+    await new Promise(resolve => setImmediate(resolve));
+    settler.observe(desktop);
+    app.render(content, 0, viewport); app.effects(); app.timers();
+    app.jobs.at(-1).ready(schedule('desktop', 100));
+    assert(app.render(content, 0, viewport).ready);
+    painted = true;
+    const wide = { width: 1915, height: 1197 };
+    settler.observe(wide);
+    assert(settler.pending);
+    fonts.emit('JetBrains Mono');
+    const settling = app.render(content, 0, viewport);
+    if (!comparesMeasuredText) {
+      assert.equal(settling.ready, false, 'without comparing measured text, an unrelated face drops the painted layout');
+      continue;
+    }
+    assert(settling.ready, 'the painted tree stays uncovered inside the settle window');
+    assert.strictEqual(settling.viewport, desktop);
+    advance(VIEWPORT_SETTLE_MS);
+    assert.strictEqual(viewport, wide);
+    const held = app.render(content, 0, viewport); app.effects(); app.timers();
+    assert(held.ready);
+    assert.strictEqual(held.viewport, desktop, 'the new layout key holds the painted viewport');
+    assert.equal(app.jobs.at(-1).input.width, 1915);
+    app.jobs.at(-1).ready(schedule('wide', 300));
+    assert.strictEqual(app.render(content, 0, viewport).viewport, wide);
+  }
+});
+
+test('the reveal layout effect does not run on the painted frame for a viewport commit', () => {
+  const source = ts.createSourceFile('TreeVisualizer.tsx', readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8'),
+    ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let dependencies;
+  const visit = node => {
+    if (ts.isCallExpression(node) && node.expression.getText(source) === 'useLayoutEffect'
+      && node.arguments[0].getText(source).includes('updateSyntaxReveal(')) dependencies = node.arguments[1].elements.map(element => element.getText(source));
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  assert(dependencies?.length, 'the reveal layout effect is found');
+  // Reveal rewrites terminal text, dropping deferred theta indices until the passive redraw.
+  for (const value of ['frameViewport', 'viewport', 'dimensions', 'uiBounds']) {
+    assert(!dependencies.includes(value), `reveal does not depend on ${value}`);
+  }
 });
