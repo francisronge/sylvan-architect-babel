@@ -400,7 +400,13 @@ and so on; equal positions across paired lists retain their correspondence.
 Two scalar witnesses have the accepted connector
 below their subtrees, a scalar plus an array has a fan, and unpaired witnesses
 have no invented links. Fan paths leave measured gaps around syntax and role
-labels. Scalar connector stems use the same label clearance. Repeated witnesses retain every authored role label; a fan does not draw
+labels. Scalar connector stems use the same label clearance. A fan spoke whose
+stroke would meet a visible plaque stops short of it on each side, leaving four
+marker units of dark space beyond the spoke's shadow at every automatic Fit.
+Spokes that only pass beside a plaque stay whole, and role labels do not move.
+Attachment wins over plaque clearance: when the gap would separate a spoke from
+either of its role labels, that plaque cuts the spoke only at its own edge, or
+not at all if even its edge reaches the label. Repeated witnesses retain every authored role label; a fan does not draw
 a spoke from a node to itself.
 
 The existing Replay rows identify previous-stage references with
@@ -760,14 +766,16 @@ completed last Stage Record releases earlier source-position bounds and fits the
 finished drawing; Fit uses those same final bounds. This does not compact or
 recenter the tree's internal coordinates.
 Forward playback also retains an already fitting view when a new stage could
-merely zoom in. Actual overflow can still pan or reduce scale. Each stage lays
+merely zoom in. Actual overflow can still pan or reduce scale. Prev within the
+same stage keeps that stage's current view rather than refitting, so a stage
+keeps one camera in both directions. Each stage lays
 out its syntax in its own coordinates, so a step into another stage translates
 both that view and the animation's starting pose by the median coordinate shift
 of the shared syntax whose shared ancestors are unchanged. This removes the
 common translation between the two layouts; residual layout changes still move,
 and a reattached constituent appears at its new place. Explicit Fit, nonadjacent
-frame selection and the completed last Stage Record retain their existing
-fitting behavior.
+frame selection, Prev into an earlier stage and the completed last Stage Record,
+including Prev out of it, retain their existing fitting behavior.
 Stage framing retains its existing margins for ordinary labels. When a revealed
 label exceeds those margins, expand the shared stage envelope by only that
 excess, using the same styled text bounds as layout. Include every revealed
