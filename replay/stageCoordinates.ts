@@ -404,8 +404,8 @@ export function alignedStageFrames(steps: readonly PlaybackStep[], stage: number
 }
 
 /** Motion a plan's own frames show: components the step does not own that move,
- * and existing daughters that move as a new parent joins them, including a host
- * that drops below an inserted parent. */
+ * and existing daughters that move as a new parent joins them. A host lowered
+ * below an inserted parent that takes its row keeps only its horizontal motion. */
 function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep) => PaintedFrame, direction: TreeDirection) {
   const scenes = steps.flatMap(step => {
     const [coordinates, size] = step.replayCanvasData && painted(step) || [];
@@ -413,17 +413,29 @@ function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep
       nodes: paintedSyntax(step, size, direction, coordinates) }] : [];
   });
   const render = (scene: typeof scenes[number]) => [...scene.nodes.values()];
+  const paintedParent = (scene: typeof scenes[number], id: string) => {
+    const parent = scene.nodes.get(id)?.parent;
+    return parent && scene.nodes.has(getNodeId(parent)) ? getNodeId(parent) : null;
+  };
   const unowned = new Set(workspaceContinuityReflows(scenes, new Map(scenes.map(scene => [scene.canvas, scene.coordinates])), render)
-    .filter(reflow => reflow.kind === 'unowned-component-motion').map(reflow => `${reflow.index}:${reflow.rootId}`));
+    // A component whose painted parent changes is attaching at that step, which owns its motion.
+    .filter(reflow => reflow.kind === 'unowned-component-motion' && paintedParent(scenes[reflow.index], reflow.rootId)
+      === paintedParent(scenes[reflow.index - 1], reflow.rootId)).map(reflow => `${reflow.index}:${reflow.rootId}`));
   const joins = new Map<string, number>();
   scenes.forEach((scene, index) => {
     const before = scenes[index - 1], target = scene.step.targetNodeId, parent = target && scene.nodes.get(target);
     if (!before || scene.step.replayKind !== 'micro' || !['ExternalMerge', 'Project'].includes(scene.step.operation)
       || !parent || before.nodes.has(target)) return;
+    // At an insertion the host and any piece waiting beside it descend under the
+    // new parent together; only their horizontal motion counts.
+    const priorParent = (id: string) => { const old = before.nodes.get(id)?.parent; return old && before.nodes.has(getNodeId(old)) ? getNodeId(old) : null; };
+    const grand = parent.parent && scene.nodes.has(getNodeId(parent.parent)) ? getNodeId(parent.parent) : null;
+    const insertion = Boolean(grand) && (parent.children ?? []).some(child => priorParent(getNodeId(child)) === grand);
     for (const node of parent.children ?? []) {
       const id = getNodeId(node), now = scene.nodes.get(id), prior = before.nodes.get(id);
       if (!now || !prior) continue;
-      const distance = Math.hypot(now.x - prior.x, now.y - prior.y);
+      const descends = insertion && Math.abs(parent.y - prior.y) < 1e-6 && now.y > parent.y;
+      const distance = descends ? Math.abs(now.x - prior.x) : Math.hypot(now.x - prior.x, now.y - prior.y);
       if (distance > 1) joins.set(`${index}:${id}`, distance);
     }
   });

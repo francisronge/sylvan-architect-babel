@@ -89,19 +89,21 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction o
       assert.equal(node.x, next.x);
     }
   });
-  test(`entry 21, ${width}px ${direction}: frame 37 draws the predicate on the row its V prime will give it`, () => {
+  test(`entry 21, ${width}px ${direction}: frame 37 does not reserve an unbuilt V prime rank`, () => {
     const before = positions(21, 37, width, height, direction);
     const after = positions(21, 38, width, height, direction);
     const parent = before.get('mVP'), subject = before.get('mLow'), predicate = before.get('mVbarCore');
     assert.equal(subject.parent, parent);
     assert.equal(predicate.parent, parent);
-    assert(predicate.y > subject.y, 'the branch to the predicate spans the future V prime row');
-    assert.equal(after.get('mVbar').y, after.get('mLow').y, 'the built wrapper occupies that row');
+    assert.equal(predicate.y, subject.y, 'the current VP daughters must share a rank');
+    assert.equal(after.get('mVbar').y, after.get('mLow').y, 'the built wrapper occupies that rank');
     assert.equal(before.has('mVbar'), false, 'the reserved parent remains invisible');
+    const dy = after.get('mVbarCore').y - predicate.y;
+    assert(dy > 0, 'the new wrapper adds its level only when built');
     for (const node of predicate.descendants()) {
       const next = after.get(getNodeId(node));
       assert(next, 'the existing subtree survives wrapper insertion');
-      assert(Math.abs(next.y - node.y) < 1e-8, 'the wrapper appears without lowering the predicate');
+      assert(Math.abs(next.y - node.y - dy) < 1e-8, 'the subtree translates without stretching its branches');
     }
   });
 }

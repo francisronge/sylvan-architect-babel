@@ -30,7 +30,7 @@ test('a waiting workspace that moves at the merge joining it is an attachment-si
   assert.deepEqual(replayMotionFaults({ frames }), [], 'material already at its merge site joins in place');
 });
 
-test('a head that moves under its new projection is reported, and so is a host that drops below an inserted parent', () => {
+test('a head that moves under its new projection is reported; an inserted parent may only lower its host', () => {
   const frames = [
     frame('LexicalSelect', 'v', [point('v', 0, 0), point('top', 0, -220), point('vP', 500, 0, 'top')]),
     frame('Project', 'vbar', [point('vbar', 0, 0), point('v', 0, 220, 'vbar'), point('top', 0, -220),
@@ -38,11 +38,14 @@ test('a head that moves under its new projection is reported, and so is a host t
     frame('ExternalMerge', 'wrapper', [point('vbar', 0, 0), point('v', 0, 220, 'vbar'), point('top', 0, -220),
       point('wrapper', 500, 0, 'top'), point('vP', 500, 220, 'wrapper')])];
   const faults = replayMotionFaults({ frames });
-  assert.deepEqual(kinds(faults), ['2:v:attachment-site-motion', '3:vP:attachment-site-motion']);
-  assert.deepEqual(faults.map(fault => [fault.distance, fault.waiting]), [[220, true], [220, false]]);
-  frames[1].points[1].y = 0; frames[2].points[1].y = 0; frames[2].points[3].y = -110; frames[2].points[4].y = 0;
-  frames[1].points[0].y = -110; frames[2].points[0].y = -110;
-  assert.deepEqual(replayMotionFaults({ frames }), [], 'a head and a host already on their final rows stay put');
+  assert.deepEqual(kinds(faults), ['2:v:attachment-site-motion'], 'the host keeps its column below the parent on its row');
+  assert.equal(faults[0].waiting, true);
+  frames[2].points[4].x = 800;
+  const shifted = replayMotionFaults({ frames });
+  assert.deepEqual(kinds(shifted), ['2:v:attachment-site-motion', '3:vP:attachment-site-motion']);
+  assert.deepEqual([shifted[1].distance, shifted[1].waiting], [300, false], 'only its horizontal shift counts');
+  frames[2].points[3].y = -110;
+  assert.equal(replayMotionFaults({ frames })[1].distance, Math.hypot(300, 220), 'a parent elsewhere grants no descent');
 });
 
 
@@ -104,16 +107,14 @@ test('a later seed that is an earlier seed\'s ancestor still owns its other bran
     .filter(fault => fault.kind === 'unowned-motion'), []);
 });
 
-test('a host under an inserted parent across a stage crossing is compared after the carry', () => {
+test('a host lowered under an inserted parent across a stage crossing is compared after the carry', () => {
   const before = [point('root', 0, 0), point('host', 200, 220, 'root'), point('word', 200, 440, 'host'),
     ...[-200, -400, -600].map((x, index) => point(`sister${index}`, x, 220, 'root'))];
   const shifted = before.filter(item => !['host', 'word'].includes(item.id)).map(item => ({ ...item, x: item.x + 400, y: item.y + 220 }));
-  const after = [...shifted, point('wrap', 600, 330, 'root'), point('host', 600, 440, 'wrap'), point('word', 600, 660, 'host'), point('adjunct', 800, 440, 'wrap')];
+  const after = [...shifted, point('wrap', 600, 440, 'root'), point('host', 600, 660, 'wrap'), point('word', 600, 880, 'host'), point('adjunct', 800, 660, 'wrap')];
   const frames = [{ ...frame('StageRecord', 'root', before, 'macro'), stage: 0 }, { ...frame('ExternalMerge', 'wrap', after), stage: 1 }];
-  const joins = () => replayMotionFaults({ frames }).filter(fault => fault.kind === 'attachment-site-motion');
-  assert.deepEqual(joins(), [], 'the host keeps its carried place under the new parent');
-  for (const item of frames[1].points) if (['host', 'word'].includes(item.id)) item.y += 220;
-  assert.deepEqual(joins().map(fault => [fault.node, fault.distance]), [['host', 220]], 'a carried host that drops a row is a join fault');
+  assert.deepEqual(replayMotionFaults({ frames }).filter(fault => fault.kind === 'attachment-site-motion'), [],
+    'the new parent takes the carried row the host left');
 });
 
 test('a word that shifts under a stationary phrase is reported, whoever owns the step', () => {
