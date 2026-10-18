@@ -146,5 +146,32 @@ test('viewports with the same layout key prepare identical coordinates and plaqu
   const small = prepareReplay({ ...holdouts[5], includePlayback: true });
   const key = width => plaqueLayoutViewportKey({ steps: small.playbackSteps, plan: small.relationRenderPlan,
     layoutGroups: buildStageLayoutGroups(small.playbackSteps, small.replayDerivationFrames), width, height: 750 });
-  assert.notEqual(key(1600), key(1200), 'a width that changes a stage layout size requests a new layout');
+  assert.equal(key(1600), key(1200), 'a small analysis whose stages used to follow the width shares one layout');
+});
+
+// Catalog #22: layout reads no window size, so an analysis draws the same tree at
+// every canvas. This one placed workspace parts differently at 390, 1200 and 1600.
+test('an analysis lays out identically at every canvas width', () => {
+  const record = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/hi-correlative-landing-contour.json', import.meta.url)));
+  const replay = prepareReplay({ ...record, includePlayback: true });
+  const base = { steps: replay.playbackSteps, stageIndex: 0, plan: replay.relationRenderPlan,
+    layoutGroups: buildStageLayoutGroups(replay.playbackSteps, replay.replayDerivationFrames),
+    completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages.at(-1).workspaceForest),
+    measureCategoryText: text => [...text].length * 21.125,
+    measurePlaqueText: (text, style) => ({ ...fallbackPlaqueTextMeasure(text, style), width: [...text].length * style.fontSize * .58 }) };
+  for (const direction of ['ltr', 'rtl']) {
+    const layout = (width, height) => {
+      const iterator = measurePlaqueLayoutJob({ ...base, direction, width, height });
+      let next = iterator.next();
+      while (!next.done) next = iterator.next();
+      const { coordinates, schedule } = runPlaqueLayoutJob(next.value);
+      return { coordinates, schedule };
+    };
+    const reference = layout(1600, 948);
+    for (const [width, height] of [[1200, 750], [1436, 776], [2556, 1316], [386, 720]]) {
+      const other = layout(width, height);
+      assert.deepEqual(other.coordinates, reference.coordinates, `${direction} ${width}x${height} coordinates`);
+      assert.deepEqual(other.schedule, reference.schedule, `${direction} ${width}x${height} plaques`);
+    }
+  }
 });

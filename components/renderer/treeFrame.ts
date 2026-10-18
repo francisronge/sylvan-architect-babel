@@ -172,7 +172,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
 
   const nodeCount = rootHierarchy.descendants().length;
   const [innerWidth, innerHeight] = stageLayoutSize
-    ?? treeLayoutSize(nodeCount, maxDepth, containerWidth, containerHeight);
+    ?? treeLayoutSize(nodeCount, maxDepth);
 
   const g = svg.attr('width', '100%').attr('height', '100%').append('g');
 

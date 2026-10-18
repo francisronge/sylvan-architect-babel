@@ -379,10 +379,31 @@ export function layoutCanopyVisualFrame(visual, viewport) {
 }
 
 /** One record's findings: every Replay frame at each viewport and the Canopy. */
+/** Layout must not read the window: the first two viewports lay out every frame
+ * alike, up to one translation per stage. Each stage reports its worst node. */
+export function layoutWidthFindings(visual, viewports) {
+  if (viewports.length < 2 || !visual.prepared.playbackSteps.length || !visual.prepared.replayDerivationFrames.length) return [];
+  const [first, second] = viewports, worst = new Map();
+  const base = layoutMeasuredScenes(visual, first).scenes, offsets = new Map();
+  layoutMeasuredScenes(visual, second).scenes.forEach((scene, index) => {
+    const stage = scene.step.replayFrameIndex;
+    for (const [id, node] of base[index].nodes) {
+      const other = scene.nodes.get(id);
+      if (!other) continue;
+      if (!offsets.has(stage)) offsets.set(stage, other.x - node.x);
+      const measure = Math.round(Math.max(Math.abs(other.x - node.x - offsets.get(stage)), Math.abs(other.y - node.y)) * 10) / 10;
+      if (measure > 0.5 && measure > (worst.get(stage)?.measure ?? 0)) worst.set(stage, { rule: 'layout-width',
+        subtype: 'beyond-stage-translation', subject: id, frame: index + 1, viewport: `${first.name}~${second.name}`, measure });
+    }
+  });
+  return [...worst.values()];
+}
+
 export function auditVisualRecord(id, record, { viewports = VIEWPORTS, canopy = true, thresholds = THRESHOLDS } = {}) {
   const visual = prepareVisualRecord(record);
   const frames = layoutVisualFrames(visual, viewports);
   if (canopy) frames.push(...viewports.map(viewport => layoutCanopyVisualFrame(visual, viewport)).filter(Boolean));
   return { steps: visual.prepared.playbackSteps.length, frames: frames.length,
-    findings: frames.flatMap(frame => checkFrame(frame, thresholds)).map(finding => ({ ...finding, record: id })) };
+    findings: [...frames.flatMap(frame => checkFrame(frame, thresholds)), ...layoutWidthFindings(visual, viewports)]
+      .map(finding => ({ ...finding, record: id })) };
 }
