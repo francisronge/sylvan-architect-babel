@@ -32,8 +32,7 @@
       "id": "japanese-independent-clause-realization",
       "source": "../replay-regressions/independent-clause-and-realization.json",
       "mechanisms": ["nonmovement", "separate-pronunciation"],
-      "expect": {"minRealizationGroups": 1, "minMerges": 1, "maxMovementMoments": 0},
-      "allow": {"plan": true, "reason": "The operator-binding path of relation 0:1 (relative-operator movement chain) no longer keeps the authored moment and workspace that its sibling movement facet's prior anchors imposed, so same-facet restatements can share it. Only that path identity string changes: item counts, item fields, Replay and drawing are unchanged."}
+      "expect": {"minRealizationGroups": 1, "minMerges": 1, "maxMovementMoments": 0}
     },
     {
       "id": "ordinary-receiving-width-control",
