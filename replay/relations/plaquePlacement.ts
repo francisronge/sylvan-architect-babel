@@ -631,7 +631,8 @@ type PlaqueLifetime = {
   collectionsOnly?: boolean;
   /** Allocate only these claims; the caller reserves every other pocket. */
   includes?: (index: number) => boolean;
-  /** Clear pockets a new search keeps unless it finds a nearer one. */
+  /** Clear pockets a new search keeps unless it finds a nearby pocket or one at
+   * least a quarter nearer. */
   incumbents?: ReadonlyMap<number, PlaquePlacement>;
   reconsider?: ReadonlySet<number>;
   /** Receives each newly searched plaque without its own connector whose pocket
@@ -838,7 +839,13 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       }
     }
     placement ??= priorCandidate;
-    const location = placement ? placement === priorCandidate ? priorCandidate.location : 'local' : 'below';
+    // The farthest pocket the ordinary nearby search proposes.
+    const nearbyReach = () => candidates.length ? Math.max(...candidates.map(placementDistance)) : Infinity;
+    // Leaving the incumbent needs a nearby pocket or one at least a quarter nearer.
+    if (incumbent && placement && placement !== incumbent && placementDistance(placement) > nearbyReach()
+      && placementDistance(placement) > 0.75 ** 2 * placementDistance(incumbent)) placement = incumbent;
+    const kept = [priorCandidate, incumbent].find(box => box && box === placement);
+    const location = placement ? kept ? kept.location : 'local' : 'below';
     if (!placement) {
       // A connector's lower lane clears all plaques, so its stems extend past
       // every below-tree plaque. Each column clear of the stems descends past
@@ -870,8 +877,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       placement = attach({ x: best.x, y: best.y, width, height }, request);
     }
     // Case arrows and collectors join their plaques to syntax; others rely on proximity.
-    if (lifetime?.remote && !request.caseAssignment && !request.collectionRows?.length && candidates.length
-      && placementDistance(placement) > Math.max(...candidates.map(placementDistance))) lifetime.remote(request.index);
+    if (lifetime?.remote && !request.caseAssignment && !request.collectionRows?.length
+      && placementDistance(placement) > nearbyReach()) lifetime.remote(request.index);
     const attachment = anchor;
     result.set(request.index, { ...placement, location, domainId: idOf(domain),
       ...(request.scrollHeight ? { scrollHeight: request.scrollHeight } : {}),

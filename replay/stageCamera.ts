@@ -315,19 +315,25 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     return pairs.some(([old, node]) => Math.abs((old.x - oldAnchor.x) - (node.x - nextAnchor.x)) > 1e-8
       || Math.abs((old.y - oldAnchor.y) - (node.y - nextAnchor.y)) > 1e-8);
   };
-  /** The phase opens on an authored movement whose landing is, or contains, the
-   * anchor. Reflow, merges and other phrases' movement do not relocate it. */
+  /** The phase opens on an authored movement that carries the anchor to a new
+   * position: inside the moved phrase or the complex head it forms. Reflow, merges
+   * and other phrases' movement do not relocate it. */
   const movedAnchors = new Map<number, (id: string) => boolean>();
   const anchorMoved = (phaseIndex: number, id: string) => {
     let moved = movedAnchors.get(phaseIndex);
     if (!moved) {
-      const phase = phases[phaseIndex], scene = phase.scenes[0];
+      const phase = phases[phaseIndex], scene = phase.scenes[0], previous = phases[phaseIndex - 1]?.scenes.at(-1);
       const played = input.steps[scene.stepIndices[0]]?.replayRelationIdentity;
-      const landings = new Set(played ? frames[phase.stageIndex].items.flatMap(item => item.kind === 'trajectory'
+      const landings = new Set(played && previous ? frames[phase.stageIndex].items.flatMap(item => item.kind === 'trajectory'
         && item.relationRef.stageIndex === played.stageIndex && item.relationRef.relationIndex === played.relationIndex
-        ? [item.targetNodeId] : []) : []);
+        ? [item.targetNodeId, ...item.headLandingSite ? [item.headLandingSite.nodeId] : []] : []) : []);
       const byId = landings.size ? indexHierarchyNodesByIdAndAliases(scene.nodes) : new Map();
-      moved = id => Boolean(byId.get(id)?.ancestors().some(node => landings.has(String((node as any).__vizId ?? node.data.id))));
+      const before = landings.size ? indexHierarchyNodesByIdAndAliases(previous!.nodes) : new Map();
+      moved = id => {
+        const node = byId.get(id), old = before.get(id);
+        return Boolean(node && old && Math.hypot(node.x - old.x, node.y - old.y) > 1e-8
+          && node.ancestors().some(ancestor => landings.has(String((ancestor as any).__vizId ?? ancestor.data.id))));
+      };
       movedAnchors.set(phaseIndex, moved);
     }
     return moved(id);
@@ -367,9 +373,11 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       });
       if (invalid) pockets.delete(key);
     });
+    // A relocated plaque starts a new lifetime when its anchor moves; its old pocket stays as an incumbent.
     const reconsider = new Set(phaseRequests[phaseIndex].filter(request => (!relocating || includes(request.index))
       && (collectionsOnly || !collectionReservations[phaseIndex]?.has(request.index))
-      && geometryBoundary(phaseIndex, request, participantIds(request, phaseIndex)))
+      && (geometryBoundary(phaseIndex, request, participantIds(request, phaseIndex))
+        || relocating && anchorMoved(phaseIndex, request.ids[0])))
       .map(request => request.index));
     const moving = new Set<number>(), remote = new Set<number>();
     const layout = placeStagePlaques(phase.items, nodes, obstacles, pockets, input.measurePlaqueText, { sizes, collectionsOnly, reconsider,

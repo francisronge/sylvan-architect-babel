@@ -245,12 +245,13 @@ The worker, painter and camera consume the same stage and step maps.
 A plaque without its own Case arrow or collector shows its owner only by
 proximity. Its one anchor-relative pocket must be clear at every position of a
 moving anchor, so it can end up beyond all of its nearby candidates. A second
-allocation pass then places that plaque again. Each new lifetime ends at the next
-authored movement whose landing contains the anchor. Reflow, merges and other
-phrases' movement do not end it. The second pass keeps the first-pass pocket
-unless a nearer clear pocket exists. Every other plaque keeps its first-pass
-pocket exactly, so the relocated plaque can shift when a later plaque claims its
-space.
+allocation pass then places that plaque again. It searches anew whenever an
+authored movement carries the anchor, inside the moved phrase or the complex
+head that movement forms. Reflow, merges and other phrases' movement start no
+new search. The second pass leaves the first-pass pocket only for one within
+reach of the nearby candidates or at least a quarter nearer. Every other plaque
+keeps its first-pass pocket exactly, so the relocated plaque can shift when a
+later plaque claims its space.
 
 Reservations account for tree ink, trajectories, neutral connector stems and
 already allocated claims. The nearest clear pocket search has no arbitrary radius
