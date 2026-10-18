@@ -17,7 +17,9 @@ const trimmed = value => typeof value === 'string' ? value.trim() : '';
 const frames = new WeakMap();
 /** One step's canvas indexed by renderer id. `displayed` is what the frame
  * paints: visible, neither the synthetic workspace root nor layout scaffolding.
- * `parent` is each displayed node's nearest displayed ancestor. */
+ * `parent` is a displayed node's canvas parent when that parent is displayed,
+ * and null otherwise: the renderer draws an edge only between two visible
+ * nodes, so syntax under a hidden new parent is drawn as a separate root. */
 export function frameStructure(step) {
   if (frames.has(step)) return frames.get(step);
   const nodes = new Map(), displayed = new Set(), parent = new Map(), children = new Map();
@@ -27,8 +29,7 @@ export function frameStructure(step) {
     root.each(node => nodes.set(getNodeId(node), node));
     for (const [id, node] of nodes) if (visible.has(id) && !isWorkspace(node.data) && !isScaffold(node.data)) displayed.add(id);
     for (const id of displayed) {
-      const ancestor = nodes.get(id).ancestors().slice(1).find(candidate => displayed.has(getNodeId(candidate)));
-      const parentId = ancestor ? getNodeId(ancestor) : null;
+      const canvasParent = nodes.get(id).parent, parentId = canvasParent && displayed.has(getNodeId(canvasParent)) ? getNodeId(canvasParent) : null;
       parent.set(id, parentId);
       if (!children.has(parentId)) children.set(parentId, []);
       children.get(parentId).push(id);
