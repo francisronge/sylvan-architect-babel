@@ -3,6 +3,7 @@ import { withFailureDetails } from './validationErrors.js';
 import { resolveRealizations } from './realizations.js';
 import { resolveSavedInputTokens, tokenizeSentenceSurfaceOrder } from './surfaceTokens.js';
 import {
+  createExpansionBudget,
   normalizeDerivationStagesToDerivationFrames,
   normalizeDerivationFrames,
   buildCanonicalDerivationFromDerivationFrames
@@ -58,7 +59,7 @@ const normalizeParseResult = (
   const alignmentIssues = [];
   const derivationFrames = normalizeDerivationFrames(
     rawDerivationFrames,
-    { integrityFlags: payloadIntegrityFlags, nodeFieldPaths, sentenceTokens }
+    { integrityFlags: payloadIntegrityFlags, nodeFieldPaths, sentenceTokens, expansionBudget: options.expansionBudget }
   );
   const derivationPrimaryBundle = derivationFrames.length > 0
     ? buildCanonicalDerivationFromDerivationFrames(derivationFrames, sentenceTokens, {
@@ -181,6 +182,9 @@ const normalizeWithTokenIndexRecovery = (analysis, framework, sentence, modelRou
       normalized = normalizeParseResult(recovery.candidate, framework, sentence, modelRoute, options);
     } catch (candidateError) {
       if (!(candidateError instanceof ParseApiError)) throw candidateError;
+      // The first pass expanded within the response's budget, so a retry that
+      // spends it reports the budget rather than the alignment it was repairing.
+      if (options.expansionBudget?.remainingFieldValues < 0) throw candidateError;
       throw error;
     }
     normalized.provenance.tokenIndexCorrections = recovery.corrections;
@@ -298,10 +302,12 @@ export const normalizeParseBundle = (
     inputTokens = resolveSavedInputTokens(sentence, options.inputTokens ?? tokenizeSentenceSurfaceOrder(sentence));
   }
   let firstError;
+  // Every analysis of the response, and any token-index retry, shares one budget.
+  const expansionBudget = createExpansionBudget();
   const analyses = analysesSource.map((analysis, analysisIndex) => {
     try {
       const normalized = normalizeWithTokenIndexRecovery(
-        analysis, framework, sentence, modelRoute, { ...options, inputTokens },
+        analysis, framework, sentence, modelRoute, { ...options, inputTokens, expansionBudget },
         Array.isArray(parsed?.analyses) ? `$.analyses[${analysisIndex}]` : '$'
       );
       options.analysisOutcomes?.push({ analysisIndex, status: 'succeeded' });

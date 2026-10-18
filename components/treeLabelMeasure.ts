@@ -1,19 +1,20 @@
 import { CATEGORY_FONT, CATEGORY_LINE_HEIGHT } from '../replay/categoryTextLayout.ts';
 import { treeLabelRunKey, treeLabelIndexAttributes, type TreeLabelMeasure, type TreeLabelBounds } from '../replay/treeLabelRuns.ts';
-import { createTreeInkTextMeasure, TERMINAL_FONT } from './treeInkTextMeasure.ts';
+import { createTreeInkTextMeasure, TERMINAL_FONT, type MeasuredRunSource } from './treeInkTextMeasure.ts';
 import type { TreeInkTextMeasure } from '../replay/treeInkGeometry.ts';
 
 const namespace = 'http://www.w3.org/2000/svg';
 
 /** Measure the complete styled label, including the browser's subscript shift,
  * text anchoring and arbitrary authored indices. Call after fonts are ready. */
-export function createTreeLabelMeasure(doc: Document | undefined): TreeLabelMeasure {
-  const cache = new Map<string, TreeLabelBounds | undefined>();
+export function createTreeLabelMeasure(doc: Document | undefined): TreeLabelMeasure & MeasuredRunSource<Parameters<TreeLabelMeasure>> {
+  const cache = new Map<string, { args: Parameters<TreeLabelMeasure>; result: TreeLabelBounds | undefined }>();
   let plainText: TreeInkTextMeasure | undefined;
   try { plainText = createTreeInkTextMeasure(doc); } catch { /* Keep the native SVG envelope. */ }
-  return runs => {
+  const measure: TreeLabelMeasure = runs => {
     const key = treeLabelRunKey(runs);
-    if (cache.has(key)) return cache.get(key);
+    const cached = cache.get(key);
+    if (cached) return cached.result;
     let result: TreeLabelBounds | undefined;
     if (!doc?.body) return;
     const svg = doc.createElementNS(namespace, 'svg');
@@ -71,7 +72,8 @@ export function createTreeLabelMeasure(doc: Document | undefined): TreeLabelMeas
     } finally {
       svg.remove();
     }
-    cache.set(key,result);
+    cache.set(key, { args: [runs], result });
     return result;
   };
+  return Object.assign(measure, { runs: () => cache.values() });
 }

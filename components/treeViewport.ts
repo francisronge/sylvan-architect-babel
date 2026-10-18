@@ -1,4 +1,48 @@
 export type ViewportRect = { left: number; top: number; right: number; bottom: number };
+export type ViewportSize = { width: number; height: number };
+
+/** Quiet period after the last canvas resize before the painted tree refits. */
+export const VIEWPORT_SETTLE_MS = 120;
+
+/**
+ * Coalesces canvas resizes. Until a frame is painted, every size applies at
+ * once, so opening keeps its first-paint path. After that, a burst of resizes
+ * applies only its last size, once, after `delay` without another change; the
+ * painted tree stays in place meanwhile. A settled burst always applies, even
+ * if it returned to the committed size, so the caller can refit and clear its
+ * pending state.
+ */
+export function createViewportSettler({ apply, painted, schedule, cancel, delay = VIEWPORT_SETTLE_MS }: {
+  apply: (size: ViewportSize) => void;
+  painted: () => boolean;
+  schedule: (callback: () => void, delay: number) => number;
+  cancel: (id: number) => void;
+  delay?: number;
+}) {
+  let committed: ViewportSize | null = null;
+  let latest: ViewportSize | null = null;
+  let timer: number | null = null;
+  const commit = (size: ViewportSize) => { committed = size; apply(size); };
+  const stop = () => { if (timer !== null) cancel(timer); timer = null; };
+  return {
+    get pending() { return timer !== null; },
+    get committed() { return committed; },
+    observe(size: ViewportSize) {
+      latest = size;
+      const unchanged = committed?.width === size.width && committed.height === size.height;
+      if (!painted()) {
+        stop();
+        if (!unchanged) commit(size);
+        return;
+      }
+      if (unchanged && timer === null) return;
+      stop();
+      timer = schedule(() => { timer = null; commit(latest!); }, delay);
+    },
+    dispose: stop
+  };
+}
+
 /** One frame's painted syntax: tree-space position and hierarchy parent, keyed by display ID. */
 export type PaintedNodes = ReadonlyMap<string, { x: number; y: number; parentId: string | null }>;
 
