@@ -1,4 +1,6 @@
 export type ViewportRect = { left: number; top: number; right: number; bottom: number };
+/** One frame's painted syntax: tree-space position and hierarchy parent, keyed by display ID. */
+export type PaintedNodes = ReadonlyMap<string, { x: number; y: number; parentId: string | null }>;
 
 /** Playback does not zoom in merely because a later stage has more room.
  * Preserve the accepted pose until clearance needs a pan or smaller scale. */
@@ -9,6 +11,37 @@ export function advanceFittedCamera(
   view: ViewportRect
 ) {
   return previous.k <= fitted.k + 1e-7 ? containCamera(previous, bounds, view) : fitted;
+}
+
+/** Each stage lays out its syntax in its own coordinates. Translate a pose by the
+ * median coordinate shift of the syntax both frames share, removing the common
+ * translation between the two layouts; residual layout changes still move. A node
+ * whose shared ancestors change (a reattached, moved constituent) is left out
+ * unless nothing else is shared. */
+export function carryCamera(pose: { x: number; y: number; k: number }, before: PaintedNodes, after: PaintedNodes) {
+  const sharedAncestors = (nodes: PaintedNodes, id: string) => {
+    const ids: string[] = [];
+    for (let parent = nodes.get(id)!.parentId; parent; parent = nodes.get(parent)?.parentId ?? null) {
+      if (before.has(parent) && after.has(parent)) ids.push(parent);
+    }
+    return ids;
+  };
+  const shared = [...after.keys()].filter(id => before.has(id));
+  const unmoved = shared.filter(id => {
+    const prior = sharedAncestors(before, id), current = sharedAncestors(after, id);
+    return prior.length === current.length && prior.every((ancestor, index) => ancestor === current[index]);
+  });
+  const reference = unmoved.length ? unmoved : shared;
+  if (!reference.length) return pose;
+  const median = (values: number[]) => {
+    values.sort((a, b) => a - b);
+    return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
+  };
+  return {
+    x: pose.x + median(reference.map(id => before.get(id)!.x - after.get(id)!.x)) * pose.k,
+    y: pose.y + median(reference.map(id => before.get(id)!.y - after.get(id)!.y)) * pose.k,
+    k: pose.k
+  };
 }
 
 /** Retain an accepted fit; correct overflow with the least translation and scale reduction. */

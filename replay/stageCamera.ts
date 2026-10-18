@@ -315,12 +315,41 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     return pairs.some(([old, node]) => Math.abs((old.x - oldAnchor.x) - (node.x - nextAnchor.x)) > 1e-8
       || Math.abs((old.y - oldAnchor.y) - (node.y - nextAnchor.y)) > 1e-8);
   };
+  /** The phase opens on an authored movement that carries the anchor to a new
+   * position: inside the moved phrase or the complex head it forms. Reflow, merges
+   * and other phrases' movement do not relocate it. */
+  const movedAnchors = new Map<number, (id: string) => boolean>();
+  const anchorMoved = (phaseIndex: number, id: string) => {
+    let moved = movedAnchors.get(phaseIndex);
+    if (!moved) {
+      const phase = phases[phaseIndex], scene = phase.scenes[0], previous = phases[phaseIndex - 1]?.scenes.at(-1);
+      const played = input.steps[scene.stepIndices[0]]?.replayRelationIdentity;
+      const landings = new Set(played && previous ? frames[phase.stageIndex].items.flatMap(item => item.kind === 'trajectory'
+        && item.relationRef.stageIndex === played.stageIndex && item.relationRef.relationIndex === played.relationIndex
+        ? [item.targetNodeId, ...item.headLandingSite ? [item.headLandingSite.nodeId] : []] : []) : []);
+      const byId = landings.size ? indexHierarchyNodesByIdAndAliases(scene.nodes) : new Map();
+      const before = landings.size ? indexHierarchyNodesByIdAndAliases(previous!.nodes) : new Map();
+      moved = id => {
+        const node = byId.get(id), old = before.get(id);
+        return Boolean(node && old && Math.hypot(node.x - old.x, node.y - old.y) > 1e-8
+          && node.ancestors().some(ancestor => landings.has(String((ancestor as any).__vizId ?? ancestor.data.id))));
+      };
+      movedAnchors.set(phaseIndex, moved);
+    }
+    return moved(id);
+  };
   const remembered = new Map<string, PlaquePlacement>();
   const collectionReservations: Map<number, PlaquePlacement>[] = [];
-  const allocate = (phaseIndex: number, collectionsOnly = false) => {
+  // One pocket must clear every position of a moving anchor. When that pocket is
+  // remote, a second pass places the plaque again for each anchor position. It
+  // yields to every other plaque, whose pocket stays exactly as allocated.
+  const relocatedKeys = new Set<string>(), relocated = new Map<string, PlaquePlacement>();
+  const allocate = (phaseIndex: number, collectionsOnly = false, ordinary?: Map<number, PlaquePlacement>) => {
     const phase = phases[phaseIndex], frame = { ...frames[phase.stageIndex], items: phase.items };
     const { nodes, obstacles } = phase;
-    if (!collectionsOnly) collectionReservations[phaseIndex]?.forEach((box, index) => {
+    const relocating = Boolean(ordinary), pockets = relocating ? relocated : remembered;
+    const includes = (index: number) => relocatedKeys.has(plaqueIdentity(frame.items[index]));
+    if (!collectionsOnly && !relocating) collectionReservations[phaseIndex]?.forEach((box, index) => {
       const key = plaqueIdentity(frame.items[index]);
       const request = phaseRequests[phaseIndex].find(request => request.index === index)!;
       // A reservation seeds new lifetimes; an accepted pocket owns continuity.
@@ -333,7 +362,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     // force them into remote pockets. Accepted pockets still own continuity.
     if (!collectionsOnly) phaseRequests[phaseIndex].forEach(request => {
       if (collectionReservations[phaseIndex]?.has(request.index)) return;
-      const key = plaqueIdentity(frame.items[request.index]), prior = remembered.get(key);
+      const key = plaqueIdentity(frame.items[request.index]), prior = pockets.get(key);
       if (!prior) return;
       const invalid = phase.scenes.some(scene => {
         const byId = indexHierarchyNodesByIdAndAliases(scene.nodes);
@@ -342,16 +371,21 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
         const collections = projectPlaqueLayout(collectionReservations[phaseIndex] ?? new Map(), id => byId.get(id));
         return [...scene.obstacles, ...collections.values()].some(obstacle => plaquesOverlap(pocket, obstacle));
       });
-      if (invalid) remembered.delete(key);
+      if (invalid) pockets.delete(key);
     });
-    const reconsider = new Set(phaseRequests[phaseIndex].filter(request =>
-      (collectionsOnly || !collectionReservations[phaseIndex]?.has(request.index))
-      && geometryBoundary(phaseIndex, request, participantIds(request, phaseIndex)))
+    // A relocated plaque starts a new lifetime when its anchor moves; its old pocket stays as an incumbent.
+    const reconsider = new Set(phaseRequests[phaseIndex].filter(request => (!relocating || includes(request.index))
+      && (collectionsOnly || !collectionReservations[phaseIndex]?.has(request.index))
+      && (geometryBoundary(phaseIndex, request, participantIds(request, phaseIndex))
+        || relocating && anchorMoved(phaseIndex, request.ids[0])))
       .map(request => request.index));
-    const layout = placeStagePlaques(phase.items, nodes, obstacles, remembered, input.measurePlaqueText, { sizes, collectionsOnly, reconsider,
+    const moving = new Set<number>(), remote = new Set<number>();
+    const layout = placeStagePlaques(phase.items, nodes, obstacles, pockets, input.measurePlaqueText, { sizes, collectionsOnly, reconsider,
+      ...(ordinary ? { includes, incumbents: ordinary } : { remote: (index: number) => remote.add(index) }),
       spaceFor: (index, anchor, allocated) => {
         const key = plaqueIdentity(frame.items[index]);
         const known = new Map(remembered);
+        if (relocating) relocatedKeys.forEach(other => relocated.has(other) ? known.set(other, relocated.get(other)!) : known.delete(other));
         allocated.forEach((placement, itemIndex) => known.set(plaqueIdentity(frame.items[itemIndex]), placement));
         const request = phaseRequests[phaseIndex].find(request => request.index === index)!;
         const participants = participantIds(request, phaseIndex);
@@ -362,6 +396,10 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
           if (nextRequest) {
             participantIds(nextRequest, end).forEach(id => participants.add(id));
             if (geometryBoundary(end, nextRequest, participants)) break;
+            if (anchorMoved(end, nextRequest.ids[0])) {
+              moving.add(index);
+              if (relocating) break;
+            }
           }
           end++;
         }
@@ -427,7 +465,8 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
           })
         };
       } });
-    layout.forEach((placement, index) => remembered.set(plaqueIdentity(frame.items[index]), placement));
+    layout.forEach((placement, index) => pockets.set(plaqueIdentity(frame.items[index]), placement));
+    remote.forEach(index => { if (moving.has(index)) relocatedKeys.add(plaqueIdentity(frame.items[index])); });
     return layout;
   };
   // D6 collection curves have fixed endpoints and control lanes. Reserve them
@@ -436,7 +475,9 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
   remembered.clear();
   const schedule: ReplayPlaqueSchedule = { stages: [], steps: new Map() };
   phases.forEach((phase, phaseIndex) => {
-    const layout = allocate(phaseIndex);
+    const ordinary = allocate(phaseIndex);
+    const moved = relocatedKeys.size ? allocate(phaseIndex, false, ordinary) : new Map<number, PlaquePlacement>();
+    const layout = moved.size ? new Map([...ordinary].map(([index, box]) => [index, moved.get(index) ?? box])) : ordinary;
     schedule.stages[phase.stageIndex] = layout;
     phase.scenes.forEach(scene => scene.stepIndices.forEach(index => schedule.steps.set(index, layout)));
     if (phases[phaseIndex + 1]?.stageIndex !== phase.stageIndex) stageReady?.(schedule, phase.stageIndex);
