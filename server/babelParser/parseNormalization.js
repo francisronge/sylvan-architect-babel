@@ -182,6 +182,9 @@ const normalizeWithTokenIndexRecovery = (analysis, framework, sentence, modelRou
       normalized = normalizeParseResult(recovery.candidate, framework, sentence, modelRoute, options);
     } catch (candidateError) {
       if (!(candidateError instanceof ParseApiError)) throw candidateError;
+      // The first pass expanded within the response's budget, so a retry that
+      // spends it reports the budget rather than the alignment it was repairing.
+      if (options.expansionBudget?.remainingFieldValues < 0) throw candidateError;
       throw error;
     }
     normalized.provenance.tokenIndexCorrections = recovery.corrections;

@@ -62,3 +62,48 @@ test('ignored node fields copied through references stop at the response expansi
   assert.equal(normalize(half).analyses.length, 1);
   expectBudget({ analyses: [half, half] }, 1, 39);
 });
+
+test('deeply nested metadata is rejected by the response preflight before any clone', () => {
+  const nested = (levels) => JSON.parse(`${'['.repeat(levels)}0${']'.repeat(levels)}`);
+  const carried = (extra) => ({ derivationStages: [
+    stage([{ id: 'w', label: 'X', word: 'a', extra, children: [] }]), stage([{ refId: 'w' }]), stage([{ refId: 'w' }])
+  ] });
+  for (const spellout of [true, false]) {
+    assert.throws(() => normalizeParseBundle(carried(nested(4_000)), 'xbar', 'a', 'gpt', true, { spellout, inputTokens: ['a'] }),
+      error => error.status === 502 && error.failure.ruleId === 'PAYLOAD_NESTING_DEPTH');
+  }
+  // Just under the limit, the metadata is copied through every reference without overflowing the stack.
+  assert.equal(normalize(carried(nested(1_000))).analyses[0].derivationStages.length, 3);
+});
+
+test('a token-index retry that spends the expansion budget reports the budget', () => {
+  // The final stage's mismatched token index is repaired by a second pass, which copies the carried field again.
+  const repaired = (stages) => ({ derivationStages: [
+    stage([{ id: 'mia', label: 'N', word: 'Mia', extra: Array(10_000).fill(0), children: [] }]),
+    ...Array.from({ length: stages - 2 }, () => stage([{ refId: 'mia' }])),
+    stage([{ id: 's', label: 'S', children: [{ refId: 'mia' }, { id: 'v', label: 'V', word: 'laughed', tokenIndex: 0, children: [] }] }])
+  ] });
+  const run = payload => normalizeParseBundle(payload, 'xbar', 'Mia laughed', 'gpt', true, { inputTokens: ['Mia', 'laughed'] });
+  assert.equal(run(repaired(30)).analyses[0].provenance.tokenIndexCorrections.length, 1);
+  assert.throws(() => run(repaired(60)), (error) => {
+    assert.equal(error.failure.ruleId, 'DERIVATION_WORKSPACE_VALID');
+    assert.equal(error.failure.processingStep, 'workspace-expansion');
+    assert.match(error.message, /expanded node fields exceed 1000000 values/);
+    return true;
+  });
+});
+
+test('relation diagnostics stay bounded however long an entry name and however many invalid items', () => {
+  const name = 'n'.repeat(2_000);
+  const relation = { relation: 'Agree', anchors: { [name]: Array(1_500).fill(0) } };
+  const payload = { derivationStages: [{ ...stage([{ id: 'w', label: 'X', word: 'a', children: [] }]), relations: [relation] }] };
+  const bundle = timed(() => normalize(payload));
+  // Repeating the name in each of 1,500 item diagnostics produced megabytes of output.
+  assert.ok(JSON.stringify(bundle).length < 100_000, `${JSON.stringify(bundle).length} bytes`);
+  const { raw, issues } = bundle.analyses[0].derivationStages[0].relations[0].relationContractFailure;
+  assert.deepEqual(raw, relation);
+  assert.equal(issues.length, 21);
+  assert.equal(issues[0].fieldPath, `$.derivationStages[0].relations[0].anchors["${'n'.repeat(80)}…"][0]`);
+  assert.match(issues[20].message, /: 1480 more invalid items are not listed; the authored relation keeps them\.$/);
+  assert.equal(issues[20].offendingValue, 1_480);
+});
