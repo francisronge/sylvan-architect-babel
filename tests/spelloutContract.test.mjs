@@ -191,18 +191,50 @@ test('an earlier group with repeated text resolves through the nodes it names', 
   assert.deepEqual(result.analysis.derivationStages[0].realizations, [{ nodeIds: ['y'], tokenIndices: [1] }]);
 });
 
-test('analyses that segment differently become separate attempts', () => {
+test('analyses that divide words differently share one word list cut at every boundary', () => {
   const payload = { analyses: [flat('小李', '来', '了'), flat('小', '李', '来', '了'), flat('小李', '来', '了'), flat('大李', '来', '了')] };
   const results = convertSpelloutPayload(payload, '小李来了。');
+  assert.deepEqual(results.map(result => result.ok), [true, true, true, false]);
+  results.slice(0, 3).forEach(result => assert.deepEqual(result.inputTokens, ['小', '李', '来', '了']));
+  // A whole word over several tokens is recorded as that leaf realizing them.
+  assert.deepEqual(results[0].spellingGroups, [{ nodeIds: ['w0'], tokenIndices: [0, 1] }]);
+  assert.deepEqual(results[1].spellingGroups, []);
   const { attempts, failures } = planSpelloutAttempts(payload, results);
   assert.deepEqual(attempts.map(({ id, inputTokens, analysisIndices }) => ({ id, inputTokens, analysisIndices })), [
-    { id: 'parse-segmentation-1', inputTokens: ['小李', '来', '了'], analysisIndices: [0, 2] },
-    { id: 'parse-segmentation-2', inputTokens: ['小', '李', '来', '了'], analysisIndices: [1] }
+    { id: 'parse', inputTokens: ['小', '李', '来', '了'], analysisIndices: [0, 1, 2] }
   ]);
-  assert.equal(attempts[0].payload.analyses.length, 2);
+  assert.equal(normalize(attempts[0].payload, '小李来了。', attempts[0].inputTokens).analyses.length, 3);
   assert.deepEqual(failures.map(({ id, analysisIndex }) => ({ id, analysisIndex })), [{ id: 'parse-analysis-4-spellout', analysisIndex: 3 }]);
   const single = planSpelloutAttempts(flat('Mia', 'laughed'), convertSpelloutPayload(flat('Mia', 'laughed'), 'Mia laughed.'));
   assert.equal(single.attempts[0].id, 'parse');
+});
+
+test('an earlier group may name part of a word that grows in a later stage', () => {
+  const sentence = '他把杯子打破了。';
+  const stage = (statement, workspaceForest, realizations) => ({ statement, stageRecord: statement, relations: [], workspaceForest, realizations });
+  const compound = node('compound', 'V', leaf('v', '打'), leaf('r', '破'));
+  const payload = { derivationStages: [
+    stage('Compound.', [compound], [{ nodeIds: ['compound'], text: '打破' }]),
+    stage('Clause.', [node('s', 'S', leaf('he', '他'), leaf('ba', '把'), leaf('cup', '杯子'),
+      node('asp', 'Asp', { refId: 'compound' }, leaf('le', '了')))], [{ nodeIds: ['asp'], text: '打破了' }])
+  ] };
+  const result = convertOne(payload, sentence);
+  assert.ok(result.ok, JSON.stringify(result.diagnostics));
+  assert.deepEqual(result.inputTokens, ['他', '把', '杯子', '打破', '了']);
+  assert.deepEqual(result.analysis.derivationStages.map(item => item.realizations),
+    [[{ nodeIds: ['compound'], tokenIndices: [3] }], [{ nodeIds: ['asp'], tokenIndices: [3, 4] }]]);
+  assert.equal(normalize(result.analysis, sentence, result.inputTokens).analyses.length, 1);
+  // The part must occur once inside the final words that the group's own nodes pronounce.
+  const elsewhere = structuredClone(payload);
+  elsewhere.derivationStages[0].realizations[0].text = '杯';
+  assert.equal(convertOne(elsewhere, sentence).diagnostics[0].rule, 'SPELLOUT_GROUP_UNRESOLVED');
+});
+
+test('an analysis that does not spell another analysis\'s punctuation word fails', () => {
+  const results = convertSpelloutPayload({ analyses: [flat('Mia', 'laughed', '.'), flat('Mia', 'laughed')] }, 'Mia laughed.');
+  assert.deepEqual(results.map(result => result.ok), [true, false]);
+  assert.deepEqual(results[0].inputTokens, ['Mia', 'laughed', '.']);
+  assert.equal(results[1].diagnostics[0].rule, 'SPELLOUT_SEGMENTATION_CONFLICT');
 });
 
 test('a spell-out response becomes ordinary attempts plus recorded spell-out failures', () => {

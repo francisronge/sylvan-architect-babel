@@ -241,7 +241,8 @@ client-imposed generation time limit.
 no token list, and its final words must spell the sentence.
 `contractQualification/spelloutContract.js` checks that spelling and converts each
 analysis into the current contract, using the model's own words as tokens, so the
-parser, Replay and review run unchanged. `spellout.json` keeps the alignment. No
+parser, Replay and review run unchanged. All analyses share one word list, cut
+wherever any analysis or earlier stage divides a word. `spellout.json` keeps the alignment. No
 product route uses this variant.
 
 The subscription endpoint requires streaming and `store: false`; background
