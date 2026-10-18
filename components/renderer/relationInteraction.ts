@@ -87,7 +87,9 @@ export function applyRelationEmphasis(svg: SVGSVGElement, activeRelationMoment: 
     const quiet = Boolean(focusKey) && !active;
     element.setAttribute('data-vr-emphasis', active ? 'active' : quiet ? 'quiet' : 'none');
     element.classList.toggle('vr-relation-active', isVisualRoot && active);
-    element.classList.toggle('vr-relation-quiet', isVisualRoot && quiet);
+    // Quiet dims once: inside an already quiet ancestor, a mark keeps that dimming.
+    const dimmed = Boolean(element.parentElement?.closest('.vr-relation-quiet'));
+    element.classList.toggle('vr-relation-quiet', isVisualRoot && quiet && !dimmed);
     // Hover changes ink and halo only; the relation moment owns opacity.
     element.classList.toggle('vr-relation-hovered', isVisualRoot && ownsMoment(element, hoverKey));
   });

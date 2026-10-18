@@ -4,7 +4,8 @@ import { createBindingDrawing, indexLetterLabels } from '../components/renderer/
 import { createBindingRefinements } from '../components/renderer/bindingRefinements.ts';
 import { planIndexLetters, primitiveIndexLetters } from '../components/renderer/indexLetters.ts';
 import { applyRelationEmphasis } from '../components/renderer/relationInteraction.ts';
-import { decorateRelationElement } from '../components/renderer/relationOwnership.ts';
+import { createRelationLayers } from '../components/renderer/relationLayers.ts';
+import { decorateRelationElement, relationLayerKey } from '../components/renderer/relationOwnership.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { isPlanItemRevealed, planItemOwnsRelationMoment, planItemRelationRefs } from '../replay/relations/renderPlan.ts';
@@ -250,6 +251,49 @@ test('a label hosting a shared inline index dims only when none of its owners is
   assert.deepEqual(atTrace.map(index => [index.textContent, painted(index)]), [['i', 1]]);
   assert.equal(descendants(root).filter(element => element.attrs['data-operator-variable-index-role'] === 'variable').length, 0,
     'the binding draws no second i beside the trace');
+});
+
+// Painted opacity as the shared emphasis CSS resolves it on each element.
+const paintedOpacity = element => !element ? 1 : (element.classList.contains('vr-relation-active') ? 1
+  : element.classList.contains('vr-relation-quiet') ? 0.3 : Number(element.attrs.opacity ?? 1)) * paintedOpacity(element.parentNode);
+
+test('shared letters dim once: active ones paint at 1 and quiet ones at the shared 0.3', () => {
+  // Frame 23 of the scope analysis: the j chain's QR moment; the i chain's is quiet.
+  const { items, primitives, letterPlan, emphasis } = moment(prepare(stages), 2, 0);
+  const root = new Element('g'), g = select(root), overlay = g.append('g');
+  const layers = createRelationLayers({ activeDerivationFrameIndex: 2, relationLayerKey, g, decorateRelationElement, overlay });
+  const drawing = createBindingDrawing({ ...layers, activeDerivationFrameIndex: 2, overlay, frameItems: items, g,
+    operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], focusedRelationMoment: { stageIndex: 2, relationIndex: 0 },
+    relationEmphasisForItem: emphasis, decorateRelationElement, relationLayerKey, resolveOverlayAnchor: () => undefined,
+    terminalAmbiguities: new Map(), identityTerminalOwners: new Map(), identityForestLightFamilies: [], markIdentityLensOccurrences() {},
+    TARGET_EMERALD: '#34d399', indexLetterPlan: letterPlan });
+  for (const primitive of primitives) {
+    // As the relation scene creates each primitive's host.
+    const item = items[primitive.itemIndex], host = overlay.append('g').attr('class', 'vr-item');
+    decorateRelationElement(host.node(), item, emphasis(item));
+    host.attr('opacity', emphasis(item) === 'quiet' ? 0.3 : null);
+    ({ 'quantifier-raising': drawing.drawQuantifierRaising, 'operator-variable-binding': drawing.drawOperatorVariableBinding })[primitive.type]
+      ?.(primitive, item, host, emphasis(item));
+  }
+  applyRelationEmphasis(root, { stageIndex: 2, relationIndex: 0 }, null);
+  const letters = descendants(root).filter(element => element.attrs['data-operator-variable-index-role']).map(element =>
+    [element.parentNode.attrs[`data-operator-variable-${element.attrs['data-operator-variable-index-role']}`], element.textContent, paintedOpacity(element)]);
+  assert.deepEqual(letters.sort(), [['obj', 'j', 1], ['objhigh', 'j', 1], ['subj', 'i', 0.3], ['subjhigh', 'i', 0.3]]);
+  assert(descendants(root).filter(element => (element.attrs.class || '') === 'babel-operator-variable-path')
+    .every(path => [1, 0.3].includes(paintedOpacity(path))), 'binding paths dim once too');
+});
+
+test('a mark inside an already quiet ancestor is not dimmed again', () => {
+  const root = new Element('g');
+  const label = select(root).append('text').attr('class', 'vr-item terminal-label');
+  decorateRelationElement(label.node(), { relationRef: { stageIndex: 0, relationIndex: 0 } }, null);
+  // A theta or identity index whose own claim differs from its label's.
+  const index = label.append('tspan').attr('class', 'vr-item babel-theta-terminal-index');
+  decorateRelationElement(index.node(), { relationRef: { stageIndex: 0, relationIndex: 1 } }, null);
+  applyRelationEmphasis(root, { stageIndex: 0, relationIndex: 2 }, null);
+  assert.equal(paintedOpacity(index.node()), 0.3);
+  applyRelationEmphasis(root, { stageIndex: 0, relationIndex: 1 }, null);
+  assert.equal(paintedOpacity(index.node()), 0.3, 'an active index inside a quiet label still follows the label');
 });
 
 test('inline coindices hold their label; unplaceable ones never take a letter; unlisted letters are errors', () => {
