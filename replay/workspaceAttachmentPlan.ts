@@ -24,8 +24,6 @@ export type WorkspaceAttachmentPolicy = {
   progressive?: boolean;
   preserveShape?: boolean;
   preserveSourceClearance?: boolean;
-  /** Stop a lifetime before its members would pass under a sister subtree. */
-  orderedContours?: boolean;
 };
 
 function lowerWitnesses(step: PlaybackStep): Map<string, string> | null {
@@ -41,26 +39,22 @@ function lowerWitnesses(step: PlaybackStep): Map<string, string> | null {
 }
 
 /** Propose coordinates over each unchanged attachment lifetime. The caller
- * chooses the policy and validates the complete plan before accepting it. */
+ * chooses the policy and validates the complete plan before accepting it.
+ * With `orderedContours`, a lifetime ends before the first scene in which its
+ * members would interleave with a sister subtree. */
 export function reserveAttachmentLifetimes({
-  scenes, direction, ordinaryRoots, stableRoots, base,
-  policy: { allowOrdinary, progressive = false, preserveShape = true, preserveSourceClearance = false, orderedContours = false }
+  scenes, direction, ordinaryRoots, stableRoots, base, orderedContours = false,
+  policy: { allowOrdinary, progressive = false, preserveShape = true, preserveSourceClearance = false }
 }: {
   scenes: readonly WorkspaceAttachmentScene[];
   direction: TreeDirection;
   ordinaryRoots: ReadonlySet<string>;
   stableRoots: ReadonlySet<string>;
   base?: Reservations;
+  orderedContours?: boolean;
   policy: WorkspaceAttachmentPolicy;
 }): Reservations {
   const output = new Map(scenes.map(scene => [scene.canvas, new Map(base?.get(scene.canvas) ?? scene.coordinates)]));
-  const contoursOrdered = (scene: WorkspaceAttachmentScene, coordinates: TreeCoordinateReservation) => {
-    const root = d3.hierarchy(scene.canvas); applyVizIds(root);
-    const placed = new Map<string, Node>(layoutSyntaxTree(root, scene.size, direction, coordinates, new Set(scene.nodes.keys()))
-      .descendants().filter(node => scene.nodes.has(getNodeId(node))).map(node => [getNodeId(node), node] as const));
-    return siblingContoursOrdered([...placed.values()].filter(node => !visibleParentId(node, placed)),
-      node => (node.children ?? []).filter(child => placed.has(getNodeId(child))), node => node, direction);
-  };
   for (let boundary = 1; boundary < scenes.length; boundary++) {
     const before = scenes[boundary - 1], after = scenes[boundary];
     const positioned = (scene: WorkspaceAttachmentScene): Map<string, Node> => {
@@ -172,38 +166,36 @@ export function reserveAttachmentLifetimes({
               : position.y + (sameBranch && futurePoint && parentPoint ? futurePoint.y - parentPoint.y : node.y - anchor.y);
             coordinates.set(id, { x: direction === 'rtl' ? scene.size[0] - x : x, y });
           }
-          if (ordinary) {
-            if (progressive && !useWitnesses) {
-              const current = { nodes: scene.nodes, visible: new Set(scene.nodes.keys()), coordinates };
-              const future = { nodes: referenceNodes, visible: new Set(referenceNodes.keys()), coordinates: lifetimePositions };
-              // A later wrapper, whether constructed or movement-owned,
-              // cannot deepen a current daughter while its sister stays put.
-              // Carry the corrected rank back through its construction life.
-              retainCurrentSiblingRanks(current, future, undefined, relocated);
-              retainCurrentRootFork(current, future);
-              // Future rows reserved for later insertions must not stretch a
-              // current unary branch.
-              retainCurrentUnaryRows(current, future);
-            }
+          if (ordinary && progressive && !useWitnesses) {
+            const current = { nodes: scene.nodes, visible: new Set(scene.nodes.keys()), coordinates };
+            const future = { nodes: referenceNodes, visible: new Set(referenceNodes.keys()), coordinates: lifetimePositions };
+            // A later wrapper, whether constructed or movement-owned,
+            // cannot deepen a current daughter while its sister stays put.
+            // Carry the corrected rank back through its construction life.
+            retainCurrentSiblingRanks(current, future, undefined, relocated);
+            retainCurrentRootFork(current, future);
+            // Future rows reserved for later insertions must not stretch a
+            // current unary branch.
+            retainCurrentUnaryRows(current, future);
+          }
+          if (ordinary || orderedContours) {
             const hierarchy = d3.hierarchy(scene.canvas); applyVizIds(hierarchy);
             const visible = new Set(scene.nodes.keys());
-            const tree = layoutSyntaxTree(hierarchy, scene.size, direction, coordinates, visible);
-            const valid = tree.descendants().filter(node => visible.has(getNodeId(node))).every(node => {
+            const placed = layoutSyntaxTree(hierarchy, scene.size, direction, coordinates, visible).descendants()
+              .filter(node => visible.has(getNodeId(node)));
+            const valid = !ordinary || placed.every(node => {
               if (node.parent && visible.has(getNodeId(node.parent)) && node.y <= node.parent.y) return false;
               const children = (node.children ?? []).filter(child => visible.has(getNodeId(child)));
               return children.slice(1).every((child, index) => direction === 'rtl'
                 ? children[index].x > child.x : children[index].x < child.x);
             });
-            if (!valid) break;
-            if (progressive && !useWitnesses) {
-              referenceNodes = new Map(tree.descendants().filter(node => visible.has(getNodeId(node))).map(node => [getNodeId(node), node] as const));
+            if (!valid || orderedContours && !siblingContoursOrdered(placed, direction)) break;
+            if (ordinary && progressive && !useWitnesses) {
+              referenceNodes = new Map(placed.map(node => [getNodeId(node), node] as const));
               lifetimePositions = new Map([...referenceNodes].filter(([id]) => memberIds.has(id))
                 .map(([id, node]) => [id, { x: node.x, y: node.y }]));
             }
           }
-          // The lifetime moves only its own members. A new or remaining sister
-          // keeps this scene's placement, so stop before the members pass under it.
-          if (orderedContours && !contoursOrdered(scene, coordinates)) break;
           output.set(scene.canvas, coordinates);
         }
       };

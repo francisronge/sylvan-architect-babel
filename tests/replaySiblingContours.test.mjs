@@ -11,19 +11,35 @@ import * as coordinates from '../replay/stageCoordinates.ts';
 import * as layout from '../replay/treeLayout.ts';
 import { TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
 import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
+import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 
 const read = name => JSON.parse(readFileSync(new URL(`../fixtures/replay-regressions/${name}`, import.meta.url), 'utf8'));
 const phaseEdge = read('es-wh-phase-edge-contour.json');
-const headFinal = read('diverse-recovery.json').examples[5];
+const headFinal = read('diverse-recovery.json').examples.find(example => example.id === 'sol-korean-long-negation');
 const compactLanding = read('hi-correlative-landing-contour.json');
 const viewports = [[1600, 948], [390, 844]];
 
-function frames(record, [width, height], direction) {
+function layoutRecord(record, [width, height], direction) {
   const input = { sentence: record.sentence, inputTokens: record.inputTokens,
     derivationStages: (record.analysis ?? record).derivationStages, includePlayback: true };
   const steps = prepareReplay(structuredClone(input)).playbackSteps;
-  return layoutReplayFrames({ steps, stages: input.derivationStages, width, height, direction },
-    { coordinates, camera, layout, display, d3 }).scenes;
+  return { steps, scenes: layoutReplayFrames({ steps, stages: input.derivationStages, width, height, direction },
+    { coordinates, camera, layout, display, d3 }).scenes };
+}
+const frames = (...args) => layoutRecord(...args).scenes;
+
+/** Nodes that persist into a frame but change position, keyed by the frame's
+ * operation target, with their reading-order x displacement. */
+function movers(scenes, direction) {
+  const sign = direction === 'rtl' ? -1 : 1, result = {};
+  scenes.forEach((scene, index) => {
+    const moved = Object.fromEntries([...scene.nodes].flatMap(([id, node]) => {
+      const old = index ? scenes[index - 1].nodes.get(id) : undefined;
+      return old && Math.hypot(node.x - old.x, node.y - old.y) > 1e-6 ? [[id, +((node.x - old.x) * sign).toFixed(1)]] : [];
+    }));
+    if (Object.keys(moved).length) result[`${scene.step.replayKind}:${scene.step.targetNodeId}`] = moved;
+  });
+  return result;
 }
 
 /** Independent of the planner's helper: on each row of one tree, nodes from
@@ -47,26 +63,28 @@ function contourInversions(scene, direction) {
 }
 
 test('sister subtrees must stay ordered on every row, not only at their roots', () => {
-  const tree = () => d3.hierarchy({ id: 'p', children: [
-    { id: 'a', children: [{ id: 'aWord' }] },
-    { id: 'b', children: [{ id: 'b1' }, { id: 'b2' }] },
-    { id: 'c', children: [{ id: 'cWord' }] }
-  ] }, node => node.children);
-  const points = (leafX, cX) => new Map(Object.entries({ p: [150, 0], a: [0, 1], aWord: [leafX, 2], b: [100, 1],
-    b1: [10, 2], b2: [190, 2], c: [cX, 1], cWord: [cX, 2] }).map(([id, [x, y]]) => [id, { x, y: y * 220 }]));
-  const ordered = (leafX, cX, direction = 'ltr') => {
-    const root = tree(), at = points(leafX, cX);
-    const point = direction === 'rtl' ? node => ({ x: -at.get(node.data.id).x, y: at.get(node.data.id).y })
-      : node => at.get(node.data.id);
-    return siblingContoursOrdered([root], node => node.children ?? [], point, direction);
+  // a and c each have a node on row 3, which b does not occupy.
+  const ordered = ({ aMid = 0, aDeep = 0, direction = 'ltr' } = {}) => {
+    const at = { p: [150, 0], a: [0, 1], aMid: [aMid, 2], aDeep: [aDeep, 3], b: [100, 1], b1: [60, 2], b2: [140, 2],
+      c: [300, 1], cMid: [300, 2], cDeep: [300, 3] };
+    const node = id => ({ id, label: id });
+    const root = d3.hierarchy({ ...node('p'), children: [
+      { ...node('a'), children: [{ ...node('aMid'), children: [node('aDeep')] }] },
+      { ...node('b'), children: [node('b1'), node('b2')] },
+      { ...node('c'), children: [{ ...node('cMid'), children: [node('cDeep')] }] }
+    ] });
+    const sign = direction === 'rtl' ? -1 : 1;
+    return siblingContoursOrdered(root.descendants(), direction,
+      current => ({ x: at[current.data.id][0] * sign, y: at[current.data.id][1] * 220 }));
   };
-  assert.equal(ordered(-50, 400), true);
-  // a < b at their own row, but a's word leaf passes under b's left daughter.
-  assert.equal(ordered(30, 400), false);
-  assert.equal(ordered(30, 400, 'rtl'), false);
-  assert.equal(ordered(-50, 400, 'rtl'), true);
-  // c is checked against both earlier sisters, not only its neighbour.
-  assert.equal(ordered(-50, 150), false);
+  for (const direction of ['ltr', 'rtl']) {
+    assert.equal(ordered({ direction }), true);
+    // a < b on their own row, but a's daughter passes under b's left daughter.
+    assert.equal(ordered({ aMid: 80, direction }), false);
+    // a's deeper node passes under c on a row b does not occupy, so each
+    // neighbouring pair is ordered and only the earlier sisters' union catches it.
+    assert.equal(ordered({ aDeep: 320, direction }), false);
+  }
 });
 
 for (const viewport of viewports) for (const direction of ['ltr', 'rtl']) {
@@ -82,6 +100,7 @@ for (const viewport of viewports) for (const direction of ['ltr', 'rtl']) {
       assert.ok((juan.x - word.x) * sign >= TREE_SIBLING_GAP, `${scene.step.replayFrameIndex}: ${word.x} vs ${juan.x}`);
     }
     // The repair must not trade the overlap for motion of existing syntax.
+    assert.deepEqual(movers(scenes, direction), { 'relation:verb1': { v0: 187.5 } });
     for (const id of ['juan', 'subjectDomain']) {
       const points = scenes.flatMap(scene => scene.nodes.has(id) ? [`${scene.nodes.get(id).x},${scene.nodes.get(id).y}`] : []);
       assert.equal(new Set(points).size, 1, `${id} keeps one position from its first frame`);
@@ -93,6 +112,7 @@ for (const viewport of viewports) for (const direction of ['ltr', 'rtl']) {
   test(`${viewport[0]}px ${direction}: a waiting head-final C does not merge inside TP's contour`, () => {
     const scenes = frames(headFinal, viewport, direction);
     scenes.forEach((scene, index) => assert.deepEqual(contourInversions(scene, direction), [], `frame ${index + 1}`));
+    assert.deepEqual(movers(scenes, direction), {}, 'no existing syntax moves');
   });
 
   test(`${viewport[0]}px ${direction}: a later compact slot is not carried back under the full landing`, () => {
@@ -100,5 +120,30 @@ for (const viewport of viewports) for (const direction of ['ltr', 'rtl']) {
     assert.ok(scenes.some(scene => scene.step.replayKind === 'relation' && scene.step.targetNodeId === 'rD1'),
       'the subject movement has its own moment');
     scenes.forEach((scene, index) => assert.deepEqual(contourInversions(scene, direction), [], `frame ${index + 1}`));
+    // Ending the lifetime early costs motion at both movement moments: the lower
+    // occurrence takes its compact slot and its ancestors recentre over it.
+    assert.deepEqual(movers(scenes, direction), {
+      'relation:rD1': { rJo: -375, rN: -375, 'rJo::__leaf': -375, 'rN::__leaf': -375, rD0: 412.5, rAP: 206.3, rTCore: 103.1 },
+      'relation:rD2': { rJo: 0, rN: 0, 'rJo::__leaf': 0, 'rN::__leaf': 0, rD1: 787.5, rTP: 393.8, rCCore: 196.9 },
+      'relation:mD1': { mVah: -525, 'mVah::__leaf': -525 }
+    });
   });
 }
+
+test('no committed fixture is left with interleaved sister contours', () => {
+  const repaired = [], unresolved = [];
+  for (const { id, record } of loadFixtureAnalyses().records) {
+    const steps = prepareReplay({ ...structuredClone(record), includePlayback: true }).playbackSteps;
+    const groups = camera.buildStageLayoutGroups(steps, record.derivationStages);
+    const sizes = record.derivationStages.map((_, stage) => camera.stageTreeLayoutSize(steps, stage, 1600, 948, groups));
+    // One stage request plans and checks every stage of the analysis.
+    coordinates.buildStageCoordinateReservations(steps, 0, sizes[0], stage => sizes[stage]);
+    const statuses = coordinates.getContourPlanStatuses(steps);
+    if (statuses.includes('unresolved')) unresolved.push(id);
+    else if (statuses.includes('repaired')) repaired.push(id);
+  }
+  assert.deepEqual(unresolved, []);
+  assert.deepEqual(repaired.sort(), ['replay-regressions/diverse-recovery.json#/examples/5/analysis',
+    'replay-regressions/es-wh-phase-edge-contour.json#', 'replay-regressions/hi-correlative-landing-contour.json#'],
+  'a newly repaired fixture changes its established layout; review it and list it here');
+});

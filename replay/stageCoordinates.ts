@@ -29,7 +29,12 @@ type Scene = {
 };
 type StageReservation = { categoryMetrics: string; treeInkMetrics: string; treeLabelMetrics: string; size: [number, number]; direction: TreeDirection; preceding?: TreeCoordinateReservation; frames: ReadonlyMap<SyntaxNode, TreeCoordinateReservation> };
 const cache = new WeakMap<readonly PlaybackStep[], Map<string, StageReservation>>();
+export type ContourPlanStatus = 'established' | 'repaired' | 'unresolved';
+const contourPlans = new WeakMap<readonly PlaybackStep[], Map<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, ContourPlanStatus>>();
 const orderedPlans = new WeakMap<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, boolean>();
+/** Which coordinate plan each layout of these steps used: the established one,
+ * the plan repaired for ordered sister contours, or neither ordered. */
+export const getContourPlanStatuses = (steps: readonly PlaybackStep[]) => [...(contourPlans.get(steps)?.values() ?? [])];
 
 const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => node.ancestors().slice(1).find(ancestor =>
   !ancestor.data.replayLayoutOnly && ancestor.data.replayOrigin?.kind !== 'workspace');
@@ -81,7 +86,7 @@ function centerParents(current: Scene): Scene {
   return current;
 }
 
-function hasValidBranches(scene: Scene, orderedContours = false) {
+function hasValidBranches(scene: Scene) {
   const occupied = new Set<string>();
   for (const [id, node] of scene.nodes) {
     if (!scene.visible.has(id)) continue;
@@ -97,17 +102,13 @@ function hasValidBranches(scene: Scene, orderedContours = false) {
         >= scene.coordinates.get(getNodeId(children[index]))!.x) return false;
     }
   }
-  if (!orderedContours) return true;
-  const syntax = (node: d3.HierarchyPointNode<SyntaxNode>) => scene.visible.has(getNodeId(node))
-    && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace';
-  return siblingContoursOrdered([...scene.nodes.values()].filter(node => syntax(node) && (!node.parent || !syntax(node.parent))),
-    node => (node.children ?? []).filter(syntax), node => scene.coordinates.get(getNodeId(node))!);
+  return true;
 }
 
 /** When a relation opens a stage, a workspace awaiting attachment keeps its
  * completed shape. The later merge centers its new surrounding parents without
  * relaying out the untouched component first. */
-function retainWorkspaceComponents(scenes: Scene[], preceding: Scene, originOffsetX: number, orderedContours: boolean): Scene[] {
+function retainWorkspaceComponents(scenes: Scene[], preceding: Scene, originOffsetX: number): Scene[] {
   const roots = [...preceding.nodes.values()].filter(node => preceding.visible.has(getNodeId(node))
     && (!node.parent || !preceding.visible.has(getNodeId(node.parent))
       || node.parent.data.replayOrigin?.kind === 'workspace'));
@@ -144,7 +145,7 @@ function retainWorkspaceComponents(scenes: Scene[], preceding: Scene, originOffs
     }));
     return centerParents({ ...scene, coordinates });
   });
-  return result.every(scene => hasValidBranches(scene, orderedContours)) ? result : scenes;
+  return result.every(hasValidBranches) ? result : scenes;
 }
 
 /** Reserve the whole earlier subtree, not only its attachment point. A compact
@@ -222,7 +223,8 @@ function reserveContours(scenes: Scene[], separateAttachments = false): Scene[] 
 function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
   direction: TreeDirection = 'ltr', measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
-  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure, orderedContours = false): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
+  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure,
+  { orderedContours = false }: { orderedContours?: boolean } = {}): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
   let stages = cache.get(steps);
   if (!stages) cache.set(steps, stages = new Map());
   const frames = steps.filter(step => step.replayFrameIndex === stageIndex && step.replayCanvasData)
@@ -231,7 +233,7 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
   const previous = frames[0]?.replayKind === 'relation' && sizeForStage && steps.find(step => step.replayFrameIndex === stageIndex - 1 && step.replayKind === 'macro');
   const previousSize = previous && sizeForStage!(stageIndex - 1);
   const precedingCoordinates = previous?.replayCanvasData && previousSize
-    ? buildStageLocalCoordinates(steps, stageIndex - 1, previousSize, sizeForStage, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, orderedContours).get(previous.replayCanvasData) : undefined;
+    ? buildStageLocalCoordinates(steps, stageIndex - 1, previousSize, sizeForStage, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, { orderedContours }).get(previous.replayCanvasData) : undefined;
   const categoryMetrics = categoryMetricKey(steps, measureCategoryText);
   const treeInkMetrics = treeInkMetricKey(steps, measureCategoryText, measureTreeInk);
   const treeLabelMetrics = treeLabelMetricKey(steps, treeLabelRuns, measureTreeLabel);
@@ -277,7 +279,7 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
     retained.forEach((point, id) => coordinates.set(id, point));
     return centerParents({ ...scene, coordinates });
   });
-  const resolved = preserved.every(scene => hasValidBranches(scene, orderedContours)) ? preserved : reserve(new Map());
+  const resolved = preserved.every(hasValidBranches) ? preserved : reserve(new Map());
   const contours = reserveContours(resolved);
   for (const scene of contours.slice(1)) retainCurrentUnaryRank(scene, contours[0]);
   let finalScenes = separateWorkspaceContours(contours, measureCategoryText);
@@ -289,36 +291,24 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
     // with the retained workspace, translating the whole scene to preserve its
     // existing clearances instead of pushing that component into its neighbours.
     const originOffsetX = direction === 'rtl' ? size[0] - previousSize![0] : 0;
-    finalScenes = retainWorkspaceComponents(finalScenes, { canvas: previous.replayCanvasData, nodes,
-      coordinates: precedingCoordinates, visible: new Set(previous.replayVisibleNodeIds ?? nodes.keys()) }, originOffsetX, orderedContours);
+    const retained = retainWorkspaceComponents(finalScenes, { canvas: previous.replayCanvasData, nodes,
+      coordinates: precedingCoordinates, visible: new Set(previous.replayVisibleNodeIds ?? nodes.keys()) }, originOffsetX);
+    // The repair plan keeps this stage's own layout when a retained component would interleave a sister.
+    if (!orderedContours || retained.every(scene => siblingContoursOrdered([...scene.nodes.values()]
+      .filter(node => scene.visible.has(getNodeId(node))), 'ltr', node => scene.coordinates.get(getNodeId(node))!))) finalScenes = retained;
   }
   const reservations = new Map(finalScenes.map(scene => [scene.canvas, scene.coordinates]));
   stages.set(cacheKey, { size: [...size], direction, categoryMetrics, treeInkMetrics, treeLabelMetrics, preceding: precedingCoordinates, frames: reservations });
   return reservations;
 }
 
-/** Every current tree keeps sister subtrees in reading order on each row they
- * share, as painted. Direct daughters can stay ordered while a deeper node of
- * one sister passes under the other. */
-function framesKeepContours(frames: ReadonlyArray<readonly [PlaybackStep, TreeCoordinateReservation, [number, number]]>,
-  direction: TreeDirection): boolean {
-  return frames.every(([step, coordinates, size]) => {
-    const root = d3.hierarchy(step.replayCanvasData!); applyVizIds(root);
-    const visible = new Set<string>(step.replayVisibleNodeIds ?? root.descendants().map(node => getNodeId(node)));
-    const syntax = (node: d3.HierarchyNode<SyntaxNode>) => visible.has(getNodeId(node))
-      && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace';
-    const nodes = layoutSyntaxTree(root, size, direction, coordinates, visible).descendants().filter(syntax);
-    return siblingContoursOrdered<d3.HierarchyPointNode<SyntaxNode>>(nodes.filter(node => !node.parent || !syntax(node.parent)),
-      node => (node.children ?? []).filter(syntax), node => node, direction);
-  });
-}
-
 /** All consumers share the same placement plan. Stage-local geometry is built
  * first; a retained workspace can then reserve its attachment position throughout
  * its compatible construction lifetime without importing future branch ranks.
- * The established plan stands when it keeps every sister contour ordered. If a
- * retained placement interleaves sisters, each retention is planned again under
- * that requirement, and the new plan is used only if it is ordered throughout. */
+ * The established plan stands when every painted frame keeps its sister contours
+ * ordered. Otherwise the stage-local workspace retention and the attachment
+ * lifetimes are planned again with ordered contours. That plan is used only if
+ * every frame is then ordered; the outcome is recorded per layout. */
 export function buildStageCoordinateReservations(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
   direction: TreeDirection = 'ltr', measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
@@ -331,28 +321,42 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
   }
   const plan = (orderedContours: boolean) => {
     const local = (stage: number, stageSize: [number, number]) => buildStageLocalCoordinates(steps, stage, stageSize, sizeForStage,
-      direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, orderedContours);
+      direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, { orderedContours });
     const original = local(stageIndex, size);
-    if (!sizeForStage) return { frames: original, plan: original, painted: () => steps.flatMap(step => step.replayFrameIndex === stageIndex
-      && original.has(step.replayCanvasData!) ? [[step, original.get(step.replayCanvasData!)!, size] as const] : []) };
+    if (!sizeForStage) return { frames: original, key: original, painted: (step: PlaybackStep) =>
+      step.replayFrameIndex === stageIndex ? [original.get(step.replayCanvasData!), size] as const : undefined };
     const planned = reserveWorkspaceAttachments({ steps, sizes, direction, minimumSiblingGap: TREE_SIBLING_GAP, coordinatesForStage: local,
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, orderedContours });
     const compact = compactCurrentRootForks(steps, sizes, planned, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
     const continuous = retainMovementSourceSlots(steps, sizes, compact, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
-    return { frames: new Map([...original].map(([canvas, coordinates]) => [canvas, continuous.get(canvas) ?? coordinates])), plan: continuous,
-      painted: () => steps.flatMap(step => {
-        const stageSize = sizes.get(step.replayFrameIndex!), canvas = step.replayCanvasData;
-        const coordinates = canvas && stageSize && (continuous.get(canvas) ?? local(step.replayFrameIndex!, stageSize).get(canvas));
-        return coordinates ? [[step, coordinates, stageSize] as const] : [];
-      }) };
+    return { frames: new Map([...original].map(([canvas, coordinates]) => [canvas, continuous.get(canvas) ?? coordinates])),
+      key: continuous, painted: (step: PlaybackStep) => {
+        const stageSize = sizes.get(step.replayFrameIndex!);
+        return stageSize && [continuous.get(step.replayCanvasData!)
+          ?? local(step.replayFrameIndex!, stageSize).get(step.replayCanvasData!), stageSize] as const;
+      } };
   };
-  const ordered = ({ plan, painted }: ReturnType<typeof plan>) => {
-    let result = orderedPlans.get(plan);
-    if (result === undefined) orderedPlans.set(plan, result = framesKeepContours(painted(), direction));
+  const ordered = ({ key, painted }: ReturnType<typeof plan>) => {
+    let result = orderedPlans.get(key);
+    if (result === undefined) orderedPlans.set(key, result = steps.every(step => {
+      const [coordinates, stageSize] = step.replayCanvasData && painted(step) || [];
+      if (!coordinates || !stageSize) return true;
+      const root = d3.hierarchy(step.replayCanvasData!); applyVizIds(root);
+      const visible = new Set<string>(step.replayVisibleNodeIds ?? root.descendants().map(node => getNodeId(node)));
+      return siblingContoursOrdered(layoutSyntaxTree(root, stageSize, direction, coordinates, visible).descendants()
+        .filter(node => visible.has(getNodeId(node))), direction);
+    }));
     return result;
   };
   const established = plan(false);
-  if (ordered(established)) return established.frames;
+  const record = (status: ContourPlanStatus) => {
+    let statuses = contourPlans.get(steps);
+    if (!statuses) contourPlans.set(steps, statuses = new Map());
+    statuses.set(established.key, status);
+  };
+  if (ordered(established)) { record('established'); return established.frames; }
   const repaired = plan(true);
-  return ordered(repaired) ? repaired.frames : established.frames;
+  if (ordered(repaired)) { record('repaired'); return repaired.frames; }
+  record('unresolved');
+  return established.frames;
 }

@@ -553,15 +553,19 @@ current branch. Independent workspace objects do not establish sibling-order
 constraints. Camera bounds, plaque allocation and painting use these same
 coordinates. A new authored stage can require a new reservation; its subsequent
 micro-steps keep unchanged syntax stationary.
-Every painted tree must keep sister subtrees in reading order on each row they
-share. Ordered direct daughters do not prove this: a one-word specifier's word
-leaf occupies the next row, beside a lower specifier. A retention moves only its
-own members, so a sister placed against another layout can end up under them.
-The established plan stands whenever every frame is ordered. Otherwise the stages
-and lifetimes are planned again with this requirement: a stage keeps its own
-layout instead of an interleaving retention, and a lifetime ends before the
-first scene its members would interleave. That plan is used only if every frame
-is ordered.
+
+Retentions move only their own members, so a sister placed against another layout
+can end up under them. Ordered direct daughters do not prevent this; a one-word
+specifier's word leaf occupies the row of a lower specifier. After planning, each
+painted frame is checked for sister subtrees that interleave on a shared row. If
+none do, the established plan stands. Otherwise Replay plans once more with that
+check applied to two passes. The stage-local retention of a waiting workspace keeps
+its stage's own layout, and each attachment lifetime ends before the first scene
+its members would interleave. Coherent solving, component lifetimes, root
+compaction and movement-source slots are unchanged. The second plan is used only
+if every frame is then ordered, and the outcome is recorded per layout. Ending a
+lifetime early has a motion cost: at the next movement moment, the lower occurrence
+can take its compact slot and its ancestors recentre over it.
 
 A previously selected standalone head can build the receiving projection needed
 by an earlier movement before a later relation adjoins another head to it. The
