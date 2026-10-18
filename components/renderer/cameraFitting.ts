@@ -4,7 +4,7 @@ import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
 import { animateReplayCamera } from '../replayCameraMotion.ts';
-import { advanceFittedCamera, containCamera } from '../treeViewport.ts';
+import { advanceFittedCamera, carryCamera, containCamera, type PaintedNodes } from '../treeViewport.ts';
 import { guardViewCallback } from '../viewErrorHandling.ts';
 import type { CameraSession } from './cameraState.ts';
 import type { DrawingLayer } from './drawingContext.ts';
@@ -19,6 +19,9 @@ interface CameraFitGeometry {
   completedReplayStep: number;
   g: DrawingLayer;
   fitFallbackOverlays: (fitZoom: number, fittedViewport: Rect) => void;
+  /** Authored stage being framed; a change marks a stage crossing. */
+  stageIndex: number;
+  paintedNodes: PaintedNodes;
 }
 export function createFittedCamera({ session, layout }: { session: CameraSession; layout: CameraFitGeometry }) {
   const {
@@ -46,7 +49,9 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     fitBottom,
     completedReplayStep,
     g,
-    fitFallbackOverlays
+    fitFallbackOverlays,
+    stageIndex,
+    paintedNodes
   } = layout;
   const animateFittedCamera = (fitted: d3.ZoomTransform, previousFit: typeof autoCameraRef.current) => {
     const sameReplay = animated && previousFit?.data === data
@@ -59,7 +64,13 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
       : continuing ? Math.max(0, pending.endsAt - performance.now()) : adjacent ? 360 : 0;
     cameraAnimationRef.current = duration ? { stepIndex: activeStepIndex, endsAt: performance.now() + duration } : null;
     svg.attr('data-babel-camera-settled-step', null);
-    cameraRuntime.cancel = animateReplayCamera(d3.zoomTransform(svgRef.current!), fitted, duration,
+    const painted = d3.zoomTransform(svgRef.current!);
+    // A step across stages starts from the painted pose carried by the common
+    // shift of unmoved shared syntax; a reattached constituent appears at its
+    // new place on that frame.
+    const from = adjacent && previousFit.stageIndex !== stageIndex
+      ? carryCamera(painted, previousFit.paintedNodes, paintedNodes) : painted;
+    cameraRuntime.cancel = animateReplayCamera(from, fitted, duration,
       pose => applyCameraTransform(session, d3.zoomIdentity.translate(pose.x, pose.y).scale(pose.k)),
       () => { cameraAnimationRef.current = null; svg.attr('data-babel-camera-settled-step', activeStepIndex); },
       {
@@ -80,13 +91,17 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
       && previousFit.signature === derivationStagesSignature && previousFit.fitRevision === fitRevision
       && previousFit.width === containerWidth && previousFit.height === containerHeight
       && (previousFit.stepIndex === activeStepIndex || previousFit.stepIndex + 1 === activeStepIndex)) {
-      const advanced = advanceFittedCamera(previousFit.transform, fitted, stageFitContainmentBounds,
+      // Stages lay out syntax in their own coordinates, so a stage crossing first
+      // carries the accepted pose by the common shift of unmoved shared syntax.
+      const accepted = previousFit.stageIndex === stageIndex ? previousFit.transform
+        : carryCamera(previousFit.transform, previousFit.paintedNodes, paintedNodes);
+      const advanced = advanceFittedCamera(accepted, fitted, stageFitContainmentBounds,
         { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom });
       fitted = d3.zoomIdentity.translate(advanced.x, advanced.y).scale(advanced.k);
     }
     autoCameraRef.current = {
       data, signature: derivationStagesSignature, width: containerWidth,
-      height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted
+      height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted, stageIndex, paintedNodes
     };
     // Labels and complete fallback badges keep their accepted automatic-Fit
     // size, then scale with the tree. Their connectors use the same reference
