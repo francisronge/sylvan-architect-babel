@@ -152,8 +152,8 @@ for (const [width, height, uiBounds] of [[1440, 840, { headerBottom: 57, panelTo
     const first = at(undefined, 20, 1, stage2, frame21, harness);
     const auto = { current: null };
     at(auto, 19, 0, stage1, frame20);
-    assert.deepEqual(harness.session.cameraRuntime.deferred, at(auto, 20, 1, stage2, frame21),
-      'the animation ends at the settled pose');
+    const settled = at(auto, 20, 1, stage2, frame21);
+    assert.deepEqual(harness.session.cameraRuntime.deferred, settled, 'the animation is aimed at the settled pose');
     assert.equal(first.k, previous.k, 'the camera begins at the painted scale');
     for (const id of unmoved) {
       const [x, y] = onScreen(first, frame21[id]), [oldX, oldY] = onScreen(previous, frame20[id]);
@@ -163,5 +163,43 @@ for (const [width, height, uiBounds] of [[1440, 840, { headerBottom: 57, panelTo
       const [x, y] = onScreen(first, frame21[id]);
       assert(x >= 0 && x <= width && y >= 0 && y <= height, `${id} stays on the canvas, including the moved DP`);
     }
+    harness.advance(360);
+    assert.deepEqual(harness.paints.at(-1), settled, 'the animation finishes at the settled pose');
+    assert.equal(harness.session.svgRef.current.getAttribute('data-babel-camera-settled-step'), '20');
+    assert.equal(harness.frames.size, 0);
+  });
+
+  test(`${width}px: rapid Next and Prev across the stage boundary cancel and then settle`, () => {
+    const harness = createCameraHarness(Element, { width, height, data: whoseRelative, animated: true, reducedMotion: false });
+    const settledStep = () => harness.session.svgRef.current.getAttribute('data-babel-camera-settled-step');
+    // Each Replay draw cancels the previous draw's camera animation before painting.
+    const step = (index, stage, bounds, points) => {
+      harness.run(() => harness.session.cameraRuntime.cancel?.());
+      return at(undefined, index, stage, bounds, points, harness);
+    };
+    const stage1Fit = step(19, 0, stage1, frame20);
+    assert.equal(settledStep(), '19', 'the first frame has no animation');
+    const start = step(20, 1, stage2, frame21);
+    const destination = harness.session.cameraRuntime.deferred;
+    assert.equal(settledStep(), null);
+    assert.equal(harness.frames.size, 1);
+    harness.advance(180);
+    const midway = harness.paints.at(-1);
+    for (const axis of ['x', 'y', 'k']) {
+      assert(midway[axis] >= Math.min(start[axis], destination[axis]) - 1e-9
+        && midway[axis] <= Math.max(start[axis], destination[axis]) + 1e-9, `midway ${axis} lies on the path`);
+    }
+    assert.notDeepEqual(midway, destination, 'the animation is still running');
+    const back = step(19, 0, stage1, frame20);
+    assert.equal(harness.frames.size, 1, 'Prev cancels the unfinished animation and starts one');
+    for (const id of unmoved) {
+      const [x, y] = onScreen(back, frame20[id]), [oldX, oldY] = onScreen(midway, frame21[id]);
+      assert(Math.hypot(x - oldX, y - oldY) < 1e-6, `${id} begins Prev where the interrupted camera showed it`);
+    }
+    harness.advance(360);
+    assert.deepEqual(harness.paints.at(-1), stage1Fit, 'Prev settles on the stage 1 fit');
+    assert.equal(settledStep(), '19');
+    assert.equal(harness.frames.size, 0);
+    assert.equal(harness.session.cameraAnimationRef.current, null);
   });
 }

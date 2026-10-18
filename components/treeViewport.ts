@@ -14,9 +14,10 @@ export function advanceFittedCamera(
 }
 
 /** Each stage lays out its syntax in its own coordinates. Translate a pose by the
- * median coordinate shift of the syntax both frames share, so that syntax keeps its
- * place on screen. A node whose shared ancestors change (a reattached, moved
- * constituent) is left out unless nothing else is shared. */
+ * median coordinate shift of the syntax both frames share, removing the common
+ * translation between the two layouts; residual layout changes still move. A node
+ * whose shared ancestors change (a reattached, moved constituent) is left out
+ * unless nothing else is shared. */
 export function carryCamera(pose: { x: number; y: number; k: number }, before: PaintedNodes, after: PaintedNodes) {
   const sharedAncestors = (nodes: PaintedNodes, id: string) => {
     const ids: string[] = [];

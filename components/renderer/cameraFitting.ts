@@ -65,8 +65,9 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     cameraAnimationRef.current = duration ? { stepIndex: activeStepIndex, endsAt: performance.now() + duration } : null;
     svg.attr('data-babel-camera-settled-step', null);
     const painted = d3.zoomTransform(svgRef.current!);
-    // A step across stages starts with its unmoved shared syntax where it was
-    // painted; a reattached constituent appears at its new place on that frame.
+    // A step across stages starts from the painted pose carried by the common
+    // shift of unmoved shared syntax; a reattached constituent appears at its
+    // new place on that frame.
     const from = adjacent && previousFit.stageIndex !== stageIndex
       ? carryCamera(painted, previousFit.paintedNodes, paintedNodes) : painted;
     cameraRuntime.cancel = animateReplayCamera(from, fitted, duration,
@@ -91,7 +92,7 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
       && previousFit.width === containerWidth && previousFit.height === containerHeight
       && (previousFit.stepIndex === activeStepIndex || previousFit.stepIndex + 1 === activeStepIndex)) {
       // Stages lay out syntax in their own coordinates, so a stage crossing first
-      // carries the accepted pose with the unmoved shared syntax.
+      // carries the accepted pose by the common shift of unmoved shared syntax.
       const accepted = previousFit.stageIndex === stageIndex ? previousFit.transform
         : carryCamera(previousFit.transform, previousFit.paintedNodes, paintedNodes);
       const advanced = advanceFittedCamera(accepted, fitted, stageFitContainmentBounds,
