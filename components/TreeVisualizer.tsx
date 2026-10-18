@@ -117,28 +117,32 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const measuredRuns = useMemo(() => createMeasuredRuns(), [fontLayoutPass]);
   const latestMeasuredRuns = useRef(measuredRuns);
   latestMeasuredRuns.current = measuredRuns;
-  const measureCategoryText = useMemo(() => measuredRuns.track('category', () => {
+  const measureCategoryText = useMemo(() => measuredRuns.track(() => {
     const context = typeof document === 'undefined' ? null : document.createElement('canvas').getContext('2d');
     if (context) context.font = CATEGORY_FONT;
-    const cache = new Map<string, number>();
-    return (text: string) => {
-      if (!cache.has(text)) cache.set(text, context?.measureText(text).width ?? [...text].length * 25);
-      return cache.get(text)!;
+    const cache = new Map<string, { args: [string]; result: number }>();
+    const measure = (text: string) => {
+      let cached = cache.get(text);
+      if (!cached) cache.set(text, cached = { args: [text], result: context?.measureText(text).width ?? [...text].length * 25 });
+      return cached.result;
     };
+    return Object.assign(measure, { runs: () => cache.values() });
   }), [measuredRuns]);
-  const measureTreeInk = useMemo(() => measuredRuns.track('ink', () => createTreeInkTextMeasure(
+  const measureTreeInk = useMemo(() => measuredRuns.track(() => createTreeInkTextMeasure(
     typeof document === 'undefined' ? undefined : document)), [measuredRuns]);
-  const measureTreeLabel = useMemo(() => measuredRuns.track('label', () => createTreeLabelMeasure(
+  const measureTreeLabel = useMemo(() => measuredRuns.track(() => createTreeLabelMeasure(
     typeof document === 'undefined' ? undefined : document)), [measuredRuns]);
   // Measured in untransformed SVG units, so a resize keeps the same measure.
-  const measurePlaqueText = useMemo<PlaqueTextMeasure>(() => measuredRuns.track('plaque', () => {
-    const measured = new Map<string, ReturnType<PlaqueTextMeasure>>();
-    return (text: string, style: Parameters<PlaqueTextMeasure>[1]) => {
+  const measurePlaqueText = useMemo<PlaqueTextMeasure>(() => measuredRuns.track(() => {
+    const cache = new Map<string, { args: Parameters<PlaqueTextMeasure>; result: ReturnType<PlaqueTextMeasure> }>();
+    const measure = (text: string, style: Parameters<PlaqueTextMeasure>[1]) => {
       const key = JSON.stringify([text, style]);
-      if (!measured.has(key)) measured.set(key,
-        withPlaqueTextMeasure(d3.select(svgRef.current!), measure => measure(text, style)));
-      return measured.get(key)!;
+      let cached = cache.get(key);
+      if (!cached) cache.set(key, cached = { args: [text, style],
+        result: withPlaqueTextMeasure(d3.select(svgRef.current!), measure => measure(text, style)) });
+      return cached.result;
     };
+    return Object.assign(measure, { runs: () => cache.values() });
   }), [measuredRuns]);
   const [fitRevision, setFitRevision] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);

@@ -1,35 +1,31 @@
 import { CATEGORY_FONT } from '../replay/categoryTextLayout.ts';
 import { FALLBACK_ROLE_STYLE } from '../replay/relations/fallbackGeometry.ts';
 import { REPLAY_GENERATED_TERMINAL_GLYPHS } from '../replay/replaySurfaceNotation.ts';
-import { CATEGORY_INDEX_FONT, TERMINAL_FONT, TERMINAL_INDEX_FONT } from './treeInkTextMeasure.ts';
+import { CATEGORY_INDEX_FONT, TERMINAL_FONT, TERMINAL_INDEX_FONT, type MeasuredRunSource } from './treeInkTextMeasure.ts';
 
 /**
- * Records every run a layout measure is called with and the result layout used.
- * `changed()` re-measures each recorded run with new, uncached measures and
- * reports whether any result differs, so only a font change the layout could
- * see invalidates it. Its cost is one measurement per distinct recorded run.
+ * Keeps one font pass's layout measures. Each measure's own cache already holds
+ * every run layout measured and its result, so measuring costs nothing extra.
+ * After a font load, `changed()` re-measures those runs with new, uncached
+ * measures and reports whether any result differs, so only a font change the
+ * layout could see invalidates it. Its cost is one measurement per cached run.
  */
 export function createMeasuredRuns() {
-  const factories = new Map<string, () => (...args: never[]) => unknown>();
-  const runs = new Map<string, { kind: string; args: unknown[]; result: string }>();
+  const measures: Array<{ create: () => MeasuredRunSource<never[]> & ((...args: never[]) => unknown); measure: MeasuredRunSource<unknown[]> }> = [];
   return {
-    track<A extends unknown[], R>(kind: string, create: () => (...args: A) => R): (...args: A) => R {
-      factories.set(kind, create as () => (...args: never[]) => unknown);
+    track<M extends MeasuredRunSource<never[]> & ((...args: never[]) => unknown)>(create: () => M): M {
       const measure = create();
-      return (...args: A) => {
-        const result = measure(...args);
-        const key = args.every(arg => typeof arg === 'string') ? `${kind}\u0000${args.join('\u0000')}` : JSON.stringify([kind, args]);
-        if (!runs.has(key)) runs.set(key, { kind, args, result: JSON.stringify(result) });
-        return result;
-      };
+      measures.push({ create, measure: measure as unknown as MeasuredRunSource<unknown[]> });
+      return measure;
     },
     changed() {
-      const fresh = new Map<string, (...args: unknown[]) => unknown>();
-      for (const { kind, args, result } of runs.values()) {
-        if (!fresh.has(kind)) fresh.set(kind, factories.get(kind)!() as (...args: unknown[]) => unknown);
-        if (JSON.stringify(fresh.get(kind)!(...args)) !== result) return true;
-      }
-      return false;
+      return measures.some(({ create, measure }) => {
+        const fresh = create() as unknown as (...args: unknown[]) => unknown;
+        for (const { args, result } of measure.runs()) {
+          if (JSON.stringify(fresh(...args)) !== JSON.stringify(result)) return true;
+        }
+        return false;
+      });
     }
   };
 }

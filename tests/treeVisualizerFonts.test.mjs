@@ -83,10 +83,20 @@ test('unmounting before fonts finish cancels the layout invalidation', async () 
 
 // A face whose glyphs keep their widths can still change a pair: "A" stays 10,
 // while kerning makes "AA" 22 instead of 20. Only the measured run reveals that.
+// Like the production measures: a cache keyed per run that can list its runs.
+const cached = compute => {
+  const cache = new Map();
+  const measure = (...args) => {
+    const key = JSON.stringify(args);
+    if (!cache.has(key)) cache.set(key, { args, result: compute(...args) });
+    return cache.get(key).result;
+  };
+  return Object.assign(measure, { runs: () => cache.values() });
+};
 const kerningFonts = () => {
   let kerning = 0, calls = 0;
   const runs = createMeasuredRuns();
-  const measure = runs.track('category', () => text => ({ width: text === 'AA' ? 20 + kerning : [...text].length * 10 }));
+  const measure = runs.track(() => cached(text => ({ width: text === 'AA' ? 20 + kerning : [...text].length * 10 })));
   return { runs, measure, kern: amount => { kerning = amount; }, calls: () => calls, changed: () => calls++ };
 };
 
@@ -111,7 +121,7 @@ test('a later face invalidates layout only when a measured run measures differen
 test('recorded runs re-measure exactly their arguments with uncached measures', () => {
   const probe = kerningFonts(), created = [];
   const inkRuns = createMeasuredRuns();
-  const ink = inkRuns.track('ink', () => { created.push('ink'); return (text, style) => `${text}:${style.fontSize}`; });
+  const ink = inkRuns.track(() => { created.push('ink'); return cached((text, style) => `${text}:${style.fontSize}`); });
   ink('Mia', { fontSize: 56 }); ink('Mia', { fontSize: 56 }); ink('Mia', { fontSize: 30 });
   assert.equal(inkRuns.changed(), false);
   assert.equal(created.length, 2, 'one uncached measure per kind and check');
