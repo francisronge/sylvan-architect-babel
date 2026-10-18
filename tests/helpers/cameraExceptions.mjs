@@ -87,4 +87,17 @@ export const EXCEPTIONS = [
     { desktop: { '9>8': 51.01 }, mobile: { '9>8': 29.98 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/workspace-spanish-continuity.json#', 'first-paint-continuity', 'jump:camera', 'stage 2',
     { desktop: { '8>9': 61.11 }, mobile: { '8>9': 37.53 } }),
+  // Catalog #24's record (47-zh-relative.r1.B a6) also carries catalog #19-#21, under review on fix/replay-stage-frame-alignment.
+  x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:relayout',
+    'stage 2', { desktop: { '16>17,17>16': 31.54 } }),
+  x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:relayout',
+    'stage 3', { desktop: { '48>49,49>48': 26.72 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:camera',
+    'stage 2', { desktop: { '44>43': 142.61 }, mobile: { '44>43': 61.5 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:camera',
+    'stage 3', { desktop: { '43>44': 149.9 }, mobile: { '43>44': 93.36 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'off-canvas:unmoved',
+    'stage 3', { mobile: { '43>44': 165.57 } }),
+  x(MOVED_OFF_CANVAS, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'off-canvas:moved',
+    'stage 3', { mobile: { '43>44': 46.31 } }),
 ];
