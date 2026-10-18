@@ -522,6 +522,20 @@ manual input, even while D3 still carries the source event of an unfinished whee
 gesture. One zoom dispatcher remains attached to the current tree group across
 redraws. These lifecycle rules do not change tree layout or the stage-fit math.
 
+A canvas resize leaves the painted tree untouched until the size has stayed
+unchanged for 120 ms. One redraw then refits the camera without animation.
+Automatic framing fits the new viewport. A manual camera keeps its scale and
+viewport centre. Manual poses are recorded and restored against the SVG's own
+size, which changes before a held frame is redrawn. Before the first painted
+frame, sizes apply at once.
+Replay layout reads the viewport only through each stage's horizontal layout
+size, never its vertical size. A resize that keeps every stage's size reuses the
+prepared coordinates and plaques. Otherwise the new layout is prepared while the
+earlier frame stays on screen with its own viewport, and the swap is that one
+redraw. The layout cover belongs to opening and non-viewport changes. Until the
+settled viewport is drawn, the tree carries `data-babel-viewport-pending` and
+capture readiness waits for it to clear.
+
 ## Replay preparation
 
 The compiled relation contract is in `replay/relations/renderPlan.ts`; claim
@@ -818,7 +832,12 @@ still-current measured input and original canvas identities. The bounded recent
 result cache follows the same checks after fresh font measurement; it never
 supplies another input's coordinates or relaxes allocation checks.
 Missing measurements fail visibly. Input changes, retries and unmounting cancel
-obsolete jobs; stale results cannot supply placements for another input.
+obsolete jobs; stale results cannot supply placements for another input. A
+layout request pairs one immutable content revision with a viewport. When only
+the viewport changes, the last displayed result of that revision stays on screen
+with its own viewport until the new request covers the displayed camera group.
+Progress for another group does not replace it, and it never positions the new
+viewport.
 
 The tree waits for this allocation before revealing its first complete drawing.
 The rendered-frame receipt is written only after the full D3 drawing completes;

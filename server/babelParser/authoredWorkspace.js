@@ -2,6 +2,23 @@
 // authored fields, and the server-derived surfaceSpan.
 const DERIVATION_NODE_FIELDS = new Set(['id', 'label', 'children', 'word', 'tokenIndex', 'silent', 'lineageId', 'surfaceSpan']);
 
+// JSON values of node fields, other than children, that expansion may copy for
+// one response, counted at every expanded occurrence. Saved responses copy at
+// most about 2,000; ignored metadata referenced across many stages reaches it.
+const MAX_EXPANDED_FIELD_VALUES = 1_000_000;
+
+// Relation diagnostics name an authored entry by at most this many characters,
+// and itemize at most this many invalid items of one entry before counting the
+// rest; the raw relation keeps every item. Saved responses use entry names of
+// at most 42 characters and entries of at most 6 items.
+const MAX_DIAGNOSTIC_NAME_LENGTH = 80;
+const MAX_ITEM_DIAGNOSTICS = 20;
+const quotedEntryName = (name) => {
+  const characters = [...name];
+  return JSON.stringify(characters.length > MAX_DIAGNOSTIC_NAME_LENGTH
+    ? `${characters.slice(0, MAX_DIAGNOSTIC_NAME_LENGTH).join('')}…` : name);
+};
+
 /** Canonical authored-stage rules. The server supplies error-envelope policy;
  * browser inspection reuses this pure factory without importing provider or
  * Node runtimes. Inspection never accepts or repairs a failed analysis. */
@@ -102,23 +119,37 @@ export const createAuthoredWorkspaceHelpers = ({
             continue;
           }
           for (const [key, entry] of Object.entries(block)) {
-            const entryPath = `${fieldPath}.${field}[${JSON.stringify(key)}]`;
+            const entryPath = `${fieldPath}.${field}[${quotedEntryName(key)}]`;
             if (!key.trim()) {
               invalidField('DERIVATION_STAGE_RELATION_EXACT', stageIndex, entryPath, key, 'a nonblank entry name', relationIssues);
             }
             const entries = Array.isArray(entry) && entry.length > 0 ? entry : [entry];
+            const isArrayItem = Array.isArray(entry) && entry.length > 0;
+            const itemForm = isArrayItem ? (field === 'values' ? 'a string' : 'a nonblank node ID')
+              : field === 'values' ? 'a string or a nonempty list of strings'
+                : 'a nonblank node ID or a nonempty list of nonblank node IDs';
+            let invalidItems = 0;
             entries.forEach((item, itemIndex) => {
-              const valid = Array.isArray(entry) && entry.length > 0
+              const valid = isArrayItem
                 ? typeof item === 'string' && (field === 'values' || Boolean(item.trim()))
                 : (field === 'values' ? isValuesValue(item) : isAnchorValue(item));
-              if (valid) return;
-              const isArrayItem = Array.isArray(entry) && entry.length > 0;
+              if (valid || (invalidItems += 1) > MAX_ITEM_DIAGNOSTICS) return;
               invalidField('DERIVATION_STAGE_RELATION_EXACT', stageIndex,
-                isArrayItem ? `${entryPath}[${itemIndex}]` : entryPath, item,
-                isArrayItem ? (field === 'values' ? 'a string' : 'a nonblank node ID')
-                  : field === 'values' ? 'a string or a nonempty list of strings'
-                    : 'a nonblank node ID or a nonempty list of nonblank node IDs', relationIssues);
+                isArrayItem ? `${entryPath}[${itemIndex}]` : entryPath, item, itemForm, relationIssues);
             });
+            if (invalidItems > MAX_ITEM_DIAGNOSTICS) {
+              const unlisted = invalidItems - MAX_ITEM_DIAGNOSTICS;
+              relationIssues.push(withFailureDetails({}, {
+                failureClass: 'contract_misunderstanding',
+                ruleId: 'DERIVATION_STAGE_RELATION_EXACT',
+                stageIndex,
+                fieldPath: entryPath,
+                offendingValue: unlisted,
+                expectedForm: `items that are each ${itemForm}`,
+                message: `Stage ${stageIndex + 1}, ${entryPath}: ${unlisted} more invalid items are not listed; the authored relation keeps them.`,
+                processingStep: 'stage-shape'
+              }).failure);
+            }
           }
         }
       }
@@ -231,7 +262,8 @@ export const createAuthoredWorkspaceHelpers = ({
     integrityFlags,
     diagnostics,
     nodeFieldPaths,
-    inspectionBudget
+    inspectionBudget,
+    expansionBudget
   ) => {
     const throwMalformedWorkspace = (message, fieldPath, offendingValue, expectedForm, inspectable = false) => {
       const details = withFailureDetails({}, {
@@ -271,6 +303,18 @@ export const createAuthoredWorkspaceHelpers = ({
       if (Array.isArray(value)) return value.map(item => cloneInspectedField(item, path));
       if (!value || typeof value !== 'object') return value;
       return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneInspectedField(item, path)]));
+    };
+    // Copies one node field, charging each JSON value to the response's budget.
+    const cloneExpandedField = (value, path) => {
+      if (expansionBudget && --expansionBudget.remainingFieldValues < 0) {
+        throwMalformedWorkspace(
+          `Stage ${stageIndex + 1}, ${path}: expanded node fields exceed ${MAX_EXPANDED_FIELD_VALUES} values across the response.`,
+          path, null, `node fields with at most ${MAX_EXPANDED_FIELD_VALUES} JSON values across every expanded occurrence`
+        );
+      }
+      if (Array.isArray(value)) return value.map(item => cloneExpandedField(item, path));
+      if (!value || typeof value !== 'object') return value;
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneExpandedField(item, path)]));
     };
 
     const expandNode = (rawNode, path, carriedFrom = null, depth = 0) => {
@@ -350,12 +394,15 @@ export const createAuthoredWorkspaceHelpers = ({
           integrityFlags.push(`node_field_ignored:${stageIndex + 1}:${path}.${field}`);
         }
       });
-      // Inspection checks descendants before allocating them. Cloning the whole
-      // referenced subtree here would allocate unchecked descendants first.
+      // Only the node's own fields are copied here; its children are expanded
+      // once below, so each occurrence is copied once rather than once per
+      // ancestor. The placeholder keeps children at its authored key position.
+      // Inspection checks descendants before allocating them.
       const fields = inspectionBudget
         ? Object.fromEntries(Object.entries(rawNode).filter(([key]) => key !== 'children')
           .map(([key, item]) => [key, cloneInspectedField(item, `${path}.${key}`)]))
-        : cloneJson(rawNode);
+        : Object.fromEntries(Object.entries(rawNode)
+          .map(([key, item]) => [key, key === 'children' ? null : cloneExpandedField(item, `${path}.${key}`)]));
       const expanded = {
         ...fields,
         children: rawNode.children.map((child, childIndex) => (
@@ -372,6 +419,9 @@ export const createAuthoredWorkspaceHelpers = ({
       expandNode(root, `$.derivationStages[${stageIndex}].workspaceForest[${rootIndex}]`)
     ));
   };
+
+  /** One response's allowance of copied node-field values; see MAX_EXPANDED_FIELD_VALUES. */
+  const createExpansionBudget = () => ({ remainingFieldValues: MAX_EXPANDED_FIELD_VALUES });
 
   const sameExpandedBody = (left, right) => {
     if (left === right) return true;
@@ -490,7 +540,7 @@ export const createAuthoredWorkspaceHelpers = ({
         if (unambiguousBodies) {
           // Inspection only reads cached nodes and expansion always copies them.
           // Reusing those immutable inputs avoids a second subtree copy per ID.
-          nodes.forEach(([{ node }], nodeId) => priorNodes.set(nodeId, options.inspectionBudget ? node : cloneJson(node)));
+          nodes.forEach(([{ node }], nodeId) => priorNodes.set(nodeId, node));
         } else {
           priorNodes.clear();
         }
@@ -523,7 +573,7 @@ export const createAuthoredWorkspaceHelpers = ({
             const values = Array.isArray(value) ? value : [value];
             values.forEach((nodeId, itemIndex) => {
               if (typeof nodeId !== 'string' || !nodeId.trim()) return;
-              const fieldPath = `$.derivationStages[${stageIndex}].relations[${relationIndex}].${field}[${JSON.stringify(role)}]${Array.isArray(value) ? `[${itemIndex}]` : ''}`;
+              const fieldPath = `$.derivationStages[${stageIndex}].relations[${relationIndex}].${field}[${quotedEntryName(role)}]${Array.isArray(value) ? `[${itemIndex}]` : ''}`;
               const occurrences = requiredNodes?.get(nodeId) || [];
               const matchingStageIndexes = stageNodes.flatMap((nodes, index) => nodes?.has(nodeId) ? [index] : []);
               let status = 'missing';
@@ -587,6 +637,6 @@ export const createAuthoredWorkspaceHelpers = ({
     return entries;
   };
 
-  return { cloneJson, normalizeDerivationStagesToDerivationFrames, expandWorkspaceForest, inspectDerivationWorkspaces };
+  return { cloneJson, normalizeDerivationStagesToDerivationFrames, expandWorkspaceForest, createExpansionBudget, inspectDerivationWorkspaces };
 };
 

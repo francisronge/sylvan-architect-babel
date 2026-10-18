@@ -6,7 +6,7 @@ import { Worker } from 'node:worker_threads';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildReplayPlaqueSchedule, buildStageLayoutGroups, selectReplayPlaqueLayout } from '../replay/stageCamera.ts';
 import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
-import { measurePlaqueLayoutJob, runPlaqueLayoutJob } from '../replay/plaqueLayoutJob.ts';
+import { measurePlaqueLayoutJob, plaqueLayoutViewportKey, runPlaqueLayoutJob } from '../replay/plaqueLayoutJob.ts';
 import { fallbackPlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
 
 test('native plaque measurement follows authored lexical aliases through worker serialization', () => {
@@ -108,4 +108,43 @@ test('serialized allocation preserves measured text, all future reservations and
   } finally { await worker.terminate(); }
   job.categories.delete(job.categories.keys().next().value);
   assert.throws(() => runPlaqueLayoutJob(job).schedule, /Missing measured text/);
+});
+
+// A resize reuses the painted Replay layout only when the viewport key is unchanged.
+test('viewports with the same layout key prepare identical coordinates and plaques', () => {
+  const load = path => JSON.parse(readFileSync(new URL(`../fixtures/${path}`, import.meta.url)));
+  const holdouts = load('movement/holdout-transitions.json');
+  const cases = [
+    ['movement and plaques', holdouts[2], ['ltr', 'rtl']],
+    ['workspaces', load('replay-regressions/workspace-reservation.json').cases[2], ['ltr']]
+  ];
+  for (const [name, record, directions] of cases) for (const direction of directions) {
+    const replay = prepareReplay({ ...record, includePlayback: true });
+    const base = { steps: replay.playbackSteps, stageIndex: 0, plan: replay.relationRenderPlan, direction,
+      layoutGroups: buildStageLayoutGroups(replay.playbackSteps, replay.replayDerivationFrames),
+      completedCanvas: buildRenderableDerivationCanvasData(record.derivationStages.at(-1).workspaceForest),
+      measureCategoryText: text => [...text].length * 21.125,
+      measurePlaqueText: (text, style) => ({ ...fallbackPlaqueTextMeasure(text, style), width: [...text].length * style.fontSize * .58 }) };
+    const layout = (width, height) => {
+      const iterator = measurePlaqueLayoutJob({ ...base, width, height });
+      let next = iterator.next();
+      while (!next.done) next = iterator.next();
+      const { coordinates, schedule } = runPlaqueLayoutJob(next.value);
+      return { key: plaqueLayoutViewportKey({ ...base, width, height }), coordinates, schedule };
+    };
+    const reference = layout(1200, 750);
+    assert(reference.schedule.stages.some(stage => stage?.size), `${name} exercises plaque placement`);
+    // Height alone never changes layout, even where it sets a stage's vertical
+    // layout size; this width stays within every stage's own horizontal size.
+    for (const [width, height] of [[1200, 2400], [1600, 420]]) {
+      const other = layout(width, height);
+      assert.equal(other.key, reference.key, `${name} ${direction} ${width}x${height}`);
+      assert.deepEqual(other.coordinates, reference.coordinates, `${name} ${direction} ${width}x${height} coordinates`);
+      assert.deepEqual(other.schedule, reference.schedule, `${name} ${direction} ${width}x${height} plaques`);
+    }
+  }
+  const small = prepareReplay({ ...holdouts[5], includePlayback: true });
+  const key = width => plaqueLayoutViewportKey({ steps: small.playbackSteps, plan: small.relationRenderPlan,
+    layoutGroups: buildStageLayoutGroups(small.playbackSteps, small.replayDerivationFrames), width, height: 750 });
+  assert.notEqual(key(1600), key(1200), 'a width that changes a stage layout size requests a new layout');
 });
