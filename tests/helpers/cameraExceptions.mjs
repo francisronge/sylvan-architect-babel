@@ -102,4 +102,17 @@ export const EXCEPTIONS = [
     'stage 3', { mobile: { '43>44': 196.88 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'off-canvas:moved',
     'stage 3', { mobile: { '43>44': 77.61 } }),
+  // The waiting-root fixture is the same record as catalog case 6, so it carries the same entries.
+  x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:relayout',
+    'stage 2', { desktop: { '16>17,17>16': 31.54 } }),
+  x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:relayout',
+    'stage 3', { desktop: { '48>49,49>48': 26.72 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:camera',
+    'stage 2', { desktop: { '44>43': 158.55 }, mobile: { '44>43': 62.6 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:camera',
+    'stage 3', { desktop: { '43>44': 166.66 }, mobile: { '43>44': 103.8 } }),
+  x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'off-canvas:unmoved',
+    'stage 3', { mobile: { '43>44': 196.88 } }),
+  x(MOVED_OFF_CANVAS, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'off-canvas:moved',
+    'stage 3', { mobile: { '43>44': 77.61 } }),
 ];
