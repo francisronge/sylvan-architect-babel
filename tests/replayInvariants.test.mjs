@@ -3,9 +3,9 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  checkInputUnchanged, checkMarksAtOwningMoment, checkNoEarlyReveal, checkNoVisibleScaffolding, checkOneLetterPerLabel,
-  checkParentAfterChildren, checkRelationMoments, checkStableConstruction, checkStageCompletion, checkVisibleInCanvas,
-  frameStructure
+  checkAttachAtMerge, checkInputUnchanged, checkMarksAtOwningMoment, checkNoEarlyReveal, checkNoVisibleScaffolding,
+  checkOneLetterPerLabel, checkParentAfterChildren, checkRelationMoments, checkStableConstruction, checkStageCompletion,
+  checkVisibleInCanvas, frameStructure
 } from './helpers/replayInvariants.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 
@@ -146,6 +146,25 @@ test('control: stable-construction reports retained syntax that disappears or mo
   assert(reported(checkStableConstruction(unparented), 'stable-construction', nested + 1, `${child} is detached from ${hidden}`));
 });
 
+test('control: attach-at-merge reports a child attached to its retained parent before that parent\'s merge', () => {
+  assert.deepEqual(checkAttachAtMerge(replay), []);
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/retained-parent-attachment.json#').record;
+  const held = prepare(record), projection = held.playbackSteps.findIndex(step => step.replayKind === 'micro' && step.targetNodeId === 'embeddedCP');
+  const merge = held.playbackSteps.findIndex((step, index) => index > projection && step.targetNodeId === 'matrixVBar');
+  assert.deepEqual(checkAttachAtMerge(held), []);
+  assert.equal(frameStructure(held.playbackSteps[merge]).parent.get('embeddedCP'), 'matrixVBar', 'the merge attaches the CP');
+  // Paint the merged tree at the CP's projection, as the layout scaffold once did.
+  const early = { ...held, playbackSteps: structuredClone(held.playbackSteps) };
+  Object.assign(early.playbackSteps[projection], { replayCanvasData: structuredClone(held.playbackSteps[merge].replayCanvasData),
+    replayVisibleNodeIds: [...held.playbackSteps[merge].replayVisibleNodeIds] });
+  assert.deepEqual(checkAttachAtMerge(early).map(item => [item.frame, item.detail]),
+    [[projection + 1, 'embeddedCP attaches to matrixVBar at micro Project (target embeddedCP)']]);
+  const merged = { ...held, playbackSteps: structuredClone(held.playbackSteps) };
+  merged.playbackSteps[merge].targetNodeId = 'embeddedCP';
+  assert(reported(checkAttachAtMerge(merged), 'attach-at-merge', merge + 1, 'embeddedCP attaches to matrixVBar'),
+    'the same attachment at a step that does not target the parent');
+});
+
 test('control: visible-in-canvas reports a visible id with no canvas node', () => {
   assert.deepEqual(checkVisibleInCanvas(replay), []);
   const stale = breakReplay(copy => { copy[3].replayVisibleNodeIds = [...copy[3].replayVisibleNodeIds, 'not-a-canvas-node']; });
@@ -223,8 +242,14 @@ const KNOWN_DEFECTS = [
   [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar']
 ];
 
+// A node revealed at a step that does not own it is one defect, reported by
+// no-early-reveal; that step's attachment of the same node is not reported again.
+const REPORTED_BY = new Map([['attach-at-merge', 'no-early-reveal']]);
+const subjectOf = violation => violation.detail.split(' ')[0];
+
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments',
-  'no-early-reveal', 'parent-after-children', 'stable-construction', 'visible-in-canvas', 'marks-at-owning-moment', 'one-letter-per-label'];
+  'no-early-reveal', 'parent-after-children', 'stable-construction', 'attach-at-merge', 'visible-in-canvas', 'marks-at-owning-moment',
+  'one-letter-per-label'];
 let sweep;
 before(() => {
   sweep = corpus.records.map(({ id, record }) => {
@@ -234,7 +259,7 @@ before(() => {
       return { id, frames: prepared.playbackSteps.length, violations: [
         ...checkInputUnchanged(snapshot, authored), ...checkNoVisibleScaffolding(prepared), ...checkStageCompletion(prepared, authored),
         ...checkRelationMoments(prepared, authored), ...checkNoEarlyReveal(prepared), ...checkParentAfterChildren(prepared),
-        ...checkStableConstruction(prepared), ...checkVisibleInCanvas(prepared),
+        ...checkStableConstruction(prepared), ...checkAttachAtMerge(prepared), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared)
       ] };
     } catch (error) { return { id, error }; }
@@ -255,8 +280,11 @@ for (const rule of RULES) test(`sweep: ${rule} holds on every frame of every com
   const key = (id, frame, subject) => `${id} frame ${frame}: ${subject}`;
   const expected = new Set(KNOWN_DEFECTS.filter(entry => entry[2] === rule)
     .flatMap(([, id, , frame, subjects]) => subjects.split(' ').map(subject => key(id, frame, subject))));
-  const found = sweep.flatMap(entry => (entry.violations ?? []).filter(violation => violation.rule === rule)
-    .map(violation => ({ key: key(entry.id, violation.frame, violation.detail.split(' ')[0]), text: `${entry.id} frame ${violation.frame}: ${violation.detail}` })));
+  const reportedElsewhere = (violations, violation) => violations.some(other => other.rule === REPORTED_BY.get(rule)
+    && other.frame === violation.frame && subjectOf(other) === subjectOf(violation));
+  const found = sweep.flatMap(entry => (entry.violations ?? [])
+    .filter(violation => violation.rule === rule && !reportedElsewhere(entry.violations, violation))
+    .map(violation => ({ key: key(entry.id, violation.frame, subjectOf(violation)), text: `${entry.id} frame ${violation.frame}: ${violation.detail}` })));
   assert.deepEqual(found.filter(violation => !expected.has(violation.key)).map(violation => violation.text), [], 'new violations');
   const keys = new Set(found.map(violation => violation.key));
   assert.deepEqual([...expected].filter(entry => !keys.has(entry)), [], 'listed defects that no longer occur; remove them from KNOWN_DEFECTS');

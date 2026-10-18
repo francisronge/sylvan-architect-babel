@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { advanceFittedCamera, availableTreeViewport, containCamera, linearizationViewport } from '../components/treeViewport.ts';
+import {
+  advanceFittedCamera, availableTreeViewport, carryCamera, containCamera, linearizationViewport
+} from '../components/treeViewport.ts';
 
 test('plaque containment leaves an already fitting camera exactly unchanged', () => {
   const preferred = { x: 173.4, y: 93.1, k: 0.27 };
@@ -75,4 +77,24 @@ test('a same-scale Replay advance retains framing and only pans for actual overf
     'an eight-percent opportunity to zoom in is not a reason to move the camera');
   const overflow = advanceFittedCamera(previous, larger, { ...bounds, maxX: 12000 }, view);
   assert(overflow.k < previous.k, 'new content still earns the scale reduction needed to remain visible');
+});
+
+test('a stage crossing carries the camera with unmoved shared syntax, not the reattached constituent', () => {
+  const pose = { x: 474, y: 60, k: 0.2 };
+  const node = (x, y, parentId = null) => ({ x, y, parentId });
+  const before = new Map([['root', node(1000, 200)], ['head', node(800, 400, 'root')], ['comp', node(1200, 400, 'root')],
+    ['moved', node(1400, 600, 'comp')], ['word', node(1400, 800, 'moved')]]);
+  // Stage 2 shifts everything by (+3000, +1500), then reattaches `moved` under a new root.
+  const after = new Map([['top', node(3800, 1500)], ['root', node(4000, 1700, 'top')], ['head', node(3800, 1900, 'root')],
+    ['comp', node(4200, 1900, 'root')], ['moved', node(3600, 1700, 'top')], ['word', node(3600, 1900, 'moved')]]);
+  const carried = carryCamera(pose, before, after);
+  const screen = (camera, { x, y }) => [camera.x + x * camera.k, camera.y + y * camera.k];
+  assert.equal(carried.k, pose.k);
+  for (const id of ['root', 'head', 'comp']) {
+    assert.deepEqual(screen(carried, after.get(id)), screen(pose, before.get(id)), `${id} keeps its place on screen`);
+  }
+  assert.notDeepEqual(screen(carried, after.get('moved')), screen(pose, before.get('moved')),
+    'the reattached constituent is the syntax that visibly moves');
+  assert.deepEqual(carryCamera(pose, before, before), pose, 'unchanged coordinates leave the pose');
+  assert.deepEqual(carryCamera(pose, before, new Map([['new', node(1, 1)]])), pose, 'nothing shared leaves the pose');
 });

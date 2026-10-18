@@ -266,12 +266,16 @@ export const prepareReplayStage = (
     ? buildStageRecordReplayBlocks(frame, plannedStage)
     : frameReplayBlocks;
   const frameLayoutTopology = futureLayoutScaffold || workspaceRoots;
-  const buildFrameLayoutScaffold = (snapshotRoots: SyntaxNode[]): SyntaxNode[] | undefined => {
+  // Prefer a scaffold grafted from the snapshot's own material, which keeps
+  // exactly the snapshot's edges among current nodes. Otherwise borrow the
+  // stage's future scaffold when it fits the snapshot, including attachments
+  // the snapshot still holds back (`heldParentIds`).
+  const buildFrameLayoutScaffold = (snapshotRoots: SyntaxNode[], heldParentIds?: ReadonlySet<string>): SyntaxNode[] | undefined => {
     const scaffold = buildCurrentMaterialLayoutScaffold(snapshotRoots, frameLayoutTopology, preauthorizedFramePlaceholderIds);
     if (scaffold)
       return scaffold;
     return futureLayoutScaffold
-      && forestCanUseCurrentMaterialLayoutScaffold(snapshotRoots, futureLayoutScaffold)
+      && forestCanUseCurrentMaterialLayoutScaffold(snapshotRoots, futureLayoutScaffold, heldParentIds)
       ? futureLayoutScaffold
       : undefined;
   };

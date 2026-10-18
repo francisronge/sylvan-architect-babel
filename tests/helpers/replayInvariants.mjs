@@ -205,10 +205,32 @@ export function checkVisibleInCanvas(replay) {
   return out;
 }
 
+/** Whether a construction micro-step makes the edge from `parent` to `child`,
+ * comparing the displayed structure before and after it. The step builds its
+ * target, so it owns that edge when
+ *   - the target is the parent: a merge or projection gathers its daughters;
+ *   - the target is the child, inserted into an existing edge: one of its
+ *     daughters hung from that parent before, and the target now stands there;
+ *   - the target is new and replaces the child's former parent, which is gone:
+ *     the dissolved parent's material regroups under the target's parent.
+ * These are the attachments construction makes in
+ * replay/constructionAttachments.ts: a held attachment completes at its
+ * parent's merge, a wrapper takes over the edge it is inserted into, and a
+ * regrouping parent's material moves at its first new child. */
+function stepOwnsEdge(step, previous, current, child, parent) {
+  if (step.replayKind !== 'micro') return false;
+  const target = String(step.targetNodeId ?? '');
+  if (parent === target) return true;
+  if (child === target) return (current.children.get(child) ?? []).some(daughter => previous.parent.get(daughter) === parent);
+  const before = previous.parent.get(child);
+  return current.displayed.has(target) && !previous.displayed.has(target)
+    && before != null && !current.displayed.has(before) && parent === current.parent.get(target);
+}
+
 /** A construction micro-step changes existing syntax only through its own
  * target. A node displayed at the preceding step stays displayed under the same
- * parent unless the step's target now holds it (a merge or projection), or the
- * new target takes its place. Nothing is detached. */
+ * parent unless the step owns its new edge (`stepOwnsEdge`), or the new target
+ * takes its place. Nothing is detached. */
 export function checkStableConstruction(replay) {
   const steps = replay.playbackSteps, out = [];
   steps.forEach((step, index) => {
@@ -228,11 +250,8 @@ export function checkStableConstruction(replay) {
       }
       const after = current.parent.get(id);
       if (after === before) continue;
-      // When the new target replaces the old parent, that parent's material
-      // may regroup under the target or the target's parent.
-      const parentReplaced = newTarget && before != null && !current.displayed.has(before);
       if (after == null) out.push(violation('stable-construction', index + 1, `${id} is detached from ${before} ${where}`));
-      else if (!holds(after) && !(parentReplaced && after === current.parent.get(target))) {
+      else if (!stepOwnsEdge(step, previous, current, id, after)) {
         out.push(violation('stable-construction', index + 1, `${id} moves from ${before} to ${after} ${where}`));
       }
     }
@@ -322,6 +341,37 @@ export function checkNoEarlyReveal(replay) {
       out.push(violation('no-early-reveal', index + 1, `${id} appears at ${step.replayKind} ${step.operation} (target ${target})`));
     }
     previous = structure;
+  });
+  return out;
+}
+
+/** A parent already on screen gains a child only at a step that owns that
+ * attachment. An edge to a parent displayed at the preceding step is new when
+ * the child was not displayed under it there, either because the child is new
+ * or because it was a separate root or elsewhere. A construction micro-step
+ * owns it as `stepOwnsEdge` says; a relation moment owns it when it introduces
+ * the child, or names the child as an owned movement endpoint or proven
+ * rewrite. Anything else, such as a node's projection attaching it to a
+ * retained parent whose merge comes later, shows the merge before its own
+ * step. A derived word leaf is its owner's pronunciation, not an attachment. */
+export function checkAttachAtMerge(replay) {
+  const steps = replay.playbackSteps, out = [];
+  let previous = EMPTY_FRAME;
+  steps.forEach((step, index) => {
+    const current = frameStructure(step), target = String(step.targetNodeId ?? '');
+    const ownership = step.replayKind === 'relation' && step.replayRelationIdentity ? momentOwnership(step) : null;
+    for (const id of current.displayed) {
+      const parent = current.parent.get(id);
+      if (!parent || !previous.displayed.has(parent)) continue;
+      if (previous.displayed.has(id) && previous.parent.get(id) === parent) continue;
+      const node = current.nodes.get(id);
+      if (node.data.replayOrigin?.kind === 'word' || stepOwnsEdge(step, previous, current, id, parent)) continue;
+      if (ownership && (named(node, ownership.endpoints) || named(node, ownership.rewritten)
+        || !previous.displayed.has(id) && revealedByRelation(node, ownership, previous))) continue;
+      out.push(violation('attach-at-merge', index + 1,
+        `${id} attaches to ${parent} at ${step.replayKind} ${step.operation} (target ${target})`));
+    }
+    previous = current;
   });
   return out;
 }
