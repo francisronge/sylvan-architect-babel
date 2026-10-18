@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  advanceFittedCamera, availableTreeViewport, containCamera, enterStageCamera, linearizationViewport, sharedSyntaxTravel
+  advanceFittedCamera, availableTreeViewport, containCamera, enterStageCamera, linearizationViewport, sharedSyntaxTravel,
+  stageEntryStartCamera
 } from '../components/treeViewport.ts';
 
 test('plaque containment leaves an already fitting camera exactly unchanged', () => {
@@ -99,4 +100,28 @@ test('stage entry retains the accepted view only while it holds the shared synta
     'a retained pose that no longer frames the shared syntax yields to the stage fit');
   assert.deepEqual(enterStageCamera(previous, fit(bounds), bounds, view, before, new Map([['d', { x: 1, y: 1 }]])), fit(bounds),
     'without shared syntax there is nothing for retention to hold still');
+});
+
+test('a step into new stage coordinates starts with attached shared syntax where it was painted', () => {
+  const painted = { x: 474, y: 60, k: 0.2 };
+  const node = (x, y, ...ancestors) => ({ x, y, ancestors });
+  const before = new Map([['root', node(1000, 200)], ['head', node(800, 400, 'root')], ['comp', node(1200, 400, 'root')],
+    ['moved', node(1400, 600, 'comp', 'root')], ['word', node(1400, 800, 'moved', 'comp', 'root')]]);
+  // Stage 2 shifts everything by (+3000, +1500), then reattaches `moved` under a new root.
+  const after = new Map([['top', node(3800, 1500)], ['root', node(4000, 1700, 'top')], ['head', node(3800, 1900, 'root', 'top')],
+    ['comp', node(4200, 1900, 'root', 'top')], ['moved', node(3600, 1700, 'top')], ['word', node(3600, 1900, 'moved', 'top')]]);
+  const view = { left: 0, right: 2000, top: 0, bottom: 2000 };
+  const start = stageEntryStartCamera(painted, before, after, view);
+  assert.equal(start.k, painted.k);
+  for (const id of ['root', 'head', 'comp']) {
+    assert.deepEqual([start.x + after.get(id).x * start.k, start.y + after.get(id).y * start.k],
+      [painted.x + before.get(id).x * painted.k, painted.y + before.get(id).y * painted.k], `${id} keeps its painted place`);
+  }
+  assert.notEqual(start.x + after.get('moved').x * start.k, painted.x + before.get('moved').x * painted.k,
+    'the reattached constituent is the syntax that visibly moves');
+  assert.deepEqual(stageEntryStartCamera(painted, before, before, view), painted, 'unchanged coordinates leave the painted camera');
+  assert.deepEqual(stageEntryStartCamera(painted, before, new Map([['new', node(1, 1)]]), view), painted);
+  // The painted camera already shows all of stage 2 here; the anchored start would lose it.
+  assert.deepEqual(stageEntryStartCamera(painted, before, after, { left: 1000, right: 1400, top: 300, bottom: 500 }), painted,
+    'a start never takes shared syntax off the canvas');
 });

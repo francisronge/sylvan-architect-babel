@@ -73,23 +73,32 @@ for (const [width, height, panelTop] of [[1596, 996, 721], [390, 844, 585]]) {
 }
 
 // Saved GPT-6 Astra/high geometry for "The man whose car was stolen called the
-// police." at Replay frames 20 and 21. Stage 2 lays out the same syntax in its own
-// coordinates, thousands of units from where stage 1 drew it.
+// police." at Replay frames 20 and 21: [x, y, parent]. Stage 2 lays out the same
+// syntax in its own coordinates, thousands of units from where stage 1 drew it,
+// and passive movement reattaches carDP from V' to the new IP.
 const whoseRelative = {
   stage1: { minX: 357.5, minY: 220, maxX: 1927.5, maxY: 2110 },
   stage2: { minX: 4510.375, minY: 1980, maxX: 6224.625, maxY: 3430 },
-  frame20: { relativeIBar: [1140, 220], was: [877.5, 440], passiveVP: [1402.5, 440], 'was::__leaf': [877.5, 660],
-    passiveVBar: [1402.5, 660], stolen: [1140, 880], carDP: [1665, 880], 'stolen::__leaf': [1140, 1100],
-    carDBar: [1665, 1100], whose: [1402.5, 1320], carNP: [1927.5, 1320], 'whose::__leaf': [1402.5, 1540],
-    carNBar: [1927.5, 1540], car: [1927.5, 1760], 'car::__leaf': [1927.5, 1980] },
-  frame21: { relativeIP: [5295, 1980], carDP: [5004.375, 2200], relativeIBar: [5585.625, 2200],
-    carDBar: [5004.375, 2420], was: [5323.125, 2420], passiveVP: [5848.125, 2420], whose: [4741.875, 2640],
-    carNP: [5266.875, 2640], 'was::__leaf': [5323.125, 2640], passiveVBar: [5848.125, 2640],
-    'whose::__leaf': [4741.875, 2860], carNBar: [5266.875, 2860], stolen: [5660.625, 2860],
-    themeTrace: [6035.625, 2860], car: [5266.875, 3080], 'stolen::__leaf': [5660.625, 3080],
-    'car::__leaf': [5266.875, 3300] }
+  frame20: { relativeIBar: [1140, 220, null], was: [877.5, 440, 'relativeIBar'], passiveVP: [1402.5, 440, 'relativeIBar'],
+    'was::__leaf': [877.5, 660, 'was'], passiveVBar: [1402.5, 660, 'passiveVP'], stolen: [1140, 880, 'passiveVBar'],
+    carDP: [1665, 880, 'passiveVBar'], 'stolen::__leaf': [1140, 1100, 'stolen'], carDBar: [1665, 1100, 'carDP'],
+    whose: [1402.5, 1320, 'carDBar'], carNP: [1927.5, 1320, 'carDBar'], 'whose::__leaf': [1402.5, 1540, 'whose'],
+    carNBar: [1927.5, 1540, 'carNP'], car: [1927.5, 1760, 'carNBar'], 'car::__leaf': [1927.5, 1980, 'car'] },
+  frame21: { relativeIP: [5295, 1980, null], carDP: [5004.375, 2200, 'relativeIP'],
+    relativeIBar: [5585.625, 2200, 'relativeIP'], carDBar: [5004.375, 2420, 'carDP'], was: [5323.125, 2420, 'relativeIBar'],
+    passiveVP: [5848.125, 2420, 'relativeIBar'], whose: [4741.875, 2640, 'carDBar'], carNP: [5266.875, 2640, 'carDBar'],
+    'was::__leaf': [5323.125, 2640, 'was'], passiveVBar: [5848.125, 2640, 'passiveVP'],
+    'whose::__leaf': [4741.875, 2860, 'whose'], carNBar: [5266.875, 2860, 'carNP'], stolen: [5660.625, 2860, 'passiveVBar'],
+    themeTrace: [6035.625, 2860, 'passiveVBar'], car: [5266.875, 3080, 'carNBar'],
+    'stolen::__leaf': [5660.625, 3080, 'stolen'], 'car::__leaf': [5266.875, 3300, 'car'] }
 };
-const paintedNodes = points => Object.entries(points).map(([id, [x, y]]) => ({ __vizId: id, x, y }));
+// Painted hierarchy nodes, as the frame camera reads them.
+const paintedNodes = points => Object.entries(points).map(([id, [x, y]]) => {
+  const lineage = [id];
+  for (let parent = points[id][2]; parent; parent = points[parent][2]) lineage.push(parent);
+  return { __vizId: id, x, y, ancestors: () => lineage.map(__vizId => ({ __vizId })) };
+});
+const onScreen = (pose, [x, y]) => [pose.x + x * pose.k, pose.y + y * pose.k];
 
 for (const [width, height, uiBounds] of [[1440, 840, { headerBottom: 57, panelTop: 564, right: 16 }],
   [390, 844, { headerBottom: 72, panelTop: 585, right: 72 }]]) {
@@ -117,5 +126,34 @@ for (const [width, height, uiBounds] of [[1440, 840, { headerBottom: 57, panelTo
     const entered = at(auto, 20, 1, stage2, frame21);
     assert.deepEqual(entered, accepted, 'forward playback does not zoom in merely because the new stage has room');
     assert(entered.k < at({ current: null }, 20, 1, stage2, frame21).k, 'direct selection still fits the stage');
+  });
+
+  test(`${width}px: an animated step into a new stage first paints its syntax where it was`, () => {
+    const harness = createCameraHarness(Element, { width, height, data: whoseRelative, animated: true, reducedMotion: false });
+    const paint = (step, stage, bounds, points) => {
+      harness.session.activeStepIndex = step;
+      harness.paints.length = 0;
+      harness.run(() => fitTreeCamera({ session: harness.session, layout: {
+        relationRenderPlan: null, activeDerivationFrameIndex: stage, stageCameraBounds: bounds,
+        stagePlaqueContainmentBounds: null, uiBounds, g: harness.group,
+        derivationFrameFitNodes: [{}], overlayFitBounds: null, visibleNodes: paintedNodes(points)
+      } }));
+      return { first: harness.paints[0], destination: harness.session.cameraRuntime.deferred };
+    };
+    const previous = paint(19, 0, stage1, frame20).first;
+    const entry = paint(20, 1, stage2, frame21);
+    assert.deepEqual(entry.destination, at({ current: null }, 20, 1, stage2, frame21), 'the settled pose is unchanged');
+    assert.equal(entry.first.k, previous.k, 'the camera begins at the painted scale');
+    for (const id of ['relativeIBar', 'was', 'was::__leaf', 'passiveVP', 'passiveVBar']) {
+      const [x, y] = onScreen(entry.first, frame21[id]), [oldX, oldY] = onScreen(previous, frame20[id]);
+      assert(Math.hypot(x - oldX, y - oldY) < 1e-6, `${id} first paints where stage 1 showed it`);
+    }
+    for (const id of Object.keys(frame20)) {
+      const [x, y] = onScreen(entry.first, frame21[id]);
+      assert(x >= 0 && x <= width && y >= 0 && y <= height, `${id} stays on the canvas, including the moved DP`);
+    }
+    const next = paint(21, 1, stage2, frame21);
+    assert.deepEqual(next.first, entry.first, 'a later micro-step starts from the painted camera');
+    assert.deepEqual(next.destination, entry.destination);
   });
 }

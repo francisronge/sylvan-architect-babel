@@ -737,6 +737,13 @@ screen than the new stage's fit; otherwise the step settles on that fit, as
 direct selection of the frame does. The pose chosen on entry persists through
 the stage's micro-steps. Explicit Fit, nonadjacent frame selection and the
 completed last Stage Record retain their existing fitting behavior.
+An animated step into another stage, in either direction, starts at the painted
+scale but is translated by the median coordinate change of the shared syntax
+whose shared ancestors are unchanged. That syntax first paints where it was,
+and a reattached constituent is what visibly moves; the camera then travels to
+the settled pose. The translated start is used only when it leaves no more
+shared nodes off the canvas and moves the shared syntax less than the painted
+transform would.
 Stage framing retains its existing margins for ordinary labels. When a revealed
 label exceeds those margins, expand the shared stage envelope by only that
 excess, using the same styled text bounds as layout. Include every revealed

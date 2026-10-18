@@ -4,7 +4,9 @@ import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
 import { animateReplayCamera } from '../replayCameraMotion.ts';
-import { advanceFittedCamera, containCamera, enterStageCamera, type SyntaxAnchors } from '../treeViewport.ts';
+import {
+  advanceFittedCamera, containCamera, enterStageCamera, stageEntryStartCamera, type SyntaxAnchors
+} from '../treeViewport.ts';
 import { guardViewCallback } from '../viewErrorHandling.ts';
 import type { CameraSession } from './cameraState.ts';
 import type { DrawingLayer } from './drawingContext.ts';
@@ -64,7 +66,14 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
       : continuing ? Math.max(0, pending.endsAt - performance.now()) : adjacent ? 360 : 0;
     cameraAnimationRef.current = duration ? { stepIndex: activeStepIndex, endsAt: performance.now() + duration } : null;
     svg.attr('data-babel-camera-settled-step', null);
-    cameraRuntime.cancel = animateReplayCamera(d3.zoomTransform(svgRef.current!), fitted, duration,
+    const painted = d3.zoomTransform(svgRef.current!);
+    // Each stage has its own coordinates. Begin a step across stages with the
+    // shared syntax where it was just painted, so only the camera then moves.
+    const from = duration && !continuing && adjacent && previousFit.stageIndex !== stageIndex
+      && previousFit.anchors && anchors
+      ? stageEntryStartCamera(painted, previousFit.anchors, anchors, { left: 0, right: containerWidth, top: 0, bottom: containerHeight })
+      : painted;
+    cameraRuntime.cancel = animateReplayCamera(from, fitted, duration,
       pose => applyCameraTransform(session, d3.zoomIdentity.translate(pose.x, pose.y).scale(pose.k)),
       () => { cameraAnimationRef.current = null; svg.attr('data-babel-camera-settled-step', activeStepIndex); },
       {

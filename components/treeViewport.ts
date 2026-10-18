@@ -1,7 +1,13 @@
 export type ViewportRect = { left: number; top: number; right: number; bottom: number };
-/** Painted tree-space positions of one frame's visible syntax, keyed by display ID. */
-export type SyntaxAnchors = ReadonlyMap<string, { x: number; y: number }>;
+/** Painted tree-space positions of one frame's visible syntax, keyed by display ID,
+ * with each node's ancestor IDs from its parent to the root. */
+export type SyntaxAnchors = ReadonlyMap<string, { x: number; y: number; ancestors?: readonly string[] }>;
 type CameraPose = { x: number; y: number; k: number };
+
+const median = (values: number[]) => {
+  values.sort((a, b) => a - b);
+  return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
+};
 
 /** Playback does not zoom in merely because a later stage has more room.
  * Preserve the accepted pose until clearance needs a pan or smaller scale. */
@@ -23,9 +29,37 @@ export function sharedSyntaxTravel(accepted: CameraPose, before: SyntaxAnchors, 
     if (prior) travel.push(Math.hypot(candidate.x + point.x * candidate.k - (accepted.x + prior.x * accepted.k),
       candidate.y + point.y * candidate.k - (accepted.y + prior.y * accepted.k)));
   });
-  if (!travel.length) return null;
-  travel.sort((a, b) => a - b);
-  return (travel[(travel.length - 1) >> 1] + travel[travel.length >> 1]) / 2;
+  return travel.length ? median(travel) : null;
+}
+
+/** First pose of an animated step into another stage's coordinates. At the painted
+ * scale, translate by the median coordinate shift of shared syntax whose shared
+ * ancestry is unchanged, so it first paints where the painted camera showed it and
+ * a reattached (moved) constituent is what visibly moves. Keep the painted pose
+ * unless that start leaves fewer shared nodes off the canvas or, with as many,
+ * moves the shared syntax less. */
+export function stageEntryStartCamera(painted: CameraPose, before: SyntaxAnchors, after: SyntaxAnchors,
+  canvas: ViewportRect): CameraPose {
+  const shared = [...after.keys()].filter(id => before.has(id));
+  const lineage = (anchors: SyntaxAnchors, id: string) => JSON.stringify((anchors.get(id)!.ancestors ?? [])
+    .filter(ancestor => before.has(ancestor) && after.has(ancestor)));
+  const attached = shared.filter(id => lineage(before, id) === lineage(after, id));
+  const reference = attached.length ? attached : shared;
+  if (!reference.length) return painted;
+  const start = {
+    x: painted.x + median(reference.map(id => before.get(id)!.x - after.get(id)!.x)) * painted.k,
+    y: painted.y + median(reference.map(id => before.get(id)!.y - after.get(id)!.y)) * painted.k,
+    k: painted.k
+  };
+  const outside = (pose: CameraPose) => shared.filter(id => {
+    const { x, y } = after.get(id)!;
+    const screenX = pose.x + x * pose.k, screenY = pose.y + y * pose.k;
+    return screenX < canvas.left || screenX > canvas.right || screenY < canvas.top || screenY > canvas.bottom;
+  }).length;
+  const startOutside = outside(start), paintedOutside = outside(painted);
+  return startOutside < paintedOutside || (startOutside === paintedOutside
+    && sharedSyntaxTravel(painted, before, start, after)! < sharedSyntaxTravel(painted, before, painted, after)!)
+    ? start : painted;
 }
 
 /** Each stage lays out its syntax in its own coordinates, so a retained pose keeps
