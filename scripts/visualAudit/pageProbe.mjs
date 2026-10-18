@@ -256,16 +256,7 @@ export function installAuditProbe(helpers) {
     const refsOf = refsReader(svg, nodeIds);
     const edges = [...svg.querySelectorAll('path.branch')].map(path => ({
       source: path.getAttribute('data-source-node-id'), target: path.getAttribute('data-target-node-id') }));
-    if (light) {
-      // Nodes a painted movement names this frame: the trajectory endpoints.
-      const movement = new Set();
-      for (const element of svg.querySelectorAll('path,line,polyline')) {
-        if (element.closest(HIDDEN_CONTAINERS)) continue;
-        const kind = classifyGraphic(describe(element, svg));
-        if (kind.type === 'connector' && kind.kind === 'trajectory' && opacity(element) >= 0.05) refsOf(element).forEach(id => movement.add(id));
-      }
-      return { ...base, light: true, nodes: nodes.filter(node => node.opacity >= 0.05), edges, movement: [...movement] };
-    }
+    if (light) return { ...base, light: true, nodes: nodes.filter(node => node.opacity >= 0.05), edges };
     const plaques = [], containers = [];
     for (const element of svg.querySelectorAll('rect,path,polygon,g.babel-cooper-storage-plaque')) {
       try {

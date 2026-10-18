@@ -8,7 +8,7 @@
 // Findings follow tests/helpers/findings.mjs; the camera policy itself lives in
 // tests/helpers/cameraInvariants.mjs and settled-layout continuity in judgeStageSyntax.
 import { median, pointInRect } from './geometry.mjs';
-import { unmovedIds } from '../../tests/helpers/cameraInvariants.mjs';
+import { stepOwnership } from '../../tests/helpers/motionOwnership.mjs';
 
 export const DEFAULT_MOTION = Object.freeze({
   shownOpacity: 0.5,       // a node reads as painted at or above this
@@ -253,25 +253,37 @@ export function firstPaintedPose(samples) {
   return pose?.transform ?? samples.at(-1)?.transform ?? null;
 }
 
+/** The step pairs judgeStageSyntax judges: consecutive settled frames of one
+ * authored stage whose later frame's step is known. */
+export const continuityPairs = frames => frames.slice(1).map((after, index) => [frames[index], after])
+  .filter(([before, after]) => after.number === before.number + 1 && Number.isFinite(after.stage)
+    && after.stage === before.stage && !after.final && after.step);
+
 /**
- * Settled retained syntax does not move inside one authored stage. Frames are
- * camera-trace frames (cameraFrame) in Replay order with `number`. Exempt: the
- * final frame, nodes a painted movement names in either frame (and their
- * descendants), and reattached nodes whose shared ancestry changes. Every node
- * that moves is reported, so one shifted root is caught.
+ * Settled painted syntax moves inside one authored stage only where the step
+ * owns it (tests/helpers/motionOwnership.mjs: its target, its own trajectory
+ * participants, new or reattached syntax, everything below those and the
+ * ancestors that recentre over them). Frames are cameraFrame results in Replay
+ * order with `number` and `step`. Every unowned node that moves is reported,
+ * except one riding with its moving parent, so one shifted root is caught.
  */
 export function judgeStageSyntax(frames, { place = {}, thresholds = {} } = {}) {
   const m = { ...DEFAULT_MOTION, ...thresholds }, out = [];
-  for (let index = 1; index < frames.length; index++) {
-    const before = frames[index - 1], after = frames[index];
-    if (after.number !== before.number + 1 || !Number.isFinite(after.stage) || after.stage !== before.stage || after.final) continue;
-    for (const id of unmovedIds(before, after)) {
-      if (before.movement?.has(id) || after.movement?.has(id)) continue;
-      const a = before.nodes.get(id), b = after.nodes.get(id), shift = Math.hypot(b.x - a.x, b.y - a.y);
-      if (shift <= m.layoutUnits) continue;
+  for (const [before, after] of continuityPairs(frames)) {
+    const owned = stepOwnership({ target: after.step.target, links: after.step.links, points: after.points, prior: before.points });
+    const shiftOf = id => {
+      const a = before.nodes.get(id), b = after.nodes.get(id);
+      return a && b ? { x: b.x - a.x, y: b.y - a.y } : null;
+    };
+    const moved = new Map(after.points.filter(point => !owned.has(point.id)).map(point => [point.id, shiftOf(point.id)])
+      .filter(([, shift]) => shift && Math.hypot(shift.x, shift.y) > m.layoutUnits));
+    for (const [id, shift] of moved) {
+      const parent = moved.get(after.points.find(point => point.id === id)?.parent);
+      if (parent && Math.hypot(shift.x - parent.x, shift.y - parent.y) <= m.layoutUnits) continue;
+      const a = before.nodes.get(id), b = after.nodes.get(id), shiftLength = Math.hypot(shift.x, shift.y);
       out.push({ rule: 'syntax-continuity', subtype: 'retained-node-moves', record: place.record ?? null, subject: id,
-        frame: `${before.number}>${after.number}`, viewport: place.viewport ?? null, measure: Math.round(shift * 100) / 100,
-        detail: `${id} moves ${shift.toFixed(1)} units inside stage ${after.stage} (${before.number}→${after.number}) without a movement owning it`,
+        frame: `${before.number}>${after.number}`, viewport: place.viewport ?? null, measure: Math.round(shiftLength * 100) / 100,
+        detail: `${id} moves ${shiftLength.toFixed(1)} units inside stage ${after.stage} (${before.number}→${after.number}) at a step that does not own it`,
         metrics: { dx: Number((b.x - a.x).toFixed(2)), dy: Number((b.y - a.y).toFixed(2)) } });
     }
   }

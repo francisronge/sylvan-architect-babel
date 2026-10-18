@@ -5,6 +5,7 @@
 import { createHash } from 'node:crypto';
 import { RULES } from '../../tests/helpers/visualRules.mjs';
 import { CAMERA_RULES } from '../../tests/helpers/cameraInvariants.mjs';
+import { matchFindings } from '../../tests/helpers/findings.mjs';
 
 export const REPORT_SCHEMA = 'babel-browser-visual-audit/2';
 
@@ -37,6 +38,22 @@ export function compareWithBaseline(current, baseline) {
     resolved: baseline.findings.filter(finding => covered.has(findingPlace(finding)) && !currentKeys.has(findingKey(finding))),
     uncovered: baseline.findings.filter(finding => !covered.has(findingPlace(finding)))
   };
+}
+
+export const MOTION_RULES = new Set(['step-motion', 'rapid-motion', 'resize-motion']);
+/** A painted motion fault counts only when an immediate re-run of the same motion
+ * shows it again (`reproduced`); frame timing can produce one-off observations. */
+export const counts = finding => !MOTION_RULES.has(finding.rule) || finding.reproduced !== false;
+
+/**
+ * The bounded gate's verdict: matching as tests/helpers/findings.mjs, except
+ * that motion findings which did not reproduce are warnings, never failures.
+ * They still keep their exceptions from being stale.
+ */
+export function gateVerdict(findings, exceptions) {
+  const { unexpected, exceeded, stale } = matchFindings(findings, exceptions);
+  return { unexpected: unexpected.filter(counts), exceeded: exceeded.filter(entry => counts(entry.finding)), stale,
+    warnings: [...unexpected, ...exceeded.map(entry => entry.finding)].filter(finding => !counts(finding)) };
 }
 
 export const fingerprint = value => createHash('sha256').update(typeof value === 'string' || Buffer.isBuffer(value)

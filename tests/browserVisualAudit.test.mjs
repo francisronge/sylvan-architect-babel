@@ -18,7 +18,7 @@ import {
   applyShard, estimateRuntime, extractPageRecords, parseFrameSpec, parseResizeSequence, parseShard, parseViewports,
   resolveFrames, sampleCases, selectCases, stageEntryFrames, traversalRange
 } from '../scripts/visualAudit/plan.mjs';
-import { compareWithBaseline, coverageKey, receiptMatches, renderIndexHtml, summarize } from '../scripts/visualAudit/report.mjs';
+import { compareWithBaseline, coverageKey, gateVerdict, receiptMatches, renderIndexHtml, summarize } from '../scripts/visualAudit/report.mjs';
 import { catalogRecords } from '../scripts/visualAudit/reviewPage.mjs';
 import {
   classifyGraphic, classifyText, colorAlpha, isNodeRefAttribute, parseCamera, parseStageLabel, probeScript, splitRefs, splitSubpaths
@@ -204,16 +204,38 @@ test('#14: rapid Next flicker — empty frames, opacity dips, snap-backs and bli
   assert.deepEqual(judgeRapidStepping(quieted), [], 'a mark quieted by another relation moment still paints');
 });
 
-test('settled syntax moving inside a stage is flagged per node unless a movement owns it', () => {
-  const light = (number, positions, { stage = 2, movement = [] } = {}) => ({ ...cameraFrame({ frame: { stage },
+test('settled syntax moving inside a stage is flagged unless its step owns it, by the shared ownership', () => {
+  const light = (number, positions, { stage = 2, step = { target: 'v', links: [] } } = {}) => ({ ...cameraFrame({ frame: { stage },
     nodes: Object.entries(positions).map(([id, [tx, ty]]) => ({ id, tx, ty })),
-    edges: Object.entries(positions).filter(([, [, , parent]]) => parent).map(([id, [, , parent]]) => ({ source: parent, target: id })), movement }), number });
-  const tree = (waitingX = 900) => ({ ip: [0, 0], ibar: [60, 60, 'ip'], v: [20, 120, 'ibar'], waiting: [waitingX, 0] });
-  const shifted = judgeStageSyntax([light(5, tree()), light(6, tree(902))], { place: { record: 'r', viewport: 'desktop' } });
-  assert.deepEqual(shifted.map(item => [item.rule, item.subject, item.frame, item.measure]), [['syntax-continuity', 'waiting', '5>6', 2]]);
-  assert.deepEqual(judgeStageSyntax([light(5, tree()), light(6, tree(902), { movement: ['waiting'] })]), [], 'its movement owns the move');
-  assert.deepEqual(judgeStageSyntax([light(5, tree()), light(6, tree(902), { stage: 3 })]), [], 'a new stage has its own coordinates');
-  assert.deepEqual(judgeStageSyntax([light(5, tree()), light(6, { ...tree(), v: [400, 120, 'waiting'] })]), [], 'a reattached node');
+    edges: Object.entries(positions).filter(([, [, , parent]]) => parent).map(([id, [, , parent]]) => ({ source: parent, target: id })) },
+  { step }), number });
+  const tree = ({ waitingX = 900, ipX = 0, ibarX = 60 } = {}) => ({ ip: [ipX, 0], ibar: [ibarX, 60, 'ip'], v: [20, 120, 'ibar'], w: [100, 120, 'ibar'],
+    waiting: [waitingX, 0] });
+  const place = { place: { record: 'r', viewport: 'desktop' } };
+  assert.deepEqual(judgeStageSyntax([light(5, tree()), light(6, tree({ waitingX: 902 }))], place)
+    .map(item => [item.rule, item.subject, item.frame, item.measure]), [['syntax-continuity', 'waiting', '5>6', 2]], 'one shifted root');
+  assert.deepEqual(judgeStageSyntax([light(5, tree()), light(6, tree({ waitingX: 902 }), { step: { target: 'waiting', links: [] } })]), [],
+    'the step that targets it owns it');
+  assert.deepEqual(judgeStageSyntax([light(5, tree()), light(6, tree({ ipX: 30, ibarX: 90 }))]), [],
+    'ancestors recentring over the step\'s own change (the V-to-C and Spec-IP moments of catalogue cases 1 and 4)');
+  assert.deepEqual(rules(judgeStageSyntax([light(5, tree()), light(6, { ...tree(), w: [140, 120, 'ibar'] })])), ['syntax-continuity/retained-node-moves'],
+    'a sibling of the target is not owned');
+  assert.deepEqual(judgeStageSyntax([light(5, tree()), light(6, { ...tree(), w: [400, 120, 'waiting'] })]), [], 'reattached syntax is owned');
+  assert.deepEqual(judgeStageSyntax([light(5, tree()), light(6, tree({ waitingX: 902 }), { stage: 3 })]), [], 'a new stage has its own coordinates');
+  assert.deepEqual(judgeStageSyntax([light(5, tree()), light(6, tree({ waitingX: 902 }), { step: null })]), [], 'an unknown step is not judged');
+});
+
+test('gate policy: a painted motion fault counts only if its immediate re-run shows it again', () => {
+  const finding = (rule, subtype, reproduced) => ({ rule, subtype, record: 'r', subject: '@view', frame: '42>43', viewport: 'desktop',
+    measure: 165, detail: '', reproduced });
+  const once = gateVerdict([finding('step-motion', 'fly-in', false)], []);
+  assert.deepEqual([once.unexpected.length, once.warnings.map(item => item.subtype)], [0, ['fly-in']], 'a one-off is a warning');
+  assert.equal(gateVerdict([finding('step-motion', 'fly-in', true)], []).unexpected.length, 1, 'a reproduced fault fails');
+  assert.equal(gateVerdict([finding('step-motion', 'fly-in', null)], []).unexpected.length, 1, 'a fault never re-run still fails');
+  assert.equal(gateVerdict([finding('glyph-overlap', 'text', false)], []).unexpected.length, 1, 'static geometry has no re-run exemption');
+  const listed = [{ rule: 'step-motion', subtype: 'fly-in', record: 'r', subject: '@view', at: { desktop: { '42>43': 100 } }, reason: 'x' }];
+  const beyond = gateVerdict([finding('step-motion', 'fly-in', false)], listed);
+  assert.deepEqual([beyond.exceeded.length, beyond.stale.length, beyond.warnings.length], [0, 0, 1], 'beyond its bound once: a warning, not stale');
 });
 
 test('#7: the camera policy flags a stage entry that keeps a view framing none of the new stage, and allows a justified one', () => {
@@ -392,7 +414,7 @@ test('the serialized page probe collects geometry the shared rules judge, and sa
     for (const rule of ['line-clearance/branch-text', 'line-clearance/connector-plaque', 'label-typography/closing-start']) assert(found.includes(rule), `${rule} in ${found}`);
     assert.deepEqual(letterFindings(snapshot, { record: 'r', frame: 3, viewport: 'desktop' }).map(item => item.subject), ['juanDP:word j']);
     const light = audit.collect({ light: true });
-    assert.deepEqual([light.light, light.edges.length, light.movement, Boolean(light.panel)], [true, 3, [], true]);
+    assert.deepEqual([light.light, light.edges.length, Boolean(light.panel)], [true, 3, true]);
     assert.deepEqual([...cameraFrame(light).nodes.get('juanDP').ancestors], ['cbar', 'cp']);
 
     assert.equal(audit.jumpTo(4), true);

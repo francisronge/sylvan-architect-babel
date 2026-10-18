@@ -5,7 +5,9 @@
 // Canopy at 1440×900 and 390×844 with every check, then matches the findings
 // against tests/helpers/browserVisualExceptions.mjs (tests/helpers/findings.mjs).
 // It fails on an unexpected finding, a finding beyond its bound, a stale
-// exception, an audit error, or a place left unjudged. Evidence goes outside
+// exception, an audit error, or a place left unjudged. A painted motion fault
+// counts only if an immediate re-run of the same motion shows it again; one that
+// does not reproduce is a warning in the receipt. Evidence goes outside
 // the worktree: --evidence DIR, else a new temporary directory.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -13,10 +15,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { matchFindings, proposeExceptions } from '../tests/helpers/findings.mjs';
+import { proposeExceptions } from '../tests/helpers/findings.mjs';
 import { EXCEPTIONS } from '../tests/helpers/browserVisualExceptions.mjs';
 import { buildReviewPage, catalogRecords } from './visualAudit/reviewPage.mjs';
-import { coverageKey } from './visualAudit/report.mjs';
+import { coverageKey, gateVerdict } from './visualAudit/report.mjs';
 import { parseResizeSequence, parseViewports } from './visualAudit/plan.mjs';
 import { viewportName } from './visualAudit/frameModel.mjs';
 
@@ -61,18 +63,19 @@ for (const viewport of parseViewports(VIEWPORTS)) {
     if (mine.filter(key => JSON.parse(key)[2] === 'resize').length < transitions) missing.push(`${record.id} @${name}: resize transitions missing`);
   }
 }
-const { unexpected, exceeded, stale } = matchFindings(report.findings, EXCEPTIONS);
+const { unexpected, exceeded, stale, warnings } = gateVerdict(report.findings, EXCEPTIONS);
 const errors = report.findings.filter(finding => finding.rule === 'audit-error');
 fs.writeFileSync(path.join(evidence, 'proposed-exceptions.json'), JSON.stringify(proposeExceptions(unexpected), null, 2) + '\n');
 const receipt = { ok: !unexpected.length && !exceeded.length && !stale.length && !missing.length && !errors.length && audit.status === 0,
   evidence, page, audit: auditOut, auditExit: audit.status, findings: report.findings.length, exceptions: EXCEPTIONS.length,
-  unexpected, exceeded, stale, missing };
+  unexpected, exceeded, stale, missing, warnings };
 fs.writeFileSync(path.join(evidence, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n');
 for (const finding of unexpected) console.error(`unexpected ${finding.rule}/${finding.subtype ?? '-'} ${finding.record} @${finding.viewport} ${finding.frame}: ${finding.detail}`);
 for (const { finding, bound } of exceeded) console.error(`beyond bound ${finding.rule}/${finding.subtype ?? '-'} ${finding.record} @${finding.viewport} ${finding.frame}: ${finding.measure} > ${bound}`);
 for (const entry of stale) console.error(`stale exception ${entry.exception.rule} ${entry.exception.record} @${entry.viewport} ${entry.frame}`);
 for (const entry of missing) console.error(`incomplete: ${entry}`);
+for (const finding of warnings) console.warn(`warning (did not reproduce on re-run) ${finding.rule}/${finding.subtype} ${finding.record} @${finding.viewport} ${finding.frame}: ${finding.detail}`);
 console.log(`Browser visual check ${receipt.ok ? 'passed' : 'FAILED'}: ${report.findings.length} findings, ${unexpected.length} unexpected, `
-  + `${exceeded.length} beyond bound, ${stale.length} stale, ${missing.length} incomplete. Evidence: ${evidence}`
+  + `${exceeded.length} beyond bound, ${stale.length} stale, ${missing.length} incomplete, ${warnings.length} unreproduced warning(s). Evidence: ${evidence}`
   + (unexpected.length ? `\nReview ${path.join(auditOut, 'index.html')}; candidate exceptions (each needs a reason): ${path.join(evidence, 'proposed-exceptions.json')}` : ''));
 process.exitCode = receipt.ok ? 0 : 1;

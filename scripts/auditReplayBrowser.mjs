@@ -27,12 +27,16 @@ import {
 } from './visualAudit/plan.mjs';
 import { THRESHOLDS, checkFrame } from '../tests/helpers/visualRules.mjs';
 import { CAMERA_THRESHOLDS, checkCameraTrace } from '../tests/helpers/cameraInvariants.mjs';
-import { DEFAULT_MOTION, firstPaintedPose, judgeRapidStepping, judgeResize, judgeStageSyntax, judgeStepMotion } from './visualAudit/motionRules.mjs';
+import {
+  DEFAULT_MOTION, continuityPairs, firstPaintedPose, judgeRapidStepping, judgeResize, judgeStageSyntax, judgeStepMotion
+} from './visualAudit/motionRules.mjs';
 import { cameraFrame, cameraView, letterFindings, toFrameModel, viewportName } from './visualAudit/frameModel.mjs';
 import {
   REPORT_SCHEMA, compareWithBaseline, coverageKey, findingPlace, fingerprint, receiptMatches, renderIndexHtml, summarize
 } from './visualAudit/report.mjs';
 import { parseStageLabel, probeScript } from './visualAudit/pageProbe.mjs';
+import { prepareReplay } from '../replay/prepareReplay.ts';
+import { stepTrajectoryParticipants } from '../tests/helpers/motionOwnership.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const { values } = parseArgs({ options: {
@@ -166,6 +170,7 @@ const git = args => { try { return execFileSync('git', args, { cwd: root, encodi
 const SOURCE_FILES = ['scripts/auditReplayBrowser.mjs', 'scripts/browserSession.mjs', 'scripts/captureReadiness.mjs',
   ...fs.readdirSync(path.join(root, 'scripts/visualAudit')).sort().map(name => `scripts/visualAudit/${name}`),
   'tests/helpers/visualRules.mjs', 'tests/helpers/findings.mjs', 'tests/helpers/replayInvariants.mjs', 'tests/helpers/cameraInvariants.mjs',
+  'tests/helpers/motionOwnership.mjs',
   'components/treeViewport.ts', 'replay/replaySurfaceNotation.ts'];
 const sourceFingerprint = fingerprint(JSON.stringify([fingerprint(pageBytes),
   ...SOURCE_FILES.map(file => [file, fingerprint(fs.readFileSync(path.join(root, file)))])]));
@@ -296,9 +301,9 @@ async function recordFilmstrip(context, name, run, judge) {
     frames.push({ data, t: metadata.timestamp });
     cdp.send('Page.screencastFrameAck', { sessionId }).catch(() => {});
   });
-  let reproduced = null;
+  let rerun = null;
   await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 70, maxWidth: 960, maxHeight: 960, everyNthFrame: 1 });
-  try { reproduced = judge(await run()).length > 0; }
+  try { rerun = judge(await run()); }
   finally { await cdp.send('Page.stopScreencast').catch(() => {}); await cdp.detach().catch(() => {}); }
   const dir = path.join(out, 'film', name);
   fs.mkdirSync(dir, { recursive: true });
@@ -309,9 +314,13 @@ async function recordFilmstrip(context, name, run, judge) {
     return { file, ms: Math.round((frame.t - frames[0].t) * 1000) };
   });
   const sheet = path.join(out, 'sheets', `${name}.png`);
+  const reproduced = rerun && rerun.length > 0;
   if (kept.length) sheetJobs.push({ kind: 'film', sheet, frames: kept, title: name, reproduced });
-  return { sheet: kept.length ? relative(sheet) : null, reproduced };
+  return { sheet: kept.length ? relative(sheet) : null, rerun };
 }
+/** Each finding's re-run verdict: shown again with the same subtype, not shown, or not re-run (null). */
+const withVerdict = (findings, rerun) => findings.map(item => ({ ...item,
+  reproduced: rerun ? rerun.some(again => again.rule === item.rule && again.subtype === item.subtype) : null }));
 
 /** Settles `index` as direct selection does: a nonadjacent jump, or a fresh load. */
 async function directSelection(context, record, index, frameCount, method = values['direct-method']) {
@@ -389,12 +398,21 @@ async function auditReplay(context, record, entry, result, anchorsFor) {
   result.stageLabels = stages;
   const entries = stageEntryFrames(stages).filter(frame => frame > traversal.start && frame <= traversal.end);
   result.stageEntries = entries;
-  const frameOf = number => ({ ...cameraFrame(settled.get(number), { final: number === frameCount }), number });
+  // Step ownership comes from this checkout's Replay of the same record; a page
+  // built from other sources with a different frame count is not judged.
+  const steps = checks.has('continuity') ? prepareReplay({ derivationStages: record.derivationStages, sentence: record.sentence,
+    inputTokens: record.inputTokens, includePlayback: true }).playbackSteps : [];
+  if (checks.has('continuity') && steps.length !== frameCount) result.continuityUnavailable = `page has ${frameCount} frames, this checkout ${steps.length}`;
+  const stepOf = number => steps.length === frameCount && steps[number - 1]
+    ? { target: steps[number - 1].targetNodeId ?? null, links: stepTrajectoryParticipants(steps[number - 1]) } : null;
+  const frameOf = number => ({ ...cameraFrame(settled.get(number), { final: number === frameCount, step: stepOf(number) }), number });
 
-  if (checks.has('continuity')) {
+  if (checks.has('continuity') && !result.continuityUnavailable) {
     const frames = [...settled.keys()].sort((a, b) => a - b).map(frameOf);
     result.findings.push(...judgeStageSyntax(frames, { place, thresholds: motionThresholds }));
-    frames.slice(1).forEach((frame, index) => result.coverage.push(coverageKey(record.id, viewport.name, 'continuity', `${frames[index].number}>${frame.number}`)));
+    for (const [before, after] of continuityPairs(frames)) {
+      result.coverage.push(coverageKey(record.id, viewport.name, 'continuity', `${before.number}>${after.number}`));
+    }
   }
   if (checks.has('camera')) {
     const directFrames = values.direct === 'all' ? range(traversal.start + 1, traversal.end)
@@ -445,7 +463,7 @@ async function auditReplay(context, record, entry, result, anchorsFor) {
         result.evidence[key] = keepEvidence(name(`rapid-${start}`), samples);
         const film = await recordFilmstrip(context, name(`rapid-${start}`), async () => (await run()).samples, judge);
         if (film.sheet) result.sheets[key] = film.sheet;
-        result.findings.push(...findings.map(item => ({ ...item, reproduced: film.reproduced ?? null })));
+        result.findings.push(...withVerdict(findings, film.rerun));
       }
     }
   }
@@ -475,7 +493,7 @@ async function auditReplay(context, record, entry, result, anchorsFor) {
           result.evidence[key] = keepEvidence(name(`resize-${from.label}-${target.label}`), samples);
           const film = await recordFilmstrip(context, name(`resize-${from.label}-${target.label}`), async () => { await transition(from); return transition(target); }, judge);
           if (film.sheet) result.sheets[key] = film.sheet;
-          result.findings.push(...findings.map(item => ({ ...item, reproduced: film.reproduced ?? null })));
+          result.findings.push(...withVerdict(findings, film.rerun));
         }
       }
     } finally { if (current.width !== base.width || current.height !== base.height) await transition(base); }
@@ -487,6 +505,9 @@ async function auditReplay(context, record, entry, result, anchorsFor) {
       return sampleWhile(page, async () => { await probe(page, () => window.__babelAudit.clickNext()); await replayPaint(page, frame - 1); });
     }, samples => judgeStepMotion(samples, { thresholds: motionThresholds }));
     if (film.sheet) result.sheets[coverageKey(record.id, viewport.name, 'motion', `${frame - 1}>${frame}`)] = film.sheet;
+    const transition = `${frame - 1}>${frame}`, flagged = result.findings.filter(item => item.rule === 'step-motion' && item.frame === transition);
+    const verdicts = withVerdict(flagged, film.rerun ?? null);
+    result.findings = result.findings.filter(item => !flagged.includes(item)).concat(verdicts);
   }
 }
 

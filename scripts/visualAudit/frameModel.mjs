@@ -185,16 +185,20 @@ export function letterFindings(snapshot, { record, frame, viewport }) {
     frame, viewport, measure: count, detail: `${label} shows ${letter} ${count} times`, boxes: boxes.get(label) ?? [] }));
 }
 
-/** A settled frame for the camera trace: stage, tree-space nodes with ancestors, and their bounds. */
-export function cameraFrame(light, { final = false } = {}) {
+/** A settled frame for the camera trace (stage, tree-space nodes with ancestors,
+ * their bounds) and for settled continuity: `points` with each node's painted
+ * parent, and the frame's step `{ target, links }` when the caller knows it. */
+export function cameraFrame(light, { final = false, step = null } = {}) {
   const tree = hierarchy(light), nodes = new Map();
   for (const node of light.nodes || []) {
     if (Number.isFinite(node.tx)) nodes.set(node.id, { x: node.tx, y: node.ty, ancestors: tree.ancestors(node.id) });
   }
-  const points = [...nodes.values()];
-  const bounds = points.length ? { minX: Math.min(...points.map(p => p.x)), maxX: Math.max(...points.map(p => p.x)),
-    minY: Math.min(...points.map(p => p.y)), maxY: Math.max(...points.map(p => p.y)) } : null;
-  return { stage: light.frame?.stage ?? null, final, bounds, nodes, movement: new Set(tree.descend(light.movement || [])) };
+  const values = [...nodes.values()];
+  const bounds = values.length ? { minX: Math.min(...values.map(p => p.x)), maxX: Math.max(...values.map(p => p.x)),
+    minY: Math.min(...values.map(p => p.y)), maxY: Math.max(...values.map(p => p.y)) } : null;
+  const points = [...nodes].map(([id, point]) => ({ id, x: point.x, y: point.y,
+    parent: nodes.has(tree.parent.get(id)) ? tree.parent.get(id) : null }));
+  return { stage: light.frame?.stage ?? null, final, bounds, nodes, points, step };
 }
 
 /** The usable view the camera fits into, from the painted header and panel (components/treeViewport.ts). */
