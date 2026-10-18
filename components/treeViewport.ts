@@ -1,14 +1,50 @@
 export type ViewportRect = { left: number; top: number; right: number; bottom: number };
+/** Painted tree-space positions of one frame's visible syntax, keyed by display ID. */
+export type SyntaxAnchors = ReadonlyMap<string, { x: number; y: number }>;
+type CameraPose = { x: number; y: number; k: number };
 
 /** Playback does not zoom in merely because a later stage has more room.
  * Preserve the accepted pose until clearance needs a pan or smaller scale. */
 export function advanceFittedCamera(
-  previous: { x: number; y: number; k: number },
-  fitted: { x: number; y: number; k: number },
+  previous: CameraPose,
+  fitted: CameraPose,
   bounds: { minX: number; minY: number; maxX: number; maxY: number },
   view: ViewportRect
 ) {
   return previous.k <= fitted.k + 1e-7 ? containCamera(previous, bounds, view) : fitted;
+}
+
+/** Median on-screen travel of the syntax two frames share, from where the accepted
+ * camera showed it to where a candidate camera shows it; null when nothing is shared. */
+export function sharedSyntaxTravel(accepted: CameraPose, before: SyntaxAnchors, candidate: CameraPose, after: SyntaxAnchors) {
+  const travel: number[] = [];
+  after.forEach((point, id) => {
+    const prior = before.get(id);
+    if (prior) travel.push(Math.hypot(candidate.x + point.x * candidate.k - (accepted.x + prior.x * accepted.k),
+      candidate.y + point.y * candidate.k - (accepted.y + prior.y * accepted.k)));
+  });
+  if (!travel.length) return null;
+  travel.sort((a, b) => a - b);
+  return (travel[(travel.length - 1) >> 1] + travel[travel.length >> 1]) / 2;
+}
+
+/** Each stage lays out its syntax in its own coordinates, so a retained pose keeps
+ * existing syntax still only where those coordinates agree. On stage entry, keep
+ * the accepted view only when it moves the shared syntax no further than the
+ * stage's own fit does; otherwise settle on that fit, as direct selection does. */
+export function enterStageCamera(
+  previous: CameraPose,
+  fitted: CameraPose,
+  bounds: { minX: number; minY: number; maxX: number; maxY: number },
+  view: ViewportRect,
+  before: SyntaxAnchors,
+  after: SyntaxAnchors
+) {
+  const advanced = advanceFittedCamera(previous, fitted, bounds, view);
+  if (advanced === fitted) return fitted;
+  const retainedTravel = sharedSyntaxTravel(previous, before, advanced, after);
+  const fittedTravel = sharedSyntaxTravel(previous, before, fitted, after);
+  return retainedTravel !== null && fittedTravel !== null && retainedTravel <= fittedTravel + 1e-7 ? advanced : fitted;
 }
 
 /** Retain an accepted fit; correct overflow with the least translation and scale reduction. */

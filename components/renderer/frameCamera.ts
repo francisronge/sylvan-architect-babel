@@ -5,6 +5,7 @@ import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
 import type { RelationRenderPlan } from '../../replay/relations/renderPlan.ts';
+import { getNodeId } from '../../replay/displayIdentity.ts';
 import {
   STAGE_CAMERA_PADDING
 } from '../../replay/stageCamera.ts';
@@ -77,7 +78,9 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
       fitBottom,
       completedReplayStep,
       g,
-      fitFallbackOverlays
+      fitFallbackOverlays,
+      stageIndex: activeDerivationFrameIndex,
+      anchors: new Map(visibleNodes.map(node => [getNodeId(node), { x: node.x, y: node.y }]))
     }
   });
   const minimumInitialScale = compactViewport || hasCyclicLinearizationPlate ? 0.02 : 0.06;

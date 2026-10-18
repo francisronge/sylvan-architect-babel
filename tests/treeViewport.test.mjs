@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { advanceFittedCamera, availableTreeViewport, containCamera, linearizationViewport } from '../components/treeViewport.ts';
+import {
+  advanceFittedCamera, availableTreeViewport, containCamera, enterStageCamera, linearizationViewport, sharedSyntaxTravel
+} from '../components/treeViewport.ts';
 
 test('plaque containment leaves an already fitting camera exactly unchanged', () => {
   const preferred = { x: 173.4, y: 93.1, k: 0.27 };
@@ -75,4 +77,26 @@ test('a same-scale Replay advance retains framing and only pans for actual overf
     'an eight-percent opportunity to zoom in is not a reason to move the camera');
   const overflow = advanceFittedCamera(previous, larger, { ...bounds, maxX: 12000 }, view);
   assert(overflow.k < previous.k, 'new content still earns the scale reduction needed to remain visible');
+});
+
+test('stage entry retains the accepted view only while it holds the shared syntax steadier than the fit', () => {
+  const view = { left: 16, right: 1264, top: 60, bottom: 430 };
+  const fit = bounds => {
+    const k = Math.min((view.right - view.left) / (bounds.maxX - bounds.minX), (view.bottom - view.top) / (bounds.maxY - bounds.minY));
+    return { x: (view.left + view.right - (bounds.minX + bounds.maxX) * k) / 2,
+      y: (view.top + view.bottom - (bounds.minY + bounds.maxY) * k) / 2, k };
+  };
+  const bounds = { minX: 0, maxX: 5000, minY: 0, maxY: 2100 };
+  const previous = fit({ ...bounds, maxY: 2600 });
+  const before = new Map([['a', { x: 1000, y: 400 }], ['b', { x: 3000, y: 800 }], ['c', { x: 2000, y: 1200 }]]);
+  assert.equal(sharedSyntaxTravel(previous, before, previous, before), 0);
+  assert.equal(enterStageCamera(previous, fit(bounds), bounds, view, before, before), previous,
+    'unchanged syntax keeps the documented no-zoom-in retention');
+  const shift = ({ x, y }) => ({ x: x + 3000, y: y + 1300 });
+  const moved = { minX: 3000, maxX: 8000, minY: 1300, maxY: 3400 };
+  const after = new Map([...before].map(([id, point]) => [id, shift(point)]));
+  assert.deepEqual(enterStageCamera(previous, fit(moved), moved, view, before, after), fit(moved),
+    'a retained pose that no longer frames the shared syntax yields to the stage fit');
+  assert.deepEqual(enterStageCamera(previous, fit(bounds), bounds, view, before, new Map([['d', { x: 1, y: 1 }]])), fit(bounds),
+    'without shared syntax there is nothing for retention to hold still');
 });

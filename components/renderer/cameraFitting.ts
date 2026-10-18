@@ -4,7 +4,7 @@ import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
 import { animateReplayCamera } from '../replayCameraMotion.ts';
-import { advanceFittedCamera, containCamera } from '../treeViewport.ts';
+import { advanceFittedCamera, containCamera, enterStageCamera, type SyntaxAnchors } from '../treeViewport.ts';
 import { guardViewCallback } from '../viewErrorHandling.ts';
 import type { CameraSession } from './cameraState.ts';
 import type { DrawingLayer } from './drawingContext.ts';
@@ -19,6 +19,9 @@ interface CameraFitGeometry {
   completedReplayStep: number;
   g: DrawingLayer;
   fitFallbackOverlays: (fitZoom: number, fittedViewport: Rect) => void;
+  /** Authored stage being framed; a change marks stage entry. */
+  stageIndex?: number;
+  anchors?: SyntaxAnchors;
 }
 export function createFittedCamera({ session, layout }: { session: CameraSession; layout: CameraFitGeometry }) {
   const {
@@ -46,7 +49,9 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     fitBottom,
     completedReplayStep,
     g,
-    fitFallbackOverlays
+    fitFallbackOverlays,
+    stageIndex,
+    anchors
   } = layout;
   const animateFittedCamera = (fitted: d3.ZoomTransform, previousFit: typeof autoCameraRef.current) => {
     const sameReplay = animated && previousFit?.data === data
@@ -80,13 +85,18 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
       && previousFit.signature === derivationStagesSignature && previousFit.fitRevision === fitRevision
       && previousFit.width === containerWidth && previousFit.height === containerHeight
       && (previousFit.stepIndex === activeStepIndex || previousFit.stepIndex + 1 === activeStepIndex)) {
-      const advanced = advanceFittedCamera(previousFit.transform, fitted, stageFitContainmentBounds,
-        { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom });
+      const view = { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom };
+      // A stage's micro-steps share its fit, so they keep the pose accepted on
+      // entry. Only entering another stage weighs that pose against the new fit.
+      const advanced = previousFit.stageIndex === stageIndex
+        ? advanceFittedCamera(previousFit.transform, fitted, stageFitContainmentBounds, view)
+        : enterStageCamera(previousFit.transform, fitted, stageFitContainmentBounds, view,
+          previousFit.anchors ?? new Map(), anchors ?? new Map());
       fitted = d3.zoomIdentity.translate(advanced.x, advanced.y).scale(advanced.k);
     }
     autoCameraRef.current = {
       data, signature: derivationStagesSignature, width: containerWidth,
-      height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted
+      height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted, stageIndex, anchors
     };
     // Labels and complete fallback badges keep their accepted automatic-Fit
     // size, then scale with the tree. Their connectors use the same reference

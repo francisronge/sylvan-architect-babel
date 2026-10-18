@@ -730,9 +730,13 @@ completed last Stage Record releases earlier source-position bounds and fits the
 finished drawing; Fit uses those same final bounds. This does not compact or
 recenter the tree's internal coordinates.
 Forward playback also retains an already fitting view when a new stage could
-merely zoom in. Actual overflow can still pan or reduce scale. Explicit Fit,
-nonadjacent frame selection and the completed last Stage Record retain their
-existing fitting behavior.
+merely zoom in. Actual overflow can still pan or reduce scale. Each stage lays
+out its syntax in its own coordinates, so on stage entry the view is retained
+only when it moves the syntax shared with the previous step no further on
+screen than the new stage's fit; otherwise the step settles on that fit, as
+direct selection of the frame does. The pose chosen on entry persists through
+the stage's micro-steps. Explicit Fit, nonadjacent frame selection and the
+completed last Stage Record retain their existing fitting behavior.
 Stage framing retains its existing margins for ordinary labels. When a revealed
 label exceeds those margins, expand the shared stage envelope by only that
 excess, using the same styled text bounds as layout. Include every revealed
