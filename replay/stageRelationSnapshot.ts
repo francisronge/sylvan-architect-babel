@@ -38,7 +38,9 @@ export const createStageRelationSnapshots = (
   compilation: ReplayCompilation,
   stage: ReplayStageContext,
   placements: StageRelationPlan,
-  ordinaryStructuralNodeIds: ReadonlySet<string>
+  ordinaryStructuralNodeIds: ReadonlySet<string>,
+  /** `laterAttachments` whose new parent's construction step has not run. */
+  heldAttachmentNodeIds: () => ReadonlySet<string> = () => new Set()
 ) => {
   const { frames, identity } = compilation;
   const {
@@ -191,7 +193,8 @@ export const createStageRelationSnapshots = (
           : [...ownership.priorNodeIds, ...ownership.currentNodeIds])),
         pendingKeptIdLandingNodeIds: new Set([...keptIdLandings].flatMap(([relationIndex, nodeIds]) => activeRelationIndexes.has(relationIndex) ? [] : nodeIds)),
         attachedNodeIds: new Set([...fallbackTransitionOwnership].flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex)
-          ? (ownership.attachments ?? []).map(attachment => attachment.host) : []))
+          ? (ownership.attachments ?? []).map(attachment => attachment.host) : [])),
+        heldAttachmentNodeIds: new Set(heldAttachmentNodeIds())
       });
     let snapshotWorkspaceRoots = buildPreMovementStructuralForest(nonMovementTransitionForest, frameRelationSteps.flatMap((relation, relationIndex) => {
       if (activeRelationIndexes.has(relationIndex))
@@ -239,6 +242,20 @@ export const createStageRelationSnapshots = (
       else
         current.tokenIndex = prior.tokenIndex;
     };
+    // A copied phrase continues its earlier occurrence position by position, so
+    // each terminal keeps its counterpart's form until a later claim owns its
+    // own. Where the shapes differ, no earlier terminal stands in.
+    const retainCopiedPronunciation = (nodeId: string, priorNodeId: string | null, ownerIndex: number) => {
+      const walk = (node: SyntaxNode, prior: SyntaxNode | null): void => {
+        if (!node.children?.length)
+          return retainPendingPronunciation(node.id, prior ? prior.id : null, ownerIndex);
+        const aligned = prior && prior.children?.length === node.children.length ? prior.children : null;
+        node.children.forEach((child, childIndex) => walk(child, aligned ? aligned[childIndex] : null));
+      };
+      const node = findExactNodeByIdInForest(workspaceRoots, nodeId);
+      if (node)
+        walk(node, priorNodeId === null ? null : findExactNodeByIdInForest(previousFrameWorkspaceRoots, priorNodeId) ?? null);
+    };
     frameRelationSteps.forEach((movementRelation, movementIndex) => {
       (movementRelation.recoveredMovements ?? [movementRelation.recoveredMovement]).forEach(movement => {
         if (!movement?.transition || movement.trajectoryKind !== 'head'
@@ -253,8 +270,8 @@ export const createStageRelationSnapshots = (
     fallbackTransitionOwnership.forEach((ownership, relationIndex) => {
       if (!activeRelationIndexes.has(relationIndex))
         return;
-      ownership.copyPairs?.forEach(pair => retainPendingPronunciation(pair.targetNodeId, pair.priorSourceNodeId, relationIndex));
-      ownership.ambiguousCopyNodeIds?.forEach(nodeId => retainPendingPronunciation(nodeId, null, relationIndex));
+      ownership.copyPairs?.forEach(pair => retainCopiedPronunciation(pair.targetNodeId, pair.priorSourceNodeId, relationIndex));
+      ownership.ambiguousCopyNodeIds?.forEach(nodeId => retainCopiedPronunciation(nodeId, null, relationIndex));
     });
     if (baseStep?.replayPendingAttachmentNodeIds) {
       // An active relation that owns a structural change makes its new nodes

@@ -390,6 +390,9 @@ export type FallbackTreeTransitionOwnership = {
    * when it keeps its outer slot and changes only inside this claim's output,
    * which licenses its rigid motion. */
   attachments?: Array<{ host: string; wrapper: string; retained: boolean }>;
+  /** Preceding nodes that such a parent gains outside this claim's material.
+   * They stay where they were until the parent's own construction step. */
+  laterAttachments?: Array<{ host: string; wrapper: string }>;
 };
 
 const ownNodeContent = (node: SyntaxNode): string => {
@@ -749,6 +752,8 @@ export interface AnchoredTransitionInput {
   pendingKeptIdLandingNodeIds?: Set<string>;
   /** Preceding nodes the active neutral claims' new parents attach. */
   attachedNodeIds?: Set<string>;
+  /** Preceding nodes whose new parent's construction step has not yet run. */
+  heldAttachmentNodeIds?: Set<string>;
 }
 
 export const buildAnchoredTreeTransitionForest = ({
@@ -759,7 +764,8 @@ export const buildAnchoredTreeTransitionForest = ({
   withheldNodeIds = new Set(),
   pendingTransitionNodeIds = new Set(),
   pendingKeptIdLandingNodeIds = new Set(),
-  attachedNodeIds = new Set()
+  attachedNodeIds = new Set(),
+  heldAttachmentNodeIds = new Set()
 }: AnchoredTransitionInput): SyntaxNode[] => {
   const ownerships = activeRelations
     .map((relation) => {
@@ -815,7 +821,7 @@ export const buildAnchoredTreeTransitionForest = ({
   // Construction of a pending rewrite's new parent cannot carry an occurrence
   // that kept its id at the landing there early: it keeps its preceding
   // position until the rewrite's moment.
-  const heldNodeIds = new Set([...pendingKeptIdLandingNodeIds].filter(nodeId => !activeCurrentNodeIds.has(nodeId)));
+  const heldNodeIds = new Set([...pendingKeptIdLandingNodeIds, ...heldAttachmentNodeIds].filter(nodeId => !activeCurrentNodeIds.has(nodeId)));
   const structuralNodeIds = new Set([...activeCurrentNodeIds, ...attachmentNodeIds,
     ...[...constructedNodeIds].filter(nodeId => !heldNodeIds.has(nodeId))]);
   let result = cloneSyntaxForest(previousForest);
@@ -911,7 +917,7 @@ export const buildAnchoredTreeTransitionForest = ({
     const replacesConsecutiveChildren = retainedChildren.every((child, offset) => exactLocation(previousLocations, child.id)?.childIndex === currentLocation.childIndex + offset);
     const retainedChildIds = new Set(replacesConsecutiveChildren ? retainedChildren
       .filter(child => ![...collectExactSubtreeNodeIds(child),
-      ...collectExactSubtreeNodeIds(exactLocation(previousLocations, child.id)!.node)].some(id => withheldNodeIds.has(id) || pendingTransitionNodeIds.has(id)))
+      ...collectExactSubtreeNodeIds(exactLocation(previousLocations, child.id)!.node)].some(id => withheldNodeIds.has(id) || pendingTransitionNodeIds.has(id) || heldNodeIds.has(id)))
       .map(child => child.id) : []);
     for (const [childIndex, child] of currentChildren.entries()) {
       const childId = String(child.id || '');
@@ -1172,21 +1178,32 @@ export const planNeutralTransitionAttachments = (
     const hosts = new Set(hostNodeIds), owned = new Set([...ownership.currentNodeIds, ...ownership.priorNodeIds]);
     const claimRoots = new Set([...ownership.priorNodeIds, ...relationAnchorNodeIds(relation.anchors), ...relationAnchorNodeIds(relation.priorAnchors)]
       .flatMap(id => { const location = previous.get(id); return location ? [String(previousForest[location.rootIndex]?.id || '')] : []; }));
-    const outermost = (nodeId: string): string => {
-      let top = nodeId;
-      while (hosts.has(current.get(top)?.parentId ?? ''))
-        top = current.get(top)!.parentId;
-      return top;
+    // The slot a path took over is held under its nearest preceding ancestor,
+    // through any new outer projection that ordinary construction builds.
+    const slotOf = (nodeId: string): { parentId: string; childId: string } => {
+      let childId = nodeId;
+      while (hosts.has(current.get(childId)?.parentId ?? ''))
+        childId = current.get(childId)!.parentId;
+      let parentId = current.get(childId)?.parentId ?? '';
+      while (parentId && !previous.get(parentId)) {
+        childId = parentId;
+        parentId = current.get(parentId)?.parentId ?? '';
+      }
+      return { parentId, childId };
     };
-    const attachments = hostNodeIds.flatMap((wrapper) => {
-      const top = current.get(outermost(wrapper))!;
-      const taken = (current.get(wrapper)?.node.children || []).filter(child => !hosts.has(child.id) && !outputIds.has(child.id)
-        && previous.get(child.id)?.parentId === top.parentId && (top.parentId || claimRoots.has(child.id)));
-      if (top.parentId && !taken.every((child, offset) => previous.get(child.id)!.childIndex === top.childIndex + offset))
-        return [];
-      return taken.map(child => ({ host: child.id, wrapper, retained: retainedOutside(previous.get(child.id)!.node, child, owned) }));
+    const attachments: NonNullable<FallbackTreeTransitionOwnership['attachments']> = [];
+    const laterAttachments: NonNullable<FallbackTreeTransitionOwnership['laterAttachments']> = [];
+    hostNodeIds.forEach((wrapper) => {
+      const { parentId, childId } = slotOf(wrapper);
+      const preceding = (current.get(wrapper)?.node.children || [])
+        .filter(child => !hosts.has(child.id) && !outputIds.has(child.id) && previous.get(child.id));
+      const candidates = preceding.filter(child => previous.get(child.id)!.parentId === parentId && (parentId || claimRoots.has(child.id)));
+      const taken = !parentId || candidates.every((child, offset) => previous.get(child.id)!.childIndex === current.get(childId)!.childIndex + offset)
+        ? candidates : [];
+      taken.forEach(child => attachments.push({ host: child.id, wrapper, retained: retainedOutside(previous.get(child.id)!.node, child, owned) }));
+      preceding.filter(child => !taken.includes(child)).forEach(child => laterAttachments.push({ host: child.id, wrapper }));
     });
-    ownerships.set(relationIndex, { ...ownership, hostNodeIds, attachments });
+    ownerships.set(relationIndex, { ...ownership, hostNodeIds, attachments, ...(laterAttachments.length ? { laterAttachments } : {}) });
   });
 };
 

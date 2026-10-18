@@ -56,6 +56,13 @@ export const finalizeStageReplay = (
     const placements = planStageRelations(compilation, stage);
     const { relationPlacements, getMovementCreatedLandingHostNodeIds, getMovementCreatedLandingHostPaths, transitionHostNodeIds } = placements;
     const transitionNodeIds = new Set([...nonMovementTransitionNodeIds.values()].flatMap(ids => [...ids]));
+    // A new parent that also gains material outside its claim keeps its own
+    // construction step after the moment; until that step, the material stays put.
+    const laterAttachments = new Map<string, string[]>();
+    fallbackTransitionOwnership.forEach(ownership => ownership.laterAttachments?.forEach(({ host, wrapper }) =>
+      laterAttachments.set(wrapper, [...laterAttachments.get(wrapper) ?? [], host])));
+    const releasedWrappers = new Set<string>();
+    const foldedHost = (nodeId: string) => transitionHostNodeIds.has(nodeId) && !laterAttachments.has(nodeId);
     if (frameHasNonMovementTreeTransition && !frameHasMovementPayload
       && !frameRelationSteps.some(relation => relation.recoveredMovement?.transition)) {
       // A claim's moment builds its output and those parents. Every other
@@ -63,7 +70,7 @@ export const finalizeStageReplay = (
       // waits for its moment, which first requires the parents' other material.
       structuralSteps = structuralSteps.filter(step => {
         const nodeId = replayOwnerId(step.replayCanvasData, step.targetNodeId);
-        return !transitionNodeIds.has(nodeId) && !transitionHostNodeIds.has(nodeId);
+        return !transitionNodeIds.has(nodeId) && !foldedHost(nodeId);
       });
     }
     const shouldFoldStructuralStepIntoRelationFrame = (step: PlaybackStep): boolean => {
@@ -78,7 +85,7 @@ export const finalizeStageReplay = (
         // movements do; emitting it separately can leave an empty step.
         if (!priorVisibleNodeIds.has(String(step.targetNodeId || ''))
           && (nonMovementTransitionNodeIds.get(placement.relationIndex)?.has(stepTargetNodeId)
-            || transitionHostNodeIds.get(stepTargetNodeId) === placement.relationIndex)) {
+            || foldedHost(stepTargetNodeId) && transitionHostNodeIds.get(stepTargetNodeId) === placement.relationIndex)) {
           return true;
         }
         if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition)
@@ -213,7 +220,8 @@ export const finalizeStageReplay = (
         .forEach(child => ordinaryStructuralNodeIds.add(child.id));
     });
     const { rebuildStructuralStepForActiveRelations, buildRelationPlaybackStep } = createStageRelationSnapshots(
-      compilation, stage, placements, ordinaryStructuralNodeIds
+      compilation, stage, placements, ordinaryStructuralNodeIds,
+      () => new Set([...laterAttachments].flatMap(([wrapper, hosts]) => releasedWrappers.has(wrapper) ? [] : hosts))
     );
     const relationInsertionIndex = (placement: NonNullable<RelationPlacement>): number => {
       const landingHostNodeIds = getMovementCreatedLandingHostPaths(placement).map(path => path.at(-1)!);
@@ -330,6 +338,8 @@ export const finalizeStageReplay = (
       if (missing.length)
         return missing;
       availableNodeIds.add(step.targetNodeId);
+      if (laterAttachments.has(step.targetNodeId))
+        releasedWrappers.add(step.targetNodeId);
       // A relation-owned node that this step's raw construction already shows
       // still waits for its own moment.
       pendingStructuralStepEntries[stepIndex].introducedVisibleNodeIds

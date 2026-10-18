@@ -236,3 +236,45 @@ test('end to end, neutral copy ownership needs lineage and unique ids, and gives
   forest.push(structuredClone(find(forest, 'higher')));
   assert.equal(compile(duplicated).relations[0].anchoredCopyDisplacement, undefined, 'a repeated id identifies no copy');
 });
+
+test('a preceding root keeps the attachment the claim\'s moment gives it beneath a new outer projection', () => {
+  const old = { ...phrase('old', 'book', 'book'), lineageId: 'book' }, copy = { ...phrase('new', 'book', 'book'), lineageId: 'book' };
+  const { prepared } = compile(twoStages([old], [branch('top', 'YP', branch('root', 'XP', structuredClone(old), copy))],
+    [{ relation: 'shared occurrence', anchors: { first: 'old', second: 'new' } }]));
+  const steps = prepared.playbackSteps, at = moment(steps, 1, 0);
+  assertIntroducedAt(steps, at, ['root', 'new']);
+  for (const step of steps.slice(at).filter(step => step.replayFrameIndex === 1))
+    assert.equal(frameStructure(step).parent.get('old'), 'root', `${step.operation} ${step.targetNodeId} keeps the attachment`);
+  assertBuiltByOwnStep(steps, 'top');
+  assertStageRecordAddsNothing(steps, 1);
+});
+
+test('material a claim\'s new parent gains outside the claim attaches at that parent\'s own merge', () => {
+  const old = { ...phrase('old', 'book', 'book'), lineageId: 'book' }, copy = { ...phrase('new', 'book', 'book'), lineageId: 'book' };
+  const extra = leafNode('extra', 'Adv', { word: 'again' });
+  const { prepared } = compile(twoStages([old, extra], [branch('root', 'XP', structuredClone(old), copy, structuredClone(extra))],
+    [{ relation: 'shared occurrence', anchors: { first: 'old', second: 'new' } }]));
+  const steps = prepared.playbackSteps, at = moment(steps, 1, 0), structure = frameStructure(steps[at]);
+  assert.deepEqual(['old', 'new', 'extra'].map(id => structure.parent.get(id)), ['root', 'root', null]);
+  const merge = steps.findIndex((step, index) => index > at && step.replayKind === 'micro' && step.targetNodeId === 'root');
+  assert.ok(merge > at, 'the parent keeps its own merge for the remaining material');
+  assert.equal(frameStructure(steps[merge - 1]).parent.get('extra'), null);
+  assert.equal(frameStructure(steps[merge]).parent.get('extra'), 'root');
+  assertStageRecordAddsNothing(steps, 1);
+});
+
+test('a copied phrase keeps its earlier occurrence\'s words until a later claim owns a terminal\'s form', () => {
+  const verbPhrase = (id, verbId, word, extra = {}) => ({ id, label: 'VP', lineageId: 'predicate', ...extra,
+    children: [{ id: verbId, label: 'V', word, lineageId: 'verb', ...extra, children: [] }] });
+  const other = { id: 'other', label: 'Adv', word: 'again', children: [] };
+  const record = twoStages([branch('base', 'XP', verbPhrase('low', 'vLow', 'walk'), other)], [branch('root', 'XP',
+    verbPhrase('high', 'vHigh', 'walked'), branch('base', 'XP', verbPhrase('low', 'vLow', 'walk', { silent: true }), structuredClone(other)))], [
+    { relation: 'Opaque occurrence update', anchors: { higher: 'high', lower: 'low' } },
+    { relation: 'PFRealization', anchors: { terminal: 'vHigh' }, values: { realization: 'walked' } }]);
+  const { prepared } = compile(record), steps = prepared.playbackSteps;
+  const copy = steps[moment(steps, 1, 0)], realization = steps[moment(steps, 1, 1)];
+  assert.ok(frameStructure(copy).displayed.has('vHigh'));
+  assert.equal(node(copy, 'vHigh').word, 'walk', 'the copied terminal shows its counterpart\'s form');
+  assert.equal(node(realization, 'vHigh').word, 'walked', 'the later claim changes the word');
+  assertStageRecordAddsNothing(steps, 1);
+});
