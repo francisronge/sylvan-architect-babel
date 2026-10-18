@@ -245,7 +245,10 @@ export function checkLabelTypography(frame) {
 
 /** clipped: text or a plaque hidden under the Replay panel or header, or cut off
  * by the canvas edge, by more than the tolerance; or no tree text left visible.
- * Needs `frame.chrome`, which only an adapter that knows the screen supplies. */
+ * A connector is clipped where its centre line runs that far under the panel or
+ * header, or past the canvas edge (a mark the panel cuts). Branches and stems
+ * follow their tree text. Needs `frame.chrome`, which only an adapter that knows
+ * the screen supplies. */
 export function checkClipped(frame, thresholds = THRESHOLDS) {
   if (!frame.chrome?.canvas) return [];
   const limit = thresholds.clippedPx / frame.zoom, { canvas, panel, header } = frame.chrome, out = [];
@@ -260,6 +263,16 @@ export function checkClipped(frame, thresholds = THRESHOLDS) {
     const outside = Math.max(0, ...rects.map(rect => Math.max(canvas.x - rect.x, rect.x + rect.width - canvas.x - canvas.width,
       canvas.y - rect.y, rect.y + rect.height - canvas.y - canvas.height)));
     if (outside > limit) out.push(finding('clipped', 'off-canvas', frame, item.id, `${describe(item)} extends past the canvas`, outside * frame.zoom));
+  }
+  for (const line of frame.lines.filter(line => line.kind === 'connector')) {
+    const points = line.paths.flat();
+    for (const [subtype, region] of [['under-panel', panel], ['under-header', header]]) {
+      const hidden = region && Math.max(0, ...points.map(p => Math.min(p.x - region.x, region.x + region.width - p.x,
+        p.y - region.y, region.y + region.height - p.y)));
+      if (hidden > limit) out.push(finding('clipped', subtype, frame, line.id, `${line.kind} ${line.id} runs under the ${subtype.slice(6)}`, hidden * frame.zoom));
+    }
+    const outside = Math.max(0, ...points.map(p => Math.max(canvas.x - p.x, p.x - canvas.x - canvas.width, canvas.y - p.y, p.y - canvas.y - canvas.height)));
+    if (outside > limit) out.push(finding('clipped', 'off-canvas', frame, line.id, `${line.kind} ${line.id} runs past the canvas`, outside * frame.zoom));
   }
   const tree = frame.texts.filter(text => TREE_TEXT.has(text.kind));
   if (tree.length && tree.every(text => out.some(entry => entry.subtype === 'off-canvas' && entry.subject === text.id)))
