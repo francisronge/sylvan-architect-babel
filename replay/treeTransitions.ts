@@ -268,22 +268,27 @@ export const buildPreMovementStructuralForest = (
         const lower = findNode(item.sourceNodeId);
         return before && lower ? restoreCurrentSourceState(lower, before) : null;
       });
-      if (!landing || restoredSources.some(restored => !restored))
+      // Another claim about the same landing may already have withdrawn it;
+      // this movement still restores its own source.
+      const withdrawn = !landing && Boolean(findNodeInForest(forest, movement.targetNodeId));
+      if ((!landing && !withdrawn) || restoredSources.some(restored => !restored))
         return;
-      // The retained ID may currently be at the landing. Remove that occurrence
-      // before restoring the complete prior object at its proven lower slot.
-      const parent = findParent(movement.targetNodeId);
-      const priorSlot = precedingLandingSlot(relation, landing);
-      if (!relation.preserveMovementLanding) {
-        if (priorSlot)
-          replaceStructuralNode(landing.id, priorSlot);
-        else if (parent)
-          parent.children = parent.children?.filter(child => child !== landing);
-        else
-          structuralForest.splice(structuralForest.indexOf(landing), 1);
+      if (landing) {
+        // The retained ID may currently be at the landing. Remove that occurrence
+        // before restoring the complete prior object at its proven lower slot.
+        const parent = findParent(movement.targetNodeId);
+        const priorSlot = precedingLandingSlot(relation, landing);
+        if (!relation.preserveMovementLanding) {
+          if (priorSlot)
+            replaceStructuralNode(landing.id, priorSlot);
+          else if (parent)
+            parent.children = parent.children?.filter(child => child !== landing);
+          else
+            structuralForest.splice(structuralForest.indexOf(landing), 1);
+        }
+        if (movement.trajectoryKind === 'head')
+          restoreHeadHost(parent);
       }
-      if (movement.trajectoryKind === 'head')
-        restoreHeadHost(parent);
       movements.forEach((item, index) => replaceStructuralNode(item.sourceNodeId, restoredSources[index]!));
       restoredSources.forEach(restored => restorePrecedingContainers(restored!.id));
       return;

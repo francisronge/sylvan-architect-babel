@@ -1,0 +1,965 @@
+{
+  "description": "Stage 3 moves the wh-phrase from embedded Spec-CP to matrix Spec-CP, leaving the new trace edgeTrace where whEmbedded was. A licensing claim in the same stage is also recovered as a movement to the same landing (operator and variable share lineage). The pre-movement forest withdrew the landing for that claim first, so the chain step found no landing and did not restore whEmbedded: edgeTrace was selected at the stage's first step and What vanished until the movement moment. Each movement now restores its own source.",
+  "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run with the indexed-token contract, 18 October 2026 (bug-hunt batch, 08-en-long-object-wh), commit ee11d20.",
+  "sentence": "What did John say that Mary bought?",
+  "framework": "xbar",
+  "inputTokens": [
+    "What",
+    "did",
+    "John",
+    "say",
+    "that",
+    "Mary",
+    "bought"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "agent": "maryNP",
+            "predicate": "buyV",
+            "theme": "whBase"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "agentRole": "Agent",
+            "themeRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "embeddedI",
+            "recipient": "maryNP"
+          },
+          "relation": "nominative Case licensing",
+          "values": {
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "buyV",
+            "recipient": "whBase"
+          },
+          "relation": "government and accusative Case assignment",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "agent": "johnNP",
+            "content": "embeddedCP",
+            "predicate": "sayV"
+          },
+          "relation": "selection and theta-role assignment",
+          "values": {
+            "agentRole": "Agent",
+            "contentRole": "propositional Content",
+            "selectedCategory": "declarative CP"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "matrixAux",
+            "recipient": "johnNP"
+          },
+          "relation": "nominative Case licensing",
+          "values": {
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "lexicalVerb": "sayV",
+            "questionHead": "questionC",
+            "tenseCarrier": "matrixAux"
+          },
+          "relation": "interrogative do-support and tense realization",
+          "values": {
+            "implementation": "base insertion of finite auxiliary do in I",
+            "lexicalVerbForm": "bare",
+            "tense": "past"
+          }
+        },
+        {
+          "anchors": {
+            "inflectedVerb": "buyV",
+            "tenseHead": "embeddedI"
+          },
+          "relation": "embedded finite-tense licensing",
+          "values": {
+            "implementation": "lexically inflected bought licensed by abstract I",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "Build both clauses using the GB categories NP, VP, IP, and CP. Subjects are generated in Spec-IP in this analysis; no VP-internal subject movement is assumed. Bought takes What as its NP complement and assigns it the Theme role, while Mary receives the Agent role. Embedded past I licenses nominative Case on Mary, and bought governs its object and assigns accusative Case to What. Say selects the declarative CP headed by overt that: John receives the Agent role and the CP receives the propositional Content role. Matrix I licenses nominative Case on John. The interrogative C is initially a separate syntactic object. Adopt a base-insertion treatment of do-support: finite did occupies matrix I as the tense carrier required for the interrogative derivation, leaving say in its bare form. This is not an analysis in which lexical say raises to C. Embedded bought is an already inflected lexical terminal licensed by abstract past I; no separate pronounced tense affix or V-to-I movement is posited. What is therefore an argument of bought, not an additional object of say.",
+      "statement": "Establish the base structure with What as the object of bought.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "johnN",
+                      "label": "N",
+                      "tokenIndex": 2,
+                      "word": "John"
+                    }
+                  ],
+                  "id": "johnNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "johnNP",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "matrixAux",
+                  "label": "I",
+                  "lineageId": "finiteDo",
+                  "tokenIndex": 1,
+                  "word": "did"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sayV",
+                          "label": "V",
+                          "tokenIndex": 3,
+                          "word": "say"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "thatC",
+                                  "label": "C",
+                                  "tokenIndex": 4,
+                                  "word": "that"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "maryN",
+                                              "label": "N",
+                                              "tokenIndex": 5,
+                                              "word": "Mary"
+                                            }
+                                          ],
+                                          "id": "maryNBar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "maryNP",
+                                      "label": "NP"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "embeddedI",
+                                          "label": "I[past]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "buyV",
+                                                  "label": "V",
+                                                  "tokenIndex": 6,
+                                                  "word": "bought"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "whN",
+                                                          "label": "N[+wh]",
+                                                          "tokenIndex": 0,
+                                                          "word": "What"
+                                                        }
+                                                      ],
+                                                      "id": "whNBar",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "whBase",
+                                                  "label": "NP[+wh]",
+                                                  "lineageId": "whArgument"
+                                                }
+                                              ],
+                                              "id": "embeddedVBar",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "embeddedVP",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "embeddedIBar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "embeddedIP",
+                                  "label": "IP"
+                                }
+                              ],
+                              "id": "embeddedCBar",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "embeddedCP",
+                          "label": "CP"
+                        }
+                      ],
+                      "id": "matrixVBar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "matrixVP",
+                  "label": "VP"
+                }
+              ],
+              "id": "matrixIBar",
+              "label": "I′"
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP"
+        },
+        {
+          "children": [],
+          "id": "questionC",
+          "label": "C[+Q]",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingOccurrence": "whEmbedded",
+            "landingProjection": "embeddedCP",
+            "sourceTrace": "objectTrace"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "whBase"
+          },
+          "relation": "successive-cyclic A′-movement",
+          "values": {
+            "chainCase": "accusative",
+            "chainRole": "Theme",
+            "landingPosition": "embedded Spec-CP",
+            "locality": "one IP bounding node crossed"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "buyV",
+            "trace": "objectTrace"
+          },
+          "relation": "lexical proper government",
+          "values": {
+            "condition": "ECP satisfied at the object trace"
+          }
+        }
+      ],
+      "stageRecord": "Move the object NP from the complement of bought to the previously unoccupied Spec-CP of the that-clause, leaving an NP trace in its original argument position. The pronounced NP and its trace form an A′-chain whose lowest position retains the Theme role and accusative Case established in the base structure. This first step crosses embedded IP but not an additional CP boundary under the English GB bounding-node choice of IP and NP. Bought lexically governs the object trace, satisfying the relevant ECP requirement. The embedded landing site is an escape hatch, not an embedded interrogative operator position: that remains a declarative complementizer, and the wh-phrase must move on to matrix interrogative scope. Because the extraction site is an object rather than an embedded subject, retaining overt that does not create a that-trace configuration.",
+      "statement": "Move What to the embedded Spec-CP as the first successive-cyclic step.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "johnN",
+                      "label": "N",
+                      "tokenIndex": 2,
+                      "word": "John"
+                    }
+                  ],
+                  "id": "johnNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "johnNP",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "matrixAux",
+                  "label": "I",
+                  "lineageId": "finiteDo",
+                  "tokenIndex": 1,
+                  "word": "did"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sayV",
+                          "label": "V",
+                          "tokenIndex": 3,
+                          "word": "say"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "whN",
+                                      "label": "N[+wh]",
+                                      "tokenIndex": 0,
+                                      "word": "What"
+                                    }
+                                  ],
+                                  "id": "whNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "whEmbedded",
+                              "label": "NP[+wh]",
+                              "lineageId": "whArgument"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "thatC",
+                                  "label": "C",
+                                  "tokenIndex": 4,
+                                  "word": "that"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "maryN",
+                                              "label": "N",
+                                              "tokenIndex": 5,
+                                              "word": "Mary"
+                                            }
+                                          ],
+                                          "id": "maryNBar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "maryNP",
+                                      "label": "NP"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "embeddedI",
+                                          "label": "I[past]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "buyV",
+                                                  "label": "V",
+                                                  "tokenIndex": 6,
+                                                  "word": "bought"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "objectTrace",
+                                                  "label": "NP (tᵢ)",
+                                                  "lineageId": "whArgument",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "embeddedVBar",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "embeddedVP",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "embeddedIBar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "embeddedIP",
+                                  "label": "IP"
+                                }
+                              ],
+                              "id": "embeddedCBar",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "embeddedCP",
+                          "label": "CP"
+                        }
+                      ],
+                      "id": "matrixVBar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "matrixVP",
+                  "label": "VP"
+                }
+              ],
+              "id": "matrixIBar",
+              "label": "I′"
+            }
+          ],
+          "id": "matrixIP",
+          "label": "IP"
+        },
+        {
+          "children": [],
+          "id": "questionC",
+          "label": "C[+Q]",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argumentTrace": "objectTrace",
+            "bridgePredicate": "sayV",
+            "intermediateTrace": "edgeTrace",
+            "landingOccurrence": "whMatrix",
+            "landingProjection": "matrixCP"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "whEmbedded"
+          },
+          "relation": "successive-cyclic A′-chain extension",
+          "values": {
+            "chainCase": "accusative",
+            "chainRole": "Theme",
+            "landingPosition": "matrix Spec-CP",
+            "locality": "one IP bounding node crossed in the second step"
+          }
+        },
+        {
+          "anchors": {
+            "antecedent": "whMatrix",
+            "trace": "edgeTrace"
+          },
+          "relation": "antecedent proper government",
+          "values": {
+            "condition": "ECP satisfied at the intermediate CP-edge trace"
+          }
+        },
+        {
+          "anchors": {
+            "operator": "whMatrix",
+            "questionHead": "questionC",
+            "scopeDomain": "matrixIP",
+            "variable": "objectTrace"
+          },
+          "relation": "interrogative specifier–head licensing",
+          "values": {
+            "interpretation": "For which thing x did John say that Mary bought x?",
+            "scope": "matrix constituent question"
+          }
+        }
+      ],
+      "stageRecord": "Combine the separate interrogative C with matrix IP to form C′, then move What from the already established embedded Spec-CP into matrix Spec-CP. Leave an intermediate trace at the embedded clause edge. This extends the existing A′-chain rather than assigning What another theta-role or another Case. Say is a bridge predicate selecting the embedded declarative CP, so this complement is not an extraction island. The second movement step crosses matrix IP and respects Subjacency under the same IP/NP bounding-node analysis. The matrix wh-phrase antecedent-governs the intermediate edge trace; the lowest object trace remains lexically governed by bought. Finally, the wh-phrase in matrix Spec-CP enters the interrogative specifier–head relation with matrix C, giving the question scope over John's saying that Mary bought the queried thing. Matrix did remains in I at this stage, so auxiliary inversion has not yet occurred.",
+      "statement": "Establish matrix interrogative scope through the second wh-movement step.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "whN",
+                      "label": "N[+wh]",
+                      "tokenIndex": 0,
+                      "word": "What"
+                    }
+                  ],
+                  "id": "whNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "whMatrix",
+              "label": "NP[+wh]",
+              "lineageId": "whArgument"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "questionC",
+                  "label": "C[+Q]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "johnN",
+                              "label": "N",
+                              "tokenIndex": 2,
+                              "word": "John"
+                            }
+                          ],
+                          "id": "johnNBar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "johnNP",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "matrixAux",
+                          "label": "I",
+                          "lineageId": "finiteDo",
+                          "tokenIndex": 1,
+                          "word": "did"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sayV",
+                                  "label": "V",
+                                  "tokenIndex": 3,
+                                  "word": "say"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "edgeTrace",
+                                      "label": "NP (tᵢ)",
+                                      "lineageId": "whArgument",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "thatC",
+                                          "label": "C",
+                                          "tokenIndex": 4,
+                                          "word": "that"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "maryN",
+                                                      "label": "N",
+                                                      "tokenIndex": 5,
+                                                      "word": "Mary"
+                                                    }
+                                                  ],
+                                                  "id": "maryNBar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "maryNP",
+                                              "label": "NP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "embeddedI",
+                                                  "label": "I[past]",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "buyV",
+                                                          "label": "V",
+                                                          "tokenIndex": 6,
+                                                          "word": "bought"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "objectTrace",
+                                                          "label": "NP (tᵢ)",
+                                                          "lineageId": "whArgument",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "embeddedVBar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedVP",
+                                                  "label": "VP"
+                                                }
+                                              ],
+                                              "id": "embeddedIBar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "embeddedIP",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "embeddedCBar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "embeddedCP",
+                                  "label": "CP"
+                                }
+                              ],
+                              "id": "matrixVBar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "matrixVP",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "matrixIBar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "matrixIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "matrixCBar",
+              "label": "C′"
+            }
+          ],
+          "id": "matrixCP",
+          "label": "CP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "raisedHead": "raisedAux",
+            "resultingHead": "complexC",
+            "sourceTrace": "matrixITrace",
+            "targetHead": "questionC"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "matrixAux",
+            "targetHead": "questionC"
+          },
+          "relation": "I-to-C head movement",
+          "values": {
+            "locality": "nearest-head movement satisfying the Head Movement Constraint",
+            "operation": "auxiliary adjunction to interrogative C"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "raisedAux",
+            "trace": "matrixITrace"
+          },
+          "relation": "head-trace proper government",
+          "values": {
+            "condition": "ECP satisfied at the I trace"
+          }
+        },
+        {
+          "anchors": {
+            "bareVerb": "sayV",
+            "lowerIPosition": "matrixITrace",
+            "nominativeSubject": "johnNP",
+            "raisedTenseCarrier": "raisedAux"
+          },
+          "priorAnchors": {
+            "finiteI": "matrixAux"
+          },
+          "relation": "finite I-chain and nominative licensing",
+          "values": {
+            "case": "nominative",
+            "preservation": "head movement preserves the finite I licensing configuration",
+            "tense": "past"
+          }
+        },
+        {
+          "anchors": {
+            "operator": "whMatrix",
+            "questionHead": "complexC",
+            "scopeDomain": "matrixIP",
+            "variable": "objectTrace"
+          },
+          "priorAnchors": {
+            "questionHead": "questionC"
+          },
+          "relation": "interrogative specifier–head licensing",
+          "values": {
+            "realization": "fronted wh-phrase with subject–auxiliary inversion",
+            "scope": "matrix constituent question"
+          }
+        }
+      ],
+      "stageRecord": "Move finite did from the matrix I position shown in the preceding workspace and adjoin it to interrogative C. Replace its source with a silent I trace, yielding the required order What–did–John–say–that–Mary–bought. This is local I-to-C head movement: no intervening head is skipped, and the raised auxiliary properly governs its head trace. The I-chain preserves matrix past tense and nominative licensing of John at the lower I position. Interrogative specifier–head licensing now holds between What and the complex C containing did and the silent interrogative head. The embedded declarative clause undergoes no inversion, and overt that remains in place. The completed representation contains one wh A′-chain with an object trace and an intermediate CP-edge trace, plus a distinct auxiliary head-movement chain. Only the highest wh occurrence and the raised auxiliary are pronounced; no additional binding or subject-raising derivation is required.",
+      "statement": "Complete the question by moving did from I to matrix C.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "whN",
+                      "label": "N[+wh]",
+                      "tokenIndex": 0,
+                      "word": "What"
+                    }
+                  ],
+                  "id": "whNBar",
+                  "label": "N′"
+                }
+              ],
+              "id": "whMatrix",
+              "label": "NP[+wh]",
+              "lineageId": "whArgument"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "raisedAux",
+                      "label": "I",
+                      "lineageId": "finiteDo",
+                      "tokenIndex": 1,
+                      "word": "did"
+                    },
+                    {
+                      "children": [],
+                      "id": "questionC",
+                      "label": "C[+Q]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "complexC",
+                  "label": "C"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "johnN",
+                              "label": "N",
+                              "tokenIndex": 2,
+                              "word": "John"
+                            }
+                          ],
+                          "id": "johnNBar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "johnNP",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "matrixITrace",
+                          "label": "I (tⱼ)",
+                          "lineageId": "finiteDo",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sayV",
+                                  "label": "V",
+                                  "tokenIndex": 3,
+                                  "word": "say"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "edgeTrace",
+                                      "label": "NP (tᵢ)",
+                                      "lineageId": "whArgument",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "thatC",
+                                          "label": "C",
+                                          "tokenIndex": 4,
+                                          "word": "that"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "maryN",
+                                                      "label": "N",
+                                                      "tokenIndex": 5,
+                                                      "word": "Mary"
+                                                    }
+                                                  ],
+                                                  "id": "maryNBar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "maryNP",
+                                              "label": "NP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "embeddedI",
+                                                  "label": "I[past]",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "buyV",
+                                                          "label": "V",
+                                                          "tokenIndex": 6,
+                                                          "word": "bought"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "objectTrace",
+                                                          "label": "NP (tᵢ)",
+                                                          "lineageId": "whArgument",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "embeddedVBar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedVP",
+                                                  "label": "VP"
+                                                }
+                                              ],
+                                              "id": "embeddedIBar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "embeddedIP",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "embeddedCBar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "embeddedCP",
+                                  "label": "CP"
+                                }
+                              ],
+                              "id": "matrixVBar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "matrixVP",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "matrixIBar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "matrixIP",
+                  "label": "IP"
+                }
+              ],
+              "id": "matrixCBar",
+              "label": "C′"
+            }
+          ],
+          "id": "matrixCP",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}
