@@ -63,7 +63,8 @@ export const createStageRelationSnapshots = (
     getMovementCreatedLandingHostNodeIds,
     relationVisibleNodeIdsByIndex,
     relationLayoutNodeIds,
-    frameHasTreeTransition
+    frameHasTreeTransition,
+    transitionHostNodeIds
   } = placements;
   const keptIdLandings = new Map([...fallbackTransitionOwnership].map(([relationIndex, ownership]) =>
     [relationIndex, keptIdLandingNodeIds(ownership, previousFrameWorkspaceRoots, workspaceRoots)]));
@@ -254,8 +255,9 @@ export const createStageRelationSnapshots = (
     if (baseStep?.replayPendingAttachmentNodeIds) {
       // An active relation that owns a structural change makes its new nodes
       // current at this moment, so their edges cannot wait for a later step.
-      const activeTransitionNodeIds = Array.from(fallbackTransitionOwnership)
-        .flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex) ? [...ownership.currentNodeIds] : []);
+      const activeTransitionNodeIds = [...Array.from(fallbackTransitionOwnership)
+        .flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex) ? [...ownership.currentNodeIds] : []),
+      ...[...transitionHostNodeIds].flatMap(([nodeId, relationIndex]) => activeRelationIndexes.has(relationIndex) ? [nodeId] : [])];
       snapshotWorkspaceRoots = preserveConstructionAttachments(snapshotWorkspaceRoots, previousFrameWorkspaceRoots, new Set(baseStep.replayPendingAttachmentNodeIds), new Set([...(baseStep.replayVisibleNodeIds || []), ...extraVisibleNodeIds, ...activeTransitionNodeIds]));
     }
     const activeRelationLinks = buildActiveRelationLinks(activeRelationIndexes);

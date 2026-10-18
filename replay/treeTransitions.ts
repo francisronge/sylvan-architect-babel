@@ -536,14 +536,87 @@ const resolvePriorWitnessTreeTransitionOwnership = (
   };
 };
 
+/**
+ * The occurrences a neutral claim establishes by relating them to an earlier
+ * occurrence of the same object: each anchored node new in this stage whose
+ * lineage matches an occurrence the claim also anchors from the preceding
+ * stage. `earlierNodeIds` are those earlier occurrences of the same lineages
+ * whose syntax or pronunciation changes; they belong to the same displacement
+ * and keep their preceding form until its moment. `claimedNodeIds`, what the
+ * stage's recovered movements and earlier claims already own, are excluded.
+ * The relation's name and field names play no part, and a claim that mentions
+ * only new occurrences establishes none.
+ */
+export const anchoredCopyDisplacement = (
+  relation: DerivationReplayPlanStep,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[],
+  claimedNodeIds: ReadonlySet<string> = new Set()
+): DerivationReplayPlanStep['anchoredCopyDisplacement'] => {
+  if (relation.recoveredMovement || !relation.neutralTransitionEvidence
+    && findRelationRegistryEntry(productionRelationRegistry, String(relation.relation || '').trim()))
+    return undefined;
+  const unique = (forest: SyntaxNode[], id: string): SyntaxNode | undefined => {
+    const matches = findExactNodesByIdInForest(forest, id);
+    return matches.length === 1 ? matches[0] : undefined;
+  };
+  const currentIds = [...new Set(relationAnchorNodeIds(relation.anchors))];
+  const earlier = [...new Set([...currentIds, ...relationAnchorNodeIds(relation.priorAnchors)])]
+    .map(id => unique(previousForest, id))
+    .filter((node): node is SyntaxNode => Boolean(node?.lineageId));
+  const copies = currentIds
+    .filter(id => !claimedNodeIds.has(id) && !findExactNodesByIdInForest(previousForest, id).length)
+    .map(id => unique(currentForest, id))
+    .filter((node): node is SyntaxNode => Boolean(node?.lineageId)
+      && earlier.some(occurrence => occurrence.lineageId === node!.lineageId));
+  if (copies.length === 0)
+    return undefined;
+  const lineages = new Set(copies.map(node => node.lineageId));
+  return {
+    copyNodeIds: copies.map(node => node.id),
+    earlierNodeIds: earlier.filter(node => {
+      const after = unique(currentForest, node.id);
+      return lineages.has(node.lineageId) && !claimedNodeIds.has(node.id) && (!after || !sameSubtree(node, after));
+    }).map(node => node.id)
+  };
+};
+
+const resolveAnchoredCopyOwnership = (
+  relation: DerivationReplayPlanStep,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[]
+): FallbackTreeTransitionOwnership | null => {
+  const displacement = relation.anchoredCopyDisplacement;
+  if (!displacement)
+    return null;
+  const subtree = (forest: SyntaxNode[], id: string) => {
+    const node = findExactNodeByIdInForest(forest, id);
+    return node ? [...collectExactSubtreeNodeIds(node)] : [];
+  };
+  const currentNodeIds = new Set([...displacement.copyNodeIds, ...displacement.earlierNodeIds].flatMap(id => subtree(currentForest, id)));
+  return currentNodeIds.size ? {
+    currentNodeIds,
+    priorNodeIds: new Set(displacement.earlierNodeIds.flatMap(id => subtree(previousForest, id)))
+  } : null;
+};
+
 export const resolveFallbackTreeTransitionOwnership = (
   relation: DerivationReplayPlanStep,
   previousForest: SyntaxNode[],
   currentForest: SyntaxNode[]
 ): FallbackTreeTransitionOwnership | null => {
+  if (relation.recoveredMovement)
+    return null;
   const witnessed = resolvePriorWitnessTreeTransitionOwnership(relation, previousForest, currentForest);
-  if (witnessed || relation.recoveredMovement || !relation.unprovenNewLandingNodeId)
-    return witnessed;
+  const copied = resolveAnchoredCopyOwnership(relation, previousForest, currentForest);
+  if (witnessed && copied)
+    return {
+      ...witnessed,
+      currentNodeIds: new Set([...witnessed.currentNodeIds, ...copied.currentNodeIds]),
+      priorNodeIds: new Set([...witnessed.priorNodeIds, ...copied.priorNodeIds])
+    };
+  if (witnessed || copied || !relation.unprovenNewLandingNodeId)
+    return witnessed ?? copied;
   const landing = findExactNodesByIdInForest(currentForest, relation.unprovenNewLandingNodeId);
   if (landing.length !== 1 || findExactNodesByIdInForest(previousForest, relation.unprovenNewLandingNodeId).length)
     return null;
@@ -976,6 +1049,33 @@ export const landingAttachmentPath = (
     parentNodeId = findParentNodeIdInForest(currentForest, parentNodeId);
   }
   return parentNodeId || !landingHostNodeId ? hostIds : [landingHostNodeId];
+};
+
+/**
+ * The new parents a neutral claim's moment introduces with its output: for
+ * each owned occurrence that is new, or leaves one parent for another absent
+ * from the preceding stage, the `landingAttachmentPath` to the workspace that
+ * held the claim's preceding material. A preceding root that gains a parent
+ * is merged by ordinary construction, as is everything above that path.
+ */
+export const neutralTransitionHostNodeIds = (
+  relation: DerivationReplayPlanStep,
+  ownership: FallbackTreeTransitionOwnership,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[],
+  stopBefore: (parentNodeId: string) => boolean = () => false
+): string[] => {
+  const previous = indexExactForestNodeLocations(previousForest);
+  const current = indexExactForestNodeLocations(currentForest);
+  const sourceIds = [...ownership.priorNodeIds, ...relationAnchorNodeIds(relation.anchors), ...relationAnchorNodeIds(relation.priorAnchors)]
+    .filter(id => previous.get(id));
+  return [...new Set([...ownership.currentNodeIds].flatMap((nodeId) => {
+    const before = previous.get(nodeId), after = current.get(nodeId);
+    if (!after?.parentId || ownership.currentNodeIds.has(after.parentId) || previous.get(after.parentId)
+      || (before && (!before.parentId || before.parentId === after.parentId)))
+      return [];
+    return landingAttachmentPath(currentForest, previousForest, nodeId, before ? [nodeId, ...sourceIds] : sourceIds, stopBefore);
+  }))];
 };
 
 export const movementLandingWrapper = (

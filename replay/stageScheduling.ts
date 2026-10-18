@@ -22,10 +22,9 @@ import {
   collectSyntaxSubtreeNodeIds,
   findExactNodeByIdInForest,
   findNodeByIdInForest,
-  findParentNodeIdInForest,
-  indexExactForestNodeLocations
+  findParentNodeIdInForest
 } from './syntaxForest.ts';
-import { keptIdLandingNodeIds, landingAttachmentPath, newReceivingHeadNodeIds } from './treeTransitions.ts';
+import { newReceivingHeadNodeIds } from './treeTransitions.ts';
 import { type PlaybackStep } from './types.ts';
 
 export const finalizeStageReplay = (
@@ -54,72 +53,19 @@ export const finalizeStageReplay = (
   } = stage;
   let structuralSteps = steps.map(stripSemanticPayloadFromMicrostep);
   if (plannedStage) {
-    // The new parent of each kept-id landing, by the neutral rewrite whose moment introduces it.
-    const transitionHostNodeIds = new Map<string, number>();
+    const placements = planStageRelations(compilation, stage);
+    const { relationPlacements, getMovementCreatedLandingHostNodeIds, getMovementCreatedLandingHostPaths, transitionHostNodeIds } = placements;
+    const transitionNodeIds = new Set([...nonMovementTransitionNodeIds.values()].flatMap(ids => [...ids]));
     if (frameHasNonMovementTreeTransition && !frameHasMovementPayload
       && !frameRelationSteps.some(relation => relation.recoveredMovement?.transition)) {
-      const transitionNodeIds = new Set([...nonMovementTransitionNodeIds.values()].flatMap(ids => [...ids]));
-      const prerequisiteIds = new Set(frameRelationSteps.flatMap(relation => getRelationAllAnchorNodeIds(relation)
-        .filter(nodeId => !transitionNodeIds.has(nodeId))
-        .flatMap(nodeId => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, nodeId)))));
-      const priorLocations = indexExactForestNodeLocations(previousFrameWorkspaceRoots);
-      const currentLocations = indexExactForestNodeLocations(workspaceRoots);
-      // A rewritten output may need a new parent above existing syntax. Build
-      // that parent's other material first, as a recovered movement builds its
-      // landing host; the parent itself appears with the output.
-      transitionNodeIds.forEach((nodeId) => {
-        const parentId = findParentNodeIdInForest(workspaceRoots, nodeId);
-        if (!parentId || transitionNodeIds.has(parentId) || priorLocations.has(parentId))
-          return;
-        (findExactNodeByIdInForest(workspaceRoots, parentId)?.children || [])
-          .filter(child => !transitionNodeIds.has(String(child.id || '')))
-          .forEach(child => collectSyntaxSubtreeNodeIds(child).forEach(id => prerequisiteIds.add(id)));
-      });
-      // An occurrence that kept its id at the landing needs every new parent
-      // that attaches it to its source workspace, as recovered movement does.
-      // That path appears with it, even when claims name its parents, and
-      // stops below a parent that an earlier claim needs as context.
-      const anchoredBefore = (relationIndex: number, nodeId: string) => frameRelationSteps.slice(0, relationIndex)
-        .some(relation => getRelationAllAnchorNodeIds(relation).some(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, id)).includes(nodeId)));
-      fallbackTransitionOwnership.forEach((ownership, relationIndex) => keptIdLandingNodeIds(ownership, previousFrameWorkspaceRoots, workspaceRoots)
-        .forEach((nodeId) => {
-          const path = landingAttachmentPath(workspaceRoots, previousFrameWorkspaceRoots, nodeId, [nodeId], parentNodeId => anchoredBefore(relationIndex, parentNodeId));
-          path.forEach((hostId, index) => {
-            if (!transitionNodeIds.has(hostId) && !transitionHostNodeIds.has(hostId))
-              transitionHostNodeIds.set(hostId, relationIndex);
-            (findExactNodeByIdInForest(workspaceRoots, hostId)?.children || [])
-              .filter(child => child.id !== (index ? path[index - 1] : nodeId) && !transitionNodeIds.has(String(child.id || '')))
-              .forEach(child => collectSyntaxSubtreeNodeIds(child).forEach(id => prerequisiteIds.add(id)));
-          });
-        }));
-      transitionHostNodeIds.forEach((_relationIndex, nodeId) => prerequisiteIds.delete(nodeId));
-      // A merge that consumes the path's outermost parent is construction after the moment.
-      const availableContextIds = new Set([...previousFrameWorkspaceRoots.flatMap(collectSyntaxSubtreeNodeIds)
-        .filter(nodeId => {
-          if (!transitionNodeIds.has(nodeId))
-            return true;
-          const before = priorLocations.get(nodeId), after = currentLocations.get(nodeId);
-          return Boolean(before && after && before.parentId === after.parentId
-            && (!before.parentId || before.childIndex === after.childIndex));
-        }), ...transitionHostNodeIds.keys()]);
-      // A later rewrite can change an existing operand's fields without
-      // owning new ordinary merges around it. Keep that construction, but
-      // do not merge a new relation-owned output before its own moment.
+      // A claim's moment builds its output and those parents. Every other
+      // step remains ordinary construction; one that consumes an output
+      // waits for its moment, which first requires the parents' other material.
       structuralSteps = structuralSteps.filter(step => {
         const nodeId = replayOwnerId(step.replayCanvasData, step.targetNodeId);
-        if (transitionNodeIds.has(nodeId) || transitionHostNodeIds.has(nodeId))
-          return false;
-        const sources = (step.sourceNodeIds || []).map(id => replayOwnerId(step.replayCanvasData, id));
-        const buildsAvailableContext = sources.length > 0
-          && sources.every(id => availableContextIds.has(id));
-        if (!prerequisiteIds.has(nodeId) && !buildsAvailableContext)
-          return false;
-        availableContextIds.add(nodeId);
-        return true;
+        return !transitionNodeIds.has(nodeId) && !transitionHostNodeIds.has(nodeId);
       });
     }
-    const placements = planStageRelations(compilation, stage);
-    const { relationPlacements, getMovementCreatedLandingHostNodeIds, getMovementCreatedLandingHostPaths } = placements;
     const shouldFoldStructuralStepIntoRelationFrame = (step: PlaybackStep): boolean => {
       const operation = String(step.operation || '').trim();
       if (!['LexicalSelect', 'Project', 'ExternalMerge'].includes(operation))
@@ -131,7 +77,8 @@ export const finalizeStageReplay = (
         // Neutral transitions own their new structure just as recovered
         // movements do; emitting it separately can leave an empty step.
         if (!priorVisibleNodeIds.has(String(step.targetNodeId || ''))
-          && nonMovementTransitionNodeIds.get(placement.relationIndex)?.has(stepTargetNodeId)) {
+          && (nonMovementTransitionNodeIds.get(placement.relationIndex)?.has(stepTargetNodeId)
+            || transitionHostNodeIds.get(stepTargetNodeId) === placement.relationIndex)) {
           return true;
         }
         if (!placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition)
@@ -383,7 +330,10 @@ export const finalizeStageReplay = (
       if (missing.length)
         return missing;
       availableNodeIds.add(step.targetNodeId);
-      pendingStructuralStepEntries[stepIndex].introducedVisibleNodeIds.forEach(id => availableNodeIds.add(id));
+      // A relation-owned node that this step's raw construction already shows
+      // still waits for its own moment.
+      pendingStructuralStepEntries[stepIndex].introducedVisibleNodeIds
+        .filter(id => !relationProducers.has(id)).forEach(id => availableNodeIds.add(id));
       const lastVisible = stagePlaybackSteps.at(-1)?.replayVisibleNodeIds || [];
       // A prerequisite can be pulled ahead of its original construction
       // position. Rebuild from available syntax so a still-pending wrapper
@@ -435,6 +385,10 @@ export const finalizeStageReplay = (
             attachmentPrerequisites.push(attachmentParentId);
           }
         });
+        // A neutral claim's new parents appear with its output, after their other material.
+        [...transitionHostNodeIds].filter(([, owner]) => owner === placement.relationIndex)
+          .flatMap(([hostId]) => findNodeByIdInForest(workspaceRoots, hostId)?.children || [])
+          .forEach(child => attachmentPrerequisites.push(child.id));
         const requiredIds = [...placement.relationAnchorNodeIds, ...attachmentPrerequisites].filter(nodeId => relationProducers.get(nodeId) !== placement.relationIndex);
         const missing = Array.from(new Set(requiredIds.flatMap(nodeId => ensureNodeAvailable(nodeId, placement.relationIndex))));
         if (missing.length) {

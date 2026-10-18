@@ -31,10 +31,12 @@ import {
 import { recoveredCovertMovement } from './relations/tier2Transitions.ts';
 import {
   collectExactSubtreeNodeIds,
+  collectSyntaxSubtreeNodeIds,
   findExactNodeByIdInForest,
   findExactNodesByIdInForest,
   indexExactForestNodeLocations
 } from './syntaxForest.ts';
+import { anchoredCopyDisplacement, resolveFallbackTreeTransitionOwnership } from './treeTransitions.ts';
 import {
   type DerivationReplayPlan,
   type DerivationReplayPlanStage,
@@ -355,7 +357,21 @@ export const getFrameRelations = (
       sourceNodeIds: [movement.sourceNodeId], targetNodeId: movement.targetNodeId
     };
   });
-  return recovered;
+  // A neutral claim's copy is its displacement only outside every recovered
+  // movement of the stage, which owns both of its occurrences, and outside
+  // what an earlier claim already establishes.
+  const claimedNodeIds = new Set(recovered.flatMap(step => (step.recoveredMovements ?? [step.recoveredMovement]))
+    .filter(movement => movement?.transition).flatMap(movement => [
+      ...[movement!.sourceNodeId, movement!.targetNodeId].flatMap(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(currentForest, id))),
+      ...collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement!.priorSourceNodeId))
+    ]));
+  return recovered.map(step => {
+    const anchoredCopy = anchoredCopyDisplacement(step, previousForest, currentForest, claimedNodeIds);
+    const displaced = anchoredCopy ? { ...step, anchoredCopyDisplacement: anchoredCopy } : step;
+    resolveFallbackTreeTransitionOwnership(displaced, previousForest, currentForest)?.currentNodeIds
+      .forEach(id => claimedNodeIds.add(id));
+    return displaced;
+  });
 };
 
 /**

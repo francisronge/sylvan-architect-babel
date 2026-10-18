@@ -21,6 +21,7 @@ import { isHeadShellLabel } from './replaySurfaceNotation.ts';
 import type { IndexedRelationStep, ReplayStageContext } from './stageContext.ts';
 import {
   collectSyntaxSubtreeNodeIds,
+  findExactNodeByIdInForest,
   findNodeByIdInForest,
   findParentNodeIdInForest,
   resolvedRelationLinkKey
@@ -28,6 +29,7 @@ import {
 import {
   landingAttachmentPath,
   movementLandingWrapper,
+  neutralTransitionHostNodeIds,
   relationOwnedPhrasalSourceRoles,
   relationOwnedPhrasalTargetRoles,
   relationOwnsPhrasalTreeTransition
@@ -52,7 +54,9 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     frameRelationSteps,
     previousFrameWorkspaceRoots,
     structuralWorkspaceRoots,
-    frameHasNonMovementTreeTransition
+    frameHasNonMovementTreeTransition,
+    fallbackTransitionOwnership,
+    nonMovementTransitionNodeIds
   } = stage;
   const resolveRelationPlacement = (relation: IndexedRelationStep, relationIndex: number) => {
     const relationLabel = String(relation?.relation || '').trim() || 'Visual Relation';
@@ -233,6 +237,23 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
       ...placement.sourceNodeIds
     ].filter(Boolean))));
   });
+  // The new parents each neutral claim's moment introduces with its output,
+  // by claim. The path stops below a parent an earlier claim needs as context.
+  const transitionHostNodeIds = new Map<string, number>();
+  if (frameHasNonMovementTreeTransition) {
+    const transitionNodeIds = new Set([...nonMovementTransitionNodeIds.values()].flatMap(ids => [...ids]));
+    const anchoredBefore = (relationIndex: number, nodeId: string) => frameRelationSteps.slice(0, relationIndex)
+      .some(relation => getRelationAllAnchorNodeIds(relation).some(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(workspaceRoots, id)).includes(nodeId)));
+    nonMovementTransitionNodeIds.forEach((_nodeIds, relationIndex) => {
+      const ownership = fallbackTransitionOwnership.get(relationIndex);
+      if (!ownership)
+        return;
+      neutralTransitionHostNodeIds(frameRelationSteps[relationIndex], ownership, previousFrameWorkspaceRoots, workspaceRoots,
+        parentNodeId => anchoredBefore(relationIndex, parentNodeId))
+        .filter(hostId => !transitionNodeIds.has(hostId) && !transitionHostNodeIds.has(hostId))
+        .forEach(hostId => transitionHostNodeIds.set(hostId, relationIndex));
+    });
+  }
   const relationLayoutNodeIds = Array.from(new Set(Array.from(relationVisibleNodeIdsByIndex.values()).flat().filter(Boolean)));
   const frameHasTreeTransition = Array.from(singleRelationLinksByIndex.values()).some((links) => links.some(isResolvedMovementLink))
     || relationPlacements.some((placement) => placement.ownsPhrasalTreeTransition)
@@ -244,7 +265,8 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     relationVisibleNodeIdsByIndex,
     relationLayoutNodeIds,
     frameHasTreeTransition,
-    getMovementCreatedLandingHostPaths
+    getMovementCreatedLandingHostPaths,
+    transitionHostNodeIds
   };
 };
 
