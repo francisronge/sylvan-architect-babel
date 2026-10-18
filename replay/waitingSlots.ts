@@ -9,6 +9,13 @@ import type { PlaybackStep } from './types.ts';
 import { collisionAreas } from './workspaceComponentLifetime.ts';
 
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
+
+/** A slot may not add or enlarge any single ink overlap between two painted
+ * nodes, internal pairs included; a resolved overlap cannot pay for a new one.
+ * Maps are `collisionAreas` results for every painted pair of one frame. */
+export function overlapsKept(before: ReadonlyMap<string, number>, after: ReadonlyMap<string, number>) {
+  return [...after].every(([pair, area]) => area <= (before.get(pair) ?? 0) + 1e-6);
+}
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 
 /** A waiting workspace stands, from the first frame it is painted, where it will
@@ -84,9 +91,7 @@ export function reserveWaitingSlots({ steps, sizes, coordinates, direction, meas
     }
     return pairs;
   };
-  // A slot may not add or enlarge any single overlap; a resolved one cannot pay for a new one.
-  const keepsOverlaps = (before: ReadonlyMap<string, number>, after: ReadonlyMap<string, number>) =>
-    [...after].every(([pair, area]) => area <= (before.get(pair) ?? 0) + 1e-6);
+  const keepsOverlaps = overlapsKept;
   for (let attach = 1; attach < scenes.length; attach++) {
     const now = paint(scenes[attach]), before = paint(scenes[attach - 1]);
     for (const [id] of now) {

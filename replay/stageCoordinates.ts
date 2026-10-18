@@ -465,7 +465,7 @@ function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep
 /** An aligned plan replaces an established one only when it removes motion and
  * adds none: no new unowned component, no surviving one or join that moves
  * farther, and the same final tree. */
-function alignmentImprovesMotion(before: ReturnType<typeof planMotion>, after: ReturnType<typeof planMotion>) {
+export function alignmentImprovesMotion(before: ReturnType<typeof planMotion>, after: ReturnType<typeof planMotion>) {
   const final = new Map(before.final.map(([id, x, y]) => [id, [x, y]]));
   return after.count < before.count && after.final.length === before.final.length
     && after.final.every(([id, x, y]) => final.has(id) && Math.hypot(x - final.get(id)![0], y - final.get(id)![1]) <= 1e-6)
