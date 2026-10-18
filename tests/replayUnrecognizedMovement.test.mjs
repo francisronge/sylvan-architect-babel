@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
+import { getFrameRelations } from '../replay/frameRelations.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { checkAttachAtMerge, checkNoEarlyReveal, checkParentAfterChildren, frameStructure } from './helpers/replayInvariants.mjs';
 
@@ -110,4 +111,128 @@ test('unanchored construction in a rewrite stage keeps its own steps', () => {
   const pseudogapping = play(7);
   ['a_and', 'a_coord_projection', 'a_coordination'].forEach(id => assertBuiltByOwnStep(pseudogapping, id));
   assertStageRecordAddsNothing(pseudogapping, 6);
+});
+
+/* Synthetic end-to-end controls through getFrameRelations and the compiler. */
+
+const leafNode = (id, label, extra = {}) => ({ id, label, ...extra });
+const branch = (id, label, ...children) => ({ id, label, children });
+const words = forest => forest.flatMap(node => node.children?.length ? words(node.children) : node.word && !node.silent ? [node.word] : []);
+const twoStages = (before, after, relations) => ({ sentence: words(after).join(' '), derivationStages: [
+  { statement: 'Preceding state', stageRecord: 'The earlier occurrence is built.', relations: [], workspaceForest: before },
+  { statement: 'Completed state', stageRecord: 'The stage is complete.', relations, workspaceForest: after }] });
+const compile = record => {
+  const authored = structuredClone(record), prepared = prepareReplay({ ...structuredClone(record), includePlayback: true });
+  assert.deepEqual(record, authored);
+  return { prepared, relations: getFrameRelations(prepared.replayDerivationFrames[1], prepared.derivationReplayPlan.stages[1],
+    record.derivationStages[0].workspaceForest) };
+};
+const construction = steps => steps.filter(step => step.replayKind === 'micro').map(step => `${step.operation} ${step.targetNodeId}`);
+const phrase = (id, lineageId, word) => branch(id, 'DP', leafNode(`${id}D`, 'D', { word, lineageId: `${lineageId}-head` }));
+
+test('a copy whose new parent joins its unchanged earlier occurrence attaches both at the claim\'s moment', () => {
+  const old = { ...phrase('old', 'book', 'book'), lineageId: 'book' }, copy = { ...phrase('new', 'book', 'book'), lineageId: 'book' };
+  const { prepared } = compile(twoStages([old], [branch('root', 'XP', structuredClone(old), copy)],
+    [{ relation: 'shared occurrence', anchors: { first: 'old', second: 'new' } }]));
+  const steps = prepared.playbackSteps, at = moment(steps, 1, 0);
+  for (const step of steps.slice(0, at).filter(step => step.replayFrameIndex === 1))
+    assert.equal(frameStructure(step).parent.get('old'), null, 'the earlier occurrence stays its own workspace until the moment');
+  assertIntroducedAt(steps, at, ['root', 'new']);
+  assert.equal(frameStructure(steps[at]).parent.get('old'), 'root', 'the moment attaches the preceding root with the copy');
+  assertStageRecordAddsNothing(steps, 1);
+});
+
+const pronunciationCase = ({ ambiguous = false } = {}) => {
+  const lower = id => ({ id, label: 'V descriptive', lineageId: 'copy-chain', word: 'walk', tokenIndex: 0, children: [] });
+  const other = { id: 'other', label: 'Adv', word: 'again', tokenIndex: 1, children: [] };
+  const lowers = ambiguous ? [lower('lower'), lower('second')] : [lower('lower')];
+  const record = twoStages([branch('base', 'V', ...lowers, other)], [branch('root', 'T',
+    branch('complex', 'T', { ...lower('higher'), word: 'walked' }, { id: 'host', label: 'T', silent: true, children: [] }),
+    branch('base', 'V', ...lowers.map(node => ({ ...node, silent: true })), structuredClone(other)))], [
+    { relation: 'Opaque occurrence update', anchors: { higher: 'higher', lower: 'lower', ...(ambiguous ? { second: 'second' } : {}), context: 'host' } },
+    { relation: 'PFRealization', anchors: { terminal: 'higher' }, values: { realization: 'walked' } }]);
+  record.inputTokens = ['walked', 'again'];
+  return compile(record);
+};
+
+test('a copy related only by its lineage keeps its earlier occurrence\'s form until a later claim owns its pronunciation', () => {
+  const { prepared, relations } = pronunciationCase();
+  assert.deepEqual(relations[0].anchoredCopyDisplacement.copies, [{ nodeId: 'higher', earlierNodeId: 'lower' }]);
+  const steps = prepared.playbackSteps, copy = steps[moment(steps, 1, 0)], realization = steps[moment(steps, 1, 1)];
+  assert.ok(frameStructure(copy).displayed.has('higher'));
+  assert.equal(node(copy, 'higher').word, 'walk', 'the copy shows the form it continues');
+  assert.equal(node(realization, 'higher').word, 'walked');
+});
+
+test('a copy with several displaced earlier occurrences shows no borrowed form and says why', () => {
+  const { prepared, relations } = pronunciationCase({ ambiguous: true });
+  assert.deepEqual(relations[0].anchoredCopyDisplacement.copies, [{ nodeId: 'higher' }]);
+  assert.ok(relations[0].movementDiagnostics.some(diagnostic => diagnostic.startsWith('COPY_SOURCE_AMBIGUOUS:')));
+  const steps = prepared.playbackSteps, copy = steps[moment(steps, 1, 0)], realization = steps[moment(steps, 1, 1)];
+  assert.equal(node(copy, 'higher').word, undefined, 'neither candidate form stands in for the later owner');
+  assert.equal(node(realization, 'higher').word, 'walked');
+});
+
+test('the receiving material a new parent attaches carries exact evidence that owns its motion', () => {
+  const steps = play(3), at = moment(steps, 2, 0);
+  assert.deepEqual(steps[at].replayTreeTransition.attachments, [{ host: 'cbar', wrapper: 'outerCbar' }]);
+});
+
+test('a shared lineage without displacement or repeated material leaves construction to ordinary steps', () => {
+  const john = { id: 'john', label: 'D', word: 'John', lineageId: 'person', children: [] };
+  const saw = { id: 'saw', label: 'V', word: 'saw', children: [] };
+  const after = [branch('clause', 'VP', structuredClone(john), branch('vbar', 'V′', structuredClone(saw),
+    { id: 'him', label: 'D', word: 'him', lineageId: 'person', children: [] }))];
+  const baseline = construction(compile(twoStages([john, saw], after, [])).prepared.playbackSteps);
+  for (const relation of [
+    { relation: 'antecedent identity', anchors: { antecedent: 'john', pronoun: 'him' } },
+    { relation: 'Coreference', anchors: { antecedent: 'john', anaphor: 'him' } },
+    { relation: 'Identity', anchors: { first: 'john', second: 'him' } },
+    { relation: 'theta-role assignment', anchors: { predicate: 'saw', theme: 'him', reused: 'john' } }
+  ]) {
+    const { prepared, relations } = compile(twoStages([john, saw], after, [relation]));
+    assert.equal(relations[0].anchoredCopyDisplacement, undefined, relation.relation);
+    assert.deepEqual(construction(prepared.playbackSteps), baseline, `${relation.relation} does not time construction`);
+  }
+});
+
+test('end to end, neutral copy ownership needs lineage and unique ids, and gives every copy its exact earlier occurrence', () => {
+  const atom = (id, label, extra = {}) => ({ id, label, ...extra });
+  const tree = (id, label, ...children) => ({ id, label, children });
+  const find = (forest, id) => forest.flatMap(function all(item) { return [item, ...(item.children ?? []).flatMap(all)]; }).find(item => item.id === id);
+  const deferredCopy = () => {
+    const lower = atom('lower', 'V descriptive', { word: 'was', tokenIndex: 0, lineageId: 'verbal-chain' });
+    const predicate = tree('predicate', 'PredP', atom('adjective', 'A', { word: 'ready', tokenIndex: 1 }));
+    return twoStages([tree('base', 'V', lower, predicate)], [tree('root', 'C', atom('force', 'C declarative', { silent: true }),
+      tree('clause', 'T', atom('subject', 'D expletive', { silent: true }), tree('bar', 'T',
+        tree('complex', 'T', atom('higher', 'V descriptive', { ...lower, id: 'higher' }), atom('host', 'T', { silent: true })),
+        tree('base', 'V', atom('lower', lower.label, { word: lower.word, lineageId: lower.lineageId, silent: true }), predicate))))], [
+      { relation: 'An open authored association', anchors: { higherCopula: 'higher', lowerCopula: 'lower', landingHead: 'host' },
+        priorAnchors: { sourceCopula: 'lower' } },
+      { relation: 'Independent subject account', anchors: { subject: 'subject', clause: 'clause', finiteHead: 'host' } }]);
+  };
+  const owner = (record, id) => {
+    const { prepared } = compile(record), steps = prepared.playbackSteps, index = firstShown(steps, id);
+    return steps[index].replayKind === 'relation' ? steps[index].replayRelationIdentity.relationIndex : steps[index].replayKind;
+  };
+  assert.equal(owner(deferredCopy(), 'higher'), 0);
+  for (const [variant, expected] of [['different-lineage', 'micro'], ['missing-lineage', 'micro'],
+    ['second-landing', 0], ['wrong-slot', 0]]) {
+    const changed = deferredCopy(), current = changed.derivationStages[1].workspaceForest;
+    if (variant === 'different-lineage') find(current, 'higher').lineageId = 'other';
+    if (variant === 'missing-lineage') delete find(current, 'higher').lineageId;
+    if (variant === 'second-landing') {
+      current.push({ ...find(current, 'higher'), id: 'another' });
+      changed.derivationStages[1].relations[0].anchors.anotherCopy = 'another';
+    }
+    if (variant === 'wrong-slot') find(current, 'base').children.reverse();
+    assert.equal(owner(changed, 'higher'), expected, variant);
+    if (variant === 'second-landing') {
+      const { relations } = compile(changed);
+      assert.deepEqual(relations[0].anchoredCopyDisplacement.copies, [{ nodeId: 'higher', earlierNodeId: 'lower' }, { nodeId: 'another', earlierNodeId: 'lower' }]);
+    }
+  }
+  const duplicated = deferredCopy(), forest = duplicated.derivationStages[1].workspaceForest;
+  forest.push(structuredClone(find(forest, 'higher')));
+  assert.equal(compile(duplicated).relations[0].anchoredCopyDisplacement, undefined, 'a repeated id identifies no copy');
 });

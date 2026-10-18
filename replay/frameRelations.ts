@@ -365,9 +365,13 @@ export const getFrameRelations = (
       ...[movement!.sourceNodeId, movement!.targetNodeId].flatMap(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(currentForest, id))),
       ...collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement!.priorSourceNodeId))
     ]));
-  return recovered.map(step => {
+  return recovered.map((step, relationIndex) => {
     const anchoredCopy = anchoredCopyDisplacement(step, previousForest, currentForest, claimedNodeIds);
-    const displaced = anchoredCopy ? { ...step, anchoredCopyDisplacement: anchoredCopy } : step;
+    const ambiguous = anchoredCopy?.copies.filter(copy => !copy.earlierNodeId).map(copy => copy.nodeId) ?? [];
+    const displaced = anchoredCopy ? { ...step, anchoredCopyDisplacement: anchoredCopy, ...(ambiguous.length ? { movementDiagnostics: [
+      ...(step.movementDiagnostics ?? []),
+      `COPY_SOURCE_AMBIGUOUS: Stage ${(plannedStage?.stageIndex ?? 0) + 1}, relation ${(step.authoredRelationIndex ?? relationIndex) + 1} (${step.relation}) relates ${ambiguous.join(', ')} to more than one earlier occurrence of the same object, and no single one is displaced. No earlier form stands in for a later pronunciation.`
+    ] } : {}) } : step;
     resolveFallbackTreeTransitionOwnership(displaced, previousForest, currentForest)?.currentNodeIds
       .forEach(id => claimedNodeIds.add(id));
     return displaced;

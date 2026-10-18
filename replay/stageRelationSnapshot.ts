@@ -189,7 +189,9 @@ export const createStageRelationSnapshots = (
         withheldNodeIds: pendingMovementNodeIds,
         pendingTransitionNodeIds: new Set(Array.from(fallbackTransitionOwnership).flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex) ? []
           : [...ownership.priorNodeIds, ...ownership.currentNodeIds])),
-        pendingKeptIdLandingNodeIds: new Set([...keptIdLandings].flatMap(([relationIndex, nodeIds]) => activeRelationIndexes.has(relationIndex) ? [] : nodeIds))
+        pendingKeptIdLandingNodeIds: new Set([...keptIdLandings].flatMap(([relationIndex, nodeIds]) => activeRelationIndexes.has(relationIndex) ? [] : nodeIds)),
+        attachedNodeIds: new Set([...fallbackTransitionOwnership].flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex)
+          ? (ownership.attachments ?? []).map(attachment => attachment.host) : []))
       });
     let snapshotWorkspaceRoots = buildPreMovementStructuralForest(nonMovementTransitionForest, frameRelationSteps.flatMap((relation, relationIndex) => {
       if (activeRelationIndexes.has(relationIndex))
@@ -217,11 +219,12 @@ export const createStageRelationSnapshots = (
       });
     // Copy construction and realization may share a completed stage. Preserve
     // the prior lexical fields until the later authored realization owns them.
-    const retainPendingPronunciation = (nodeId: string, priorNodeId: string, ownerIndex: number, receivingHead = false) => {
+    // A null source has no preceding form to keep: the occurrence shows none.
+    const retainPendingPronunciation = (nodeId: string, priorNodeId: string | null, ownerIndex: number, receivingHead = false) => {
       const realizationIndex = frameRelationSteps.findIndex((relation, relationIndex) => relationIndex > ownerIndex && relation.pronunciationNodeIds?.includes(nodeId));
       if (realizationIndex < 0 || activeRelationIndexes.has(realizationIndex))
         return;
-      const prior = findExactNodeByIdInForest(previousFrameWorkspaceRoots, priorNodeId);
+      const prior = priorNodeId === null ? { id: '', label: '' } as SyntaxNode : findExactNodeByIdInForest(previousFrameWorkspaceRoots, priorNodeId);
       const current = findExactNodeByIdInForest(snapshotWorkspaceRoots, nodeId);
       if (!prior || !current || prior.children?.length || !receivingHead && current.children?.length)
         return;
@@ -251,6 +254,7 @@ export const createStageRelationSnapshots = (
       if (!activeRelationIndexes.has(relationIndex))
         return;
       ownership.copyPairs?.forEach(pair => retainPendingPronunciation(pair.targetNodeId, pair.priorSourceNodeId, relationIndex));
+      ownership.ambiguousCopyNodeIds?.forEach(nodeId => retainPendingPronunciation(nodeId, null, relationIndex));
     });
     if (baseStep?.replayPendingAttachmentNodeIds) {
       // An active relation that owns a structural change makes its new nodes
@@ -383,7 +387,11 @@ export const createStageRelationSnapshots = (
         replayTreeTransition: {
           relationKey: `${index}:${authoredRelationIndex}`,
           currentNodeIds: [...neutralOwnership.currentNodeIds],
-          priorNodeIds: [...neutralOwnership.priorNodeIds]
+          priorNodeIds: [...neutralOwnership.priorNodeIds],
+          ...(neutralOwnership.attachments?.some(attachment => attachment.retained) ? {
+            attachments: neutralOwnership.attachments.filter(attachment => attachment.retained)
+              .map(({ host, wrapper }) => ({ host, wrapper }))
+          } : {})
         }
       } : {}),
       operation: placement.relationLabel as DerivationOperation,
