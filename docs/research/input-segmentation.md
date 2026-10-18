@@ -220,6 +220,13 @@ prompt only inside the qualification runner:
   - Limits: a group cannot cover a discontinuous stretch, which indices can.
     A word that differs from its stretch only in inner marks (*don't* for
     *don’t*) is recorded as a single-leaf group after conversion.
+  - Version 2 (`character-spellout-v2`, 18 October) cuts one word list wherever
+    any analysis or earlier stage divides a word. Analyses that divide a word
+    differently, and a word that grows across stages (吃完, then 吃完了), then
+    share it; a word over several tokens is recorded as a single-leaf group.
+    Its wording also says that the writing, including its spacing, does not
+    prescribe word boundaries, after one Thai run treated a whole unspaced
+    sentence as one written word.
 - **Conditions.** The same sentences run under today's indexed token list and
   under character spell-out, with GPT-6.1 Sol at high effort through Codex OAuth.
   Each condition's prompt and contract version is recorded.
@@ -234,6 +241,52 @@ prompt only inside the qualification runner:
 - **Adoption** only if validity does not drop, repair work falls, and review finds
   no analyses shaped by segmentation.
 
+## Results
+
+GPT-6.1 Sol at high effort through Codex OAuth, with contract sources from
+commit 53a7c7f; the model-facing contract did not change through #68. Raw
+artifacts stay in the local qualification archive.
+
+| Set | Sentences | Today's tokens: valid, analyses, final groups | Spell-out: valid, analyses, final groups |
+|---|---|---|---|
+| Study set, 17 October | 16 in 10 languages | 16/16, 28, 32 | 16/16, 31, 27 |
+| Broad set, 18 October | 60 in 36 languages | 60/60, 88, 40 | 60/60, 93, 23 |
+
+- **Validity did not drop.** Every request in both conditions returned a valid
+  response, with no ingress repairs or token-index corrections. Spell-out
+  checked all 93 broad-set analyses without error.
+- **Repair work fell.** Final-stage realization groups went from 40 to 23 in the
+  broad set, and from 32 to 27 in the study set.
+- **Segmentation stopped shaping analyses.** With today's tokens, models wrote
+  a split Japanese verb in romanization (*kak*, *ase*), kept ICU's fragment 読ん
+  as a word, and split the names 张伟 and 小李 into two words each. Under
+  spell-out the words were 読んだ, 書かせなかった, 张伟 and 小李, and the verb
+  kept its script. In the broad set, 7 of 60 sentences were segmented differently from
+  ICU, all in Japanese, Chinese, Cantonese, Thai or Romanian. Where a model
+  split a word ICU had kept, such as the resultative 打|破, that was its own
+  analysis.
+
+Four points remain before adoption:
+
+- **A word that grows across stages.** In a further 32 spell-out requests, 2 of
+  65 analyses failed one rule. An earlier stage grouped 吃完 or 打破, and the
+  final stage spelled the word 吃完了 or 打破了. A group must cover whole final
+  words, so the variant cannot express a word completed by a later stage.
+  Today's tokens (吃完|了) accept the same derivation.
+- **Metalanguage.** On Mandarin and Cantonese sentences a model sometimes wrote
+  the analysis in Chinese, including relation and role names, which Babel's
+  relation drawing cannot classify, so those relations took the neutral
+  fallback. It happened under both prompts: in 2 of 13 such runs with today's
+  tokens and 2 of 27 with spell-out. A sentence fixing English as the
+  metalanguage gave 0 of 10 in a 32-request comparison and caused no harm.
+  Stating the metalanguage is therefore a decision separate from segmentation.
+- **"Written word" in unspaced scripts.** For a Thai sentence, one run grouped
+  all five terminals under the whole sentence as a single written word, though
+  each terminal spelled its own word. The record then has one token. The
+  variant's wording should not tie words to spaces.
+- **Discontinuous groups.** As noted above, a group cannot cover a
+  discontinuous stretch.
+
 ## Fixes independent of the contract
 
 Both are done.
@@ -243,3 +296,28 @@ Both are done.
 - The browser no longer tokenizes again (#56). Failure inspection uses the tokens
   the server sent, and records saved without a token list recover them from
   their own final words where they can.
+
+## Adoption
+
+Babel adopted spell-out on 18 October 2026 for every provider route and both
+qualification runners, as `character-spellout-v3`.
+`server/babelParser/spellout.js` checks the spelling and converts each response
+into token positions over one word list, so parsing, Replay and saved records
+keep their form. The open points were resolved as follows:
+
+- **A word that grows.** The word list is cut wherever any analysis or stage
+  divides a word (version 2), so 吃完 and 吃完了 share it.
+- **Unspaced scripts.** The writing, including its spacing, does not prescribe
+  word boundaries, and groups are omitted when the pronounced terminals' own
+  words, in tree order, spell the sentence. Under version 2's wording Sol split
+  Thai into words, but Astra still grouped a whole Thai sentence in 2 runs;
+  version 3 states the rule by the terminals' own words.
+- **Nothing the token list allowed is lost.** Token positions let a group cover
+  separate words and claim its words anywhere, while the remaining terminals
+  matched in tree order. Version 3 keeps both: a group's text may be an array
+  of pieces in sentence order, and each group claims its own stretches. Babel
+  first tries each group where its first covered terminal is read, so every
+  analysis that passed before converts identically: 219 of 221 saved analyses,
+  and the other 2 are the growing-word failures, which now pass.
+- **Metalanguage** is unchanged. It occurs under either prompt and is a
+  separate decision.

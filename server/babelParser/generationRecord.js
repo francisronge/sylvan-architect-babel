@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
-import { SURFACE_TOKENIZATION_VERSION } from './surfaceTokens.js';
+import { SPELLOUT_CONTRACT_VERSION } from './spellout.js';
 
 export const PROMPT_TEMPLATE_PROBE_SENTENCE = 'Babel provenance probe.';
 
-/** Input tokens depend on the runtime's Unicode segmentation data as well as
- * Babel's tokenizer, so a record names both. */
+/** Input tokens are the model's own words, aligned to the sentence by Babel's
+ * spell-out check. Alignment uses the runtime's Unicode data, so a record names
+ * both. */
 export const describeInputTokenization = (versions = process.versions) => ({
-  version: SURFACE_TOKENIZATION_VERSION,
+  version: SPELLOUT_CONTRACT_VERSION,
   unicode: versions.unicode ?? null,
   icu: versions.icu ?? null,
   cldr: versions.cldr ?? null
@@ -34,7 +35,7 @@ export const buildPromptContract = ({
   const template = typeof buildTemplate === 'function'
     ? buildTemplate(PROMPT_TEMPLATE_PROBE_SENTENCE, framework, promptRoute)
     : '';
-  const qualifiedTemplate = JSON.stringify({ framework, promptRoute, inputTokenization: SURFACE_TOKENIZATION_VERSION, template });
+  const qualifiedTemplate = JSON.stringify({ framework, promptRoute, inputTokenization: SPELLOUT_CONTRACT_VERSION, template });
   return {
     framework,
     promptRoute,
