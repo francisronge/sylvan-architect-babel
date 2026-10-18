@@ -266,14 +266,13 @@ Four points remain before adoption:
   final stage spelled the word 吃完了 or 打破了. A group must cover whole final
   words, so the variant cannot express a word completed by a later stage.
   Today's tokens (吃完|了) accept the same derivation.
-- **Metalanguage.** Today's prompt includes an English line for the token list;
-  the spell-out prompt has only the sentence. In 2 of 16 spell-out runs on
-  Mandarin and Cantonese sentences, the model wrote the whole analysis in Chinese:
-  statements, stage records, labels, and relation and role names. Babel's
-  relation drawing cannot classify those names, so every relation took the
-  neutral fallback. A sentence fixing English as the metalanguage gave 0 of 10.
-  A 32-request comparison was too small to separate the conditions, but the
-  sentence caused no harm.
+- **Metalanguage.** On Mandarin and Cantonese sentences a model sometimes wrote
+  the analysis in Chinese, including relation and role names, which Babel's
+  relation drawing cannot classify, so those relations took the neutral
+  fallback. It happened under both prompts: in 2 of 13 such runs with today's
+  tokens and 2 of 27 with spell-out. A sentence fixing English as the
+  metalanguage gave 0 of 10 in a 32-request comparison and caused no harm.
+  Stating the metalanguage is therefore a decision separate from segmentation.
 - **"Written word" in unspaced scripts.** For a Thai sentence, one run grouped
   all five terminals under the whole sentence as a single written word, though
   each terminal spelled its own word. The record then has one token. The
