@@ -10,6 +10,7 @@ import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../tre
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { runQualificationAttempt, validateQualificationPlan } from '../contractQualification/run.js';
 import { buildCodexQualificationRequest } from '../contractQualification/codexOAuth.js';
+import { convertSpelloutPayload } from '../server/babelParser/spellout.js';
 
 const payloadFor = inputTokens => ({ derivationStages: [{
   statement: 'The complete phrase is established.',
@@ -19,27 +20,39 @@ const payloadFor = inputTokens => ({ derivationStages: [{
   })) }]
 }] });
 
-test('new token addresses do not classify apostrophe-s as English morphology', () => {
+const spelledPayloadFor = words => ({ derivationStages: [{
+  statement: 'The complete phrase is established.',
+  stageRecord: 'The model spells the phrase.', relations: [],
+  workspaceForest: [{ id: 'root', label: 'DP', children: words.map((word, index) => ({
+    id: `word${index}`, label: 'N', word, children: []
+  })) }]
+}] });
+
+test('apostrophe-s is not English morphology: the prompt sends no split, and the model\'s spelling decides', () => {
   for (const sentence of ["Mia's book", "It's blue", 'Mia’s book', 'It’s blue']) {
-    const tokens = tokenizeSentenceSurfaceOrder(sentence);
-    assert.deepEqual(tokens, sentence.split(' '));
+    // The tokenizer still reads older records this way.
+    assert.deepEqual(tokenizeSentenceSurfaceOrder(sentence), sentence.split(' '));
     for (const route of ['gpt', 'claude', 'grok', 'kimi', 'gemini', 'local']) {
-      const prompt = buildParseContentsPrompt(sentence, 'xbar', route, tokens);
-      assert.deepEqual(JSON.parse(prompt.split('Input tokens, indexed from zero: ')[1]), tokens);
+      assert.equal(buildParseContentsPrompt(sentence, 'xbar', route), `Sentence: ${JSON.stringify(sentence)}`);
     }
+    const [whole] = convertSpelloutPayload(spelledPayloadFor(sentence.split(' ')), sentence);
+    assert.deepEqual(whole.inputTokens, sentence.split(' '));
   }
   const request = { sentence: 'Mia’s book', framework: 'xbar' };
   const codex = buildCodexQualificationRequest({ ...request, model: 'openai:gpt-6-sol', effort: 'high' });
-  assert.deepEqual(codex.inputTokens, ['Mia’s', 'book']);
+  assert.equal(codex.inputTokens, undefined);
+  assert.equal(codex.body.input[0].content[0].text, 'Sentence: "Mia’s book"');
+  // Saved qualification plans keep their recorded addresses.
+  const savedTokens = ['Mia’s', 'book'];
   const plan = validateQualificationPlan({ schemaVersion: 1, label: 'token-address-test',
     purpose: 'Saved input addresses only.', itemSetStatus: 'unselected', contractManifest: 'unused.json',
-    attempts: [{ id: 'saved', request: { ...request, inputTokens: codex.inputTokens },
+    attempts: [{ id: 'saved', request: { ...request, inputTokens: savedTokens },
       model: { catalogId: 'openai:gpt-6-sol', nativeSettings: { 'reasoning.effort': 'high' } },
       source: { kind: 'raw-text-file', path: 'unused.txt' } }] });
   const result = runQualificationAttempt({ attempt: plan.attempts[0],
-    rawOutputBytes: Buffer.from(JSON.stringify(payloadFor(codex.inputTokens))) });
+    rawOutputBytes: Buffer.from(JSON.stringify(payloadFor(savedTokens))) });
   assert.equal(result.receipt.outcome.status, 'valid-pending-review');
-  assert.deepEqual(result.bundle.inputTokens, codex.inputTokens);
+  assert.deepEqual(result.bundle.inputTokens, savedTokens);
 });
 
 test('normalization, saved snapshots and Replay retain supplied addresses without retokenization', t => {
@@ -106,7 +119,7 @@ test('written token addresses permit separate morphemes across scripts without d
   }
 });
 
-test('Gemini and local normalization use the exact token list from their sent prompt', async t => {
+test('Gemini and local routes send only the sentence and take the word list from the model\'s spelling', async t => {
   const previous = process.env.GEMINI_API_KEY;
   process.env.GEMINI_API_KEY = 'offline-test-only';
   t.after(() => {
@@ -116,9 +129,8 @@ test('Gemini and local normalization use the exact token list from their sent pr
   const sentence = 'Mia’s book';
   const prompts = [];
   const raw = prompt => {
-    const tokens = JSON.parse(prompt.split('Input tokens, indexed from zero: ')[1]);
-    prompts.push(tokens);
-    return JSON.stringify(payloadFor(tokens));
+    prompts.push(prompt);
+    return JSON.stringify(spelledPayloadFor(['Mia’s', 'book']));
   };
   const routes = createParseRoutes({ ParseApiError,
     normalizeParseBundle: normalizeParseBundle,
@@ -129,8 +141,8 @@ test('Gemini and local normalization use the exact token list from their sent pr
   });
   for (const method of ['parseSentenceWithLocalModel', 'parseSentenceWithGemini']) {
     const bundle = await routes[method](sentence, 'xbar');
+    assert.equal(prompts.at(-1), 'Sentence: "Mia’s book"');
     assert.deepEqual(bundle.inputTokens, ['Mia’s', 'book']);
-    assert.deepEqual(bundle.inputTokens, prompts.at(-1));
   }
   assert.equal(prompts.length, 2);
 });

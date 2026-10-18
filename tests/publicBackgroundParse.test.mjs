@@ -5,9 +5,11 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
+import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/raw/what-did-mia-see.xbar.json', import.meta.url), 'utf8'));
-const rawOutput = JSON.stringify(fixture.payload);
+// Live routes receive spell-out outputs: the saved analysis without token addresses.
+const rawOutput = JSON.stringify(restateAsSpellout(fixture.payload, fixture.sentence));
 const endpoint = 'https://api.openai.com/v1/responses';
 const decode = artifact => Buffer.from(artifact.data, 'base64').toString('utf8');
 

@@ -42,10 +42,13 @@ export const runManualQualification = async ({ request, outputPath, signal, spaw
   if (receipt?.status === 'completed' && bundle?.response?.analyses?.length) {
     return { status: 200, payload: { ...bundle.response, requestedModelId: request.model } };
   }
+  // A response whose analyses all fail the spelling check has no parse attempt;
+  // each failed analysis has its own attempt.
   const attempt = readJson(path.join(outputPath, 'attempts/parse/attempt-receipt.json'));
   const outputFile = path.join(outputPath, 'output.txt');
   const raw = fs.existsSync(outputFile) ? fs.readFileSync(outputFile) : null;
-  const failure = attempt?.outcome?.failure;
+  const failure = attempt?.outcome?.failure
+    ?? receipt?.attempts?.find(entry => entry.outcome?.status === 'failed')?.outcome?.failure;
   const authUnavailable = receipt?.status === 'prepared';
   return { status: 502, payload: { error: {
     code: authUnavailable ? 'CODEX_LOGIN_REQUIRED' : failure ? 'PARSE_FAILED' : 'CODEX_REQUEST_FAILED',

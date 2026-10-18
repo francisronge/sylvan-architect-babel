@@ -13,9 +13,12 @@ import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../tre
 import { parseSentence, ParseServiceError } from '../services/parseService.ts';
 import { MAX_RAW_OUTPUT_BYTES } from '../server/babelParser/validationErrors.js';
 import { createHash } from 'node:crypto';
+import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/raw/what-did-mia-see.xbar.json', import.meta.url), 'utf8'));
-const rawOutput = JSON.stringify(fixture.payload);
+// Live routes receive spell-out outputs: the saved analysis without token addresses.
+const spelledPayload = restateAsSpellout(fixture.payload, fixture.sentence);
+const rawOutput = JSON.stringify(spelledPayload);
 const decode = (artifact) => Buffer.from(artifact.data, 'base64').toString('utf8');
 const providers = {
   openai: { endpoint: 'https://api.openai.com/v1/responses', key: 'OPENAI_API_KEY' },
@@ -141,7 +144,9 @@ for (const modelId of GENERATION_MODEL_IDS) {
       assert.equal(bundle.generationRecord.promptContract.promptSha256, sha256Hex(prompt));
       assert.equal(system, buildSystemInstruction(fixture.framework));
       assert.equal(prompt, buildParseContentsPrompt(fixture.sentence));
-      assert.deepEqual(bundle.inputTokens, JSON.parse(prompt.split('Input tokens, indexed from zero: ')[1]));
+      assert.equal(prompt, `Sentence: ${JSON.stringify(fixture.sentence)}`);
+      // The word list comes from the model's own spelling, not from the request.
+      assert.deepEqual(bundle.inputTokens, ['What', 'did', 'Mia', 'see']);
       assert.equal(bundle.generationRecord.sentGenerationConfig.textFormatType, 'text');
       assert.deepEqual(bundle.generationRecord.processing.json.repairDiagnostics, []);
       assert.ok(bundle.generationRecord.processing.json.durationMs >= 0);
@@ -165,6 +170,7 @@ for (const modelId of GENERATION_MODEL_IDS) {
 
 test('all active model routes preserve realization groups and exact input through the public parser and saved Replay', async (t) => {
   isolate(t);
+  const authoredGroups = [{ nodeIds: ['stem', 'ending'], text: 'walked' }];
   const groups = [{ nodeIds: ['stem', 'ending'], tokenIndices: [0] }];
   const tree = { id: 'word', label: 'V', children: [
     { id: 'stem', label: 'Root', word: 'walk', children: [] },
@@ -173,13 +179,14 @@ test('all active model routes preserve realization groups and exact input throug
   const payload = { derivationStages: [{ statement: 'The past form is realized.',
     stageRecord: 'The stem and tense jointly realize walked.', relations: [{
       relation: 'Realization', anchors: { participants: ['stem', 'ending'] }, values: { form: 'walked' }
-    }], workspaceForest: [tree], realizations: groups }] };
+    }], workspaceForest: [tree], realizations: authoredGroups }] };
   const text = JSON.stringify(payload);
   for (const modelId of GENERATION_MODEL_IDS) {
     const model = getResearchModel(modelId);
     t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify(envelopeFor(model, text)), { status: 200 }));
     for (const framework of ['xbar', 'minimalism']) {
       const bundle = await parseFromBody({ sentence: 'walked', framework, modelId });
+      assert.deepEqual(bundle.inputTokens, ['walked']);
       assert.deepEqual(bundle.analyses[0].derivationStages[0].realizations, groups);
       assert.equal(decode(bundle.rawModelOutput), text);
       assert.equal(bundle.generationRecord.promptContract.systemInstructionSha256, sha256Hex(buildSystemInstruction(framework)));
@@ -224,8 +231,10 @@ test('repair diagnostics and original bytes survive the new generation path', as
   assert.equal(bundle.generationRecord.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damagedOutput));
 });
 
-test('all active routes render recoverable token metadata and retain silent corrections and original bytes', async t => {
+test('all active routes reject an authored token address and retain the original bytes', async t => {
   isolate(t);
+  // Token addresses belong to older saved outputs (see tokenIndexRecovery.test.mjs);
+  // the spell-out prompt defines no tokenIndex, so a live response with one fails.
   const payload = { derivationStages: [{ statement: 'Construct Mia smiled.', stageRecord: 'Mia is the subject of smiled.',
     relations: [], workspaceForest: [{ id: 'clause', label: 'TP', children: [
       { id: 'subject', label: 'N', word: 'Mia', tokenIndex: 1, children: [] },
@@ -235,26 +244,24 @@ test('all active routes render recoverable token metadata and retain silent corr
   for (const modelId of GENERATION_MODEL_IDS) {
     const model = getResearchModel(modelId), response = JSON.stringify(envelopeFor(model, raw));
     const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(response));
-    const bundle = await parseFromBody({ sentence: 'Mia smiled.', modelId });
-    assert.equal(fetch.mock.callCount(), 1, 'recovery never regenerates');
-    assert.equal(decode(bundle.rawModelOutput), raw);
-    assert.equal(decode(bundle.generationRecord.rawProviderResponse), response);
-    const corrections = bundle.analyses[0].provenance.tokenIndexCorrections;
-    assert.equal(corrections.length, 2);
-    assert.deepEqual(corrections.map(({ authoredTokenIndex }) => authoredTokenIndex), [1, 0]);
-    assert.deepEqual(bundle.generationRecord.processing.json.repairDiagnostics, [], 'this is not a JSON syntax repair');
-    assert.equal(bundle.generationRecord.processing.normalization.failure, undefined);
-    const restored = loadTreeBankBundleSnapshot(createTreeBankBundleSnapshot(bundle));
-    assert.deepEqual(restored.analyses[0].provenance.tokenIndexCorrections, corrections);
-    assert.equal(decode(restored.rawModelOutput), raw);
-    assert.deepEqual(buildReplaySnapshotProjection(restored), buildReplaySnapshotProjection(bundle));
+    await assert.rejects(() => parseFromBody({ sentence: 'Mia smiled.', modelId }), error => {
+      const failure = formatApiError(error).body.error;
+      assert.equal(failure.failure.ruleId, 'SPELLOUT_TOKEN_INDEX');
+      assert.equal(failure.failure.processingStep, 'spellout-alignment');
+      assert.equal(failure.inputTokens, undefined, 'a response that fails the spelling check has no word list');
+      assert.equal(decode(failure.rawOutput), raw);
+      assert.equal(decode(failure.generationRecord.rawProviderResponse), response);
+      assert.deepEqual(failure.generationRecord.processing.json.repairDiagnostics, []);
+      return true;
+    });
+    assert.equal(fetch.mock.callCount(), 1, 'a failed check never regenerates');
     fetch.mock.restore();
   }
 });
 
 test('all active routes keep a malformed relation neutral without replacing the generation', async (t) => {
   isolate(t);
-  const payload = structuredClone(fixture.payload);
+  const payload = structuredClone(spelledPayload);
   payload.derivationStages[3].relations[1].values = ['literal content'];
   const damaged = JSON.stringify(payload).slice(0, -2);
   for (const modelId of GENERATION_MODEL_IDS) {
