@@ -177,10 +177,10 @@ test('catalog #7: since PR #77, Next into frame 21 carries the view and paints t
   assert.deepEqual(catalog.filter(finding => finding.record === WHOSE && finding.rule !== 'within-stage-stability'), []);
 });
 
-/* Historical defect found by these checks: before fix/renderer-prev-keeps-stage-camera,
- * Prev inside a stage entered with a retained view refit the camera to direct
- * selection's pose. Replayed on this layout, that refit stays flagged; keeping
- * the stage's pose passes both rules. */
+/* Historical defect found by these checks: before PR #81, Prev inside a stage
+ * entered with a retained view refit the camera to direct selection's pose.
+ * Replayed on this layout, that refit stays flagged; keeping the stage's pose
+ * passes both rules. */
 test('historical Prev refit: leaving a retained stage pose on Prev within the stage is flagged', () => {
   const trace = traceOf(WHOSE), index = passOf(trace, 'next-then-prev').findIndex(entry => entry.from === 21 && entry.to === 20);
   const prev = step(trace, 'next-then-prev', index);
@@ -194,8 +194,7 @@ test('historical Prev refit: leaving a retained stage pose on Prev within the st
   assert.deepEqual(replay(prev.before), []);
 });
 
-test('catalog #7 (open until fix/renderer-prev-keeps-stage-camera merges): Prev inside the forward-retained stage refits the camera', () => {
-  const places = catalog.filter(finding => finding.record === WHOSE && finding.subtype === 'prev-refit' && finding.subject === 'stage 2')
-    .map(finding => `${finding.viewport} ${finding.frame}`).sort();
-  assert.deepEqual(places, ['desktop 22>21', 'desktop 23>22', 'desktop 24>23', 'mobile 22>21', 'mobile 23>22', 'mobile 24>23']);
+test('catalog #7: since PR #81, Prev inside the forward-retained stage keeps its camera', () => {
+  assert.deepEqual(catalog.filter(finding => finding.subtype === 'prev-refit'), []);
+  assert.deepEqual(catalog.filter(finding => finding.record === WHOSE), []);
 });
