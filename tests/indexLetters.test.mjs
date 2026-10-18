@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import test, { after } from 'node:test';
-import { createBindingDrawing } from '../components/renderer/bindingDrawing.ts';
+import { createBindingDrawing, indexLetterLabels } from '../components/renderer/bindingDrawing.ts';
 import { createBindingRefinements } from '../components/renderer/bindingRefinements.ts';
 import { planIndexLetters, primitiveIndexLetters } from '../components/renderer/indexLetters.ts';
+import { applyRelationEmphasis } from '../components/renderer/relationInteraction.ts';
+import { decorateRelationElement } from '../components/renderer/relationOwnership.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { isPlanItemRevealed, planItemOwnsRelationMoment, planItemRelationRefs } from '../replay/relations/renderPlan.ts';
+import { indexHierarchyNodesByIdAndAliases } from '../replay/replayCanvas.ts';
+import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
-import { checkOneLetterPerLabel } from './helpers/replayInvariants.mjs';
+import { checkOneLetterPerLabel, frameStructure } from './helpers/replayInvariants.mjs';
 import { createSvgDom, descendants, select } from './helpers/svgDom.mjs';
 
 // "Everyone loves someone." with the existential raised over the universal,
@@ -203,6 +207,49 @@ test('a written subscript such as Opᵢ shows the letter and carries the claim t
   const { letters, decorations } = paint(current, current.emphasis);
   assert.deepEqual(letters.map(letter => letter.nodeId), ['gap'], 'no second i beside Opᵢ');
   assert.deepEqual(refs(decorations.get(opLabel)), ['0:0']);
+});
+
+test('a label hosting a shared inline index dims only when none of its owners is active', () => {
+  // Identity coindexes the operator and a silent trace whose word is t; the
+  // binding then names that trace as its witness, sharing the trace's i.
+  const replay = relative([{ relation: 'Identity', anchors: { occurrences: ['op', 'trace'] }, values: { index: 'i' } },
+    { relation: 'OperatorVariableBinding', anchors: { operator: 'op', variable: 'trace', traceWitness: 'trace' }, values: { index: 'i' } }],
+  'DP', leaf('trace', 'D', 't', { silent: true, lineageId: 'relative' }));
+  const stepIndex = replay.playbackSteps.findIndex(step => step.replayKind === 'relation'
+    && step.replayRelationIdentity?.stageIndex === 0 && step.replayRelationIdentity?.relationIndex === 1);
+  const { items, primitives, emphasis } = moment(replay, 0, 1);
+  const structure = frameStructure(replay.playbackSteps[stepIndex]);
+  const nodes = indexHierarchyNodesByIdAndAliases([...structure.nodes.values()]), resolve = id => nodes.get(id);
+  const root = new Element('g'), g = select(root);
+  for (const [id, runs] of treeLabelRunsForStep(replay, stepIndex, undefined, { includeRelationIndices: false })) for (const run of runs) {
+    const label = new Element('text', { class: `${run.kind}-label`,
+      [run.kind === 'category' ? 'data-category-node-id' : 'data-node-id']: id }, structure.nodes.get(id));
+    label.text = run.text;
+    root.appendChild(label);
+  }
+  const layer = () => g.append('g');
+  const drawing = createBindingDrawing({ activeDerivationFrameIndex: 0, overlay: g, frameItems: items, g,
+    operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], focusedRelationMoment: { stageIndex: 0, relationIndex: 1 },
+    operatorVariableBindingLayers: new Map(), operatorVariableSharedPathLayers: new Map(), acceptedRootLayerBeforeNodes: layer,
+    relationEmphasisForItem: emphasis, decorateRelationElement, resolveOverlayAnchor: resolve, terminalAmbiguities: new Map(),
+    identityTerminalOwners: new Map(), identityForestLightFamilies: [], markIdentityLensOccurrences() {},
+    indexLetterPlan: planIndexLetters(primitives, items, { ...indexLetterLabels(g, resolve),
+      emphasisRank: item => emphasis(item) === 'active' ? 2 : 0 }) });
+  for (const primitive of primitives) {
+    const item = items[primitive.itemIndex], host = g.append('g').attr('class', 'vr-item').attr('opacity', emphasis(item) === 'quiet' ? 0.3 : null);
+    decorateRelationElement(host.node(), item, emphasis(item));
+    ({ 'identity-lens': drawing.drawIdentityLens, 'operator-variable-binding': drawing.drawOperatorVariableBinding })[primitive.type]
+      ?.(primitive, item, host, emphasis(item));
+  }
+  applyRelationEmphasis(root, { stageIndex: 0, relationIndex: 1 }, null);
+  // Active styling sets opacity 1 on its own element; quiet styling sets 0.3.
+  const painted = element => !element ? 1 : (element.classList.contains('vr-relation-active') ? 1
+    : element.classList.contains('vr-relation-quiet') ? 0.3 : Number(element.attrs.opacity ?? 1)) * painted(element.parentNode);
+  const atTrace = descendants(root).filter(element => (element.attrs.class || '').includes('babel-identity-index')
+    && element.parentNode.attrs['data-node-id']?.startsWith('trace'));
+  assert.deepEqual(atTrace.map(index => [index.textContent, painted(index)]), [['i', 1]]);
+  assert.equal(descendants(root).filter(element => element.attrs['data-operator-variable-index-role'] === 'variable').length, 0,
+    'the binding draws no second i beside the trace');
 });
 
 test('inline coindices hold their label; unplaceable ones never take a letter; unlisted letters are errors', () => {
