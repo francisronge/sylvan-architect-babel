@@ -15,13 +15,6 @@ const LANE = 'Open: a neutral counter-lane connector runs its lane through tree 
 const ROLE_CROWDED = 'Open: every preferred spot beside the witness label is taken, so the role placer steps outward until '
   + 'free and the label lands beside other syntax.';
 
-const BRANCH_TEXT = 'Open: a tree branch passes through a neighbouring category label, here the C′-to-C branch through the '
-  + 'label of the head complex that head movement builds beside it.';
-
-const BRANCH_ROWS = 'Open: at the head-movement moment the new complex head appears while the C head it will contain still '
-  + 'hangs from C′ on the complex head\'s reserved lower row, so C′-to-C spans two rows beside sisters one row down; C joins '
-  + 'the complex one relation later. The same stretched branch is the branch-text finding above.';
-
 const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
 
 // The same findings, with the same measures, occur on origin/main for the saved
@@ -194,18 +187,10 @@ export const EXCEPTIONS = [
     'role(4:0 complex Head)@vComplex', { desktop: { '52': 2.87 } }),
   x(ROLE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'role',
     'role(4:2 governor)@vComplex', { desktop: { '54': 3.23 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/unrendered-head-movement.json#', 'mark-distance', 'plaque',
-    'plaque(0:4 particle heads: 을)@objectParticle', { desktop: { '37-49': 1.16 }, 'desktop-large': { '37-49': 1.16 } }),
   x(ROLE_CROWDED, 'replay-regressions/unrendered-head-movement.json#', 'mark-distance', 'role',
     'role(1:2 honorific nominative exponent)@subjectParticle', { desktop: { '41': 3.86 } }),
   x(ROLE_CROWDED, 'replay-regressions/unrendered-head-movement.json#', 'mark-distance', 'role',
     'role(3:0 lower head trace)@honorificTrace', { desktop: { '45': 4.63 } }),
-  x(BRANCH_TEXT, 'replay-regressions/unrendered-head-movement.json#', 'line-clearance', 'branch-text',
-    'complementizerBar->complementizer declarativeComplex:category', { desktop: { '47': 2.32 }, 'desktop-large': { '47': 5.43 } }),
-  x(BRANCH_ROWS, 'replay-regressions/unrendered-head-movement.json#', 'branch-geometry', 'span',
-    'complementizerBar->complementizer', { desktop: { '47': 25.91 }, 'desktop-large': { '47': 60.7 } }),
-  x(BRANCH_ROWS, 'replay-regressions/unrendered-head-movement.json#', 'branch-geometry', 'sisters',
-    'complementizerBar children', { desktop: { '47': 25.91 }, 'desktop-large': { '47': 60.7 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
