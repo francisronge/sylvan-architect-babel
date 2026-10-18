@@ -133,12 +133,17 @@ test('control: stable-construction reports retained syntax that disappears or mo
     && frameStructure(steps[index - 1]).parent.get(id) && frameStructure(steps[index]).displayed.has(id)
     && frameStructure(steps[index]).parent.get(id) === frameStructure(steps[index - 1]).parent.get(id));
   const index = steps.findIndex((step, i) => i > 0 && step.replayKind === 'micro' && retained(i));
-  const id = retained(index), parent = frameStructure(steps[index - 1]).parent.get(id);
+  const id = retained(index);
   const removed = breakReplay(copy => { copy[index].replayVisibleNodeIds = copy[index].replayVisibleNodeIds.filter(item => item !== id); });
   assert(reported(checkStableConstruction(removed), 'stable-construction', index + 1, `${id} disappears`));
-  const unparented = breakReplay(copy => { copy[index].replayVisibleNodeIds = copy[index].replayVisibleNodeIds.filter(item => item !== parent); });
-  assert(checkStableConstruction(unparented).some(violation => violation.frame === index + 1
-    && violation.detail.startsWith(id) && /moves from|is detached from/.test(violation.detail)));
+  // The renderer draws an edge only between two visible nodes, so hiding the
+  // parent leaves its child as a separate root, not under a visible grandparent.
+  const nested = steps.findIndex((step, i) => i > 0 && step.replayKind === 'micro' && retained(i)
+    && frameStructure(steps[i]).parent.get(frameStructure(steps[i - 1]).parent.get(retained(i))));
+  const child = retained(nested), hidden = frameStructure(steps[nested - 1]).parent.get(child);
+  const unparented = breakReplay(copy => { copy[nested].replayVisibleNodeIds = copy[nested].replayVisibleNodeIds.filter(item => item !== hidden); });
+  assert.equal(frameStructure(unparented.playbackSteps[nested]).parent.get(child), null);
+  assert(reported(checkStableConstruction(unparented), 'stable-construction', nested + 1, `${child} is detached from ${hidden}`));
 });
 
 test('control: visible-in-canvas reports a visible id with no canvas node', () => {
