@@ -378,6 +378,10 @@ const ownNodeContent = (node: SyntaxNode): string => {
   return JSON.stringify(Object.keys(own).sort().map(key => [key, own[key as keyof typeof own]]));
 };
 
+const sameSubtree = (left: SyntaxNode, right: SyntaxNode): boolean => ownNodeContent(left) === ownNodeContent(right)
+  && (left.children || []).length === (right.children || []).length
+  && (left.children || []).every((child, index) => sameSubtree(child, right.children![index]));
+
 /**
  * True when a retained witness kept its own content and exact slot, and every
  * earlier descendant, in order and under its earlier parent, and gained only
@@ -508,8 +512,12 @@ const resolvePriorWitnessTreeTransitionOwnership = (
       }))
         return true;
       const containsInputs = (candidate: SyntaxNode) => priorAnchorIds.every(id => collectExactSubtreeNodeIds(candidate).has(id));
+      // An earlier constituent that is unchanged is not the output of a
+      // rewrite of its own contents, even when ordinary construction merges it.
+      const earlier = findExactNodesByIdInForest(previousForest, String(node.id || ''));
       return priorAnchorIds.length > 1 && containsInputs(node)
-        && !(node.children || []).some(containsInputs);
+        && !(node.children || []).some(containsInputs)
+        && !(earlier.length === 1 && sameSubtree(earlier[0], node));
     })
     : currentAnchors;
   if (ownedCurrentAnchors.length === 0)
