@@ -552,6 +552,25 @@ export const resolveFallbackTreeTransitionOwnership = (
   return { currentNodeIds: collectExactSubtreeNodeIds(landing[0]), priorNodeIds: new Set() };
 };
 
+/**
+ * Landings of a neutral rewrite's copy pairs that kept the moved occurrence's
+ * id while a new lower occurrence took its source slot. Only the rewrite's
+ * moment relocates them to their new parent.
+ */
+export const keptIdLandingNodeIds = (
+  ownership: FallbackTreeTransitionOwnership,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[]
+): string[] => {
+  const previous = indexExactForestNodeLocations(previousForest);
+  const current = indexExactForestNodeLocations(currentForest);
+  return (ownership.copyPairs ?? []).filter(pair => pair.targetNodeId === pair.priorSourceNodeId).map(pair => pair.targetNodeId)
+    .filter(nodeId => {
+      const before = previous.get(nodeId), after = current.get(nodeId);
+      return Boolean(before && after) && before!.parentId !== after!.parentId;
+    });
+};
+
 export const newReceivingHeadNodeIds = (
   movement: RecoveredMovement | undefined,
   previousForest: SyntaxNode[],
@@ -599,6 +618,8 @@ export interface AnchoredTransitionInput {
   constructedNodeIds?: Set<string>;
   withheldNodeIds?: Set<string>;
   pendingTransitionNodeIds?: Set<string>;
+  /** `keptIdLandingNodeIds` of the relations not yet active. */
+  pendingKeptIdLandingNodeIds?: Set<string>;
 }
 
 export const buildAnchoredTreeTransitionForest = ({
@@ -607,7 +628,8 @@ export const buildAnchoredTreeTransitionForest = ({
   activeRelations,
   constructedNodeIds = new Set(),
   withheldNodeIds = new Set(),
-  pendingTransitionNodeIds = new Set()
+  pendingTransitionNodeIds = new Set(),
+  pendingKeptIdLandingNodeIds = new Set()
 }: AnchoredTransitionInput): SyntaxNode[] => {
   const ownerships = activeRelations
     .map((relation) => {
@@ -660,7 +682,12 @@ export const buildAnchoredTreeTransitionForest = ({
     parent.children?.filter(child => child.id !== movement.targetNodeId
       && previousLocations.get(child.id)).forEach(child => attachmentNodeIds.add(child.id));
   });
-  const structuralNodeIds = new Set([...activeCurrentNodeIds, ...attachmentNodeIds, ...constructedNodeIds]);
+  // Construction of a pending rewrite's new parent cannot carry an occurrence
+  // that kept its id at the landing there early: it keeps its preceding
+  // position until the rewrite's moment.
+  const heldNodeIds = new Set([...pendingKeptIdLandingNodeIds].filter(nodeId => !activeCurrentNodeIds.has(nodeId)));
+  const structuralNodeIds = new Set([...activeCurrentNodeIds, ...attachmentNodeIds,
+    ...[...constructedNodeIds].filter(nodeId => !heldNodeIds.has(nodeId))]);
   let result = cloneSyntaxForest(previousForest);
   const exactLocation = (locations: Map<string, ExactForestNodeLocation | null>, nodeId: string): ExactForestNodeLocation | null => locations.get(nodeId) || null;
   const hasOwnedAncestor = (
@@ -835,6 +862,8 @@ export const buildAnchoredTreeTransitionForest = ({
       insertExactNode(moved, destination.parentId, destination.childIndex, destination.rootIndex);
     });
   const cloneAvailableSubtree = (node: SyntaxNode): SyntaxNode | null => {
+    if (heldNodeIds.has(node.id))
+      return null;
     if (!activeCurrentNodeIds.has(node.id)) {
       return cloneSyntaxTree(exactLocation(indexExactForestNodeLocations(result), node.id)?.node);
     }
@@ -913,6 +942,40 @@ export const relationOwnsNonMovementTreeTransition = (
   if (nonMovementKinds.length === 0)
     return false;
   return true;
+};
+
+/**
+ * The new ancestors that attach a landing to the workspace that held its prior
+ * source: each parent absent from the preceding stage, up to the first whose
+ * other material belongs to that workspace. When no such parent exists, only
+ * the landing's own parent. `stopBefore` ends the path below a parent that must
+ * be built first.
+ */
+export const landingAttachmentPath = (
+  currentForest: SyntaxNode[],
+  previousForest: SyntaxNode[],
+  landingNodeId: string,
+  priorSourceIds: readonly string[],
+  stopBefore: (parentNodeId: string, branchNodeId: string, hostIds: readonly string[]) => boolean = () => false
+): string[] => {
+  const landingHostNodeId = findParentNodeIdInForest(currentForest, landingNodeId);
+  const sourceWorkspaceIds = new Set(previousForest
+    .filter(root => priorSourceIds.some(id => findNodeByIdInForest([root], id)))
+    .flatMap(root => collectSyntaxSubtreeNodeIds(root)));
+  const hostIds: string[] = [];
+  let branchNodeId = landingNodeId;
+  let parentNodeId = landingHostNodeId;
+  while (parentNodeId && !findNodeByIdInForest(previousForest, parentNodeId)) {
+    if (stopBefore(parentNodeId, branchNodeId, hostIds))
+      return hostIds;
+    hostIds.push(parentNodeId);
+    const parent = findNodeByIdInForest(currentForest, parentNodeId);
+    if ((parent?.children || []).some(child => child.id !== branchNodeId && collectSyntaxSubtreeNodeIds(child).some(nodeId => sourceWorkspaceIds.has(nodeId))))
+      return hostIds;
+    branchNodeId = parentNodeId;
+    parentNodeId = findParentNodeIdInForest(currentForest, parentNodeId);
+  }
+  return parentNodeId || !landingHostNodeId ? hostIds : [landingHostNodeId];
 };
 
 export const movementLandingWrapper = (

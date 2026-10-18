@@ -19,11 +19,12 @@ import { projectThetaGrid } from '../../replay/relations/thetaGridComposition.ts
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
 import { type HierNode } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
-import { createBindingDrawing } from './bindingDrawing.ts';
+import { createBindingDrawing, indexLetterLabels } from './bindingDrawing.ts';
 import { createCaseFeatureDrawing } from './caseFeatureDrawing.ts';
 import { paintGhostLenses, queueCopyDrawings } from './copyDrawing.ts';
 import type { DrawingLayer, RelationEmphasis } from './drawingContext.ts';
 import { createFallbackPlacement, measureFallbackLabels } from './fallbackDrawing.ts';
+import { planIndexLetters } from './indexLetters.ts';
 import { createInterventionDrawing } from './interventionDrawing.ts';
 import { createLinearizationDrawing } from './linearizationDrawing.ts';
 import { createLocalityDrawing } from './localityDrawing.ts';
@@ -497,10 +498,14 @@ export function paintRelationScene({
         return priority(left.trajectoryKind) - priority(right.trajectoryKind);
       });
     let sortedTrajectoryIndex = 0;
-    const orderedPrimitives = boundFrame.primitives.map((primitive) =>
+    // Future marks reserve geometry but are never drawn or focusable;
+    // no mark draws while any of its syntax witnesses is hidden.
+    const drawablePrimitives = boundFrame.primitives.map((primitive) =>
       primitive.type === 'trajectory-path'
         ? sortedTrajectories[sortedTrajectoryIndex++]
-        : primitive);
+        : primitive)
+      .filter(primitive => frameItems[primitive.itemIndex] && revealedItemIndices.has(primitive.itemIndex)
+        && primitiveWitnessesVisible(primitive));
     const operatorVariableScopeRankByItem = new Map<number, number>();
     const operatorVariableScopeItems = frameItems
       .map((item, itemIndex) => ({ item, itemIndex }))
@@ -623,6 +628,13 @@ export function paintRelationScene({
       ensureTrajectoryRelationLayer,
       trajectoryMarkerIds
     });
+    const indexLetterPlan = planIndexLetters(drawablePrimitives, frameItems, {
+      ...indexLetterLabels(g, resolveOverlayAnchor),
+      emphasisRank: item => {
+        const emphasis = relationEmphasisForItem(item);
+        return emphasis === 'active' ? 2 : emphasis === 'quiet' ? 0 : 1;
+      }
+    });
     const {
       drawSplitAntecedence,
       drawOperatorVariableBinding,
@@ -661,7 +673,8 @@ export function paintRelationScene({
       TARGET_EMERALD,
       acceptedLayerInHost,
       parasiticGapCoindexLayers,
-      appendMarker
+      appendMarker,
+      indexLetterPlan
     });
     const { drawGappingAlignment, drawDomainRegion } = createPhraseDrawing({
       resolveOverlayAnchor,
@@ -695,7 +708,7 @@ export function paintRelationScene({
       parasiticGapCoindexLayers,
       appendMarker
     });
-    orderedPrimitives.forEach((primitive) => {
+    drawablePrimitives.forEach((primitive) => {
       /*
        * The Replay relation lens, uniform across every primitive type:
        * during a relation moment the played relation's marks (matched by
@@ -703,11 +716,6 @@ export function paintRelationScene({
        * prominent and everything else visible stays present but quiet.
        */
       const planItem = frameItems[primitive.itemIndex];
-      if (!planItem) return;
-      // Future marks reserve geometry but are never drawn or focusable;
-      // no mark draws while any of its syntax witnesses is hidden.
-      if (!revealedItemIndices.has(primitive.itemIndex)) return;
-      if (!primitiveWitnessesVisible(primitive)) return;
       const emphasis = relationEmphasisForItem(planItem);
       const host = overlay.append('g').attr('class', 'vr-item');
       const hostNode = host.node();

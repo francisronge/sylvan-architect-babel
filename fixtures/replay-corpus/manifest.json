@@ -72,6 +72,21 @@
       "expect": {"minWorkspaceRoots": 2, "minMerges": 1, "minMovementMoments": 1}
     },
     {
+      "id": "phase-edge-retained-sister-contour",
+      "source": "../replay-regressions/es-wh-phase-edge-contour.json",
+      "mechanisms": ["movement-wrapper", "later-movement", "multiple-roots"],
+      "expect": {"minMovementMoments": 4, "minWorkspaceRoots": 2, "samePoints": [
+        [{"stage": 1, "kind": "macro", "node": "juan"}, {"stage": 3, "kind": "relation", "relationIndex": 0, "node": "juan"}, {"stage": 5, "kind": "macro", "node": "juan"}],
+        [{"stage": 3, "kind": "relation", "relationIndex": 0, "node": "what1"}, {"stage": 5, "kind": "macro", "node": "what1"}]
+      ]}
+    },
+    {
+      "id": "compact-landing-sister-contour",
+      "source": "../replay-regressions/hi-correlative-landing-contour.json",
+      "mechanisms": ["movement-wrapper", "later-movement", "multiple-roots"],
+      "expect": {"minMovementMoments": 3, "minWorkspaceRoots": 2}
+    },
+    {
       "id": "tier2-witness-persistence",
       "source": "relation-controls.json",
       "selector": "/cases/0",

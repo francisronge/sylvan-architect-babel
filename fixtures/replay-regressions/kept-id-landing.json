@@ -1,0 +1,957 @@
+{
+  "description": "Stage 3 raises 太郎 from Spec-VP to Spec-IP with a claim Replay does not recognize as movement (subject, thetaPosition, subjectInVP), so it is a neutral rewrite. The model kept a-taro-np's ID at the landing and gave the occurrence left in Spec-VP the new ID a-subject-trace. Construction of the new IP carried a-taro-np there from the stage's first step, so it was drawn detached from VP four steps before its moment; stage 5's topicalization did the same to IP. The occurrence now stays at its source until the rewrite moment, which introduces the landing, its new parent and the trace together.",
+  "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run with the spell-out contract and the movement-ID prompt sentence (\"When an occurrence moves, either the landing or the occurrence left at the source keeps its id.\"), branch feat/movement-id-rule, commit 6f10f39, 18 October 2026 (movement-ID A/B batch, arm B, ja-causative.astra.B, analysis 1 of 2). Tokens are the model's own final words.",
+  "sentence": "太郎は花子に本を読ませた。",
+  "framework": "xbar",
+  "inputTokens": [
+    "太郎",
+    "は",
+    "花子",
+    "に",
+    "本",
+    "を",
+    "読ま",
+    "せ",
+    "た"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "predicate": "a-read",
+            "reader": "a-hanako-kp",
+            "theme": "a-book-kp"
+          },
+          "relation": "embedded theta assignment",
+          "values": {
+            "readerRole": "Agent",
+            "themeRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "causative": "a-caus",
+            "causedPredicate": "a-lower-vp",
+            "causee": "a-hanako-kp",
+            "causer": "a-taro-np"
+          },
+          "relation": "causative argument interpretation",
+          "values": {
+            "interpretation": "Taro causes or permits Hanako to read the book."
+          }
+        },
+        {
+          "anchors": {
+            "accusativeArgument": "a-book-kp",
+            "accusativeGovernor": "a-read",
+            "accusativeMarker": "a-o",
+            "dativeArgument": "a-hanako-kp",
+            "dativeGovernor": "a-caus",
+            "dativeMarker": "a-ni"
+          },
+          "relation": "Case licensing",
+          "values": {
+            "causeeCase": "dative",
+            "objectCase": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "conditioningHead": "a-caus",
+            "stem": "a-read"
+          },
+          "relation": "contextual stem selection",
+          "values": {
+            "causativeExponent": "せ",
+            "lexeme": "読む",
+            "selectedStem": "読ま"
+          }
+        }
+      ],
+      "stageRecord": "The clause is head-final. The lower VP contains the reader 花子に in its specifier and the theme 本を as the complement of 読ま. The higher causative VP contains 太郎 as its external argument and takes the lower VP as its complement. The embedded verb assigns its reader and theme roles; the causative head assigns the causer role to 太郎 and makes the embedded reader its causee. The embedded verb licenses accusative を, while the causative head licenses dative に on the causee of this transitive predicate. These overt particles are represented as K heads. The bound form 読ま is selected in the environment of causative せ; it is not an independent imperative or a separate word. This analysis permits both coercive and permissive interpretations of causation without multiplying structures.",
+      "statement": "Establish the causative structure with 花子 as the reader.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "a-taro",
+                  "label": "N⁰",
+                  "word": "太郎"
+                }
+              ],
+              "id": "a-taro-np",
+              "label": "NP",
+              "lineageId": "a-taro-chain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a-hanako",
+                              "label": "N⁰",
+                              "word": "花子"
+                            }
+                          ],
+                          "id": "a-hanako-np",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a-ni",
+                              "label": "K⁰",
+                              "word": "に"
+                            }
+                          ],
+                          "id": "a-hanako-kbar",
+                          "label": "K′"
+                        }
+                      ],
+                      "id": "a-hanako-kp",
+                      "label": "KP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a-book",
+                                  "label": "N⁰",
+                                  "word": "本"
+                                }
+                              ],
+                              "id": "a-book-np",
+                              "label": "NP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a-o",
+                                  "label": "K⁰",
+                                  "word": "を"
+                                }
+                              ],
+                              "id": "a-book-kbar",
+                              "label": "K′"
+                            }
+                          ],
+                          "id": "a-book-kp",
+                          "label": "KP"
+                        },
+                        {
+                          "children": [],
+                          "id": "a-read",
+                          "label": "V⁰",
+                          "lineageId": "a-read-chain",
+                          "word": "読ま"
+                        }
+                      ],
+                      "id": "a-lower-vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "a-lower-vp",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "a-caus",
+                  "label": "V⁰[causative]",
+                  "word": "せ"
+                }
+              ],
+              "id": "a-upper-vbar",
+              "label": "V′"
+            }
+          ],
+          "id": "a-upper-vp",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "host": "a-caus",
+            "movedHead": "a-read",
+            "resultingHead": "a-caus-head",
+            "selectedDomain": "a-lower-vp",
+            "sourceTrace": "a-read-trace"
+          },
+          "priorAnchors": {
+            "sourceHead": "a-read"
+          },
+          "relation": "V-to-causative head movement",
+          "values": {
+            "direction": "left adjunction",
+            "locality": "movement to the immediately selecting head; the selected VP is L-marked"
+          }
+        }
+      ],
+      "stageRecord": "The embedded V moves from its previously established complement position and left-adjoins to the immediately higher causative V. The landing occurrence retains 読ま, and an unpronounced head trace occupies its original position. This creates the complex head 読ま–せ in the required order. Under the selected GB incorporation analysis, the causative head L-marks its VP complement, allowing the local head dependency and government of the embedded causee; no intervening head is skipped.",
+      "statement": "Incorporate the reading verb into the causative head.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "a-taro",
+                  "label": "N⁰",
+                  "word": "太郎"
+                }
+              ],
+              "id": "a-taro-np",
+              "label": "NP",
+              "lineageId": "a-taro-chain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a-hanako",
+                              "label": "N⁰",
+                              "word": "花子"
+                            }
+                          ],
+                          "id": "a-hanako-np",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a-ni",
+                              "label": "K⁰",
+                              "word": "に"
+                            }
+                          ],
+                          "id": "a-hanako-kbar",
+                          "label": "K′"
+                        }
+                      ],
+                      "id": "a-hanako-kp",
+                      "label": "KP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a-book",
+                                  "label": "N⁰",
+                                  "word": "本"
+                                }
+                              ],
+                              "id": "a-book-np",
+                              "label": "NP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a-o",
+                                  "label": "K⁰",
+                                  "word": "を"
+                                }
+                              ],
+                              "id": "a-book-kbar",
+                              "label": "K′"
+                            }
+                          ],
+                          "id": "a-book-kp",
+                          "label": "KP"
+                        },
+                        {
+                          "children": [],
+                          "id": "a-read-trace",
+                          "label": "t[V⁰]",
+                          "lineageId": "a-read-chain",
+                          "silent": true
+                        }
+                      ],
+                      "id": "a-lower-vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "a-lower-vp",
+                  "label": "VP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-read",
+                      "label": "V⁰",
+                      "lineageId": "a-read-chain",
+                      "word": "読ま"
+                    },
+                    {
+                      "children": [],
+                      "id": "a-caus",
+                      "label": "V⁰[causative]",
+                      "word": "せ"
+                    }
+                  ],
+                  "id": "a-caus-head",
+                  "label": "V⁰[causative complex]",
+                  "lineageId": "a-caus-chain"
+                }
+              ],
+              "id": "a-upper-vbar",
+              "label": "V′"
+            }
+          ],
+          "id": "a-upper-vp",
+          "label": "VP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "clause": "a-ip",
+            "subject": "a-taro-np",
+            "thetaPosition": "a-subject-trace"
+          },
+          "priorAnchors": {
+            "subjectInVP": "a-taro-np"
+          },
+          "relation": "subject A-movement",
+          "values": {
+            "chainThetaRole": "Causer",
+            "landingPosition": "Spec-IP"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "a-past",
+            "subject": "a-taro-np"
+          },
+          "relation": "finite subject licensing",
+          "values": {
+            "Case": "abstract nominative",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "Past I selects the causative VP. 太郎 raises from the higher VP specifier to Spec-IP, leaving an A-trace in its causer position. The resulting A-chain retains the causer theta-role at its foot, and finite I licenses nominative Case on the subject in Spec-IP. Nominative is abstract here: no overt が is introduced and subsequently deleted. The inflectional head た remains separate from the causative verb at this stage, establishing its position before head movement.",
+      "statement": "Introduce past inflection and raise 太郎 to the finite subject position.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "a-taro",
+                  "label": "N⁰",
+                  "word": "太郎"
+                }
+              ],
+              "id": "a-taro-np",
+              "label": "NP",
+              "lineageId": "a-taro-chain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-subject-trace",
+                      "label": "t[NP, A-chain]",
+                      "lineageId": "a-taro-chain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a-hanako",
+                                      "label": "N⁰",
+                                      "word": "花子"
+                                    }
+                                  ],
+                                  "id": "a-hanako-np",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a-ni",
+                                      "label": "K⁰",
+                                      "word": "に"
+                                    }
+                                  ],
+                                  "id": "a-hanako-kbar",
+                                  "label": "K′"
+                                }
+                              ],
+                              "id": "a-hanako-kp",
+                              "label": "KP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "a-book",
+                                          "label": "N⁰",
+                                          "word": "本"
+                                        }
+                                      ],
+                                      "id": "a-book-np",
+                                      "label": "NP"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "a-o",
+                                          "label": "K⁰",
+                                          "word": "を"
+                                        }
+                                      ],
+                                      "id": "a-book-kbar",
+                                      "label": "K′"
+                                    }
+                                  ],
+                                  "id": "a-book-kp",
+                                  "label": "KP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "a-read-trace",
+                                  "label": "t[V⁰]",
+                                  "lineageId": "a-read-chain",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "a-lower-vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "a-lower-vp",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a-read",
+                              "label": "V⁰",
+                              "lineageId": "a-read-chain",
+                              "word": "読ま"
+                            },
+                            {
+                              "children": [],
+                              "id": "a-caus",
+                              "label": "V⁰[causative]",
+                              "word": "せ"
+                            }
+                          ],
+                          "id": "a-caus-head",
+                          "label": "V⁰[causative complex]",
+                          "lineageId": "a-caus-chain"
+                        }
+                      ],
+                      "id": "a-upper-vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "a-upper-vp",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "a-past",
+                  "label": "I⁰[past]",
+                  "word": "た"
+                }
+              ],
+              "id": "a-ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "a-ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "host": "a-past",
+            "movedHead": "a-caus-head",
+            "resultingHead": "a-inflected-head",
+            "sourceTrace": "a-caus-trace"
+          },
+          "priorAnchors": {
+            "sourceHead": "a-caus-head"
+          },
+          "relation": "causative V-to-I movement",
+          "values": {
+            "direction": "left adjunction",
+            "locality": "successive movement through the causative head to I",
+            "surfacePredicate": "読ませた"
+          }
+        }
+      ],
+      "stageRecord": "The already assembled causative head moves from the higher V position to the immediately selecting I and left-adjoins to た. Its source becomes a silent head trace. The earlier embedded-V trace remains in place, so the derivation is successive head movement rather than direct movement across the causative head. The pronounced terminals of the resulting I head are 読ま, せ, and た, which directly spell 読ませた without a separate realization mapping.",
+      "statement": "Form the inflected causative predicate 読ませた.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "a-taro",
+                  "label": "N⁰",
+                  "word": "太郎"
+                }
+              ],
+              "id": "a-taro-np",
+              "label": "NP",
+              "lineageId": "a-taro-chain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-subject-trace",
+                      "label": "t[NP, A-chain]",
+                      "lineageId": "a-taro-chain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a-hanako",
+                                      "label": "N⁰",
+                                      "word": "花子"
+                                    }
+                                  ],
+                                  "id": "a-hanako-np",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a-ni",
+                                      "label": "K⁰",
+                                      "word": "に"
+                                    }
+                                  ],
+                                  "id": "a-hanako-kbar",
+                                  "label": "K′"
+                                }
+                              ],
+                              "id": "a-hanako-kp",
+                              "label": "KP"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "a-book",
+                                          "label": "N⁰",
+                                          "word": "本"
+                                        }
+                                      ],
+                                      "id": "a-book-np",
+                                      "label": "NP"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "a-o",
+                                          "label": "K⁰",
+                                          "word": "を"
+                                        }
+                                      ],
+                                      "id": "a-book-kbar",
+                                      "label": "K′"
+                                    }
+                                  ],
+                                  "id": "a-book-kp",
+                                  "label": "KP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "a-read-trace",
+                                  "label": "t[V⁰]",
+                                  "lineageId": "a-read-chain",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "a-lower-vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "a-lower-vp",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "a-caus-trace",
+                          "label": "t[V⁰, causative complex]",
+                          "lineageId": "a-caus-chain",
+                          "silent": true
+                        }
+                      ],
+                      "id": "a-upper-vbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "a-upper-vp",
+                  "label": "VP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a-read",
+                          "label": "V⁰",
+                          "lineageId": "a-read-chain",
+                          "word": "読ま"
+                        },
+                        {
+                          "children": [],
+                          "id": "a-caus",
+                          "label": "V⁰[causative]",
+                          "word": "せ"
+                        }
+                      ],
+                      "id": "a-caus-head",
+                      "label": "V⁰[causative complex]",
+                      "lineageId": "a-caus-chain"
+                    },
+                    {
+                      "children": [],
+                      "id": "a-past",
+                      "label": "I⁰[past]",
+                      "word": "た"
+                    }
+                  ],
+                  "id": "a-inflected-head",
+                  "label": "I⁰"
+                }
+              ],
+              "id": "a-ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "a-ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "clause": "a-cp",
+            "subjectPosition": "a-topic-trace",
+            "thetaPosition": "a-subject-trace",
+            "topic": "a-taro-np",
+            "topicMarker": "a-wa",
+            "topicPhrase": "a-topic-kp"
+          },
+          "priorAnchors": {
+            "subjectInSpecIP": "a-taro-np"
+          },
+          "relation": "subject topicalization",
+          "values": {
+            "CaseConnectivity": "nominative through the subject position",
+            "dependency": "local A′-movement from Spec-IP",
+            "topicExponent": "は"
+          }
+        },
+        {
+          "anchors": {
+            "referentialExpressions": [
+              "a-taro-np",
+              "a-hanako-np"
+            ],
+            "topicChainPositions": [
+              "a-taro-np",
+              "a-topic-trace",
+              "a-subject-trace"
+            ]
+          },
+          "relation": "Binding Theory interpretation",
+          "values": {
+            "PrincipleC": "the two proper names are not A-bound",
+            "chainInterpretation": "the topic, finite subject position, and causer position form one connected dependency"
+          }
+        }
+      ],
+      "stageRecord": "A null declarative C closes the clause. 太郎 moves from the previously established Spec-IP position to the left-peripheral topic position, leaving an A′-trace there; at the landing site, topic K は projects a KP around the moved NP. This adopts a movement analysis of the subject topic rather than base-generation of an unrelated topic plus a resumptive pronoun. The topic dependency is local to this CP and connects to the nominative subject position, while the lower A-chain supplies the causer theta-role. は marks topic status, not a second theta-role or a replacement lexical argument. Both proper names are referential expressions, and neither is A-bound by a coindexed argument, satisfying Principle C. The final interpretation is that Taro made or let Hanako read a book or books; neither definiteness nor the coercive/permissive distinction requires another syntactic tree.",
+      "statement": "Complete the subject-topic reading of 太郎は花子に本を読ませた。",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-taro",
+                      "label": "N⁰",
+                      "word": "太郎"
+                    }
+                  ],
+                  "id": "a-taro-np",
+                  "label": "NP",
+                  "lineageId": "a-taro-chain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-wa",
+                      "label": "K⁰[topic]",
+                      "word": "は"
+                    }
+                  ],
+                  "id": "a-topic-kbar",
+                  "label": "K′"
+                }
+              ],
+              "id": "a-topic-kp",
+              "label": "KP[topic]"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-topic-trace",
+                      "label": "t[NP, A′-chain]",
+                      "lineageId": "a-taro-chain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a-subject-trace",
+                              "label": "t[NP, A-chain]",
+                              "lineageId": "a-taro-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "a-hanako",
+                                              "label": "N⁰",
+                                              "word": "花子"
+                                            }
+                                          ],
+                                          "id": "a-hanako-np",
+                                          "label": "NP"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "a-ni",
+                                              "label": "K⁰",
+                                              "word": "に"
+                                            }
+                                          ],
+                                          "id": "a-hanako-kbar",
+                                          "label": "K′"
+                                        }
+                                      ],
+                                      "id": "a-hanako-kp",
+                                      "label": "KP"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "a-book",
+                                                  "label": "N⁰",
+                                                  "word": "本"
+                                                }
+                                              ],
+                                              "id": "a-book-np",
+                                              "label": "NP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "a-o",
+                                                  "label": "K⁰",
+                                                  "word": "を"
+                                                }
+                                              ],
+                                              "id": "a-book-kbar",
+                                              "label": "K′"
+                                            }
+                                          ],
+                                          "id": "a-book-kp",
+                                          "label": "KP"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "a-read-trace",
+                                          "label": "t[V⁰]",
+                                          "lineageId": "a-read-chain",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "a-lower-vbar",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "a-lower-vp",
+                                  "label": "VP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "a-caus-trace",
+                                  "label": "t[V⁰, causative complex]",
+                                  "lineageId": "a-caus-chain",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "a-upper-vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "a-upper-vp",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a-read",
+                                  "label": "V⁰",
+                                  "lineageId": "a-read-chain",
+                                  "word": "読ま"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "a-caus",
+                                  "label": "V⁰[causative]",
+                                  "word": "せ"
+                                }
+                              ],
+                              "id": "a-caus-head",
+                              "label": "V⁰[causative complex]",
+                              "lineageId": "a-caus-chain"
+                            },
+                            {
+                              "children": [],
+                              "id": "a-past",
+                              "label": "I⁰[past]",
+                              "word": "た"
+                            }
+                          ],
+                          "id": "a-inflected-head",
+                          "label": "I⁰"
+                        }
+                      ],
+                      "id": "a-ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "a-ip",
+                  "label": "IP"
+                },
+                {
+                  "children": [],
+                  "id": "a-c",
+                  "label": "C⁰[declarative]",
+                  "silent": true
+                }
+              ],
+              "id": "a-cbar",
+              "label": "C′"
+            }
+          ],
+          "id": "a-cp",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

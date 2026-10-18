@@ -281,9 +281,12 @@ export function createBindingRefinements({
         `L ${lfCenter.x.toFixed(1)} ${(lfRect.y + lfRect.height + 20).toFixed(1)}`
       ].join(' '));
 
-    const indices = host.selectAll<SVGTextElement, unknown>('.babel-binding-index').nodes();
-    [pronouncedRect, lfRect].forEach((rect, index) => {
-      d3.select(indices[index])
+    // A letter painted by another owner is absent, so each one binds by its role.
+    host.selectAll<SVGTextElement, unknown>('.babel-binding-index').each(function refineQrIndex() {
+      const role = this.getAttribute('data-qr-index-role');
+      if (role !== 'pronounced' && role !== 'lf') return;
+      const rect = role === 'lf' ? lfRect : pronouncedRect;
+      d3.select(this)
         .attr('x', (rect.x + rect.width + 12).toFixed(1))
         .attr('y', (rect.y + rect.height / 2 + 30).toFixed(1));
     });

@@ -2,14 +2,16 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { before, test } from 'node:test';
 import * as d3 from 'd3';
+import { prepareReplay } from '../replay/prepareReplay.ts';
 import { placeStagePlaques, plaqueTreeObstacles } from '../replay/relations/plaquePlacement.ts';
 import { TREE_FIRST_FAMILIES } from '../scripts/replayFrameLayout.mjs';
 import { formatFrames, frameList, matchFindings, proposeExceptions } from './helpers/findings.mjs';
-import { measurePlaqueText } from './helpers/visualFontMetrics.mjs';
-import { auditVisualRecord, layoutVisualFrames, pathPolylines, plaqueRecord, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
+import { measurePlaqueText, measureRun } from './helpers/visualFontMetrics.mjs';
+import { auditVisualRecord, branchPoints, layoutVisualFrames, pathPolylines, plaqueRecord, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
 import { checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance } from './helpers/visualRules.mjs';
 import { EXCEPTIONS } from './helpers/visualExceptions.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
+import { checkOneLetterPerLabel } from './helpers/replayInvariants.mjs';
 
 /* Fast controls and the reviewed historical cases. The exhaustive fixture sweep
  * is `npm run verify:visual-offline`. */
@@ -27,20 +29,30 @@ const text = (node, kind, rect, extra = {}) => ({ id: `${node}:${kind}`, kind, t
   nodes: [node], claims: [], ...extra });
 const subjects = violations => violations.map(violation => violation.subject).sort();
 
-test('findings: an exception covers exact places within its bound; new, worse and stale places fail', () => {
+test('findings: an exception covers exact places within each place\'s bound; new, worse and stale places fail', () => {
   assert.deepEqual(frameList('3-5,9,canopy'), ['3', '4', '5', '9', 'canopy']);
   assert.equal(formatFrames([9, 3, 4, 5, 'canopy']), '3-5,9,canopy');
   const finding = (frame, viewport, measure) => ({ rule: 'line-clearance', subtype: 'branch-text', record: 'r', subject: 's', frame, viewport, measure });
-  const found = [finding(3, 'desktop', 2), finding(4, 'desktop', 2.5)];
+  const found = [finding(3, 'desktop', 2), finding(4, 'desktop', 2), finding(5, 'desktop', 2.5), finding(3, 'desktop-large', 1.86)];
   const [listed] = proposeExceptions(found);
-  assert.deepEqual(listed.at, { desktop: '3-4' });
-  assert.equal(listed.max, 2.5);
+  assert.deepEqual(listed.at, { desktop: { '3-4': 2, '5': 2.5 }, 'desktop-large': { '3': 1.86 } });
   assert.deepEqual(matchFindings(found, [listed]), { unexpected: [], exceeded: [], stale: [] });
-  const spread = matchFindings([...found, finding(5, 'desktop', 1), finding(3, 'mobile', 1)], [listed]);
-  assert.deepEqual(spread.unexpected.map(item => [item.frame, item.viewport]), [[5, 'desktop'], [3, 'mobile']]);
-  assert.equal(matchFindings([finding(3, 'desktop', 2), finding(4, 'desktop', 3)], [listed]).exceeded.length, 1);
-  assert.deepEqual(matchFindings([found[0]], [listed]).stale.map(item => [item.viewport, item.frame]), [['desktop', '4']]);
+  const spread = matchFindings([...found, finding(6, 'desktop', 1), finding(3, 'mobile', 1)], [listed]);
+  assert.deepEqual(spread.unexpected.map(item => [item.frame, item.viewport]), [[6, 'desktop'], [3, 'mobile']]);
+  // One place may not borrow another's bound: 1.86 rising to 2.63 fails although desktop reaches 2.5.
+  const worse = matchFindings([...found.slice(0, 3), finding(3, 'desktop-large', 2.5)], [listed]);
+  assert.deepEqual(worse.exceeded.map(({ finding: item, bound }) => [item.viewport, item.measure, bound]), [['desktop-large', 2.5, 1.86]]);
+  assert.deepEqual(matchFindings(found.slice(1), [listed]).stale.map(item => [item.viewport, item.frame]), [['desktop', '3']]);
   assert.throws(() => matchFindings(found, [listed, listed]), /Duplicate exception/);
+});
+
+test('fonts: a grapheme measures alike precomposed or decomposed, and a stacked mark raises its ink', () => {
+  const font = { family: 'Quicksand', size: 42, weight: 900 };
+  assert.deepEqual(measureRun('a\u0301', font), measureRun('\u00e1', font));
+  assert.deepEqual(measureRun('o\u0323\u0302', font), measureRun('\u1ed9', font));
+  assert(measureRun('\u00e1', font).ascent > measureRun('a', font).ascent + 2 / 0.25, 'the acute rises above the x-height');
+  assert(measureRun('q\u0301', font).ascent > measureRun('q', font).ascent, 'a mark with no precomposed form still counts');
+  assert.equal(measureRun('q\u0301', font).width, measureRun('q', font).width, 'a combining mark adds no advance');
 });
 
 test('control: glyph-overlap reports text or plaques painted over each other, beyond a two-pixel outline sliver', () => {
@@ -79,10 +91,22 @@ test('control: line-clearance reports a spoke cut at a plaque, a lane through te
   // Stopping six marker units short (PR #76's gap) clears the outline by more than a pixel.
   spoke.paths = pathPolylines(`M 0 120 L ${400 - 6 * scale} 120 M ${600 + 6 * scale} 120 L 1000 120`);
   assert.deepEqual(checkLineClearance(frame), []);
+  // Catalog #4 as main cut it before PR #76, at frame 39 (1440×900): the spoke stops on the corner of [clauseType: declarative].
+  const historical = { ...blank(0.1401), plaques: [{ id: 'clauseType', text: 'clauseType: declarative', rect: box(1472.5, 375.4, 360, 129.2),
+    radius: 14, claims: ['3:2'] }], lines: [{ id: 'spoke', kind: 'connector', halfWidth: 2.7, nodes: [], claims: ['3:3'],
+    paths: [[{ x: 2277.6, y: 5.2 }, { x: 1832.5, y: 460.6 }], [{ x: 1789.5, y: 504.6 }, { x: 1693, y: 603.3 }]] }] };
+  assert.deepEqual(subjects(checkLineClearance(historical)), ['spoke clauseType']);
+  // An accepted contact cannot cover a crossing: a spoke through the plaque's centre is its own subtype, measured as depth.
+  const accepted = proposeExceptions(checkLineClearance(historical).map(found => ({ ...found, record: 'r' })));
+  const through = { ...historical, lines: [{ ...historical.lines[0], paths: [[{ x: 1400, y: 440 }, { x: 1900, y: 440 }]] }] };
+  const crossing = checkLineClearance(through).map(found => ({ ...found, record: 'r' }));
+  assert.deepEqual(crossing.map(found => found.subtype).sort(), ['connector-plaque', 'connector-plaque-crossing']);
+  assert.deepEqual(matchFindings(crossing, accepted).unexpected.map(found => found.subtype), ['connector-plaque-crossing']);
   // A line past a rectangle's corner clears its rounded shell.
   const corner = { ...frame, zoom: 1, lines: [{ ...spoke, halfWidth: 0.5, paths: [[{ x: 370, y: 114 }, { x: 404, y: 80 }]] }] };
   assert.deepEqual(checkLineClearance(corner), []);
-  assert.equal(checkLineClearance({ ...corner, plaques: [{ ...plaque, radius: 0 }] }).length, 1);
+  assert.deepEqual(checkLineClearance({ ...corner, plaques: [{ ...plaque, radius: 0 }] }).map(found => found.subtype).sort(),
+    ['connector-plaque', 'connector-plaque-crossing']);
   // A lane is clipped only at its stems: through tree text it is reported, through its own witnesses' text it is not.
   frame.texts = [text('x', 'category', box(150, 100, 80, 40)), text('a', 'category', box(-40, 100, 80, 40))];
   assert.deepEqual(subjects(checkLineClearance(frame)), ['spoke x:category']);
@@ -92,6 +116,11 @@ test('control: line-clearance reports a spoke cut at a plaque, a lane through te
   assert.deepEqual(subjects(checkLineClearance(branches)), ['p->c w:word'], 'a branch meets its own child\'s label');
   branches.texts[0] = text('w', 'word', box(-100, 100, 100.5, 40));
   assert.deepEqual(checkLineClearance(branches), [], 'grazing the edge of a glyph box is not a crossing');
+  // Catalog #9 as main laid it out before #79, at frame 22 (1440×900): Qué hangs into Juan's branch.
+  const hanging = { ...blank(0.2271), texts: [text('what1::__leaf', 'word', box(3409, 1172.3, 143.1, 53.9))],
+    lines: [{ id: 'juan->juan::__leaf', kind: 'branch', paths: [branchPoints({ x: 3438.8, y: 1100 }, { x: 3438.8, y: 1320 })],
+      halfWidth: 2, nodes: ['juan', 'juan::__leaf'], claims: [] }] };
+  assert.deepEqual(subjects(checkLineClearance(hanging)), ['juan->juan::__leaf what1::__leaf:word']);
 
   // Production layout: moving a word onto another node's branch is reported.
   const real = sample();
@@ -145,6 +174,12 @@ test('control: label-typography reports a closing mark starting a line, a lone r
 });
 
 test('control: clipped reports text under the Replay panel or past the canvas, when the screen chrome is known', () => {
+  // The offline adapter carries the panel and canvas through the fitted camera: clean, until a word is pushed under the panel.
+  const real = sample(), word = real.texts.find(item => item.kind === 'word'), { panel } = real.chrome;
+  assert.deepEqual(checkClipped(real), []);
+  const under = { ...word, boxes: [box(panel.x + 10, panel.y + 10, word.boxes[0].width, word.boxes[0].height)] };
+  assert.deepEqual(checkClipped({ ...real, texts: real.texts.map(item => item === word ? under : item) })
+    .map(found => [found.subtype, found.subject]), [['under-panel', word.id]]);
   const frame = { ...blank(), texts: [text('a', 'word', box(10, 10, 50, 20)), text('b', 'word', box(10, 190, 50, 20))],
     chrome: { canvas: box(0, 0, 400, 200), panel: box(0, 150, 400, 50) } };
   assert.deepEqual(checkClipped(frame).map(finding => [finding.subtype, finding.subject]),
@@ -160,34 +195,44 @@ test('the frame layout keeps TreeVisualizer\'s tree-first families', () => {
 
 /* Historical defects Francis caught by eye (catalog of 18 October 2026), laid
  * out at both desktop Fit sizes. Their remaining findings match the listed
- * exceptions exactly; fixed defects stay fixed, and open ones stay flagged at
- * the reviewed frames. Index letters (#5) belong to checkOneLetterPerLabel. */
+ * exceptions exactly; fixed defects stay fixed, with their pre-fix geometry as
+ * the controls above, and open ones stay flagged at the reviewed frames.
+ * Catalog #5's index letters are checked by #75's checkOneLetterPerLabel. */
 
+const RECORDS = [CATALOG, 'replay-regressions/es-wh-phase-edge-contour.json#'];
 let catalog;
 before(() => {
-  catalog = corpus.records.filter(entry => entry.id.startsWith(CATALOG))
+  catalog = corpus.records.filter(entry => RECORDS.some(prefix => entry.id.startsWith(prefix)))
     .flatMap(({ id, record }) => auditVisualRecord(id, record, { viewports: DESKTOP }).findings);
 });
 
 test('catalog: findings match their listed exceptions exactly', () => {
-  assert.deepEqual(matchFindings(catalog, EXCEPTIONS.filter(exception => exception.record.startsWith(CATALOG))),
+  assert.deepEqual(matchFindings(catalog, EXCEPTIONS.filter(exception => RECORDS.some(prefix => exception.record.startsWith(prefix)))),
     { unexpected: [], exceeded: [], stale: [] });
 });
 
-const at = (id, subject) => catalog.filter(finding => finding.record === `${CATALOG}/${id}` && finding.subject === subject);
 const CASES = [
-  [1, '0/analyses/0', 'b-or:category ["Coord[alternative","]"]', [], 'fixed by PR #73'],
-  [2, '1/analyses/0', 'plaque(1:3 case: nominative)@subject', [], 'fixed by PR #74'],
-  [2, '2/analyses/0', 'plaque(3:2 case: Nominative)@mSubject', [], 'fixed by PR #74'],
-  [3, '3/analyses/0', 'plaque(0:1 theta Theme)@stolen', [[20, 'desktop'], [20, 'desktop-large']], 'open'],
-  [4, '4/analyses/0', 'connector(3:3)root-cp→subject-np plaque(3:2 clauseType: declarative)@declarative-c', [[39, 'desktop']],
-    'PR #76; at 1440 px, not 2560 px'],
-  [9, '6/analyses/0', 'juan->juan::__leaf what1::__leaf:word',
-    Array.from({ length: 11 }, (_, index) => [[20 + index, 'desktop'], [20 + index, 'desktop-large']]).flat(), 'open']
+  [1, `${CATALOG}/0/analyses/0`, 'b-or:category ["Coord[alternative","]"]', [], 'fixed by #73'],
+  [2, `${CATALOG}/1/analyses/0`, 'plaque(1:3 case: nominative)@subject', [], 'fixed by #74'],
+  [2, `${CATALOG}/2/analyses/0`, 'plaque(3:2 case: Nominative)@mSubject', [], 'fixed by #74'],
+  [3, `${CATALOG}/3/analyses/0`, 'plaque(0:1 theta Theme)@stolen', [[20, 'desktop'], [20, 'desktop-large']], 'open'],
+  [4, `${CATALOG}/4/analyses/0`, 'connector(3:3)root-cp→subject-np plaque(3:2 clauseType: declarative)@declarative-c', [], 'fixed by #76'],
+  [9, RECORDS[1], 'juan->juan::__leaf what1::__leaf:word', [], 'fixed by #79']
 ];
-for (const [number, id, subject, places, status] of CASES) test(`catalog #${number}: ${subject} (${status})`, () => {
-  const found = at(id, subject).map(finding => [finding.frame, finding.viewport]);
+for (const [number, record, subject, places, status] of CASES) test(`catalog #${number}: ${subject} (${status})`, () => {
+  const found = catalog.filter(finding => finding.record === record && finding.subject === subject).map(finding => [finding.frame, finding.viewport]);
   if (!places.length) assert.deepEqual(found, []);
   else for (const place of places) assert(found.some(([frame, viewport]) => frame === place[0] && viewport === place[1]), JSON.stringify(place));
-  if (number === 4) assert(found.every(([, viewport]) => viewport === 'desktop'));
+});
+
+test('catalog #5: each index letter is painted once at its label (fixed by #75), and painting every claimed letter repeats it', () => {
+  // Before #75, operator-variable binding and quantifier raising each painted the chain's letter: a faint j beside a bright j.
+  const everyLetter = () => () => ({ draw: 'glyph', label: null, alsoFor: [] });
+  for (const [analysis, label, frames] of [[1, 'objhigh', [23]], [0, 'subjhigh', [23, 24]]]) {
+    const replay = prepareReplay({ ...structuredClone(recordOf(`${CATALOG}/5/analyses/${analysis}`)), includePlayback: true });
+    assert.deepEqual(checkOneLetterPerLabel(replay), []);
+    const repeated = checkOneLetterPerLabel(replay, everyLetter);
+    for (const frame of frames) assert(repeated.some(violation => violation.frame === frame && violation.detail === `${label} shows j 2 times`),
+      `${label} at frame ${frame}`);
+  }
 });
