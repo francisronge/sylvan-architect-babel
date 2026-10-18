@@ -63,12 +63,25 @@ export function clearLabelPath(from: Point, to: Point, boxes: readonly Rect[] = 
   return visible.map(([a, b]) => `M ${point(a)} L ${point(b)}`).join(' ');
 }
 
+/** Marker units between a straight fan spoke's cut end and a plaque it passes.
+ * Plaques are not attachment points: the gap clears the round cap (0.75) and
+ * shadow (1.8) and stays visible. Marker units keep the same screen gap at every
+ * automatic Fit, and manual zoom scales it with the tree. Counter-lane stems
+ * keep exact clipping because plaque placement already reserves them. */
+export const FALLBACK_PLAQUE_GAP = 6;
+
 export const routeFallbackSegments = (
   segments: UnroutedFallbackSegment[],
   options: FallbackRoutingOptions
 ): BoundSegment[] => {
   const markerScale = Math.max(0.1, options.markerScale ?? 1);
   const laneGap = options.laneGap ?? 24;
+  const plaques = options.occlusions ?? options.obstacles ?? [];
+  const clearances = [...(options.labelClearances ?? []), ...plaques];
+  const plaqueGap = FALLBACK_PLAQUE_GAP * markerScale;
+  const spokeClearances = [...(options.labelClearances ?? []), ...plaques.map(box => ({
+    x: box.x - plaqueGap, y: box.y - plaqueGap, width: box.width + 2 * plaqueGap, height: box.height + 2 * plaqueGap
+  }))];
   const counterSegments = segments.filter(segment => segment.route === 'counter-lane');
   const lanes = allocateSpanLanes(counterSegments.map(segment => ({
     start: Math.min(segment.from.x, segment.to.x),
@@ -92,10 +105,7 @@ export const routeFallbackSegments = (
   let counterIndex = 0;
   return segments.map(segment => {
     if (segment.route === 'direct') {
-      return {
-        ...segment, lane: null,
-        d: clearLabelPath(segment.from, segment.to, [...(options.labelClearances ?? []), ...(options.occlusions ?? options.obstacles ?? [])])
-      };
+      return { ...segment, lane: null, d: clearLabelPath(segment.from, segment.to, spokeClearances) };
     }
     const from = segment.from.x <= segment.to.x ? segment.from : segment.to;
     const to = from === segment.from ? segment.to : segment.from;
@@ -103,7 +113,6 @@ export const routeFallbackSegments = (
     const laneY = measuredBaseline + lane * laneGap;
     const stem = 6 * markerScale;
     const corner = 9 * markerScale;
-    const clearances = [...(options.labelClearances ?? []), ...(options.occlusions ?? options.obstacles ?? [])];
     const leftTurn = { x: from.x, y: laneY - 8 * markerScale };
     const rightTurn = { x: to.x, y: leftTurn.y };
     const d = [
