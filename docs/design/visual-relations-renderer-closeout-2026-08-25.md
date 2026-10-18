@@ -731,19 +731,11 @@ finished drawing; Fit uses those same final bounds. This does not compact or
 recenter the tree's internal coordinates.
 Forward playback also retains an already fitting view when a new stage could
 merely zoom in. Actual overflow can still pan or reduce scale. Each stage lays
-out its syntax in its own coordinates, so on stage entry the view is retained
-only when it moves the syntax shared with the previous step no further on
-screen than the new stage's fit; otherwise the step settles on that fit, as
-direct selection of the frame does. The pose chosen on entry persists through
-the stage's micro-steps. Explicit Fit, nonadjacent frame selection and the
-completed last Stage Record retain their existing fitting behavior.
-An animated step into another stage, in either direction, starts at the painted
-scale but is translated by the median coordinate change of the shared syntax
-whose shared ancestors are unchanged. That syntax first paints where it was,
-and a reattached constituent is what visibly moves; the camera then travels to
-the settled pose. The translated start is used only when it leaves no more
-shared nodes off the canvas and moves the shared syntax less than the painted
-transform would.
+out its syntax in its own coordinates, so a step into another stage carries both
+that view and the animation's starting pose with the shared syntax whose shared
+ancestors are unchanged: that syntax keeps its place, and a reattached
+constituent is what visibly moves. Explicit Fit, nonadjacent frame selection and
+the completed last Stage Record retain their existing fitting behavior.
 Stage framing retains its existing margins for ordinary labels. When a revealed
 label exceeds those margins, expand the shared stage envelope by only that
 excess, using the same styled text bounds as layout. Include every revealed

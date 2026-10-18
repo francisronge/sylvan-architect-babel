@@ -80,8 +80,8 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
       g,
       fitFallbackOverlays,
       stageIndex: activeDerivationFrameIndex,
-      anchors: new Map(visibleNodes.map(node => [getNodeId(node),
-        { x: node.x, y: node.y, ancestors: node.ancestors().slice(1).map(getNodeId) }]))
+      paintedNodes: new Map(visibleNodes.map(node => [getNodeId(node),
+        { x: node.x, y: node.y, parentId: node.parent ? getNodeId(node.parent) : null }]))
     }
   });
   const minimumInitialScale = compactViewport || hasCyclicLinearizationPlate ? 0.02 : 0.06;

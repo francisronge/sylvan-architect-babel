@@ -3,22 +3,28 @@ import assert from 'node:assert/strict';
 import test, { after } from 'node:test';
 import { fitTreeCamera } from '../components/renderer/frameCamera.ts';
 import { availableTreeViewport } from '../components/treeViewport.ts';
+import { STAGE_CAMERA_PADDING } from '../replay/stageCamera.ts';
 import { createCameraHarness } from './helpers/cameraHarness.mjs';
 import { createSvgDom } from './helpers/svgDom.mjs';
 
 const { Element, restore } = createSvgDom();
 after(restore);
 
+// A supplied harness keeps one session across steps; with motion enabled, the
+// returned pose is an animation's first frame.
 function camera(input) {
-  const harness = createCameraHarness(Element, { ...input, animated: true });
+  const harness = input.harness ?? createCameraHarness(Element, { ...input, animated: true });
+  harness.session.activeStepIndex = input.step ?? 0;
   const painted = harness.run(() => fitTreeCamera({ session: harness.session, layout: {
     relationRenderPlan: null, activeDerivationFrameIndex: input.stage ?? 0,
     stageCameraBounds: input.bounds, stagePlaqueContainmentBounds: input.plaques ?? null,
     uiBounds: input.uiBounds, g: harness.group,
     derivationFrameFitNodes: [{}], overlayFitBounds: null, visibleNodes: input.nodes ?? []
   } }));
-  assert.deepEqual(harness.session.cameraRuntime.deferred, painted,
-    'deferred panels use the destination or retained manual camera');
+  if (!input.harness) {
+    assert.deepEqual(harness.session.cameraRuntime.deferred, painted,
+      'deferred panels use the destination or retained manual camera');
+  }
   return painted;
 }
 
@@ -92,30 +98,42 @@ const whoseRelative = {
     themeTrace: [6035.625, 2860, 'passiveVBar'], car: [5266.875, 3080, 'carNBar'],
     'stolen::__leaf': [5660.625, 3080, 'stolen'], 'car::__leaf': [5266.875, 3300, 'car'] }
 };
+const { stage1, stage2, frame20, frame21 } = whoseRelative;
 // Painted hierarchy nodes, as the frame camera reads them.
-const paintedNodes = points => Object.entries(points).map(([id, [x, y]]) => {
-  const lineage = [id];
-  for (let parent = points[id][2]; parent; parent = points[parent][2]) lineage.push(parent);
-  return { __vizId: id, x, y, ancestors: () => lineage.map(__vizId => ({ __vizId })) };
-});
+const paintedNodes = points => Object.entries(points).map(([id, [x, y, parent]]) =>
+  ({ __vizId: id, x, y, parent: parent && { __vizId: parent } }));
 const onScreen = (pose, [x, y]) => [pose.x + x * pose.k, pose.y + y * pose.k];
+const unmoved = ['relativeIBar', 'was', 'was::__leaf', 'passiveVP', 'passiveVBar'];
+const whoseCamera = (width, height, uiBounds) => (auto, step, stage, bounds, points, harness) =>
+  camera({ bounds, width, height, uiBounds, data: whoseRelative, step, stage, nodes: paintedNodes(points), auto, harness });
+
+test('1440px: Next into a stage with moved coordinates carries the view with its unmoved syntax', () => {
+  const uiBounds = { headerBottom: 57, panelTop: 564, right: 16 };
+  const at = whoseCamera(1440, 840, uiBounds), auto = { current: null };
+  const previous = at(auto, 19, 0, stage1, frame20);
+  const entered = at(auto, 20, 1, stage2, frame21);
+  assert.equal(entered.k, previous.k, 'forward playback does not zoom in');
+  enclosed(entered, { minX: stage2.minX - STAGE_CAMERA_PADDING.x, maxX: stage2.maxX + STAGE_CAMERA_PADDING.x,
+    minY: stage2.minY - STAGE_CAMERA_PADDING.y, maxY: stage2.maxY + STAGE_CAMERA_PADDING.y }, availableTreeViewport(1440, 840, uiBounds));
+  for (const id of unmoved) {
+    assert(Math.abs(onScreen(entered, frame21[id])[0] - onScreen(previous, frame20[id])[0]) < 1e-6,
+      `${id} keeps its column; only containment pans the view, instead of parking it at the edge`);
+  }
+  for (let step = 21; step < 24; step++) {
+    assert.deepEqual(at(auto, step, 1, stage2, frame21), entered, 'one camera throughout the same authored stage');
+  }
+});
+
+test('390px control: a new stage that needs a smaller scale settles on its own fit', () => {
+  const at = whoseCamera(390, 844, { headerBottom: 72, panelTop: 585, right: 72 }), auto = { current: null };
+  const direct = at({ current: null }, 20, 1, stage2, frame21);
+  at(auto, 19, 0, stage1, frame20);
+  for (let step = 20; step < 24; step++) assert.deepEqual(at(auto, step, 1, stage2, frame21), direct);
+});
 
 for (const [width, height, uiBounds] of [[1440, 840, { headerBottom: 57, panelTop: 564, right: 16 }],
   [390, 844, { headerBottom: 72, panelTop: 585, right: 72 }]]) {
-  const { stage1, stage2, frame20, frame21 } = whoseRelative;
-  const at = (auto, step, stage, bounds, points) => camera({ bounds, width, height, uiBounds,
-    data: whoseRelative, step, stage, nodes: paintedNodes(points), auto });
-
-  test(`${width}px: Next into a stage with moved coordinates settles where direct selection does`, () => {
-    const direct = at({ current: null }, 20, 1, stage2, frame21);
-    const auto = { current: null };
-    at(auto, 19, 0, stage1, frame20);
-    assert.deepEqual(at(auto, 20, 1, stage2, frame21), direct,
-      'the stage 1 pose frames none of stage 2, so retaining it parks the tree against the viewport edge');
-    for (let step = 21; step < 24; step++) {
-      assert.deepEqual(at(auto, step, 1, stage2, frame21), direct, 'one camera throughout the same authored stage');
-    }
-  });
+  const at = whoseCamera(width, height, uiBounds);
 
   test(`${width}px: shared syntax at unchanged coordinates still keeps the accepted view on stage entry`, () => {
     // Control: an earlier stage reserved more room around the same syntax.
@@ -128,32 +146,22 @@ for (const [width, height, uiBounds] of [[1440, 840, { headerBottom: 57, panelTo
     assert(entered.k < at({ current: null }, 20, 1, stage2, frame21).k, 'direct selection still fits the stage');
   });
 
-  test(`${width}px: an animated step into a new stage first paints its syntax where it was`, () => {
+  test(`${width}px: an animated step into a new stage first paints its unmoved syntax where it was`, () => {
     const harness = createCameraHarness(Element, { width, height, data: whoseRelative, animated: true, reducedMotion: false });
-    const paint = (step, stage, bounds, points) => {
-      harness.session.activeStepIndex = step;
-      harness.paints.length = 0;
-      harness.run(() => fitTreeCamera({ session: harness.session, layout: {
-        relationRenderPlan: null, activeDerivationFrameIndex: stage, stageCameraBounds: bounds,
-        stagePlaqueContainmentBounds: null, uiBounds, g: harness.group,
-        derivationFrameFitNodes: [{}], overlayFitBounds: null, visibleNodes: paintedNodes(points)
-      } }));
-      return { first: harness.paints[0], destination: harness.session.cameraRuntime.deferred };
-    };
-    const previous = paint(19, 0, stage1, frame20).first;
-    const entry = paint(20, 1, stage2, frame21);
-    assert.deepEqual(entry.destination, at({ current: null }, 20, 1, stage2, frame21), 'the settled pose is unchanged');
-    assert.equal(entry.first.k, previous.k, 'the camera begins at the painted scale');
-    for (const id of ['relativeIBar', 'was', 'was::__leaf', 'passiveVP', 'passiveVBar']) {
-      const [x, y] = onScreen(entry.first, frame21[id]), [oldX, oldY] = onScreen(previous, frame20[id]);
+    const previous = at(undefined, 19, 0, stage1, frame20, harness);
+    const first = at(undefined, 20, 1, stage2, frame21, harness);
+    const auto = { current: null };
+    at(auto, 19, 0, stage1, frame20);
+    assert.deepEqual(harness.session.cameraRuntime.deferred, at(auto, 20, 1, stage2, frame21),
+      'the animation ends at the settled pose');
+    assert.equal(first.k, previous.k, 'the camera begins at the painted scale');
+    for (const id of unmoved) {
+      const [x, y] = onScreen(first, frame21[id]), [oldX, oldY] = onScreen(previous, frame20[id]);
       assert(Math.hypot(x - oldX, y - oldY) < 1e-6, `${id} first paints where stage 1 showed it`);
     }
     for (const id of Object.keys(frame20)) {
-      const [x, y] = onScreen(entry.first, frame21[id]);
+      const [x, y] = onScreen(first, frame21[id]);
       assert(x >= 0 && x <= width && y >= 0 && y <= height, `${id} stays on the canvas, including the moved DP`);
     }
-    const next = paint(21, 1, stage2, frame21);
-    assert.deepEqual(next.first, entry.first, 'a later micro-step starts from the painted camera');
-    assert.deepEqual(next.destination, entry.destination);
   });
 }

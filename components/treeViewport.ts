@@ -1,84 +1,46 @@
 export type ViewportRect = { left: number; top: number; right: number; bottom: number };
-/** Painted tree-space positions of one frame's visible syntax, keyed by display ID,
- * with each node's ancestor IDs from its parent to the root. */
-export type SyntaxAnchors = ReadonlyMap<string, { x: number; y: number; ancestors?: readonly string[] }>;
-type CameraPose = { x: number; y: number; k: number };
-
-const median = (values: number[]) => {
-  values.sort((a, b) => a - b);
-  return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
-};
+/** One frame's painted syntax: tree-space position and hierarchy parent, keyed by display ID. */
+export type PaintedNodes = ReadonlyMap<string, { x: number; y: number; parentId: string | null }>;
 
 /** Playback does not zoom in merely because a later stage has more room.
  * Preserve the accepted pose until clearance needs a pan or smaller scale. */
 export function advanceFittedCamera(
-  previous: CameraPose,
-  fitted: CameraPose,
+  previous: { x: number; y: number; k: number },
+  fitted: { x: number; y: number; k: number },
   bounds: { minX: number; minY: number; maxX: number; maxY: number },
   view: ViewportRect
 ) {
   return previous.k <= fitted.k + 1e-7 ? containCamera(previous, bounds, view) : fitted;
 }
 
-/** Median on-screen travel of the syntax two frames share, from where the accepted
- * camera showed it to where a candidate camera shows it; null when nothing is shared. */
-export function sharedSyntaxTravel(accepted: CameraPose, before: SyntaxAnchors, candidate: CameraPose, after: SyntaxAnchors) {
-  const travel: number[] = [];
-  after.forEach((point, id) => {
-    const prior = before.get(id);
-    if (prior) travel.push(Math.hypot(candidate.x + point.x * candidate.k - (accepted.x + prior.x * accepted.k),
-      candidate.y + point.y * candidate.k - (accepted.y + prior.y * accepted.k)));
-  });
-  return travel.length ? median(travel) : null;
-}
-
-/** First pose of an animated step into another stage's coordinates. At the painted
- * scale, translate by the median coordinate shift of shared syntax whose shared
- * ancestry is unchanged, so it first paints where the painted camera showed it and
- * a reattached (moved) constituent is what visibly moves. Keep the painted pose
- * unless that start leaves fewer shared nodes off the canvas or, with as many,
- * moves the shared syntax less. */
-export function stageEntryStartCamera(painted: CameraPose, before: SyntaxAnchors, after: SyntaxAnchors,
-  canvas: ViewportRect): CameraPose {
-  const shared = [...after.keys()].filter(id => before.has(id));
-  const lineage = (anchors: SyntaxAnchors, id: string) => JSON.stringify((anchors.get(id)!.ancestors ?? [])
-    .filter(ancestor => before.has(ancestor) && after.has(ancestor)));
-  const attached = shared.filter(id => lineage(before, id) === lineage(after, id));
-  const reference = attached.length ? attached : shared;
-  if (!reference.length) return painted;
-  const start = {
-    x: painted.x + median(reference.map(id => before.get(id)!.x - after.get(id)!.x)) * painted.k,
-    y: painted.y + median(reference.map(id => before.get(id)!.y - after.get(id)!.y)) * painted.k,
-    k: painted.k
+/** Each stage lays out its syntax in its own coordinates. Translate a pose by the
+ * median coordinate shift of the syntax both frames share, so that syntax keeps its
+ * place on screen. A node whose shared ancestors change (a reattached, moved
+ * constituent) is left out unless nothing else is shared. */
+export function carryCamera(pose: { x: number; y: number; k: number }, before: PaintedNodes, after: PaintedNodes) {
+  const sharedAncestors = (nodes: PaintedNodes, id: string) => {
+    const ids: string[] = [];
+    for (let parent = nodes.get(id)!.parentId; parent; parent = nodes.get(parent)?.parentId ?? null) {
+      if (before.has(parent) && after.has(parent)) ids.push(parent);
+    }
+    return ids;
   };
-  const outside = (pose: CameraPose) => shared.filter(id => {
-    const { x, y } = after.get(id)!;
-    const screenX = pose.x + x * pose.k, screenY = pose.y + y * pose.k;
-    return screenX < canvas.left || screenX > canvas.right || screenY < canvas.top || screenY > canvas.bottom;
-  }).length;
-  const startOutside = outside(start), paintedOutside = outside(painted);
-  return startOutside < paintedOutside || (startOutside === paintedOutside
-    && sharedSyntaxTravel(painted, before, start, after)! < sharedSyntaxTravel(painted, before, painted, after)!)
-    ? start : painted;
-}
-
-/** Each stage lays out its syntax in its own coordinates, so a retained pose keeps
- * existing syntax still only where those coordinates agree. On stage entry, keep
- * the accepted view only when it moves the shared syntax no further than the
- * stage's own fit does; otherwise settle on that fit, as direct selection does. */
-export function enterStageCamera(
-  previous: CameraPose,
-  fitted: CameraPose,
-  bounds: { minX: number; minY: number; maxX: number; maxY: number },
-  view: ViewportRect,
-  before: SyntaxAnchors,
-  after: SyntaxAnchors
-) {
-  const advanced = advanceFittedCamera(previous, fitted, bounds, view);
-  if (advanced === fitted) return fitted;
-  const retainedTravel = sharedSyntaxTravel(previous, before, advanced, after);
-  const fittedTravel = sharedSyntaxTravel(previous, before, fitted, after);
-  return retainedTravel !== null && fittedTravel !== null && retainedTravel <= fittedTravel + 1e-7 ? advanced : fitted;
+  const shared = [...after.keys()].filter(id => before.has(id));
+  const unmoved = shared.filter(id => {
+    const prior = sharedAncestors(before, id), current = sharedAncestors(after, id);
+    return prior.length === current.length && prior.every((ancestor, index) => ancestor === current[index]);
+  });
+  const reference = unmoved.length ? unmoved : shared;
+  if (!reference.length) return pose;
+  const median = (values: number[]) => {
+    values.sort((a, b) => a - b);
+    return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
+  };
+  return {
+    x: pose.x + median(reference.map(id => before.get(id)!.x - after.get(id)!.x)) * pose.k,
+    y: pose.y + median(reference.map(id => before.get(id)!.y - after.get(id)!.y)) * pose.k,
+    k: pose.k
+  };
 }
 
 /** Retain an accepted fit; correct overflow with the least translation and scale reduction. */

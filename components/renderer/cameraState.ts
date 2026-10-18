@@ -1,6 +1,6 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../../types.ts';
-import type { SyntaxAnchors } from '../treeViewport.ts';
+import type { PaintedNodes } from '../treeViewport.ts';
 
 export type TreeCameraState = {
   data: SyntaxNode; signature: string; width: number; height: number; transform: d3.ZoomTransform;
@@ -8,7 +8,7 @@ export type TreeCameraState = {
 
 /** The last automatic pose, with the stage and painted syntax it framed. */
 export type AutoCameraState = TreeCameraState & {
-  stepIndex: number; fitRevision: number; stageIndex?: number; anchors?: SyntaxAnchors;
+  stepIndex: number; fitRevision: number; stageIndex: number; paintedNodes: PaintedNodes;
 };
 
 /** Retained camera interaction state for one mounted tree, shared across frame draws. */

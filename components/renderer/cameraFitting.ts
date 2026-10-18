@@ -4,9 +4,7 @@ import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
 import { animateReplayCamera } from '../replayCameraMotion.ts';
-import {
-  advanceFittedCamera, containCamera, enterStageCamera, stageEntryStartCamera, type SyntaxAnchors
-} from '../treeViewport.ts';
+import { advanceFittedCamera, carryCamera, containCamera, type PaintedNodes } from '../treeViewport.ts';
 import { guardViewCallback } from '../viewErrorHandling.ts';
 import type { CameraSession } from './cameraState.ts';
 import type { DrawingLayer } from './drawingContext.ts';
@@ -21,9 +19,9 @@ interface CameraFitGeometry {
   completedReplayStep: number;
   g: DrawingLayer;
   fitFallbackOverlays: (fitZoom: number, fittedViewport: Rect) => void;
-  /** Authored stage being framed; a change marks stage entry. */
-  stageIndex?: number;
-  anchors?: SyntaxAnchors;
+  /** Authored stage being framed; a change marks a stage crossing. */
+  stageIndex: number;
+  paintedNodes: PaintedNodes;
 }
 export function createFittedCamera({ session, layout }: { session: CameraSession; layout: CameraFitGeometry }) {
   const {
@@ -53,7 +51,7 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     g,
     fitFallbackOverlays,
     stageIndex,
-    anchors
+    paintedNodes
   } = layout;
   const animateFittedCamera = (fitted: d3.ZoomTransform, previousFit: typeof autoCameraRef.current) => {
     const sameReplay = animated && previousFit?.data === data
@@ -67,12 +65,10 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     cameraAnimationRef.current = duration ? { stepIndex: activeStepIndex, endsAt: performance.now() + duration } : null;
     svg.attr('data-babel-camera-settled-step', null);
     const painted = d3.zoomTransform(svgRef.current!);
-    // Each stage has its own coordinates. Begin a step across stages with the
-    // shared syntax where it was just painted, so only the camera then moves.
-    const from = duration && !continuing && adjacent && previousFit.stageIndex !== stageIndex
-      && previousFit.anchors && anchors
-      ? stageEntryStartCamera(painted, previousFit.anchors, anchors, { left: 0, right: containerWidth, top: 0, bottom: containerHeight })
-      : painted;
+    // A step across stages starts with its unmoved shared syntax where it was
+    // painted; a reattached constituent appears at its new place on that frame.
+    const from = adjacent && previousFit.stageIndex !== stageIndex
+      ? carryCamera(painted, previousFit.paintedNodes, paintedNodes) : painted;
     cameraRuntime.cancel = animateReplayCamera(from, fitted, duration,
       pose => applyCameraTransform(session, d3.zoomIdentity.translate(pose.x, pose.y).scale(pose.k)),
       () => { cameraAnimationRef.current = null; svg.attr('data-babel-camera-settled-step', activeStepIndex); },
@@ -94,18 +90,17 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
       && previousFit.signature === derivationStagesSignature && previousFit.fitRevision === fitRevision
       && previousFit.width === containerWidth && previousFit.height === containerHeight
       && (previousFit.stepIndex === activeStepIndex || previousFit.stepIndex + 1 === activeStepIndex)) {
-      const view = { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom };
-      // A stage's micro-steps share its fit, so they keep the pose accepted on
-      // entry. Only entering another stage weighs that pose against the new fit.
-      const advanced = previousFit.stageIndex === stageIndex
-        ? advanceFittedCamera(previousFit.transform, fitted, stageFitContainmentBounds, view)
-        : enterStageCamera(previousFit.transform, fitted, stageFitContainmentBounds, view,
-          previousFit.anchors ?? new Map(), anchors ?? new Map());
+      // Stages lay out syntax in their own coordinates, so a stage crossing first
+      // carries the accepted pose with the unmoved shared syntax.
+      const accepted = previousFit.stageIndex === stageIndex ? previousFit.transform
+        : carryCamera(previousFit.transform, previousFit.paintedNodes, paintedNodes);
+      const advanced = advanceFittedCamera(accepted, fitted, stageFitContainmentBounds,
+        { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom });
       fitted = d3.zoomIdentity.translate(advanced.x, advanced.y).scale(advanced.k);
     }
     autoCameraRef.current = {
       data, signature: derivationStagesSignature, width: containerWidth,
-      height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted, stageIndex, anchors
+      height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted, stageIndex, paintedNodes
     };
     // Labels and complete fallback badges keep their accepted automatic-Fit
     // size, then scale with the tree. Their connectors use the same reference
