@@ -5,6 +5,16 @@ import { bindPlaqueLayoutResult, bindPlaqueLayoutProgress, completePlaqueLayoutR
 import { startQueuedLayoutJob } from '../replay/layoutWorkerQueue.ts';
 const empty: ReplayPlaqueSchedule = { stages: [], steps: new Map() };
 
+function differsOnlyInViewport(previous: StageLayoutInput, next: StageLayoutInput) {
+  const a = previous as Record<string, unknown>, b = next as Record<string, unknown>;
+  return [...new Set([...Object.keys(a), ...Object.keys(b)])]
+    .every(key => key === 'width' || key === 'height' || Object.is(a[key], b[key]));
+}
+
+/** `preparedInput` names the input the returned layout belongs to. After a
+ * viewport-only change it stays the preceding input, whose completed layout
+ * remains displayable until the new viewport's layout is ready; consumers lay
+ * out and fit with that input's own viewport. Every other change hides it. */
 export function useReplayPlaqueLayout(input: StageLayoutInput | null, stageIndex = 0) {
   const requestedStage = useRef(stageIndex);
   requestedStage.current = stageIndex;
@@ -76,12 +86,16 @@ export function useReplayPlaqueLayout(input: StageLayoutInput | null, stageIndex
   }, [input, attempt]);
   const current = state?.input === input && state.attempt === attempt ? state : undefined;
   const cameraGroup = input?.layoutGroups?.find(group => group.includes(stageIndex)) ?? [stageIndex];
+  const prepared = (entry: typeof state) => Boolean(entry?.layout && (!entry.preparedStages
+    || cameraGroup.every(stage => entry.preparedStages!.includes(stage))));
+  const retained = !current && input && state && state.attempt === attempt && prepared(state)
+    && differsOnlyInViewport(state.input, input) ? state : undefined;
+  const shown = retained ?? current;
   // Later-stage completion must not invalidate the camera inputs of an already
   // displayed group. Keep its immutable early delivery; other groups use full data.
-  const layout = current?.earlyDelivery && cameraGroup.every(stage => current.earlyDelivery!.preparedStages.includes(stage))
-    ? current.earlyDelivery.layout : current?.layout;
+  const layout = shown?.earlyDelivery && cameraGroup.every(stage => shown.earlyDelivery!.preparedStages.includes(stage))
+    ? shown.earlyDelivery.layout : shown?.layout;
   return { schedule: layout?.schedule ?? empty, coordinates: layout?.coordinates,
-    ready: !input || Boolean(current?.layout && (!current.preparedStages
-      || cameraGroup.every(stage => current.preparedStages!.includes(stage)))),
+    ready: !input || prepared(shown), preparedInput: layout ? shown!.input : undefined,
     error: current?.error, retry: () => setAttempt(value => value + 1) };
 }

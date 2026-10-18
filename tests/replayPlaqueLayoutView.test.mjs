@@ -63,10 +63,10 @@ const assertPending = view => {
   assert.equal(view.coordinates, undefined, 'old coordinates are hidden');
   assert.equal(view.error, undefined);
 };
-for (const change of ['viewport', 'analysis']) {
+for (const change of ['analysis', 'analysis and viewport']) {
   test(`a new ${change} hides every old placement and ignores stale worker completions`, () => {
     const app = mount(), first = { width: 1200, steps: ['analysis-one'] };
-    const next = change === 'viewport' ? { ...first, width: 390 } : { ...first, steps: ['analysis-two'] };
+    const next = { ...first, steps: ['analysis-two'], ...(change === 'analysis' ? {} : { width: 390 }) };
     const initial = schedule('first', 100), stale = schedule('late', 900), expected = schedule('next', 300);
     assertPending(app.render(first)); app.effects(); app.timers();
     app.jobs[0].ready(initial);
@@ -91,6 +91,55 @@ for (const change of ['viewport', 'analysis']) {
     assert.equal(app.render(next).error, undefined);
   });
 }
+test('a new viewport keeps the preceding layout, with its own input, until its own layout is ready', () => {
+  const app = mount(), first = { width: 1200, height: 900, steps: ['analysis-one'] };
+  const initial = schedule('first', 100), lateFirst = schedule('late first viewport', 900), expected = schedule('next', 300);
+  assertPending(app.render(first)); app.effects(); app.timers();
+  app.jobs[0].ready(initial);
+  // The harness posts the input itself as its job; resize after that job, as the app does.
+  const next = { ...first, width: 390 };
+  const painted = app.render(first);
+  assert(painted.ready);
+  assert.strictEqual(painted.preparedInput, first);
+  const held = app.render(next);
+  assert(held.ready, 'the painted tree stays displayable while the new viewport is prepared');
+  assert.strictEqual(held.schedule, initial);
+  assert.strictEqual(held.preparedInput, first, 'retained geometry is labelled with the viewport it was prepared for');
+  assert.equal(held.error, undefined);
+  assertPending(app.render({ ...next, abstractionMode: true }));
+  assertPending(app.render({ ...next, steps: ['analysis-two'] }));
+  // React has rendered the new viewport, but the preceding effect can still finish.
+  app.jobs[0].ready(lateFirst);
+  assert.strictEqual(app.render(next).schedule, lateFirst, 'a late result for the preceding input is still that input\'s own layout');
+  assert.strictEqual(app.render(next).preparedInput, first);
+  app.effects(); app.timers(); assert(app.jobs[0].cancelled);
+  app.jobs[0].ready(schedule('after cleanup', 700)); app.jobs[0].error(new Error('late old worker failure'));
+  assert.strictEqual(app.render(next).schedule, lateFirst);
+  assert.strictEqual(app.render(next).preparedInput, first);
+  app.jobs.at(-1).ready(expected);
+  const swapped = app.render(next);
+  assert(swapped.ready);
+  assert.strictEqual(swapped.schedule, expected);
+  assert.strictEqual(swapped.preparedInput, next);
+  assert.strictEqual(app.render(first).preparedInput, next, 'resizing back keeps the current painting until that request completes');
+});
+
+test('a retained viewport layout must cover the displayed stage, and a failed new viewport stays visible', () => {
+  const app = mount(), first = { width: 1200, layoutGroups: [[0], [1]] };
+  app.render(first, 0); app.effects(); app.timers();
+  app.jobs[0].progress({ ...schedule('early', 100), preparedStages: [0] });
+  const next = { ...first, width: 390 };
+  assert(app.render(first, 0).ready);
+  assert.strictEqual(app.render(next, 0).preparedInput, first, 'a prepared stage keeps its painting');
+  assertPending(app.render(next, 1));
+  app.render(next, 0); app.effects(); app.timers();
+  app.jobs.at(-1).error(new Error('new viewport failed'));
+  const failed = app.render(next, 0);
+  assert.equal(failed.ready, false);
+  assert.equal(failed.error, 'new viewport failed');
+  assert.equal(failed.preparedInput, undefined, 'a failed preparation is not hidden behind the earlier viewport');
+});
+
 test('disabling layout cancels queued measurements and a failed worker can be retried', () => {
   const app = mount(), input = {};
   app.render(input); app.effects(); app.render(null); app.effects(); app.timers(); assert.equal(app.jobs.length, 0);
@@ -226,7 +275,7 @@ test('the current requested stage is read after deferred measurements finish', (
 });
 
 test('input replacement hides early geometry and rejects late progress before and after cleanup', () => {
-  const app = mount(), input = {}, replacement = {};
+  const app = mount(), input = { steps: ['analysis-one'] }, replacement = { steps: ['analysis-two'] };
   const early = { ...schedule('early', 100), preparedStages: [0] };
   app.render(input); app.effects(); app.timers(); app.jobs[0].progress(early);
   assert(app.render(input).ready);

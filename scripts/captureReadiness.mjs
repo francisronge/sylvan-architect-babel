@@ -5,12 +5,13 @@ export async function waitForReplayPaint(page, index, { timeout = 30_000 } = {})
     const transform = svg?.querySelector(':scope > g')?.getAttribute('transform');
     return svg?.dataset.babelRenderedStep === String(index)
       && svg.dataset.babelCameraSettledStep === String(index)
+      && !svg.hasAttribute('data-babel-viewport-pending')
       && document.fonts.status === 'loaded' && transform && !/NaN|Infinity/.test(transform);
   };
   await page.waitForFunction(ready, index, { timeout });
   await waitForFiniteAnimations(page, { timeout });
-  // Resize can start measured preparation during the settling frames. Wait
-  // for its new paint instead of returning the stale pre-resize receipt.
+  // A resize during the settling frames keeps the earlier frame painted until
+  // the settled viewport is drawn. Wait for that paint, not the pre-resize receipt.
   await page.waitForFunction(ready, index, { timeout });
   const receipt = await inspectPaintedTree(page);
   if (receipt.renderedFrame !== String(index) || receipt.cameraFrame !== String(index)) {
@@ -23,6 +24,7 @@ export async function waitForCanopyPaint(page, { timeout = 30_000 } = {}) {
   await page.waitForFunction(() => !document.querySelector('[data-babel-replay-panel]')
     && document.querySelector('svg[data-babel-tree] .node-group text')
     && document.querySelector('svg[data-babel-tree]')?.dataset.babelCameraSettledStep !== undefined
+    && !document.querySelector('svg[data-babel-tree]')?.hasAttribute('data-babel-viewport-pending')
     && document.fonts.status === 'loaded', null, { timeout });
   await waitForFiniteAnimations(page, { timeout });
   return inspectPaintedTree(page);

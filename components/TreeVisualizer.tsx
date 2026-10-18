@@ -6,6 +6,7 @@ import { buildResolvedLinkTraceIndexMap } from '../replay/movementIndices.ts';
 import { isPhrasalReplayMovement } from '../replay/movementLinks.ts';
 import { STEP_DELAY_MS } from '../replay/playbackFormatting.ts';
 import { prepareReplay, type PreparedReplay } from '../replay/prepareReplay.ts';
+import { plaqueLayoutViewportKey } from '../replay/plaqueLayoutJob.ts';
 import { prepareTreeLabelRuns } from '../replay/prepareTreeLabelRuns.ts';
 import type { PlaqueTextMeasure } from '../replay/relations/plaqueTextLayout.ts';
 import {
@@ -29,6 +30,7 @@ import { drawTreeFrame } from './renderer/treeFrame.ts';
 import ReplayPanel from './ReplayPanel';
 import { createTreeInkTextMeasure } from './treeInkTextMeasure';
 import { createTreeLabelMeasure } from './treeLabelMeasure.ts';
+import { createViewportSettler } from './treeViewport.ts';
 import { watchTreeVisualizerFonts } from './treeVisualizerFonts';
 import { useReplayPlaqueLayout } from './useReplayPlaqueLayout';
 import { useTreeDirection } from './useTreeDirection';
@@ -101,6 +103,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const applyRelationEmphasisRef = useRef<(() => void) | null>(null);
   const terminalMorphRef = useRef<Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }>>(new Map());
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  // A resize after the first painted frame settles before it is committed; the
+  // painted tree keeps its frame until then. See createViewportSettler.
+  const committedDimensionsRef = useRef(dimensions);
+  const framePaintedRef = useRef(false);
+  const viewportSettlerRef = useRef<ReturnType<typeof createViewportSettler> | null>(null);
+  const measureUiBoundsRef = useRef<(() => void) | null>(null);
   const [fontLayoutPass, setFontLayoutPass] = useState(0);
   const fontText = useMemo(() => [...new Set(JSON.stringify([data, derivationStages, sentence]))].sort().join(''),
     [data, derivationStages, sentence]);
@@ -119,6 +127,16 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     typeof document === 'undefined' ? undefined : document), [fontLayoutPass]);
   const measureTreeLabel = useMemo(() => createTreeLabelMeasure(
     typeof document === 'undefined' ? undefined : document), [fontLayoutPass]);
+  // Measured in untransformed SVG units, so a resize keeps the same measure.
+  const measurePlaqueText = useMemo<PlaqueTextMeasure>(() => {
+    const measured = new Map<string, ReturnType<PlaqueTextMeasure>>();
+    return (text, style) => {
+      const key = JSON.stringify([text, style]);
+      if (!measured.has(key)) measured.set(key,
+        withPlaqueTextMeasure(d3.select(svgRef.current!), measure => measure(text, style)));
+      return measured.get(key)!;
+    };
+  }, [fontLayoutPass]);
   const [fitRevision, setFitRevision] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [isScrubbing, setIsScrubbing] = useState(false);
@@ -382,29 +400,42 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     || item.familyId === 'theta.grid');
   const stageLayoutGroups = useMemo(() => buildStageLayoutGroups(playbackSteps, replayDerivationFrames),
     [playbackSteps, replayDerivationFrames]);
-  const stageLayoutSize = useMemo(() => (
-    animated && usesDerivationFrames
-      ? stageTreeLayoutSize(playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height, stageLayoutGroups)
-      : null
-  ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, dimensions.width, dimensions.height, stageLayoutGroups]);
+  // Replay layout is requested at a new viewport only when that viewport changes
+  // a stage's layout size. Otherwise the existing layout serves the new camera fit.
+  const layoutViewportKey = useMemo(() => usesDerivationFrames && dimensions.width > 0
+    ? plaqueLayoutViewportKey({ steps: playbackSteps, plan: disableRelationOverlay ? null : relationRenderPlan,
+      layoutGroups: stageLayoutGroups, ...dimensions })
+    : null, [usesDerivationFrames, dimensions, playbackSteps, disableRelationOverlay, relationRenderPlan, stageLayoutGroups]);
+  const layoutDimensionsRef = useRef({ key: layoutViewportKey, dimensions });
+  if (layoutViewportKey === null || layoutViewportKey !== layoutDimensionsRef.current.key) {
+    layoutDimensionsRef.current = { key: layoutViewportKey, dimensions };
+  }
+  const layoutDimensions = layoutDimensionsRef.current.dimensions;
   const plaqueLayoutInput = useMemo(() => {
-    if (!committedDerivationCanvasData || dimensions.width === 0 || settledFontText !== fontText) return null;
-    const measured = new Map<string, ReturnType<PlaqueTextMeasure>>();
-    const measurePlaqueText: PlaqueTextMeasure = (text, style) => {
-      const key = JSON.stringify([text, style]);
-      if (!measured.has(key)) measured.set(key,
-        withPlaqueTextMeasure(d3.select(svgRef.current!), measure => measure(text, style)));
-      return measured.get(key)!;
-    };
+    if (!committedDerivationCanvasData || layoutDimensions.width === 0 || settledFontText !== fontText) return null;
     return {
       steps: playbackSteps, stageIndex: 0, completedCanvas: committedDerivationCanvasData,
-      plan: disableRelationOverlay ? null : relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
+      plan: disableRelationOverlay ? null : relationRenderPlan, ...layoutDimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       layoutGroups: stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
     };
   }, [committedDerivationCanvasData, playbackSteps, relationRenderPlan,
-    dimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups, fontLayoutPass, treeDirection, settledFontText, fontText, treeLabelRuns, measureTreeLabel]);
+    layoutDimensions, abstractionMode, movementProtectedNodeIds, disableRelationOverlay, stageLayoutGroups, measurePlaqueText, treeDirection, settledFontText, fontText, treeLabelRuns, measureTreeLabel]);
   const { schedule: replayPlaqueSchedule, coordinates: replayCoordinates, ready: plaqueLayoutReady, error: plaqueLayoutError,
-    retry: retryPlaqueLayout } = useReplayPlaqueLayout(plaqueLayoutInput, activeDerivationFrameIndex);
+    retry: retryPlaqueLayout, preparedInput: preparedLayoutInput } = useReplayPlaqueLayout(plaqueLayoutInput, activeDerivationFrameIndex);
+  // While a new viewport's layout is prepared, the preceding layout stays on
+  // screen with the viewport and canvas bounds it was painted for.
+  const frameHeldForLayout = Boolean(preparedLayoutInput && preparedLayoutInput !== plaqueLayoutInput);
+  const preparedLayoutViewport = useMemo(() => preparedLayoutInput
+    && { width: preparedLayoutInput.width, height: preparedLayoutInput.height }, [preparedLayoutInput]);
+  const layoutViewport = preparedLayoutViewport ?? layoutDimensions;
+  const frameViewportRef = useRef({ dimensions, uiBounds });
+  if (!frameHeldForLayout) frameViewportRef.current = { dimensions, uiBounds };
+  const { dimensions: frameDimensions, uiBounds: frameUiBounds } = frameViewportRef.current;
+  const stageLayoutSize = useMemo(() => (
+    animated && usesDerivationFrames
+      ? stageTreeLayoutSize(playbackSteps, activeDerivationFrameIndex, layoutViewport.width, layoutViewport.height, stageLayoutGroups)
+      : null
+  ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, layoutViewport, stageLayoutGroups]);
   const missingReplayCoordinates = Boolean(plaqueLayoutInput && plaqueLayoutReady && usesDerivationFrames
     && !replayCoordinates?.get(activeDerivationFrameIndex)?.has(canvasData));
   const layoutReady = settledFontText === fontText && dimensions.width > 0 && plaqueLayoutReady && !missingReplayCoordinates;
@@ -415,17 +446,17 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const completedReplayStep = currentStepIndex === playbackSteps.length - 1
     && playbackSteps[currentStepIndex]?.replayKind === 'macro' ? currentStepIndex : undefined;
   const stageCameraBounds = useMemo(() => {
-    if (!layoutReady || !animated || !usesDerivationFrames || !activeDerivationFrame || dimensions.width === 0) return null;
+    if (!layoutReady || !animated || !usesDerivationFrames || !activeDerivationFrame || layoutViewport.width === 0) return null;
     return buildStageCameraBounds({
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       stepIndex: completedReplayStep,
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
-      plan: relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
+      plan: relationRenderPlan, ...layoutViewport, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       includeOverlays: !disableRelationOverlay && !acceptedCompositionIsTreeFirst,
       plaqueLayout: stagePlaqueLayout, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
     });
   }, [layoutReady, animated, usesDerivationFrames, activeDerivationFrame, activeDerivationFrameIndex, completedReplayStep,
-    playbackSteps, relationRenderPlan, dimensions, abstractionMode,
+    playbackSteps, relationRenderPlan, layoutViewport, abstractionMode,
     movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout, replayPlaqueSchedule, replayCoordinates, stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, treeDirection]);
   const stagePlaqueContainmentBounds = useMemo(() => {
     const hasBindingDomain = relationRenderPlan?.frames[activeDerivationFrameIndex]?.items.some(item => item.kind === 'binding-domain');
@@ -435,12 +466,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       stepIndex: completedReplayStep,
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
-      plan: relationRenderPlan, ...dimensions, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
+      plan: relationRenderPlan, ...layoutViewport, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       includeOverlays: false, includePlaques: true, includeBindingDomains: true,
       plaqueLayout: stagePlaqueLayout, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
     });
   }, [stageCameraBounds, activeDerivationFrame, disableRelationOverlay, acceptedCompositionIsTreeFirst, completedReplayStep,
-    playbackSteps, activeDerivationFrameIndex, relationRenderPlan, dimensions, abstractionMode,
+    playbackSteps, activeDerivationFrameIndex, relationRenderPlan, layoutViewport, abstractionMode,
     movementProtectedNodeIds, stagePlaqueLayout, replayPlaqueSchedule, replayCoordinates, stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, treeDirection]);
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -448,6 +479,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const controls = Array.from<HTMLElement>(container.closest('[data-babel-workspace]')?.querySelectorAll<HTMLElement>('[data-babel-tree-controls]') || []);
     const measure = guardViewCallback(() => {
       const canvas = container.getBoundingClientRect();
+      // Obstacles of a resizing canvas commit together with its settled size.
+      // Either observer may report first, so compare the canvas itself too.
+      const settled = committedDimensionsRef.current;
+      if (framePaintedRef.current && (viewportSettlerRef.current?.pending
+        || Math.abs(container.clientWidth - settled.width) >= 1 || Math.abs(container.clientHeight - settled.height) >= 1)) return;
       const next = { top: 0, right: 16, bottom: 16, headerBottom: 0, panelTop: Infinity };
       controls.forEach((element) => {
         if (element.getAttribute('aria-hidden') === 'true' || !element.getClientRects().length) return;
@@ -463,6 +499,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const observer = new ResizeObserver(measure);
     [container, replayHeaderRef.current, replayPanelRef.current, ...controls].forEach(element => { if (element) observer.observe(element); });
     controls.forEach(element => element.addEventListener('transitionend', measure));
+    measureUiBoundsRef.current = measure;
     measure();
     return () => {
       observer.disconnect();
@@ -472,15 +509,33 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   useEffect(() => {
     if (!containerRef.current) return;
     const observeTarget = containerRef.current;
+    const settler = createViewportSettler({
+      painted: () => framePaintedRef.current,
+      schedule: (callback, delay) => window.setTimeout(guardViewCallback(callback, reportViewError), delay),
+      cancel: id => window.clearTimeout(id),
+      apply: (size) => {
+        // A new object refits even when a burst returned to the committed size.
+        committedDimensionsRef.current = { ...size };
+        setDimensions(committedDimensionsRef.current);
+        measureUiBoundsRef.current?.();
+      }
+    });
+    viewportSettlerRef.current = settler;
     const resizeObserver = new ResizeObserver(guardViewCallback((entries: ResizeObserverEntry[]) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) setDimensions(previous =>
-          previous.width === width && previous.height === height ? previous : { width, height });
+        if (width > 0 && height > 0) settler.observe({ width, height });
       }
+      // Capture readiness must not accept the pre-resize frame. The draw that
+      // paints the settled viewport removes this marker.
+      if (settler.pending) svgRef.current?.setAttribute('data-babel-viewport-pending', 'true');
     }, reportViewError));
     resizeObserver.observe(observeTarget);
-    return () => resizeObserver.unobserve(observeTarget);
+    return () => {
+      resizeObserver.unobserve(observeTarget);
+      settler.dispose();
+      viewportSettlerRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -573,7 +628,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     animated,
     canvasData,
     data,
-    dimensions,
+    frameDimensions,
     fontLayoutPass,
     abstractionMode,
     firstSentenceReplayDisplayToken,
@@ -588,11 +643,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   ]);
 
   useEffect(() => {
-    if (!layoutReady || !canvasData || !svgRef.current || dimensions.width === 0) return;
+    if (!layoutReady || !canvasData || !svgRef.current || frameDimensions.width === 0) return;
 
-    return drawTreeFrame({
+    const disposeFrame = drawTreeFrame({
       layout: {
-        dimensions,
+        dimensions: frameDimensions,
         canvasData,
         abstractionMode,
         movementProtectedNodeIds,
@@ -600,7 +655,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         replayCoordinates,
         treeDirection,
         activePlaqueLayout,
-        uiBounds,
+        uiBounds: frameUiBounds,
         stageCameraBounds,
         stagePlaqueContainmentBounds
       }, replay: {
@@ -643,6 +698,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         collectionRevealRef
       }
     });
+    framePaintedRef.current = true;
+    if (frameDimensions === committedDimensionsRef.current && !viewportSettlerRef.current?.pending) {
+      svgRef.current.removeAttribute('data-babel-viewport-pending');
+    }
+    return disposeFrame;
   }, [
     layoutReady,
     replayCoordinates,
@@ -661,12 +721,12 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     stageLayoutSize,
     treeDirection,
     acceptedCompositionIsTreeFirst,
-    dimensions,
+    frameDimensions,
     fontLayoutPass,
     treeLabelRuns,
     measureTreeLabel,
     fitRevision,
-    uiBounds,
+    frameUiBounds,
     animated,
     abstractionMode,
     derivationFramesSignature,

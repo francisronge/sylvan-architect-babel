@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { advanceFittedCamera, availableTreeViewport, containCamera, linearizationViewport } from '../components/treeViewport.ts';
+import { advanceFittedCamera, availableTreeViewport, containCamera, createViewportSettler, linearizationViewport, VIEWPORT_SETTLE_MS } from '../components/treeViewport.ts';
 
 test('plaque containment leaves an already fitting camera exactly unchanged', () => {
   const preferred = { x: 173.4, y: 93.1, k: 0.27 };
@@ -75,4 +75,53 @@ test('a same-scale Replay advance retains framing and only pans for actual overf
     'an eight-percent opportunity to zoom in is not a reason to move the camera');
   const overflow = advanceFittedCamera(previous, larger, { ...bounds, maxX: 12000 }, view);
   assert(overflow.k < previous.k, 'new content still earns the scale reduction needed to remain visible');
+});
+
+function settlerHarness() {
+  const timers = new Map(), applied = [];
+  let now = 0, id = 0, painted = false;
+  const settler = createViewportSettler({
+    apply: size => applied.push({ ...size, at: now }), painted: () => painted,
+    schedule: (callback, delay) => { timers.set(++id, { callback, at: now + delay }); return id; },
+    cancel: timer => timers.delete(timer)
+  });
+  const advance = ms => {
+    now += ms;
+    for (const [timer, { callback, at }] of [...timers]) if (at <= now) { timers.delete(timer); callback(); }
+  };
+  return { settler, applied, timers, advance, paint: () => { painted = true; } };
+}
+
+test('opening sizes apply at once, so the first paint is never delayed', () => {
+  const { settler, applied, timers, paint } = settlerHarness();
+  settler.observe({ width: 1200, height: 750 });
+  settler.observe({ width: 1200, height: 750 });
+  settler.observe({ width: 1196, height: 750 });
+  assert.deepEqual(applied, [{ width: 1200, height: 750, at: 0 }, { width: 1196, height: 750, at: 0 }]);
+  assert.equal(timers.size, 0);
+  paint();
+  settler.observe({ width: 1196, height: 750 });
+  assert.equal(settler.pending, false, 'an unchanged size after painting schedules nothing');
+});
+
+test('a resize burst after painting applies its last size once, after it settles', () => {
+  const { settler, applied, advance, paint } = settlerHarness();
+  settler.observe({ width: 1200, height: 750 }); paint();
+  settler.observe({ width: 1400, height: 860 });
+  advance(VIEWPORT_SETTLE_MS - 1);
+  settler.observe({ width: 1600, height: 1000 });
+  assert(settler.pending);
+  advance(VIEWPORT_SETTLE_MS - 1);
+  assert.equal(applied.length, 1, 'the painted frame stays in place while the canvas keeps changing');
+  advance(1);
+  assert.deepEqual(applied.at(-1), { width: 1600, height: 1000, at: 2 * VIEWPORT_SETTLE_MS - 1 });
+  assert.equal(settler.pending, false);
+  settler.observe({ width: 1200, height: 750 });
+  settler.observe({ width: 1600, height: 1000 });
+  advance(VIEWPORT_SETTLE_MS);
+  assert.equal(applied.length, 3, 'a burst that returns to the committed size still settles, so a refit clears its pending state');
+  assert.deepEqual(applied.at(-1), { width: 1600, height: 1000, at: 3 * VIEWPORT_SETTLE_MS - 1 });
+  settler.observe({ width: 900, height: 700 }); settler.dispose();
+  advance(VIEWPORT_SETTLE_MS);
+  assert.equal(applied.length, 3, 'unmounting cancels an unsettled resize');
 });
