@@ -106,7 +106,9 @@ export function clearLabelPath(from: Point, to: Point, boxes: readonly Rect[] = 
   const at = (t: number): Point => ({ x: from.x + dx * t, y: from.y + dy * t });
   const besideLabels = boxes.reduce<Interval[]>((parts, box) => removeInterval(parts, lineInterval(from, dx, dy, box)), [[0, 1]]);
   const start = besideLabels[0]?.[0], end = besideLabels.at(-1)?.[1];
-  const point = (t: number) => `${at(t).x.toFixed(1)} ${at(t).y.toFixed(1)}`;
+  // SVG reads -0.0 and 0.0 as one coordinate; writing only 0.0 keeps equal points equal.
+  const coordinate = (value: number) => value.toFixed(1).replace(/^-(0\.0)$/, '$1');
+  const point = (t: number) => `${coordinate(at(t).x)} ${coordinate(at(t).y)}`;
   const length = Math.hypot(dx, dy);
   // Judge attachment on pieces as they are written, so the check and the path cannot disagree.
   const drawn = ([a, b]: Interval) => point(a) !== point(b);

@@ -158,10 +158,10 @@ test('attached end pieces stay drawable after coordinate rounding', () => {
   }
 });
 
-for (const near of [{ x: 13, y: 15, width: 50, height: 30 }, { x: 13, y: 17.81, width: 50, height: 24.38 }])
-test(`a placed spoke near plaque ${JSON.stringify(near)} stays attached to both role labels`, () => {
+// Syntax labels are measured boxes `rise` units above their nodes.
+const assertPlacedSpokeAttached = (near, rise = 10) => {
   const nodes = { a: { x: 0, y: 0 }, b: { x: 0, y: 60 }, c: { x: 200, y: 60 } };
-  const syntax = Object.fromEntries(Object.entries(nodes).map(([id, p]) => [id, { x: p.x - 10, y: p.y - 10, width: 20, height: 20 }]));
+  const syntax = Object.fromEntries(Object.entries(nodes).map(([id, p]) => [id, { x: p.x - 10, y: p.y - rise, width: 20, height: 20 }]));
   const measurements = { labels: Object.values(syntax), obstacles: [near], visibleLabels: Object.values(syntax),
     visibleObstacles: [near], labelFor: id => syntax[id], subtreeFor: id => syntax[id], bottom: 70 };
   const stage = { statement: '', stageRecord: '', relations: [{ relation: 'Unfamiliar relation', anchors: { h: 'a', p: ['b', 'c'] } }],
@@ -178,13 +178,23 @@ test(`a placed spoke near plaque ${JSON.stringify(near)} stays attached to both 
       || role.y + role.height <= near.y + 0.5 || near.y + near.height <= role.y + 0.5, 'role labels avoid the plaque');
   }
   const spokes = fitted.filter(primitive => primitive.type === 'segment');
-  for (const spoke of spokes) assert(pieces(spoke.d).length > 0, `spoke ${spoke.witnessNodeIds.join('→')} is drawn`);
+  for (const spoke of spokes) {
+    assert(pieces(spoke.d).length > 0, `spoke ${spoke.witnessNodeIds.join('→')} is drawn`);
+    assert(!spoke.d.includes('-0.0'), 'paths never write a signed zero');
+  }
   // The a→b spoke meets the plaque right below its hub label; it is cut only at the plaque's edges.
   const meeting = spokes.find(spoke => spoke.witnessNodeIds.includes('b')), drawn = pieces(meeting.d);
   const [hub, target] = [meeting.fromMark, meeting.toMark].map(order => marks.find(mark => mark.allocationOrder === order));
   assert(pointRectDistance(drawn[0][0], fallbackLabelRect(hub, 1)) < ROUNDING);
   assert(pointRectDistance(drawn.at(-1)[1], fallbackLabelRect(target, 1)) < ROUNDING);
-  for (const [p, q] of [drawn[0], drawn.at(-1)]) assert(p.x !== q.x || p.y !== q.y, 'each attached piece has length');
+  for (const [p, q] of [drawn[0], drawn.at(-1)]) assert(p.x !== q.x || p.y !== q.y, `each attached piece has length: ${meeting.d}`);
+};
+for (const near of [{ x: 13, y: 15, width: 50, height: 30 }, { x: 13, y: 17.81, width: 50, height: 24.38 }])
+  test(`a placed spoke near plaque ${JSON.stringify(near)} stays attached to both role labels`, () => assertPlacedSpokeAttached(near));
+
+// These gap boundaries put the source piece at y = -0.0..0.0; a signed zero must not hide its zero length.
+test('a placed spoke stays attached across signed-zero rounding boundaries', () => {
+  for (let i = 1; i <= 49; i++) assertPlacedSpokeAttached({ x: 13, y: 5.8 + i / 1000, width: 50, height: 18 }, 22 + i / 1000);
 });
 
 test('close plaques leave no zero-length or dot-sized fragment between their gaps', () => {
