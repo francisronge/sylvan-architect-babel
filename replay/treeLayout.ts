@@ -21,20 +21,30 @@ type TreeLayoutMeasurements = {
 /** Tidy positions in which a bare leaf between two sisters also occupies the
  * rows below it, down to its sisters' deepest row. Otherwise a sister's deeper
  * descendant can sit in the leaf's column, and the leaf's branch reads as that
- * descendant's parent. The column is layout-only and is never painted. */
+ * descendant's parent. The column is layout-only and is never painted.
+ * Columns are granted shallowest first and add at most one placeholder per real
+ * node; nested forks beyond that budget keep the ordinary tidy shape. */
 function tidyTree(root: d3.HierarchyNode<SyntaxNode>): d3.HierarchyPointNode<SyntaxNode> {
   const layout = d3.tree<SyntaxNode>().nodeSize([TREE_SIBLING_GAP / 2.5, TREE_ROW_HEIGHT])
     .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5);
   const deepest = new Map<d3.HierarchyNode<SyntaxNode>, number>(), columns = new Map<SyntaxNode, number>();
   // Future scaffolding neither creates such a fork nor deepens one.
   const syntax = (node: d3.HierarchyNode<SyntaxNode>) => (node.children ?? []).filter(child => !child.data.replayLayoutOnly);
-  root.eachAfter(node => deepest.set(node, Math.max(node.depth, ...syntax(node).map(child => deepest.get(child)!))));
+  let budget = 0;
+  root.eachAfter(node => {
+    budget++;
+    deepest.set(node, Math.max(node.depth, ...syntax(node).map(child => deepest.get(child)!)));
+  });
   root.each(node => {
     const children = syntax(node);
     if (children.length < 3 || node.data.replayOrigin?.kind === 'workspace') return;
     const bottom = Math.max(...children.map(child => deepest.get(child)!));
-    for (const child of children.slice(1, -1))
-      if (!child.children?.length && bottom > child.depth) columns.set(child.data, bottom - child.depth);
+    for (const child of children.slice(1, -1)) {
+      const rows = bottom - child.depth;
+      if (child.children?.length || rows <= 0 || rows > budget) continue;
+      columns.set(child.data, rows);
+      budget -= rows;
+    }
   });
   if (!columns.size) return layout(root);
   const column = new WeakMap<SyntaxNode, SyntaxNode[]>();

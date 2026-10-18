@@ -12,12 +12,16 @@ import * as layout from '../replay/treeLayout.ts';
 import { TREE_ROW_HEIGHT, TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
 import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
+import { createTreeInkTextMeasure } from '../components/treeInkTextMeasure.ts';
+import { createMeasuringDocument, measureCategoryText } from './helpers/visualFontMetrics.mjs';
 
 const read = name => JSON.parse(readFileSync(new URL(`../fixtures/replay-regressions/${name}`, import.meta.url), 'utf8'));
 const phaseEdge = read('es-wh-phase-edge-contour.json');
 const headFinal = read('diverse-recovery.json').examples.find(example => example.id === 'sol-korean-long-negation');
 const compactLanding = read('hi-correlative-landing-contour.json');
-const middleHead = read('zh-relative-middle-head-column.json');
+// Catalog #24: GPT-6.1 Sol, spellout-metalanguage-ab 47-zh-relative.r1.B, analysis 6.
+const middleHead = (({ sentence, inputTokens, analyses }) => ({ sentence, inputTokens, ...analyses[0] }))(
+  read('visual-human-catalog.json').cases.find(entry => entry.sentence === '我昨天看见的那个人走了。'));
 const viewports = [[1600, 948], [390, 844]];
 
 function layoutRecord(record, [width, height], direction) {
@@ -219,4 +223,43 @@ test('no committed fixture is left with interleaved sister contours', () => {
   assert.deepEqual(repaired.sort(), ['replay-regressions/diverse-recovery.json#/examples/5/analysis',
     'replay-regressions/es-wh-phase-edge-contour.json#', 'replay-regressions/hi-correlative-landing-contour.json#'],
   'a newly repaired fixture changes its established layout; review it and list it here');
+});
+
+const word = (id, label, text) => ({ id, label, word: text });
+const fork = (id, label, ...children) => ({ id, label, children });
+// A right-branching subject whose deeper nodes reach under the bare T.
+const middleHeadClause = () => fork('tp', 'TP',
+  fork('subject', 'DP', word('the', 'D', 'the'), fork('np', 'NP', word('man', 'N', 'man'),
+    fork('cp', 'CP', word('who', 'C', 'who'), fork('vp2', 'VP', word('left', 'V', 'left'),
+      fork('pp', 'PP', word('at', 'P', 'at'), word('noon', 'D', 'noon')))))),
+  { id: 't', label: 'T' },
+  fork('vp', 'vP', word('v', 'v', 'did'), fork('vbar', 'VP', word('go', 'V', 'go'), word('home', 'N', 'home'))));
+
+for (const direction of ['ltr', 'rtl']) test(`${direction} Canopy: measured composition keeps the bare T's column clear`, () => {
+  const measureTreeInk = createTreeInkTextMeasure(createMeasuringDocument());
+  const root = d3.hierarchy(middleHeadClause());
+  const nodes = layout.layoutSyntaxTree(root, [1600, 948], direction, undefined, undefined, { measureCategoryText, measureTreeInk })
+    .descendants();
+  const at = id => nodes.find(node => display.getNodeId(node) === id), sign = direction === 'rtl' ? -1 : 1;
+  const t = at('t'), tp = at('tp');
+  assert.deepEqual([t.y - tp.y, at('subject').y, at('vp').y], [TREE_ROW_HEIGHT, t.y, t.y], 'one-row branches and level sisters');
+  for (const [sister, side] of [['subject', -1], ['vp', 1]]) for (const node of at(sister).descendants().filter(node => node.y > t.y))
+    assert.ok((node.x - t.x) * sign * side >= TREE_SIBLING_GAP / 2, `${display.getNodeId(node)} stays out of T's column`);
+  assert.equal(siblingContoursOrdered(nodes, direction), true);
+});
+
+test('nested middle heads cost at most linear placeholder work', () => {
+  // 256 nested forks [a, t, fork]: every middle t would need a column to the bottom.
+  let data = fork('f256', 'F', { id: 'a256', label: 'A' }, { id: 't256', label: 'T' }, { id: 'b256', label: 'B' });
+  for (let depth = 255; depth >= 0; depth--) data = fork(`f${depth}`, 'F', { id: `a${depth}`, label: 'A' }, { id: `t${depth}`, label: 'T' }, data);
+  const root = d3.hierarchy(data), size = root.descendants().length, set = Map.prototype.set;
+  let writes = 0, nodes;
+  Map.prototype.set = function (...args) { writes++; return set.apply(this, args); };
+  try { nodes = layout.layoutSyntaxTree(root, [1600, 948]).descendants(); } finally { Map.prototype.set = set; }
+  // One placeholder per reserved row would need size² / 6 writes here.
+  assert.ok(writes <= 10 * size, `${writes} layout writes for ${size} nodes`);
+  writes = 0;
+  Map.prototype.set = function (...args) { writes++; return set.apply(this, args); };
+  try { siblingContoursOrdered(nodes); } finally { Map.prototype.set = set; }
+  assert.ok(writes <= 4 * size, `${writes} contour writes for ${size} nodes`);
 });

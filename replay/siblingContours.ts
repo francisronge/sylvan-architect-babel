@@ -36,6 +36,8 @@ export function siblingContoursOrdered<N extends d3.HierarchyNode<SyntaxNode> & 
   }
   for (const node of order.reverse())
     deepest.set(node, Math.max(point(node).y, ...childrenOf(node).map(child => deepest.get(child)!)));
+  // As in the tidy layout, columns add at most one row per current node.
+  let budget = syntax.size;
   for (const root of roots) {
     // One pre-order walk per tree. When a node is entered, every finished node
     // lies in an earlier sister subtree of one of its ancestors, so the node must
@@ -56,10 +58,11 @@ export function siblingContoursOrdered<N extends d3.HierarchyNode<SyntaxNode> & 
         row = y.toFixed(3); position = x * sign;
         const sisters = entry.node.parent && syntax.has(entry.node.parent as N) ? childrenOf(entry.node.parent as N) : [];
         const index = sisters.indexOf(entry.node);
-        if (!children.length && index > 0 && index < sisters.length - 1) {
-          const bottom = Math.max(...sisters.map(sister => deepest.get(sister)!));
-          for (let lower = y + TREE_ROW_HEIGHT; lower <= bottom + 1e-6; lower += TREE_ROW_HEIGHT)
-            below.push({ row: lower.toFixed(3), position, entering: true });
+        const rows = !children.length && index > 0 && index < sisters.length - 1
+          ? Math.round((Math.max(...sisters.map(sister => deepest.get(sister)!)) - y) / TREE_ROW_HEIGHT) : 0;
+        if (rows > 0 && rows <= budget) {
+          budget -= rows;
+          for (let row = 1; row <= rows; row++) below.push({ row: (y + row * TREE_ROW_HEIGHT).toFixed(3), position, entering: true });
         }
         for (let child = children.length - 1; child >= 0; child--) below.push({ node: children[child] });
       } else ({ row, position } = entry);
