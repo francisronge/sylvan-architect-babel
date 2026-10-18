@@ -80,3 +80,26 @@ test('unmounting before fonts finish cancels the layout invalidation', async () 
   await flush();
   assert.equal(calls, 0);
 });
+
+test('a later face that leaves the measured text unchanged does not invalidate layout', async () => {
+  const fonts = fontSet();
+  let calls = 0, faces = 'preloaded';
+  const measured = [];
+  const dispose = watchTreeVisualizerFonts(fonts.set, () => calls++, 'Mia', (font, text) => {
+    measured.push(font); return `${faces}:${font}:${text.length}`;
+  });
+  fonts.loads.forEach(load => load.resolve([]));
+  fonts.ready();
+  await flush();
+  assert.equal(calls, 1);
+  assert.equal(new Set(measured).size, fonts.loads.length, 'every preloaded measurement font is fingerprinted');
+  fonts.emit('JetBrains Mono');
+  fonts.emit('Quicksand');
+  assert.equal(calls, 1, 'app text loading another face of a measured family keeps the layout');
+  faces = 'changed';
+  fonts.emit('Crimson Pro');
+  assert.equal(calls, 2, 'a face that changes measured text still invalidates layout');
+  fonts.emit('Crimson Pro');
+  assert.equal(calls, 2);
+  dispose();
+});

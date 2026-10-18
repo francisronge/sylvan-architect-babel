@@ -30,7 +30,7 @@ import ReplayPanel from './ReplayPanel';
 import { createTreeInkTextMeasure } from './treeInkTextMeasure';
 import { createTreeLabelMeasure } from './treeLabelMeasure.ts';
 import { createViewportSettler } from './treeViewport.ts';
-import { watchTreeVisualizerFonts } from './treeVisualizerFonts';
+import { canvasFontTextMetrics, watchTreeVisualizerFonts } from './treeVisualizerFonts';
 import { useReplayPlaqueLayout } from './useReplayPlaqueLayout';
 import { useTreeDirection } from './useTreeDirection';
 import { useViewErrorHandler } from './ViewErrorBoundary';
@@ -142,7 +142,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   useEffect(() => watchTreeVisualizerFonts(document.fonts, () => {
     setSettledFontText(fontText);
     setFontLayoutPass(pass => pass + 1);
-  }, fontText), [fontText]);
+  }, fontText, canvasFontTextMetrics(document)), [fontText]);
   const { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
     movementChainIndexCatalogue, playbackSteps } = useMemo(
       () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, includePlayback: animated }),
@@ -571,6 +571,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     };
   }, [isScrubbing]);
 
+  // Reveal rewrites terminal text on the painted SVG before the passive redraw,
+  // removing indices the previous frame's deferred drawing added. A viewport
+  // change does not alter reveal state, so it must not run this on the old frame.
   useLayoutEffect(() => {
     if (!svgRef.current) return;
     if (!layoutReady) {
@@ -605,7 +608,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     animated,
     canvasData,
     data,
-    frameViewport,
     fontLayoutPass,
     abstractionMode,
     firstSentenceReplayDisplayToken,

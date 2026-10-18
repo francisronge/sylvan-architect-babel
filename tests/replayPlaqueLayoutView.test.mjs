@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import ts from 'typescript';
+import { createViewportSettler, VIEWPORT_SETTLE_MS } from '../components/treeViewport.ts';
+import { watchTreeVisualizerFonts } from '../components/treeVisualizerFonts.ts';
 // Run the complete hook with controlled effects and worker completions to
 // exercise stale-result races without adding a React testing runtime.
 const source = readFileSync(new URL('../components/useReplayPlaqueLayout.ts', import.meta.url), 'utf8');
@@ -390,4 +392,79 @@ test('an early worker failure cancels cold measurements and remains visible', ()
   assert(app.jobs[0].cancelled);
   assert.equal(app.render(input).error, 'worker initialization failed');
   app.unmount();
+});
+
+const fontSet = () => {
+  const set = new EventTarget(), loads = [];
+  let ready;
+  set.ready = new Promise(resolve => { ready = resolve; });
+  set.load = (font, text) => new Promise(resolve => loads.push({ font, text, resolve }));
+  const emit = family => {
+    const event = new Event('loadingdone');
+    Object.defineProperty(event, 'fontfaces', { value: [{ family }] });
+    set.dispatchEvent(event);
+  };
+  return { set, loads, ready: () => ready(), emit };
+};
+
+// The browser audit's desktop resize: the canvas resizes, a face used only by app
+// text finishes loading inside the settle window, the settled size needs a new
+// layout key, and the new layout completes.
+test('a desktop resize keeps the painted layout through settling, a font load, a new layout key and completion', async () => {
+  for (const comparesMeasuredText of [true, false]) {
+    const app = mount(), timers = new Map(), fonts = fontSet();
+    let now = 0, id = 0, painted = false, content = { steps: ['analysis-one'] }, viewport = desktop;
+    const settler = createViewportSettler({ apply: size => { viewport = size; }, painted: () => painted,
+      schedule: (callback, delay) => { timers.set(++id, { callback, at: now + delay }); return id; },
+      cancel: timer => timers.delete(timer) });
+    const advance = ms => {
+      now += ms;
+      for (const [timer, entry] of [...timers]) if (entry.at <= now) { timers.delete(timer); entry.callback(); }
+    };
+    watchTreeVisualizerFonts(fonts.set, () => { content = { ...content }; }, 'Mia',
+      comparesMeasuredText ? font => `unchanged ${font}` : undefined);
+    fonts.loads.forEach(load => load.resolve([])); fonts.ready();
+    await new Promise(resolve => setImmediate(resolve));
+    settler.observe(desktop);
+    app.render(content, 0, viewport); app.effects(); app.timers();
+    app.jobs.at(-1).ready(schedule('desktop', 100));
+    assert(app.render(content, 0, viewport).ready);
+    painted = true;
+    const wide = { width: 1915, height: 1197 };
+    settler.observe(wide);
+    assert(settler.pending);
+    fonts.emit('JetBrains Mono');
+    const settling = app.render(content, 0, viewport);
+    if (!comparesMeasuredText) {
+      assert.equal(settling.ready, false, 'without comparing measured text, an unrelated face drops the painted layout');
+      continue;
+    }
+    assert(settling.ready, 'the painted tree stays uncovered inside the settle window');
+    assert.strictEqual(settling.viewport, desktop);
+    advance(VIEWPORT_SETTLE_MS);
+    assert.strictEqual(viewport, wide);
+    const held = app.render(content, 0, viewport); app.effects(); app.timers();
+    assert(held.ready);
+    assert.strictEqual(held.viewport, desktop, 'the new layout key holds the painted viewport');
+    assert.equal(app.jobs.at(-1).input.width, 1915);
+    app.jobs.at(-1).ready(schedule('wide', 300));
+    assert.strictEqual(app.render(content, 0, viewport).viewport, wide);
+  }
+});
+
+test('the reveal layout effect does not run on the painted frame for a viewport commit', () => {
+  const source = ts.createSourceFile('TreeVisualizer.tsx', readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8'),
+    ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let dependencies;
+  const visit = node => {
+    if (ts.isCallExpression(node) && node.expression.getText(source) === 'useLayoutEffect'
+      && node.arguments[0].getText(source).includes('updateSyntaxReveal(')) dependencies = node.arguments[1].elements.map(element => element.getText(source));
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  assert(dependencies?.length, 'the reveal layout effect is found');
+  // Reveal rewrites terminal text, dropping deferred theta indices until the passive redraw.
+  for (const value of ['frameViewport', 'viewport', 'dimensions', 'uiBounds']) {
+    assert(!dependencies.includes(value), `reveal does not depend on ${value}`);
+  }
 });
