@@ -30,7 +30,7 @@ import { CAMERA_THRESHOLDS, checkCameraTrace } from '../tests/helpers/cameraInva
 import {
   DEFAULT_MOTION, continuityPairs, firstPaintedPose, judgeRapidStepping, judgeResize, judgeStageSyntax, judgeStepMotion
 } from './visualAudit/motionRules.mjs';
-import { cameraFrame, cameraView, letterFindings, toFrameModel, viewportName } from './visualAudit/frameModel.mjs';
+import { cameraFrame, cameraTraceEvidence, cameraView, letterFindings, toFrameModel, viewportName } from './visualAudit/frameModel.mjs';
 import {
   REPORT_SCHEMA, compareWithBaseline, coverageKey, findingPlace, fingerprint, receiptMatches, renderIndexHtml, summarize
 } from './visualAudit/report.mjs';
@@ -436,7 +436,7 @@ async function auditReplay(context, record, entry, result, anchorsFor) {
     result.cameraAllowed = allowed;
     result.findings.push(...cameraFindings.map(item => ({ ...item, record: record.id, viewport: viewport.name })));
     if (cameraFindings.length) result.evidence[coverageKey(record.id, viewport.name, 'camera', 'trace')] = keepEvidence(name('camera'),
-      { ...trace, frames: trace.frames.map(frame => frame && { ...frame, nodes: [...frame.nodes], movement: [...frame.movement] }) });
+      cameraTraceEvidence(trace));
   }
   if (checks.has('rapid')) {
     const starts = (entries.length ? spread(entries, rapidRuns).map(frame => Math.max(1, frame - 2)) : [traversal.start])

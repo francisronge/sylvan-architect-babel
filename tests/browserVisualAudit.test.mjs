@@ -12,7 +12,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { checkFrame } from './helpers/visualRules.mjs';
 import { checkCameraTrace } from './helpers/cameraInvariants.mjs';
-import { cameraFrame, cameraView, letterFindings, toFrameModel, viewportName } from '../scripts/visualAudit/frameModel.mjs';
+import { cameraFrame, cameraTraceEvidence, cameraView, letterFindings, toFrameModel, viewportName } from '../scripts/visualAudit/frameModel.mjs';
 import { firstPaintedPose, judgeRapidStepping, judgeResize, judgeStageSyntax, judgeStepMotion } from '../scripts/visualAudit/motionRules.mjs';
 import {
   applyShard, estimateRuntime, extractPageRecords, parseFrameSpec, parseResizeSequence, parseShard, parseViewports,
@@ -416,6 +416,14 @@ test('the serialized page probe collects geometry the shared rules judge, and sa
     const light = audit.collect({ light: true });
     assert.deepEqual([light.light, light.edges.length, Boolean(light.panel)], [true, 3, true]);
     assert.deepEqual([...cameraFrame(light).nodes.get('juanDP').ancestors], ['cbar', 'cp']);
+    // Camera evidence is written when a camera finding exists (catalogue case 2 on mobile crashed here):
+    // a sparse trace of probe frames serializes, whatever fields its frames carry.
+    const trace = { ...cameraView(light), frames: [], direct: [], passes: [{ name: 'next', steps: [] }] };
+    trace.frames[2] = cameraFrame(light, { step: { target: 'cp', links: [] } });
+    trace.direct[2] = light.camera;
+    const evidence = JSON.parse(JSON.stringify(cameraTraceEvidence(trace)));
+    assert.deepEqual([evidence.frames[0], evidence.frames[2].nodes.length, evidence.frames[2].step.target, evidence.direct[2]],
+      [null, 4, 'cp', { x: 700, y: 100, k: 0.5 }]);
 
     assert.equal(audit.jumpTo(4), true);
     assert.equal(jumped, '4');

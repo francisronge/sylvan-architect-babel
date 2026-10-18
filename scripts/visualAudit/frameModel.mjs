@@ -201,6 +201,12 @@ export function cameraFrame(light, { final = false, step = null } = {}) {
   return { stage: light.frame?.stage ?? null, final, bounds, nodes, points, step };
 }
 
+/** A camera trace as JSON evidence: each frame's node Map becomes entries; sparse
+ * frames and direct poses stay null. */
+export const cameraTraceEvidence = trace => ({ ...trace,
+  frames: Array.from(trace.frames, frame => frame ? { ...frame, nodes: [...frame.nodes] } : null),
+  direct: Array.from(trace.direct, pose => pose ?? null) });
+
 /** The usable view the camera fits into, from the painted header and panel (components/treeViewport.ts). */
 export function cameraView(light) {
   const { canvas, origin = { x: 0, y: 0 } } = light;
