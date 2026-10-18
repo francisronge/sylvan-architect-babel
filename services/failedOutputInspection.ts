@@ -2,6 +2,7 @@ import type { DerivationStage, RawOutputArtifact, SyntaxNode } from '../types.ts
 import { createAuthoredWorkspaceHelpers } from '../server/babelParser/authoredWorkspace.js';
 import { createRealizationHelpers } from '../server/babelParser/realizationContract.js';
 import { createFailureRecord } from '../server/babelParser/failureRecord.js';
+import { convertSpelloutPayload } from '../server/babelParser/spellout.js';
 import { diagnosticReplayProjection } from '../replay/diagnosticReplay.ts';
 
 // The browser retains the original failed output. Unlike a server error envelope,
@@ -47,6 +48,8 @@ export interface FailedOutputInspection {
   rawText: string;
   payload: unknown;
   analyses: FailedAnalysisInspection[];
+  /** The word list derived from the analyses that spell the sentence. */
+  inputTokens?: string[];
 }
 
 const record = (value: unknown): value is Record<string, any> =>
@@ -85,22 +88,58 @@ export const drawableInspectionForest = (forest: SyntaxNode[] | null): SyntaxNod
   try { return forest.map(visit); } catch { return null; }
 };
 
+/** Older outputs addressed a supplied token list; current outputs spell their words. */
+const addressesTokens = (value: unknown): boolean => {
+  const pending = [value];
+  while (pending.length) {
+    const item = pending.pop();
+    if (!item || typeof item !== 'object') continue;
+    if (!Array.isArray(item) && (Object.hasOwn(item, 'tokenIndex') || Object.hasOwn(item, 'tokenIndices'))) return true;
+    pending.push(...Object.values(item));
+  }
+  return false;
+};
+
 export const inspectFailedPayload = (payload: unknown, rawText: string, sentence = '', inputTokens?: string[]): FailedOutputInspection => {
   if (!record(payload)) throw new Error('The output does not contain a JSON object. The raw download remains available.');
   assertInspectableSize(payload);
   const authors = Array.isArray(payload.analyses) ? payload.analyses : [payload];
+  // A current output spells its words. Analyses that pass the spelling check
+  // are inspected in their converted form over the derived word list; one
+  // that fails is inspected without a word list or diagnostic Replay.
+  const spellout = sentence.trim() && !addressesTokens(payload) ? convertSpelloutPayload(payload, sentence) : null;
+  const words: string[] | undefined = spellout ? spellout.find((result: any) => result.ok)?.inputTokens : inputTokens;
   // refId can multiply a small response into a huge forest. Limits cover the
   // expanded output across every analysis, not only the raw JSON container.
   const inspectionBudget = { remainingOccurrences: 10_000, maxDepth: 128, remainingFieldValues: 200_000 };
   const analyses = authors.map((authoredAnalysis: unknown, analysisIndex: number): FailedAnalysisInspection => {
-    const authoredStages = record(authoredAnalysis) ? authoredAnalysis.derivationStages : undefined;
+    const spelled = spellout?.[analysisIndex];
+    const unspelled = spelled && !spelled.ok ? spelled.diagnostics[0] : undefined;
+    const inspected = spelled?.ok ? spelled.analysis : unspelled && record(authoredAnalysis) && Array.isArray(authoredAnalysis.derivationStages)
+      ? { ...authoredAnalysis, derivationStages: authoredAnalysis.derivationStages.map((stage: unknown) => {
+        if (!record(stage)) return stage;
+        const { realizations: _realizations, ...rest } = stage;
+        return rest;
+      }) }
+      : authoredAnalysis;
+    const authoredStages = record(inspected) ? inspected.derivationStages : undefined;
     const stages = helpers.inspectDerivationWorkspaces(authoredStages, {
-      analysisIndex, inspectionBudget, ...(sentence.trim() ? { sentence } : {}), ...(inputTokens ? { sentenceTokens: inputTokens } : {}),
+      analysisIndex, inspectionBudget, ...(sentence.trim() ? { sentence } : {}), ...(words && !unspelled ? { sentenceTokens: words } : {}),
       fieldPath: Array.isArray(payload.analyses) ? `$.analyses[${analysisIndex}]` : '$'
     }) as FailedStageInspection[] | null;
     const entry: FailedAnalysisInspection = { analysisIndex, authoredAnalysis, stages,
       replayStages: null, ambiguousRelationCount: 0, duplicateIdentityCount: 0 };
+    // The stage view shows what the model wrote, not Babel's converted form.
+    const showAuthored = () => {
+      const original = record(authoredAnalysis) && Array.isArray(authoredAnalysis.derivationStages) ? authoredAnalysis.derivationStages : null;
+      if (original && spellout) stages?.forEach(stage => { stage.authoredStage = original[stage.stageIndex]; });
+      return entry;
+    };
     if (!stages?.length) { entry.replayIssue = 'No readable derivation stages were returned.'; return entry; }
+    if (unspelled) {
+      entry.replayIssue = `This analysis does not spell the sentence (${unspelled.detail}), so it has no word list for diagnostic Replay. Its stages remain available without realization groups.`;
+      return showAuthored();
+    }
     const drawable = stages.map(stage => {
       const forest = drawableInspectionForest(stage.workspaceForest);
       if (stage.workspaceForest && !forest) stage.drawingIssue = 'A node field has an invalid type. Inspect the original stage and diagnostics below.';
@@ -110,7 +149,7 @@ export const inspectFailedPayload = (payload: unknown, rawText: string, sentence
       || typeof stage.authoredStage.statement !== 'string' || typeof stage.authoredStage.stageRecord !== 'string'
       || !Array.isArray(stage.authoredStage.relations))) {
       entry.replayIssue = 'Replay needs readable workspaces and stage fields throughout. The individual stages remain available.';
-      return entry;
+      return showAuthored();
     }
     // Malformed relation objects use the same neutral failure representation as
     // normal parsing. No anchor, pronunciation, or missing relation is invented.
@@ -121,7 +160,7 @@ export const inspectFailedPayload = (payload: unknown, rawText: string, sentence
         relations: frames[index].change.details.derivationStageRelations }
     }));
     const invalidRealizations = stages.some(stage => stage.diagnostics.some((issue: any) => issue.ruleId === 'DERIVATION_REALIZATION_SHAPE'));
-    if (invalidRealizations) { entry.replayIssue = 'Invalid realization fields prevent diagnostic Replay. The individual stages remain available.'; return entry; }
+    if (invalidRealizations) { entry.replayIssue = 'Invalid realization fields prevent diagnostic Replay. The individual stages remain available.'; return showAuthored(); }
     const projection = diagnosticReplayProjection(replayInput);
     entry.replayStages = projection?.stages ?? null;
     entry.ambiguousRelationCount = projection?.ambiguousRelations.length ?? 0;
@@ -130,9 +169,9 @@ export const inspectFailedPayload = (payload: unknown, rawText: string, sentence
       entry.replayStages = null;
       entry.replayIssue = 'Replay with realization groups needs the original input sentence. The individual stages remain available.';
     }
-    return entry;
+    return showAuthored();
   });
-  return { rawText, payload, analyses };
+  return { rawText, payload, analyses, ...(words ? { inputTokens: words } : {}) };
 };
 
 export const inspectFailedOutput = async (artifact: RawOutputArtifact, sentence = '', inputTokens?: string[]) => {

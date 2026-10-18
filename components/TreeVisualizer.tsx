@@ -36,7 +36,7 @@ import { useTreeDirection } from './useTreeDirection';
 import { useViewErrorHandler } from './ViewErrorBoundary';
 import { guardViewCallback } from './viewErrorHandling.ts';
 
-import type { TreeCameraState } from './renderer/cameraState.ts';
+import type { AutoCameraState, TreeCameraState } from './renderer/cameraState.ts';
 
 export type { TreeCameraState } from './renderer/cameraState.ts';
 
@@ -95,7 +95,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const [uiBounds, setUiBounds] = useState({ top: 0, right: 16, bottom: 16, headerBottom: 0, panelTop: Infinity });
   const ownManualCameraRef = useRef<TreeCameraState | null>(null);
   const manualCameraRef = manualCameraState ?? ownManualCameraRef;
-  const autoCameraRef = useRef<(TreeCameraState & { stepIndex: number; fitRevision: number }) | null>(null);
+  const autoCameraRef = useRef<AutoCameraState | null>(null);
   const cameraAnimationRef = useRef<{ stepIndex: number; endsAt: number } | null>(null);
   const relationPointerPositionRef = useRef<{ x: number; y: number } | null>(null);
   const relationHoverResolutionFrameRef = useRef<number | null>(null);

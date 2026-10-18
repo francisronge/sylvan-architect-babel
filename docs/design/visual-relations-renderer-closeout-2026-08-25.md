@@ -242,6 +242,17 @@ is visible; hidden attachment coordinates do not describe painted content. The
 stage-wide union still reserves its later visible placement before reveal.
 The worker, painter and camera consume the same stage and step maps.
 
+A plaque without its own Case arrow or collector shows its owner only by
+proximity. Its one anchor-relative pocket must be clear at every position of a
+moving anchor, so it can end up beyond all of its nearby candidates. A second
+allocation pass then places that plaque again. It searches anew whenever an
+authored movement carries the anchor, inside the moved phrase or the complex
+head that movement forms. Reflow, merges and other phrases' movement start no
+new search. The second pass leaves the first-pass pocket only for one within
+reach of the nearby candidates or at least a quarter nearer. Every other plaque
+keeps its first-pass pocket exactly, so the relocated plaque can shift when a
+later plaque claims its space.
+
 Reservations account for tree ink, trajectories, neutral connector stems and
 already allocated claims. The nearest clear pocket search has no arbitrary radius
 cutoff that sends an otherwise local plaque beneath the tree. Later spelling
@@ -744,9 +755,14 @@ completed last Stage Record releases earlier source-position bounds and fits the
 finished drawing; Fit uses those same final bounds. This does not compact or
 recenter the tree's internal coordinates.
 Forward playback also retains an already fitting view when a new stage could
-merely zoom in. Actual overflow can still pan or reduce scale. Explicit Fit,
-nonadjacent frame selection and the completed last Stage Record retain their
-existing fitting behavior.
+merely zoom in. Actual overflow can still pan or reduce scale. Each stage lays
+out its syntax in its own coordinates, so a step into another stage translates
+both that view and the animation's starting pose by the median coordinate shift
+of the shared syntax whose shared ancestors are unchanged. This removes the
+common translation between the two layouts; residual layout changes still move,
+and a reattached constituent appears at its new place. Explicit Fit, nonadjacent
+frame selection and the completed last Stage Record retain their existing
+fitting behavior.
 Stage framing retains its existing margins for ordinary labels. When a revealed
 label exceeds those margins, expand the shared stage envelope by only that
 excess, using the same styled text bounds as layout. Include every revealed

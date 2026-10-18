@@ -191,3 +191,60 @@ test('unknown original input does not invent realization index errors', async ()
   const sentenceOnly = (await inspectFailedOutput(raw(payload), 'book')).analyses[0];
   assert.deepEqual(sentenceOnly.stages[0].diagnostics, [], 'a sentence alone is never segmented again in the browser');
 });
+
+const leaf = (id, word) => node(id, [], { word });
+const japanese = '花子が読んだ。';
+const spelledAnalysis = (text = '読んだ') => ({ derivationStages: [{
+  ...stage([node('tp', [leaf('subj', '花子'), leaf('ga', 'が'), node('vp', [leaf('v', '読む'), leaf('t', 'た')])])]),
+  realizations: [{ nodeIds: ['v', 't'], text }]
+}] });
+
+test('a spell-out output that spells the sentence is inspected in converted form over its derived word list', async () => {
+  const payload = { analyses: [spelledAnalysis()] };
+  const original = structuredClone(payload);
+  const result = await inspectFailedOutput(raw(payload), japanese);
+  assert.deepEqual(result.inputTokens, ['花子', 'が', '読んだ']);
+  const [analysis] = result.analyses;
+  assert.equal(analysis.replayIssue, undefined);
+  assert.deepEqual(analysis.replayStages[0].realizations, [{ nodeIds: ['v', 't'], tokenIndices: [2] }]);
+  assert.ok(!analysis.stages[0].diagnostics.some(issue => issue.ruleId === 'DERIVATION_REALIZATION_SHAPE'));
+  // The stage view shows what the model wrote, with its text group.
+  assert.deepEqual(analysis.stages[0].authoredStage, original.analyses[0].derivationStages[0]);
+  assert.deepEqual(analysis.authoredAnalysis, original.analyses[0]);
+  const replay = prepareReplay({ derivationStages: analysis.replayStages, sentence: japanese, inputTokens: result.inputTokens, includePlayback: true });
+  assert.ok(replay.playbackSteps.length > 1);
+  assert.deepEqual(payload, original);
+});
+
+test('an analysis that fails the spelling check keeps its stages but has no word list or diagnostic Replay', async () => {
+  const payload = { analyses: [spelledAnalysis(), spelledAnalysis('読んだX')] };
+  const original = structuredClone(payload);
+  const result = await inspectFailedOutput(raw(payload), japanese);
+  // The word list comes from the analysis that spells the sentence.
+  assert.deepEqual(result.inputTokens, ['花子', 'が', '読んだ']);
+  const failed = result.analyses[1];
+  assert.equal(failed.replayStages, null);
+  assert.match(failed.replayIssue, /does not spell the sentence .* no word list for diagnostic Replay/);
+  // Inspected without its realization groups: their text is not an index error.
+  assert.ok(!failed.stages[0].diagnostics.some(issue => /realization/i.test(issue.ruleId ?? '')));
+  assert.deepEqual(failed.stages[0].workspaceForest[0].children[0].word, '花子');
+  assert.deepEqual(failed.stages[0].authoredStage, original.analyses[1].derivationStages[0]);
+  assert.deepEqual(result.analyses[0].replayStages[0].realizations, [{ nodeIds: ['v', 't'], tokenIndices: [2] }]);
+  const none = await inspectFailedOutput(raw({ analyses: [spelledAnalysis('読んだX')] }), japanese);
+  assert.equal(none.inputTokens, undefined);
+  assert.deepEqual(payload, original);
+});
+
+test('an older output with token addresses keeps the supplied word list', async () => {
+  const payload = { derivationStages: [{ ...stage([node('np', [node('one', [], { word: 'book', tokenIndex: 0 })])]),
+    realizations: [{ nodeIds: ['one'], tokenIndices: [0] }] }] };
+  const original = structuredClone(payload);
+  const result = await inspectFailedOutput(raw(payload), 'book', ['book']);
+  assert.deepEqual(result.inputTokens, ['book']);
+  const [analysis] = result.analyses;
+  assert.deepEqual(analysis.replayStages[0].realizations, [{ nodeIds: ['one'], tokenIndices: [0] }]);
+  assert.deepEqual(analysis.stages[0].authoredStage, original.derivationStages[0]);
+  // Without a supplied list, an older output still never gets one segmented in the browser.
+  assert.equal((await inspectFailedOutput(raw(payload), 'book')).inputTokens, undefined);
+  assert.deepEqual(payload, original);
+});
