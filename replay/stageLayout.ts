@@ -92,11 +92,19 @@ const replayLayoutMaterialSignature = (node?: SyntaxNode | null): string => {
 };
 
 /**
- * A layout scaffold may add hidden future parents and siblings, but it must
- * preserve current material and child attachments. Hidden future structure
- * must not relocate an existing child before its movement moment.
+ * Whether a scaffold can lay out the current forest inside future topology.
+ * Each current node occurs once in it with its current material and keeps its
+ * current children in their order; it may gain future parents and siblings,
+ * so hidden future structure never relocates an existing child before its
+ * movement moment. A parent in `heldParentIds` has a new attachment that
+ * construction is still holding back (constructionAttachments.ts): the
+ * scaffold gives it no current child that the current forest does not.
  */
-export const forestCanUseCurrentMaterialLayoutScaffold = (currentRoots: SyntaxNode[], scaffoldRoots: SyntaxNode[]): boolean => {
+export const forestCanUseCurrentMaterialLayoutScaffold = (
+  currentRoots: SyntaxNode[],
+  scaffoldRoots: SyntaxNode[],
+  heldParentIds?: ReadonlySet<string>
+): boolean => {
   if (!Array.isArray(currentRoots) || currentRoots.length === 0)
     return false;
   if (!Array.isArray(scaffoldRoots) || scaffoldRoots.length === 0)
@@ -112,7 +120,10 @@ export const forestCanUseCurrentMaterialLayoutScaffold = (currentRoots: SyntaxNo
       && replayLayoutMaterialSignature(currentMatches[0])
       === replayLayoutMaterialSignature(scaffoldMatches[0])
       && (currentMatches[0].children || []).every(child => scaffoldMatches[0].children?.some(candidate => candidate.id === child.id))
-      && preservesRelativeSiblingOrder(currentMatches[0].children || [], scaffoldMatches[0].children || []);
+      && preservesRelativeSiblingOrder(currentMatches[0].children || [], scaffoldMatches[0].children || [])
+      && (!heldParentIds?.has(nodeId) || (scaffoldMatches[0].children || []).every(candidate =>
+        !currentNodesById.has(String(candidate.id || ''))
+        || (currentMatches[0].children || []).some(child => child.id === candidate.id)));
   });
 };
 
