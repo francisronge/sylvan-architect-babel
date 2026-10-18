@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { before, test } from 'node:test';
 import * as d3 from 'd3';
+import { prepareReplay } from '../replay/prepareReplay.ts';
 import { placeStagePlaques, plaqueTreeObstacles } from '../replay/relations/plaquePlacement.ts';
 import { TREE_FIRST_FAMILIES } from '../scripts/replayFrameLayout.mjs';
 import { formatFrames, frameList, matchFindings, proposeExceptions } from './helpers/findings.mjs';
@@ -10,6 +11,7 @@ import { auditVisualRecord, branchPoints, layoutVisualFrames, pathPolylines, pla
 import { checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance } from './helpers/visualRules.mjs';
 import { EXCEPTIONS } from './helpers/visualExceptions.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
+import { checkOneLetterPerLabel } from './helpers/replayInvariants.mjs';
 
 /* Fast controls and the reviewed historical cases. The exhaustive fixture sweep
  * is `npm run verify:visual-offline`. */
@@ -195,8 +197,7 @@ test('the frame layout keeps TreeVisualizer\'s tree-first families', () => {
  * out at both desktop Fit sizes. Their remaining findings match the listed
  * exceptions exactly; fixed defects stay fixed, with their pre-fix geometry as
  * the controls above, and open ones stay flagged at the reviewed frames.
- * TODO(#75, fix/renderer-single-index-letter): catalog #5 (one letter painted
- * twice, cases/5) is checked by checkOneLetterPerLabel once #75 merges. */
+ * Catalog #5's index letters are checked by #75's checkOneLetterPerLabel. */
 
 const RECORDS = [CATALOG, 'replay-regressions/es-wh-phase-edge-contour.json#'];
 let catalog;
@@ -222,4 +223,16 @@ for (const [number, record, subject, places, status] of CASES) test(`catalog #${
   const found = catalog.filter(finding => finding.record === record && finding.subject === subject).map(finding => [finding.frame, finding.viewport]);
   if (!places.length) assert.deepEqual(found, []);
   else for (const place of places) assert(found.some(([frame, viewport]) => frame === place[0] && viewport === place[1]), JSON.stringify(place));
+});
+
+test('catalog #5: each index letter is painted once at its label (fixed by #75), and painting every claimed letter repeats it', () => {
+  // Before #75, operator-variable binding and quantifier raising each painted the chain's letter: a faint j beside a bright j.
+  const everyLetter = () => () => ({ draw: 'glyph', label: null, alsoFor: [] });
+  for (const [analysis, label, frames] of [[1, 'objhigh', [23]], [0, 'subjhigh', [23, 24]]]) {
+    const replay = prepareReplay({ ...structuredClone(recordOf(`${CATALOG}/5/analyses/${analysis}`)), includePlayback: true });
+    assert.deepEqual(checkOneLetterPerLabel(replay), []);
+    const repeated = checkOneLetterPerLabel(replay, everyLetter);
+    for (const frame of frames) assert(repeated.some(violation => violation.frame === frame && violation.detail === `${label} shows j 2 times`),
+      `${label} at frame ${frame}`);
+  }
 });
