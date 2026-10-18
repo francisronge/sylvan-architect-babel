@@ -5,12 +5,10 @@
  * where the fault no longer occurs. Bounds are the rule's measure: missing
  * clearance or depth in CSS pixels, or a mark's distance as a ratio of its reach. */
 
-const PR76 = 'PR #76 (fix/renderer-zoom-stable-relation-clearance): a neutral fan spoke is cut exactly at a visible plaque, '
-  + 'so its round cap touches the plaque outline at some Fit sizes.';
-const HANGING_WORD = 'Open (catalog #9; fix in progress on fix/layout-terminal-stem-clearance): a higher specifier\'s word '
-  + 'hangs into the branch of the specifier below it.';
+const SPOKE_ATTACHED = 'Accepted since #76: keeping the gap would cut off the spoke\'s labelled end, so attachment wins '
+  + 'and the spoke meets the plaque\'s edge.';
 const PLAQUE_CROWDED = 'Open (catalog #3): no nearby pocket stays clear for the plaque\'s lifetime, so the allocator takes '
-  + 'the nearest clear pocket beyond its nearby candidates. PR #74 relocates plaques whose anchor moves, not these.';
+  + 'the nearest clear pocket beyond its nearby candidates. #74 and #84 relocate plaques whose anchor moves, not these.';
 const LANE = 'Open: a neutral counter-lane connector runs its lane through tree text. Only its stems are clipped around '
   + 'labels, and the lane sits just below the participants, above deeper unrelated syntax.';
 const ROLE_CROWDED = 'Open: every preferred spot beside the witness label is taken, so the role placer steps outward until '
@@ -19,20 +17,8 @@ const ROLE_CROWDED = 'Open: every preferred spot beside the witness label is tak
 const x = (reason, record, rule, subtype, subject, at, max) => ({ reason, record, rule, subtype, subject, at, max });
 
 export const EXCEPTIONS = [
-  x(PR76, 'performance/german-embedded.json#', 'line-clearance', 'connector-plaque',
+  x(SPOKE_ATTACHED, 'performance/german-embedded.json#', 'line-clearance', 'connector-plaque',
     'connector(0:4)reportNP→reportN plaque(0:1 directed-path case-assignment)@read', { desktop: '57' }, 1.44),
-  x(PR76, 'replay-regressions/native-plaque-footprints.json#', 'line-clearance', 'connector-plaque',
-    'connector(4:3)iBase→mNP plaque(3:2 agreement: third-person singular)@iRaised', { desktop: '40', 'desktop-large': '40' }, 1.47),
-  x(PR76, 'replay-regressions/native-plaque-footprints.json#', 'line-clearance', 'connector-plaque',
-    'connector(4:3)iBase→mTraceVP plaque(4:0 clauseType: matrix declarative)@cBase', { desktop: '40', 'desktop-large': '40' }, 1.77),
-  x(PR76, 'replay-regressions/visual-human-catalog.json#/cases/4/analyses/0', 'line-clearance', 'connector-plaque',
-    'connector(3:3)root-cp→subject-np plaque(3:2 clauseType: declarative)@declarative-c', { desktop: '39' }, 1.48),
-  x(PR76, 'visual-relations/shared-plaque.json#', 'line-clearance', 'connector-plaque',
-    'connector(3:3)ipClause→npBook plaque(2:1 theta Agent)@vpOku', { desktop: '30', 'desktop-large': '30' }, 1.9),
-  x(PR76, 'visual-relations/shared-plaque.json#', 'line-clearance', 'connector-plaque',
-    'connector(3:4)ipClause→npBook plaque(2:1 theta Agent)@vpOku', { desktop: '31', 'desktop-large': '31' }, 1.9),
-  x(HANGING_WORD, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'line-clearance', 'branch-text',
-    'juan->juan::__leaf what1::__leaf:word', { desktop: '20-30', 'desktop-large': '20-30' }, 14.15),
   x(PLAQUE_CROWDED, 'movement/clause-context.json#/cases/7', 'mark-distance', 'plaque',
     'plaque(0:0 theta Agent/Theme)@ev', { desktop: '22-26', 'desktop-large': '22-26' }, 1.16),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
@@ -97,7 +83,7 @@ export const EXCEPTIONS = [
     'plaque(0:0 theta Experiencer/Theme)@v', { desktop: '21-24', 'desktop-large': '21-24' }, 1.53),
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/3/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:1 theta Theme)@stolen', { desktop: '17-20', 'desktop-large': '17-20' }, 1.31),
-  x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
+  x(PLAQUE_CROWDED, 'replay-regressions/es-wh-phase-edge-contour.json#', 'mark-distance', 'plaque',
     'plaque(5:0 clauseType: direct constituent question)@question', { desktop: '27-30', 'desktop-large': '27-30' }, 1.25),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-arabic-continuity.json#/cases/9', 'mark-distance', 'plaque',
     'plaque(0:2 theta Speaker)@rv', { desktop: '36-50', 'desktop-large': '36-50' }, 1.15),
@@ -120,7 +106,7 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/1', 'mark-distance', 'plaque',
     'plaque(2:4/3:4 theta Agent)@vRead', { desktop: '43-57', 'desktop-large': '43-57' }, 1.39),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/2', 'mark-distance', 'plaque',
-    'plaque(0:0 agreement: noun class 8; aspect: perfect; voice:)@v', { desktop: '31-48', 'desktop-large': '31-48' }, 1.33),
+    'plaque(1:1 theta Agent)@v', { desktop: '38-48', 'desktop-large': '38-48' }, 1.28),
   x(PLAQUE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'plaque',
     'plaque(1:3 theta Agent)@vComplex', { desktop: '31-32', 'desktop-large': '31-32' }, 1.24),
   x(PLAQUE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'plaque',
@@ -175,6 +161,10 @@ export const EXCEPTIONS = [
     'role(7:1 pronominal Subject)@matrix-pro', { desktop: '56' }, 2.01),
   x(ROLE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/0', 'mark-distance', 'role',
     'role(7:0 contained Verb)@glaubeV', { desktop: '60' }, 3.62),
+  x(ROLE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/2', 'mark-distance', 'role',
+    'role(3:0 inflectional Features)@iFeatures', { desktop: '45' }, 2.06),
+  x(ROLE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/2', 'mark-distance', 'role',
+    'role(3:1 lexical Governor)@v', { desktop: '46' }, 3),
   x(ROLE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'role',
     'role(2:0 complex Head)@vComplex', { desktop: '34' }, 3.72),
   x(ROLE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'role',

@@ -6,7 +6,7 @@ import { placeStagePlaques, plaqueTreeObstacles } from '../replay/relations/plaq
 import { TREE_FIRST_FAMILIES } from '../scripts/replayFrameLayout.mjs';
 import { formatFrames, frameList, matchFindings, proposeExceptions } from './helpers/findings.mjs';
 import { measurePlaqueText } from './helpers/visualFontMetrics.mjs';
-import { auditVisualRecord, layoutVisualFrames, pathPolylines, plaqueRecord, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
+import { auditVisualRecord, branchPoints, layoutVisualFrames, pathPolylines, plaqueRecord, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
 import { checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance } from './helpers/visualRules.mjs';
 import { EXCEPTIONS } from './helpers/visualExceptions.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
@@ -79,6 +79,11 @@ test('control: line-clearance reports a spoke cut at a plaque, a lane through te
   // Stopping six marker units short (PR #76's gap) clears the outline by more than a pixel.
   spoke.paths = pathPolylines(`M 0 120 L ${400 - 6 * scale} 120 M ${600 + 6 * scale} 120 L 1000 120`);
   assert.deepEqual(checkLineClearance(frame), []);
+  // Catalog #4 as main cut it before PR #76, at frame 39 (1440×900): the spoke stops on the corner of [clauseType: declarative].
+  const historical = { ...blank(0.1401), plaques: [{ id: 'clauseType', text: 'clauseType: declarative', rect: box(1472.5, 375.4, 360, 129.2),
+    radius: 14, claims: ['3:2'] }], lines: [{ id: 'spoke', kind: 'connector', halfWidth: 2.7, nodes: [], claims: ['3:3'],
+    paths: [[{ x: 2277.6, y: 5.2 }, { x: 1832.5, y: 460.6 }], [{ x: 1789.5, y: 504.6 }, { x: 1693, y: 603.3 }]] }] };
+  assert.deepEqual(subjects(checkLineClearance(historical)), ['spoke clauseType']);
   // A line past a rectangle's corner clears its rounded shell.
   const corner = { ...frame, zoom: 1, lines: [{ ...spoke, halfWidth: 0.5, paths: [[{ x: 370, y: 114 }, { x: 404, y: 80 }]] }] };
   assert.deepEqual(checkLineClearance(corner), []);
@@ -92,6 +97,11 @@ test('control: line-clearance reports a spoke cut at a plaque, a lane through te
   assert.deepEqual(subjects(checkLineClearance(branches)), ['p->c w:word'], 'a branch meets its own child\'s label');
   branches.texts[0] = text('w', 'word', box(-100, 100, 100.5, 40));
   assert.deepEqual(checkLineClearance(branches), [], 'grazing the edge of a glyph box is not a crossing');
+  // Catalog #9 as main laid it out before #79, at frame 22 (1440×900): Qué hangs into Juan's branch.
+  const hanging = { ...blank(0.2271), texts: [text('what1::__leaf', 'word', box(3409, 1172.3, 143.1, 53.9))],
+    lines: [{ id: 'juan->juan::__leaf', kind: 'branch', paths: [branchPoints({ x: 3438.8, y: 1100 }, { x: 3438.8, y: 1320 })],
+      halfWidth: 2, nodes: ['juan', 'juan::__leaf'], claims: [] }] };
+  assert.deepEqual(subjects(checkLineClearance(hanging)), ['juan->juan::__leaf what1::__leaf:word']);
 
   // Production layout: moving a word onto another node's branch is reported.
   const real = sample();
@@ -160,34 +170,33 @@ test('the frame layout keeps TreeVisualizer\'s tree-first families', () => {
 
 /* Historical defects Francis caught by eye (catalog of 18 October 2026), laid
  * out at both desktop Fit sizes. Their remaining findings match the listed
- * exceptions exactly; fixed defects stay fixed, and open ones stay flagged at
- * the reviewed frames. Index letters (#5) belong to checkOneLetterPerLabel. */
+ * exceptions exactly; fixed defects stay fixed, with their pre-fix geometry as
+ * the controls above, and open ones stay flagged at the reviewed frames.
+ * TODO(#75, fix/renderer-single-index-letter): catalog #5 (one letter painted
+ * twice, cases/5) is checked by checkOneLetterPerLabel once #75 merges. */
 
+const RECORDS = [CATALOG, 'replay-regressions/es-wh-phase-edge-contour.json#'];
 let catalog;
 before(() => {
-  catalog = corpus.records.filter(entry => entry.id.startsWith(CATALOG))
+  catalog = corpus.records.filter(entry => RECORDS.some(prefix => entry.id.startsWith(prefix)))
     .flatMap(({ id, record }) => auditVisualRecord(id, record, { viewports: DESKTOP }).findings);
 });
 
 test('catalog: findings match their listed exceptions exactly', () => {
-  assert.deepEqual(matchFindings(catalog, EXCEPTIONS.filter(exception => exception.record.startsWith(CATALOG))),
+  assert.deepEqual(matchFindings(catalog, EXCEPTIONS.filter(exception => RECORDS.some(prefix => exception.record.startsWith(prefix)))),
     { unexpected: [], exceeded: [], stale: [] });
 });
 
-const at = (id, subject) => catalog.filter(finding => finding.record === `${CATALOG}/${id}` && finding.subject === subject);
 const CASES = [
-  [1, '0/analyses/0', 'b-or:category ["Coord[alternative","]"]', [], 'fixed by PR #73'],
-  [2, '1/analyses/0', 'plaque(1:3 case: nominative)@subject', [], 'fixed by PR #74'],
-  [2, '2/analyses/0', 'plaque(3:2 case: Nominative)@mSubject', [], 'fixed by PR #74'],
-  [3, '3/analyses/0', 'plaque(0:1 theta Theme)@stolen', [[20, 'desktop'], [20, 'desktop-large']], 'open'],
-  [4, '4/analyses/0', 'connector(3:3)root-cp→subject-np plaque(3:2 clauseType: declarative)@declarative-c', [[39, 'desktop']],
-    'PR #76; at 1440 px, not 2560 px'],
-  [9, '6/analyses/0', 'juan->juan::__leaf what1::__leaf:word',
-    Array.from({ length: 11 }, (_, index) => [[20 + index, 'desktop'], [20 + index, 'desktop-large']]).flat(), 'open']
+  [1, `${CATALOG}/0/analyses/0`, 'b-or:category ["Coord[alternative","]"]', [], 'fixed by #73'],
+  [2, `${CATALOG}/1/analyses/0`, 'plaque(1:3 case: nominative)@subject', [], 'fixed by #74'],
+  [2, `${CATALOG}/2/analyses/0`, 'plaque(3:2 case: Nominative)@mSubject', [], 'fixed by #74'],
+  [3, `${CATALOG}/3/analyses/0`, 'plaque(0:1 theta Theme)@stolen', [[20, 'desktop'], [20, 'desktop-large']], 'open'],
+  [4, `${CATALOG}/4/analyses/0`, 'connector(3:3)root-cp→subject-np plaque(3:2 clauseType: declarative)@declarative-c', [], 'fixed by #76'],
+  [9, RECORDS[1], 'juan->juan::__leaf what1::__leaf:word', [], 'fixed by #79']
 ];
-for (const [number, id, subject, places, status] of CASES) test(`catalog #${number}: ${subject} (${status})`, () => {
-  const found = at(id, subject).map(finding => [finding.frame, finding.viewport]);
+for (const [number, record, subject, places, status] of CASES) test(`catalog #${number}: ${subject} (${status})`, () => {
+  const found = catalog.filter(finding => finding.record === record && finding.subject === subject).map(finding => [finding.frame, finding.viewport]);
   if (!places.length) assert.deepEqual(found, []);
   else for (const place of places) assert(found.some(([frame, viewport]) => frame === place[0] && viewport === place[1]), JSON.stringify(place));
-  if (number === 4) assert(found.every(([, viewport]) => viewport === 'desktop'));
 });
