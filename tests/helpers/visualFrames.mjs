@@ -64,6 +64,17 @@ export function viewportObstacles({ width, height }, replay = true) {
     panelTop: replay ? height - 16 - panel : Infinity };
 }
 
+/** The canvas, Replay header and Replay panel (styles.css: 24px from the left,
+ * 16px below 640px, at most 880px wide) on screen, from the same estimates,
+ * carried into tree units through a painted camera `{ x, y, k }`. */
+export function frameChrome(viewport, camera, replay = true) {
+  const { width, height } = viewport, obstacles = viewportObstacles(viewport, replay), left = width <= 640 ? 16 : 24;
+  const toTree = ({ x, y, width: w, height: h }) => rect((x - camera.x) / camera.k, (y - camera.y) / camera.k, w / camera.k, h / camera.k);
+  return { canvas: toTree(rect(0, 0, width, height)),
+    header: toTree(rect(left, 24, width - left - obstacles.right, obstacles.headerBottom - 24)),
+    ...(replay ? { panel: toTree(rect(left, obstacles.panelTop, Math.min(880, width - left - obstacles.right), height - 16 - obstacles.panelTop)) } : {}) };
+}
+
 // The renderer's own tree-ink and styled-label measures, reading the bundled fonts.
 const measuringDocument = createMeasuringDocument();
 const measureTreeInk = createTreeInkTextMeasure(measuringDocument);
@@ -250,6 +261,7 @@ function layoutGroup(visual, viewports, only, Element) {
         derivationFrameFitNodes: [...nodes.values()], overlayFitBounds: null, visibleNodes: [...nodes.values()] } }));
       const marks = relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule: scene.schedule, fitted, runs });
       return { frame: stepIndex + 1, viewport: viewport.name, zoom: fitted.k, texts: [...painted.texts, ...marks.texts],
+        chrome: frameChrome(viewport, harness.session.cameraRuntime.deferred),
         plaques: marks.plaques, lines: [...painted.lines, ...marks.lines] };
     });
   });
@@ -354,7 +366,9 @@ export function layoutCanopyVisualFrame(visual, viewport) {
   const box = union([...painted.texts.map(text => text.cell), ...painted.lines.flatMap(line => line.paths.flat().map(p => rect(p.x, p.y, 0, 0)))]);
   const view = availableTreeViewport(viewport.width, viewport.height, viewportObstacles(viewport, false));
   const zoom = Math.max(viewport.width < 500 ? 0.02 : 0.06, Math.min((view.right - view.left) / box.width, (view.bottom - view.top) / box.height, 1));
-  return { frame: 'canopy', viewport: viewport.name, zoom, texts: painted.texts, plaques: [], lines: painted.lines };
+  const pose = { x: (view.left + view.right) / 2 - (box.x + box.width / 2) * zoom, y: (view.top + view.bottom) / 2 - (box.y + box.height / 2) * zoom, k: zoom };
+  return { frame: 'canopy', viewport: viewport.name, zoom, texts: painted.texts, plaques: [], lines: painted.lines,
+    chrome: frameChrome(viewport, pose, false) };
 }
 
 /** One record's findings: every Replay frame at each viewport and the Canopy. */

@@ -94,6 +94,7 @@ const runs = new Map();
  * origin. `font` is { family, size, weight, italic, letterSpacing }. A glyph the
  * family lacks falls back to a system face approximated by fixed proportions. */
 export function measureRun(text, font) {
+  text = String(text).normalize('NFC');
   const key = JSON.stringify([text, font.family, font.size, font.weight, Boolean(font.italic), font.letterSpacing ?? 0]);
   let run = runs.get(key);
   if (!run) {
@@ -112,13 +113,19 @@ function measureUncached(text, font) {
   const cellAscent = list[0]?.ascent ?? (monospace ? 0.93 : 0.9), cellDescent = list[0]?.descent ?? 0.24;
   let pen = 0, left = Infinity, right = -Infinity, top = 0, bottom = 0;
   for (const { segment } of graphemes.segment(text)) {
-    const code = segment.codePointAt(0);
-    const found = list.map(font => font.glyph(code)).find(Boolean);
+    // A cluster advances by its base; marks NFC could not compose stack on it,
+    // so its vertical ink spans every code point's glyph.
+    const [base, ...marks] = [...segment].map(char => char.codePointAt(0));
+    const found = list.map(font => font.glyph(base)).find(Boolean);
     const advance = found ? found.advance : monospace ? 0.6 : wide.test(segment) ? 1 : 0.55;
     const ink = found ? found.ink : /\s/u.test(segment) ? null : { left: 0.04, right: advance - 0.04, top: 0.72, bottom: wide.test(segment) ? -0.1 : 0 };
     if (ink) {
       left = Math.min(left, pen + ink.left * size); right = Math.max(right, pen + ink.right * size);
       top = Math.max(top, ink.top * size); bottom = Math.min(bottom, ink.bottom * size);
+      for (const mark of marks) {
+        const glyph = list.map(font => font.glyph(mark)).find(Boolean)?.ink;
+        if (glyph) { top = Math.max(top, glyph.top * size); bottom = Math.min(bottom, glyph.bottom * size); }
+      }
     }
     pen += advance * size + spacing;
   }

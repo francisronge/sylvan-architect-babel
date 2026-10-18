@@ -52,9 +52,15 @@ const overlap1d = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0);
 const contains = (outer, inner) => inner.x >= outer.x && inner.y >= outer.y
   && inner.x + inner.width <= outer.x + outer.width && inner.y + inner.height <= outer.y + outer.height;
 
-/** The deepest point of a polyline inside a rectangle: the largest distance from
- * the rectangle's nearest edge, or 0 when the line stays outside. */
-export function penetration(points, box) {
+/** The deepest point of a polyline inside a rectangle, with corners rounded by
+ * `radius`: the largest distance from its nearest edge, or 0 when the line stays outside. */
+export function penetration(points, box, radius = 0) {
+  const r = Math.max(0, Math.min(radius, box.width / 2, box.height / 2));
+  const inside = (x, y) => {
+    const cx = Math.min(Math.max(x, box.x + r), box.x + box.width - r), cy = Math.min(Math.max(y, box.y + r), box.y + box.height - r);
+    const edge = Math.min(x - box.x, box.x + box.width - x, y - box.y, box.y + box.height - y);
+    return cx === x || cy === y ? edge : r - Math.hypot(x - cx, y - cy);
+  };
   let deepest = 0;
   for (let index = 1; index < points.length; index++) {
     const from = points[index - 1], to = points[index];
@@ -68,7 +74,7 @@ export function penetration(points, box) {
     if (enter >= leave) continue;
     for (let sample = 0; sample <= 8; sample++) {
       const t = enter + (leave - enter) * sample / 8, x = from.x + dx * t, y = from.y + dy * t;
-      deepest = Math.max(deepest, Math.min(x - box.x, box.x + box.width - x, y - box.y, box.y + box.height - y));
+      deepest = Math.max(deepest, inside(x, y));
     }
   }
   return deepest;
@@ -144,7 +150,8 @@ export function checkGlyphOverlap(frame, thresholds = THRESHOLDS) {
 
 /** line-clearance: a connector whose stroke comes within the tolerance of a
  * plaque shell of another claim (subtype connector-plaque, measured as the
- * missing clearance), or a line that runs more than the tolerance into text or a
+ * missing clearance) or runs into it (connector-plaque-crossing, measured as
+ * depth), or a line that runs more than the tolerance into text or a
  * plaque that is not its own (subtypes like branch-text or connector-mark,
  * measured as depth). Mark text counts only through its middle band, deeper
  * than 45% of its height, since its outline masks a grazing line. Not tested:
@@ -152,7 +159,10 @@ export function checkGlyphOverlap(frame, thresholds = THRESHOLDS) {
  * labels are placed against labels, plaques and relation ink, not branches). */
 export function checkLineClearance(frame, thresholds = THRESHOLDS) {
   const out = new Map(), crossing = thresholds.crossingPx / frame.zoom;
-  const keep = (subject, entry) => { if ((out.get(subject)?.measure ?? -1) < entry.measure) out.set(subject, entry); };
+  const keep = entry => {
+    const key = `${entry.subtype} ${entry.subject}`;
+    if ((out.get(key)?.measure ?? -1) < entry.measure) out.set(key, entry);
+  };
   const textTargets = frame.texts.filter(text => !text.plaque).flatMap(text => text.boxes.map(rect => ({ item: text, rect,
     kind: TREE_TEXT.has(text.kind) ? 'text' : 'mark',
     limit: TREE_TEXT.has(text.kind) ? crossing : Math.max(crossing, 0.45 * Math.min(rect.width, rect.height)) })));
@@ -163,10 +173,14 @@ export function checkLineClearance(frame, thresholds = THRESHOLDS) {
     if (line.kind === 'connector') for (const plaque of frame.plaques) {
       if (shares(line.claims, plaque.claims) || !near(outline, plaque.rect, 20 / frame.zoom)) continue;
       const centre = Math.min(...line.paths.map(path => pathToShell(path, plaque.rect, plaque.radius ?? 0)));
-      const clearance = (centre - line.halfWidth - 0.75) * frame.zoom;
-      if (clearance < thresholds.clearancePx) keep(`${line.id} ${plaque.id}`, finding('line-clearance', 'connector-plaque', frame,
-        `${line.id} ${plaque.id}`, `${line.kind} ${line.id} ${centre === 0 ? 'reaches into' : 'touches'} ${describe(plaque)}: `
-          + `clearance ${clearance.toFixed(1)}px`, thresholds.clearancePx - clearance));
+      const clearance = (centre - line.halfWidth - 0.75) * frame.zoom, subject = `${line.id} ${plaque.id}`;
+      if (clearance < thresholds.clearancePx) keep(finding('line-clearance', 'connector-plaque', frame, subject,
+        `${line.kind} ${line.id} ${centre === 0 ? 'reaches into' : 'touches'} ${describe(plaque)}: clearance ${clearance.toFixed(1)}px`,
+        thresholds.clearancePx - clearance));
+      // Clearance saturates once a line enters the shell; a crossing keeps its own depth.
+      const depth = Math.max(...line.paths.map(path => penetration(path, plaque.rect, plaque.radius ?? 0)));
+      if (depth > crossing) keep(finding('line-clearance', 'connector-plaque-crossing', frame, subject,
+        `${line.kind} ${line.id} runs ${px(frame, depth)}px into ${describe(plaque)}`, depth * frame.zoom));
     }
     const targets = [
       ...textTargets.filter(target => !line.masked && (line.kind === 'connector' || target.kind === 'text')),
@@ -175,7 +189,7 @@ export function checkLineClearance(frame, thresholds = THRESHOLDS) {
     for (const { item, rect, kind, limit } of targets) {
       if (shares(line.nodes, item.nodes) || shares(line.claims, item.claims) || !near(outline, rect, 0)) continue;
       const depth = Math.max(...line.paths.map(path => penetration(path, rect)));
-      if (depth > limit) keep(`${line.id} ${item.id}`, finding('line-clearance', `${line.kind}-${kind}`, frame, `${line.id} ${item.id}`,
+      if (depth > limit) keep(finding('line-clearance', `${line.kind}-${kind}`, frame, `${line.id} ${item.id}`,
         `${line.kind} ${line.id} runs ${px(frame, depth)}px into ${describe(item)}`, depth * frame.zoom));
     }
   }

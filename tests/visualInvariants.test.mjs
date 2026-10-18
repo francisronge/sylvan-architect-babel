@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 import { placeStagePlaques, plaqueTreeObstacles } from '../replay/relations/plaquePlacement.ts';
 import { TREE_FIRST_FAMILIES } from '../scripts/replayFrameLayout.mjs';
 import { formatFrames, frameList, matchFindings, proposeExceptions } from './helpers/findings.mjs';
-import { measurePlaqueText } from './helpers/visualFontMetrics.mjs';
+import { measurePlaqueText, measureRun } from './helpers/visualFontMetrics.mjs';
 import { auditVisualRecord, branchPoints, layoutVisualFrames, pathPolylines, plaqueRecord, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
 import { checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance } from './helpers/visualRules.mjs';
 import { EXCEPTIONS } from './helpers/visualExceptions.mjs';
@@ -27,20 +27,30 @@ const text = (node, kind, rect, extra = {}) => ({ id: `${node}:${kind}`, kind, t
   nodes: [node], claims: [], ...extra });
 const subjects = violations => violations.map(violation => violation.subject).sort();
 
-test('findings: an exception covers exact places within its bound; new, worse and stale places fail', () => {
+test('findings: an exception covers exact places within each place\'s bound; new, worse and stale places fail', () => {
   assert.deepEqual(frameList('3-5,9,canopy'), ['3', '4', '5', '9', 'canopy']);
   assert.equal(formatFrames([9, 3, 4, 5, 'canopy']), '3-5,9,canopy');
   const finding = (frame, viewport, measure) => ({ rule: 'line-clearance', subtype: 'branch-text', record: 'r', subject: 's', frame, viewport, measure });
-  const found = [finding(3, 'desktop', 2), finding(4, 'desktop', 2.5)];
+  const found = [finding(3, 'desktop', 2), finding(4, 'desktop', 2), finding(5, 'desktop', 2.5), finding(3, 'desktop-large', 1.86)];
   const [listed] = proposeExceptions(found);
-  assert.deepEqual(listed.at, { desktop: '3-4' });
-  assert.equal(listed.max, 2.5);
+  assert.deepEqual(listed.at, { desktop: { '3-4': 2, '5': 2.5 }, 'desktop-large': { '3': 1.86 } });
   assert.deepEqual(matchFindings(found, [listed]), { unexpected: [], exceeded: [], stale: [] });
-  const spread = matchFindings([...found, finding(5, 'desktop', 1), finding(3, 'mobile', 1)], [listed]);
-  assert.deepEqual(spread.unexpected.map(item => [item.frame, item.viewport]), [[5, 'desktop'], [3, 'mobile']]);
-  assert.equal(matchFindings([finding(3, 'desktop', 2), finding(4, 'desktop', 3)], [listed]).exceeded.length, 1);
-  assert.deepEqual(matchFindings([found[0]], [listed]).stale.map(item => [item.viewport, item.frame]), [['desktop', '4']]);
+  const spread = matchFindings([...found, finding(6, 'desktop', 1), finding(3, 'mobile', 1)], [listed]);
+  assert.deepEqual(spread.unexpected.map(item => [item.frame, item.viewport]), [[6, 'desktop'], [3, 'mobile']]);
+  // One place may not borrow another's bound: 1.86 rising to 2.63 fails although desktop reaches 2.5.
+  const worse = matchFindings([...found.slice(0, 3), finding(3, 'desktop-large', 2.5)], [listed]);
+  assert.deepEqual(worse.exceeded.map(({ finding: item, bound }) => [item.viewport, item.measure, bound]), [['desktop-large', 2.5, 1.86]]);
+  assert.deepEqual(matchFindings(found.slice(1), [listed]).stale.map(item => [item.viewport, item.frame]), [['desktop', '3']]);
   assert.throws(() => matchFindings(found, [listed, listed]), /Duplicate exception/);
+});
+
+test('fonts: a grapheme measures alike precomposed or decomposed, and a stacked mark raises its ink', () => {
+  const font = { family: 'Quicksand', size: 42, weight: 900 };
+  assert.deepEqual(measureRun('a\u0301', font), measureRun('\u00e1', font));
+  assert.deepEqual(measureRun('o\u0323\u0302', font), measureRun('\u1ed9', font));
+  assert(measureRun('\u00e1', font).ascent > measureRun('a', font).ascent + 2 / 0.25, 'the acute rises above the x-height');
+  assert(measureRun('q\u0301', font).ascent > measureRun('q', font).ascent, 'a mark with no precomposed form still counts');
+  assert.equal(measureRun('q\u0301', font).width, measureRun('q', font).width, 'a combining mark adds no advance');
 });
 
 test('control: glyph-overlap reports text or plaques painted over each other, beyond a two-pixel outline sliver', () => {
@@ -84,10 +94,17 @@ test('control: line-clearance reports a spoke cut at a plaque, a lane through te
     radius: 14, claims: ['3:2'] }], lines: [{ id: 'spoke', kind: 'connector', halfWidth: 2.7, nodes: [], claims: ['3:3'],
     paths: [[{ x: 2277.6, y: 5.2 }, { x: 1832.5, y: 460.6 }], [{ x: 1789.5, y: 504.6 }, { x: 1693, y: 603.3 }]] }] };
   assert.deepEqual(subjects(checkLineClearance(historical)), ['spoke clauseType']);
+  // An accepted contact cannot cover a crossing: a spoke through the plaque's centre is its own subtype, measured as depth.
+  const accepted = proposeExceptions(checkLineClearance(historical).map(found => ({ ...found, record: 'r' })));
+  const through = { ...historical, lines: [{ ...historical.lines[0], paths: [[{ x: 1400, y: 440 }, { x: 1900, y: 440 }]] }] };
+  const crossing = checkLineClearance(through).map(found => ({ ...found, record: 'r' }));
+  assert.deepEqual(crossing.map(found => found.subtype).sort(), ['connector-plaque', 'connector-plaque-crossing']);
+  assert.deepEqual(matchFindings(crossing, accepted).unexpected.map(found => found.subtype), ['connector-plaque-crossing']);
   // A line past a rectangle's corner clears its rounded shell.
   const corner = { ...frame, zoom: 1, lines: [{ ...spoke, halfWidth: 0.5, paths: [[{ x: 370, y: 114 }, { x: 404, y: 80 }]] }] };
   assert.deepEqual(checkLineClearance(corner), []);
-  assert.equal(checkLineClearance({ ...corner, plaques: [{ ...plaque, radius: 0 }] }).length, 1);
+  assert.deepEqual(checkLineClearance({ ...corner, plaques: [{ ...plaque, radius: 0 }] }).map(found => found.subtype).sort(),
+    ['connector-plaque', 'connector-plaque-crossing']);
   // A lane is clipped only at its stems: through tree text it is reported, through its own witnesses' text it is not.
   frame.texts = [text('x', 'category', box(150, 100, 80, 40)), text('a', 'category', box(-40, 100, 80, 40))];
   assert.deepEqual(subjects(checkLineClearance(frame)), ['spoke x:category']);
@@ -155,6 +172,12 @@ test('control: label-typography reports a closing mark starting a line, a lone r
 });
 
 test('control: clipped reports text under the Replay panel or past the canvas, when the screen chrome is known', () => {
+  // The offline adapter carries the panel and canvas through the fitted camera: clean, until a word is pushed under the panel.
+  const real = sample(), word = real.texts.find(item => item.kind === 'word'), { panel } = real.chrome;
+  assert.deepEqual(checkClipped(real), []);
+  const under = { ...word, boxes: [box(panel.x + 10, panel.y + 10, word.boxes[0].width, word.boxes[0].height)] };
+  assert.deepEqual(checkClipped({ ...real, texts: real.texts.map(item => item === word ? under : item) })
+    .map(found => [found.subtype, found.subject]), [['under-panel', word.id]]);
   const frame = { ...blank(), texts: [text('a', 'word', box(10, 10, 50, 20)), text('b', 'word', box(10, 190, 50, 20))],
     chrome: { canvas: box(0, 0, 400, 200), panel: box(0, 150, 400, 50) } };
   assert.deepEqual(checkClipped(frame).map(finding => [finding.subtype, finding.subject]),
