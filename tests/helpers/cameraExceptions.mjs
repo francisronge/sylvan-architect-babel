@@ -88,16 +88,17 @@ export const EXCEPTIONS = [
   x(STAGE_RELAYOUT, 'replay-regressions/workspace-spanish-continuity.json#', 'first-paint-continuity', 'jump:camera', 'stage 2',
     { desktop: { '8>9': 61.11 }, mobile: { '8>9': 37.53 } }),
   // Catalog #24's record (47-zh-relative.r1.B a6) also carries catalog #19-#21, under review on fix/replay-stage-frame-alignment.
+  // Stage 3 builds its timed TP by an ordinary External Merge at frame 46, and
+  // the waiting topic root joins at frame 48; these relayouts and the larger
+  // stage-boundary jumps follow from that construction.
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:relayout',
-    'stage 2', { desktop: { '16>17,17>16': 31.54 } }),
-  x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:relayout',
-    'stage 3', { desktop: { '48>49,49>48': 26.72 } }),
+    'stage 3', { desktop: { '45>46,46>45': 26.72, '47>48,48>47': 77.36 }, mobile: { '47>48,48>47': 36.75 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:camera',
-    'stage 2', { desktop: { '44>43': 142.61 }, mobile: { '44>43': 61.5 } }),
+    'stage 2', { desktop: { '44>43': 201.32 }, mobile: { '44>43': 95.65 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:camera',
-    'stage 3', { desktop: { '43>44': 149.9 }, mobile: { '43>44': 93.36 } }),
+    'stage 3', { desktop: { '43>44': 227.51 }, mobile: { '43>44': 135.93 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'off-canvas:unmoved',
-    'stage 3', { mobile: { '43>44': 165.57 } }),
+    'stage 3', { mobile: { '43>44': 132.02 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'off-canvas:moved',
-    'stage 3', { mobile: { '43>44': 46.31 } }),
+    'stage 3', { mobile: { '43>44': 36.73 } }),
 ];
