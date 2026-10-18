@@ -63,6 +63,22 @@ export function advanceFittedCamera(
  * whose shared ancestors change (a reattached, moved constituent) is left out
  * unless nothing else is shared. */
 export function carryCamera(pose: { x: number; y: number; k: number }, before: PaintedNodes, after: PaintedNodes) {
+  const { shared, unmoved } = sharedSyntax(before, after);
+  const reference = unmoved.length ? unmoved : shared;
+  if (!reference.length) return pose;
+  const median = (values: number[]) => {
+    values.sort((a, b) => a - b);
+    return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
+  };
+  return {
+    x: pose.x + median(reference.map(id => before.get(id)!.x - after.get(id)!.x)) * pose.k,
+    y: pose.y + median(reference.map(id => before.get(id)!.y - after.get(id)!.y)) * pose.k,
+    k: pose.k
+  };
+}
+
+/** Syntax both frames paint, and the part of it whose shared ancestors are unchanged. */
+function sharedSyntax(before: PaintedNodes, after: PaintedNodes) {
   const sharedAncestors = (nodes: PaintedNodes, id: string) => {
     const ids: string[] = [];
     for (let parent = nodes.get(id)!.parentId; parent; parent = nodes.get(parent)?.parentId ?? null) {
@@ -75,17 +91,24 @@ export function carryCamera(pose: { x: number; y: number; k: number }, before: P
     const prior = sharedAncestors(before, id), current = sharedAncestors(after, id);
     return prior.length === current.length && prior.every((ancestor, index) => ancestor === current[index]);
   });
-  const reference = unmoved.length ? unmoved : shared;
-  if (!reference.length) return pose;
-  const median = (values: number[]) => {
-    values.sort((a, b) => a - b);
-    return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
-  };
-  return {
-    x: pose.x + median(reference.map(id => before.get(id)!.x - after.get(id)!.x)) * pose.k,
-    y: pose.y + median(reference.map(id => before.get(id)!.y - after.get(id)!.y)) * pose.k,
-    k: pose.k
-  };
+  return { shared, unmoved };
+}
+
+/** Tree-space offsets that put each unmoved shared node of a new frame where the
+ * painted camera showed it, seen through the new frame's starting camera. `drift`
+ * holds offsets still painted by an interrupted glide. A step glides the offsets to
+ * zero; a reattached (moved) constituent is left to appear at its step. Offsets
+ * under half a screen pixel are omitted. */
+export function stepGlideOffsets(painted: { x: number; y: number; k: number }, start: { x: number; y: number; k: number },
+  before: PaintedNodes, drift: ReadonlyMap<string, { x: number; y: number }>, after: PaintedNodes) {
+  const offsets = new Map<string, { x: number; y: number }>();
+  for (const id of sharedSyntax(before, after).unmoved) {
+    const prior = before.get(id)!, current = after.get(id)!, carried = drift.get(id);
+    const x = (painted.x + (prior.x + (carried?.x ?? 0)) * painted.k - start.x) / start.k - current.x;
+    const y = (painted.y + (prior.y + (carried?.y ?? 0)) * painted.k - start.y) / start.k - current.y;
+    if (Math.hypot(x, y) * start.k >= 0.5) offsets.set(id, { x, y });
+  }
+  return offsets;
 }
 
 /** Retain an accepted fit; correct overflow with the least translation and scale reduction. */

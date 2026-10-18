@@ -1,4 +1,5 @@
 import {
+  planItemDependencyNodeIds,
   planItemRelationRefs,
   type RelationPlanItem
 } from '../../replay/relations/renderPlan.ts';
@@ -27,6 +28,8 @@ export const decorateRelationElement = (
       .join(' ')
   );
   element.setAttribute('data-vr-emphasis', emphasis ?? 'none');
+  // A step glide moves a mark with the nodes it is bound to.
+  element.setAttribute('data-vr-node-ids', JSON.stringify(planItemDependencyNodeIds(item)));
   element.classList.toggle('vr-relation-active', emphasis === 'active');
   return element;
 };

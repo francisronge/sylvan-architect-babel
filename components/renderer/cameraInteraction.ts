@@ -52,6 +52,7 @@ export function installCameraInteraction(session: Pick<CameraSession,
       g.attr('transform', event.transform);
       if (event.sourceEvent && !cameraRuntime.applying) {
         cameraRuntime.cancel?.();
+        cameraRuntime.glide?.finish();
         cameraAnimationRef.current = null;
         svg.attr('data-babel-camera-settled-step', activeStepIndex);
         effects.finishCollectionReveal?.();

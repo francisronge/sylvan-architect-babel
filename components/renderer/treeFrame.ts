@@ -176,7 +176,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
 
   const g = svg.attr('width', '100%').attr('height', '100%').append('g');
 
-  const cameraRuntime = { applying: false, cancel: undefined as (() => void) | undefined, deferred: null as d3.ZoomTransform | null };
+  const cameraRuntime: CameraSession['cameraRuntime'] = { applying: false, cancel: undefined, deferred: null };
 
   const cameraEffects: CameraEffects = {};
   const zoom = installCameraInteraction({
@@ -390,7 +390,10 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
   } else {
     openingSelectionRef.current = null;
   }
-  const deferredRelationFrame = window.requestAnimationFrame(guardViewCallback(() => {
+  // Measured syntax is in place now; a step's layout glide can start painting.
+  cameraRuntime.glide?.arm();
+  const atRest = (work: () => void) => cameraRuntime.glide ? cameraRuntime.glide.atRest(work) : work();
+  const deferredRelationFrame = window.requestAnimationFrame(guardViewCallback(() => atRest(() => {
     deferredAcceptedRelationDraws.forEach((draw) => draw());
     // Keep the accepted movement curves, with visible text in front of them.
     // Future reservations never punch holes in a currently visible arrow.
@@ -438,7 +441,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
       });
     } else collectionRevealRef.current = null;
     svg.attr('data-babel-rendered-step', activeStepIndex);
-  }, reportViewError));
+  }), reportViewError));
   return () => {
     cameraRuntime.cancel?.();
     openingAnimation?.cancel();

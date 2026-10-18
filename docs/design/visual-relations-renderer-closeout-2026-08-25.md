@@ -790,6 +790,15 @@ common translation between the two layouts; residual layout changes still move,
 and a reattached constituent appears at its new place. Explicit Fit, nonadjacent
 frame selection, Prev into an earlier stage and the completed last Stage Record,
 including Prev out of it, retain their existing fitting behavior.
+An animated step also glides the layout. Each node both frames paint whose
+shared ancestors are unchanged travels, with its branches, words and labels, from
+where it was painted to its new place over the camera's duration and easing; a
+relation mark bound only to nodes sharing one offset travels with them as one
+coordinate group. A reattached constituent, new syntax and removed syntax change
+at the step, and a mark bound to nodes that travel differently stays hidden until
+the glide ends. Direct selection, Fit, resize, reduced motion, a retained manual
+camera and the first paint change the layout at once. Measurement runs against
+the new layout, never against a gliding one.
 Stage framing retains its existing margins for ordinary labels. When a revealed
 label exceeds those margins, expand the shared stage envelope by only that
 excess, using the same styled text bounds as layout. Include every revealed

@@ -4,10 +4,11 @@ import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
 import { animateReplayCamera } from '../replayCameraMotion.ts';
-import { advanceFittedCamera, carryCamera, containCamera, type PaintedNodes } from '../treeViewport.ts';
+import { advanceFittedCamera, carryCamera, containCamera, stepGlideOffsets, type PaintedNodes } from '../treeViewport.ts';
 import { guardViewCallback } from '../viewErrorHandling.ts';
 import { liveViewportSize, type CameraSession } from './cameraState.ts';
 import type { DrawingLayer } from './drawingContext.ts';
+import { createLayoutGlide } from './layoutGlide.ts';
 
 interface CameraFitGeometry {
   stagePlaqueContainmentBounds: OverlayBounds;
@@ -70,14 +71,22 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     // new place on that frame.
     const from = adjacent && previousFit.stageIndex !== stageIndex
       ? carryCamera(painted, previousFit.paintedNodes, paintedNodes) : painted;
-    cameraRuntime.cancel = animateReplayCamera(from, fitted, duration,
-      pose => applyCameraTransform(session, d3.zoomIdentity.translate(pose.x, pose.y).scale(pose.k)),
+    // Syntax both frames paint travels from where it was painted with the camera.
+    const offsets = duration && previousFit
+      ? stepGlideOffsets(painted, from, previousFit.paintedNodes, previousFit.paintedOffsets, paintedNodes) : null;
+    const glide = offsets?.size ? createLayoutGlide(g, offsets, autoCameraRef.current!.paintedOffsets) : null;
+    cameraRuntime.glide = glide;
+    // The glide moves first, so camera-driven refreshes measure the painted layout.
+    cameraRuntime.cancel = animateReplayCamera(from, fitted, duration, (pose, progress) => {
+      glide?.paint(progress);
+      applyCameraTransform(session, d3.zoomIdentity.translate(pose.x, pose.y).scale(pose.k));
+    },
       () => { cameraAnimationRef.current = null; svg.attr('data-babel-camera-settled-step', activeStepIndex); },
       {
         now: () => performance.now(),
         request: callback => window.requestAnimationFrame(guardViewCallback(callback, reportViewError)),
         cancel: id => window.cancelAnimationFrame(id)
-      });
+      }, Boolean(glide));
   };
   const applyFittedCamera = (fitted: d3.ZoomTransform) => {
     if (stagePlaqueContainmentBounds && stageFitContainmentBounds) {
@@ -105,7 +114,7 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     autoCameraRef.current = {
       data, signature: derivationStagesSignature, width: containerWidth,
       height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted, stageIndex, paintedNodes,
-      completed: completedReplayStep !== undefined
+      completed: completedReplayStep !== undefined, paintedOffsets: new Map()
     };
     // Labels and complete fallback badges keep their accepted automatic-Fit
     // size, then scale with the tree. Their connectors use the same reference

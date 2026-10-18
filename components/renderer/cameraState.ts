@@ -1,6 +1,7 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../../types.ts';
 import type { PaintedNodes } from '../treeViewport.ts';
+import type { LayoutGlide } from './layoutGlide.ts';
 
 /** A manual pose is a screen pose of the live SVG; `width` and `height` are that SVG's size. */
 export type TreeCameraState = {
@@ -18,11 +19,15 @@ export type AutoCameraState = TreeCameraState & {
   stepIndex: number; fitRevision: number; stageIndex: number; paintedNodes: PaintedNodes;
   /** Framed the completed last Stage Record, whose fit is its own. */
   completed: boolean;
+  /** Tree-space glide offsets currently painted, updated as a step's glide runs. */
+  paintedOffsets: Map<string, { x: number; y: number }>;
 };
 
 /** Retained camera interaction state for one mounted tree, shared across frame draws. */
 export interface CameraSession {
-  cameraRuntime: { applying: boolean; cancel: (() => void) | undefined; deferred: d3.ZoomTransform | null };
+  cameraRuntime: { applying: boolean; cancel: (() => void) | undefined; deferred: d3.ZoomTransform | null;
+    /** The step's layout glide, which moves syntax with the camera animation. */
+    glide?: LayoutGlide | null };
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   zoom: d3.ZoomBehavior<SVGSVGElement, unknown>;
   autoCameraRef: { current: AutoCameraState | null };
