@@ -169,6 +169,8 @@ export interface DerivationReplayPlanStep {
   unprovenNewLandingNodeId?: string;
   /** New occurrences a neutral claim relates to earlier occurrences of the same object; see `anchoredCopyDisplacement`. */
   anchoredCopyDisplacement?: { copies: Array<{ nodeId: string; earlierNodeId?: string }>; earlierNodeIds: string[] };
+  /** New parents a prior-witness claim names that only wrapped its retained witnesses; ordinary construction builds them. See `priorWitnessWrapperNodeIds`. */
+  witnessWrapperNodeIds?: string[];
   preserveMovementLanding?: boolean;
   pronunciationNodeIds?: string[];
   movementDiagnostics?: string[];
