@@ -390,10 +390,10 @@ and so on; equal positions across paired lists retain their correspondence.
 Two scalar witnesses have the accepted connector
 below their subtrees, a scalar plus an array has a fan, and unpaired witnesses
 have no invented links. Fan paths leave measured gaps around syntax and role
-labels. Scalar connector stems use the same label clearance. A fan spoke that
-passes a visible plaque stops six marker units short of it on each side, so
-neither its round cap nor its shadow meets the plaque border at any automatic
-Fit; the spoke stays straight and its role labels do not move. Repeated witnesses retain every authored role label; a fan does not draw
+labels. Scalar connector stems use the same label clearance. A fan spoke whose
+stroke would meet a visible plaque stops short of it on each side, leaving four
+marker units of dark space beyond the spoke's shadow at every automatic Fit.
+Spokes that only pass beside a plaque stay whole, and role labels do not move. Repeated witnesses retain every authored role label; a fan does not draw
 a spoke from a node to itself.
 
 The existing Replay rows identify previous-stage references with

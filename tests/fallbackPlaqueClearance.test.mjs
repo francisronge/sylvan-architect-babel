@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
-import { fallbackLabelRect, fallbackMarkerScale, fitFallbackGeometry } from '../replay/relations/fallbackGeometry.ts';
+import {
+  clearLabelPath, FALLBACK_STROKE_WIDTHS, fallbackLabelRect, fallbackMarkerScale, fitFallbackGeometry, routeFallbackSegments
+} from '../replay/relations/fallbackGeometry.ts';
 
-// Painted connector strokes, in marker units (relation-visuals.css and fallbackDrawing.ts):
-// a 1.5 line over a 3.6 shadow, both with round caps.
-const LINE_HALF_WIDTH = 0.75, SHADOW_HALF_WIDTH = 1.8;
+// Spokes are round-capped, so each stroke reaches half its width past a cut end.
+const LINE_HALF_WIDTH = FALLBACK_STROKE_WIDTHS.direct.line / 2, SHADOW_HALF_WIDTH = FALLBACK_STROKE_WIDTHS.direct.shadow / 2;
 
 const pieces = d => [...d.matchAll(/M ([\d.-]+) ([\d.-]+) L ([\d.-]+) ([\d.-]+)/g)]
   .map(match => match.slice(1).map(Number)).map(([x1, y1, x2, y2]) => [{ x: x1, y: y1 }, { x: x2, y: y2 }]);
@@ -65,4 +66,17 @@ for (const fitZoom of [0.12, 0.2, 0.3, 0.45, 0.6, 1]) test(`a neutral fan keeps 
     assert(pointRectDistance(drawn.at(-1)[1], fallbackLabelRect(target, scale)) < 0.1);
   }
   assert.equal(pieces(crossing.d).length, 2, 'the spoke continues on both sides of the plaque');
+});
+
+// Role labels may sit flush against a plaque. A spoke that only runs beside the
+// plaque never meets it, so it must reach its own label without a new break.
+for (const markerScale of [0.5, 1, 2, 3]) test(`a spoke running beside a plaque stays whole at marker scale ${markerScale}`, () => {
+  const from = { x: 1000, y: 0 }, to = { x: 1004, y: 400 };
+  const labels = [{ x: 960, y: -12, width: 80, height: 24 }, { x: 964, y: 388, width: 80, height: 24 }];
+  const beside = { x: 1007, y: 14, width: 100, height: 86 };
+  const [spoke] = routeFallbackSegments([{ type: 'segment', route: 'direct', witnessNodeIds: ['a', 'b'], from, to,
+    directed: false, itemIndex: 0 }], { markerScale, labelClearances: labels, obstacles: [beside], occlusions: [beside] });
+  assert(Math.min(...pieces(spoke.d).map(piece => segmentRectDistance(piece, beside))) > SHADOW_HALF_WIDTH * markerScale);
+  assert.equal(spoke.d, clearLabelPath(from, to, labels));
+  assert.equal(spoke.d, 'M 1000.1 12.0 L 1003.9 388.0');
 });
