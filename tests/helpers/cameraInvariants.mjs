@@ -116,8 +116,10 @@ function collect() {
  * further from where it was painted than the stage fit would; a reattached
  * constituent may move. Later micro-steps of the same stage
  * keep the entry pose and inherit its verdict, so a disallowed entry is
- * reported once, at the step into the stage ('retention'); a Prev that settles
- * elsewhere is 'backward'.
+ * reported once, at the step into the stage ('retention'). A Prev within one
+ * stage may likewise keep the stage's accepted pose; a Prev into an earlier
+ * stage or out of the completed last Stage Record settles where direct
+ * selection does, and otherwise is 'backward'.
  */
 export function checkSettledPathIndependence(trace, thresholds = CAMERA_THRESHOLDS) {
   const found = collect(), allowed = [];
@@ -127,13 +129,20 @@ export function checkSettledPathIndependence(trace, thresholds = CAMERA_THRESHOL
       const frame = trace.frames[step.to], direct = trace.direct[step.to];
       const difference = poseDistance(step.settled, direct, frame);
       if (difference <= thresholds.samePosePx) { entry = null; continue; }
-      if (entry && trace.frames[step.from].stage === frame.stage && poseDistance(step.before, step.settled, frame) <= thresholds.samePosePx) {
+      const kept = trace.frames[step.from].stage === frame.stage && poseDistance(step.before, step.settled, frame) <= thresholds.samePosePx;
+      if (kept && entry?.at === step.from) {
         if (entry.allowed) allowed.push({ ...entry.allowed, frame: step.to + 1, inheritedFrom: entry.allowed.frame });
+        entry.at = step.to;
+        continue;
+      }
+      if (kept && step.to === step.from - 1 && !trace.frames[step.from].final) {
+        allowed.push({ frame: step.to + 1, from: step.from + 1, pass: pass.name, differencePx: round(difference), keptStagePose: true });
+        entry = null;
         continue;
       }
       const reasons = [], context = {};
       const subtype = step.to !== step.from + 1 ? 'backward' : frame.final ? 'final' : 'retention';
-      if (subtype === 'backward') reasons.push('a backward step has no documented retention');
+      if (subtype === 'backward') reasons.push('a Prev keeps a pose only within one stage, never into an earlier stage or out of the completed record');
       else if (subtype === 'final') reasons.push('the completed last Stage Record must use its fit');
       else {
         if (step.settled.k > direct.k + 1e-6) reasons.push(`it zooms in past the stage fit (k ${step.settled.k.toFixed(4)} > ${direct.k.toFixed(4)})`);
@@ -151,11 +160,11 @@ export function checkSettledPathIndependence(trace, thresholds = CAMERA_THRESHOL
         }
       }
       if (!reasons.length) {
-        entry = { allowed: { frame: step.to + 1, from: step.from + 1, pass: pass.name, differencePx: round(difference), ...context } };
+        entry = { at: step.to, allowed: { frame: step.to + 1, from: step.from + 1, pass: pass.name, differencePx: round(difference), ...context } };
         allowed.push(entry.allowed);
         continue;
       }
-      entry = { violation: true };
+      entry = { at: step.to };
       found.add({ rule: 'settled-path-independence', subtype, subject: stageOf(frame), frame: transition(step), measure: round(difference),
         detail: `settles at ${poseText(step.settled)}, ${round(difference)} px from direct selection ${poseText(direct)}: ${reasons.join('; ')}`,
         context }, pass.name);

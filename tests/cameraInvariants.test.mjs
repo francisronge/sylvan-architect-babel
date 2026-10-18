@@ -3,7 +3,8 @@ import { before, test } from 'node:test';
 import { advanceFittedCamera } from '../components/treeViewport.ts';
 import { EXCEPTIONS } from './helpers/cameraExceptions.mjs';
 import {
-  checkCameraTrace, checkContentPlacement, checkFirstPaintContinuity, checkSettledPathIndependence, checkWithinStageStability
+  checkCameraTrace, checkContentPlacement, checkFirstPaintContinuity, checkSettledPathIndependence, checkWithinStageStability,
+  poseDistance
 } from './helpers/cameraInvariants.mjs';
 import { auditCameraRecord, CAMERA_VIEWPORTS, traceCamera } from './helpers/cameraTrace.mjs';
 import { matchFindings } from './helpers/findings.mjs';
@@ -40,6 +41,18 @@ test('control: settled-path-independence reports Prev and Next settling away fro
   const backward = copy(control), index = within(backward, 'backward'), prev = step(backward, 'backward', index);
   passOf(backward, 'backward')[index].settled = translate(prev.settled, 40);
   assert.deepEqual(checkSettledPathIndependence(backward).findings.map(finding => [finding.subtype, finding.frame]), [['backward', prev.at]]);
+
+  // Within one stage, Prev may keep the stage's accepted pose, as Next does.
+  const kept = copy(control), retained = translate(prev.settled, 30);
+  Object.assign(passOf(kept, 'backward')[index], { before: retained, settled: retained });
+  const { findings, allowed } = checkSettledPathIndependence(kept);
+  assert.deepEqual([findings, allowed.map(entry => [entry.frame, entry.keptStagePose])], [[], [[prev.to + 1, true]]]);
+  // Into an earlier stage, or out of the completed last Stage Record, it refits.
+  for (const leaving of [crossing(control, 'backward'), 0]) {
+    const stale = copy(control), out = step(stale, 'backward', leaving), held = translate(out.before, 30);
+    Object.assign(passOf(stale, 'backward')[leaving], { before: held, settled: held });
+    assert.deepEqual(checkSettledPathIndependence(stale).findings.map(finding => [finding.subtype, finding.frame]), [['backward', out.at]]);
+  }
 
   const zoomed = copy(control), entry = crossing(zoomed, 'forward'), next = step(zoomed, 'forward', entry);
   passOf(zoomed, 'forward')[entry].settled = { ...zoomed.direct[next.to], k: zoomed.direct[next.to].k * 1.2 };
@@ -164,7 +177,24 @@ test('catalog #7: since PR #77, Next into frame 21 carries the view and paints t
   assert.deepEqual(catalog.filter(finding => finding.record === WHOSE && finding.rule !== 'within-stage-stability'), []);
 });
 
-test('catalog #7 (open): Prev inside the forward-retained stage refits the camera', () => {
+/* Historical defect found by these checks: before fix/renderer-prev-keeps-stage-camera,
+ * Prev inside a stage entered with a retained view refit the camera to direct
+ * selection's pose. Replayed on this layout, that refit stays flagged; keeping
+ * the stage's pose passes both rules. */
+test('historical Prev refit: leaving a retained stage pose on Prev within the stage is flagged', () => {
+  const trace = traceOf(WHOSE), index = passOf(trace, 'next-then-prev').findIndex(entry => entry.from === 21 && entry.to === 20);
+  const prev = step(trace, 'next-then-prev', index);
+  assert(poseDistance(prev.before, trace.direct[20], trace.frames[20]) > 1, 'Next retained a view other than direct selection\'s');
+  const replay = settled => {
+    const broken = copy(trace);
+    passOf(broken, 'next-then-prev')[index].settled = settled;
+    return checkCameraTrace(broken).findings.filter(finding => finding.frame === '22>21').map(finding => `${finding.rule}/${finding.subtype}`);
+  };
+  assert.deepEqual(replay(trace.direct[20]), ['within-stage-stability/prev-refit']);
+  assert.deepEqual(replay(prev.before), []);
+});
+
+test('catalog #7 (open until fix/renderer-prev-keeps-stage-camera merges): Prev inside the forward-retained stage refits the camera', () => {
   const places = catalog.filter(finding => finding.record === WHOSE && finding.subtype === 'prev-refit' && finding.subject === 'stage 2')
     .map(finding => `${finding.viewport} ${finding.frame}`).sort();
   assert.deepEqual(places, ['desktop 22>21', 'desktop 23>22', 'desktop 24>23', 'mobile 22>21', 'mobile 23>22', 'mobile 24>23']);
