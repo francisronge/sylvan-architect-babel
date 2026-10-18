@@ -3,7 +3,6 @@ import { execFileSync } from 'node:child_process';
 
 import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
-import { tokenizeSentenceSurfaceOrder } from '../server/babelParser/surfaceTokens.js';
 import { resolveResearchModelSelection } from '../server/babelParser/researchModelCatalog.js';
 import { buildAnthropicRequestBody } from '../server/babelParser/modelRuntime.js';
 import { qualificationResponseHeaders, qualificationTransportError } from './telemetry.js';
@@ -23,14 +22,12 @@ export const buildAnthropicQualificationRequest = ({
   const selection = resolveResearchModelSelection(model, effort ? { 'output_config.effort': effort } : {});
   if (selection.provider !== 'anthropic') throw new Error('The Anthropic runner requires an Anthropic model.');
   const { maxOutputTokens, thinking } = selection.requestPolicy;
-  const inputTokens = tokenizeSentenceSurfaceOrder(sentence);
   return {
     selection,
-    inputTokens,
     body: {
       ...buildAnthropicRequestBody({
         model: selection.providerModel,
-        contents: buildParseContentsPrompt(sentence, framework, 'claude', inputTokens),
+        contents: buildParseContentsPrompt(sentence),
         systemInstruction: buildSystemInstruction(framework, 'claude'),
         maxOutputTokens,
         effort: selection.nativeSettings['output_config.effort'],

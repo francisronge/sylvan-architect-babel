@@ -15,26 +15,22 @@ syntactic rules. Desktop remains the primary experience.
 1. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
    the Max plan's monthly API credits can be claimed (around 2026-10-24). Spend
    only those credits.
-2. Input segmentation ([study](docs/research/input-segmentation.md)): with
-   Francis, decide between today's supplied tokens and character spell-out
-   (`--contract spellout`) from the saved comparison batches, then apply the
-   decision to the product contract.
-3. Clean up the tests:
+2. Clean up the tests:
    - Retire hand-picked per-frame Replay checks that the invariant sweep
      (`tests/replayInvariants.test.mjs`) now covers.
    - Move the design lab's example cards into fixture data, so the checks on
      them read data instead of slicing the lab's source text.
    - Check right-to-left once, as a mirror of left-to-right across the saved
      parses, then run continuity checks once per width.
-4. Recognition:
+3. Recognition:
    - Run an offline, geometry-first recognition experiment over every saved
      parse: measure the wrong-picture rate where Babel already draws, and build
      a review page for relations Babel does not yet draw.
    - Later, consider Jev as a fallback.
-5. Remove the legacy server model-route picker (Gemini default, stale model names,
+4. Remove the legacy server model-route picker (Gemini default, stale model names,
    legacy environment variables) and the `.artifacts` harnesses that depend on it.
    Treat this as an explicit endpoint-contract change.
-6. Merge duplicated layout checks without changing a pixel, proving identical
+5. Merge duplicated layout checks without changing a pixel, proving identical
    coordinates with `npm run verify:corpus`, and fix the one remaining stretched
    branch in Indonesian control analysis 2.
 

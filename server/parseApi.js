@@ -7,7 +7,6 @@
 } from './babelParser.js';
 import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './babelParser/researchModelCatalog.js';
 import { normalizeProviderReasoningEffort } from './babelParser/routeConfig.js';
-import { tokenizeSentenceSurfaceOrder } from './babelParser/surfaceTokens.js';
 import {
   createFailure,
   withFailureDetails
@@ -132,10 +131,11 @@ export const parseFromBodyWithProviders = async (
       : providers[modelRoute](sentence, framework, modelRoute, { reasoningEffort, abortSignal }));
     return { ...bundle, sentence };
   } catch (error) {
-    // A failure from a request that reached the model carries the tokens it was
-    // sent, so the browser never segments the sentence with its own Unicode data.
-    if (error instanceof ParseApiError && (error.rawOutput || error.details?.generationRecord)) {
-      error.inputTokens = tokenizeSentenceSurfaceOrder(sentence);
+    // A failure after the spell-out check carries the word list Babel derived
+    // from the model's own words. The browser never segments the sentence
+    // itself, so an output that failed the check has no word list.
+    if (error instanceof ParseApiError && Array.isArray(error.details?.inputTokens)) {
+      error.inputTokens = error.details.inputTokens;
     }
     throw error;
   }

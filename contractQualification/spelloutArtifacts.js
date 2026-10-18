@@ -5,11 +5,30 @@ import { parseModelJsonDetailed } from '../server/babelParser/modelJson.js';
 import { createFailure } from '../server/babelParser/validationErrors.js';
 import { writeQualificationAttempt } from './artifacts.js';
 import { hashQualificationBytes, stableQualificationJson } from './run.js';
-import { SPELLOUT_CONTRACT_VERSION, convertSpelloutPayload, planSpelloutAttempts } from './spelloutContract.js';
+import { SPELLOUT_CONTRACT_VERSION, convertSpelloutPayload } from '../server/babelParser/spellout.js';
+
+/**
+ * One ordinary qualification attempt holds every analysis that passed, over
+ * their shared word list; each analysis that failed the check is recorded on
+ * its own.
+ */
+export const planSpelloutAttempts = (payload, results) => {
+  const passing = results.filter(result => result.ok);
+  const attempts = passing.length ? [{
+    id: 'parse',
+    inputTokens: passing[0].inputTokens,
+    analysisIndices: passing.map(result => result.analysisIndex),
+    payload: Array.isArray(payload?.analyses) ? { ...payload, analyses: passing.map(result => result.analysis) } : passing[0].analysis
+  }] : [];
+  const failures = results.filter(result => !result.ok).map(result => ({
+    id: `parse-analysis-${result.analysisIndex + 1}-spellout`, analysisIndex: result.analysisIndex, diagnostics: result.diagnostics
+  }));
+  return { attempts, failures };
+};
 
 /**
  * Processes a completed spell-out response. Babel's own JSON ingress reads the
- * model text; each converted segmentation then becomes an ordinary
+ * model text; the analyses that pass the spelling check become one ordinary
  * qualification attempt, so the unchanged parser, Replay and review apply.
  * spellout.json keeps the conversion evidence: words, aligned spans, tokens,
  * observations and the original ingress repairs.
