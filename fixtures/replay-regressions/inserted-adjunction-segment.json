@@ -1,0 +1,753 @@
+{
+  "description": "Stage 2 adjoins a relative clause to the subject DP. The DP keeps its ID (hdp) as the higher segment, and a new DP (hcore) takes over its former children. hcore has the same shape as the earlier hdp, so Replay used to treat it as hdp under a new ID and show it at the stage's first, unrelated step (Project V′ over the matrix verb). hcore is new structure and is built at its own step.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract, 18 October 2026 (night batch, 30-he-resumptive, analysis 2 of 2), commit 53a7c7f. Tokens are the model's own final words.",
+  "sentence": "האיש שראיתי אותו הלך.",
+  "framework": "xbar",
+  "inputTokens": [
+    "האיש",
+    "שראיתי",
+    "אותו",
+    "הלך"
+  ],
+  "derivationStages": [
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "hd",
+            "hn"
+          ],
+          "tokenIndices": [
+            0
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "determiner": "hd",
+            "noun": "hn"
+          },
+          "relation": "Joint realization of the definite nominal",
+          "values": {
+            "writtenForm": "האיש"
+          }
+        },
+        {
+          "anchors": {
+            "experiencer": "rs",
+            "predicate": "rv",
+            "theme": "obj"
+          },
+          "relation": "Relative-clause theta assignment",
+          "values": {
+            "experiencerRole": "experiencer",
+            "themeRole": "theme"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "rv",
+            "object": "obj"
+          },
+          "relation": "Accusative Case licensing",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "ri"
+          },
+          "relation": "Relative finite inflection",
+          "values": {
+            "agreement": "first-person singular",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "On the supplementary reading, האיש independently identifies a man, and the relative adds that the speaker saw him. Such a reading requires appropriate discourse and supplementary intonation; the absence of written commas does not categorically exclude it. The structural distinction will be DP-level rather than NP-level relative attachment. Initially, D ה and N איש form the definite nominal and jointly realize האיש. In the relative IP, ראיתי takes the overt pronoun אותו as its complement and a silent first-person singular pro as its VP-internal subject. The verb assigns the experiencer role to pro and the theme role to the object, and licenses accusative Case on אותו. The latter is represented as one inflected pronominal terminal. Relative I contains past tense and first-person singular agreement. The matrix verb הלך is still a separate lexical object.",
+      "statement": "Build the independently definite nominal and the relative clause for a supplementary reading.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "hd",
+              "label": "D⁰",
+              "word": "ה"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "hn",
+                      "label": "N⁰",
+                      "word": "איש"
+                    }
+                  ],
+                  "id": "hnb",
+                  "label": "N′"
+                }
+              ],
+              "id": "hnp",
+              "label": "NP"
+            }
+          ],
+          "id": "hdp",
+          "label": "DP",
+          "lineageId": "manDP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "ri",
+                  "label": "I⁰ [past, 1sg]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "rpro",
+                          "label": "D⁰: pro [1sg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "rs",
+                      "label": "DP",
+                      "lineageId": "relativeSubject",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "rv",
+                          "label": "V⁰",
+                          "lineageId": "relativeVerb",
+                          "word": "ראיתי"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "od",
+                              "label": "D⁰: pronoun [3ms]",
+                              "word": "אותו"
+                            }
+                          ],
+                          "id": "obj",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "rvb",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "rvp",
+                  "label": "VP"
+                }
+              ],
+              "id": "rib",
+              "label": "I′"
+            }
+          ],
+          "id": "rip",
+          "label": "IP"
+        },
+        {
+          "children": [],
+          "id": "mv",
+          "label": "V⁰",
+          "lineageId": "matrixVerb",
+          "word": "הלך"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "hd",
+            "hn"
+          ],
+          "tokenIndices": [
+            0
+          ]
+        },
+        {
+          "nodeIds": [
+            "rc",
+            "rvh"
+          ],
+          "tokenIndices": [
+            1
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "headTrace": "rv",
+            "raisedVerb": "rvh",
+            "target": "ri"
+          },
+          "priorAnchors": {
+            "source": "rv",
+            "targetHost": "ri"
+          },
+          "relation": "Relative V-to-I movement",
+          "values": {
+            "movement": "head adjunction to I"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "rip",
+            "raisedSubject": "rsh",
+            "subjectTrace": "rs"
+          },
+          "priorAnchors": {
+            "source": "rs"
+          },
+          "relation": "Relative subject A-movement",
+          "values": {
+            "destination": "Spec-IP"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "ri",
+            "nullPronoun": "rproh",
+            "subject": "rsh"
+          },
+          "relation": "Nominative licensing and pro identification",
+          "values": {
+            "case": "nominative",
+            "identifiedFeatures": "first-person singular"
+          }
+        },
+        {
+          "anchors": {
+            "localDomain": "rip",
+            "localSubject": "rsh",
+            "operator": "rop",
+            "resumptivePronoun": "obj"
+          },
+          "relation": "Resumptive operator binding",
+          "values": {
+            "bindingCondition": "the pronoun has no coindexed local A-binder",
+            "dependency": "base-generated operator A′-binds the overt object pronoun"
+          }
+        },
+        {
+          "anchors": {
+            "adjunctionProjection": "hdp",
+            "operator": "rop",
+            "referentialAntecedent": "hcore",
+            "relativeClause": "rcp"
+          },
+          "relation": "Supplementary relative attachment and referential anchoring",
+          "values": {
+            "attachment": "CP right-adjoined to DP",
+            "interpretation": "the relative adds a supplementary assertion about the independently identified man"
+          }
+        },
+        {
+          "anchors": {
+            "complementizer": "rc",
+            "finiteVerb": "rvh"
+          },
+          "relation": "Joint realization across C and the finite verb",
+          "values": {
+            "writtenForm": "שראיתי"
+          }
+        },
+        {
+          "anchors": {
+            "predicate": "mv",
+            "theme": "hdp"
+          },
+          "relation": "Matrix theta assignment",
+          "values": {
+            "position": "Spec-VP",
+            "role": "theme"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "mi"
+          },
+          "relation": "Matrix finite inflection",
+          "values": {
+            "agreement": "third-person masculine singular",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "The relative verb first raises from V to I, leaving a silent head trace. The silent subject then raises from Spec-VP to Spec-IP, where finite I licenses nominative Case and identifies pro through first-person singular agreement. The relative CP is formed with ש in C and a base-generated silent operator in Spec-CP. This operator A′-binds אותו in its existing object position: the object remains overt, and neither an object gap nor movement from that position is posited. Principle B is respected because the local subject is not coindexed with the object and the operator lies outside the local IP domain. The CP is right-adjoined to the independently referential DP rather than to NP. Its operator is anchored to that DP's referent, producing supplementary information instead of restricting the nominal predicate. The C terminal and the raised relative verb jointly realize שראיתי. The entire DP, including its supplement, is then merged in matrix Spec-VP and receives the theme role from הלך. Matrix finite I is introduced with past tense and third-person masculine singular agreement, before matrix subject raising or verb raising.",
+      "statement": "Attach the completed resumptive relative as a supplement to DP and introduce the matrix clause.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "mi",
+                  "label": "I⁰ [past, 3ms]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "hd",
+                              "label": "D⁰",
+                              "word": "ה"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "hn",
+                                      "label": "N⁰",
+                                      "word": "איש"
+                                    }
+                                  ],
+                                  "id": "hnb",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "hnp",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "hcore",
+                          "label": "DP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rop",
+                              "label": "DP: Op",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "rc",
+                                  "label": "C⁰",
+                                  "word": "ש"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "rproh",
+                                          "label": "D⁰: pro [1sg]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "rsh",
+                                      "label": "DP",
+                                      "lineageId": "relativeSubject",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "rvh",
+                                              "label": "V⁰",
+                                              "lineageId": "relativeVerb",
+                                              "word": "ראיתי"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "rif",
+                                              "label": "I⁰",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "ri",
+                                          "label": "I⁰ [past, 1sg]"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "rs",
+                                              "label": "t_DP",
+                                              "lineageId": "relativeSubject",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "rv",
+                                                  "label": "t_V",
+                                                  "lineageId": "relativeVerb",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "od",
+                                                      "label": "D⁰: pronoun [3ms]",
+                                                      "word": "אותו"
+                                                    }
+                                                  ],
+                                                  "id": "obj",
+                                                  "label": "DP"
+                                                }
+                                              ],
+                                              "id": "rvb",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "rvp",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "rib",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "rip",
+                                  "label": "IP"
+                                }
+                              ],
+                              "id": "rcb",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "rcp",
+                          "label": "CP"
+                        }
+                      ],
+                      "id": "hdp",
+                      "label": "DP",
+                      "lineageId": "manDP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "mv",
+                          "label": "V⁰",
+                          "lineageId": "matrixVerb",
+                          "word": "הלך"
+                        }
+                      ],
+                      "id": "mvb",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "mvp",
+                  "label": "VP"
+                }
+              ],
+              "id": "mib",
+              "label": "I′"
+            }
+          ],
+          "id": "mip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "hd",
+            "hn"
+          ],
+          "tokenIndices": [
+            0
+          ]
+        },
+        {
+          "nodeIds": [
+            "rc",
+            "rvh"
+          ],
+          "tokenIndices": [
+            1
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "clause": "mip",
+            "raisedSubject": "msh",
+            "subjectTrace": "hdp"
+          },
+          "priorAnchors": {
+            "source": "hdp"
+          },
+          "relation": "Matrix subject A-movement",
+          "values": {
+            "destination": "Spec-IP",
+            "thetaInterpretation": "the chain retains the theme role assigned in Spec-VP"
+          }
+        },
+        {
+          "anchors": {
+            "headTrace": "mv",
+            "raisedVerb": "mvh",
+            "target": "mi"
+          },
+          "priorAnchors": {
+            "source": "mv",
+            "targetHost": "mi"
+          },
+          "relation": "Matrix V-to-I movement",
+          "values": {
+            "movement": "head adjunction to I"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "mi",
+            "subject": "msh"
+          },
+          "relation": "Matrix nominative Case and agreement",
+          "values": {
+            "agreement": "third-person masculine singular",
+            "case": "nominative"
+          }
+        }
+      ],
+      "stageRecord": "The DP bearing the supplementary relative raises from its established matrix Spec-VP position to Spec-IP, leaving a silent DP trace. The supplement remains attached to DP and is carried with it; no extraposition is required. The matrix verb then raises from V to I and leaves a silent head trace. Finite I assigns nominative Case to the raised subject and agrees with its third-person masculine singular features. The subject chain preserves the theme role assigned in the lower position. The final structure therefore means that the independently identified man left, with the supplementary information that the speaker saw him. The existing joint realizations remain unchanged, and the pronounced terminals yield exactly האיש שראיתי אותו הלך.",
+      "statement": "Complete the matrix clause with the supplementary relative carried inside the raised subject.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "hd",
+                      "label": "D⁰",
+                      "word": "ה"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "hn",
+                              "label": "N⁰",
+                              "word": "איש"
+                            }
+                          ],
+                          "id": "hnb",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "hnp",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "hcore",
+                  "label": "DP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "rop",
+                      "label": "DP: Op",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "rc",
+                          "label": "C⁰",
+                          "word": "ש"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "rproh",
+                                  "label": "D⁰: pro [1sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "rsh",
+                              "label": "DP",
+                              "lineageId": "relativeSubject",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "rvh",
+                                      "label": "V⁰",
+                                      "lineageId": "relativeVerb",
+                                      "word": "ראיתי"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "rif",
+                                      "label": "I⁰",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "ri",
+                                  "label": "I⁰ [past, 1sg]"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "rs",
+                                      "label": "t_DP",
+                                      "lineageId": "relativeSubject",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "rv",
+                                          "label": "t_V",
+                                          "lineageId": "relativeVerb",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "od",
+                                              "label": "D⁰: pronoun [3ms]",
+                                              "word": "אותו"
+                                            }
+                                          ],
+                                          "id": "obj",
+                                          "label": "DP"
+                                        }
+                                      ],
+                                      "id": "rvb",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "rvp",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "rib",
+                              "label": "I′"
+                            }
+                          ],
+                          "id": "rip",
+                          "label": "IP"
+                        }
+                      ],
+                      "id": "rcb",
+                      "label": "C′"
+                    }
+                  ],
+                  "id": "rcp",
+                  "label": "CP"
+                }
+              ],
+              "id": "msh",
+              "label": "DP",
+              "lineageId": "manDP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mvh",
+                      "label": "V⁰",
+                      "lineageId": "matrixVerb",
+                      "word": "הלך"
+                    },
+                    {
+                      "children": [],
+                      "id": "mif",
+                      "label": "I⁰",
+                      "silent": true
+                    }
+                  ],
+                  "id": "mi",
+                  "label": "I⁰ [past, 3ms]"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "hdp",
+                      "label": "t_DP",
+                      "lineageId": "manDP",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "mv",
+                          "label": "t_V",
+                          "lineageId": "matrixVerb",
+                          "silent": true
+                        }
+                      ],
+                      "id": "mvb",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "mvp",
+                  "label": "VP"
+                }
+              ],
+              "id": "mib",
+              "label": "I′"
+            }
+          ],
+          "id": "mip",
+          "label": "IP"
+        }
+      ]
+    }
+  ]
+}

@@ -245,6 +245,7 @@ export const buildStructuralDerivationPlaybackSteps = ({
       });
     });
     const previousContinuitySubtrees = collectUniqueReplayContinuitySubtrees(previousFrameForest);
+    const previousFrameNodeIds = new Set(collectForestNodesById(previousFrameForest).keys());
     const currentContinuitySubtrees = new Map<string, HierNode[]>();
     const continuitySignatures = collectReplayContinuitySubtreeSignatures([cloned]);
     visibleNodes.forEach((node) => {
@@ -263,8 +264,14 @@ export const buildStructuralDerivationPlaybackSteps = ({
       const previousSubtreeWasVisible = Array.from(previousSubtreeIds).some((nodeId) => previousVisibleNodeIds.has(nodeId));
       if (!previousSubtreeWasVisible)
         return;
+      // A new node that takes over the earlier node's own children, while that
+      // node keeps its ID elsewhere, is an inserted segment rather than the
+      // earlier node renamed. Its children continue; it waits for its own step.
+      const currentId = String(nodes[0].data?.id || ''), previousId = String(previousNode?.id || '');
+      const insertedSegment = currentId !== previousId && !previousFrameNodeIds.has(currentId) && rawNodeById.has(previousId)
+        && (rawNodeById.get(currentId)?.children || []).every((child) => previousFrameNodeIds.has(String(child.id || '')));
       nodes[0].descendants().forEach((descendant) => {
-        if (!isSyntheticWorkspaceRootNode(descendant)) {
+        if (!isSyntheticWorkspaceRootNode(descendant) && !(insertedSegment && descendant === nodes[0])) {
           seeded.add(getNodeId(descendant));
         }
       });
