@@ -12,7 +12,8 @@ import { motionFrame, replayMotionFaults } from '../scripts/replayMotionContinui
 
 const point = (id, x, y, parent = null) => ({ id, x, y, parent });
 const frame = (operation, target, points, kind = 'micro', links = []) => ({ kind, operation, target, links, points });
-const kinds = faults => faults.map(({ frame, node, kind }) => `${frame}:${node}:${kind}`);
+// Deformation has its own controls; these check ownership and joins.
+const kinds = faults => faults.filter(fault => fault.kind !== 'shape-motion').map(({ frame, node, kind }) => `${frame}:${node}:${kind}`);
 
 test('a waiting workspace that moves at the merge joining it is an attachment-site fault', () => {
   const waiting = [point('head', 0, 220), point('phrase', 400, 220), point('word', 400, 440, 'phrase')];
@@ -81,7 +82,7 @@ test('a step owns its target, its trajectory participants, reattached syntax and
     point('source', 300, 440, 'right'), point('other', 900, 0)];
   const moved = [point('root', 50, 0), point('left', -300, 220, 'root'), point('right', 400, 220, 'root'),
     point('source', 400, 440, 'right'), point('other', 900, 0)];
-  assert.deepEqual(replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Movement', 'x', moved, 'relation', ['source'])] }), [],
+  assert.deepEqual(kinds(replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Movement', 'x', moved, 'relation', ['source'])] })), [],
     'the trajectory participant, its subtree and its ancestors move');
   assert.deepEqual(kinds(replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Movement', 'x', moved, 'relation')] })),
     ['2:right:unowned-motion', '2:root:unowned-motion'], 'without that link the motion is unowned; right moves farther than its parent');
@@ -94,13 +95,14 @@ test('a child is reported when it moves differently from its moving parent', () 
   const before = [point('parent', 0, 0), point('child', 0, 220, 'parent'), point('word', 0, 440, 'child')];
   const after = [point('parent', 10, 0), point('child', 100, 220, 'parent'), point('word', 100, 440, 'child')];
   const faults = replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Select', 'y', after)] });
-  assert.deepEqual(faults.map(fault => [fault.node, fault.distance]), [['child', 100], ['parent', 10]], 'the word rides with its child');
+  assert.deepEqual(faults.filter(fault => fault.kind === 'unowned-motion').map(fault => [fault.node, fault.distance]), [['child', 100], ['parent', 10]], 'the word rides with its child');
 });
 
 test('a later seed that is an earlier seed\'s ancestor still owns its other branches', () => {
   const before = [point('root', 0, 0), point('right', 300, 220, 'root'), point('leafA', 200, 440, 'right'), point('leafB', 400, 440, 'right')];
   const after = before.map(item => item.id === 'leafB' ? { ...item, x: 500 } : item);
-  assert.deepEqual(replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Movement', 'leafA', after, 'relation', ['right'])] }), []);
+  assert.deepEqual(replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Movement', 'leafA', after, 'relation', ['right'])] })
+    .filter(fault => fault.kind === 'unowned-motion'), []);
 });
 
 test('a host lowered under an inserted parent across a stage crossing is compared after the carry', () => {
@@ -111,6 +113,21 @@ test('a host lowered under an inserted parent across a stage crossing is compare
   const frames = [{ ...frame('StageRecord', 'root', before, 'macro'), stage: 0 }, { ...frame('ExternalMerge', 'wrap', after), stage: 1 }];
   assert.deepEqual(replayMotionFaults({ frames }).filter(fault => fault.kind === 'attachment-site-motion'), [],
     'the new parent takes the carried row the host left');
+});
+
+test('a word that shifts under a stationary phrase is reported, whoever owns the step', () => {
+  const before = [point('phrase', 0, 0), point('head', 0, 220, 'phrase'), point('word', 0, 440, 'head'), point('other', 600, 0)];
+  const shifted = distance => before.map(item => item.id === 'word' ? { ...item, x: distance } : item);
+  for (const distance of [20, 200]) {
+    const faults = replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Project', 'phrase', shifted(distance))] });
+    assert.deepEqual(faults.map(fault => [fault.node, fault.kind, fault.distance]), [['word', 'shape-motion', distance]]);
+  }
+  const grown = [...before, point('second', 300, 440, 'head')].map(item => ['head', 'phrase'].includes(item.id) ? { ...item, x: 150 } : item);
+  assert.deepEqual(replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Project', 'second', grown)] })
+    .filter(fault => fault.kind === 'shape-motion'), [], 'a parent recentring over a new child is not deformation');
+  const recentred = before.map(item => item.id === 'phrase' ? { ...item, x: 140 } : item);
+  assert.deepEqual(replayMotionFaults({ frames: [frame('Select', 'x', before), frame('Project', 'x', recentred)] })
+    .filter(fault => fault.kind === 'shape-motion'), [], 'a parent that recentres alone does not deform its still child');
 });
 
 // Defects 19–21 (open): GPT-6.1 Sol, 我昨天看见的那个人走了。 Select T jumps 我 and 昨天
@@ -127,7 +144,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) test(`${width}px: open 
   const { scenes } = layoutReplayFrames({ steps, stages: waitingRoots.derivationStages, width, height,
     direction: 'ltr' }, { coordinates, camera, layout, display, d3 });
   const faults = replayMotionFaults({ frames: scenes.map(scene => motionFrame(scene.step, scene.nodes, display.getNodeId)) });
-  assert.deepEqual(faults.map(fault => `${fault.frame}:${fault.node}:${fault.kind}:${Math.round(fault.distance)}`), [
+  assert.deepEqual(faults.filter(fault => fault.kind !== 'shape-motion').map(fault => `${fault.frame}:${fault.node}:${fault.kind}:${Math.round(fault.distance)}`), [
     '16:topic:unowned-motion:975', '16:yesterday:unowned-motion:2418', '17:relativePredicate:attachment-site-motion:247',
     '44:le:unowned-motion:448', '44:leave:unowned-motion:1690', '44:matrixT:unowned-motion:1165', '44:topic:unowned-motion:2520',
     '44:yesterday:unowned-motion:4334', '47:topic:attachment-site-motion:975']);

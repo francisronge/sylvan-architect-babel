@@ -16,6 +16,10 @@
  *   A daughter whose old row the new parent now occupies may descend below it,
  *   as reserved hosts do; its horizontal motion still counts.
  *
+ * - `shape-motion`: a node moved, and moved relative to its painted parent,
+ *   while that parent kept exactly the same painted children. Whoever owns the step, a
+ *   phrase's internal shape is then unchanged, so any such motion deforms it.
+ *
  * Each frame is `{ stage, kind, operation, target, links, points }` (see
  * `motionFrame`). Within a stage the camera holds its pose, so motion is raw
  * layout motion. Each stage has its own layout origin, and crossing into a new
@@ -74,6 +78,16 @@ export function replayMotionFaults({ frames }, { threshold = MOTION_FAULT_THRESH
       const parentId = current.get(id).parent, shift = motion(index, id), carriedBy = moved.has(parentId) && motion(index, parentId);
       if (carriedBy && length({ x: shift.x - carriedBy.x, y: shift.y - carriedBy.y }) <= threshold) continue;
       faults.push({ frame: index + 1, step: stepKeys[index], node: id, kind: 'unowned-motion', operation, distance: length(shift) });
+    }
+    const childIds = (map, id) => [...map.values()].filter(point => point.parent === id).map(point => point.id).join(' ');
+    for (const point of frames[index].points) {
+      const old = prior.get(point.id);
+      if (!old || !point.parent || old.parent !== point.parent || !prior.has(point.parent)
+        || childIds(current, point.parent) !== childIds(prior, point.parent)) continue;
+      // A parent recentring over deeper changes moves alone; the child did not move.
+      const own = motion(index, point.id), carrier = motion(index, point.parent);
+      const distance = length({ x: own.x - carrier.x, y: own.y - carrier.y });
+      if (length(own) > threshold && distance > threshold) faults.push({ frame: index + 1, step: stepKeys[index], node: point.id, kind: 'shape-motion', operation, distance });
     }
     const parent = current.get(target);
     if (kind !== 'micro' || !['ExternalMerge', 'Project'].includes(operation) || !parent || prior.has(target)) continue;
