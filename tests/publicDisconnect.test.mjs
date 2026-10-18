@@ -4,6 +4,7 @@ import { once } from 'node:events';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { GENERATION_MODEL_IDS, getResearchModel } from '../server/babelParser/researchModelCatalog.js';
+import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 
 const endpoints = {
   openai: 'https://api.openai.com/v1/responses',
@@ -117,12 +118,14 @@ for (const entry of ['express', 'function']) {
     await cancelled;
     await assertReleased();
     const complete = { id: 'resp_success', status: 'completed', model: 'gpt-6-astra',
-      output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(fixture.payload) }] }] };
+      output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(restateAsSpellout(fixture.payload, fixture.sentence)) }] }] };
     await configure([{ url: endpoints.openai, method: 'POST', body: complete }]);
     const response = await request('openai:gpt-6-astra');
     const body = await response.json();
     assert.equal(response.status, 200, JSON.stringify(body));
-    assert.deepEqual(body.analyses[0].derivationStages, normalized.analyses[0].derivationStages);
+    // The spell-out output normalizes to the saved stages without their token addresses.
+    assert.deepEqual(body.analyses[0].derivationStages,
+      restateAsSpellout({ derivationStages: normalized.analyses[0].derivationStages }, fixture.sentence).derivationStages);
     await cancellationTimedOut;
     assert.equal(events.filter(event => event.type === 'unexpected-provider-call').length, 0);
     assert.doesNotMatch(output, /test-only|uncaught|unhandled/i);

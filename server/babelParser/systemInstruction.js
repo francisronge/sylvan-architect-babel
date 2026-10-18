@@ -26,10 +26,9 @@ A complete node has these required fields:
 - id: a nonblank string identifying this occurrence.
 - label: a nonblank string naming the syntactic item or category at this node. Label each node according to the selected framework, preserving the distinctions made in the analysis.
 - children: an ordered array of nodes or references, empty for a leaf.
-Its optional fields are word, tokenIndex, silent, and lineageId:
+Its optional fields are word, silent, and lineageId:
 - word is a string holding a terminal's lexical content. A wordless abstract item may remain wordless.
-- tokenIndex is the zero-based integer index of the input token pronounced by this terminal at this stage. Its word matches that token. Assign each index to at most one pronounced terminal per stage. Unpronounced or not-yet-realized items have no tokenIndex.
-- silent is a boolean. On a terminal, true means unpronounced in this stage, even if word retains lexical content. On a non-terminal, true means every terminal beneath it is unpronounced. Missing tokenIndex alone does not mean silence. Represent each occurrence's current status, not the status it will acquire later.
+- silent is a boolean. On a terminal, true means unpronounced in this stage, even if word retains lexical content. On a non-terminal, true means every terminal beneath it is unpronounced. Represent each occurrence's current status, not the status it will acquire later.
 - lineageId is a nonblank string shared by distinct occurrences of the same continuing syntactic object. It expresses identity, not a particular dependency type.
 Keep an occurrence's id while it persists across stages. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis, including its choice of copy or trace representation.
 
@@ -39,14 +38,14 @@ To reuse an unchanged subtree, use refId or write out the entire subtree, includ
 The complete nodes and reference objects use only the fields defined above.
 
 Realizations
-The supplied input-token boundaries are for reference; they do not prescribe syntactic or morpheme boundaries.
-Omit realizations when ordinary whole-word terminals already express the stage's input associations. Use it when the analysis retains syntax whose collective realization differs from one terminal per input token.
+The writing of the sentence, including its spacing, does not prescribe word, syntactic or morpheme boundaries.
+Omit realizations when the pronounced terminals' own words, in tree order, spell the sentence. Use it when the analysis retains syntax whose collective realization differs from its terminals' own words.
 realizations is an array of groups. Each group has exactly two fields:
 - nodeIds: a nonempty, duplicate-free array of exact ids in this stage's expanded workspace. A nonterminal id includes its current subtree; overlapping source subtrees count once within a group.
-- tokenIndices: a nonempty, duplicate-free array of zero-based positions in the supplied input-token list, in input order. The positions need not be adjacent.
-A group says that these existing syntax objects collectively correspond to these exact input tokens. Groups have disjoint tokenIndices: put all contributors to the same token in one group. A source node may contribute to more than one group. The input supplies the spelling; groups do not concatenate, respell, move or fuse nodes, or choose a morphological theory.
+- text: the exact text of the input sentence that these objects collectively realize, made of whole words as the final stage spells them: a nonblank string for one contiguous stretch, or a nonempty array of nonblank strings, in sentence order, for stretches that are not adjacent.
+A group says that these existing syntax objects collectively correspond to this exact written text. Groups realize disjoint stretches of the sentence: put all contributors to the same stretch in one group. A source node may contribute to more than one group. The input supplies the spelling; groups do not concatenate, respell, move or fuse nodes, or choose a morphological theory.
 Groups record the complete current state. Repeat every nontrivial association that still holds in each later stage; they are not inherited merely because the nodes persist. Omit an association until it is established. Describe its operation and timing in stageRecord and the relevant open relation, anchored to the participating current nodes and, when relevant, their immediately preceding forms. If several operations could own the same change, use intermediate stages to make the order explicit. A group itself does not name an operation or create a relation.
-Keep the authored tree and lexical forms. A grouped leaf may keep tokenIndex only if its own word independently matches that whole input token and the token belongs to a group covering it; this redundant index does not count the token twice. Groups never override silent, including silence inherited from an ancestor; an entirely silent source domain cannot supply an overt realization. Wordless abstract sources are allowed.
+Keep the authored tree and lexical forms. Groups never override silent, including silence inherited from an ancestor; an entirely silent source domain cannot supply an overt realization. Wordless abstract sources are allowed.
 
 Relations
 Babel derives the basic construction display from workspaceForest states: introducing a syntax object, adding a projection, and combining objects under a parent. Do not add a relation solely to announce one of these construction events. Record every additional relational claim introduced or changed in the analysis, including claims established through those construction events. Use an empty relations array when there are none. Relation names, anchor roles, and value-entry names are open; choose them to describe this analysis.
@@ -63,7 +62,7 @@ When a values entry lists one literal per item of an anchor entry, give both ent
 Use an anchor list for nodes with the same role in this relation. Keep distinct groups in separate entries and name their roles distinctly.
 
 Input words
-In the final stage, ordinary pronounced terminals and explicit realization groups together account for every supplied input token exactly once. Without groups, the pronounced terminals in tree order match the supplied input tokens. With groups, set aside their covered lexical leaves and claimed input positions; the remaining pronounced terminals in tree order match the remaining input tokens, retaining their original indices. Retained lexical content on silent terminals is not pronounced. Earlier stages may contain abstract objects before they receive their surface realization.`;
+In the final stage, ordinary pronounced terminals and explicit realization groups together spell out the input sentence exactly once, in order, ignoring letter case, whitespace and punctuation. Without groups, the pronounced terminals in tree order spell the sentence. With groups, each group's text claims its own stretches of the sentence; set aside their covered lexical leaves, and the remaining pronounced terminals in tree order spell the rest of the sentence in order. You decide where words begin and end; Babel checks the spelling character by character. Retained lexical content on silent terminals is not pronounced. Earlier stages may contain abstract objects before they receive their surface realization.`;
 
 export const buildSystemInstruction = (framework = 'xbar', modelRoute = 'gemini') =>
   (framework === 'xbar' ? XBAR_INSTRUCTION : MINIMALISM_INSTRUCTION) +
