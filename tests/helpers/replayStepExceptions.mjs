@@ -8,18 +8,12 @@
 
 const UNRESOLVED_ENDPOINTS = 'Open: movement recognition finds no single source and landing (list-valued or competing landing '
   + 'fields), so the claim stays neutral and draws no path; its own moment still introduces the copy.';
-const RESTATED_BEFORE_MOMENT = 'Defect: a feature or pronunciation change on retained syntax that a relation of the stage names is '
-  + 'painted at the stage\'s first step, before that relation\'s moment.';
-const ORDER_BEFORE_CONTEXT = 'Defect (authored relation order): the relation precedes the movement moment that introduces its anchor, '
-  + 'so its mark has no displayed anchor at its own moment.';
-const VANISHED_AT_STAGE_START = 'Defect: the plan drops a persistent mark for a whole stage when an anchor is absent from that stage, '
-  + 'so the mark ends at the stage\'s first step while the anchor is still displayed, before its removal plays.';
-const COMPOSED_BEFORE_MOMENT = 'Defect: composing a theta grid with a later relation of the stage removes the earlier theta badges at '
-  + 'the stage\'s first step, before the composing relation\'s moment.';
+const ORDER_BEFORE_CONTEXT = 'Contract conflict (diagnosed RELATION_TIMING_CONFLICT): the relation precedes the movement moment '
+  + 'that introduces its anchor. Authored order is kept and structure is not introduced early, so no moment shows the mark '
+  + 'with its anchor: it starts late or never paints.';
 const RENAMED = 'Authored data: the model writes a moved or restated occurrence under a new id, so marks anchored at the old id end.';
 const SELF_SPELLED = 'Authored data: a whole unspaced sentence grouped as one word under the spell-out contract.';
 const OBJECT_LANGUAGE = 'Authored data: the analysis names relations, roles and labels in Chinese.';
-const SPACED_ROLES = 'Open: space-separated role names ("host head") defeat head-movement recognition, so the movement draws no arrow.';
 const PRIOR_SOURCE = 'Open: movement recognition cannot prove the source in the preceding stage (a first-stage claim, or a source the '
   + 'stage does not keep), so the movement draws no path.';
 const CHAIN_ROLES = 'Open: a chain or licensing relation with movement-shaped roles; recognition finds no single source and landing.';
@@ -33,9 +27,6 @@ export const STEP_EXCEPTIONS = [
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/2', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "7:0", '42'),
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/3', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:0", '30'),
   x(ORDER_BEFORE_CONTEXT, 'replay-regressions/unrecognized-movement.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 7:0", '42'),
-  x(RESTATED_BEFORE_MOMENT, 'movement/holdout-transitions.json#/1', 'step-semantics', 'unowned-repaint', "matrixI", '32'),
-  x(RESTATED_BEFORE_MOMENT, 'replay-regressions/obsolete-plaque-pockets.json#', 'step-semantics', 'unowned-repaint', "v", '43'),
-  x(RESTATED_BEFORE_MOMENT, 'replay-regressions/workspace-reservation.json#/cases/2', 'step-semantics', 'unowned-repaint', "matrixI", '35'),
   x(ORDER_BEFORE_CONTEXT, 'movement/holdout-transitions.json#/1', 'mark-persistence', 'never-paints', "fallback 1:0", '36'),
   x(ORDER_BEFORE_CONTEXT, 'movement/projected-head-landing.json#/analyses/0', 'mark-persistence', 'never-paints', "fallback 1:1", '27'),
   x(ORDER_BEFORE_CONTEXT, 'movement/restated-chains.json#/0', 'mark-persistence', 'never-paints', "fallback 3:6", '62'),
@@ -49,13 +40,6 @@ export const STEP_EXCEPTIONS = [
   x(ORDER_BEFORE_CONTEXT, 'replay-regressions/scaffold-parent-visibility.json#', 'mark-persistence', 'never-paints', "fallback 2:0", '17'),
   x(ORDER_BEFORE_CONTEXT, 'replay-regressions/workspace-component-lifetime.json#/cases/3', 'mark-persistence', 'never-paints', "fallback 4:1", '36'),
   x(ORDER_BEFORE_CONTEXT, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 3:0", '38'),
-  x(VANISHED_AT_STAGE_START, 'movement/source-occurrence-ownership.json#/0', 'mark-persistence', 'ends-before-removal', "trajectory tier2.movement-path 2:0", '38'),
-  x(VANISHED_AT_STAGE_START, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'ends-before-removal', "trajectory tier2.movement-path 1:1", '26'),
-  x(VANISHED_AT_STAGE_START, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'ends-before-removal', "node-plaque theta.grid 1:0", '26'),
-  x(VANISHED_AT_STAGE_START, 'replay-regressions/review-workspace-boundaries.json#/cases/1', 'mark-persistence', 'ends-before-removal', "node-plaque pf.realization 0:0", '55'),
-  x(COMPOSED_BEFORE_MOMENT, 'replay-regressions/clitic-displacement.json#/fixtures/1/analysis', 'mark-persistence', 'composed-before-moment', "node-badges theta.grid 0:0", '29'),
-  x(COMPOSED_BEFORE_MOMENT, 'replay-regressions/review-workspace-boundaries.json#/cases/2', 'mark-persistence', 'composed-before-moment', "node-badges theta.grid 2:4", '52'),
-  x(COMPOSED_BEFORE_MOMENT, 'replay-regressions/workspace-historical-continuity.json#/cases/1', 'mark-persistence', 'composed-before-moment', "node-badges theta.grid 2:4", '52'),
   x(RENAMED, 'movement/source-occurrence-ownership.json#/0', 'contract-output', 'renamed-anchor', "4:a1_vi", 'record'),
   x(RENAMED, 'replay-regressions/case-source-transfer.json#', 'contract-output', 'renamed-anchor', "3:v2", 'record'),
   x(RENAMED, 'replay-regressions/complex-head-chain-restatement.json#', 'contract-output', 'renamed-anchor', "3:i0", 'record'),
@@ -64,12 +48,10 @@ export const STEP_EXCEPTIONS = [
   x(RENAMED, 'replay-regressions/renamed-head-anchors.json#', 'contract-output', 'renamed-anchor', "3:v1", 'record'),
   x(RENAMED, 'replay-regressions/renamed-head-anchors.json#', 'contract-output', 'renamed-anchor', "3:o2", 'record'),
   x(RENAMED, 'replay-regressions/renamed-head-anchors.json#', 'contract-output', 'renamed-anchor', "4:subject1", 'record'),
-  x(RENAMED, 'replay-regressions/unrendered-head-movement.json#', 'contract-output', 'renamed-anchor', "3:verb", 'record'),
   x(SELF_SPELLED, 'replay-regressions/self-spelled-realization.json#', 'contract-output', 'self-spelled-realization', "3:bPronoun,bRun,bGo,bBuy,bRice", 'record'),
   x(OBJECT_LANGUAGE, 'replay-regressions/object-language-metalanguage.json#', 'contract-output', 'object-language-metalanguage', "Han", 'record'),
   x(OBJECT_LANGUAGE, 'replay-regressions/unrecognized-movement.json#/cases/0', 'contract-output', 'object-language-metalanguage', "Han", 'record'),
   x(OBJECT_LANGUAGE, 'replay-regressions/unrecognized-movement.json#/cases/5', 'contract-output', 'object-language-metalanguage', "Han", 'record'),
-  x(SPACED_ROLES, 'replay-regressions/unrendered-head-movement.json#', 'movement-unrendered', 'MOVEMENT_CONTEXT_UNRESOLVED', "2:0", '43'),
   x(PRIOR_SOURCE, 'movement/clause-context.json#/cases/6', 'movement-unrendered', 'MOVEMENT_PRIOR_SOURCE_UNPROVEN', "0:0", '4'),
   x(PRIOR_SOURCE, 'movement/holdout-transitions.json#/0', 'movement-unrendered', 'MOVEMENT_PRIOR_SOURCE_UNPROVEN', "0:0", '16'),
   x(PRIOR_SOURCE, 'movement/holdout-transitions.json#/2', 'movement-unrendered', 'MOVEMENT_PRIOR_SOURCE_UNPROVEN', "0:0", '19'),
@@ -91,6 +73,6 @@ export const STEP_EXCEPTIONS = [
   x(CHAIN_ROLES, 'replay-regressions/compact-current-root.json#/cases/0', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "6:2", '55'),
   x(CHAIN_ROLES, 'replay-regressions/construction-slot-continuity.json#/cases/0', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:4", '37'),
   x(CHAIN_ROLES, 'replay-regressions/independent-clause-and-realization.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "0:2", '22'),
-  x(CHAIN_ROLES, 'replay-regressions/obsolete-plaque-pockets.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '50'),
+  x(CHAIN_ROLES, 'replay-regressions/obsolete-plaque-pockets.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '49'),
   x(CHAIN_ROLES, 'replay-regressions/renamed-head-anchors.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:1", '27'),
 ];

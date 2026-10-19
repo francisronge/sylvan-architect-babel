@@ -325,7 +325,7 @@ export function createPlanCoalescer(stageDispatches: RelationClaimDispatch[][], 
         rest.forEach(item => { item.bindingPathSuppressed = true; });
       });
       frame.items = mergeAnchorSetOrganization(composeFeatureBundles(composeThetaGrids(coalescedItems, grid =>
-        stageNodeMaps[grid.appearsAtStage].get(grid.anchorNodeIds[0])?.lineageId)), false);
+        stageNodeMaps[grid.appearsAtStage].get(grid.anchorNodeIds[0])?.lineageId, frame.stageIndex)), false);
     });
 
   };

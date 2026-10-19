@@ -11,9 +11,33 @@ const drawingKey = (item: RelationPlanItem) => JSON.stringify([
 const uniqueRefs = (refs: PlanRelationRef[]) => refs.filter((ref, i) => refs.findIndex(other =>
   other.stageIndex === ref.stageIndex && other.relationIndex === ref.relationIndex) === i);
 
+const precedes = (left: PlanRelationRef, right: PlanRelationRef) => left.stageIndex < right.stageIndex
+  || left.stageIndex === right.stageIndex && left.relationIndex < right.relationIndex;
+
+/** The moment in this frame's stage at which a badge's grid first composes,
+ * or undefined when the badge yields from the stage's start. A grid composes
+ * once the badge's own relation and a contributor have both played, so a
+ * contributor before the badge composes it at the badge's own moment: the
+ * badge never shows apart from the grid. A composition from an earlier stage
+ * stays effective when a later stage restates its contributors. Only another
+ * contributing grid composes with it: an identical restatement of the
+ * badge's own claim was coalesced into its grid before composition and
+ * composes nothing. */
+const composingMoment = (badge: RelationPlanItem, group: readonly Grid[], frameIndex: number) => {
+  const own = badge.relationRef, ownRefs = planItemRelationRefs(badge);
+  const refs = uniqueRefs(group.filter(grid => drawingKey(grid) !== drawingKey(badge)).flatMap(planItemRelationRefs))
+    .filter(ref => !ownRefs.some(other => other.stageIndex === ref.stageIndex && other.relationIndex === ref.relationIndex));
+  if (refs.some(ref => !precedes(own, ref) || ref.stageIndex < frameIndex)) return undefined;
+  return refs.filter(ref => ref.stageIndex === frameIndex).sort((left, right) => left.relationIndex - right.relationIndex)[0];
+};
+
 /** Combine overlapping inventories of the same exact predicate. Each row keeps
- * its own authored moments; neither whole relations nor their history merge. */
-export function composeThetaGrids(items: RelationPlanItem[], predicateLineage: (grid: Grid) => string | undefined): RelationPlanItem[] {
+ * its own authored moments; neither whole relations nor their history merge.
+ * The composed grid replaces its contributors' theta badges. A badge that was
+ * already on screen yields at the moment of the relation that composes with
+ * it, not at the start of that relation's stage. */
+export function composeThetaGrids(items: RelationPlanItem[], predicateLineage: (grid: Grid) => string | undefined,
+  frameIndex: number): RelationPlanItem[] {
   const groups: Grid[][] = [];
   for (const item of items) {
     if (!isGrid(item) || item.backward || new Set(item.thetaRoles.map(role => role.nodeId)).size !== item.thetaRoles.length) continue;
@@ -56,7 +80,12 @@ export function composeThetaGrids(items: RelationPlanItem[], predicateLineage: (
     group.slice(1).forEach(item => removed.add(item));
     const keys = new Set(group.map(drawingKey));
     const badges = items.filter(item => item.kind === 'node-badges' && item.badgeStyle === 'theta-role' && keys.has(drawingKey(item)));
-    badges.forEach(item => removed.add(item));
+    badges.forEach(item => {
+      const yieldAt = composingMoment(item, group, frameIndex), prior = item.supersededAt;
+      if (!yieldAt) removed.add(item);
+      else if (!(prior?.stageIndex === frameIndex && prior.relationIndex <= yieldAt.relationIndex))
+        replacements.set(item, { ...item, supersededAt: yieldAt });
+    });
   }
   return items.filter(item => !removed.has(item)).map(item => replacements.get(item) ?? item);
 }

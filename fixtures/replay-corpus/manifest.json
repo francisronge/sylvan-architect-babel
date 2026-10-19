@@ -38,7 +38,8 @@
       "id": "ordinary-receiving-width-control",
       "source": "../replay-regressions/ordinary-receiving-width-control.json",
       "mechanisms": ["ordinary-wrapper", "nonmovement"],
-      "expect": {"minMerges": 1}
+      "expect": {"minMerges": 1},
+      "allow": {"plan": true, "reason": "Theta badges that a later relation's grid composes with stay until that relation's moment, as supersessions, instead of being removed for the whole stage."}
     },
     {
       "id": "receiving-slot-width-control",

@@ -34,8 +34,9 @@ export const readCategoryLabel = (label?: string | null): CategoryShape | undefi
   const projection = /\s+\([^)]*\bprojection\b[^)]*\)$/u.test(categoryText);
   const spelling = projection ? categoryText.replace(/\s+\([^)]*\)$/u, '')
     : categoryText.replace(/(?:\s*\([^()]+\))+$/u, '').trim();
+  // Each member of a compound head may carry its own features.
   const parts = spelling.split(/[+/]/u).map(part => {
-    const match = /^([A-Za-z][A-Za-z]*)(?:_[A-Za-z][A-Za-z0-9_-]*)?(⁰|°|\^?0|[′’'])?$/u.exec(part.trim());
+    const match = /^([A-Za-z][A-Za-z]*)(?:_[A-Za-z][A-Za-z0-9_-]*)?(⁰|°|\^?0|[′’'])?$/u.exec(withoutFeatures(part));
     if (!match) return;
     const category = match[1];
     const kind = /[′’']/u.test(match[2] ?? '') ? 'bar' : category !== 'P' && /P$/u.test(category) ? 'phrase' : 'head';

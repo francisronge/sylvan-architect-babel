@@ -137,7 +137,7 @@ const deferPendingMovementProjections = (steps: PlaybackStep[], projections: Arr
   });
 };
 
-const recountReplayProgress = (steps: PlaybackStep[], replayPlan?: DerivationReplayPlan | null): PlaybackStep[] => {
+export const recountReplayProgress = (steps: PlaybackStep[], replayPlan?: DerivationReplayPlan | null): PlaybackStep[] => {
   const counts = new Map<number, number>();
   const positions = new Map<number, number>();
   steps.forEach(step => {
