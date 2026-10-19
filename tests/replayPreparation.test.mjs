@@ -12,7 +12,7 @@ import { buildAuthoredRelationLinksForFrames, buildMovementChainIndexCatalogueFo
 import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
 import { buildResolvedLinkTraceIndexMap } from '../replay/movementIndices.ts';
 import { decoratePlaybackStepsWithTraceIndices } from '../replay/movementPresentation.ts';
-import { hidePendingInflSpecifierWrappersInStep } from '../replay/playbackVisibility.ts';
+import { hidePendingInflSpecifierWrappers } from '../replay/playbackVisibility.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 
 const saved = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
@@ -75,7 +75,7 @@ test('worker preparation preserves all archived frames, decorations and render p
       const finalForest = derivationStages.at(-1).workspaceForest;
       const legacySteps = buildReplayPlayback({ sentence: input.sentence, analyses: [{ derivationStages }] }).steps;
       const legacyDecorated = applyPreFrontingSentenceInitialCasing(decoratePlaybackStepsWithTraceIndices(
-        legacySteps.map(hidePendingInflSpecifierWrappersInStep),
+        hidePendingInflSpecifierWrappers(legacySteps),
         buildResolvedLinkTraceIndexMap(finalForest, prepared.movementChainIndexCatalogue.links,
           Number.MAX_SAFE_INTEGER, prepared.movementChainIndexCatalogue)
       ), input.sentence);

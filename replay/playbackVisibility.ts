@@ -36,7 +36,14 @@ import {
 } from './syntaxForest.ts';
 import { type DerivationReplayPlan, type PlaybackStep } from './types.ts';
 
-export const hidePendingInflSpecifierWrappersInStep = (step: PlaybackStep): PlaybackStep => {
+/** Withhold a new inflection projection until its first daughter, a pending
+ * specifier, is current: the projection is layout until that daughter arrives.
+ * `retainedNodeIds` were painted at the preceding step; a retained projection is
+ * current syntax waiting for its new specifier, and stays. */
+export const hidePendingInflSpecifierWrappersInStep = (
+  step: PlaybackStep,
+  retainedNodeIds: ReadonlySet<string> = new Set()
+): PlaybackStep => {
   const visibleIds = new Set((Array.isArray(step.replayVisibleNodeIds) ? step.replayVisibleNodeIds : [])
     .map((nodeId) => String(nodeId || ''))
     .filter(Boolean));
@@ -78,7 +85,7 @@ export const hidePendingInflSpecifierWrappersInStep = (step: PlaybackStep): Play
               scan(child);
               return found;
             });
-          if (!hasVisibleSpecifierMaterial && !protectedRelationEndpointIds.has(nodeId))
+          if (!hasVisibleSpecifierMaterial && !protectedRelationEndpointIds.has(nodeId) && !retainedNodeIds.has(nodeId))
             hiddenIds.add(nodeId);
         }
       }
@@ -108,6 +115,32 @@ export const hidePendingInflSpecifierWrappersInStep = (step: PlaybackStep): Play
     replayCanvasData,
     replayVisibleNodeIds: (step.replayVisibleNodeIds || []).filter((nodeId) => !hiddenIds.has(String(nodeId || '')))
   };
+};
+
+/** The ids a step paints: visible canvas nodes that are not layout-only. */
+const paintedNodeIds = (step: PlaybackStep): Set<string> => {
+  const visibleIds = getReplayVisibleNodeIdSet(step), painted = new Set<string>();
+  const walk = (node?: SyntaxNode | null) => {
+    if (!node)
+      return;
+    const nodeId = String(node.id || '');
+    if (nodeId && visibleIds.has(nodeId) && !(node as any).replayLayoutOnly)
+      painted.add(nodeId);
+    (node.children || []).forEach(walk);
+  };
+  walk(step.replayCanvasData);
+  return painted;
+};
+
+/** `hidePendingInflSpecifierWrappersInStep` across a sequence, each step judged
+ * against what the preceding step paints. */
+export const hidePendingInflSpecifierWrappers = (steps: PlaybackStep[]): PlaybackStep[] => {
+  let retainedNodeIds = new Set<string>();
+  return steps.map((step) => {
+    const withheld = hidePendingInflSpecifierWrappersInStep(step, retainedNodeIds);
+    retainedNodeIds = paintedNodeIds(withheld);
+    return withheld;
+  });
 };
 
 const deferPendingMovementProjections = (steps: PlaybackStep[], projections: Array<{
@@ -791,7 +824,7 @@ export const normalizePlaybackSequence = (
   const changed = collapseZeroDeltaReplaySteps(persistent);
   const attached = insertPreMovementLandingMergeSteps(changed);
   const projected = deferPendingMovementProjections(attached, pendingProjections);
-  const materialized = projected.map(hidePendingInflSpecifierWrappersInStep);
+  const materialized = hidePendingInflSpecifierWrappers(projected);
   // A withheld wrapper remains layout context, not a visible construction
   // claim. Apply the final visibility refinement before counting its steps.
   const constructed = materialized.filter(step => step.replayKind !== 'micro'
