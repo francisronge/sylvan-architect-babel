@@ -674,11 +674,21 @@ const resolvePriorWitnessTreeTransitionOwnership = (
       ? [{ priorSourceNodeId: id, sourceNodeId: pair.source.id, targetNodeId: pair.landing.id }] : [];
   });
   const copiedOutputs = new Set(copyPairs.map(pair => pair.targetNodeId));
-  // Witnesses that all keep their content where they were are merged, not
-  // rewritten: the stage's construction builds what now contains them, and
-  // the claim owns only a copy it relates to them.
-  const rewritesWitness = !retainedPriorAnchors
-    || priorAnchors.some(([node]) => displacedInStage(node, previousLocations, currentLocations));
+  // When the stage displaces no earlier node the claim covers (its witnesses,
+  // its current anchors, the earlier material inside them, and the earlier
+  // occurrences of a new node's lineage there), that material is merged as it
+  // was: the stage's construction builds what now contains it, and the claim
+  // owns only a copy it relates to its witnesses.
+  const coveredCurrentIds = currentAnchors.flatMap(([node]) => [...collectExactSubtreeNodeIds(node)]);
+  const copiedLineages = new Set(coveredCurrentIds.filter(id => !previousLocations.has(id))
+    .map(id => currentLocations.get(id)?.node.lineageId).filter(Boolean));
+  const coveredEarlierIds = new Set([...priorAnchorIds, ...coveredCurrentIds, ...[...previousLocations]
+    .filter(([, location]) => location?.node.lineageId && copiedLineages.has(location.node.lineageId)).map(([id]) => id)]
+    .filter(id => previousLocations.has(id)));
+  const rewritesWitness = !retainedPriorAnchors || [...coveredEarlierIds].some(id => {
+    const earlier = previousLocations.get(id);
+    return !earlier || displacedInStage(earlier.node, previousLocations, currentLocations);
+  });
   // When the preceding witnesses still exist, they identify the material
   // being updated. Other current anchors can supply its newly built context
   // (for example a licensing clause), rather than additional transition output.

@@ -479,7 +479,8 @@ const sameMaterial = (left, right) => canonical(left, OCCURRENCE_FIELDS) === can
  * stage only as a proved movement, whose extent no-early-reveal bounds, or
  * when its claim names an earlier occurrence the stage displaces: removes,
  * changes (its subtree differs) or gives another parent, or re-merges as an
- * unchanged copy of its lineage inside the syntactic object that holds it. A
+ * unchanged copy of its lineage inside the syntactic object that holds it, or
+ * names a new occurrence whose lineage's earlier occurrence is displaced. A
  * preceding root that gains a parent is merged, not displaced. A claim that
  * relates only material merged as it was, such as an identity across
  * conjuncts or a realization of a newly built phrase, would take over that
@@ -505,7 +506,11 @@ export function checkRelationConstruction(replay, record) {
     const copies = fresh.map(id => after.get(String(authoredIdentity(current.nodes.get(id)).id))).filter(Boolean);
     const remerged = id => Boolean(before.get(id).node.lineageId) && copies.some(copy => copy.node.lineageId === before.get(id).node.lineageId
       && sameMaterial(copy.node, before.get(id).node) && copy.root === after.get(id).root);
-    if (named.some(id => displaced(id) || remerged(id))) return;
+    // A new occurrence the claim names continues its lineage's displaced earlier occurrence.
+    const namedLineages = new Set(relationMentions(stages[stageIndex]?.relations?.[relationIndex])
+      .filter(id => !before.has(id) && after.get(id)?.node.lineageId).map(id => after.get(id).node.lineageId));
+    const copiesDisplaced = [...before].some(([id, was]) => was && namedLineages.has(was.node.lineageId) && displaced(id));
+    if (copiesDisplaced || named.some(id => displaced(id) || remerged(id))) return;
     fresh.forEach(id => out.push(violation('relation-construction', index + 1,
       `${id} appears at relation "${step.operation}", whose claim displaces nothing the stage had`)));
   });

@@ -296,7 +296,6 @@ const KNOWN_DEFECTS = [
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 28, 'mVAtT mvAtTLeaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 29, 'mVAtT mvAtTLeaf mVAtT::__leaf'],
   [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar'],
-  [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'relation-construction', 28, 'cbar'],
   [UNPROVEN_SOURCE_LANDING, 'movement/clause-context.json#/cases/6', 'relation-construction', 4, 'was1'],
   [UNPROVEN_SOURCE_LANDING, 'movement/holdout-transitions.json#/0', 'relation-construction', 16, 'wh'],
   [UNPROVEN_SOURCE_LANDING, 'movement/holdout-transitions.json#/2', 'relation-construction', 19, 'matrixSubjectDP'],
@@ -310,8 +309,6 @@ const KNOWN_DEFECTS = [
   [UNPROVEN_SOURCE_LANDING, 'replay-regressions/receiving-head-material.json#', 'relation-construction', 20, 'booksDP'],
   [UNPROVEN_SOURCE_LANDING, 'replay-regressions/retained-root-growth.json#', 'relation-construction', 11, 'rvAtT'],
   [UNPROVEN_SOURCE_LANDING, 'replay-regressions/retained-root-growth.json#', 'relation-construction', 28, 'mvAtT'],
-  [UNPROVEN_SOURCE_LANDING, 'replay-regressions/unproven-second-landing.json#', 'relation-construction', 34,
-    'completedQuestion whHigh whichHigh violinistHigh'],
 ];
 
 // A node revealed at a step that does not own it is one defect, reported by
