@@ -8,7 +8,8 @@ import { useTreeBank } from './hooks/useTreeBank';
 import { useDevPreview, type DevAnalysisOptions, type SavedPreview } from './hooks/useDevPreview';
 import type { TreeBankEntrySummary } from './services/treeBankStore';
 import { TreeBankView, TreeBankDeleteDialog } from './components/TreeBankView';
-import { DerivationNotesView, type CopyCodeKey } from './components/DerivationNotesView';
+import { DerivationNotesView, type CopyStatus } from './components/DerivationNotesView';
+import { copyTextToClipboard } from './services/clipboard';
 import {
   ParseBundle,
   ParseResult
@@ -113,7 +114,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const inferModelRouteFromModel = (modelUsed?: string): ModelMode =>
     MODEL_OPTIONS.find(model => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID;
   const appContainerRef = useRef<HTMLDivElement>(null);
-  const copiedCodeTimeoutRef = useRef<number | null>(null);
+  const copyStatusTimeoutRef = useRef<number | null>(null);
+  const copyAttemptRef = useRef(0);
   const showcaseMode = useMemo(() => {
     if (typeof window === 'undefined') return false;
     const value = new URLSearchParams(window.location.search).get('showcase');
@@ -143,7 +145,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const [parsedFramework, setParsedFramework] = useState<'xbar' | 'minimalism'>('xbar');
   const [modelRoute, setModelRoute] = useState<ModelMode>(DEFAULT_MODEL_ID);
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('high');
-  const [copiedCodeKey, setCopiedCodeKey] = useState<CopyCodeKey | null>(null);
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState<string | null>(null);
   const [parsedSentence, setParsedSentence] = useState('The farmer eats the pig');
@@ -208,7 +210,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     }
     setActiveParseIndex(0);
     setActiveTab('tree');
-    setCopiedCodeKey(null);
+    resetCopyStatus();
     setIsInputVisible(true);
     setIsInputExpanded(true);
     setWorkspaceView('arboretum');
@@ -228,7 +230,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     setReasoningEffort(coerceReasoningEffortForRoute(nextRoute, preview.reasoningEffort || reasoningEffort));
     setActiveParseIndex(0);
     setActiveTab(tab);
-    setCopiedCodeKey(null);
+    resetCopyStatus();
     setWorkspaceView('arboretum');
     resetGeneration();
     setIsInputVisible(!(showcaseMode || captureMode));
@@ -270,8 +272,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
 
   useEffect(() => {
     return () => {
-      if (copiedCodeTimeoutRef.current !== null) {
-        window.clearTimeout(copiedCodeTimeoutRef.current);
+      if (copyStatusTimeoutRef.current !== null) {
+        window.clearTimeout(copyStatusTimeoutRef.current);
       }
     };
   }, []);
@@ -297,7 +299,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setParsedFramework(framework);
       setActiveParseIndex(0);
       setActiveTab('tree');
-      setCopiedCodeKey(null);
+      resetCopyStatus();
     });
   };
 
@@ -339,24 +341,36 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setActiveTab(view);
       setAbstractionMode(savedAbstraction);
       clearFailure();
-      setCopiedCodeKey(null);
+      resetCopyStatus();
       setIsInputVisible(true);
       setIsInputExpanded(true);
       setWorkspaceView('arboretum');
     });
   };
 
-  const copyMilesCode = (text: string, key: CopyCodeKey) => {
-    if (!text.trim()) return;
-    navigator.clipboard.writeText(text);
-    setCopiedCodeKey(key);
-    if (copiedCodeTimeoutRef.current !== null) {
-      window.clearTimeout(copiedCodeTimeoutRef.current);
+  const showCopyStatus = (status: CopyStatus) => {
+    if (copyStatusTimeoutRef.current !== null) {
+      window.clearTimeout(copyStatusTimeoutRef.current);
+      copyStatusTimeoutRef.current = null;
     }
-    copiedCodeTimeoutRef.current = window.setTimeout(() => {
-      setCopiedCodeKey((current) => (current === key ? null : current));
-      copiedCodeTimeoutRef.current = null;
-    }, 2000);
+    setCopyStatus(status);
+    if (status === 'copied') {
+      copyStatusTimeoutRef.current = window.setTimeout(() => {
+        setCopyStatus('idle');
+        copyStatusTimeoutRef.current = null;
+      }, 2000);
+    }
+  };
+  // A later copy or a newly accepted analysis supersedes a pending write's outcome.
+  const resetCopyStatus = () => {
+    copyAttemptRef.current += 1;
+    showCopyStatus('idle');
+  };
+  const copyNotation = async (text: string) => {
+    if (!text.trim()) return;
+    const attempt = ++copyAttemptRef.current;
+    const copied = await copyTextToClipboard(text);
+    if (attempt === copyAttemptRef.current) showCopyStatus(copied ? 'copied' : 'failed');
   };
 
   const toggleFullscreen = async () => {
@@ -611,7 +625,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               inputTokens={replayInputTokens}
             />
           ) : activeParse && activeTab === 'notes' ? (
-            <DerivationNotesView paragraphs={derivationalNoteParagraphs} notation={milesNotation} copiedCodeKey={copiedCodeKey} copyMilesCode={copyMilesCode} />
+            <DerivationNotesView paragraphs={derivationalNoteParagraphs} notation={milesNotation} copyStatus={copyStatus} onCopy={(text) => void copyNotation(text)} />
           ) : !loading && (
             <div className="w-full h-full flex flex-col items-center justify-center text-emerald-900/10 gap-10">
               <div className="relative">

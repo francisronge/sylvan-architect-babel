@@ -1,18 +1,16 @@
 import { Check, Copy, ExternalLink, Info, Layers } from 'lucide-react';
 
-export type CopyCodeKey = 'canopy' | 'derivation';
-const BRACKETING_PANELS: ReadonlyArray<{ key: CopyCodeKey; title: string; copyLabel: string }> = [
-  { key: 'canopy', title: 'Canopy Code', copyLabel: 'Copy Canopy' },
-  { key: 'derivation', title: 'Derivation Code (Movement Indexed)', copyLabel: 'Copy Derivation' }
-];
+export type CopyStatus = 'idle' | 'copied' | 'failed';
 interface DerivationNotesViewProps {
   paragraphs: string[];
+  /** Bracketing of the final forest only; no derivation stage or movement index. */
   notation: string;
-  copiedCodeKey: CopyCodeKey | null;
-  copyMilesCode: (text: string, key: CopyCodeKey) => void;
+  copyStatus: CopyStatus;
+  onCopy: (text: string) => void;
 }
 
-export function DerivationNotesView({ paragraphs, notation, copiedCodeKey, copyMilesCode }: DerivationNotesViewProps) {
+export function DerivationNotesView({ paragraphs, notation, copyStatus, onCopy }: DerivationNotesViewProps) {
+  const copied = copyStatus === 'copied';
   return (
   <div
     className="w-full h-full flex justify-center overflow-y-auto overflow-x-hidden bg-[#020806]/60 backdrop-blur-md items-start px-4 pt-8 pb-36 md:px-12 md:pt-20 md:pb-44"
@@ -46,7 +44,7 @@ export function DerivationNotesView({ paragraphs, notation, copiedCodeKey, copyM
                   </div>
                   <div>
                     <h2 className="text-xl md:text-3xl font-bold text-white serif tracking-tight">Labeled Bracketing</h2>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/40">Canopy + Derivation Miles Shang Formalism</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/40">Final Tree · Miles Shang Notation</p>
                   </div>
                 </div>
                 <a 
@@ -59,28 +57,29 @@ export function DerivationNotesView({ paragraphs, notation, copiedCodeKey, copyM
                   Miles Shang
                 </a>
               </div>
-              <div className="space-y-6">
-                {BRACKETING_PANELS.map(({ key, title, copyLabel }) => (
-                  <div key={key} className="bg-black/40 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-white/5 shadow-inner">
-                    <div className="flex items-center justify-between mb-4">
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">{title}</p>
-                      <button 
-                        onClick={() => copyMilesCode(notation, key)}
-                        className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${
-                          copiedCodeKey === key
-                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
-                          : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
-                        }`}
-                      >
-                        {copiedCodeKey === key ? <Check size={13} /> : <Copy size={13} />}
-                        {copiedCodeKey === key ? 'Copied to Soil' : copyLabel}
-                      </button>
-                    </div>
-                    <code className="text-emerald-400 mono text-sm md:text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
-                      {notation}
-                    </code>
-                  </div>
-                ))}
+              <div className="bg-black/40 p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border border-white/5 shadow-inner">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400/80">Canopy Code</p>
+                  <button
+                    onClick={() => onCopy(notation)}
+                    className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest ${
+                      copied
+                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                      : 'bg-white/5 border-white/10 text-white/40 hover:text-emerald-400 hover:border-emerald-500/30'
+                    }`}
+                  >
+                    {copied ? <Check size={13} /> : <Copy size={13} />}
+                    {copied ? 'Copied to Soil' : 'Copy Canopy'}
+                  </button>
+                </div>
+                {copyStatus === 'failed' && (
+                  <p role="alert" className="mb-4 text-sm text-rose-300">
+                    The browser blocked clipboard access. Select the bracketing below to copy it.
+                  </p>
+                )}
+                <code className="text-emerald-400 mono text-sm md:text-lg break-all leading-relaxed opacity-90 selection:bg-emerald-500/30">
+                  {notation}
+                </code>
               </div>
           </div>
         )}
