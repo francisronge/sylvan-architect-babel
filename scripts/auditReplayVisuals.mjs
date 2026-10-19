@@ -53,8 +53,8 @@ async function main() {
   const { unexpected, exceeded, stale } = matchFindings(report.findings, EXCEPTIONS);
   const show = (title, lines) => { if (lines.length) console.log(`\n${title} (${lines.length}):\n${lines.slice(0, 40).join('\n')}`); };
   show('New findings; fix them, or list them after review', proposeExceptions(unexpected).map(entry => `  ${JSON.stringify(entry)}`));
-  show('Findings beyond their bound', exceeded.map(({ finding, exception }) =>
-    `  ${finding.record} ${finding.rule} ${finding.subject} frame ${finding.frame} ${finding.viewport}: ${finding.measure} > ${exception.max}`));
+  show('Findings beyond their bound', exceeded.map(({ finding, bound }) =>
+    `  ${finding.record} ${finding.rule} ${finding.subject} frame ${finding.frame} ${finding.viewport}: ${finding.measure} > ${bound}`));
   show('Stale exceptions; narrow or remove them', stale.map(({ exception, viewport, frame }) =>
     `  ${exception.record} ${exception.rule} ${exception.subject} frame ${frame} ${viewport}`));
   if (report.errors.length || unexpected.length || exceeded.length || stale.length) process.exitCode = 1;
