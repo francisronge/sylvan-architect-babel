@@ -19,7 +19,7 @@ const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rul
 
 // The same findings, with the same measures, occur on origin/main for the saved
 // analyses these fixture cases copy (indexed-night 27-sv-embedded-negation,
-// bughunt2 07-en-rnr); only their frame numbers moved.
+// bughunt2 07-en-rnr, night3 33-grc-article.r2); only their frame numbers moved.
 export const EXCEPTIONS = [
   x(ROLE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/1', 'mark-distance', 'role',
     'role(8:1 higher Contained Heads[4])@mTAtC', { desktop: { '51': 2.82 } }),
@@ -194,5 +194,7 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/waiting-root-continuity.json#', 'mark-distance', 'plaque',
-    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } })
+    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
+  x(PLAQUE_CROWDED, 'replay-regressions/compound-movement-roles.json#/cases/1', 'mark-distance', 'plaque',
+    'plaque(1:0 theta Theme)@V0', { desktop: { '22-38': 1.13 }, 'desktop-large': { '22-38': 1.13 } })
 ];
