@@ -1,6 +1,6 @@
 # Babel Roadmap
 
-Status date: 2026-10-18
+Status date: 2026-10-19
 
 This is Babel's single list of remaining work, in order. Completed work and its
 evidence live in Git history. Durable rules and contracts live in the canonical
@@ -15,22 +15,58 @@ syntactic rules. Desktop remains the primary experience.
 1. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
    the Max plan's monthly API credits can be claimed (around 2026-10-24). Spend
    only those credits.
-2. Clean up the tests:
+2. Renderer follow-ups held back from the October renderer pass. Each has
+   saved evidence; branches that exist are named.
+   - Stage crossings that reshape unchanged syntax: in 83 Replay steps of 71
+     saved analyses, untouched sisters move by different amounts when a stage
+     begins (up to about 360 px), for example 了, 走 and the matrix T sliding
+     into the raised subject's gap at frame 44 of the Chinese relative clause
+     (catalog case 6). Stage-local layout (`buildStageLocalCoordinates`) keeps
+     no shape across a single-root stage. A head that becomes a head complex
+     jumps the same way in 23 steps. Add a shape check that ignores parent
+     recentring, then fix the layout.
+   - The adjunction in frame 49 of that analysis should be an External Merge
+     step, not part of its scope relation (`fix/replay-relation-wrapper-growth`).
+     Together with waiting slots it brings back the 我/昨天 jumps, because the
+     released wrapper also lets the subject movement's new parent arrive at its
+     movement, which main's waiting-slot plan does not expect.
+   - Head-movement arrows when the model writes category labels in prose
+     (`fix/relations-prose-category-labels`). It recovers 4 of 5 missing arrows;
+     two review findings remain (a host role naming the wrong node still
+     authorizes a head arrow; a recovered arrow does not follow a later hop).
+   - Relation marks that vanish or change at the wrong step
+     (`fix/replay-mark-timing`): a persistent mark disappearing at a stage start
+     while its anchor is still on screen, theta badges removed before the
+     composing relation, and restated features or words painted at a stage's
+     first step. Three review findings remain: pronunciation owned by an
+     ancestor still appears at the movement, composed theta badges can return,
+     and the checker's new exemption for repainted words hides early unvoicing.
+   - Plaques left far from their anchor (catalog #3;
+     `fix/renderer-plaque-reach`): a narrower margin brings 12 of 55 listed
+     plaques within reach but moves some others farther away.
+   - A host drops a row when a parent is inserted above it. This stays instant
+     (no glide), so it needs a layout answer or acceptance.
+   - Decide whether a lower occurrence should stay within its source's old
+     horizontal span (81 of 136 land outside it).
+   - Decide the 14 relations authored before the same-stage movement that
+     creates their anchor: today their mark never appears with the anchor.
+   - Mobile calibration and a desktop minimum-zoom clamp.
+3. Clean up the tests:
    - Retire hand-picked per-frame Replay checks that the invariant sweep
      (`tests/replayInvariants.test.mjs`) now covers.
    - Move the design lab's example cards into fixture data, so the checks on
      them read data instead of slicing the lab's source text.
    - Check right-to-left once, as a mirror of left-to-right across the saved
      parses, then run continuity checks once per width.
-3. Recognition:
+4. Recognition:
    - Run an offline, geometry-first recognition experiment over every saved
      parse: measure the wrong-picture rate where Babel already draws, and build
      a review page for relations Babel does not yet draw.
    - Later, consider Jev as a fallback.
-4. Remove the legacy server model-route picker (Gemini default, stale model names,
+5. Remove the legacy server model-route picker (Gemini default, stale model names,
    legacy environment variables) and the `.artifacts` harnesses that depend on it.
    Treat this as an explicit endpoint-contract change.
-5. Merge duplicated layout checks without changing a pixel, proving identical
+6. Merge duplicated layout checks without changing a pixel, proving identical
    coordinates with `npm run verify:corpus`, and fix the one remaining stretched
    branch in Indonesian control analysis 2.
 

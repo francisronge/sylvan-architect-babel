@@ -13,8 +13,9 @@
  *   daughters that was already painted moved in that same step. A waiting
  *   workspace or a selected head that does not stand at its merge site makes
  *   the joining step jump. `waiting` marks a daughter that was a workspace root.
- *   A daughter whose old row the new parent now occupies may descend below it,
- *   as reserved hosts do; its horizontal motion still counts.
+ *   When the step inserts the new parent above a host it already had, a
+ *   daughter whose old row the new parent now occupies (the host, or a piece
+ *   waiting beside it) may descend below it; its horizontal motion still counts.
  *
  * - `shape-motion`: a node moved, and moved relative to its painted parent,
  *   while that parent kept exactly the same painted children. Whoever owns the step, a
@@ -26,6 +27,7 @@
  * stage the renderer carries the camera by the common shift of unmoved shared
  * syntax (`carryCamera`), so there motion is measured after that carried shift. */
 import { carryCamera } from '../components/treeViewport.ts';
+import { stepOwnership, stepTrajectoryParticipants } from '../tests/helpers/motionOwnership.mjs';
 
 export const MOTION_FAULT_THRESHOLD = 1;
 
@@ -51,25 +53,7 @@ export function replayMotionFaults({ frames }, { threshold = MOTION_FAULT_THRESH
   const faults = [];
   for (let index = 1; index < frames.length; index++) {
     const { kind, operation, target, links = [] } = frames[index], current = points[index], prior = points[index - 1];
-    const children = new Map();
-    for (const point of frames[index].points) if (point.parent) children.set(point.parent, [...(children.get(point.parent) ?? []), point.id]);
-    const owned = new Set(), expanded = new Set(), seeds = [target, ...links].filter(id => current.has(id));
-    for (const point of frames[index].points) {
-      const old = prior.get(point.id);
-      if (!old || old.parent !== point.parent) seeds.push(point.id);
-    }
-    for (const seed of seeds) {
-      // Ancestors are owned without owning their other branches, so subtree
-      // expansion is tracked apart from ownership.
-      for (const pending = [seed]; pending.length;) {
-        const id = pending.pop();
-        if (expanded.has(id)) continue;
-        expanded.add(id);
-        owned.add(id);
-        pending.push(...(children.get(id) ?? []));
-      }
-      for (let id = current.get(seed)?.parent; id; id = current.get(id)?.parent) owned.add(id);
-    }
+    const owned = stepOwnership({ target, links, points: frames[index].points, prior });
     const moved = new Set(frames[index].points.filter(point => !owned.has(point.id) && prior.has(point.id)
       && length(motion(index, point.id)) > threshold).map(point => point.id));
     // A node riding with its moving parent is reported once, at the parent; one
@@ -91,11 +75,15 @@ export function replayMotionFaults({ frames }, { threshold = MOTION_FAULT_THRESH
     }
     const parent = current.get(target);
     if (kind !== 'micro' || !['ExternalMerge', 'Project'].includes(operation) || !parent || prior.has(target)) continue;
+    // An insertion places the new parent above a host it already had; the host
+    // and any piece waiting beside it then descend together, which the step owns.
+    const insertion = frames[index].points.some(point => point.parent === target && prior.get(point.id)?.parent
+      && prior.get(point.id).parent === parent.parent);
     for (const point of frames[index].points) {
       const old = point.parent === target && prior.get(point.id);
       if (!old) continue;
       const shift = motion(index, point.id);
-      const descends = old.parent && Math.abs(parent.y + carried[index].y - old.y) < 1e-6 && point.y > parent.y;
+      const descends = insertion && Math.abs(parent.y + carried[index].y - old.y) < 1e-6 && point.y > parent.y;
       const distance = descends ? Math.abs(shift.x) : length(shift);
       if (distance > threshold) faults.push({ frame: index + 1, step: stepKeys[index], node: point.id, kind: 'attachment-site-motion',
         operation, distance, waiting: !old.parent });
@@ -115,10 +103,6 @@ export function paintedPoints(nodes, getNodeId) {
 /** The rule's view of one Replay step: its operation, target, the participants
  * of its own trajectory links, and its painted points. */
 export function motionFrame(step, nodes, getNodeId) {
-  const identity = step.replayRelationIdentity, key = identity && `${identity.stageIndex}:${identity.relationIndex}`;
-  const links = step.replayKind !== 'relation' || !key ? [] : (step.replayRelationLinks ?? [])
-    .filter(link => link.renderFamily === 'trajectory' && link.authoredRelationKey === key)
-    .flatMap(link => [link.priorSourceNodeId, link.witnessNodeId, link.targetNodeId].filter(Boolean));
   return { stage: step.replayFrameIndex, kind: step.replayKind, operation: step.operation, target: step.targetNodeId,
-    links: [...new Set(links)], points: paintedPoints(nodes, getNodeId) };
+    links: stepTrajectoryParticipants(step), points: paintedPoints(nodes, getNodeId) };
 }

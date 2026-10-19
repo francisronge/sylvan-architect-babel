@@ -23,6 +23,7 @@
     "verify:browser": "node scripts/runBrowserVerification.mjs",
     "verify:browser-webkit": "node scripts/runBrowserVerification.mjs --suite compatibility",
     "verify:corpus": "node scripts/compareReplayCorpus.mjs",
+    "verify:browser-visual": "node scripts/verifyBrowserVisual.mjs",
     "verify:visual-offline": "node scripts/auditReplayVisuals.mjs --fixtures --viewports desktop,desktop-large --exceptions tests/helpers/visualExceptions.mjs",
     "verify:camera-offline": "node scripts/auditReplayVisuals.mjs --audit camera --fixtures --viewports desktop,mobile --exceptions tests/helpers/cameraExceptions.mjs",
     "verify:doctor": "node scripts/verifyBabelEnvironment.mjs",
