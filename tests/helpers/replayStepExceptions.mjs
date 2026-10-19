@@ -97,5 +97,6 @@ export const STEP_EXCEPTIONS = [
   x(RETAINED_HOST_SOURCE, 'replay-regressions/retained-head-attachment.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '46'),
   x(INTERMEDIATE_TRACE, 'replay-regressions/rewrite-stage-new-head.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '57'),
   x(INTERMEDIATE_TRACE, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '33'),
+  x(INTERMEDIATE_TRACE, 'replay-regressions/later-occupant-source-before-movement.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '33'),
   x(UNNAMED_LANDING, 'performance/french-relative.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "9:0", '105'),
 ];

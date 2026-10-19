@@ -58,7 +58,8 @@
       "source": "../replay-regressions/construction-slot-continuity.json",
       "selector": "/cases/1",
       "mechanisms": ["multiple-roots", "nonmovement"],
-      "expect": {"minWorkspaceRoots": 2, "minMerges": 1}
+      "expect": {"minWorkspaceRoots": 2, "minMerges": 1},
+      "allow": {"finalCoordinates": true, "completedWidthGrowth": true, "reason": "A movement slot is sized for every occupant it paints: the source keeps its sister clearance until it moves, and its lower occurrence keeps that wider slot through the final tree. The unmeasured layout estimates the subject's ink beside its verb phrase."}
     },
     {
       "id": "retained-root-growth",
