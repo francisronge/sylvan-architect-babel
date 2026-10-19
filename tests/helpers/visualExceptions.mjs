@@ -38,7 +38,7 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
     'plaque(1:3/2:3/3:3 theta Experiencer/Proposition)@vWant', { desktop: { '56-69': 1.3 }, 'desktop-large': { '56-69': 1.3 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/case-source-transfer.json#', 'mark-distance', 'plaque',
-    'plaque(0:0 theta Experiencer/Theme)@v1', { desktop: { '15-19': 1.13 }, 'desktop-large': { '15-19': 1.13 } }),
+    'plaque(0:0 theta Experiencer/Theme)@v1', { desktop: { '15-18': 1.13 }, 'desktop-large': { '15-18': 1.13 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/case-source-transfer.json#', 'mark-distance', 'plaque',
     'plaque(2:0 theta Experiencer/Theme)@v3', { desktop: { '29-36': 1.22 }, 'desktop-large': { '29-36': 1.22 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/clitic-displacement.json#/fixtures/1/analysis', 'mark-distance', 'plaque',

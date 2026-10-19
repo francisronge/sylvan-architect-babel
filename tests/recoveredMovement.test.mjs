@@ -234,11 +234,12 @@ for (const [name, stageIndex, relationIndex, source, target, kind, exception] of
         assert.equal(drawing.sourceAttachment, 'shell-bottom', 'an authored wordless category anchors to itself, not a nonexistent lexical child');
       }
       if (exception === 'order') {
-        assert.match(step.movementDiagnostics.join('\n'), /before relation 2/);
-        assert.equal(steps[moment - 1].operation, 'wh licensing');
-        assert.match(steps[moment - 1].movementDiagnostics.join('\n'), /requires frontedNP before relation 2/);
-        assert.ok(!steps[moment - 1].replayVisibleNodeIds.includes(target), 'the earlier licensing must not expose a future landing');
-      } else {
+        // The licensing claim, authored first, names the landing, so it plays right after this movement.
+        assert.equal(steps[moment + 1].operation, 'wh licensing');
+        assert.ok(steps[moment + 1].replayVisibleNodeIds.includes(target));
+        assert.ok(!steps.some(s => s.movementDiagnostics?.some(message => message.startsWith('RELATION_TIMING_CONFLICT'))));
+      }
+      {
         const hasLaterRealization = (name === 'astra-minimalism' && stageIndex === 5)
           || (name === 'fable-xbar' && stageIndex === 3);
         const targetIds = nodes(buildRenderableCommittedCanvasData(find(current.workspaceForest, target))).map(n => n.id)
@@ -488,15 +489,19 @@ for (const [name, stageIndex, source, landing] of [
   ['astra-minimalism', 5, 'finiteT', 'raisedT'],
   ['fable-xbar', 3, 'i1', 'i2']
 ]) {
-  for (const registered of [false, true]) test(`${name}: movement precedes ${registered ? 'registered' : 'open'} realization of did`, () => {
+  for (const [registered, reversed] of [[false, false], [true, false], [false, true], [true, true]]) test(`${name}: movement precedes ${registered ? 'registered' : 'open'} realization of did${reversed ? ' authored before it' : ''}`, () => {
     const record = structuredClone(saved.find(c => c.name === name));
-    if (registered) record.derivationStages[stageIndex].relations[1] = {
+    const relations = record.derivationStages[stageIndex].relations;
+    if (registered) relations[1] = {
       relation: 'PFRealization', anchors: { terminal: landing }, values: { realization: 'did' }
     };
+    // Authored first, the realization plays right after the movement that introduces its terminal.
+    if (reversed) relations.reverse();
     const original = structuredClone(record);
     const { steps } = buildReplayPlayback({ sentence: record.sentence, analyses: [record] });
-    const movement = steps.find(s => s.replayRelationIdentity?.stageIndex === stageIndex && s.replayRelationIdentity.relationIndex === 0);
-    const realization = steps.find(s => s.replayRelationIdentity?.stageIndex === stageIndex && s.replayRelationIdentity.relationIndex === 1);
+    const moment = relationIndex => steps.find(s => s.replayRelationIdentity?.stageIndex === stageIndex && s.replayRelationIdentity.relationIndex === relationIndex);
+    const [movement, realization] = reversed ? [moment(1), moment(0)] : [moment(0), moment(1)];
+    assert.ok(steps.indexOf(movement) < steps.indexOf(realization));
     assert.ok(movement.replayVisibleNodeIds.includes(landing));
     assert.equal(find([movement.replayCanvasData], landing).word, undefined);
     assert.equal(find([movement.replayCanvasData], `${landing}::__leaf`), undefined);
@@ -508,16 +513,14 @@ for (const [name, stageIndex, source, landing] of [
 }
 
 test('unrecognized comments do not delay pronunciation and authored order is not rewritten', () => {
-  for (const variant of ['comment', 'reversed']) {
-    const record = structuredClone(saved.find(c => c.name === 'astra-minimalism'));
-    const stage = record.derivationStages[5];
-    if (variant === 'comment') stage.relations[1] = { relation: 'A remark', anchors: { node: 'raisedT' }, values: { note: 'did' } };
-    else stage.relations.reverse();
-    const { steps } = buildReplayPlayback({ sentence: record.sentence, analyses: [record] });
-    const moment = steps.find(s => s.replayRelationIdentity?.stageIndex === 5 && s.operation === 'Head movement');
-    assert.equal(find([moment.replayCanvasData], 'raisedT::__leaf').word, 'did');
-    assert.equal(moment.replayRelationIdentity.relationIndex, variant === 'comment' ? 0 : 1);
-  }
+  const record = structuredClone(saved.find(c => c.name === 'astra-minimalism'));
+  record.derivationStages[5].relations[1] = { relation: 'A remark', anchors: { node: 'raisedT' }, values: { note: 'did' } };
+  const original = structuredClone(record);
+  const { steps } = buildReplayPlayback({ sentence: record.sentence, analyses: [record] });
+  const moment = steps.find(s => s.replayRelationIdentity?.stageIndex === 5 && s.operation === 'Head movement');
+  assert.equal(find([moment.replayCanvasData], 'raisedT::__leaf').word, 'did');
+  assert.equal(moment.replayRelationIdentity.relationIndex, 0);
+  assert.deepEqual(record, original);
 });
 
 test('movement recovery does not depend on a relation title or anchor order', () => {
