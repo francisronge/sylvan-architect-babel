@@ -22,7 +22,7 @@ const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rul
 // 33-grc-article.r2); only their frame numbers moved.
 export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/4', 'mark-distance', 'plaque',
-    'plaque(2:0 theta Agent)@v-buy', { desktop: { '29-54': 1.12 }, 'desktop-large': { '29-54': 1.12 } }),
+    'plaque(2:0 theta Agent)@v-buy', { desktop: { '35-60': 1.12 }, 'desktop-large': { '35-60': 1.12 } }),
   x(SPOKE_ATTACHED, 'performance/german-embedded.json#', 'line-clearance', 'connector-plaque',
     'connector(0:4)reportNP→reportN plaque(0:1 directed-path case-assignment)@read', { desktop: { '57': 1.44 } }),
   // The long-sentence preparation cases, as on their saved night4 analyses.

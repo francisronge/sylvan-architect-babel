@@ -1,0 +1,2426 @@
+{
+  "description": "Saved analyses whose claims relate material that their stage only merges: an occurrence shared across conjuncts, or a phrase whose boundary a realization claim describes. No earlier occurrence is displaced, so each new phrase keeps its own selection, projection and External Merge, and the claims play once their anchors are built, adding no syntax. Frames are the 1-based Replay frames on origin/main 7ebe635.",
+  "cases": [
+    {
+      "description": "Stages 2 and 5 build both conjuncts with a shared occurrence: whatSellObject repeats whatObject, and didSell repeats did, in the second conjunct. The identity claims (shared nominal identity, shared auxiliary identity) owned each repeat as a copy, so their moments showed sellVP with sell and What (frame 15) and the TP with did (frame 31), and the External Merges that followed (frames 16 and 32) were empty. Each repeat is now selected and projected, its phrase merges at its own step, and the claim adds nothing.",
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, commit bcf1b56, 19 October 2026 (third night batch, 49-en-atb, analysis 1 of 1).",
+      "sentence": "What did John buy and Mary sell?",
+      "framework": "minimalism",
+      "inputTokens": [
+        "What",
+        "did",
+        "John",
+        "buy",
+        "and",
+        "Mary",
+        "sell"
+      ],
+      "derivationStages": [
+        {
+          "relations": [],
+          "stageRecord": "The analysis treats the sentence as a question over coordinated clauses: John bought some object and Mary sold that same object. The two predicates have different subjects, so this is not coordination of predicates sharing John. What is a single interrogative nominal that will be shared across the two object positions. Did is likewise a shared auxiliary, rather than an auxiliary that licenses deletion of an otherwise unrepresented second clause. The workspace initially contains these lexical objects. Proper names and the interrogative nominal are atomic D objects; their maximal status follows from their positions rather than from an obligatory unary DP shell. Projection labels used below describe structures built by Merge, not pre-existing phrase-structure templates.",
+          "statement": "Select the lexical objects for an across-the-board constituent question.",
+          "workspaceForest": [
+            {
+              "children": [],
+              "id": "whatObject",
+              "label": "D[wh]",
+              "lineageId": "sharedWh",
+              "word": "What"
+            },
+            {
+              "children": [],
+              "id": "buy",
+              "label": "V",
+              "word": "buy"
+            },
+            {
+              "children": [],
+              "id": "sell",
+              "label": "V",
+              "word": "sell"
+            },
+            {
+              "children": [],
+              "id": "john",
+              "label": "D",
+              "lineageId": "johnChain",
+              "word": "John"
+            },
+            {
+              "children": [],
+              "id": "mary",
+              "label": "D",
+              "lineageId": "maryChain",
+              "word": "Mary"
+            },
+            {
+              "children": [],
+              "id": "did",
+              "label": "T[past, auxiliary]",
+              "lineageId": "sharedAuxiliary",
+              "word": "did"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "occurrences": [
+                  "whatObject",
+                  "whatSellObject"
+                ]
+              },
+              "relation": "shared nominal identity",
+              "values": {
+                "interpretation": "one interrogative variable shared across both object positions"
+              }
+            },
+            {
+              "anchors": {
+                "arguments": [
+                  "whatObject",
+                  "whatSellObject"
+                ],
+                "predicates": [
+                  "buy",
+                  "sell"
+                ]
+              },
+              "relation": "internal theta-role assignment",
+              "values": {
+                "roles": [
+                  "Theme",
+                  "Theme"
+                ]
+              }
+            }
+          ],
+          "stageRecord": "Parallel Merge combines buy and sell with the same interrogative object. The two displayed object occurrences serialize a shared syntactic object: the second occurrence is not an independently chosen interrogative. This is base sharing, not movement out of one predicate into the other. Buy assigns its Theme role to its object occurrence, and sell assigns its Theme role to its own occurrence. Consequently, the eventual answer supplies an object satisfying both predicates.",
+          "statement": "Build the two verb–object structures with one shared interrogative nominal.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "buy",
+                  "label": "V",
+                  "word": "buy"
+                },
+                {
+                  "children": [],
+                  "id": "whatObject",
+                  "label": "D[wh]",
+                  "lineageId": "sharedWh",
+                  "word": "What"
+                }
+              ],
+              "id": "buyVP",
+              "label": "VP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "sell",
+                  "label": "V",
+                  "word": "sell"
+                },
+                {
+                  "children": [],
+                  "id": "whatSellObject",
+                  "label": "D[wh]",
+                  "lineageId": "sharedWh",
+                  "word": "What"
+                }
+              ],
+              "id": "sellVP",
+              "label": "VP"
+            },
+            {
+              "children": [],
+              "id": "john",
+              "label": "D",
+              "lineageId": "johnChain",
+              "word": "John"
+            },
+            {
+              "children": [],
+              "id": "mary",
+              "label": "D",
+              "lineageId": "maryChain",
+              "word": "Mary"
+            },
+            {
+              "children": [],
+              "id": "did",
+              "label": "T[past, auxiliary]",
+              "lineageId": "sharedAuxiliary",
+              "word": "did"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "arguments": [
+                  "john",
+                  "mary"
+                ],
+                "assigners": [
+                  "buyV",
+                  "sellV"
+                ]
+              },
+              "relation": "external theta-role assignment",
+              "values": {
+                "roles": [
+                  "Agent",
+                  "Agent"
+                ]
+              }
+            },
+            {
+              "anchors": {
+                "licensers": [
+                  "buyV",
+                  "sellV"
+                ],
+                "objects": [
+                  "whatObject",
+                  "whatSellObject"
+                ]
+              },
+              "relation": "object Case licensing",
+              "values": {
+                "case": "accusative"
+              }
+            }
+          ],
+          "stageRecord": "A silent transitive v merges with each VP, and each resulting structure merges with its own external argument. John receives the Agent role in the buying event; Mary receives the Agent role in the selling event. Each transitive v licenses accusative Case on the local occurrence of the shared object. The analysis keeps the lexical verbs in V: no independent overt verb-raising operation is needed for these English auxiliary constructions.",
+          "statement": "Introduce separate external arguments for buying and selling.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "john",
+                  "label": "D",
+                  "lineageId": "johnChain",
+                  "word": "John"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "buyV",
+                      "label": "v[transitive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "buy",
+                          "label": "V",
+                          "word": "buy"
+                        },
+                        {
+                          "children": [],
+                          "id": "whatObject",
+                          "label": "D[wh]",
+                          "lineageId": "sharedWh",
+                          "word": "What"
+                        }
+                      ],
+                      "id": "buyVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "buyLowerVP",
+                  "label": "vP"
+                }
+              ],
+              "id": "johnVP",
+              "label": "vP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "mary",
+                  "label": "D",
+                  "lineageId": "maryChain",
+                  "word": "Mary"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "sellV",
+                      "label": "v[transitive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sell",
+                          "label": "V",
+                          "word": "sell"
+                        },
+                        {
+                          "children": [],
+                          "id": "whatSellObject",
+                          "label": "D[wh]",
+                          "lineageId": "sharedWh",
+                          "word": "What"
+                        }
+                      ],
+                      "id": "sellVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "sellLowerVP",
+                  "label": "vP"
+                }
+              ],
+              "id": "maryVP",
+              "label": "vP"
+            },
+            {
+              "children": [],
+              "id": "did",
+              "label": "T[past, auxiliary]",
+              "lineageId": "sharedAuxiliary",
+              "word": "did"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landings": [
+                  "whatBuyEdge",
+                  "whatSellEdge"
+                ],
+                "phaseHeads": [
+                  "buyV",
+                  "sellV"
+                ],
+                "sources": [
+                  "whatObject",
+                  "whatSellObject"
+                ]
+              },
+              "relation": "parallel wh movement to phase edges",
+              "values": {
+                "dependency": "shared interrogative",
+                "sourcePronunciation": "silent copies"
+              }
+            }
+          ],
+          "stageRecord": "The interrogative object undergoes parallel Internal Merge to the outer edge of each vP. Its two object positions were established in the preceding workspaces, so neither movement originates from an unrepresented position. These edge occurrences preserve access to the interrogative across the transitive vP phases. The two movements are corresponding steps of one shared dependency, not two independently interpreted questions. The object occurrences become silent copies; the edge occurrences remain unsilenced at this stage.",
+          "statement": "Move the shared interrogative through both vP phase edges.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "whatBuyEdge",
+                  "label": "D[wh]",
+                  "lineageId": "sharedWh",
+                  "word": "What"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "john",
+                      "label": "D",
+                      "lineageId": "johnChain",
+                      "word": "John"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "buyV",
+                          "label": "v[transitive]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "buy",
+                              "label": "V",
+                              "word": "buy"
+                            },
+                            {
+                              "children": [],
+                              "id": "whatObject",
+                              "label": "D[wh]",
+                              "lineageId": "sharedWh",
+                              "silent": true,
+                              "word": "What"
+                            }
+                          ],
+                          "id": "buyVP",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "buyLowerVP",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "johnVP",
+                  "label": "vP"
+                }
+              ],
+              "id": "buyEdgeVP",
+              "label": "vP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "whatSellEdge",
+                  "label": "D[wh]",
+                  "lineageId": "sharedWh",
+                  "word": "What"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mary",
+                      "label": "D",
+                      "lineageId": "maryChain",
+                      "word": "Mary"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sellV",
+                          "label": "v[transitive]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "sell",
+                              "label": "V",
+                              "word": "sell"
+                            },
+                            {
+                              "children": [],
+                              "id": "whatSellObject",
+                              "label": "D[wh]",
+                              "lineageId": "sharedWh",
+                              "silent": true,
+                              "word": "What"
+                            }
+                          ],
+                          "id": "sellVP",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "sellLowerVP",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "maryVP",
+                  "label": "vP"
+                }
+              ],
+              "id": "sellEdgeVP",
+              "label": "vP"
+            },
+            {
+              "children": [],
+              "id": "did",
+              "label": "T[past, auxiliary]",
+              "lineageId": "sharedAuxiliary",
+              "word": "did"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "occurrences": [
+                  "did",
+                  "didSell"
+                ]
+              },
+              "relation": "shared auxiliary identity",
+              "values": {
+                "lexicalForm": "did",
+                "tense": "past"
+              }
+            },
+            {
+              "anchors": {
+                "goals": [
+                  "john",
+                  "mary"
+                ],
+                "probes": [
+                  "did",
+                  "didSell"
+                ]
+              },
+              "relation": "finite agreement and subject Case licensing",
+              "values": {
+                "agreement": "third-person singular",
+                "case": "nominative"
+              }
+            },
+            {
+              "anchors": {
+                "auxiliaries": [
+                  "did",
+                  "didSell"
+                ],
+                "verbs": [
+                  "buy",
+                  "sell"
+                ]
+              },
+              "relation": "auxiliary licensing of bare predicates",
+              "values": {
+                "verbalForm": "bare"
+              }
+            }
+          ],
+          "stageRecord": "Parallel Merge places the shared auxiliary in the T position of each developing conjunct. As with the interrogative nominal, the two displayed T occurrences represent one shared object, now distributed across two corresponding structural positions. This commitment permits subsequent across-the-board auxiliary movement to have one pronounced landing. Each T agrees locally with its own subject and licenses nominative Case. Past tense applies to both predicates, while the auxiliary selects the bare verbal forms buy and sell.",
+          "statement": "Build both finite projections with a shared past auxiliary.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "did",
+                  "label": "T[past, auxiliary]",
+                  "lineageId": "sharedAuxiliary",
+                  "word": "did"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "whatBuyEdge",
+                      "label": "D[wh]",
+                      "lineageId": "sharedWh",
+                      "word": "What"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "john",
+                          "label": "D",
+                          "lineageId": "johnChain",
+                          "word": "John"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "buyV",
+                              "label": "v[transitive]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "buy",
+                                  "label": "V",
+                                  "word": "buy"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "whatObject",
+                                  "label": "D[wh]",
+                                  "lineageId": "sharedWh",
+                                  "silent": true,
+                                  "word": "What"
+                                }
+                              ],
+                              "id": "buyVP",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "buyLowerVP",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "johnVP",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "buyEdgeVP",
+                  "label": "vP"
+                }
+              ],
+              "id": "buyTProjection",
+              "label": "TP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "didSell",
+                  "label": "T[past, auxiliary]",
+                  "lineageId": "sharedAuxiliary",
+                  "word": "did"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "whatSellEdge",
+                      "label": "D[wh]",
+                      "lineageId": "sharedWh",
+                      "word": "What"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "mary",
+                          "label": "D",
+                          "lineageId": "maryChain",
+                          "word": "Mary"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "sellV",
+                              "label": "v[transitive]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sell",
+                                  "label": "V",
+                                  "word": "sell"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "whatSellObject",
+                                  "label": "D[wh]",
+                                  "lineageId": "sharedWh",
+                                  "silent": true,
+                                  "word": "What"
+                                }
+                              ],
+                              "id": "sellVP",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "sellLowerVP",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "maryVP",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "sellEdgeVP",
+                  "label": "vP"
+                }
+              ],
+              "id": "sellTProjection",
+              "label": "TP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landings": [
+                  "johnSubject",
+                  "marySubject"
+                ],
+                "licensingHeads": [
+                  "did",
+                  "didSell"
+                ],
+                "sources": [
+                  "john",
+                  "mary"
+                ]
+              },
+              "relation": "subject A-movement",
+              "values": {
+                "requirement": "finite subject edge",
+                "sourcePronunciation": "silent copies"
+              }
+            }
+          ],
+          "stageRecord": "John and Mary undergo A-movement from their already represented external-argument positions to the respective TP edges. These movements satisfy the subject-position requirement of each finite T. The higher subject occurrences are pronounced; the lower occurrences become silent copies. The interrogative edge occurrences remain in place, because subject raising and wh movement are distinct dependencies.",
+          "statement": "Raise each subject to the edge of its own finite projection.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "johnSubject",
+                  "label": "D",
+                  "lineageId": "johnChain",
+                  "word": "John"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "did",
+                      "label": "T[past, auxiliary]",
+                      "lineageId": "sharedAuxiliary",
+                      "word": "did"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "whatBuyEdge",
+                          "label": "D[wh]",
+                          "lineageId": "sharedWh",
+                          "word": "What"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "john",
+                              "label": "D",
+                              "lineageId": "johnChain",
+                              "silent": true,
+                              "word": "John"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "buyV",
+                                  "label": "v[transitive]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "buy",
+                                      "label": "V",
+                                      "word": "buy"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "whatObject",
+                                      "label": "D[wh]",
+                                      "lineageId": "sharedWh",
+                                      "silent": true,
+                                      "word": "What"
+                                    }
+                                  ],
+                                  "id": "buyVP",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "buyLowerVP",
+                              "label": "vP"
+                            }
+                          ],
+                          "id": "johnVP",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "buyEdgeVP",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "buyTProjection",
+                  "label": "TP"
+                }
+              ],
+              "id": "johnTP",
+              "label": "TP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "marySubject",
+                  "label": "D",
+                  "lineageId": "maryChain",
+                  "word": "Mary"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "didSell",
+                      "label": "T[past, auxiliary]",
+                      "lineageId": "sharedAuxiliary",
+                      "word": "did"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "whatSellEdge",
+                          "label": "D[wh]",
+                          "lineageId": "sharedWh",
+                          "word": "What"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "mary",
+                              "label": "D",
+                              "lineageId": "maryChain",
+                              "silent": true,
+                              "word": "Mary"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sellV",
+                                  "label": "v[transitive]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "sell",
+                                      "label": "V",
+                                      "word": "sell"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "whatSellObject",
+                                      "label": "D[wh]",
+                                      "lineageId": "sharedWh",
+                                      "silent": true,
+                                      "word": "What"
+                                    }
+                                  ],
+                                  "id": "sellVP",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "sellLowerVP",
+                              "label": "vP"
+                            }
+                          ],
+                          "id": "maryVP",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "sellEdgeVP",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "sellTProjection",
+                  "label": "TP"
+                }
+              ],
+              "id": "maryTP",
+              "label": "TP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "coordinator": "and",
+                "firstConjunct": "johnTP",
+                "secondConjunct": "maryTP"
+              },
+              "relation": "clausal conjunction",
+              "values": {
+                "interpretation": "conjunction of propositions"
+              }
+            }
+          ],
+          "stageRecord": "And first merges with Mary's TP; John's TP then merges at the outer edge of the resulting coordination. This binary structure preserves the order John–buy–and–Mary–sell. The conjuncts are finite TPs with separate subjects, not complete independent questions. Both shared dependencies occupy corresponding positions in both conjuncts, preparing across-the-board extraction rather than extraction from only one conjunct. Coordination contributes conjunction of the buying and selling propositions under the eventual common question operator.",
+          "statement": "Coordinate the two finite clauses.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "johnSubject",
+                      "label": "D",
+                      "lineageId": "johnChain",
+                      "word": "John"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "did",
+                          "label": "T[past, auxiliary]",
+                          "lineageId": "sharedAuxiliary",
+                          "word": "did"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "whatBuyEdge",
+                              "label": "D[wh]",
+                              "lineageId": "sharedWh",
+                              "word": "What"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "john",
+                                  "label": "D",
+                                  "lineageId": "johnChain",
+                                  "silent": true,
+                                  "word": "John"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "buyV",
+                                      "label": "v[transitive]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "buy",
+                                          "label": "V",
+                                          "word": "buy"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "whatObject",
+                                          "label": "D[wh]",
+                                          "lineageId": "sharedWh",
+                                          "silent": true,
+                                          "word": "What"
+                                        }
+                                      ],
+                                      "id": "buyVP",
+                                      "label": "VP"
+                                    }
+                                  ],
+                                  "id": "buyLowerVP",
+                                  "label": "vP"
+                                }
+                              ],
+                              "id": "johnVP",
+                              "label": "vP"
+                            }
+                          ],
+                          "id": "buyEdgeVP",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "buyTProjection",
+                      "label": "TP"
+                    }
+                  ],
+                  "id": "johnTP",
+                  "label": "TP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "and",
+                      "label": "&",
+                      "word": "and"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "marySubject",
+                          "label": "D",
+                          "lineageId": "maryChain",
+                          "word": "Mary"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "didSell",
+                              "label": "T[past, auxiliary]",
+                              "lineageId": "sharedAuxiliary",
+                              "word": "did"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "whatSellEdge",
+                                  "label": "D[wh]",
+                                  "lineageId": "sharedWh",
+                                  "word": "What"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "mary",
+                                      "label": "D",
+                                      "lineageId": "maryChain",
+                                      "silent": true,
+                                      "word": "Mary"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sellV",
+                                          "label": "v[transitive]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "sell",
+                                              "label": "V",
+                                              "word": "sell"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "whatSellObject",
+                                              "label": "D[wh]",
+                                              "lineageId": "sharedWh",
+                                              "silent": true,
+                                              "word": "What"
+                                            }
+                                          ],
+                                          "id": "sellVP",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "sellLowerVP",
+                                      "label": "vP"
+                                    }
+                                  ],
+                                  "id": "maryVP",
+                                  "label": "vP"
+                                }
+                              ],
+                              "id": "sellEdgeVP",
+                              "label": "vP"
+                            }
+                          ],
+                          "id": "sellTProjection",
+                          "label": "TP"
+                        }
+                      ],
+                      "id": "maryTP",
+                      "label": "TP"
+                    }
+                  ],
+                  "id": "coordinationLower",
+                  "label": "&P"
+                }
+              ],
+              "id": "coordination",
+              "label": "&P"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "domain": "coordination",
+                "head": "questionC"
+              },
+              "relation": "interrogative clause typing",
+              "values": {
+                "force": "constituent question",
+                "requirements": [
+                  "auxiliary at C",
+                  "wh nominal at the CP edge"
+                ]
+              }
+            }
+          ],
+          "stageRecord": "A silent interrogative C merges with the coordinated finite domain. It gives the whole coordination interrogative force and introduces the requirements for auxiliary inversion and a wh constituent at its edge. This common C distinguishes the analysis from coordination of two separately formed questions. Its requirements are not yet satisfied: the auxiliary and interrogative occurrences remain in their previously established lower positions.",
+          "statement": "Introduce one interrogative complementizer above the coordination.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "questionC",
+                  "label": "C[Q]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "johnSubject",
+                          "label": "D",
+                          "lineageId": "johnChain",
+                          "word": "John"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "did",
+                              "label": "T[past, auxiliary]",
+                              "lineageId": "sharedAuxiliary",
+                              "word": "did"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "whatBuyEdge",
+                                  "label": "D[wh]",
+                                  "lineageId": "sharedWh",
+                                  "word": "What"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "john",
+                                      "label": "D",
+                                      "lineageId": "johnChain",
+                                      "silent": true,
+                                      "word": "John"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "buyV",
+                                          "label": "v[transitive]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "buy",
+                                              "label": "V",
+                                              "word": "buy"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "whatObject",
+                                              "label": "D[wh]",
+                                              "lineageId": "sharedWh",
+                                              "silent": true,
+                                              "word": "What"
+                                            }
+                                          ],
+                                          "id": "buyVP",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "buyLowerVP",
+                                      "label": "vP"
+                                    }
+                                  ],
+                                  "id": "johnVP",
+                                  "label": "vP"
+                                }
+                              ],
+                              "id": "buyEdgeVP",
+                              "label": "vP"
+                            }
+                          ],
+                          "id": "buyTProjection",
+                          "label": "TP"
+                        }
+                      ],
+                      "id": "johnTP",
+                      "label": "TP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "and",
+                          "label": "&",
+                          "word": "and"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "marySubject",
+                              "label": "D",
+                              "lineageId": "maryChain",
+                              "word": "Mary"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "didSell",
+                                  "label": "T[past, auxiliary]",
+                                  "lineageId": "sharedAuxiliary",
+                                  "word": "did"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "whatSellEdge",
+                                      "label": "D[wh]",
+                                      "lineageId": "sharedWh",
+                                      "word": "What"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "mary",
+                                          "label": "D",
+                                          "lineageId": "maryChain",
+                                          "silent": true,
+                                          "word": "Mary"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "sellV",
+                                              "label": "v[transitive]",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "sell",
+                                                  "label": "V",
+                                                  "word": "sell"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "whatSellObject",
+                                                  "label": "D[wh]",
+                                                  "lineageId": "sharedWh",
+                                                  "silent": true,
+                                                  "word": "What"
+                                                }
+                                              ],
+                                              "id": "sellVP",
+                                              "label": "VP"
+                                            }
+                                          ],
+                                          "id": "sellLowerVP",
+                                          "label": "vP"
+                                        }
+                                      ],
+                                      "id": "maryVP",
+                                      "label": "vP"
+                                    }
+                                  ],
+                                  "id": "sellEdgeVP",
+                                  "label": "vP"
+                                }
+                              ],
+                              "id": "sellTProjection",
+                              "label": "TP"
+                            }
+                          ],
+                          "id": "maryTP",
+                          "label": "TP"
+                        }
+                      ],
+                      "id": "coordinationLower",
+                      "label": "&P"
+                    }
+                  ],
+                  "id": "coordination",
+                  "label": "&P"
+                }
+              ],
+              "id": "questionCore",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "complexHead": "invertedC",
+                "host": "questionC",
+                "landing": "didAtC",
+                "sources": [
+                  "did",
+                  "didSell"
+                ]
+              },
+              "relation": "across-the-board auxiliary movement",
+              "values": {
+                "landingPronunciation": "one shared auxiliary occurrence",
+                "satisfiedRequirement": "auxiliary at C",
+                "sourcePronunciation": "silent copies"
+              }
+            }
+          ],
+          "stageRecord": "The auxiliary undergoes head movement from both previously represented T positions to the common interrogative C. Because the lower T occurrences are occurrences of one shared auxiliary, the common landing contains one did, not two independently pronounced auxiliaries. Both lower T occurrences become silent. This across-the-board operation satisfies C's inversion requirement and respects the coordinate structure by relating the landing to both conjuncts. It does not delete a second auxiliary or any second-clause subject.",
+          "statement": "Move the shared auxiliary across the board to C.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "didAtC",
+                      "label": "T[past, auxiliary]",
+                      "lineageId": "sharedAuxiliary",
+                      "word": "did"
+                    },
+                    {
+                      "children": [],
+                      "id": "questionC",
+                      "label": "C[Q]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "invertedC",
+                  "label": "C"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "johnSubject",
+                          "label": "D",
+                          "lineageId": "johnChain",
+                          "word": "John"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "did",
+                              "label": "T[past, auxiliary]",
+                              "lineageId": "sharedAuxiliary",
+                              "silent": true,
+                              "word": "did"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "whatBuyEdge",
+                                  "label": "D[wh]",
+                                  "lineageId": "sharedWh",
+                                  "word": "What"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "john",
+                                      "label": "D",
+                                      "lineageId": "johnChain",
+                                      "silent": true,
+                                      "word": "John"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "buyV",
+                                          "label": "v[transitive]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "buy",
+                                              "label": "V",
+                                              "word": "buy"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "whatObject",
+                                              "label": "D[wh]",
+                                              "lineageId": "sharedWh",
+                                              "silent": true,
+                                              "word": "What"
+                                            }
+                                          ],
+                                          "id": "buyVP",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "buyLowerVP",
+                                      "label": "vP"
+                                    }
+                                  ],
+                                  "id": "johnVP",
+                                  "label": "vP"
+                                }
+                              ],
+                              "id": "buyEdgeVP",
+                              "label": "vP"
+                            }
+                          ],
+                          "id": "buyTProjection",
+                          "label": "TP"
+                        }
+                      ],
+                      "id": "johnTP",
+                      "label": "TP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "and",
+                          "label": "&",
+                          "word": "and"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "marySubject",
+                              "label": "D",
+                              "lineageId": "maryChain",
+                              "word": "Mary"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "didSell",
+                                  "label": "T[past, auxiliary]",
+                                  "lineageId": "sharedAuxiliary",
+                                  "silent": true,
+                                  "word": "did"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "whatSellEdge",
+                                      "label": "D[wh]",
+                                      "lineageId": "sharedWh",
+                                      "word": "What"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "mary",
+                                          "label": "D",
+                                          "lineageId": "maryChain",
+                                          "silent": true,
+                                          "word": "Mary"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "sellV",
+                                              "label": "v[transitive]",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "sell",
+                                                  "label": "V",
+                                                  "word": "sell"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "whatSellObject",
+                                                  "label": "D[wh]",
+                                                  "lineageId": "sharedWh",
+                                                  "silent": true,
+                                                  "word": "What"
+                                                }
+                                              ],
+                                              "id": "sellVP",
+                                              "label": "VP"
+                                            }
+                                          ],
+                                          "id": "sellLowerVP",
+                                          "label": "vP"
+                                        }
+                                      ],
+                                      "id": "maryVP",
+                                      "label": "vP"
+                                    }
+                                  ],
+                                  "id": "sellEdgeVP",
+                                  "label": "vP"
+                                }
+                              ],
+                              "id": "sellTProjection",
+                              "label": "TP"
+                            }
+                          ],
+                          "id": "maryTP",
+                          "label": "TP"
+                        }
+                      ],
+                      "id": "coordinationLower",
+                      "label": "&P"
+                    }
+                  ],
+                  "id": "coordination",
+                  "label": "&P"
+                }
+              ],
+              "id": "questionCore",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landing": "whatAtC",
+                "licensingHead": "questionC",
+                "sources": [
+                  "whatBuyEdge",
+                  "whatSellEdge"
+                ]
+              },
+              "relation": "across-the-board wh movement",
+              "values": {
+                "landingPronunciation": "one shared interrogative occurrence",
+                "satisfiedRequirement": "wh nominal at the CP edge",
+                "sourcePronunciation": "silent copies"
+              }
+            },
+            {
+              "anchors": {
+                "operator": "whatAtC",
+                "scope": "coordination",
+                "variables": [
+                  "whatObject",
+                  "whatSellObject"
+                ]
+              },
+              "relation": "interrogative operator binding",
+              "values": {
+                "interpretation": "which x is such that John bought x and Mary sold x"
+              }
+            }
+          ],
+          "stageRecord": "The shared interrogative moves from its two previously established vP-edge occurrences to one common CP-edge position. Both intermediate occurrences become silent, as the object occurrences already are. This satisfies C's wh requirement and establishes one operator binding both object positions: the question asks which thing or things John bought and Mary sold. Extraction is across the board, not an illicit dependency into only one conjunct. The highest interrogative occurrence and the auxiliary at C are pronounced, together with the higher subjects, the lexical verbs, and and. Their tree order yields exactly What did John buy and Mary sell; no ellipsis, contraction, or special realization mapping is required.",
+          "statement": "Complete across-the-board wh movement and pronounce the question.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "whatAtC",
+                  "label": "D[wh]",
+                  "lineageId": "sharedWh",
+                  "word": "What"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "didAtC",
+                          "label": "T[past, auxiliary]",
+                          "lineageId": "sharedAuxiliary",
+                          "word": "did"
+                        },
+                        {
+                          "children": [],
+                          "id": "questionC",
+                          "label": "C[Q]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "invertedC",
+                      "label": "C"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "johnSubject",
+                              "label": "D",
+                              "lineageId": "johnChain",
+                              "word": "John"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "did",
+                                  "label": "T[past, auxiliary]",
+                                  "lineageId": "sharedAuxiliary",
+                                  "silent": true,
+                                  "word": "did"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "whatBuyEdge",
+                                      "label": "D[wh]",
+                                      "lineageId": "sharedWh",
+                                      "silent": true,
+                                      "word": "What"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "john",
+                                          "label": "D",
+                                          "lineageId": "johnChain",
+                                          "silent": true,
+                                          "word": "John"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "buyV",
+                                              "label": "v[transitive]",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "buy",
+                                                  "label": "V",
+                                                  "word": "buy"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "whatObject",
+                                                  "label": "D[wh]",
+                                                  "lineageId": "sharedWh",
+                                                  "silent": true,
+                                                  "word": "What"
+                                                }
+                                              ],
+                                              "id": "buyVP",
+                                              "label": "VP"
+                                            }
+                                          ],
+                                          "id": "buyLowerVP",
+                                          "label": "vP"
+                                        }
+                                      ],
+                                      "id": "johnVP",
+                                      "label": "vP"
+                                    }
+                                  ],
+                                  "id": "buyEdgeVP",
+                                  "label": "vP"
+                                }
+                              ],
+                              "id": "buyTProjection",
+                              "label": "TP"
+                            }
+                          ],
+                          "id": "johnTP",
+                          "label": "TP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "and",
+                              "label": "&",
+                              "word": "and"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "marySubject",
+                                  "label": "D",
+                                  "lineageId": "maryChain",
+                                  "word": "Mary"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "didSell",
+                                      "label": "T[past, auxiliary]",
+                                      "lineageId": "sharedAuxiliary",
+                                      "silent": true,
+                                      "word": "did"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "whatSellEdge",
+                                          "label": "D[wh]",
+                                          "lineageId": "sharedWh",
+                                          "silent": true,
+                                          "word": "What"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "mary",
+                                              "label": "D",
+                                              "lineageId": "maryChain",
+                                              "silent": true,
+                                              "word": "Mary"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "sellV",
+                                                  "label": "v[transitive]",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "sell",
+                                                      "label": "V",
+                                                      "word": "sell"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "whatSellObject",
+                                                      "label": "D[wh]",
+                                                      "lineageId": "sharedWh",
+                                                      "silent": true,
+                                                      "word": "What"
+                                                    }
+                                                  ],
+                                                  "id": "sellVP",
+                                                  "label": "VP"
+                                                }
+                                              ],
+                                              "id": "sellLowerVP",
+                                              "label": "vP"
+                                            }
+                                          ],
+                                          "id": "maryVP",
+                                          "label": "vP"
+                                        }
+                                      ],
+                                      "id": "sellEdgeVP",
+                                      "label": "vP"
+                                    }
+                                  ],
+                                  "id": "sellTProjection",
+                                  "label": "TP"
+                                }
+                              ],
+                              "id": "maryTP",
+                              "label": "TP"
+                            }
+                          ],
+                          "id": "coordinationLower",
+                          "label": "&P"
+                        }
+                      ],
+                      "id": "coordination",
+                      "label": "&P"
+                    }
+                  ],
+                  "id": "questionCore",
+                  "label": "CP"
+                }
+              ],
+              "id": "completedQuestion",
+              "label": "CP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "Stage 2 merges the demonstrative and the noun into song-dp. The boundary realization claim names both as its prior anchors, and its moment built song-dp (frame 12) with no merge step, so the earlier restriction claim, which names song-dp, was diagnosed RELATION_TIMING_CONFLICT. Neither input is displaced: song-dp is now an ordinary External Merge, and both claims follow it.",
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, commit bcf1b56, 19 October 2026 (third night batch, 11-ta-dative-subject, analysis 1 of 1).",
+      "sentence": "எனக்கு அந்தப் பாடல் பிடிக்கும்.",
+      "framework": "minimalism",
+      "inputTokens": [
+        "எனக்கு",
+        "அந்தப் பாடல்",
+        "பிடிக்கும்"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "bearer": "experiencer"
+              },
+              "relation": "lexical Case",
+              "values": {
+                "case": "dative"
+              }
+            }
+          ],
+          "stageRecord": "The workspace contains the pronominal D எனக்கு, the demonstrative D அந்த, the noun பாடல், and the inflected stative verb பிடிக்கும். The pronoun bears lexical dative Case; it will be licensed as the experiencer rather than as an accusative object. The verb is entered in its pronounced inflected form, so this analysis does not require syntactic decomposition or head movement to assemble பிடிக்கும். Bare Phrase Structure labels identify lexical heads and will also label the objects they project.",
+          "statement": "Introduce the lexical objects for a dative-experiencer clause.",
+          "workspaceForest": [
+            {
+              "children": [],
+              "id": "experiencer",
+              "label": "D",
+              "lineageId": "experiencer-chain",
+              "word": "எனக்கு"
+            },
+            {
+              "children": [],
+              "id": "demonstrative",
+              "label": "D",
+              "word": "அந்த"
+            },
+            {
+              "children": [],
+              "id": "song",
+              "label": "N",
+              "word": "பாடல்"
+            },
+            {
+              "children": [],
+              "id": "like",
+              "label": "V",
+              "word": "பிடிக்கும்"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "song-dp"
+              ],
+              "tokenIndices": [
+                1
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "demonstrative": "demonstrative",
+                "nominal": "song",
+                "result": "song-dp"
+              },
+              "relation": "demonstrative restriction",
+              "values": {
+                "interpretation": "that song"
+              }
+            },
+            {
+              "anchors": {
+                "demonstrative": "demonstrative",
+                "domain": "song-dp",
+                "noun": "song"
+              },
+              "priorAnchors": {
+                "demonstrative": "demonstrative",
+                "noun": "song"
+              },
+              "relation": "demonstrative–noun boundary realization",
+              "values": {
+                "process": "linking ப் at the demonstrative–noun boundary",
+                "realization": "அந்தப் பாடல்"
+              }
+            }
+          ],
+          "stageRecord": "External Merge combines the demonstrative with பாடல், yielding a D-labeled nominal whose demonstrative precedes its noun. The demonstrative supplies the deictic restriction ‘that’ to the song referent. At this newly established boundary, அந்த and பாடல் collectively receive the written realization அந்தப் பாடல். The linking ப் is treated as boundary sandhi, not as an independent syntactic terminal or a Case suffix. The realization association preserves the lexical forms already introduced.",
+          "statement": "Construct the demonstrative nominal and establish its boundary realization.",
+          "workspaceForest": [
+            {
+              "children": [],
+              "id": "experiencer",
+              "label": "D",
+              "lineageId": "experiencer-chain",
+              "word": "எனக்கு"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "demonstrative",
+                  "label": "D",
+                  "word": "அந்த"
+                },
+                {
+                  "children": [],
+                  "id": "song",
+                  "label": "N",
+                  "word": "பாடல்"
+                }
+              ],
+              "id": "song-dp",
+              "label": "D"
+            },
+            {
+              "children": [],
+              "id": "like",
+              "label": "V",
+              "word": "பிடிக்கும்"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "song-dp"
+              ],
+              "tokenIndices": [
+                1
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "argument": "song-dp",
+                "predicate": "like"
+              },
+              "relation": "internal argument interpretation",
+              "values": {
+                "thetaRole": "theme/stimulus"
+              }
+            }
+          ],
+          "stageRecord": "External Merge combines the D-labeled song nominal with பிடிக்கும். The resulting object is labeled V and is linearized complement before head, as required for this Tamil predicate. The nominal receives the theme or stimulus role: the song is what is liked. It is not assigned accusative Case here; its structural Case remains to be licensed by finite T.",
+          "statement": "Merge the song nominal as the stative verb's internal argument.",
+          "workspaceForest": [
+            {
+              "children": [],
+              "id": "experiencer",
+              "label": "D",
+              "lineageId": "experiencer-chain",
+              "word": "எனக்கு"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "demonstrative",
+                      "label": "D",
+                      "word": "அந்த"
+                    },
+                    {
+                      "children": [],
+                      "id": "song",
+                      "label": "N",
+                      "word": "பாடல்"
+                    }
+                  ],
+                  "id": "song-dp",
+                  "label": "D"
+                },
+                {
+                  "children": [],
+                  "id": "like",
+                  "label": "V",
+                  "word": "பிடிக்கும்"
+                }
+              ],
+              "id": "predicate-v",
+              "label": "V"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "song-dp"
+              ],
+              "tokenIndices": [
+                1
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "experiencer": "experiencer",
+                "licenser": "stative-v",
+                "predicate": "predicate-v"
+              },
+              "relation": "experiencer introduction and dative licensing",
+              "values": {
+                "case": "dative",
+                "predicateType": "stative, nonagentive",
+                "thetaRole": "experiencer"
+              }
+            }
+          ],
+          "stageRecord": "A silent stative v first merges with the V-labeled predicate, and எனக்கு then externally merges at the edge of that v projection. The head-final order places the predicate before v and the experiencer before the predicate. This v introduces the experiencer of the liking state and licenses its lexical dative Case. The analysis therefore treats எனக்கு as a dative subject, not as a recipient adjunct, and introduces no agent or accusative-assigning transitive v.",
+          "statement": "Introduce the dative experiencer above the theme.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "experiencer",
+                  "label": "D",
+                  "lineageId": "experiencer-chain",
+                  "word": "எனக்கு"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "demonstrative",
+                              "label": "D",
+                              "word": "அந்த"
+                            },
+                            {
+                              "children": [],
+                              "id": "song",
+                              "label": "N",
+                              "word": "பாடல்"
+                            }
+                          ],
+                          "id": "song-dp",
+                          "label": "D"
+                        },
+                        {
+                          "children": [],
+                          "id": "like",
+                          "label": "V",
+                          "word": "பிடிக்கும்"
+                        }
+                      ],
+                      "id": "predicate-v",
+                      "label": "V"
+                    },
+                    {
+                      "children": [],
+                      "id": "stative-v",
+                      "label": "v",
+                      "silent": true
+                    }
+                  ],
+                  "id": "v-complement",
+                  "label": "v"
+                }
+              ],
+              "id": "experiencer-v",
+              "label": "v"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "song-dp"
+              ],
+              "tokenIndices": [
+                1
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "goal": "song-dp",
+                "inherentlyCaseMarkedIntervener": "experiencer",
+                "licenser": "finite-t"
+              },
+              "relation": "structural Case licensing",
+              "values": {
+                "case": "nominative",
+                "intervention": "inherent dative does not compete for structural Case"
+              }
+            },
+            {
+              "anchors": {
+                "inflectedPredicate": "like",
+                "tense": "finite-t"
+              },
+              "relation": "finite inflection checking",
+              "values": {
+                "form": "impersonal/nonhuman பிடிக்கும்",
+                "implementation": "lexically inflected V; no head movement",
+                "tense": "nonpast, permitting habitual or future interpretation"
+              }
+            }
+          ],
+          "stageRecord": "Silent finite T externally merges above the experiencer-containing v object, with T linearized last. T licenses unmarked nominative Case on the song nominal. The intervening experiencer already has inherent dative Case and is therefore inactive for this structural-Case dependency. T also checks the nonpast inflection of the already inflected verb பிடிக்கும்; no verb movement or additional pronounced suffix is introduced. The impersonal/nonhuman form is compatible with the singular song theme and does not express person agreement with the dative experiencer.",
+          "statement": "Add finite T and license the nominative theme.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "experiencer",
+                      "label": "D",
+                      "lineageId": "experiencer-chain",
+                      "word": "எனக்கு"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "demonstrative",
+                                  "label": "D",
+                                  "word": "அந்த"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "song",
+                                  "label": "N",
+                                  "word": "பாடல்"
+                                }
+                              ],
+                              "id": "song-dp",
+                              "label": "D"
+                            },
+                            {
+                              "children": [],
+                              "id": "like",
+                              "label": "V",
+                              "word": "பிடிக்கும்"
+                            }
+                          ],
+                          "id": "predicate-v",
+                          "label": "V"
+                        },
+                        {
+                          "children": [],
+                          "id": "stative-v",
+                          "label": "v",
+                          "silent": true
+                        }
+                      ],
+                      "id": "v-complement",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "experiencer-v",
+                  "label": "v"
+                },
+                {
+                  "children": [],
+                  "id": "finite-t",
+                  "label": "T",
+                  "silent": true
+                }
+              ],
+              "id": "t-complement",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "song-dp"
+              ],
+              "tokenIndices": [
+                1
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "landing": "experiencer-high",
+                "result": "subject-t",
+                "source": "experiencer",
+                "trigger": "finite-t"
+              },
+              "priorAnchors": {
+                "source": "experiencer"
+              },
+              "relation": "subject-edge Internal Merge",
+              "values": {
+                "casePreservation": "dative",
+                "requirement": "subject edge of finite T"
+              }
+            },
+            {
+              "anchors": {
+                "pronouncedCopy": "experiencer-high",
+                "unpronouncedCopy": "experiencer"
+              },
+              "relation": "copy pronunciation",
+              "values": {
+                "choice": "pronounce the highest copy only"
+              }
+            }
+          ],
+          "stageRecord": "T's subject-edge requirement triggers Internal Merge of the experiencer from the v-edge position shown in the preceding workspace. Its new occurrence occupies the edge of the T-labeled object, while the original occurrence remains as an unpronounced lower copy. The two occurrences share identity and one experiencer role; movement does not replace the pronoun's dative Case with nominative. Pronouncing only the upper copy yields எனக்கு before the song nominal without changing the predicate's head-final order.",
+          "statement": "Raise the dative experiencer to the subject position.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "experiencer-high",
+                  "label": "D",
+                  "lineageId": "experiencer-chain",
+                  "word": "எனக்கு"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "experiencer",
+                          "label": "D",
+                          "lineageId": "experiencer-chain",
+                          "silent": true,
+                          "word": "எனக்கு"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "demonstrative",
+                                      "label": "D",
+                                      "word": "அந்த"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "song",
+                                      "label": "N",
+                                      "word": "பாடல்"
+                                    }
+                                  ],
+                                  "id": "song-dp",
+                                  "label": "D"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "like",
+                                  "label": "V",
+                                  "word": "பிடிக்கும்"
+                                }
+                              ],
+                              "id": "predicate-v",
+                              "label": "V"
+                            },
+                            {
+                              "children": [],
+                              "id": "stative-v",
+                              "label": "v",
+                              "silent": true
+                            }
+                          ],
+                          "id": "v-complement",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "experiencer-v",
+                      "label": "v"
+                    },
+                    {
+                      "children": [],
+                      "id": "finite-t",
+                      "label": "T",
+                      "silent": true
+                    }
+                  ],
+                  "id": "t-complement",
+                  "label": "T"
+                }
+              ],
+              "id": "subject-t",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "song-dp"
+              ],
+              "tokenIndices": [
+                1
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "forceHead": "declarative-c",
+                "proposition": "subject-t"
+              },
+              "relation": "clausal force",
+              "values": {
+                "force": "declarative"
+              }
+            }
+          ],
+          "stageRecord": "A silent declarative C externally merges with the completed T object, yielding a C-labeled root with no overt complementizer. It establishes declarative force over the proposition that the speaker likes that song. The pronounced upper experiencer, the sandhi-realized demonstrative nominal, and the inflected verb produce எனக்கு அந்தப் பாடல் பிடிக்கும். Habitual ‘I like that song’ and contextually future ‘I will like that song’ interpretations use this same structure rather than distinct structural analyses.",
+          "statement": "Complete the declarative clause.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "experiencer-high",
+                      "label": "D",
+                      "lineageId": "experiencer-chain",
+                      "word": "எனக்கு"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "experiencer",
+                              "label": "D",
+                              "lineageId": "experiencer-chain",
+                              "silent": true,
+                              "word": "எனக்கு"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "demonstrative",
+                                          "label": "D",
+                                          "word": "அந்த"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "song",
+                                          "label": "N",
+                                          "word": "பாடல்"
+                                        }
+                                      ],
+                                      "id": "song-dp",
+                                      "label": "D"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "like",
+                                      "label": "V",
+                                      "word": "பிடிக்கும்"
+                                    }
+                                  ],
+                                  "id": "predicate-v",
+                                  "label": "V"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "stative-v",
+                                  "label": "v",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "v-complement",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "experiencer-v",
+                          "label": "v"
+                        },
+                        {
+                          "children": [],
+                          "id": "finite-t",
+                          "label": "T",
+                          "silent": true
+                        }
+                      ],
+                      "id": "t-complement",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "subject-t",
+                  "label": "T"
+                },
+                {
+                  "children": [],
+                  "id": "declarative-c",
+                  "label": "C",
+                  "silent": true
+                }
+              ],
+              "id": "root-c",
+              "label": "C"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

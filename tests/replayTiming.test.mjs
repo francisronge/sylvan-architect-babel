@@ -23,7 +23,8 @@ test('an added container is completed after existing children are attached to it
     const state = (workspaceForest, relations = []) => ({ statement: 'Authored change', stageRecord: '', workspaceForest, relations });
     const record = { derivationStages: [
       state([{ id: 'root', label: 'XP', children: [leaf('old'), leaf('other')] }]),
-      state([{ id: 'root', label: 'XP', children: [attachment, leaf('other'), leaf('later')] }], [
+      // The later change rewrites other as later, so later waits for its moment.
+      state([{ id: 'root', label: 'XP', children: [attachment, leaf('later')] }], [
         { relation: 'Authored change', anchors: reverse ? Object.fromEntries(Object.entries(anchors).reverse()) : anchors,
           priorAnchors: { participant: 'old' } },
         { relation: 'Later change', anchors: { participant: 'later' }, priorAnchors: { participant: 'other' } }

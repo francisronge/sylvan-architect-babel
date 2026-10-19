@@ -401,6 +401,22 @@ const sameSubtree = (left: SyntaxNode, right: SyntaxNode): boolean => ownNodeCon
   && (left.children || []).length === (right.children || []).length
   && (left.children || []).every((child, index) => sameSubtree(child, right.children![index]));
 
+type ForestLocations = Map<string, ExactForestNodeLocation | null>;
+
+/**
+ * Whether a preceding occurrence changes in the stage: it is removed or
+ * repeated, its subtree changes, or it leaves its parent for another. A
+ * preceding root that gains a parent is merged, not displaced.
+ */
+const displacedInStage = (
+  node: SyntaxNode,
+  previous: ForestLocations,
+  current: ForestLocations
+): boolean => {
+  const before = previous.get(String(node.id || '')), after = current.get(String(node.id || ''));
+  return !after || !sameSubtree(node, after.node) || Boolean(before?.parentId) && before!.parentId !== after.parentId;
+};
+
 /**
  * True when a retained witness kept its own content and exact slot, and every
  * earlier descendant, in order and under its earlier parent, and gained only
@@ -465,8 +481,6 @@ const retainedWitnessOnlyGrew = (nodeId: string, previousForest: SyntaxNode[], c
     return Boolean(rootId) && nodes.has(rootId);
   });
 };
-
-type ForestLocations = Map<string, ExactForestNodeLocation | null>;
 
 /**
  * True when a retained witness's interior is unchanged apart from the stage's
@@ -660,13 +674,29 @@ const resolvePriorWitnessTreeTransitionOwnership = (
       ? [{ priorSourceNodeId: id, sourceNodeId: pair.source.id, targetNodeId: pair.landing.id }] : [];
   });
   const copiedOutputs = new Set(copyPairs.map(pair => pair.targetNodeId));
+  // When the stage displaces no earlier node the claim covers (its witnesses,
+  // its current anchors, the earlier material inside them, and the earlier
+  // occurrences of a new node's lineage there), that material is merged as it
+  // was: the stage's construction builds what now contains it, and the claim
+  // owns only a copy it relates to its witnesses.
+  const coveredCurrentIds = currentAnchors.flatMap(([node]) => [...collectExactSubtreeNodeIds(node)]);
+  const copiedLineages = new Set(coveredCurrentIds.filter(id => !previousLocations.has(id))
+    .map(id => currentLocations.get(id)?.node.lineageId).filter(Boolean));
+  const coveredEarlierIds = new Set([...priorAnchorIds, ...coveredCurrentIds, ...[...previousLocations]
+    .filter(([, location]) => location?.node.lineageId && copiedLineages.has(location.node.lineageId)).map(([id]) => id)]
+    .filter(id => previousLocations.has(id)));
+  const rewritesWitness = !retainedPriorAnchors || [...coveredEarlierIds].some(id => {
+    const earlier = previousLocations.get(id);
+    return !earlier || displacedInStage(earlier.node, previousLocations, currentLocations);
+  });
   // When the preceding witnesses still exist, they identify the material
   // being updated. Other current anchors can supply its newly built context
   // (for example a licensing clause), rather than additional transition output.
   // A current anchor that only wrapped the retained witness restates it too.
   const wrappers = new Set(relation.witnessWrapperNodeIds ?? []);
   const wrapsPriorWitness = currentAnchors.some(([node]) => wrappers.has(node.id));
-  const ownedCurrentAnchors = retainedPriorAnchors && (repeatsPriorWitness || wrapsPriorWitness)
+  const ownedCurrentAnchors = !rewritesWitness ? currentAnchors.filter(([node]) => copiedOutputs.has(node.id))
+    : retainedPriorAnchors && (repeatsPriorWitness || wrapsPriorWitness)
     ? currentAnchors.filter(([node]) => {
       if (priorAnchorIds.includes(String(node.id || '')))
         return !retainedWitnessOnlyGrew(String(node.id || ''), previousForest, currentForest);
@@ -742,21 +772,22 @@ export const anchoredCopyDisplacement = (
     return matches.length === 1 ? matches[0] : undefined;
   };
   const previous = indexExactForestNodeLocations(previousForest), current = indexExactForestNodeLocations(currentForest);
-  // A preceding root that gains a parent is merged, not displaced.
-  const displaced = (node: SyntaxNode): boolean => {
-    const after = unique(currentForest, node.id), before = previous.get(node.id);
-    return !after || !sameSubtree(node, after) || Boolean(before?.parentId) && before!.parentId !== current.get(node.id)?.parentId;
-  };
+  const displaced = (node: SyntaxNode): boolean => displacedInStage(node, previous, current);
   const currentIds = [...new Set(relationAnchorNodeIds(relation.anchors))];
   const earlier = [...new Set([...currentIds, ...relationAnchorNodeIds(relation.priorAnchors)])]
     .map(id => unique(previousForest, id))
     .filter((node): node is SyntaxNode => Boolean(node?.lineageId));
+  // A repeat is a copy only inside the syntactic object that holds the
+  // earlier occurrence, as Internal Merge makes it. A repeat in a separate
+  // workspace, such as an occurrence shared across conjuncts, is built there.
+  const repeatedInPlace = (occurrence: SyntaxNode, node: SyntaxNode): boolean => sameMaterial(occurrence, node)
+    && current.get(occurrence.id)?.rootIndex === current.get(node.id)?.rootIndex;
   const copies = currentIds
     .filter(id => !claimedNodeIds.has(id) && !findExactNodesByIdInForest(previousForest, id).length)
     .map(id => unique(currentForest, id))
     .flatMap((node) => {
       const candidates = node?.lineageId ? earlier.filter(occurrence => occurrence.lineageId === node.lineageId
-        && (displaced(occurrence) || sameMaterial(occurrence, node))) : [];
+        && (displaced(occurrence) || repeatedInPlace(occurrence, node))) : [];
       if (!node || !candidates.length)
         return [];
       const sources = candidates.length === 1 ? candidates : candidates.filter(displaced);
