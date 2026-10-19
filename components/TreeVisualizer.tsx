@@ -23,6 +23,7 @@ import { buildMovementProtectedNodeIds } from '../replay/triangulation.ts';
 import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 import { type DerivationStage, type SyntaxNode } from '../types';
 import { withPlaqueTextMeasure } from './renderer/plaqueText.ts';
+import { MOVEMENT_FLIGHT_URL_FLAG, createMovementFlightState } from './renderer/movementFlight.ts';
 import { applyRelationEmphasis } from './renderer/relationInteraction.ts';
 import { updateSyntaxReveal } from './renderer/syntaxReveal.ts';
 import { drawTreeFrame } from './renderer/treeFrame.ts';
@@ -62,6 +63,12 @@ export interface TreeVisualizerProps {
    * disable it to avoid double-drawing; nothing else should.
    */
   disableRelationOverlay?: boolean;
+  /**
+   * Experiment: at a movement moment reached by one forward step, the moved
+   * material travels from its lower occurrence to its landing. Defaults to the
+   * `?movementFlight=1` startup flag; review pages may pass it directly.
+   */
+  movementFlight?: boolean;
 }
 
 type RelationMoment = {
@@ -82,7 +89,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   inputTokens,
   disableRelationOverlay = false,
   preparedReplay,
-  manualCameraState
+  manualCameraState,
+  movementFlight = MOVEMENT_FLIGHT_URL_FLAG
 }) => {
   const reportViewError = useViewErrorHandler();
   const treeDirection = useTreeDirection(sentence);
@@ -167,6 +175,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const [activeStepIndex, setActiveStepIndex] = useState(initialStepIndex);
   const openingSelectionRef = useRef<{ steps: typeof playbackSteps; startedAt: number } | null>(null);
   const collectionRevealRef = useRef<{ steps: typeof playbackSteps; stepIndex: number; startedAt: number } | null>(null);
+  const [movementFlightState] = useState(createMovementFlightState);
   const hasDerivationFrames = replayDerivationFrames.length > 0;
   const derivationStagesSignature = useMemo(() => {
     const stages = Array.isArray(derivationStages) ? derivationStages : [];
@@ -668,7 +677,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         currentReplayStep,
         pendingPhraseFrontingSourceNodeIds,
         hasDerivationFrames,
-        completedReplayStep
+        completedReplayStep,
+        movementFlight: movementFlight ? { state: movementFlightState, scrubbing: isScrubbing } : null
       }, relations: {
         disableRelationOverlay,
         relationRenderPlan,

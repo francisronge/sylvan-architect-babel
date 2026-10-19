@@ -27,6 +27,7 @@ import type { CameraSession } from './cameraState.ts';
 import { fitTreeCamera } from './frameCamera.ts';
 import { createIdentityForestLight } from './identityLighting.ts';
 import { installRelationHitTargets } from './relationInteraction.ts';
+import { beginMovementFlightFrame, runMovementFlight, type MovementFlight, type MovementFlightState } from './movementFlight.ts';
 import { refineRelationGeometry } from './relationRefinements.ts';
 import { paintRelationScene } from './relationScene.ts';
 import type { SyntaxDrawingContext } from './syntaxDrawing.ts';
@@ -71,6 +72,8 @@ interface FrameReplay extends Pick<SyntaxDrawingContext,
   activeDerivationFrame: ReplayDerivationFrame | null;
   currentReplayUsesFutureLayoutScaffold: boolean;
   completedReplayStep: number | undefined;
+  /** Opt-in movement flight; null keeps every movement moment instant. */
+  movementFlight: { state: MovementFlightState; scrubbing: boolean } | null;
 }
 type FrameRelations = Pick<Parameters<typeof paintRelationScene>[0],
   | 'disableRelationOverlay'
@@ -135,7 +138,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     currentReplayStep,
     pendingPhraseFrontingSourceNodeIds,
     hasDerivationFrames,
-    completedReplayStep
+    completedReplayStep,
+    movementFlight
   } = replay;
   const {
     disableRelationOverlay,
@@ -162,6 +166,12 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
   const { width: containerWidth, height: containerHeight } = dimensions;
   const clonedCanvasData = cloneSyntaxTree(canvasData);
   if (!clonedCanvasData) return;
+  const flightSession = movementFlight ? beginMovementFlightFrame(movementFlight.state, {
+    steps: playbackSteps, stepIndex: activeStepIndex,
+    eligible: animated && usesDerivationFrames && !movementFlight.scrubbing
+      && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  }) : null;
+  let flight: MovementFlight | undefined;
   const rootHierarchy = d3.hierarchy(clonedCanvasData);
   const maxDepth = rootHierarchy.height;
   applyVizIds(rootHierarchy);
@@ -401,7 +411,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
       if (!bounds) return;
       const labels = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
         .filter(d => getRevealStepForNodeId(getNodeId(d)) <= effectiveRevealThreshold)
-        .nodes().flatMap(label => {
+        .nodes().filter(label => !flight?.carries(label)).flatMap(label => {
           // Occlusion follows live rasterized ink; connector anchors retain world bounds.
           const rect = measureTreeGraphics(g, [label]);
           return rect ? [rect] : [];
@@ -438,9 +448,19 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
       });
     } else collectionRevealRef.current = null;
     svg.attr('data-babel-rendered-step', activeStepIndex);
+    if (movementFlight) flight = runMovementFlight({
+      state: movementFlight.state, steps: playbackSteps, stepIndex: activeStepIndex, session: flightSession,
+      g: g.node(), svg: svgRef.current, visibleNodes, moment: activeRelationMoment, now: performance.now(),
+      idPrefix: `${trajectoryLabelMaskId}-flight`,
+      onSettled: () => {
+        cameraEffects.refreshTrajectoryClearance?.();
+        cameraEffects.refreshIdentityForestLight?.();
+      }
+    });
   }, reportViewError));
   return () => {
     cameraRuntime.cancel?.();
+    flight?.cancel();
     openingAnimation?.cancel();
     cameraEffects.finishCollectionReveal?.();
     window.cancelAnimationFrame(deferredRelationFrame);
