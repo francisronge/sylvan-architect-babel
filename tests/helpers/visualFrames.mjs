@@ -79,6 +79,9 @@ export function frameChrome(viewport, camera, replay = true) {
 const measuringDocument = createMeasuringDocument();
 const measureTreeInk = createTreeInkTextMeasure(measuringDocument);
 const measureTreeLabel = createTreeLabelMeasure(measuringDocument);
+/** The text measures layout reads, alike at every canvas. layoutWidthFindings
+ * accepts others per viewport, so a control can make text follow the window. */
+export const TEXT_METRICS = Object.freeze({ measurePlaqueText, measureCategoryText, measureTreeInk, measureTreeLabel });
 const MODULES = { coordinates, camera, layout, display, d3, plaqueJob, notation, canvas };
 
 const rect = (x, y, width, height) => ({ x, y, width, height });
@@ -241,11 +244,23 @@ export function layoutVisualFrames(visual, viewports = VIEWPORTS, { steps: only 
 
 /** The measured browser layout of every frame of one prepared record at one
  * canvas size: scenes, plaque schedule and `stageCamera(stage, completedStep)`. */
-export function layoutMeasuredScenes(visual, { width, height }) {
+export function layoutMeasuredScenes(visual, { width, height }, metrics = TEXT_METRICS) {
+  // Callers only read the result, so the default-metrics layout is shared between
+  // the frame audit and layoutWidthFindings' reference viewport.
+  const key = metrics === TEXT_METRICS ? `${width}x${height}` : null;
+  const cache = key && (MEASURED_SCENES.get(visual) ?? MEASURED_SCENES.set(visual, new Map()).get(visual));
+  if (cache?.has(key)) return cache.get(key);
+  const result = layoutMeasuredScenesUncached(visual, { width, height }, metrics);
+  cache?.set(key, result);
+  return result;
+}
+const MEASURED_SCENES = new WeakMap();
+
+function layoutMeasuredScenesUncached(visual, { width, height }, metrics) {
   const { prepared } = visual;
   return layoutReplayFrames({ steps: prepared.playbackSteps, stages: prepared.replayDerivationFrames, width, height,
     direction: visual.direction, measured: { plan: prepared.relationRenderPlan, protectedNodeIds: visual.protectedNodeIds,
-      treeLabelRuns: visual.treeLabelRuns, measurePlaqueText, measureCategoryText, measureTreeInk, measureTreeLabel } }, MODULES);
+      treeLabelRuns: visual.treeLabelRuns, ...metrics } }, MODULES);
 }
 
 function layoutGroup(visual, viewports, only, Element) {
@@ -361,14 +376,22 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
   return { texts, plaques, lines };
 }
 
-/** The Canopy: the final stage's forest without relation marks, fitted to its
- * painted bounds as fitTreeCamera fits a frame without stage bounds. */
-export function layoutCanopyVisualFrame(visual, viewport) {
+/** The Canopy tree: the final stage's forest, laid out as drawTreeFrame lays out a
+ * frame without a stage size. The canvas goes where the renderer once passed it,
+ * so a layout size that reads it again is reported by layoutWidthFindings. */
+function layoutCanopyTree(visual, viewport, { measureCategoryText, measureTreeInk } = TEXT_METRICS) {
   const data = canvas.buildDerivationCanvasData(visual.record.derivationStages.at(-1)?.workspaceForest ?? []);
   if (!data) return null;
   const root = d3.hierarchy(canvas.buildRenderableCommittedCanvasData(data)); display.applyVizIds(root);
-  const tree = layout.layoutSyntaxTree(root, camera.treeLayoutSize(root.descendants().length, root.height, viewport.width, viewport.height),
+  return layout.layoutSyntaxTree(root, camera.treeLayoutSize(root.descendants().length, root.height, viewport.width, viewport.height),
     visual.direction, undefined, undefined, { measureCategoryText, measureTreeInk });
+}
+
+/** The Canopy: the final stage's forest without relation marks, fitted to its
+ * painted bounds as fitTreeCamera fits a frame without stage bounds. */
+export function layoutCanopyVisualFrame(visual, viewport) {
+  const tree = layoutCanopyTree(visual, viewport);
+  if (!tree) return null;
   const painted = paintedTree(tree, null, () => undefined);
   const box = union([...painted.texts.map(text => text.cell), ...painted.lines.flatMap(line => line.paths.flat().map(p => rect(p.x, p.y, 0, 0)))]);
   const view = availableTreeViewport(viewport.width, viewport.height, viewportObstacles(viewport, false));
@@ -378,11 +401,44 @@ export function layoutCanopyVisualFrame(visual, viewport) {
     chrome: frameChrome(viewport, pose, false) };
 }
 
+/** layout-width: layout must not read the window. Each other viewport lays out
+ * every Replay frame and the Canopy as the first viewport does, up to one
+ * translation per stage, which the camera absorbs; the Canopy counts as one
+ * stage. Each stage reports its worst node, in tree units, per viewport pair.
+ * `metrics(viewport)` gives the text measures (TEXT_METRICS by default). */
+export function layoutWidthFindings(visual, viewports, { canopy = true, metrics = () => TEXT_METRICS } = {}) {
+  if (viewports.length < 2) return [];
+  const { playbackSteps: steps, replayDerivationFrames: stages } = visual.prepared;
+  const positions = viewport => {
+    const frames = steps.length && stages.length ? layoutMeasuredScenes(visual, viewport, metrics(viewport)).scenes
+      .map((scene, index) => ({ frame: index + 1, stage: scene.step.replayFrameIndex, nodes: scene.nodes })) : [];
+    const tree = canopy && layoutCanopyTree(visual, viewport, metrics(viewport));
+    if (tree) frames.push({ frame: 'canopy', stage: 'canopy', nodes: new Map(tree.descendants().map(node => [display.getNodeId(node), node])) });
+    return frames;
+  };
+  const [reference, ...others] = viewports, base = positions(reference);
+  return others.flatMap(viewport => {
+    const worst = new Map(), offsets = new Map();
+    positions(viewport).forEach(({ frame, stage, nodes }, index) => {
+      for (const [id, node] of base[index].nodes) {
+        const other = nodes.get(id);
+        if (!other) continue;
+        if (!offsets.has(stage)) offsets.set(stage, other.x - node.x);
+        const measure = Math.round(Math.max(Math.abs(other.x - node.x - offsets.get(stage)), Math.abs(other.y - node.y)) * 10) / 10;
+        if (measure > 0.5 && measure > (worst.get(stage)?.measure ?? 0)) worst.set(stage, { rule: 'layout-width',
+          subtype: 'beyond-stage-translation', subject: id, frame, viewport: `${reference.name}~${viewport.name}`, measure });
+      }
+    });
+    return [...worst.values()];
+  });
+}
+
 /** One record's findings: every Replay frame at each viewport and the Canopy. */
 export function auditVisualRecord(id, record, { viewports = VIEWPORTS, canopy = true, thresholds = THRESHOLDS } = {}) {
   const visual = prepareVisualRecord(record);
   const frames = layoutVisualFrames(visual, viewports);
   if (canopy) frames.push(...viewports.map(viewport => layoutCanopyVisualFrame(visual, viewport)).filter(Boolean));
   return { steps: visual.prepared.playbackSteps.length, frames: frames.length,
-    findings: frames.flatMap(frame => checkFrame(frame, thresholds)).map(finding => ({ ...finding, record: id })) };
+    findings: [...frames.flatMap(frame => checkFrame(frame, thresholds)), ...layoutWidthFindings(visual, viewports, { canopy })]
+      .map(finding => ({ ...finding, record: id })) };
 }

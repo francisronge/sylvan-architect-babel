@@ -32,7 +32,11 @@
  * connector lane. Index letters are counted by checkOneLetterPerLabel
  * (tests/helpers/replayInvariants.mjs, PR #75), not here. */
 
-export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-distance', 'label-typography', 'clipped', 'branch-geometry']);
+/** Every rule the visual audit reports. checkFrame applies all but layout-width,
+ * which compares one record's frames across viewports (visualFrames.mjs,
+ * layoutWidthFindings). */
+export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-distance', 'label-typography', 'clipped', 'branch-geometry',
+  'layout-width']);
 
 /** CSS pixels at the frame's Fit unless noted. Glyph boxes may share a two-pixel
  * sliver of outline; a stroke must keep a pixel from a plaque shell and may not
