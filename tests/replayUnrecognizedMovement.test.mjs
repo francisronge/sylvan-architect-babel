@@ -86,11 +86,11 @@ test('a fronted copy outside the rewritten trace appears at its claim\'s moment,
   assertStageRecordAddsNothing(steps, 2);
 });
 
-test('a shared occurrence appears whole with its new parent, and the other merge stays ordinary', () => {
+test('a shared occurrence in the other conjunct keeps its own construction, and its claim adds no syntax', () => {
   const steps = play(4), at = moment(steps, 1, 1);
-  assertIntroducedAt(steps, at, ['object-sell', 'the-sell', 'house-sell', 'vp-sell']);
-  assertBuiltByOwnStep(steps, 'vp-buy');
-  assert.ok(firstShown(steps, 'vp-buy') < at);
+  ['vp-buy', 'the-sell', 'house-sell', 'object-sell', 'vp-sell'].forEach(id => assertBuiltByOwnStep(steps, id));
+  assert.ok(firstShown(steps, 'vp-sell') < at);
+  assert.equal(frameStructure(steps[at]).key, frameStructure(steps[at - 1]).key, 'the claim names syntax already built');
   assertStageRecordAddsNothing(steps, 1);
 });
 
