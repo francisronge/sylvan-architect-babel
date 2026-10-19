@@ -60,10 +60,11 @@ const isRemnant = (segments: string[], from: number, to: number) => {
   for (let index = from; index < to; index++) if (!punctuationOnly.test(segments[index])) return false;
   return true;
 };
-// Better in one respect and worse in none, so a repair never adds a line.
-const improves = (candidate: Wrap, best: Wrap) => candidate.lines <= best.lines
-  && candidate.splits <= best.splits && candidate.remnants <= best.remnants
-  && (candidate.lines < best.lines || candidate.splits < best.splits || candidate.remnants < best.remnants);
+// Fewer split words first, then fewer remnants, then fewer lines. A word that
+// fits on a line stays whole even when that adds a line; only a word wider than
+// a line on its own still splits.
+const improves = (candidate: Wrap, best: Wrap) => candidate.splits !== best.splits ? candidate.splits < best.splits
+  : candidate.remnants !== best.remnants ? candidate.remnants < best.remnants : candidate.lines < best.lines;
 
 /** The start of every line after the first. Greedy filling (`lineBreak`) ends
  * each line. Where the greedy wrapping from a line on splits a word or leaves a
@@ -138,11 +139,12 @@ function alternativeBreaks(segments: string[], start: number, end: number, greed
  * word. An overflowing completing mark then hangs past the width rather than
  * start a line, so it never adds one. Otherwise take the latest of two
  * word-preserving breaks: after a hyphen joining two word characters when the
- * rest of the label fits on one line, so the break never adds a line, or before
- * an opening bracket whose complete group, with any text attached up to the
- * next space or comma, fits on one line. Otherwise break before the overflowing
- * grapheme. Lines exceed the width only by hanging marks or a single wider
- * grapheme. */
+ * rest of the label fits on one line, or before an opening bracket whose
+ * complete group, with any text attached up to the next space or comma, fits on
+ * one line. Otherwise break before the overflowing grapheme; that splits a word,
+ * so `wrapBreaks` then weighs the line's other breaks, including hyphen breaks
+ * that add a line. Lines exceed the width only by hanging marks or a single
+ * wider grapheme. */
 function lineBreak(segments: string[], start: number, end: number, fits: Fits) {
   for (let index = end; index > start; index--)
     if (breakAfter.test(segments[index - 1]) && !completesPrevious.test(segments[index])) return index;

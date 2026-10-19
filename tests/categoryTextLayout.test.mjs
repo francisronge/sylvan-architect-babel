@@ -50,7 +50,7 @@ test('a closing mark hangs past the width instead of starting a line, and a word
   assert.deepEqual(lines(`X[${'e\u0301'.repeat(16)}]`), ['X', `[${'e\u0301'.repeat(16)}]`]);
 });
 
-test('a hyphenated word breaks after its hyphen when the rest of the label fits on one line', () => {
+test('a hyphenated word breaks after its hyphen rather than inside either word', () => {
   const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
   const measure = s => [...graphemes.segment(s)].length * 22;
   const lines = text => categoryTextLayout(text, measure).lines;
@@ -60,8 +60,8 @@ test('a hyphenated word breaks after its hyphen when the rest of the label fits 
   assert.deepEqual(lines('T[persone\u0301-infinitive]'), ['T[persone\u0301-', 'infinitive]']);
   // A later hyphen wins over an earlier bracket break.
   assert.deepEqual(lines('Asp[non-progressive]'), ['Asp[non-', 'progressive]']);
-  // A hyphen break that would push the remaining text onto an extra line is not taken.
-  assert.deepEqual(lines('T[finite, indirect-evidential, agreement]'), ['T[finite, ', 'indirect-evidenti', 'al, agreement]']);
+  // Both words stay whole although the hyphen break adds a line.
+  assert.deepEqual(lines('T[finite, indirect-evidential, agreement]'), ['T[finite, ', 'indirect-', 'evidential, ', 'agreement]']);
   // A hyphenated word followed by the overflowing space is already a whole word.
   assert.equal(lines('Experiencer-voice head')[0], 'Experiencer-voice');
   // A minus feature value is not a word-joining hyphen, so it never ends a line on its own.
@@ -85,23 +85,44 @@ test('saved labels end lines between words and never leave a remnant line', () =
     assert.deepEqual(lines(text), expected, text);
     assert.deepEqual(findings(expected), [], text);
   }
-  // A repair never adds a line: without a shorter word-preserving wrapping, the word still splits.
-  assert.deepEqual(lines('V[gerund-participle, transitive]'), ['V[gerund-participl', 'e, transitive]']);
 });
 
-test('a slash or dash break replaces a split word only when it adds no line', () => {
+test('a word that fits on a line stays whole even when that adds a line', () => {
+  const lines = text => categoryTextLayout(text, measureCategoryText).lines;
+  const findings = wrapped => checkLabelTypography({ texts: [{ id: 'label', kind: 'category', lines: wrapped, boxes: [] }] });
+  // Each saved label split a word, because keeping it whole needs one more line.
+  for (const [text, expected] of [
+    ['V[gerund-participle, transitive]', ['V[gerund-', 'participle, ', 'transitive]']],
+    ['V[gerund-participle, absolute]', ['V[gerund-', 'participle, ', 'absolute]']],
+    ['Mod[circumstantial possibility]', ['Mod', '[circumstantial ', 'possibility]']],
+    ['NP[supplementary CP adjunction]', ['NP', '[supplementary ', 'CP adjunction]']],
+    ['v[transitive, external-argument-introducing]', ['v[transitive, ', 'external-', 'argument-', 'introducing]']],
+    ['v [transitive; external-argument introducer]', ['v [transitive; ', 'external-', 'argument ', 'introducer]']],
+    ['T[finite; evidential-anterior; agreement:3sg; subject-edge]',
+      ['T[finite; ', 'evidential-', 'anterior; ', 'agreement:3sg; ', 'subject-edge]']]
+  ]) {
+    assert.deepEqual(lines(text), expected, text);
+    assert.deepEqual(findings(expected), [], text);
+  }
+  // Only a word wider than a line on its own splits, and it adds no line for that.
+  assert.deepEqual(lines('ChangeOfStateParticleHead'), ['ChangeOfStatePa', 'rticleHead']);
+  assert.deepEqual(lines('Mod[circumstantialpossibility]'), ['Mod[circumstanti', 'alpossibility]']);
+});
+
+test('a slash or dash break replaces a split word, even when it adds a line', () => {
   const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
   const measure = s => [...graphemes.segment(s)].length * 22;
   const lines = text => categoryTextLayout(text, measure).lines;
   assert.deepEqual(lines('Asp[perfective/imperfective]'), ['Asp[perfective/', 'imperfective]']);
   assert.deepEqual(lines('Num[cardinal\u2014classifier]'), ['Num[cardinal\u2014', 'classifier]']);
+  assert.deepEqual(lines('T[finite/nonfinite, agreement]'), ['T[finite/', 'nonfinite, ', 'agreement]']);
+  assert.deepEqual(lines('Num[cardinal\u2014classifier, plural]'), ['Num[cardinal\u2014', 'classifier, ', 'plural]']);
   // A later break after the slash fills the first line instead of leaving the head symbol alone.
   assert.deepEqual(lines('T: perfect/completive'), ['T: perfect/', 'completive']);
   // A line never ends on a slash that does not join two words.
   assert.deepEqual(lines('Neg[/interrogativeness]'), ['Neg[/interrogativ', 'eness]']);
   // Clean wrappings keep their established breaks.
   assert.deepEqual(lines('V[past, third-person feminine singular]'), ['V[past, ', 'third-person ', 'feminine ', 'singular]']);
-  assert.deepEqual(lines('T[finite, indirect-evidential, agreement]'), ['T[finite, ', 'indirect-evidenti', 'al, agreement]']);
 });
 
 test('a selected determiner retains its authored nominal context before its projection exists', () => {
