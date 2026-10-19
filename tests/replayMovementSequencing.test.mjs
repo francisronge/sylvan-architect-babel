@@ -12,7 +12,7 @@ import { applyVizIds } from '../replay/displayIdentity.ts';
 
 const clone = (value) => structuredClone(value);
 
-test('a thematic description keeps its authored merge moment without inventing predication', () => {
+test('a thematic description of an ordinary merge waits for that merge without inventing predication', () => {
   const predicate = { id: 'verb', label: 'V', word: 'read' };
   const theme = { id: 'object', label: 'DP', word: 'books' };
   const other = { id: 'other', label: 'C', silent: true };
@@ -27,8 +27,12 @@ test('a thematic description keeps its authored merge moment without inventing p
   const steps = prepared.playbackSteps;
   const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1);
   assert.ok(moment > 0);
-  assert.ok(!steps.slice(0, moment).some(s => s.replayVisibleNodeIds.includes('vp')));
-  assert.ok(steps[moment].replayVisibleNodeIds.includes('vp'));
+  // Its prior anchors keep their content and only gain a parent, so the
+  // claim describes vp's External Merge rather than performing it.
+  const merge = steps.findIndex(s => s.replayVisibleNodeIds.includes('vp'));
+  assert.equal(merge, moment - 1);
+  assert.deepEqual([steps[merge].replayKind, steps[merge].operation, steps[merge].targetNodeId], ['micro', 'ExternalMerge', 'vp']);
+  assert.deepEqual([...steps[moment].replayVisibleNodeIds].sort(), [...steps[merge].replayVisibleNodeIds].sort());
   for (const id of ['verb', 'object', 'other']) assert.ok(steps[moment].replayVisibleNodeIds.includes(id));
   assert.ok(!prepared.relationRenderPlan.frames.flatMap(f => f.items).some(item => item.familyId === 'predication.paths'));
   assert.deepEqual(stages, original);
