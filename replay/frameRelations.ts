@@ -370,17 +370,19 @@ export const getFrameRelations = (
       ...[movement!.sourceNodeId, movement!.targetNodeId].flatMap(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(currentForest, id))),
       ...collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement!.priorSourceNodeId))
     ]));
-  // A movement moment also introduces the new parent that attaches its landing
-  // above the landing host's earlier children.
-  const landingWrapperIds = recovered.flatMap(step => (step.recoveredMovements ?? [step.recoveredMovement]))
+  // What the stage's recovered movements own, including the new parent a
+  // movement moment introduces to attach its landing above the landing host's
+  // earlier children.
+  const movementOwnedIds = new Set([...claimedNodeIds, ...recovered.flatMap(step => (step.recoveredMovements ?? [step.recoveredMovement]))
     .filter(movement => movement?.transition)
-    .flatMap(movement => movementLandingWrapper(currentForest, previousForest, movement!.targetNodeId)?.wrapperId ?? []);
+    .flatMap(movement => movementLandingWrapper(currentForest, previousForest, movement!.targetNodeId)?.wrapperId ?? [])]);
   return recovered.map((step, relationIndex) => {
     const anchoredCopy = anchoredCopyDisplacement(step, previousForest, currentForest, claimedNodeIds);
     const ambiguous = anchoredCopy?.copies.filter(copy => !copy.earlierNodeId).map(copy => copy.nodeId) ?? [];
-    // A wrapped witness's interior may change only where another claim owns the change.
-    const witnessWrapperNodeIds = priorWitnessWrapperNodeIds(step, previousForest, currentForest,
-      new Set([...claimedNodeIds, ...landingWrapperIds]));
+    // Ordinary construction builds a new parent around a restated witness only
+    // when nothing else there changes outside the stage's movements.
+    const witnessWrapperNodeIds = anchoredCopy ? [] : priorWitnessWrapperNodeIds(step,
+      recovered.filter((_other, otherIndex) => otherIndex !== relationIndex), previousForest, currentForest, movementOwnedIds);
     const wrapping = witnessWrapperNodeIds.length ? { ...step, witnessWrapperNodeIds } : step;
     const displaced = anchoredCopy ? { ...wrapping, anchoredCopyDisplacement: anchoredCopy, ...(ambiguous.length ? { movementDiagnostics: [
       ...(step.movementDiagnostics ?? []),
