@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import * as d3 from 'd3';
+import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
+import { reserveMovementSlotClearance } from '../replay/movementSlotClearance.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { layoutSyntaxTree } from '../replay/treeLayout.ts';
+import { motionFrame, replayMotionFaults } from '../scripts/replayMotionContinuity.mjs';
 import { auditVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
 
 /* A later stage's attachment carries its layout back over earlier frames. Where
@@ -52,3 +57,56 @@ for (const [name, occupant, sister] of CASES) {
     }
   });
 }
+
+// A wide source moves out beside its sister and leaves a narrow trace; the next
+// stage is laid out 500 units to the left. With `insert`, it inserts a unary parent
+// above the trace, so the trace leaves the slot at that stage's first step.
+function heldSlot(insert) {
+  const node = (id, label, children) => ({ id, label, ...(children ? { children } : {}) });
+  const word = (id, text) => ({ id, label: text, word: text });
+  const forest = (...roots) => ({ id: 'forest', label: '', replayOrigin: { kind: 'workspace' }, children: roots });
+  const phrase = (id, label) => node(id, label, [word('a', 'alpha'), word('b', 'beta')]);
+  const sister = () => node('sis', 'VP', [word('c', 'gamma')]), trace = () => node('t', 't');
+  const later = insert ? { canvas: forest(phrase('land', 'DP'), node('P', 'TP', [node('U', 'DP', [trace()]), sister()])), kind: 'micro',
+    operation: 'Project', target: 'U', at: { U: [-200, 220], t: [-200, 440] } }
+    : { canvas: forest(phrase('land', 'DP'), node('P', 'TP', [trace(), sister()])), kind: 'macro', operation: 'StageRecord', target: 'P',
+      at: { t: [-200, 220] } };
+  const frames = [
+    { canvas: node('P', 'TP', [phrase('src', 'DP'), sister()]), stage: 0, kind: 'micro', operation: 'ExternalMerge', target: 'P',
+      at: { P: [450, 0], src: [300, 220], a: [150, 440], b: [450, 440], sis: [600, 220], c: [600, 440] } },
+    { canvas: forest(phrase('land', 'DP'), node('P', 'TP', [trace(), sister()])), stage: 0, kind: 'relation', operation: 'movement',
+      target: 'land', at: { land: [-300, 0], a: [-450, 220], b: [-150, 220], P: [450, 0], t: [300, 220], sis: [600, 220], c: [600, 440] } },
+    { ...later, stage: 1, at: { land: [-800, 0], a: [-950, 220], b: [-650, 220], P: [-50, 0], ...later.at, sis: [100, 220], c: [100, 440] } }
+  ];
+  const steps = frames.map(({ canvas, stage, kind, operation, target, at }, index) => ({
+    replayCanvasData: canvas, replayFrameIndex: stage, replayStageStepIndex: index, replayKind: kind, operation, targetNodeId: target,
+    replayVisibleNodeIds: Object.keys(at),
+    ...(kind === 'relation' ? { replayRelationIdentity: { stageIndex: 0, relationIndex: 0 }, replayRelationLinks: [{ authoredRelationKey: '0:0',
+      renderFamily: 'trajectory', priorSourceNodeId: 'src', witnessNodeId: 't', targetNodeId: 'land' }] } : {})
+  }));
+  const coordinates = new Map(frames.map(({ canvas, at }) => [canvas,
+    new Map([['forest', { x: 0, y: -220 }], ...Object.entries(at).map(([id, [x, y]]) => [id, { x, y }])])]));
+  const sizes = new Map([[0, [3000, 1000]], [1, [3000, 1000]]]);
+  const faults = plan => replayMotionFaults({ frames: steps.map(step => {
+    const root = d3.hierarchy(step.replayCanvasData); applyVizIds(root);
+    const visible = new Set(step.replayVisibleNodeIds);
+    const nodes = new Map(layoutSyntaxTree(root, sizes.get(step.replayFrameIndex), 'ltr', plan.get(step.replayCanvasData), visible)
+      .descendants().filter(laid => visible.has(getNodeId(laid))).map(laid => [getNodeId(laid), laid]));
+    return motionFrame(step, nodes, getNodeId);
+  }) }).map(fault => `${fault.frame}:${fault.kind}:${fault.node}`);
+  const planned = reserveMovementSlotClearance({ steps, sizes, coordinates, direction: 'ltr' });
+  return { before: faults(coordinates), after: faults(planned), source: planned.get(frames[0].canvas).get('src').x };
+}
+
+test('a held slot widens across a stage crossing and keeps its lower occurrence in place', () => {
+  const { before, after, source } = heldSlot(false);
+  assert.deepEqual(before, []);
+  assert.ok(source < 300, 'the source moves away from its sister');
+  assert.deepEqual(after, [], 'the carried stage shows no motion');
+});
+
+test('a widened slot that ends before a later stage inserts a parent adds no motion there', () => {
+  const { before, after } = heldSlot(true);
+  assert.deepEqual(before, [], 'the trace joins its new parent in place');
+  assert.deepEqual(after, [], 'widening the slot defers no jump to the inserted parent');
+});

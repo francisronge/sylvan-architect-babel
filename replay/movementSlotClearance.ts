@@ -304,12 +304,14 @@ function sisterOverlaps({ nodes, ink }: Painted) {
 }
 
 /** The three fault kinds of scripts/replayMotionContinuity.mjs for one step,
- * keyed by kind and node, with the same step ownership (motionOwnership.mjs). */
+ * keyed by kind and node, with the same step ownership (motionOwnership.mjs).
+ * `carried` is the common shift of unmoved syntax (`carriedShift`, after minus
+ * before); the camera carry removes it, so motion is measured without it. */
 function motionFaults(step: PlaybackStep, before: Painted, after: Painted, carried: Shift) {
   const faults = new Map<string, number>();
   const motion = (id: string) => {
     const from = before.nodes.get(id), to = after.nodes.get(id);
-    return from && to ? { x: to.x + carried.x - from.x, y: to.y + carried.y - from.y } : undefined;
+    return from && to ? { x: to.x - carried.x - from.x, y: to.y - carried.y - from.y } : undefined;
   };
   const length = (shift: Shift) => Math.hypot(shift.x, shift.y);
   const parentIn = (nodes: ReadonlyMap<string, Node>, id: string) => {
@@ -348,7 +350,7 @@ function motionFaults(step: PlaybackStep, before: Painted, after: Painted, carri
     const insertion = daughters.some(id => { const prior = parentIn(before.nodes, id); return prior !== undefined && prior === grand; });
     for (const id of daughters) {
       const shift = motion(id)!, old = before.nodes.get(id)!;
-      const descends = insertion && Math.abs(created.y + carried.y - old.y) < EPSILON && after.nodes.get(id)!.y > created.y;
+      const descends = insertion && Math.abs(created.y - carried.y - old.y) < EPSILON && after.nodes.get(id)!.y > created.y;
       const distance = descends ? Math.abs(shift.x) : length(shift);
       if (distance > MOTION_THRESHOLD) faults.set(`attachment ${id}`, distance);
     }
