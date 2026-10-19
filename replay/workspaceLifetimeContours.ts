@@ -18,7 +18,7 @@ import { changesOwnedDisplayTerminal } from './workspaceDisplayTerminal.ts';
 import { currentForkBranchCollision, currentForkBranchesClear } from './workspaceForkClearance.ts';
 import { preservesLockedWorkspaceGap, type WorkspaceLockedGapReference } from './workspaceLockedGapPreference.ts';
 import { neutralWorkspaceAttachments } from './workspaceNeutralAttachments.ts';
-import { composeWorkspaceObstacleBuffer, workspaceObstacleBuffer, type WorkspaceObstacleBuffer } from './workspaceObstacleBuffer.ts';
+import { composeWorkspaceObstacleBuffer, type WorkspaceObstacleBuffer } from './workspaceObstacleBuffer.ts';
 import {
   workspaceClearanceObstructions,
   type WorkspaceClearanceObstruction,
@@ -218,33 +218,6 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
   function pairCollision(left: LifetimeContour, right: LifetimeContour, dx: number) {
     return workspaceContourPairCollision(pair(left, right), dx);
   }
-  // A bare leaf between two sisters is spaced as if its column, half a sibling
-  // gap to either side, ran down to its sisters' deepest ink, as in the tidy
-  // layout. Only spacing uses this contour; the leaf's own ink is unchanged.
-  const columns = new WeakMap<LifetimeContour, Map<number, LifetimeContour>>();
-  function withColumn(leaf: LifetimeContour, bottom: number): LifetimeContour {
-    let byBottom = columns.get(leaf);
-    if (!byBottom) columns.set(leaf, byBottom = new Map());
-    let result = byBottom.get(bottom);
-    if (!result) {
-      const own = ink(leaf).rectangles();
-      const top = Math.max(0, ...own.map(rect => rect.y + rect.height));
-      const left = Math.min(-TREE_SIBLING_GAP / 2, ...own.map(rect => rect.x));
-      const right = Math.max(TREE_SIBLING_GAP / 2, ...own.map(rect => rect.x + rect.width));
-      const buffer = workspaceObstacleBuffer([...own, { x: left, y: top, width: right - left, height: bottom - top }]);
-      result = { id: leaf.id, incarnation: leaf.incarnation, first: leaf.first, last: leaf.last, members: leaf.members,
-        children: leaf.children, get obstacles() { return buffer.rectangles(); } };
-      contourInk.set(result, () => buffer);
-      byBottom.set(bottom, result);
-    }
-    return result;
-  }
-  const inkBottom = (contour: LifetimeContour) => {
-    const bounds = ink(contour).bounds;
-    let bottom = -Infinity;
-    for (let index = 1; index < bounds.length; index += 4) bottom = Math.max(bottom, bounds[index] + bounds[index + 2]);
-    return bottom;
-  };
   function clearPair(left: LifetimeContour, right: LifetimeContour, dx: number) {
     const cached = pair(left, right), answer = cached.answers.get(dx);
     if (answer !== undefined)
@@ -514,14 +487,11 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
         return point && Number.isFinite(point.x) && Number.isFinite(point.y);
       });
       if (!completePreferred) {
-        const bottom = children.length > 2 ? Math.max(...children.map(inkBottom)) : 0;
-        const spaced = children.map((child, index) => index > 0 && index < children.length - 1
-          && !part.children[index].children.length && bottom > inkBottom(child) ? withColumn(child, bottom) : child);
         const anchors: number[] = [];
         for (let index = 0; index < children.length; index++) {
           let x = anchors.length ? anchors.at(-1)! + TREE_SIBLING_GAP : 0;
           for (let prior = 0; prior < index; prior++)
-            x = Math.max(x, anchors[prior] + pair(spaced[prior], spaced[index]).separation);
+            x = Math.max(x, anchors[prior] + pair(children[prior], children[index]).separation);
           anchors.push(x);
         }
         const center = anchors.length ? (anchors[0] + anchors.at(-1)!) / 2 : 0;

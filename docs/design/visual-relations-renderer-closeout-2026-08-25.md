@@ -611,19 +611,6 @@ movement moments, with their ancestors following by half and a quarter of that.
 No syntax outside those movements moves. The row matching relies on the shared
 220-unit row grid, which the regression suite checks for every committed fixture.
 
-A bare leaf between two sisters, such as a silent head between a raised subject
-and its vP, also occupies its column on every row below it, down to its sisters'
-deepest row. The tidy layout reserves that column as an unpainted chain below the
-leaf, so no sister descendant sits under the leaf and its branch cannot read as
-that descendant's parent. Branches stay one row long and sisters stay level; the
-sisters move apart instead. Edge daughters keep the ordinary tidy shape, in which
-a complement's descendants may pass under a head, and future scaffolding neither
-creates nor deepens such a fork. The contour check applies the same column, and
-the measured Canopy composition spaces such a leaf as if a column half a sibling
-gap to either side ran down to its sisters' deepest ink. Columns are granted
-shallowest first, adding at most one placeholder row per real node, so deeply
-nested forks cost linear work; forks beyond that budget keep the tidy shape.
-
 A previously selected standalone head can build the receiving projection needed
 by an earlier movement before a later relation adjoins another head to it. The
 later adjunction owns its complex head and lower occurrence, not the earlier
@@ -682,8 +669,11 @@ no ink collision is added. Placements that span stages use stage frames
 translated, as a whole, by the median shift of the unmoved syntax they share
 with the next stage, as the camera carry does, with the completed stage as the
 anchor. A plan that still shows motion is replaced by such a plan only when it
-removes motion, adds none, moves no join farther and keeps the final tree
-exactly, or, within stages, when no painted node moves farther.
+removes motion, adds none, moves no join farther and keeps the final tree, or,
+within stages, when no painted node moves farther. One translation of the whole
+final tree is the same tree, since the stage camera fits it. A daughter that
+keeps its painted parent stays one row below it, so when the step owning that
+parent moves it to another row, the daughter's own motion is what remains.
 
 A later locked fork may require more clearance than its earlier incarnation
 reserved. Carry that measured requirement back only through the same ordered
@@ -1100,6 +1090,19 @@ new root cannot skip ready selections, projections or binary merges inside a
 retained root. An unrelated pending rewrite cannot withhold ordinary merges
 whose preceding operands are already available. Pending relation-owned outputs
 and relocations retain their own timing.
+
+A neutral claim that names an earlier phrase in `priorAnchors` and a new parent
+of it in `anchors` restates that phrase; the new parent alone does not make the
+claim its owner. When that parent takes over the phrase's own slot and is the
+only new or changed material there apart from what the stage's recovered
+movements own at their moments (its other daughters are earlier workspaces that
+join whole and unchanged, no claim that can own a change names that material,
+its earlier form or an ancestor, and everything else the claim names is earlier
+material unchanged under its earlier parent), ordinary construction builds it
+with its own External Merge before the claim's moment, which then adds only the
+claim's marks. Anything else keeps the claim's atomic rewrite. A movement's
+landing parent inside the phrase is then the movement's, and arrives at its
+moment.
 
 A new occurrence replacing another chain member in the same retained parent
 slot is that member's lower witness. A later chain description must not use it
