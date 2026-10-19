@@ -20,18 +20,48 @@ export function categoryTextLayout(text: string, measure: CategoryTextMeasure = 
   return { ...layout, lines: [...layout.lines] };
 }
 
+const LINE_WIDTH = 380;
+// A label taller than this pushes its sisters' row down, so a label that would
+// need more lines widens them, in eight steps up to twice the normal width.
+const MAX_LINES = 4;
+const WIDENING_STEPS = 8;
+// What a line may hang past its width, generously: spaces and closing marks.
+const HANG_ALLOWANCE = 100;
+
 /** Wrap display text without abbreviating, interpreting or changing its characters. */
 function wrapCategoryText(text: string, measure: CategoryTextMeasure) {
-  const maxWidth = 380;
   const unwrappedWidth = measure(text);
-  if (unwrappedWidth <= maxWidth) return { lines: [text], width: unwrappedWidth, height: 52, x: -unwrappedWidth / 2, y: -56 };
+  if (unwrappedWidth <= LINE_WIDTH) return { lines: [text], width: unwrappedWidth, height: 52, x: -unwrappedWidth / 2, y: -56 };
   const segments = [...graphemes.segment(text)].map(part => part.segment);
-  const fits = (from: number, to: number) => measure(segments.slice(from, to).join('')) <= maxWidth;
-  const starts = [0, ...wrapBreaks(segments, fits)];
+  const wrapAt = (maxWidth: number) => {
+    const fits = (from: number, to: number) => measure(segments.slice(from, to).join('')) <= maxWidth;
+    return [0, ...joinBlankLines(segments, wrapBreaks(segments, fits))];
+  };
+  let starts = wrapAt(LINE_WIDTH);
+  if (starts.length > MAX_LINES) starts = widened(segments, starts, unwrappedWidth, wrapAt);
   const lines = starts.map((from, index) => segments.slice(from, starts[index + 1]).join(''));
   const width = Math.max(...lines.map(measure));
   const height = 52 + (lines.length - 1) * CATEGORY_LINE_HEIGHT;
   return { lines, width, height, x: -width / 2, y: -height - 4 };
+}
+
+/** The first wider wrapping within `MAX_LINES` that splits no more words and
+ * leaves no more remnants than `starts`, or `starts` itself. Widths whose four
+ * lines cannot hold the whole text are skipped without measuring. */
+function widened(segments: string[], starts: number[], unwrappedWidth: number, wrapAt: (maxWidth: number) => number[]) {
+  const defects = (lineStarts: number[]) => lineStarts.reduce(([splits, remnants], from, index) => index === 0 ? [splits, remnants]
+    : [splits + (splitsWord(segments, from) ? 1 : 0),
+      remnants + (isRemnant(segments, from, lineStarts[index + 1] ?? segments.length) ? 1 : 0)], [0, 0]);
+  const [splits, remnants] = defects(starts);
+  for (let step = 1; step <= WIDENING_STEPS; step++) {
+    const maxWidth = LINE_WIDTH * (1 + step / WIDENING_STEPS);
+    if (MAX_LINES * (maxWidth + HANG_ALLOWANCE) < unwrappedWidth) continue;
+    const wider = wrapAt(maxWidth);
+    if (wider.length > MAX_LINES) continue;
+    const [widerSplits, widerRemnants] = defects(wider);
+    if (widerSplits <= splits && widerRemnants <= remnants) return wider;
+  }
+  return starts;
 }
 
 type Fits = (from: number, to: number) => boolean;
@@ -48,6 +78,12 @@ const openingBracket = /^\p{Ps}/u, closingBracket = /^\p{Pe}/u;
 const completesPrevious = /^[\p{Pe}\p{Pf},.;:!?、。，．：；！？′″‴'°⁰]/u;
 const punctuationOnly = /^[\p{P}\p{S}\s]+$/u;
 
+// Graphemes `from` to `to` are all whitespace, so a line of them would be blank.
+const blank = (segments: string[], from: number, to: number) => {
+  for (let index = from; index < to; index++) if (!/^\s/u.test(segments[index])) return false;
+  return true;
+};
+
 const insideWord = (segments: string[], index: number) => wordCharacter.test(segments[index - 1])
   && wordCharacter.test(segments[index] ?? '');
 const splitsWord = (segments: string[], index: number) => insideWord(segments, index)
@@ -60,10 +96,11 @@ const isRemnant = (segments: string[], from: number, to: number) => {
   for (let index = from; index < to; index++) if (!punctuationOnly.test(segments[index])) return false;
   return true;
 };
-// Better in one respect and worse in none, so a repair never adds a line.
-const improves = (candidate: Wrap, best: Wrap) => candidate.lines <= best.lines
-  && candidate.splits <= best.splits && candidate.remnants <= best.remnants
-  && (candidate.lines < best.lines || candidate.splits < best.splits || candidate.remnants < best.remnants);
+// Fewer split words first, then fewer remnants, then fewer lines. A word that
+// fits on a line stays whole even when that adds a line; only a word wider than
+// a line on its own still splits.
+const improves = (candidate: Wrap, best: Wrap) => candidate.splits !== best.splits ? candidate.splits < best.splits
+  : candidate.remnants !== best.remnants ? candidate.remnants < best.remnants : candidate.lines < best.lines;
 
 /** The start of every line after the first. Greedy filling (`lineBreak`) ends
  * each line. Where the greedy wrapping from a line on splits a word or leaves a
@@ -111,6 +148,19 @@ function wrapBreaks(segments: string[], fits: Fits): number[] {
   return wrapFrom(0, 1).breaks;
 }
 
+/** Line starts without blank lines: spaces alone on a line join the end of the
+ * line before them, or the start of the next line when they come first, and
+ * hang past the width there. */
+function joinBlankLines(segments: string[], breaks: number[]) {
+  const kept: number[] = [];
+  let line = 0;
+  breaks.forEach((from, index) => {
+    if (blank(segments, from, breaks[index + 1] ?? segments.length) || blank(segments, line, from)) return;
+    kept.push(line = from);
+  });
+  return kept;
+}
+
 /** Word-preserving breaks in the line from `start` that overflows at `end`,
  * latest first: after a space, comma, slash, hyphen or dash, or before an
  * opening bracket. No line starts with a space or completing mark. A greedy
@@ -138,11 +188,12 @@ function alternativeBreaks(segments: string[], start: number, end: number, greed
  * word. An overflowing completing mark then hangs past the width rather than
  * start a line, so it never adds one. Otherwise take the latest of two
  * word-preserving breaks: after a hyphen joining two word characters when the
- * rest of the label fits on one line, so the break never adds a line, or before
- * an opening bracket whose complete group, with any text attached up to the
- * next space or comma, fits on one line. Otherwise break before the overflowing
- * grapheme. Lines exceed the width only by hanging marks or a single wider
- * grapheme. */
+ * rest of the label fits on one line, or before an opening bracket whose
+ * complete group, with any text attached up to the next space or comma, fits on
+ * one line. Otherwise break before the overflowing grapheme; that splits a word,
+ * so `wrapBreaks` then weighs the line's other breaks, including hyphen breaks
+ * that add a line. Lines exceed the width only by hanging marks or spaces
+ * (`joinBlankLines`) or by a single wider grapheme. */
 function lineBreak(segments: string[], start: number, end: number, fits: Fits) {
   for (let index = end; index > start; index--)
     if (breakAfter.test(segments[index - 1]) && !completesPrevious.test(segments[index])) return index;
