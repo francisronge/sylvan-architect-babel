@@ -19,6 +19,13 @@ import { recoveredClaimMovements } from './tier2RelationDispatch.ts';
 
 /** Materialize authored claim lifetimes and exact occurrence transfers.
  * Each frame receives its own mark objects before visual composition. */
+/** Several claims of one stage can describe the same proved transition, such
+ * as a chain claim restating the stage's movement. As in Replay, where the
+ * first claim owns that structural change, they are one transfer at the
+ * earliest claim; different destinations remain ambiguous. */
+const distinctTransitions = <T extends { relationIndex: number }>(candidates: T[], key: (candidate: T) => string): T[] =>
+  candidates.filter((candidate, index) => candidates.findIndex(other => key(other) === key(candidate)) === index);
+
 export function materializePlanFrames(
   items: RelationPlanItem[],
   stageList: DerivationStage[],
@@ -51,11 +58,11 @@ export function materializePlanFrames(
     let currentSite = site;
     const transfers: NonNullable<TrajectoryPlanItem['headLandingSite']>['transfers'] = [];
     for (let stageIndex = item.appearsAtStage + 1; stageIndex <= frameIndex; stageIndex++) {
-      const candidates = stageDispatches[stageIndex].flatMap((dispatch, relationIndex) => {
+      const candidates = distinctTransitions(stageDispatches[stageIndex].flatMap((dispatch, relationIndex) => {
         return recoveredClaimMovements(dispatch).flatMap(movement => movement.transition && movement.trajectoryKind === 'head'
           && movement.priorSourceNodeId === currentSite
           ? [{ nodeId: movement.witnessNodeId, stageIndex, relationIndex }] : []);
-      });
+      }), candidate => candidate.nodeId);
       if (candidates.length === 1) {
         transfers.push(candidates[0]);
         currentSite = candidates[0].nodeId;
@@ -93,10 +100,10 @@ export function materializePlanFrames(
       const replaceable = planItemDependencyNodeIds(projected).filter(id => !stageNodeIdSets[stageIndex].has(id)
         || (projected.kind === 'trajectory' && projected.targetNodeId === id));
       for (const fromNodeId of replaceable) {
-        const candidates = stageDispatches[stageIndex].flatMap((dispatch, relationIndex) =>
+        const candidates = distinctTransitions(stageDispatches[stageIndex].flatMap((dispatch, relationIndex) =>
           recoveredClaimMovements(dispatch).flatMap(movement => movement.transition
             && movement.priorSourceNodeId === fromNodeId && movement.witnessNodeId !== fromNodeId
-            ? [{ fromNodeId, toNodeId: movement.witnessNodeId, stageIndex, relationIndex }] : []));
+            ? [{ fromNodeId, toNodeId: movement.witnessNodeId, stageIndex, relationIndex }] : [])), candidate => candidate.toNodeId);
         if (candidates.length !== 1) continue;
         const transfer = candidates[0];
         projected = remapPlanOccurrence(projected, transfer.fromNodeId, transfer.toNodeId);

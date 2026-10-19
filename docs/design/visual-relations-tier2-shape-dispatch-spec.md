@@ -864,6 +864,18 @@ stage before emitting continuity cues. Missing witnesses are retained and
 diagnosed; they cannot prove replacement. A prior landing is allowed when a
 later stage refers back to an already established movement.
 
+A successive hop can keep the moved occurrence's ID without a prior anchor.
+When a claimed landing has left its exact preceding slot and one anchored
+same-lineage occurrence new in this stage holds that slot, the landing's own
+preceding occurrence is the prior source and that new occurrence is the hop's
+lower endpoint, whatever its field is called. An older copy of the same chain
+kept unchanged in its own slot is chain context in any source or witness field:
+it neither becomes the source nor competes with the new witness. The claim must
+still cite a source or witness; without one, it does not become a movement.
+Another claim of the stage that this rule binds to the same hop shares its
+arrow. Claims restating one transition are one occurrence transfer, at the
+first claim's moment, so an earlier arrow's landing still moves to the new trace.
+
 An explicitly anchored head-movement host or complex is accepted only when the
 current tree proves its relationship to the landing. A phase head is not a
 synonym for its enclosing phase projection. Movement recovery also distinguishes
