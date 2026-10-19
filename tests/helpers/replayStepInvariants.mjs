@@ -110,10 +110,14 @@ function frameChange(previous, current, initialKey) {
  * - `movement-incomplete`: a movement moment without its displayed landing or
  *   lower occurrence, or whose landing was already displayed, unless an
  *   earlier moment of the stage introduced that shared landing.
+ * - `trajectory-off-moment`: a relation's movement path first appears at a
+ *   step other than that relation's own moment, so the moment draws nothing
+ *   or another claim's step draws it.
  * - `unknown-step`: a step of another kind.
  */
 export function checkStepSemantics(replay, record) {
   const steps = replay.playbackSteps, out = [], stages = authoredStages(record), introducedLandings = new Set();
+  const moments = new Map(), firstTrajectories = new Map();
   const pronunciation = pronunciationOwners(replay);
   const initialKey = String(resolveSavedInputTokens(record.sentence ?? '', record.inputTokens)[0] ?? '').trim().toLocaleLowerCase();
   let previous = EMPTY_FRAME;
@@ -128,6 +132,9 @@ export function checkStepSemantics(replay, record) {
     // An edge to a parent displayed at the preceding step is attach-at-merge's.
     const newEdgeElsewhere = id => !(current.parent.get(id) && previous.displayed.has(current.parent.get(id)));
     const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
+    if (identity && !moments.has(refKey(identity))) moments.set(refKey(identity), frame);
+    (step.replayRelationLinks ?? []).filter(link => link.renderFamily === 'trajectory' && Number(link.stepIndex) === stageIndex
+      && !firstTrajectories.has(link.authoredRelationKey)).forEach(link => firstTrajectories.set(link.authoredRelationKey, frame));
     // A word whose occurrence has a pronunciation owner belongs to that owner's moment alone.
     const separatelyVoiced = id => change.reworded.includes(id) && pronunciation(stageIndex, occurrenceOf(current, id)) !== undefined
       && !(identity?.stageIndex === stageIndex && voicesOccurrence(pronunciation, identity, occurrenceOf(current, id), false));
@@ -185,6 +192,11 @@ export function checkStepSemantics(replay, record) {
     } else report('unknown-step', target, 'unknown step kind');
     previous = current;
   });
+  for (const [key, frame] of firstTrajectories) {
+    const own = moments.get(key);
+    if (own !== undefined && own !== frame) out.push(finding('step-semantics', 'trajectory-off-moment', key, frame,
+      `the movement path of relation ${key} first appears at frame ${frame}, not at its own moment at frame ${own}`));
+  }
   return out;
 }
 

@@ -56,6 +56,14 @@ test('unfamiliar current roles use the exact first-copy root pair and explicit p
   assert.deepEqual(input, original);
 });
 
+test('an untagged witness is no earlier chain copy of a first copy, so it still competes', () => {
+  const input = example();
+  input.relation.anchors = { landing: 'landing', sourceTrace: 'source', lowerTrace: 'sister' };
+  const result = recover(input);
+  assert.equal(result.movement, undefined);
+  assert.equal(result.failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED');
+});
+
 test('an unknown category keeps one neutral first-copy moment without inventing a trajectory', () => {
   const input = example();
   for (const forest of [input.priorForest, input.currentForest]) find(forest, 'source').label = 'An open syntax label';
