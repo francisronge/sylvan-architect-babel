@@ -407,6 +407,26 @@ export function checkMarksAtOwningMoment(replay) {
 
 const LETTER_KINDS = new Set(['quantifier-raising', 'operator-variable-binding', 'coindex', 'binding-domain']);
 
+/** Adds one shown index letter at a label to `shown` (label → Map(letter → count)). */
+export function showLetter(shown, label, letter) {
+  if (!label || !letter) return shown;
+  const letters = shown.get(label) ?? new Map();
+  return shown.set(label, letters.set(letter, (letters.get(letter) ?? 0) + 1));
+}
+
+/** The counting step of checkOneLetterPerLabel: each letter asserted at a label
+ * (label → Set(letter)) is shown there exactly once. Returns `{ label, letter,
+ * count }` otherwise. A browser probe feeds it painted letters; it can see a
+ * repeated letter but, without the plan, not a missing one. */
+export function countLabelLetters(shown, asserted) {
+  const out = [];
+  for (const [label, letters] of asserted) for (const letter of letters) {
+    const count = shown.get(label)?.get(letter) ?? 0;
+    if (count !== 1) out.push({ label, letter, count });
+  }
+  return out;
+}
+
 /** Paints each frame's index letters with the production binding painters in
  * the offline SVG DOM, over the frame's displayed labels. Each letter a drawn
  * mark asserts appears exactly once at the physical label it is placed at:
@@ -471,11 +491,7 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
       const painters = { 'quantifier-raising': drawing.drawQuantifierRaising, 'operator-variable-binding': drawing.drawOperatorVariableBinding,
         'index-badge': drawing.drawIndexBadge, 'identity-lens': drawing.drawIdentityLens };
       for (const primitive of primitives) painters[primitive.type](primitive, items[primitive.itemIndex], g.append('g'), null);
-      const shownLetters = new Map(), show = (label, letter) => {
-        if (!label || !letter) return;
-        const letters = shownLetters.get(label) ?? new Map();
-        shownLetters.set(label, letters.set(letter, (letters.get(letter) ?? 0) + 1));
-      };
+      const shownLetters = new Map(), show = (label, letter) => showLetter(shownLetters, label, letter);
       for (const element of descendants(root)) {
         const attrs = element.attrs;
         if (/^(category|terminal)-label$/.test(attrs.class || '')) {
@@ -498,10 +514,9 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
           witnessNodeId: primitive.traceWitnessNodeId, family: items[letter.itemIndex].familyId });
         if (label) asserted.set(label, (asserted.get(label) ?? new Set()).add(letter.index));
       }
-      for (const [label, letters] of asserted) for (const letter of letters) {
-        const count = shownLetters.get(label)?.get(letter) ?? 0;
+      for (const { label, letter, count } of countLabelLetters(shownLetters, asserted)) {
         const labelId = label.attrs['data-category-node-id'] ?? label.attrs['data-node-id'];
-        if (count !== 1) out.push(violation('one-letter-per-label', index + 1, `${labelId} shows ${letter} ${count} times`));
+        out.push(violation('one-letter-per-label', index + 1, `${labelId} shows ${letter} ${count} times`));
       }
     });
   } finally { restore(); }
