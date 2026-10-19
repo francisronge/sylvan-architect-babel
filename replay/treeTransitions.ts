@@ -401,6 +401,8 @@ const sameSubtree = (left: SyntaxNode, right: SyntaxNode): boolean => ownNodeCon
   && (left.children || []).length === (right.children || []).length
   && (left.children || []).every((child, index) => sameSubtree(child, right.children![index]));
 
+type ForestLocations = Map<string, ExactForestNodeLocation | null>;
+
 /**
  * Whether a preceding occurrence changes in the stage: it is removed or
  * repeated, its subtree changes, or it leaves its parent for another. A
@@ -408,8 +410,8 @@ const sameSubtree = (left: SyntaxNode, right: SyntaxNode): boolean => ownNodeCon
  */
 const displacedInStage = (
   node: SyntaxNode,
-  previous: ReturnType<typeof indexExactForestNodeLocations>,
-  current: ReturnType<typeof indexExactForestNodeLocations>
+  previous: ForestLocations,
+  current: ForestLocations
 ): boolean => {
   const before = previous.get(String(node.id || '')), after = current.get(String(node.id || ''));
   return !after || !sameSubtree(node, after.node) || Boolean(before?.parentId) && before!.parentId !== after.parentId;
@@ -420,7 +422,8 @@ const displacedInStage = (
  * earlier descendant, in order and under its earlier parent, and gained only
  * new nodes or whole earlier workspaces. Ordinary construction builds that
  * growth, so a relation restating the witness does not own it. A change to
- * the witness itself, including its position, still belongs to the relation.
+ * the witness itself, including its position, still belongs to the relation;
+ * `witnessOnlyWrapped` covers a new parent that takes over the witness's slot.
  */
 const retainedWitnessOnlyGrew = (nodeId: string, previousForest: SyntaxNode[], currentForest: SyntaxNode[]): boolean => {
   const prior = findExactNodesByIdInForest(previousForest, nodeId);
@@ -479,11 +482,117 @@ const retainedWitnessOnlyGrew = (nodeId: string, previousForest: SyntaxNode[], c
   });
 };
 
-const resolvePriorWitnessTreeTransitionOwnership = (
-  relation: DerivationReplayPlanStep,
-  previousForest: SyntaxNode[],
-  currentForest: SyntaxNode[]
-): FallbackTreeTransitionOwnership | null => {
+/**
+ * True when a retained witness's interior is unchanged apart from the stage's
+ * recovered movements (`movementOwned`). Every other earlier descendant keeps
+ * its own content, its order, and its earlier parent, with only
+ * movement-owned new nodes between them, and everything new inside the
+ * witness is movement-owned.
+ */
+const witnessInteriorPreserved = (before: SyntaxNode, after: SyntaxNode, movementOwned: ReadonlySet<string>,
+  previousLocations: ForestLocations, currentLocations: ForestLocations): boolean => {
+  const earlier = collectExactSubtreeNodeIds(before);
+  const preserved = [...earlier].filter(id => id === before.id || !movementOwned.has(id));
+  const now = [...collectExactSubtreeNodeIds(after)];
+  if (now.some(id => !earlier.has(id) && !movementOwned.has(id)))
+    return false;
+  const kept = new Set(preserved);
+  if (JSON.stringify(now.filter(id => kept.has(id))) !== JSON.stringify(preserved))
+    return false;
+  return preserved.every((id) => {
+    const prior = previousLocations.get(id), current = currentLocations.get(id);
+    if (!prior || !current || ownNodeContent(prior.node) !== ownNodeContent(current.node))
+      return false;
+    if (id === before.id)
+      return true;
+    for (let parentId = current.parentId; parentId !== prior.parentId; parentId = currentLocations.get(parentId)?.parentId ?? '')
+      if (!parentId || previousLocations.has(parentId))
+        return false;
+    return true;
+  });
+};
+
+/** Every node a claim names, in any of its anchor fields. */
+const claimNodeIds = (relation: DerivationReplayPlanStep): string[] => [
+  ...relationAnchorNodeIds(relation.anchors), ...relationAnchorNodeIds(relation.priorAnchors),
+  ...relationAnchorNodeIds(relation.neutralTransitionEvidence?.anchors),
+  ...relationAnchorNodeIds(relation.neutralTransitionEvidence?.priorAnchors),
+  ...getRelationAllAnchorNodeIds(relation), ...(relation.pronunciationNodeIds ?? []),
+  ...(relation.unprovenNewLandingNodeId ? [relation.unprovenNewLandingNodeId] : [])
+];
+
+/**
+ * Whether a claim may own a change besides a recovered movement's: a
+ * pronunciation or an unproven landing, or, without a movement transition, a
+ * transition its relation registers, a preceding witness, or a new anchored
+ * node with a lineage, which could be a copy.
+ */
+const claimMayOwnChange = (relation: DerivationReplayPlanStep, previousForest: SyntaxNode[], currentForest: SyntaxNode[]): boolean => {
+  if (relation.pronunciationNodeIds?.length || relation.unprovenNewLandingNodeId)
+    return true;
+  if ((relation.recoveredMovements ?? [relation.recoveredMovement]).some(movement => movement?.transition))
+    return false;
+  return relationProductionTransitionKinds(relation).some(kind => kind !== 'movement')
+    || relationAnchorNodeIds(relation.priorAnchors).length > 0
+    || relationAnchorNodeIds(relation.neutralTransitionEvidence?.priorAnchors).length > 0
+    || relationAnchorNodeIds(relation.anchors).some(id => !findExactNodesByIdInForest(previousForest, id).length
+      && findExactNodesByIdInForest(currentForest, id).some(node => Boolean(node.lineageId)));
+};
+
+/**
+ * True when `wrapper` is the only new or changed material around a claim's
+ * one preceding witness, apart from what the stage's recovered movements own
+ * at their moments (`movementOwned`). The wrapper is new and is no movement's
+ * landing parent or copy of an earlier object. It holds the witness's slot:
+ * both are workspace roots, in any order among the other roots, or the wrapper
+ * stands where the witness stood among its earlier parent's children. Its
+ * children are the witness and one or more earlier workspaces that join whole
+ * and unchanged. The witness keeps its own content and its interior
+ * (`witnessInteriorPreserved`). Neither this claim (beyond the wrapper and the
+ * witness) nor any other claim that can own a change names that material, its
+ * earlier form, or an ancestor of either. Every other node this claim names is
+ * context it then only observes: earlier material, unchanged and under its
+ * earlier parent. Anything else keeps the claim's atomic rewrite.
+ */
+const witnessOnlyWrapped = (wrapper: SyntaxNode, witnessId: string, claimIds: readonly string[],
+  otherClaims: readonly DerivationReplayPlanStep[], movementOwned: ReadonlySet<string>,
+  previousForest: SyntaxNode[], currentForest: SyntaxNode[]): boolean => {
+  const previousLocations = indexExactForestNodeLocations(previousForest), currentLocations = indexExactForestNodeLocations(currentForest);
+  const slot = currentLocations.get(wrapper.id), before = previousLocations.get(witnessId), after = currentLocations.get(witnessId);
+  if (!slot || previousLocations.has(wrapper.id) || movementOwned.has(wrapper.id) || !before || !after || after.parentId !== wrapper.id
+    || (wrapper.lineageId && [...previousLocations.values()].some(location => location?.node.lineageId === wrapper.lineageId)))
+    return false;
+  const childIds = (location: ExactForestNodeLocation) => (location.parent?.children ?? []).map(child => child.id);
+  if (before.parentId !== slot.parentId || (slot.parentId
+    && JSON.stringify(childIds(slot).map(id => id === wrapper.id ? witnessId : id)) !== JSON.stringify(childIds(before))))
+    return false;
+  const joining = (wrapper.children ?? []).filter(child => child.id !== witnessId);
+  if (!joining.length || joining.some((child) => {
+    const earlier = previousLocations.get(child.id);
+    return !earlier || Boolean(earlier.parentId) || !sameSubtree(earlier.node, child)
+      || [...collectExactSubtreeNodeIds(child)].some(id => !currentLocations.get(id) || movementOwned.has(id));
+  }))
+    return false;
+  if (ownNodeContent(before.node) !== ownNodeContent(after.node)
+    || !witnessInteriorPreserved(before.node, after.node, movementOwned, previousLocations, currentLocations))
+    return false;
+  const region = new Set([...collectExactSubtreeNodeIds(wrapper), ...collectExactSubtreeNodeIds(before.node),
+    ...joining.flatMap(child => [...collectExactSubtreeNodeIds(previousLocations.get(child.id)!.node)])]);
+  for (let id = slot.parentId; id; id = currentLocations.get(id)?.parentId ?? '')
+    region.add(id);
+  for (let id = before.parentId; id; id = previousLocations.get(id)?.parentId ?? '')
+    region.add(id);
+  const unchangedInPlace = (id: string) => {
+    const prior = previousLocations.get(id), current = currentLocations.get(id);
+    return Boolean(prior && current) && prior!.parentId === current!.parentId && sameSubtree(prior!.node, current!.node);
+  };
+  return !claimIds.some(id => id !== wrapper.id && id !== witnessId && (region.has(id) || !unchangedInPlace(id)))
+    && !otherClaims.some(other => claimMayOwnChange(other, previousForest, currentForest)
+      && claimNodeIds(other).some(id => region.has(id)));
+};
+
+/** The preceding witnesses and current anchors of a neutral claim that names both. */
+const priorWitnessClaim = (relation: DerivationReplayPlanStep) => {
   // A recovered chain restatement observes an already owned transition.
   if (relation.recoveredMovement)
     return null;
@@ -506,6 +615,48 @@ const resolvePriorWitnessTreeTransitionOwnership = (
   ]));
   if (currentAnchorIds.length === 0 || priorAnchorIds.length === 0)
     return null;
+  return { priorAnchorIds, authoredCurrentIds, currentAnchorIds };
+};
+
+/**
+ * The current anchor of a prior-witness claim that only wrapped its one
+ * retained witness (`witnessOnlyWrapped`), which ordinary construction then
+ * builds. `otherClaims` are the stage's other claims; `movementOwned` is what
+ * its recovered movements own at their moments: their current landing and
+ * lower-occurrence subtrees and the landing parent each introduces.
+ * `getFrameRelations` records the result as the step's `witnessWrapperNodeIds`,
+ * so every ownership query of the stage agrees.
+ */
+export const priorWitnessWrapperNodeIds = (
+  relation: DerivationReplayPlanStep,
+  otherClaims: readonly DerivationReplayPlanStep[],
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[],
+  movementOwned: ReadonlySet<string>
+): string[] => {
+  const claim = priorWitnessClaim(relation);
+  const witnessIds = new Set([...claim?.priorAnchorIds ?? [], ...relationAnchorNodeIds(relation.priorAnchors)]);
+  if (!claim || witnessIds.size !== 1 || relation.pronunciationNodeIds?.length || relation.unprovenNewLandingNodeId)
+    return [];
+  const [witnessId] = witnessIds;
+  const claimIds = [...new Set([...claimNodeIds(relation), ...claim.currentAnchorIds])];
+  if (claim.currentAnchorIds.includes(witnessId) || claim.authoredCurrentIds.includes(witnessId))
+    return [];
+  return claim.currentAnchorIds.filter((id) => {
+    const matches = findExactNodesByIdInForest(currentForest, id);
+    return matches.length === 1 && witnessOnlyWrapped(matches[0], witnessId, claimIds, otherClaims, movementOwned, previousForest, currentForest);
+  });
+};
+
+const resolvePriorWitnessTreeTransitionOwnership = (
+  relation: DerivationReplayPlanStep,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[]
+): FallbackTreeTransitionOwnership | null => {
+  const claim = priorWitnessClaim(relation);
+  if (!claim)
+    return null;
+  const { priorAnchorIds, authoredCurrentIds, currentAnchorIds } = claim;
   const currentAnchors = currentAnchorIds.map((nodeId) => findExactNodesByIdInForest(currentForest, nodeId));
   const priorAnchors = priorAnchorIds.map((nodeId) => findExactNodesByIdInForest(previousForest, nodeId));
   if (currentAnchors.some((matches) => matches.length !== 1)
@@ -531,11 +682,16 @@ const resolvePriorWitnessTreeTransitionOwnership = (
   // When the preceding witnesses still exist, they identify the material
   // being updated. Other current anchors can supply its newly built context
   // (for example a licensing clause), rather than additional transition output.
+  // A current anchor that only wrapped the retained witness restates it too.
+  const wrappers = new Set(relation.witnessWrapperNodeIds ?? []);
+  const wrapsPriorWitness = currentAnchors.some(([node]) => wrappers.has(node.id));
   const ownedCurrentAnchors = !rewritesWitness ? currentAnchors.filter(([node]) => copiedOutputs.has(node.id))
-    : retainedPriorAnchors && repeatsPriorWitness
+    : retainedPriorAnchors && (repeatsPriorWitness || wrapsPriorWitness)
     ? currentAnchors.filter(([node]) => {
       if (priorAnchorIds.includes(String(node.id || '')))
         return !retainedWitnessOnlyGrew(String(node.id || ''), previousForest, currentForest);
+      if (wrappers.has(node.id))
+        return false;
       // A uniquely witnessed copy is output of the same authored change,
       // even when its category is insufficient to draw a movement trajectory.
       if (copiedOutputs.has(node.id))

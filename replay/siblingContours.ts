@@ -1,20 +1,14 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import type { TreeDirection } from './treeLayout.ts';
-import { TREE_ROW_HEIGHT } from './treeSpacing.ts';
 
 type Point = { x: number; y: number };
-type Entry<N> = { node: N } | { row: string; position: number; entering: boolean };
 
 /** Sister subtrees keep their reading order on every row they share. Ordered
  * direct daughters do not imply this. A reservation can retain one subtree while
  * its sister was placed against another layout, and then a deeper node of either
  * passes under the other. A one-word specifier is enough, because its word leaf
  * sits one row below its category, beside a lower specifier.
- *
- * A bare leaf between two sisters also occupies its column on every row below
- * it, down to its sisters' deepest row. Otherwise a sister's deeper descendant
- * can sit under the leaf, and the leaf's branch reads as that descendant's parent.
  *
  * `current` holds the laid-out nodes painted in one frame. Future scaffolding and
  * workspace containers contribute no contour. Rows are matched by `y.toFixed(3)`,
@@ -25,50 +19,27 @@ export function siblingContoursOrdered<N extends d3.HierarchyNode<SyntaxNode> & 
 ): boolean {
   const syntax = new Set([...current].filter(node => !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace'));
   const sign = direction === 'rtl' ? -1 : 1;
-  const childrenOf = (node: N) => ((node.children ?? []) as N[]).filter(child => syntax.has(child));
-  const roots = [...syntax].filter(node => !node.parent || !syntax.has(node.parent as N));
-  // The deepest row of each current subtree, gathered children first.
-  const order: N[] = [], deepest = new Map<N, number>();
-  for (const pending = [...roots]; pending.length;) {
-    const node = pending.pop()!;
-    order.push(node);
-    pending.push(...childrenOf(node));
-  }
-  for (const node of order.reverse())
-    deepest.set(node, Math.max(point(node).y, ...childrenOf(node).map(child => deepest.get(child)!)));
-  // As in the tidy layout, columns add at most one row per current node.
-  let budget = syntax.size;
-  for (const root of roots) {
+  for (const root of syntax) {
+    if (root.parent && syntax.has(root.parent as N)) continue;
     // One pre-order walk per tree. When a node is entered, every finished node
     // lies in an earlier sister subtree of one of its ancestors, so the node must
-    // follow the last finished position on its row. A leaf's column is walked
-    // as if it were a chain of descendants.
+    // follow the last finished position on its row.
     const finished = new Map<string, number>();
-    const pending: Entry<N>[] = [{ node: root }];
+    const pending: Array<{ node: N } | { row: string; position: number }> = [{ node: root }];
     while (pending.length) {
       const entry = pending.pop()!;
-      if (!('node' in entry) && !entry.entering) {
+      if (!('node' in entry)) {
         finished.set(entry.row, Math.max(finished.get(entry.row) ?? -Infinity, entry.position));
         continue;
       }
-      let row: string, position: number;
-      const below: Entry<N>[] = [];
-      if ('node' in entry) {
-        const { x, y } = point(entry.node), children = childrenOf(entry.node);
-        row = y.toFixed(3); position = x * sign;
-        const sisters = entry.node.parent && syntax.has(entry.node.parent as N) ? childrenOf(entry.node.parent as N) : [];
-        const index = sisters.indexOf(entry.node);
-        const rows = !children.length && index > 0 && index < sisters.length - 1
-          ? Math.round((Math.max(...sisters.map(sister => deepest.get(sister)!)) - y) / TREE_ROW_HEIGHT) : 0;
-        if (rows > 0 && rows <= budget) {
-          budget -= rows;
-          for (let row = 1; row <= rows; row++) below.push({ row: (y + row * TREE_ROW_HEIGHT).toFixed(3), position, entering: true });
-        }
-        for (let child = children.length - 1; child >= 0; child--) below.push({ node: children[child] });
-      } else ({ row, position } = entry);
+      const { x, y } = point(entry.node), row = y.toFixed(3), position = x * sign;
       const last = finished.get(row);
       if (last !== undefined && position <= last + 1e-6) return false;
-      pending.push({ row, position, entering: false }, ...below);
+      pending.push({ row, position });
+      const children = (entry.node.children ?? []) as N[];
+      for (let index = children.length - 1; index >= 0; index--) {
+        if (syntax.has(children[index])) pending.push({ node: children[index] });
+      }
     }
   }
   return true;

@@ -353,7 +353,7 @@ test('missing relation moments and unavailable participants cannot introduce a r
   assert.match(unavailable.replayRealizationDiagnostics.join('\n'), /PARTICIPANT_UNAVAILABLE.*past/);
 });
 
-test('a source domain is not realized while a current authored descendant is still pending', () => {
+test('a source domain waits for the later relation that introduces its descendant, then realizes at its own moment', () => {
   // The later relation rewrites other as past, so past waits for its moment.
   const before = [node('domain', [node('root')]), node('other')];
   const after = [node('domain', [node('root'), node('past')])];
@@ -361,19 +361,18 @@ test('a source domain is not realized while a current authored descendant is sti
     relation(['domain']), relation(['past'], ['other'])
   ], after)];
   const steps = play(stages);
-  const [early, later] = moments(steps, 1);
-  assert.ok(early.replayVisibleNodeIds.includes('domain'));
-  assert.ok(!early.replayVisibleNodeIds.includes('past'));
-  assert.deepEqual(early.replayRealizations, []);
-  assert.match(early.replayRealizationDiagnostics.join('\n'), /PARTICIPANT_UNAVAILABLE.*past/);
-  assert.ok(later.replayVisibleNodeIds.includes('past'));
-  assert.deepEqual(later.replayRealizations, [], 'a different later relation does not become the owner');
+  const [introducing, owner] = moments(steps, 1);
+  assert.deepEqual([introducing, owner].map(step => step.replayRelationIdentity.relationIndex), [1, 0]);
+  assert.ok(introducing.replayVisibleNodeIds.includes('past'));
+  assert.deepEqual(introducing.replayRealizations, [], 'a different relation does not become the owner');
+  assert.ok(owner.replayVisibleNodeIds.includes('domain') && owner.replayVisibleNodeIds.includes('past'));
+  assert.deepEqual(owner.replayRealizations, stages[1].realizations);
+  assert.equal(owner.replayRealizationDiagnostics, undefined);
   assert.deepEqual(completion(steps, 1).replayRealizations, stages[1].realizations);
   assert.deepEqual(geometry(steps), play(stages.map(({ realizations, ...rest }) => rest)));
 
-  const displaced = structuredClone(later);
+  const displaced = structuredClone(owner);
   displaced.replayCanvasData = node('workspace', [node('domain', [node('root')]), node('other', [node('past')])]);
-  displaced.replayRelationIdentity = early.replayRelationIdentity;
   const [outsideDomain] = attachReplayRealizations([displaced], adaptDerivationStagesForReplay(stages));
   assert.deepEqual(outsideDomain.replayRealizations, [], 'a descendant visible outside the source is not part of its completed domain');
   assert.match(outsideDomain.replayRealizationDiagnostics.join('\n'), /PARTICIPANT_UNAVAILABLE.*past/);
@@ -606,15 +605,16 @@ test('inferred movement owners compete only when no complete direct coverage exi
   assert.equal(resolveRealizationChanges(completeFrames[0], completeFrames[1], 1)[0].relationIndex, 2);
 });
 
-test('a direct owner before its participants become available defers instead of falling back to movement', () => {
+test('a direct owner authored before the movement that introduces its participants waits for it instead of falling back to movement', () => {
   const stages = movedRealizationStages();
   stages[1].relations.unshift(directMovedAssociation());
   const frames = adaptDerivationStagesForReplay(stages);
   assert.equal(resolveRealizationChanges(frames[0], frames[1], 1)[0].relationIndex, 0);
-  const steps = play(stages), [early, movement] = moments(steps, 1);
-  assert.deepEqual(early.replayRealizations, stages[0].realizations);
-  assert.match(early.replayRealizationDiagnostics.join('\n'), /REALIZATION_PARTICIPANT_UNAVAILABLE/);
-  assert.deepEqual(movement.replayRealizations, stages[0].realizations);
+  const steps = play(stages), [movement, owner] = moments(steps, 1);
+  assert.deepEqual([movement, owner].map(step => step.replayRelationIdentity.relationIndex), [1, 0]);
+  assert.deepEqual(movement.replayRealizations, stages[0].realizations, 'the movement does not take the realization');
+  assert.deepEqual(owner.replayRealizations, stages[1].realizations);
+  assert.equal(owner.replayRealizationDiagnostics, undefined);
   assert.deepEqual(completion(steps, 1).replayRealizations, stages[1].realizations);
 });
 

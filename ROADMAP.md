@@ -25,11 +25,6 @@ syntactic rules. Desktop remains the primary experience.
      no shape across a single-root stage. A head that becomes a head complex
      jumps the same way in 23 steps. Add a shape check that ignores parent
      recentring, then fix the layout.
-   - The adjunction in frame 49 of that analysis should be an External Merge
-     step, not part of its scope relation (`fix/replay-relation-wrapper-growth`).
-     Together with waiting slots it brings back the 我/昨天 jumps, because the
-     released wrapper also lets the subject movement's new parent arrive at its
-     movement, which main's waiting-slot plan does not expect.
    - Head-movement arrows when the model writes category labels in prose
      (`fix/relations-prose-category-labels`). It recovers 4 of 5 missing arrows;
      two review findings remain (a host role naming the wrong node still
@@ -48,8 +43,18 @@ syntactic rules. Desktop remains the primary experience.
      (no glide), so it needs a layout answer or acceptance.
    - Decide whether a lower occurrence should stay within its source's old
      horizontal span (81 of 136 land outside it).
-   - Decide the 14 relations authored before the same-stage movement that
-     creates their anchor: today their mark never appears with the anchor.
+   - Relations authored before the same-stage movement that creates their
+     anchor now play right after it (`fix/replay-relation-after-anchor-movement`).
+     Still diagnosed as `RELATION_TIMING_CONFLICT`: two cycles no order
+     satisfies. In the relative pied-piping run, the neutral Internal Merge
+     names wh2, which the recognized operator-variable movement introduces,
+     and that movement's landing joins the pp2 the Internal Merge builds; in
+     the Icelandic case transfer, continued V-to-I and I-to-C each own part of
+     one moving head complex. Each needs a decision about which claim
+     introduces the shared syntax. A movement also does not wait for a
+     contextual anchor, so the Icelandic raising chain's verb-trace role lacks
+     its anchor at its moment (waiting would cost the subject landing its
+     reserved slot and shift the matrix IP about 120 px).
    - Mobile calibration and a desktop minimum-zoom clamp.
 3. Clean up the tests:
    - Retire hand-picked per-frame Replay checks that the invariant sweep

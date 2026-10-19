@@ -202,6 +202,39 @@ export const isRenderableAuthoredRelation = relation => Boolean(trimmed(relation
   && (Boolean(relation.relationContractFailure) || Boolean(relation.anchors) && typeof relation.anchors === 'object'
     && Object.values(relation.anchors).flat().some(value => trimmed(value)));
 
+/** The authored ids a frame displays, by renderer id, data id and alias. */
+const displayedNames = structure => new Set([...structure.displayed].flatMap(id => nodeNames(structure.nodes.get(id))));
+
+/** What a relation moment waits for: the relation's authored anchors, and the
+ * parent and children of each node its moment introduces (the context a new
+ * landing or parent attaches to), minus what the moment introduces itself. */
+function momentNeeds(steps, index, relation) {
+  const structure = frameStructure(steps[index]), before = index ? frameStructure(steps[index - 1]) : EMPTY_FRAME;
+  const introduced = [...structure.displayed].filter(id => !before.displayed.has(id));
+  const needs = new Set(relationMentions({ anchors: relation?.anchors }));
+  introduced.forEach(id => [structure.parent.get(id), ...(structure.children.get(id) ?? [])].filter(Boolean)
+    .forEach(other => nodeNames(structure.nodes.get(other)).forEach(name => needs.add(name))));
+  introduced.forEach(id => nodeNames(structure.nodes.get(id)).forEach(name => needs.delete(name)));
+  return needs;
+}
+
+/** Whether `id` is one of a relation's authored anchors, or an ancestor or descendant of one in its stage's forest. */
+function coveredByClaim(stage, relation, id) {
+  const parent = new Map();
+  const visit = (node, parentId) => { parent.set(String(node.id), parentId); (node.children ?? []).forEach(child => visit(child, String(node.id))); };
+  (stage.workspaceForest ?? []).forEach(root => visit(root, null));
+  const lineage = start => { const ids = []; for (let at = start; at; at = parent.get(at)) ids.push(at); return ids; };
+  return relationMentions({ anchors: relation?.anchors }).some(anchor => lineage(anchor).includes(id) || lineage(id).includes(anchor));
+}
+
+/**
+ * Each renderable relation has exactly one moment, in its own stage. Moments
+ * follow authored order, except that a relation may wait for a later relation of
+ * its stage that introduces syntax it needs. A relation that plays after a
+ * later authored one must have waited: from the last such relation's moment to
+ * its own, some moment first displays one of its needs (`momentNeeds`) that
+ * belongs to that moment's own authored claim.
+ */
 export function checkRelationMoments(replay, record) {
   const steps = replay.playbackSteps, out = [], moments = new Map();
   steps.forEach((step, index) => {
@@ -215,16 +248,23 @@ export function checkRelationMoments(replay, record) {
       out.push(violation('relation-moments', index + 1, `moment for ${key}, which is not a renderable authored relation`));
   });
   (record.derivationStages ?? []).forEach((stage, stageIndex) => {
-    let previous = null;
-    (stage.relations ?? []).forEach((relation, relationIndex) => {
+    const played = (stage.relations ?? []).flatMap((relation, relationIndex) => {
       const key = `${stageIndex}:${relationIndex}`, own = moments.get(key) ?? [];
-      if (!isRenderableAuthoredRelation(relation)) return;
+      if (!isRenderableAuthoredRelation(relation)) return [];
       if (own.length !== 1) out.push(violation('relation-moments', own[1] === undefined ? null : own[1] + 1,
         `relation ${key} (${relation.relation}) has ${own.length} moments`));
-      if (!own.length) return;
-      if (previous && own[0] < previous.index) out.push(violation('relation-moments', own[0] + 1,
-        `relation ${key} plays before earlier authored relation ${previous.key}`));
-      previous = { key, index: own[0] };
+      return own.length ? [{ key, relation, relationIndex, index: own[0] }] : [];
+    }).sort((left, right) => left.index - right.index);
+    played.forEach((moment, position) => {
+      const overtaking = played.slice(0, position).filter(other => other.relationIndex > moment.relationIndex).at(-1);
+      if (!overtaking) return;
+      const needs = momentNeeds(steps, moment.index, moment.relation), shown = displayedNames(frameStructure(steps[moment.index]));
+      const waited = played.slice(played.indexOf(overtaking), position).some(other => {
+        const before = other.index ? displayedNames(frameStructure(steps[other.index - 1])) : new Set();
+        return [...needs].some(id => shown.has(id) && !before.has(id) && coveredByClaim(stage, other.relation, id));
+      });
+      if (!waited) out.push(violation('relation-moments', moment.index + 1,
+        `relation ${moment.key} plays after later authored relation ${overtaking.key} without waiting for syntax it introduces`));
     });
   });
   return out;
@@ -317,6 +357,28 @@ export function checkParentAfterChildren(replay) {
 const nodeNames = node => [getNodeId(node), node.data.id, ...(node.data.aliasIds ?? [])].filter(Boolean);
 
 const named = (node, ids) => nodeNames(node).some(name => ids.has(name));
+
+/** A movement moment shows each landing its own transition introduces under
+ * that landing's parent: the parent the landing joins is already shown or
+ * appears with it, never later. */
+export function checkLandingAttached(replay) {
+  const out = [];
+  replay.playbackSteps.forEach((step, index) => {
+    if (step.replayKind !== 'relation' || !step.replayRelationIdentity) return;
+    const key = `${step.replayRelationIdentity.stageIndex}:${step.replayRelationIdentity.relationIndex}`;
+    const landings = new Set((step.replayRelationLinks ?? []).filter(link => link.authoredRelationKey === key && link.movementTransition === true)
+      .map(link => link.targetNodeId).filter(Boolean));
+    if (!landings.size) return;
+    const structure = frameStructure(step);
+    for (const [id, node] of structure.nodes) {
+      const parent = node.parent;
+      if (!structure.displayed.has(id) || !named(node, landings) || !parent || isWorkspace(parent.data)) continue;
+      if (!structure.displayed.has(getNodeId(parent)))
+        out.push(violation('landing-attached', index + 1, `${id} lands without its parent ${getNodeId(parent)}`));
+    }
+  });
+  return out;
+}
 
 /** What one relation moment introduces by itself. A proved movement transition
  * (a new landing or proven relocation) owns its complete landing and lower
@@ -477,6 +539,49 @@ export function checkAttachAtMerge(replay) {
         `${id} attaches to ${parent} at ${step.replayKind} ${step.operation} (target ${target})`));
     }
     previous = current;
+  });
+  return out;
+}
+
+/** A movement moment introduces its landing together with the smallest new
+ * parent needed to attach it above an existing subtree. In the authored stage
+ * forest that parent is the landing's only sister when the landing's parent had
+ * two or more children in the preceding stage and the sister holds exactly
+ * those children, in order. Whenever the moment paints the landing, the landing
+ * and that sister are painted as daughters of the landing's parent; otherwise
+ * the moment shows the landing beside the earlier children instead. */
+export function checkMovementLandingParent(replay, record) {
+  const out = [], stages = record.derivationStages ?? [];
+  const parents = forest => {
+    const parent = new Map(), pending = (forest ?? []).map(root => [root, null]);
+    while (pending.length) {
+      const [node, owner] = pending.pop();
+      if (!node || typeof node !== 'object') continue;
+      parent.set(String(node.id ?? ''), { node, owner });
+      for (const child of node.children ?? []) pending.push([child, node]);
+    }
+    return parent;
+  };
+  const childIds = node => (node?.children ?? []).map(child => String(child.id ?? ''));
+  replay.playbackSteps.forEach((step, index) => {
+    const identity = step.replayRelationIdentity;
+    if (step.replayKind !== 'relation' || !identity) return;
+    const key = `${identity.stageIndex}:${identity.relationIndex}`;
+    const landings = new Set((step.replayRelationLinks ?? []).filter(link => link.authoredRelationKey === key
+      && link.movementTransition === true).map(link => link.targetNodeId).filter(Boolean).map(String));
+    if (!landings.size) return;
+    const current = parents(stages[identity.stageIndex]?.workspaceForest), previous = parents(stages[identity.stageIndex - 1]?.workspaceForest);
+    const frame = frameStructure(step);
+    for (const landing of landings) {
+      const host = current.get(landing)?.owner, earlier = host && previous.get(String(host.id ?? ''))?.node;
+      const sister = childIds(host).length === 2 ? host.children.find(child => String(child.id ?? '') !== landing) : null;
+      if (!sister || childIds(earlier).length < 2 || JSON.stringify(childIds(sister)) !== JSON.stringify(childIds(earlier))
+        || !frame.displayed.has(landing)) continue;
+      const hostId = String(host.id), sisterId = String(sister.id);
+      if (frame.parent.get(landing) !== hostId || frame.parent.get(sisterId) !== hostId)
+        out.push(violation('movement-landing-parent', index + 1,
+          `${sisterId} is not painted beside landing ${landing} under ${hostId} at its movement moment`));
+    }
   });
   return out;
 }

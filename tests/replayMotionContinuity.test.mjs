@@ -134,11 +134,12 @@ test('a word that shifts under a stationary phrase is reported, whoever owns the
 
 // Defects 19–21: GPT-6.1 Sol, 我昨天看见的那个人走了。 Select T jumped 我 and 昨天 (frame
 // 16), T + v moved the waiting vP a row (17), the stage-2 subject movement moved 我
-// and 昨天 across the clause (44), and D + Top pulled 我 across the tree (47). Each
+// and 昨天 across the clause (44), and D + Top pulled 我 across the tree (now 48). Each
 // waiting piece now stands where it attaches from its first frame; 昨天, which
-// attaches under the T inserted at frame 49, waits beside that T's host and
-// descends with it. The clause pieces that close the raised subject's gap still
-// move at 44, as on main.
+// attaches under the T its own External Merge inserts above matrixTP (frame 46),
+// waits beside that host and descends with it. At 44 the subject movement also
+// brings T′, which takes 了's clause up a row; 了 rides with it and still slides
+// sideways into the raised subject's gap, a stage-crossing slide Francis accepted.
 const waitingRoots = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/waiting-root-continuity.json', import.meta.url)));
 for (const [width, height] of [[1440, 900], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
   test(`${width}px ${direction}: defects 19–21 — 我 and 昨天 keep their place in the tree from their first frame`, () => {
@@ -149,7 +150,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) for (const direction of
     const frames = scenes.map(scene => motionFrame(scene.step, scene.nodes, display.getNodeId));
     const faults = replayMotionFaults({ frames });
     const pieces = ['topic', 'topic::__leaf', 'yesterday', 'yesterday::__leaf'];
-    assert.deepEqual(faults.filter(fault => pieces.includes(fault.node) || [16, 17, 47].includes(fault.frame)), []);
+    assert.deepEqual(faults.filter(fault => pieces.includes(fault.node) || [16, 17, 48].includes(fault.frame)), []);
     // The camera carry is the only motion a stage crossing may show for them; at
     // its own merge under the inserted T, 昨天 descends with its host matrixTP.
     const painted = frame => new Map(frame.points.map(item => [item.id, { x: item.x, y: item.y, parentId: item.parent }]));
@@ -167,9 +168,8 @@ for (const [width, height] of [[1440, 900], [390, 844]]) for (const direction of
         if (joins) assert.equal(own.parent, 'timedMatrixTP');
       }
     }
-    if (direction === 'ltr') assert.deepEqual(faults.filter(fault => fault.kind !== 'shape-motion')
-      .map(fault => `${fault.frame}:${fault.node}:${fault.kind}:${Math.round(fault.distance)}`),
-      ['44:le:unowned-motion:316', '44:leave:unowned-motion:1821', '44:matrixT:unowned-motion:1296']);
+    assert.deepEqual(faults.filter(fault => fault.kind !== 'shape-motion')
+      .map(fault => `${fault.frame}:${fault.node}:${fault.kind}:${Math.round(fault.distance)}`), ['44:le:unowned-motion:541']);
     assert.equal(JSON.stringify(waitingRoots), authored);
   });
 }
