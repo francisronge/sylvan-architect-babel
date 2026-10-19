@@ -330,9 +330,19 @@ export const finalizeStageReplay = (
       visiting.delete(nodeId);
       return producers;
     };
+    // A movement's landing appears attached: when another relation's moment
+    // introduces the parent a landing joins, the movement waits for it.
+    const landingParentOwners = (placement: RelationPlacement): number[] => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
+      ? placement.authoredTargetNodeIds.map(nodeId => findParentNodeIdInForest(workspaceRoots, nodeId))
+        .filter(parentId => parentId && !initiallyAvailableNodeIds.has(parentId))
+        .flatMap(parentId => relationProducers.get(parentId) ?? [])
+      : [];
     const momentOrder = orderRelationMoments(relationPlacements.map(placement => placement.relationIndex), new Map(relationPlacements.map(placement => [
       placement.relationIndex,
-      new Set(requiredNodeIds(placement, initiallyAvailableNodeIds).flatMap(nodeId => producingRelations(nodeId)))
+      new Set([
+        ...requiredNodeIds(placement, initiallyAvailableNodeIds).flatMap(nodeId => producingRelations(nodeId)),
+        ...landingParentOwners(placement)
+      ])
     ])));
     const momentPosition = new Map(momentOrder.map((relationIndex, position) => [relationIndex, position]));
     const orderedPlacements = momentOrder.map(relationIndex => relationPlacements.find(placement => placement.relationIndex === relationIndex)!);

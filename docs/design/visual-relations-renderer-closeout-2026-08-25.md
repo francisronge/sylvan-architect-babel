@@ -570,9 +570,11 @@ after that relation's moment, or after the last such moment when it needs
 several. Its needs are its current anchors (for a movement, its source and
 landing) and, for a relation that builds structure, the material its new
 landing host or parent attaches to, followed through the construction that
-builds them. A movement does not wait for its other, contextual anchors. The introducing relation may be a
-recognized movement, a neutral transition or another rewrite; its tier does not
-change the order. Relations waiting for the same moment keep authored order, a
+builds them. A movement also needs the parent each landing joins when another
+relation's moment introduces it, so a landing never appears without its
+parent. A movement does not wait for its other, contextual anchors. The
+introducing relation may be a recognized movement, a neutral transition or
+another rewrite; its tier does not change the order. Relations waiting for the same moment keep authored order, a
 chain of needs resolves in turn, and every other relation keeps its authored
 position. A construction step already under way, which may build what the
 waiting relation needs, completes first. `replay/relationMomentOrder.ts` computes

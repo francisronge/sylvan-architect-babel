@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import { orderRelationMoments } from '../replay/relationMomentOrder.ts';
+import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
+import { checkLandingAttached } from './helpers/replayInvariants.mjs';
 
 const needs = entries => new Map(Object.entries(entries).map(([index, others]) => [Number(index), new Set(others)]));
 
@@ -118,23 +120,21 @@ test('Replay: relations needing each other\'s syntax keep authored order with th
   assert.deepEqual(record, original);
 });
 
-test('saved relative pied-piping: the Internal Merge naming wh2 plays right after the movement that introduces it', () => {
+test('saved relative pied-piping: no movement moment reveals its landing before the parent it joins', () => {
   // "This is the man to whom I gave the book." Stage 8: the neutral relative
-  // Internal Merge builds cpRel and pp2 and names wh2, which the recognized
-  // operator-variable movement introduces. That movement names cpRel only as
-  // context, so it does not wait and its missing context stays diagnosed.
+  // Internal Merge builds pp2 and cpRel and names wh2; the recognized
+  // operator-variable movement introduces wh2, whose parent is pp2. Each needs
+  // the other's syntax, so authored order is kept and wh2 lands inside pp2.
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/unrecognized-movement.json', import.meta.url))).cases[2];
   const original = structuredClone(record);
-  const steps = buildReplayPlayback({ sentence: record.sentence, inputTokens: record.inputTokens, analyses: [record] }).steps;
-  const [dependency, merge] = relationMoments(steps, 7);
-  assert.deepEqual([dependency, merge].map(step => step.replayRelationIdentity.relationIndex), [1, 0]);
-  assert.equal(steps.indexOf(merge), steps.indexOf(dependency) + 1);
-  assert.ok(!visible(steps[steps.indexOf(dependency) - 1], 'wh2'), 'wh2 is not introduced early');
-  assert.ok(visible(dependency, 'wh2'));
-  assert.ok(!visible(dependency, 'pp2') && !visible(dependency, 'cpRel'), 'the Internal Merge keeps its own new parents');
-  for (const id of ['wh2', 'pp2', 'cpRel']) assert.ok(visible(merge, id), id);
-  assert.ok(!merge.movementDiagnostics?.some(message => message.startsWith('RELATION_TIMING_CONFLICT')));
-  assert.match(dependency.movementDiagnostics.join('\n'),
-    /RELATION_TIMING_CONFLICT: Stage 8, relation 2 \(relative operator-variable dependency\) has unavailable authored context: cpRel/);
+  const prepared = prepareReplay({ ...structuredClone(record), includePlayback: true }), steps = prepared.playbackSteps;
+  assert.deepEqual(checkLandingAttached(prepared), []);
+  const [merge, dependency] = relationMoments(steps, 7);
+  assert.deepEqual([merge, dependency].map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
+  assert.ok(visible(merge, 'pp2') && visible(merge, 'cpRel'));
+  assert.ok(!visible(merge, 'wh2'), 'wh2 is not introduced early');
+  assert.ok(visible(dependency, 'wh2') && visible(dependency, 'pp2'));
+  assert.match(merge.movementDiagnostics.join('\n'),
+    /RELATION_TIMING_CONFLICT: Stage 8, relation 1 \(relative Internal Merge\) requires wh2 before relation 2/);
   assert.deepEqual(record, original);
 });

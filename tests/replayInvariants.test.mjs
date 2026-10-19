@@ -3,7 +3,7 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  checkAttachAtMerge, checkInputUnchanged, checkMarksAtOwningMoment, checkNoEarlyReveal, checkNoVisibleScaffolding,
+  checkAttachAtMerge, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkNoEarlyReveal, checkNoVisibleScaffolding,
   checkOneLetterPerLabel, checkParentAfterChildren, checkRelationMoments, checkStableConstruction, checkStageCompletion,
   checkVisibleInCanvas, frameStructure
 } from './helpers/replayInvariants.mjs';
@@ -101,6 +101,18 @@ test('control: relation-moments reports a lost, repeated, misplaced or needlessl
   });
   assert(reported(checkRelationMoments(reordered, sample), 'relation-moments', second + 1,
     'relation 3:0 plays after later authored relation 3:1 without waiting for syntax it introduces'));
+});
+
+test('control: landing-attached reports a movement landing shown before the parent it joins', () => {
+  assert.deepEqual(checkLandingAttached(replay), []);
+  const index = steps.findIndex(step => step.replayKind === 'relation' && (step.replayRelationLinks ?? []).some(link =>
+    link.movementTransition === true && link.authoredRelationKey === `${step.replayRelationIdentity.stageIndex}:${step.replayRelationIdentity.relationIndex}`));
+  assert(index >= 0, 'the sample has a movement moment');
+  const { targetNodeId } = steps[index].replayRelationLinks.find(link => link.movementTransition === true);
+  const landing = [...frameStructure(steps[index]).nodes.values()].find(node => node.data.id === targetNodeId);
+  const parent = landing.parent.data.id;
+  const detached = breakReplay(copy => { copy[index].replayVisibleNodeIds = copy[index].replayVisibleNodeIds.filter(id => id !== parent); });
+  assert(reported(checkLandingAttached(detached), 'landing-attached', index + 1, `${targetNodeId} lands without its parent ${parent}`));
 });
 
 test('control: no-early-reveal reports syntax first shown by a micro-step, a relation moment or a completed stage', () => {
@@ -250,7 +262,7 @@ const KNOWN_DEFECTS = [
 const REPORTED_BY = new Map([['attach-at-merge', 'no-early-reveal']]);
 const subjectOf = violation => violation.detail.split(' ')[0];
 
-const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments',
+const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments', 'landing-attached',
   'no-early-reveal', 'parent-after-children', 'stable-construction', 'attach-at-merge', 'visible-in-canvas', 'marks-at-owning-moment',
   'one-letter-per-label'];
 let sweep;
@@ -261,7 +273,7 @@ before(() => {
       const prepared = prepareReplay({ ...authored, includePlayback: true });
       return { id, frames: prepared.playbackSteps.length, violations: [
         ...checkInputUnchanged(snapshot, authored), ...checkNoVisibleScaffolding(prepared), ...checkStageCompletion(prepared, authored),
-        ...checkRelationMoments(prepared, authored), ...checkNoEarlyReveal(prepared), ...checkParentAfterChildren(prepared),
+        ...checkRelationMoments(prepared, authored), ...checkLandingAttached(prepared), ...checkNoEarlyReveal(prepared), ...checkParentAfterChildren(prepared),
         ...checkStableConstruction(prepared), ...checkAttachAtMerge(prepared), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),

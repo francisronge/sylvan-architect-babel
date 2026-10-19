@@ -358,6 +358,28 @@ const nodeNames = node => [getNodeId(node), node.data.id, ...(node.data.aliasIds
 
 const named = (node, ids) => nodeNames(node).some(name => ids.has(name));
 
+/** A movement moment shows each landing its own transition introduces under
+ * that landing's parent: the parent the landing joins is already shown or
+ * appears with it, never later. */
+export function checkLandingAttached(replay) {
+  const out = [];
+  replay.playbackSteps.forEach((step, index) => {
+    if (step.replayKind !== 'relation' || !step.replayRelationIdentity) return;
+    const key = `${step.replayRelationIdentity.stageIndex}:${step.replayRelationIdentity.relationIndex}`;
+    const landings = new Set((step.replayRelationLinks ?? []).filter(link => link.authoredRelationKey === key && link.movementTransition === true)
+      .map(link => link.targetNodeId).filter(Boolean));
+    if (!landings.size) return;
+    const structure = frameStructure(step);
+    for (const [id, node] of structure.nodes) {
+      const parent = node.parent;
+      if (!structure.displayed.has(id) || !named(node, landings) || !parent || isWorkspace(parent.data)) continue;
+      if (!structure.displayed.has(getNodeId(parent)))
+        out.push(violation('landing-attached', index + 1, `${id} lands without its parent ${getNodeId(parent)}`));
+    }
+  });
+  return out;
+}
+
 /** What one relation moment introduces by itself. A proved movement transition
  * (a new landing or proven relocation) owns its complete landing and lower
  * occurrence: the subtrees at its own link endpoints, whatever mark draws it.
