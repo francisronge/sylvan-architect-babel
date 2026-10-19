@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as d3 from 'd3';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
-import { collectTreeInkMeasurements, treeInkObstacles, prepareTreeInkSubtrees } from '../replay/treeInkGeometry.ts';
+import { collectTreeInkMeasurements, createTreeInkCache, treeInkObstacles, prepareTreeInkSubtrees } from '../replay/treeInkGeometry.ts';
 import { visibleComponentNodes } from '../replay/visibleComponent.ts';
 import { plaqueTreeObstacles } from '../replay/relations/plaquePlacement.ts';
 import { REPLAY_GENERATED_TERMINAL_GLYPHS, formatIndexedSurfaceForDisplayValue } from '../replay/replaySurfaceNotation.ts';
@@ -46,6 +46,36 @@ test('composed subtree ink exactly preserves roots, visibility holes, styled var
           treeInkObstacles(visibleComponentNodes(node, visible), widths, inkMeasure, precise, labels, styled),
           `${getNodeId(node)} with hidden ${hidden} retains complete ordered ink`);
       }
+  }
+});
+
+test('cached tree ink equals direct measurement of any node list, and follows moved nodes', () => {
+  const root = d3.hierarchy({ id: 'forest', label: 'workspace', replayOrigin: { kind: 'workspace' }, children: [
+    { id: 'root', label: 'CP', children: [
+      { id: 'left', label: 'NP', children: [{ id: 'word', label: 'N', word: 'Mér' }] },
+      { id: 'hidden', label: 'VP', children: [{ id: 'gap', label: 't_i' }, { id: 'right', label: 'V', word: 'saw' }] }
+    ] }, { id: 'other', label: 'C', word: 'that' }
+  ] });
+  applyVizIds(root);
+  const all = root.descendants();
+  const labels = new Map(all.map(node => [getNodeId(node), [
+    { kind: 'category', bounds: { x: -48, y: -39, width: 97, height: 46 } },
+    { kind: 'terminal', bounds: { x: -88, y: 66, width: 161, height: 72 } }
+  ]]));
+  for (const inkMeasure of [undefined, metrics]) for (const styled of [undefined, run => run.bounds]) {
+    const cache = createTreeInkCache(widths, inkMeasure, labels, styled);
+    // Whole moves, then the parent alone: a branch follows either endpoint.
+    for (const [dx, dy, only] of [[0, 0], [1 / 3, 0], [1 / 3, 1 / 7], [0, 1 / 7], [-0, 0], [0, 9, 'root'], [5, 0, 'root']]) {
+      root.each((node, i) => {
+        if (only && getNodeId(node) !== only) return;
+        node.x = (i % 2 ? -1 : 1) * (125.25 + i * 200) + dx; node.y = node.depth * 210.75 - dy;
+      });
+      const visible = new Map(all.filter(node => getNodeId(node) !== 'hidden').map(node => [getNodeId(node), node]));
+      const lists = [all, all.slice(1).reverse(), all.filter((_, i) => i % 2), ...all.map(node => visibleComponentNodes(node, visible))];
+      for (const list of lists) for (const precise of [false, true]) {
+        assert.deepEqual(cache.obstacles(list, precise), treeInkObstacles(list, widths, inkMeasure, precise, labels, styled));
+      }
+    }
   }
 });
 

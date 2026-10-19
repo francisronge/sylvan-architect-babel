@@ -1,0 +1,1719 @@
+{
+  "description": "A Turkish nominalized complement clause whose object carries a participial relative clause, with long-distance scrambling: 9 words, 5 stages, 90 Replay steps and 63 final nodes. Before 19 October 2026 its offline preparation took about 8 seconds, most of it in the plaque schedule.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (character-spellout-v3), 19 October 2026 (night4 batch, 26-tr-long-embedded, analysis 2), commit bcf1b56. Tokens are the shared word list of that run.",
+  "contract": "character-spellout-v3",
+  "sentence": "Ahmet'in dün kütüphaneden aldığı kitabı Ayşe'nin çoktan okuduğunu biliyorum.",
+  "framework": "xbar",
+  "inputTokens": [
+    "Ahmet'in",
+    "dün",
+    "kütüphaneden",
+    "aldığı",
+    "kitabı",
+    "Ayşe'nin",
+    "çoktan",
+    "okuduğunu",
+    "biliyorum"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "agent": "b-rsubject",
+            "predicate": "b-take",
+            "source": "b-source",
+            "theme": "b-operator"
+          },
+          "relation": "theta_assignment",
+          "values": {
+            "roles": [
+              "agent",
+              "theme",
+              "source"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "complement": "b-library",
+            "governor": "b-ablative"
+          },
+          "relation": "ablative_government",
+          "values": {
+            "case": "ABL"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "b-ri",
+            "subject": "b-rsubject"
+          },
+          "relation": "genitive_licensing_and_agreement",
+          "values": {
+            "agreement": "3SG",
+            "case": "GEN",
+            "licensing_configuration": "nominal nonfinite I and its subject"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "b-ri",
+            "verb": "b-take"
+          },
+          "relation": "lexical_inflection",
+          "values": {
+            "features": "nominalizing -DIK and third-person singular possessive agreement",
+            "form": "aldığı",
+            "implementation": "lexically inflected V; no syntactic V-to-I movement",
+            "root": "al"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "b-take",
+            "object": "b-operator"
+          },
+          "relation": "abstract_accusative_government",
+          "values": {
+            "case": "ACC"
+          }
+        }
+      ],
+      "stageRecord": "This alternative uses the same head-final, lexicalist GB assumptions: inflected words are lexical V or nominal entries, functional heads may be silent, proper names are lexical D heads, and subjects originate in Spec-IP. Aldığı assigns agent to Ahmet'in, theme to the silent relative operator, and source to kütüphaneden. The silent source P licenses ablative on its complement. Nominal nonfinite I licenses genitive on the subject and agrees with it in the third-person singular. The lexical word aldığı realizes al with nominalizing -DIK and third-person possessive agreement, without syntactic head movement. The object operator receives abstract accusative Case under government by the verb. Dün is inside the relative VP and modifies the taking event.",
+      "statement": "Build the relative clause with the operator in its original object position.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "b-ahmet",
+                      "label": "D [proper name, GEN]",
+                      "word": "Ahmet'in"
+                    }
+                  ],
+                  "id": "b-rsubjectbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "b-rsubject",
+              "label": "DP"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "b-yesterday",
+                              "label": "Adv",
+                              "word": "dün"
+                            }
+                          ],
+                          "id": "b-yesterdaybar",
+                          "label": "Adv′"
+                        }
+                      ],
+                      "id": "b-yesterdayp",
+                      "label": "AdvP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "b-librarynoun",
+                                          "label": "N [ABL]",
+                                          "word": "kütüphaneden"
+                                        }
+                                      ],
+                                      "id": "b-librarybar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "b-library",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "b-ablative",
+                                  "label": "P [source, ABL]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "b-sourcebar",
+                              "label": "P′"
+                            }
+                          ],
+                          "id": "b-source",
+                          "label": "PP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "b-operator",
+                              "label": "DP [relative operator]",
+                              "lineageId": "b-relative-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "b-take",
+                              "label": "V",
+                              "word": "aldığı"
+                            }
+                          ],
+                          "id": "b-rvbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "b-rvpinner",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "b-rvp",
+                  "label": "VP"
+                },
+                {
+                  "children": [],
+                  "id": "b-ri",
+                  "label": "I [−finite, nominal, AGR:3SG]",
+                  "silent": true
+                }
+              ],
+              "id": "b-ribar",
+              "label": "I′"
+            }
+          ],
+          "id": "b-rip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landing": "b-operator",
+            "landing_domain": "b-relativecp",
+            "source_governor": "b-take",
+            "trace": "b-relative-trace"
+          },
+          "priorAnchors": {
+            "source": "b-operator"
+          },
+          "relation": "relative_operator_movement",
+          "values": {
+            "chain_case": "ACC",
+            "movement_type": "A-bar movement to Spec-CP"
+          }
+        },
+        {
+          "anchors": {
+            "nominal_head": "b-booknoun",
+            "operator": "b-operator",
+            "relative_clause": "b-relativecp"
+          },
+          "relation": "relative_predication",
+          "values": {
+            "interpretation": "the book that Ahmet took from the library yesterday"
+          }
+        },
+        {
+          "anchors": {
+            "determiner": "b-bookd",
+            "nominal_head": "b-booknoun"
+          },
+          "relation": "nominal_morphology",
+          "values": {
+            "case_feature": "ACC, awaiting structural licensing",
+            "form": "kitabı",
+            "possessive_feature": "none",
+            "root": "kitap"
+          }
+        }
+      ],
+      "stageRecord": "The relative operator moves from the displayed object position to Spec-CP and leaves a silent, verbally governed trace. The CP is then adjoined to N′ before kitabı. Relative predication identifies the book as the theme of Ahmet's taking, while keeping the external nominal and the operator syntactically distinct. The book DP bears accusative morphology, whose structural licensing awaits its merger with okumak. Kitabı is kitap plus accusative with stem voicing, not a third-person possessed noun. A possessed accusative object would require additional morphology and is not the structure of this input.",
+      "statement": "Create the externally headed relative construction.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "b-operator",
+                              "label": "DP [relative operator]",
+                              "lineageId": "b-relative-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "b-ahmet",
+                                              "label": "D [proper name, GEN]",
+                                              "word": "Ahmet'in"
+                                            }
+                                          ],
+                                          "id": "b-rsubjectbar",
+                                          "label": "D′"
+                                        }
+                                      ],
+                                      "id": "b-rsubject",
+                                      "label": "DP"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "b-yesterday",
+                                                      "label": "Adv",
+                                                      "word": "dün"
+                                                    }
+                                                  ],
+                                                  "id": "b-yesterdaybar",
+                                                  "label": "Adv′"
+                                                }
+                                              ],
+                                              "id": "b-yesterdayp",
+                                              "label": "AdvP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "b-librarynoun",
+                                                                  "label": "N [ABL]",
+                                                                  "word": "kütüphaneden"
+                                                                }
+                                                              ],
+                                                              "id": "b-librarybar",
+                                                              "label": "N′"
+                                                            }
+                                                          ],
+                                                          "id": "b-library",
+                                                          "label": "NP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "b-ablative",
+                                                          "label": "P [source, ABL]",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "b-sourcebar",
+                                                      "label": "P′"
+                                                    }
+                                                  ],
+                                                  "id": "b-source",
+                                                  "label": "PP"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "b-relative-trace",
+                                                      "label": "DP [operator trace]",
+                                                      "lineageId": "b-relative-chain",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "b-take",
+                                                      "label": "V",
+                                                      "word": "aldığı"
+                                                    }
+                                                  ],
+                                                  "id": "b-rvbar",
+                                                  "label": "V′"
+                                                }
+                                              ],
+                                              "id": "b-rvpinner",
+                                              "label": "VP"
+                                            }
+                                          ],
+                                          "id": "b-rvp",
+                                          "label": "VP"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "b-ri",
+                                          "label": "I [−finite, nominal, AGR:3SG]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "b-ribar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "b-rip",
+                                  "label": "IP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "b-relativec",
+                                  "label": "C [relative]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "b-relativecbar",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "b-relativecp",
+                          "label": "CP [relative]"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "b-booknoun",
+                              "label": "N [ACC]",
+                              "word": "kitabı"
+                            }
+                          ],
+                          "id": "b-booknbarinner",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "b-booknbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "b-booknp",
+                  "label": "NP"
+                },
+                {
+                  "children": [],
+                  "id": "b-bookd",
+                  "label": "D [definite]",
+                  "silent": true
+                }
+              ],
+              "id": "b-bookbar",
+              "label": "D′"
+            }
+          ],
+          "id": "b-book",
+          "label": "DP [definite, ACC]",
+          "lineageId": "b-book-chain"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "agent": "b-esubject",
+            "predicate": "b-read",
+            "theme": "b-book"
+          },
+          "relation": "embedded_theta_assignment",
+          "values": {
+            "roles": [
+              "agent",
+              "theme"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "governor": "b-read",
+            "object": "b-book"
+          },
+          "relation": "embedded_object_case",
+          "values": {
+            "case": "ACC"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "b-ei",
+            "subject": "b-esubject"
+          },
+          "relation": "embedded_genitive_licensing_and_agreement",
+          "values": {
+            "agreement": "3SG",
+            "case": "GEN"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "b-ei",
+            "nominal_determiner": "b-ed",
+            "verb": "b-read"
+          },
+          "relation": "embedded_lexical_inflection",
+          "values": {
+            "features": "nominalizing -DIK, third-person singular possessive agreement, linking n, and accusative",
+            "form": "okuduğunu",
+            "root": "oku"
+          }
+        },
+        {
+          "anchors": {
+            "content": "b-embedded",
+            "experiencer": "b-pro",
+            "predicate": "b-know"
+          },
+          "relation": "matrix_selection_theta_and_complement_case",
+          "values": {
+            "complement_case": "ACC",
+            "selection": "nominalized propositional complement"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "b-mi",
+            "subject": "b-pro"
+          },
+          "relation": "matrix_subject_licensing",
+          "values": {
+            "agreement": "1SG",
+            "case": "NOM",
+            "null_subject_licensing": "finite agreement identifies pro"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "b-mi",
+            "verb": "b-know"
+          },
+          "relation": "matrix_lexical_inflection",
+          "values": {
+            "features": "nonpast progressive and first-person singular agreement",
+            "form": "biliyorum",
+            "root": "bil"
+          }
+        },
+        {
+          "anchors": {
+            "escape_domain": "b-ecp",
+            "selected_domain": "b-embedded",
+            "selecting_head": "b-know"
+          },
+          "relation": "selected_complement_transparency",
+          "values": {
+            "locality_assumption": "L-marked nominal complement; nominal shell is not an independent barrier; successive-cyclic extraction uses the CP edge"
+          }
+        }
+      ],
+      "stageRecord": "The book DP is merged as the object of okuduğunu. The reading verb assigns agent to Ayşe'nin and theme to the book, and governs the book's accusative Case. Çoktan is an embedded VP adjunct, so the already-completed event is the reading. Embedded nominal I licenses genitive on Ayşe'nin and agrees with that subject in the third-person singular. The lexical word okuduğunu realizes the nominalizer, possessive agreement, and the accusative ending associated with the enclosing nominalized DP. Matrix biliyorum selects that propositional DP, assigns it the content role, and licenses its accusative Case. Its silent subject receives the experiencer role; finite I licenses nominative and first-person singular agreement, identifying pro. The matrix verb's lexical form contains nonpast progressive and first-person singular morphology. For the long-distance scrambling derivation that follows, the selected complement is L-marked by the matrix verb: its nominal shell is not treated as an independent extraction island, and its CP edge supplies the successive-cyclic escape position. This is an explicit locality commitment of this analysis, not extraction from the relative clause.",
+      "statement": "Establish the embedded object source and the selecting matrix clause.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "b-pro",
+                      "label": "DP [pro, 1SG, NOM]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "b-ayse",
+                                                              "label": "D [proper name, GEN]",
+                                                              "word": "Ayşe'nin"
+                                                            }
+                                                          ],
+                                                          "id": "b-esubjectbar",
+                                                          "label": "D′"
+                                                        }
+                                                      ],
+                                                      "id": "b-esubject",
+                                                      "label": "DP"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "b-already",
+                                                                      "label": "Adv",
+                                                                      "word": "çoktan"
+                                                                    }
+                                                                  ],
+                                                                  "id": "b-alreadybar",
+                                                                  "label": "Adv′"
+                                                                }
+                                                              ],
+                                                              "id": "b-alreadyp",
+                                                              "label": "AdvP"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "children": [],
+                                                                                          "id": "b-operator",
+                                                                                          "label": "DP [relative operator]",
+                                                                                          "lineageId": "b-relative-chain",
+                                                                                          "silent": true
+                                                                                        },
+                                                                                        {
+                                                                                          "children": [
+                                                                                            {
+                                                                                              "children": [
+                                                                                                {
+                                                                                                  "children": [
+                                                                                                    {
+                                                                                                      "children": [
+                                                                                                        {
+                                                                                                          "children": [],
+                                                                                                          "id": "b-ahmet",
+                                                                                                          "label": "D [proper name, GEN]",
+                                                                                                          "word": "Ahmet'in"
+                                                                                                        }
+                                                                                                      ],
+                                                                                                      "id": "b-rsubjectbar",
+                                                                                                      "label": "D′"
+                                                                                                    }
+                                                                                                  ],
+                                                                                                  "id": "b-rsubject",
+                                                                                                  "label": "DP"
+                                                                                                },
+                                                                                                {
+                                                                                                  "children": [
+                                                                                                    {
+                                                                                                      "children": [
+                                                                                                        {
+                                                                                                          "children": [
+                                                                                                            {
+                                                                                                              "children": [
+                                                                                                                {
+                                                                                                                  "children": [],
+                                                                                                                  "id": "b-yesterday",
+                                                                                                                  "label": "Adv",
+                                                                                                                  "word": "dün"
+                                                                                                                }
+                                                                                                              ],
+                                                                                                              "id": "b-yesterdaybar",
+                                                                                                              "label": "Adv′"
+                                                                                                            }
+                                                                                                          ],
+                                                                                                          "id": "b-yesterdayp",
+                                                                                                          "label": "AdvP"
+                                                                                                        },
+                                                                                                        {
+                                                                                                          "children": [
+                                                                                                            {
+                                                                                                              "children": [
+                                                                                                                {
+                                                                                                                  "children": [
+                                                                                                                    {
+                                                                                                                      "children": [
+                                                                                                                        {
+                                                                                                                          "children": [
+                                                                                                                            {
+                                                                                                                              "children": [],
+                                                                                                                              "id": "b-librarynoun",
+                                                                                                                              "label": "N [ABL]",
+                                                                                                                              "word": "kütüphaneden"
+                                                                                                                            }
+                                                                                                                          ],
+                                                                                                                          "id": "b-librarybar",
+                                                                                                                          "label": "N′"
+                                                                                                                        }
+                                                                                                                      ],
+                                                                                                                      "id": "b-library",
+                                                                                                                      "label": "NP"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                      "children": [],
+                                                                                                                      "id": "b-ablative",
+                                                                                                                      "label": "P [source, ABL]",
+                                                                                                                      "silent": true
+                                                                                                                    }
+                                                                                                                  ],
+                                                                                                                  "id": "b-sourcebar",
+                                                                                                                  "label": "P′"
+                                                                                                                }
+                                                                                                              ],
+                                                                                                              "id": "b-source",
+                                                                                                              "label": "PP"
+                                                                                                            },
+                                                                                                            {
+                                                                                                              "children": [
+                                                                                                                {
+                                                                                                                  "children": [],
+                                                                                                                  "id": "b-relative-trace",
+                                                                                                                  "label": "DP [operator trace]",
+                                                                                                                  "lineageId": "b-relative-chain",
+                                                                                                                  "silent": true
+                                                                                                                },
+                                                                                                                {
+                                                                                                                  "children": [],
+                                                                                                                  "id": "b-take",
+                                                                                                                  "label": "V",
+                                                                                                                  "word": "aldığı"
+                                                                                                                }
+                                                                                                              ],
+                                                                                                              "id": "b-rvbar",
+                                                                                                              "label": "V′"
+                                                                                                            }
+                                                                                                          ],
+                                                                                                          "id": "b-rvpinner",
+                                                                                                          "label": "VP"
+                                                                                                        }
+                                                                                                      ],
+                                                                                                      "id": "b-rvp",
+                                                                                                      "label": "VP"
+                                                                                                    },
+                                                                                                    {
+                                                                                                      "children": [],
+                                                                                                      "id": "b-ri",
+                                                                                                      "label": "I [−finite, nominal, AGR:3SG]",
+                                                                                                      "silent": true
+                                                                                                    }
+                                                                                                  ],
+                                                                                                  "id": "b-ribar",
+                                                                                                  "label": "I′"
+                                                                                                }
+                                                                                              ],
+                                                                                              "id": "b-rip",
+                                                                                              "label": "IP"
+                                                                                            },
+                                                                                            {
+                                                                                              "children": [],
+                                                                                              "id": "b-relativec",
+                                                                                              "label": "C [relative]",
+                                                                                              "silent": true
+                                                                                            }
+                                                                                          ],
+                                                                                          "id": "b-relativecbar",
+                                                                                          "label": "C′"
+                                                                                        }
+                                                                                      ],
+                                                                                      "id": "b-relativecp",
+                                                                                      "label": "CP [relative]"
+                                                                                    },
+                                                                                    {
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "children": [],
+                                                                                          "id": "b-booknoun",
+                                                                                          "label": "N [ACC]",
+                                                                                          "word": "kitabı"
+                                                                                        }
+                                                                                      ],
+                                                                                      "id": "b-booknbarinner",
+                                                                                      "label": "N′"
+                                                                                    }
+                                                                                  ],
+                                                                                  "id": "b-booknbar",
+                                                                                  "label": "N′"
+                                                                                }
+                                                                              ],
+                                                                              "id": "b-booknp",
+                                                                              "label": "NP"
+                                                                            },
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "b-bookd",
+                                                                              "label": "D [definite]",
+                                                                              "silent": true
+                                                                            }
+                                                                          ],
+                                                                          "id": "b-bookbar",
+                                                                          "label": "D′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "b-book",
+                                                                      "label": "DP [definite, ACC]",
+                                                                      "lineageId": "b-book-chain"
+                                                                    },
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "b-read",
+                                                                      "label": "V",
+                                                                      "word": "okuduğunu"
+                                                                    }
+                                                                  ],
+                                                                  "id": "b-evbar",
+                                                                  "label": "V′"
+                                                                }
+                                                              ],
+                                                              "id": "b-evpinner",
+                                                              "label": "VP"
+                                                            }
+                                                          ],
+                                                          "id": "b-evp",
+                                                          "label": "VP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "b-ei",
+                                                          "label": "I [−finite, nominal, AGR:3SG]",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "b-eibar",
+                                                      "label": "I′"
+                                                    }
+                                                  ],
+                                                  "id": "b-eip",
+                                                  "label": "IP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "b-ec",
+                                                  "label": "C [declarative]",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "b-ecbar",
+                                              "label": "C′"
+                                            }
+                                          ],
+                                          "id": "b-ecp",
+                                          "label": "CP [nominalized declarative]"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "b-ed",
+                                          "label": "D [nominal, ACC]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "b-edbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "b-embedded",
+                                  "label": "DP [nominalized clause, ACC]"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "b-know",
+                                  "label": "V",
+                                  "word": "biliyorum"
+                                }
+                              ],
+                              "id": "b-mvbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "b-mvp",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "b-mi",
+                          "label": "I [+finite, nonpast, AGR:1SG]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "b-mibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "b-mip",
+                  "label": "IP"
+                },
+                {
+                  "children": [],
+                  "id": "b-mc",
+                  "label": "C [declarative]",
+                  "silent": true
+                }
+              ],
+              "id": "b-mcbar",
+              "label": "C′"
+            }
+          ],
+          "id": "b-mcp",
+          "label": "CP [declarative]"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "escape_domain": "b-ecp",
+            "landing": "b-book",
+            "source_governor": "b-read",
+            "trace": "b-booktrace"
+          },
+          "priorAnchors": {
+            "source": "b-book"
+          },
+          "relation": "successive_cyclic_escape",
+          "values": {
+            "chain_case": "ACC",
+            "chain_theta_role": "theme of okumak",
+            "movement_type": "A-bar movement to embedded Spec-CP"
+          }
+        }
+      ],
+      "stageRecord": "The book DP first moves from the embedded object position to Spec-CP of the nominalized clause. Its original position becomes a silent trace governed by okuduğunu. This intermediate workspace is necessary because the next movement starts at the embedded CP edge, not directly at the original object position. The operator and relative clause inside the book DP travel with it; no constituent is extracted from that relative clause. The emerging A-bar chain retains the accusative Case and theme role assigned in the embedded VP. Although the pronounced sequence already matches the sentence, this is not the completed structural analysis: the book is temporarily at an escape position within the complement, rather than at its intended matrix landing site.",
+      "statement": "Move the book DP to the embedded CP escape position.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "b-pro",
+                      "label": "DP [pro, 1SG, NOM]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "b-operator",
+                                                                  "label": "DP [relative operator]",
+                                                                  "lineageId": "b-relative-chain",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "b-ahmet",
+                                                                                  "label": "D [proper name, GEN]",
+                                                                                  "word": "Ahmet'in"
+                                                                                }
+                                                                              ],
+                                                                              "id": "b-rsubjectbar",
+                                                                              "label": "D′"
+                                                                            }
+                                                                          ],
+                                                                          "id": "b-rsubject",
+                                                                          "label": "DP"
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "children": [],
+                                                                                          "id": "b-yesterday",
+                                                                                          "label": "Adv",
+                                                                                          "word": "dün"
+                                                                                        }
+                                                                                      ],
+                                                                                      "id": "b-yesterdaybar",
+                                                                                      "label": "Adv′"
+                                                                                    }
+                                                                                  ],
+                                                                                  "id": "b-yesterdayp",
+                                                                                  "label": "AdvP"
+                                                                                },
+                                                                                {
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "children": [
+                                                                                            {
+                                                                                              "children": [
+                                                                                                {
+                                                                                                  "children": [
+                                                                                                    {
+                                                                                                      "children": [],
+                                                                                                      "id": "b-librarynoun",
+                                                                                                      "label": "N [ABL]",
+                                                                                                      "word": "kütüphaneden"
+                                                                                                    }
+                                                                                                  ],
+                                                                                                  "id": "b-librarybar",
+                                                                                                  "label": "N′"
+                                                                                                }
+                                                                                              ],
+                                                                                              "id": "b-library",
+                                                                                              "label": "NP"
+                                                                                            },
+                                                                                            {
+                                                                                              "children": [],
+                                                                                              "id": "b-ablative",
+                                                                                              "label": "P [source, ABL]",
+                                                                                              "silent": true
+                                                                                            }
+                                                                                          ],
+                                                                                          "id": "b-sourcebar",
+                                                                                          "label": "P′"
+                                                                                        }
+                                                                                      ],
+                                                                                      "id": "b-source",
+                                                                                      "label": "PP"
+                                                                                    },
+                                                                                    {
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "children": [],
+                                                                                          "id": "b-relative-trace",
+                                                                                          "label": "DP [operator trace]",
+                                                                                          "lineageId": "b-relative-chain",
+                                                                                          "silent": true
+                                                                                        },
+                                                                                        {
+                                                                                          "children": [],
+                                                                                          "id": "b-take",
+                                                                                          "label": "V",
+                                                                                          "word": "aldığı"
+                                                                                        }
+                                                                                      ],
+                                                                                      "id": "b-rvbar",
+                                                                                      "label": "V′"
+                                                                                    }
+                                                                                  ],
+                                                                                  "id": "b-rvpinner",
+                                                                                  "label": "VP"
+                                                                                }
+                                                                              ],
+                                                                              "id": "b-rvp",
+                                                                              "label": "VP"
+                                                                            },
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "b-ri",
+                                                                              "label": "I [−finite, nominal, AGR:3SG]",
+                                                                              "silent": true
+                                                                            }
+                                                                          ],
+                                                                          "id": "b-ribar",
+                                                                          "label": "I′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "b-rip",
+                                                                      "label": "IP"
+                                                                    },
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "b-relativec",
+                                                                      "label": "C [relative]",
+                                                                      "silent": true
+                                                                    }
+                                                                  ],
+                                                                  "id": "b-relativecbar",
+                                                                  "label": "C′"
+                                                                }
+                                                              ],
+                                                              "id": "b-relativecp",
+                                                              "label": "CP [relative]"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "b-booknoun",
+                                                                  "label": "N [ACC]",
+                                                                  "word": "kitabı"
+                                                                }
+                                                              ],
+                                                              "id": "b-booknbarinner",
+                                                              "label": "N′"
+                                                            }
+                                                          ],
+                                                          "id": "b-booknbar",
+                                                          "label": "N′"
+                                                        }
+                                                      ],
+                                                      "id": "b-booknp",
+                                                      "label": "NP"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "b-bookd",
+                                                      "label": "D [definite]",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "b-bookbar",
+                                                  "label": "D′"
+                                                }
+                                              ],
+                                              "id": "b-book",
+                                              "label": "DP [definite, ACC]",
+                                              "lineageId": "b-book-chain"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "b-ayse",
+                                                              "label": "D [proper name, GEN]",
+                                                              "word": "Ayşe'nin"
+                                                            }
+                                                          ],
+                                                          "id": "b-esubjectbar",
+                                                          "label": "D′"
+                                                        }
+                                                      ],
+                                                      "id": "b-esubject",
+                                                      "label": "DP"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "b-already",
+                                                                      "label": "Adv",
+                                                                      "word": "çoktan"
+                                                                    }
+                                                                  ],
+                                                                  "id": "b-alreadybar",
+                                                                  "label": "Adv′"
+                                                                }
+                                                              ],
+                                                              "id": "b-alreadyp",
+                                                              "label": "AdvP"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "b-booktrace",
+                                                                      "label": "DP [scrambling trace]",
+                                                                      "lineageId": "b-book-chain",
+                                                                      "silent": true
+                                                                    },
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "b-read",
+                                                                      "label": "V",
+                                                                      "word": "okuduğunu"
+                                                                    }
+                                                                  ],
+                                                                  "id": "b-evbar",
+                                                                  "label": "V′"
+                                                                }
+                                                              ],
+                                                              "id": "b-evpinner",
+                                                              "label": "VP"
+                                                            }
+                                                          ],
+                                                          "id": "b-evp",
+                                                          "label": "VP"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "b-ei",
+                                                          "label": "I [−finite, nominal, AGR:3SG]",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "b-eibar",
+                                                      "label": "I′"
+                                                    }
+                                                  ],
+                                                  "id": "b-eip",
+                                                  "label": "IP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "b-ec",
+                                                  "label": "C [declarative]",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "b-ecbar",
+                                              "label": "C′"
+                                            }
+                                          ],
+                                          "id": "b-ecp",
+                                          "label": "CP [nominalized declarative]"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "b-ed",
+                                          "label": "D [nominal, ACC]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "b-edbar",
+                                      "label": "D′"
+                                    }
+                                  ],
+                                  "id": "b-embedded",
+                                  "label": "DP [nominalized clause, ACC]"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "b-know",
+                                  "label": "V",
+                                  "word": "biliyorum"
+                                }
+                              ],
+                              "id": "b-mvbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "b-mvp",
+                          "label": "VP"
+                        },
+                        {
+                          "children": [],
+                          "id": "b-mi",
+                          "label": "I [+finite, nonpast, AGR:1SG]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "b-mibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "b-mip",
+                  "label": "IP"
+                },
+                {
+                  "children": [],
+                  "id": "b-mc",
+                  "label": "C [declarative]",
+                  "silent": true
+                }
+              ],
+              "id": "b-mcbar",
+              "label": "C′"
+            }
+          ],
+          "id": "b-mcp",
+          "label": "CP [declarative]"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "intermediate_trace": "b-edgetrace",
+            "landing": "b-book",
+            "landing_domain": "b-miptop",
+            "object_trace": "b-booktrace",
+            "theta_and_case_governor": "b-read"
+          },
+          "priorAnchors": {
+            "previous_landing": "b-book",
+            "previous_landing_domain": "b-ecp"
+          },
+          "relation": "long_distance_scrambling",
+          "values": {
+            "chain_case": "ACC",
+            "chain_theta_role": "theme of okumak",
+            "interpretive_domain": "matrix topic",
+            "movement_type": "A-bar movement from embedded Spec-CP to matrix IP adjunction"
+          }
+        }
+      ],
+      "stageRecord": "The book DP now moves from the embedded Spec-CP position displayed in the preceding workspace to a position adjoined to matrix IP. A new silent intermediate trace remains at the embedded CP edge, while the original object trace remains under okuduğunu. The matrix landing c-commands both lower occurrences; the intermediate occurrence links the final movement to the governed object trace under the stated transparency assumptions. The chain receives only the embedded verb's theme role and accusative Case: biliyorum continues to select the entire nominalized proposition and does not assign a second role to the fronted book DP. The final pronounced string is exactly the input. This structure presents the book as a matrix-level topic: concerning the book Ahmet took from the library yesterday, I know that Ayşe has already read it. Its ordinary truth conditions coincide with the clause-internal analysis, but the initial DP is outside, rather than inside, the nominalized complement.",
+      "statement": "Complete long-distance scrambling to the matrix left periphery.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "b-operator",
+                                          "label": "DP [relative operator]",
+                                          "lineageId": "b-relative-chain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "b-ahmet",
+                                                          "label": "D [proper name, GEN]",
+                                                          "word": "Ahmet'in"
+                                                        }
+                                                      ],
+                                                      "id": "b-rsubjectbar",
+                                                      "label": "D′"
+                                                    }
+                                                  ],
+                                                  "id": "b-rsubject",
+                                                  "label": "DP"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "b-yesterday",
+                                                                  "label": "Adv",
+                                                                  "word": "dün"
+                                                                }
+                                                              ],
+                                                              "id": "b-yesterdaybar",
+                                                              "label": "Adv′"
+                                                            }
+                                                          ],
+                                                          "id": "b-yesterdayp",
+                                                          "label": "AdvP"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "b-librarynoun",
+                                                                              "label": "N [ABL]",
+                                                                              "word": "kütüphaneden"
+                                                                            }
+                                                                          ],
+                                                                          "id": "b-librarybar",
+                                                                          "label": "N′"
+                                                                        }
+                                                                      ],
+                                                                      "id": "b-library",
+                                                                      "label": "NP"
+                                                                    },
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "b-ablative",
+                                                                      "label": "P [source, ABL]",
+                                                                      "silent": true
+                                                                    }
+                                                                  ],
+                                                                  "id": "b-sourcebar",
+                                                                  "label": "P′"
+                                                                }
+                                                              ],
+                                                              "id": "b-source",
+                                                              "label": "PP"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "b-relative-trace",
+                                                                  "label": "DP [operator trace]",
+                                                                  "lineageId": "b-relative-chain",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "b-take",
+                                                                  "label": "V",
+                                                                  "word": "aldığı"
+                                                                }
+                                                              ],
+                                                              "id": "b-rvbar",
+                                                              "label": "V′"
+                                                            }
+                                                          ],
+                                                          "id": "b-rvpinner",
+                                                          "label": "VP"
+                                                        }
+                                                      ],
+                                                      "id": "b-rvp",
+                                                      "label": "VP"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "b-ri",
+                                                      "label": "I [−finite, nominal, AGR:3SG]",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "b-ribar",
+                                                  "label": "I′"
+                                                }
+                                              ],
+                                              "id": "b-rip",
+                                              "label": "IP"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "b-relativec",
+                                              "label": "C [relative]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "b-relativecbar",
+                                          "label": "C′"
+                                        }
+                                      ],
+                                      "id": "b-relativecp",
+                                      "label": "CP [relative]"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "b-booknoun",
+                                          "label": "N [ACC]",
+                                          "word": "kitabı"
+                                        }
+                                      ],
+                                      "id": "b-booknbarinner",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "b-booknbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "b-booknp",
+                              "label": "NP"
+                            },
+                            {
+                              "children": [],
+                              "id": "b-bookd",
+                              "label": "D [definite]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "b-bookbar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "b-book",
+                      "label": "DP [definite, ACC]",
+                      "lineageId": "b-book-chain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "b-pro",
+                          "label": "DP [pro, 1SG, NOM]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "b-edgetrace",
+                                                  "label": "DP [intermediate scrambling trace]",
+                                                  "lineageId": "b-book-chain",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "b-ayse",
+                                                                  "label": "D [proper name, GEN]",
+                                                                  "word": "Ayşe'nin"
+                                                                }
+                                                              ],
+                                                              "id": "b-esubjectbar",
+                                                              "label": "D′"
+                                                            }
+                                                          ],
+                                                          "id": "b-esubject",
+                                                          "label": "DP"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "b-already",
+                                                                          "label": "Adv",
+                                                                          "word": "çoktan"
+                                                                        }
+                                                                      ],
+                                                                      "id": "b-alreadybar",
+                                                                      "label": "Adv′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "b-alreadyp",
+                                                                  "label": "AdvP"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "b-booktrace",
+                                                                          "label": "DP [scrambling trace]",
+                                                                          "lineageId": "b-book-chain",
+                                                                          "silent": true
+                                                                        },
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "b-read",
+                                                                          "label": "V",
+                                                                          "word": "okuduğunu"
+                                                                        }
+                                                                      ],
+                                                                      "id": "b-evbar",
+                                                                      "label": "V′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "b-evpinner",
+                                                                  "label": "VP"
+                                                                }
+                                                              ],
+                                                              "id": "b-evp",
+                                                              "label": "VP"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "b-ei",
+                                                              "label": "I [−finite, nominal, AGR:3SG]",
+                                                              "silent": true
+                                                            }
+                                                          ],
+                                                          "id": "b-eibar",
+                                                          "label": "I′"
+                                                        }
+                                                      ],
+                                                      "id": "b-eip",
+                                                      "label": "IP"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "b-ec",
+                                                      "label": "C [declarative]",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "b-ecbar",
+                                                  "label": "C′"
+                                                }
+                                              ],
+                                              "id": "b-ecp",
+                                              "label": "CP [nominalized declarative]"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "b-ed",
+                                              "label": "D [nominal, ACC]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "b-edbar",
+                                          "label": "D′"
+                                        }
+                                      ],
+                                      "id": "b-embedded",
+                                      "label": "DP [nominalized clause, ACC]"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "b-know",
+                                      "label": "V",
+                                      "word": "biliyorum"
+                                    }
+                                  ],
+                                  "id": "b-mvbar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "b-mvp",
+                              "label": "VP"
+                            },
+                            {
+                              "children": [],
+                              "id": "b-mi",
+                              "label": "I [+finite, nonpast, AGR:1SG]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "b-mibar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "b-mip",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "b-miptop",
+                  "label": "IP [scrambling adjunction]"
+                },
+                {
+                  "children": [],
+                  "id": "b-mc",
+                  "label": "C [declarative]",
+                  "silent": true
+                }
+              ],
+              "id": "b-mcbar",
+              "label": "C′"
+            }
+          ],
+          "id": "b-mcp",
+          "label": "CP [declarative]"
+        }
+      ]
+    }
+  ]
+}
