@@ -181,6 +181,10 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const reasoningControlLabel = selectedModel.controls[0].label;
   const isTreeBankView = workspaceView === 'treeBank';
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
+  // Replay gives the input bar's space to the tree and its panel; a new sentence
+  // is entered from Canopy or Notes. A running generation or a failure keeps the
+  // bar, because it carries their progress and diagnostics.
+  const hideInputForReplay = activeTab === 'derivation' && Boolean(activeParse) && !loading && !error;
   const milesNotation = useMemo(() => {
     if (!activeParse) return '';
     return buildMilesNotation(activeFinalForest);
@@ -652,7 +656,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               ))}
             </div>
 
-            {!hideShowcaseInput && !devCaptureMode && (
+            {!hideShowcaseInput && !hideInputForReplay && !devCaptureMode && (
               <>
                 {/* Input UI */}
                 <div
