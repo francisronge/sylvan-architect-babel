@@ -7,8 +7,12 @@ import { placeStagePlaques, plaqueTreeObstacles } from '../replay/relations/plaq
 import { TREE_FIRST_FAMILIES } from '../scripts/replayFrameLayout.mjs';
 import { formatFrames, frameList, matchFindings, proposeExceptions } from './helpers/findings.mjs';
 import { measurePlaqueText, measureRun } from './helpers/visualFontMetrics.mjs';
-import { auditVisualRecord, branchPoints, layoutVisualFrames, pathPolylines, plaqueRecord, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
-import { checkBranchGeometry, checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance } from './helpers/visualRules.mjs';
+import {
+  auditVisualRecord, branchPoints, layoutVisualFrames, layoutWidthFindings, pathPolylines, plaqueRecord, prepareVisualRecord, TEXT_METRICS, VIEWPORTS
+} from './helpers/visualFrames.mjs';
+import {
+  checkBranchGeometry, checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance, RULES
+} from './helpers/visualRules.mjs';
 import { EXCEPTIONS } from './helpers/visualExceptions.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 import { checkOneLetterPerLabel } from './helpers/replayInvariants.mjs';
@@ -217,6 +221,28 @@ test('control: branch-geometry reports a branch stretched over two rows and sist
   const stretched = { ...lowered, paths: [branchPoints(lowered.paths[0][0], { ...lowered.paths[0].at(-1), y: lowered.paths[0].at(-1).y + 220 })] };
   assert(checkBranchGeometry({ ...real, lines: real.lines.map(line => line === lowered ? stretched : line) })
     .some(found => found.subtype === 'span' && found.subject === lowered.id));
+});
+
+test('control: layout-width compares every viewport with the first, in Replay and the Canopy, and reports text that follows the window', () => {
+  // verify:visual-offline audits the desktop sizes only; this covers the mobile comparison. The fixture is the
+  // reference-canvas regression's (tests/plaqueLayoutJob.test.mjs).
+  const visual = prepareVisualRecord(recordOf('replay-regressions/hi-correlative-landing-contour.json#'));
+  assert.deepEqual(layoutWidthFindings(visual, VIEWPORTS), []);
+  // The renderer measures text in the page, so a tree font sized by the window would reach layout through these
+  // measures. Text 60% wider at mobile alone moves nodes beyond one translation, in Replay and the Canopy.
+  const by = 1.6, wider = { ...TEXT_METRICS, measureCategoryText: text => TEXT_METRICS.measureCategoryText(text) * by,
+    measureTreeInk: (text, style) => {
+      const ink = TEXT_METRICS.measureTreeInk(text, style);
+      return ink && { ...ink, width: ink.width * by, left: ink.left * by, right: ink.right * by };
+    },
+    measureTreeLabel: runs => {
+      const bounds = TEXT_METRICS.measureTreeLabel(runs);
+      return bounds && { ...bounds, x: bounds.x * by, width: bounds.width * by };
+    } };
+  const found = layoutWidthFindings(visual, VIEWPORTS, { metrics: viewport => viewport.name === 'mobile' ? wider : TEXT_METRICS });
+  assert.deepEqual([...new Set(found.map(finding => `${finding.rule} ${finding.viewport}`))], ['layout-width desktop~mobile']);
+  assert(found.some(finding => Number.isInteger(finding.frame)) && found.some(finding => finding.frame === 'canopy'), JSON.stringify(found));
+  assert(found.every(finding => RULES.includes(finding.rule)), 'the discovery summary lists every reported rule');
 });
 
 test('the frame layout keeps TreeVisualizer\'s tree-first families', () => {
