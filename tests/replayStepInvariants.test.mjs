@@ -169,3 +169,31 @@ test('control: movement-unrendered reports a proved movement whose path is gone'
   assert.deepEqual(checkMovementUnrendered(pathless, sample).map(found => [found.frame, found.subtype]),
     [[momentOf(steps, 3, 1) + 1, 'MOVEMENT_TRANSITION_WITHOUT_PATH']]);
 });
+
+test('control: movement-unrendered reports a displacement that no path reaches, whatever its claim calls its fields', () => {
+  const { record } = corpus.records.find(item => item.id === 'replay-regressions/unnamed-movement-roles.json#/cases/1');
+  assert.deepEqual(checkMovementUnrendered(prepare(record), record), [],
+    'drawn movements and the shared identity of stage 2, which displaces nothing, are not reported');
+  // An open field name that no recognition reads leaves the copies neutral,
+  // as "landings" was before it inflected like "sources".
+  const unread = structuredClone(record), anchors = unread.derivationStages[5].relations[0].anchors;
+  anchors.arrivals = anchors.landings;
+  delete anchors.landings;
+  const neutral = prepare(unread);
+  assert.deepEqual(checkMovementUnrendered(neutral, unread).map(found => [found.frame, found.subtype, found.subject]),
+    [[momentOf(neutral.playbackSteps, 5, 0) + 1, 'COPY_WITHOUT_PATH', '5:0']]);
+});
+
+test('historical: step-semantics reports a movement whose landing and path arrive with a later claim (59-en-wh-island)', () => {
+  const { record } = regression('landing-claimed-again'), fixed = prepare(record);
+  assert.deepEqual(checkStepSemantics(fixed, record), []);
+  const moment = momentOf(fixed.playbackSteps, 11, 0);
+  // Before the fix the movement moment repeated the preceding frame, and the
+  // next claim of the stage drew the landing, its C′ and the path.
+  const broken = edited(fixed, list => {
+    paintAs(list, moment, moment - 1);
+    list[moment].replayRelationLinks = structuredClone(list[moment - 1].replayRelationLinks);
+  });
+  assert(reported(checkStepSemantics(broken, record), 'step-semantics', 'trajectory-off-moment', moment + 2,
+    `the movement path of relation 11:0 first appears at frame ${moment + 2}, not at its own moment at frame ${moment + 1}`));
+});

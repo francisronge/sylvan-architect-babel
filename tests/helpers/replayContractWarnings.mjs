@@ -124,33 +124,104 @@ export function checkObjectLanguageMetalanguage(record) {
 }
 
 const MOVEMENT_CODE = /^(MOVEMENT_[A-Z_]+)/;
+
+/** Every occurrence of one stage's forest, with its parent and whether it
+ * pronounces any word under the silence it inherits. */
+const occurrencesOf = forest => {
+  const out = new Map();
+  const visit = (node, parent, silent) => {
+    if (!node || typeof node !== 'object') return false;
+    const quiet = silent || node.silent === true, children = node.children ?? [];
+    const entry = { node, parent: parent?.id ?? null, ancestors: parent ? [parent.id, ...out.get(parent.id).ancestors] : [] };
+    out.set(node.id, entry);
+    const voiced = children.map(child => visit(child, node, quiet));
+    entry.pronounced = children.length ? voiced.some(Boolean) : !quiet && Boolean(String(node.word ?? '').trim());
+    return entry.pronounced;
+  };
+  (forest ?? []).forEach(root => visit(root, null, false));
+  return out;
+};
+
+/** The displacements a stage's syntax shows, read from structure alone: a
+ * lineage's pronounced earlier occurrence falls silent, or leaves a new silent
+ * occurrence in its slot, while an occurrence of that lineage is pronounced in
+ * a new position. Each is `{ landing, lower }`: the pronounced new position
+ * and the earlier occurrences and silent copies it displaces. A landing inside
+ * another displaced landing travels with it and is not listed. */
+export function structuralDisplacements(previousForest, currentForest) {
+  const before = occurrencesOf(previousForest), after = occurrencesOf(currentForest), found = [];
+  const silentCopiesAt = (lineageId, parent) => [...after].filter(([id, copy]) => !before.has(id)
+    && copy.node.lineageId === lineageId && !copy.pronounced && copy.parent === parent).map(([id]) => id);
+  for (const [id, entry] of after) {
+    const lineageId = entry.node.lineageId, prior = before.get(id);
+    if (!lineageId || !entry.pronounced) continue;
+    const lower = prior
+      ? prior.pronounced && prior.parent !== entry.parent ? silentCopiesAt(lineageId, prior.parent) : []
+      : [...before].filter(([, earlier]) => earlier.node.lineageId === lineageId && earlier.pronounced).flatMap(([priorId, earlier]) => {
+        if (after.has(priorId)) return after.get(priorId).pronounced ? [] : [priorId];
+        const copies = silentCopiesAt(lineageId, earlier.parent);
+        return copies.length ? [priorId, ...copies] : [];
+      });
+    if (lower.length) found.push({ landing: id, lower });
+  }
+  return found.filter(({ landing }) => !after.get(landing).ancestors.some(ancestor => found.some(other => other.landing === ancestor)));
+}
+
 /** Movement Babel recognized, or tried to recognize, but drew without an
  * arrow: a relation moment whose own movement recognition emitted a MOVEMENT_*
  * diagnostic, or whose own link proved a movement transition, while no plan
  * item of that relation draws a movement path (a trajectory or a covert
- * raising path) in any frame. The warning names the diagnostic codes; a moment
- * with only MOVEMENT_NOT_ESTABLISHED is the model denying the movement and is
- * not reported. */
+ * raising path) in any frame. A moment with only MOVEMENT_NOT_ESTABLISHED is
+ * the model denying the movement and is not reported. A displacement the
+ * stage's syntax shows (`structuralDisplacements`) whose landing no movement
+ * path of the stage reaches is reported as COPY_WITHOUT_PATH at the moment of
+ * the stage's first relation naming both its landing and a displaced
+ * occurrence, whatever that relation is called: its recognition, not its
+ * name, decides whether Replay draws the arrow. */
 export function checkMovementUnrendered(replay, record) {
-  const plan = replay.relationRenderPlan, out = [];
-  const drawn = new Set((plan?.frames ?? []).flatMap(frame => frame.items)
-    .filter(item => item.kind === 'trajectory' || item.kind === 'quantifier-raising')
-    .flatMap(item => planItemRelationRefs(item).map(ref => relationKey(ref.stageIndex, ref.relationIndex))));
-  const seen = new Set();
+  const plan = replay.relationRenderPlan, out = [], stages = record.derivationStages ?? [];
+  const paths = (plan?.frames ?? []).flatMap(frame => frame.items)
+    .filter(item => item.kind === 'trajectory' || item.kind === 'quantifier-raising');
+  const drawn = new Set(paths.flatMap(item => planItemRelationRefs(item).map(ref => relationKey(ref.stageIndex, ref.relationIndex))));
+  const reached = new Set(paths.map(item => `${item.relationRef.stageIndex}:${item.kind === 'trajectory' ? item.targetNodeId : item.lfNodeId}`));
+  const momentOf = new Map();
   replay.playbackSteps.forEach((step, index) => {
-    if (step.replayKind !== 'relation' || !step.replayRelationIdentity) return;
-    const { stageIndex, relationIndex } = step.replayRelationIdentity, key = relationKey(stageIndex, relationIndex);
-    if (seen.has(key) || drawn.has(key)) return;
-    seen.add(key);
+    const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
+    if (identity && !momentOf.has(relationKey(identity.stageIndex, identity.relationIndex)))
+      momentOf.set(relationKey(identity.stageIndex, identity.relationIndex), index);
+  });
+  const nameOf = (stageIndex, relationIndex, step) => stages[stageIndex]?.relations?.[relationIndex]?.relation ?? step.operation;
+  for (const [key, index] of momentOf) {
+    if (drawn.has(key)) continue;
+    const step = replay.playbackSteps[index], { stageIndex, relationIndex } = step.replayRelationIdentity;
     const codes = [...new Set((step.movementDiagnostics ?? []).map(text => MOVEMENT_CODE.exec(String(text))?.[1]).filter(Boolean))]
       .filter(code => code !== 'MOVEMENT_NOT_ESTABLISHED');
     const proven = (step.replayRelationLinks ?? []).some(link => link.authoredRelationKey === key && link.movementTransition === true);
-    if (!codes.length && !proven) return;
-    const name = record.derivationStages?.[stageIndex]?.relations?.[relationIndex]?.relation ?? step.operation;
+    if (!codes.length && !proven) continue;
     out.push(warning('movement-unrendered', codes[0] ?? 'MOVEMENT_TRANSITION_WITHOUT_PATH', key, index + 1,
-      `relation ${key} "${name}" draws no movement path: ${codes.length ? codes.join(', ') : 'its movement transition is proven'}`));
+      `relation ${key} "${nameOf(stageIndex, relationIndex, step)}" draws no movement path: ${codes.length ? codes.join(', ') : 'its movement transition is proven'}`));
+  }
+  const reported = new Set(out.map(found => found.subject));
+  stages.forEach((stage, stageIndex) => {
+    if (!stageIndex) return;
+    for (const { landing, lower } of structuralDisplacements(stages[stageIndex - 1].workspaceForest, stage.workspaceForest)) {
+      if (reached.has(`${stageIndex}:${landing}`)) continue;
+      const named = (stage.relations ?? []).map(relation => new Set([...Object.values(relation?.anchors ?? {}),
+        ...Object.values(relation?.priorAnchors ?? {})].flat().map(String)));
+      // A claim about this landing already reported for its own movement
+      // recognition stands for the displacement.
+      if (named.some((ids, index) => ids.has(landing) && reported.has(relationKey(stageIndex, index)))) continue;
+      const relationIndex = named.findIndex(ids => ids.has(landing) && lower.some(id => ids.has(id)));
+      const key = relationKey(stageIndex, relationIndex);
+      if (relationIndex < 0 || reported.has(key) || !momentOf.has(key)) continue;
+      reported.add(key);
+      const step = replay.playbackSteps[momentOf.get(key)];
+      out.push(warning('movement-unrendered', 'COPY_WITHOUT_PATH', key, momentOf.get(key) + 1,
+        `relation ${key} "${nameOf(stageIndex, relationIndex, step)}" names the displacement of ${lower.join(', ')} to ${landing}, `
+        + 'which no movement path of the stage reaches'));
+    }
   });
-  return out;
+  return out.sort((left, right) => left.frame - right.frame);
 }
 
 /** Every contract-level warning of one prepared record. `contract` is the input
