@@ -1,0 +1,1978 @@
+{
+  "description": "Saved analyses whose movement claims name their endpoints with compound roles beside further directional \"head\" fields. The tree proves which field names each moving occurrence; the others name its host, complex or carried lexical head. Frames are the 1-based Replay frames on origin/main 7ebe635, where the head movements lost their Tier 1 arrows (conflicting-role-bindings) and the scrambling step reported MOVEMENT_ENDPOINTS_UNRESOLVED.",
+  "cases": [
+    {
+      "description": "Stage 6 moves the verb a_v into the T complex a_thead (relation \"head movement\", frame 35). Its anchors are landingOccurrence a_v, sourceTrace a_vtrace, complexHead a_thead and targetHead a_t, the receiving T head beside the landing. landingOccurrence and targetHead both read as landings, and the source was named only as a trace, so the exact claim fell back to Tier 3.",
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (v3), commit bcf1b56, 19 October 2026 (night3 batch, 07-fa-ezafe, analysis 1 of 2).",
+      "sentence": "کتابِ بزرگِ علی گم شد.",
+      "framework": "minimalism",
+      "inputTokens": [
+        "کتابِ",
+        "بزرگِ",
+        "علی",
+        "گم",
+        "شد"
+      ],
+      "derivationStages": [
+        {
+          "relations": [],
+          "stageRecord": "The nominal head is کتابِ, بزرگِ is an adjective modifying that noun, and علی is a proper-name D item. The two written ezafe vowels are treated as bound inflection within the selected lexical words, not as independent syntactic heads; their syntactic licensing remains to be established. A silent D will close the subject nominal. The predicate گم denotes the resultant state, and شد realizes an unaccusative BECOME head. Silent Pred introduces the state’s subject, while silent, head-final T bears past tense, unvalued agreement, and an EPP requirement. These are lexical and functional objects, not yet a sentence.",
+          "statement": "Select the lexical items for the reading “Ali’s big book got lost.”",
+          "workspaceForest": [
+            {
+              "children": [],
+              "id": "a_n",
+              "label": "N[ezafe]",
+              "word": "کتابِ"
+            },
+            {
+              "children": [],
+              "id": "a_adj",
+              "label": "A[ezafe]",
+              "word": "بزرگِ"
+            },
+            {
+              "children": [],
+              "id": "a_ali",
+              "label": "D[proper name]",
+              "word": "علی"
+            },
+            {
+              "children": [],
+              "id": "a_d",
+              "label": "D",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "a_lost",
+              "label": "A[result state]",
+              "word": "گم"
+            },
+            {
+              "children": [],
+              "id": "a_pred",
+              "label": "Pred",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "a_v",
+              "label": "v[BECOME]",
+              "lineageId": "a_become",
+              "word": "شد"
+            },
+            {
+              "children": [],
+              "id": "a_t",
+              "label": "T[past, uφ, EPP]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "modifier": "a_adj",
+                "nominalHead": "a_n",
+                "result": "a_np1"
+              },
+              "relation": "intersective modification",
+              "values": {
+                "interpretation": "big book"
+              }
+            },
+            {
+              "anchors": {
+                "followingDependent": "a_adj",
+                "host": "a_n"
+              },
+              "relation": "ezafe licensing",
+              "values": {
+                "boundExponent": "/e/",
+                "selectedWrittenForm": "کتابِ"
+              }
+            }
+          ],
+          "stageRecord": "Externally merge بزرگِ with کتابِ, retaining the nominal head as the label of the resulting bare phrase structure. The adjective is an intersective modifier: it describes the book as big rather than describing Ali. This modification licenses the noun’s selected ezafe form کتابِ. The adjective’s own ezafe remains pending until the following possessor is merged; no independent linker node or word-reordering operation is introduced.",
+          "statement": "Build the postnominal adjective structure.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "a_n",
+                  "label": "N[ezafe]",
+                  "word": "کتابِ"
+                },
+                {
+                  "children": [],
+                  "id": "a_adj",
+                  "label": "A[ezafe]",
+                  "word": "بزرگِ"
+                }
+              ],
+              "id": "a_np1",
+              "label": "N"
+            },
+            {
+              "children": [],
+              "id": "a_ali",
+              "label": "D[proper name]",
+              "word": "علی"
+            },
+            {
+              "children": [],
+              "id": "a_d",
+              "label": "D",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "a_lost",
+              "label": "A[result state]",
+              "word": "گم"
+            },
+            {
+              "children": [],
+              "id": "a_pred",
+              "label": "Pred",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "a_v",
+              "label": "v[BECOME]",
+              "lineageId": "a_become",
+              "word": "شد"
+            },
+            {
+              "children": [],
+              "id": "a_t",
+              "label": "T[past, uφ, EPP]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "possessedNominal": "a_np1",
+                "possessor": "a_ali",
+                "result": "a_np2"
+              },
+              "relation": "genitive possession",
+              "values": {
+                "interpretation": "the big book associated with or belonging to Ali"
+              }
+            },
+            {
+              "anchors": {
+                "followingDependent": "a_ali",
+                "host": "a_adj",
+                "possessedDomain": "a_np1"
+              },
+              "relation": "ezafe licensing",
+              "values": {
+                "attachment": "the possessor attaches to the modified nominal, although ezafe is pronounced on its rightmost adjective",
+                "boundExponent": "/e/",
+                "selectedWrittenForm": "بزرگِ"
+              }
+            },
+            {
+              "anchors": {
+                "determiner": "a_d",
+                "nominal": "a_np2",
+                "referentialExpression": "a_dp"
+              },
+              "relation": "referential closure",
+              "values": {
+                "interpretation": "the contextually identifiable big book of Ali"
+              }
+            }
+          ],
+          "stageRecord": "Merge علی outside the already constructed big-book nominal. This establishes possession of the book, not possession of the adjective or of an independently nominalized ‘big one.’ The rightmost adjective hosts the ezafe that introduces this outer nominal dependent, licensing the selected form بزرگِ. Merge silent D with the resulting nominal to produce the referential subject. The surface sequence کتابِ بزرگِ علی consequently contains two ezafe-bearing words but only one adjectival modifier and one possessor.",
+          "statement": "Attach Ali as possessor of the modified book and close the subject DP.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "a_d",
+                  "label": "D",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a_n",
+                          "label": "N[ezafe]",
+                          "word": "کتابِ"
+                        },
+                        {
+                          "children": [],
+                          "id": "a_adj",
+                          "label": "A[ezafe]",
+                          "word": "بزرگِ"
+                        }
+                      ],
+                      "id": "a_np1",
+                      "label": "N"
+                    },
+                    {
+                      "children": [],
+                      "id": "a_ali",
+                      "label": "D[proper name]",
+                      "word": "علی"
+                    }
+                  ],
+                  "id": "a_np2",
+                  "label": "N"
+                }
+              ],
+              "id": "a_dp",
+              "label": "D",
+              "lineageId": "a_subject"
+            },
+            {
+              "children": [],
+              "id": "a_lost",
+              "label": "A[result state]",
+              "word": "گم"
+            },
+            {
+              "children": [],
+              "id": "a_pred",
+              "label": "Pred",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "a_v",
+              "label": "v[BECOME]",
+              "lineageId": "a_become",
+              "word": "شد"
+            },
+            {
+              "children": [],
+              "id": "a_t",
+              "label": "T[past, uφ, EPP]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "predicate": "a_lost",
+                "predication": "a_predp",
+                "relator": "a_pred",
+                "subject": "a_dp"
+              },
+              "relation": "result-state predication",
+              "values": {
+                "state": "lost or missing",
+                "subjectRole": "theme"
+              }
+            },
+            {
+              "anchors": {
+                "changeHead": "a_v",
+                "statePredication": "a_predp",
+                "theme": "a_dp"
+              },
+              "relation": "inchoative composition",
+              "values": {
+                "externalArgument": "none",
+                "interpretation": "the book becomes lost"
+              }
+            }
+          ],
+          "stageRecord": "Merge گم with silent Pred, then merge the completed subject DP as the subject of that predication. The DP is thereby the entity of which the lost state holds. Merge the resulting Pred phrase as the complement preceding head-final شد. This BECOME head takes the entire state predication in its scope and introduces a change into that state. It does not introduce an agent or an external argument: the sentence is inchoative, not an analysis with an unexpressed person who loses the book.",
+          "statement": "Construct the result-state predication and the inchoative predicate.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a_d",
+                          "label": "D",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a_n",
+                                  "label": "N[ezafe]",
+                                  "word": "کتابِ"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "a_adj",
+                                  "label": "A[ezafe]",
+                                  "word": "بزرگِ"
+                                }
+                              ],
+                              "id": "a_np1",
+                              "label": "N"
+                            },
+                            {
+                              "children": [],
+                              "id": "a_ali",
+                              "label": "D[proper name]",
+                              "word": "علی"
+                            }
+                          ],
+                          "id": "a_np2",
+                          "label": "N"
+                        }
+                      ],
+                      "id": "a_dp",
+                      "label": "D",
+                      "lineageId": "a_subject"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a_lost",
+                          "label": "A[result state]",
+                          "word": "گم"
+                        },
+                        {
+                          "children": [],
+                          "id": "a_pred",
+                          "label": "Pred",
+                          "silent": true
+                        }
+                      ],
+                      "id": "a_predbar",
+                      "label": "Pred"
+                    }
+                  ],
+                  "id": "a_predp",
+                  "label": "Pred"
+                },
+                {
+                  "children": [],
+                  "id": "a_v",
+                  "label": "v[BECOME]",
+                  "lineageId": "a_become",
+                  "word": "شد"
+                }
+              ],
+              "id": "a_vp",
+              "label": "v"
+            },
+            {
+              "children": [],
+              "id": "a_t",
+              "label": "T[past, uφ, EPP]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "goal": "a_dp",
+                "probe": "a_t"
+              },
+              "relation": "finite agreement and case licensing",
+              "values": {
+                "agreement": "third-person singular",
+                "case": "nominative"
+              }
+            },
+            {
+              "anchors": {
+                "eventDomain": "a_vp",
+                "tense": "a_t"
+              },
+              "relation": "tense scope",
+              "values": {
+                "tenseValue": "past"
+              }
+            }
+          ],
+          "stageRecord": "Merge head-final T with the inchoative phrase. T probes its complement and agrees with the accessible subject DP in the Pred phrase; no external subject intervenes. This values T’s agreement as third-person singular and licenses nominative on the book DP. Past tense scopes over the change-of-state event. The DP remains in its thematic position, and شد remains in its lower head position, so this workspace explicitly precedes both movements.",
+          "statement": "Merge finite T and establish nominative agreement with the internal subject.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a_d",
+                              "label": "D",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a_n",
+                                      "label": "N[ezafe]",
+                                      "word": "کتابِ"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "a_adj",
+                                      "label": "A[ezafe]",
+                                      "word": "بزرگِ"
+                                    }
+                                  ],
+                                  "id": "a_np1",
+                                  "label": "N"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "a_ali",
+                                  "label": "D[proper name]",
+                                  "word": "علی"
+                                }
+                              ],
+                              "id": "a_np2",
+                              "label": "N"
+                            }
+                          ],
+                          "id": "a_dp",
+                          "label": "D",
+                          "lineageId": "a_subject"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a_lost",
+                              "label": "A[result state]",
+                              "word": "گم"
+                            },
+                            {
+                              "children": [],
+                              "id": "a_pred",
+                              "label": "Pred",
+                              "silent": true
+                            }
+                          ],
+                          "id": "a_predbar",
+                          "label": "Pred"
+                        }
+                      ],
+                      "id": "a_predp",
+                      "label": "Pred"
+                    },
+                    {
+                      "children": [],
+                      "id": "a_v",
+                      "label": "v[BECOME]",
+                      "lineageId": "a_become",
+                      "word": "شد"
+                    }
+                  ],
+                  "id": "a_vp",
+                  "label": "v"
+                },
+                {
+                  "children": [],
+                  "id": "a_t",
+                  "label": "T[past, uφ, EPP]",
+                  "silent": true
+                }
+              ],
+              "id": "a_tbar",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "complexHead": "a_thead",
+                "landingOccurrence": "a_v",
+                "sourceTrace": "a_vtrace",
+                "targetHead": "a_t"
+              },
+              "priorAnchors": {
+                "sourceOccurrence": "a_v",
+                "targetHead": "a_t"
+              },
+              "relation": "head movement",
+              "values": {
+                "dependency": "v-to-T",
+                "representation": "pronounced head with silent source trace"
+              }
+            },
+            {
+              "anchors": {
+                "lexicalHead": "a_v",
+                "licensingHead": "a_t"
+              },
+              "relation": "finite-form licensing",
+              "values": {
+                "features": "past, third-person singular",
+                "writtenForm": "شد"
+              }
+            }
+          ],
+          "stageRecord": "Internally merge شد from the lower v position shown in the preceding workspace into T. The pronounced lexical occurrence keeps its identity at the landing site, while a silent head trace marks its source. The resulting complex T contains the verbal head followed by the silent tense head. T licenses the already selected past, third-singular form شد; this lexicalist treatment adds no separately pronounced tense or agreement terminal and makes no change to its written word.",
+          "statement": "Raise the inchoative head to finite T.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a_d",
+                              "label": "D",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a_n",
+                                      "label": "N[ezafe]",
+                                      "word": "کتابِ"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "a_adj",
+                                      "label": "A[ezafe]",
+                                      "word": "بزرگِ"
+                                    }
+                                  ],
+                                  "id": "a_np1",
+                                  "label": "N"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "a_ali",
+                                  "label": "D[proper name]",
+                                  "word": "علی"
+                                }
+                              ],
+                              "id": "a_np2",
+                              "label": "N"
+                            }
+                          ],
+                          "id": "a_dp",
+                          "label": "D",
+                          "lineageId": "a_subject"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a_lost",
+                              "label": "A[result state]",
+                              "word": "گم"
+                            },
+                            {
+                              "children": [],
+                              "id": "a_pred",
+                              "label": "Pred",
+                              "silent": true
+                            }
+                          ],
+                          "id": "a_predbar",
+                          "label": "Pred"
+                        }
+                      ],
+                      "id": "a_predp",
+                      "label": "Pred"
+                    },
+                    {
+                      "children": [],
+                      "id": "a_vtrace",
+                      "label": "t[v]",
+                      "lineageId": "a_become",
+                      "silent": true
+                    }
+                  ],
+                  "id": "a_vp",
+                  "label": "v"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a_v",
+                      "label": "v[BECOME]",
+                      "lineageId": "a_become",
+                      "word": "شد"
+                    },
+                    {
+                      "children": [],
+                      "id": "a_t",
+                      "label": "T[past, uφ, EPP]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "a_thead",
+                  "label": "T"
+                }
+              ],
+              "id": "a_tbar",
+              "label": "T"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "completedClause": "a_tp",
+                "landingOccurrence": "a_dp",
+                "licensingHead": "a_t",
+                "sourceTrace": "a_dptrace"
+              },
+              "priorAnchors": {
+                "licensingHead": "a_t",
+                "sourceOccurrence": "a_dp"
+              },
+              "relation": "subject A-movement",
+              "values": {
+                "dependency": "Pred-subject to Spec-TP",
+                "representation": "pronounced DP with silent source trace",
+                "requirementSatisfied": "EPP"
+              }
+            }
+          ],
+          "stageRecord": "Internally merge the subject DP from its previously displayed Pred-subject position to the outer specifier of T, satisfying T’s EPP requirement. The pronounced DP retains its identity at the landing site, and a silent DP trace remains in its thematic position. Its nominative and agreement were established before this displacement. No additional CP is required for this unembedded declarative analysis. The pronounced terminals, in tree order, are exactly کتابِ بزرگِ علی گم شد; punctuation is not a syntactic terminal. The completed interpretation is that Ali’s big book became lost.",
+          "statement": "Raise the subject and complete the finite declarative clause.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a_d",
+                      "label": "D",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a_n",
+                              "label": "N[ezafe]",
+                              "word": "کتابِ"
+                            },
+                            {
+                              "children": [],
+                              "id": "a_adj",
+                              "label": "A[ezafe]",
+                              "word": "بزرگِ"
+                            }
+                          ],
+                          "id": "a_np1",
+                          "label": "N"
+                        },
+                        {
+                          "children": [],
+                          "id": "a_ali",
+                          "label": "D[proper name]",
+                          "word": "علی"
+                        }
+                      ],
+                      "id": "a_np2",
+                      "label": "N"
+                    }
+                  ],
+                  "id": "a_dp",
+                  "label": "D",
+                  "lineageId": "a_subject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a_dptrace",
+                              "label": "t[D]",
+                              "lineageId": "a_subject",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a_lost",
+                                  "label": "A[result state]",
+                                  "word": "گم"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "a_pred",
+                                  "label": "Pred",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "a_predbar",
+                              "label": "Pred"
+                            }
+                          ],
+                          "id": "a_predp",
+                          "label": "Pred"
+                        },
+                        {
+                          "children": [],
+                          "id": "a_vtrace",
+                          "label": "t[v]",
+                          "lineageId": "a_become",
+                          "silent": true
+                        }
+                      ],
+                      "id": "a_vp",
+                      "label": "v"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a_v",
+                          "label": "v[BECOME]",
+                          "lineageId": "a_become",
+                          "word": "شد"
+                        },
+                        {
+                          "children": [],
+                          "id": "a_t",
+                          "label": "T[past, uφ, EPP]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "a_thead",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "a_tbar",
+                  "label": "T"
+                }
+              ],
+              "id": "a_tp",
+              "label": "T"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "Stage 5 moves the v complex hv to T, carrying V (relation \"Head movement\", frame 31): sourceOccurrence hv and landingOccurrence hv1 are the complexes, while sourceLexicalHead V1 and landingLexicalHead V2 are the verbs they contain. Stage 6 scrambles the object dpO1 to dpO2 in the inner specifier of TP (frame 33), naming the landing domain tpInner and the target head ht, the T complex that verb raising built.",
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (v3), commit bcf1b56, 19 October 2026 (night3 batch, 33-grc-article.r2, analysis 1 of 1).",
+      "sentence": "ὁ ἀνὴρ τὸν ἵππον λύει.",
+      "framework": "minimalism",
+      "inputTokens": [
+        "ὁ",
+        "ἀνὴρ",
+        "τὸν",
+        "ἵππον",
+        "λύει"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "article": "sD",
+                "noun": "sN"
+              },
+              "relation": "Nominal concord",
+              "values": {
+                "case": "nominative",
+                "gender": "masculine",
+                "number": "singular"
+              }
+            },
+            {
+              "anchors": {
+                "article": "oD",
+                "noun": "oN"
+              },
+              "relation": "Nominal concord",
+              "values": {
+                "case": "accusative",
+                "gender": "masculine",
+                "number": "singular"
+              }
+            }
+          ],
+          "stageRecord": "Build the two definite nominal expressions by External Merge of each article with its noun. The nominative article ὁ and nominative noun ἀνὴρ establish masculine singular nominative concord; the accusative article τὸν and accusative noun ἵππον establish masculine singular accusative concord. These overt case distinctions identify the prospective subject and object independently of their surface order. Select the inflected verb λύει, an abstract transitive light verb, present finite T, and a silent declarative C. The verbal terminal retains its supplied inflected form throughout the derivation; subsequent head movement relocates that terminal rather than constructing a different spelling. Phrase labels abbreviate the categories of the projecting heads in Bare Phrase Structure, without introducing independent bar-level templates.",
+          "statement": "Establish the nominal expressions and the remaining lexical resources.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "sD",
+                  "label": "D[nominative, masculine, singular]",
+                  "lineageId": "subjectArticle",
+                  "word": "ὁ"
+                },
+                {
+                  "children": [],
+                  "id": "sN",
+                  "label": "N[nominative, masculine, singular]",
+                  "lineageId": "subjectNoun",
+                  "word": "ἀνὴρ"
+                }
+              ],
+              "id": "dpS",
+              "label": "DP",
+              "lineageId": "subject"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "oD",
+                  "label": "D[accusative, masculine, singular]",
+                  "lineageId": "objectArticle",
+                  "word": "τὸν"
+                },
+                {
+                  "children": [],
+                  "id": "oN",
+                  "label": "N[accusative, masculine, singular]",
+                  "lineageId": "objectNoun",
+                  "word": "ἵππον"
+                }
+              ],
+              "id": "dpO",
+              "label": "DP",
+              "lineageId": "object"
+            },
+            {
+              "children": [],
+              "id": "V0",
+              "label": "V[present, active, indicative, third-person singular]",
+              "lineageId": "verb",
+              "word": "λύει"
+            },
+            {
+              "children": [],
+              "id": "v0",
+              "label": "v[transitive]",
+              "lineageId": "lightVerb",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "t0",
+              "label": "T[present, finite]",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "c0",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "argument": "dpO",
+                "predicate": "V0"
+              },
+              "relation": "Internal theta-role assignment",
+              "values": {
+                "thetaRole": "Theme"
+              }
+            },
+            {
+              "anchors": {
+                "goal": "dpO",
+                "licensor": "v0"
+              },
+              "relation": "Structural case licensing",
+              "values": {
+                "case": "accusative"
+              }
+            },
+            {
+              "anchors": {
+                "argument": "dpS",
+                "introducer": "v0"
+              },
+              "relation": "External theta-role assignment",
+              "values": {
+                "thetaRole": "Agent"
+              }
+            }
+          ],
+          "stageRecord": "Merge the accusative DP as the complement of λύει, establishing the horse as the Theme of releasing or unbinding. Merge transitive v with that VP; v licenses structural accusative on the object, matching its overt case form. Externally merge the nominative DP at the edge of the resulting verbal domain, establishing the man as Agent. This analysis adopts an underlying verb–object order and derives the attested preverbal object by scrambling. The subject originates within the verbal domain rather than being first merged in its final preverbal position.",
+          "statement": "Build the transitive predicate and introduce its external argument.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "sD",
+                      "label": "D[nominative, masculine, singular]",
+                      "lineageId": "subjectArticle",
+                      "word": "ὁ"
+                    },
+                    {
+                      "children": [],
+                      "id": "sN",
+                      "label": "N[nominative, masculine, singular]",
+                      "lineageId": "subjectNoun",
+                      "word": "ἀνὴρ"
+                    }
+                  ],
+                  "id": "dpS",
+                  "label": "DP",
+                  "lineageId": "subject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "v0",
+                      "label": "v[transitive]",
+                      "lineageId": "lightVerb",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "V0",
+                          "label": "V[present, active, indicative, third-person singular]",
+                          "lineageId": "verb",
+                          "word": "λύει"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "oD",
+                              "label": "D[accusative, masculine, singular]",
+                              "lineageId": "objectArticle",
+                              "word": "τὸν"
+                            },
+                            {
+                              "children": [],
+                              "id": "oN",
+                              "label": "N[accusative, masculine, singular]",
+                              "lineageId": "objectNoun",
+                              "word": "ἵππον"
+                            }
+                          ],
+                          "id": "dpO",
+                          "label": "DP",
+                          "lineageId": "object"
+                        }
+                      ],
+                      "id": "vp",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "vDomain",
+                  "label": "vP"
+                }
+              ],
+              "id": "vP",
+              "label": "vP"
+            },
+            {
+              "children": [],
+              "id": "t0",
+              "label": "T[present, finite]",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "c0",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "host": "v0",
+                "landingOccurrence": "V1",
+                "resultingHead": "hv",
+                "sourceOccurrence": "V0"
+              },
+              "relation": "Head movement",
+              "values": {
+                "pronunciation": "The higher verbal occurrence is pronounced; the VP occurrence is silent.",
+                "step": "V to v"
+              }
+            }
+          ],
+          "stageRecord": "Internally merge V with v, creating a complex verbal head while preserving a silent occurrence in the previously established VP position. The higher verbal occurrence retains λύει; the abstract light verb contributes no independent pronounced material. This establishes the first local step of the finite verb's head-movement dependency. The arguments remain in their previously established positions.",
+          "statement": "Raise the lexical verb to the transitive light verb.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "sD",
+                      "label": "D[nominative, masculine, singular]",
+                      "lineageId": "subjectArticle",
+                      "word": "ὁ"
+                    },
+                    {
+                      "children": [],
+                      "id": "sN",
+                      "label": "N[nominative, masculine, singular]",
+                      "lineageId": "subjectNoun",
+                      "word": "ἀνὴρ"
+                    }
+                  ],
+                  "id": "dpS",
+                  "label": "DP",
+                  "lineageId": "subject"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "V1",
+                          "label": "V[present, active, indicative, third-person singular]",
+                          "lineageId": "verb",
+                          "word": "λύει"
+                        },
+                        {
+                          "children": [],
+                          "id": "v0",
+                          "label": "v[transitive]",
+                          "lineageId": "lightVerb",
+                          "silent": true
+                        }
+                      ],
+                      "id": "hv",
+                      "label": "v",
+                      "lineageId": "complexVerb"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "V0",
+                          "label": "V[present, active, indicative, third-person singular]",
+                          "lineageId": "verb",
+                          "silent": true,
+                          "word": "λύει"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "oD",
+                              "label": "D[accusative, masculine, singular]",
+                              "lineageId": "objectArticle",
+                              "word": "τὸν"
+                            },
+                            {
+                              "children": [],
+                              "id": "oN",
+                              "label": "N[accusative, masculine, singular]",
+                              "lineageId": "objectNoun",
+                              "word": "ἵππον"
+                            }
+                          ],
+                          "id": "dpO",
+                          "label": "DP",
+                          "lineageId": "object"
+                        }
+                      ],
+                      "id": "vp",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "vDomain",
+                  "label": "vP"
+                }
+              ],
+              "id": "vP",
+              "label": "vP"
+            },
+            {
+              "children": [],
+              "id": "t0",
+              "label": "T[present, finite]",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "c0",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "edgeDomain": "vPScr",
+                "landingOccurrence": "dpO1",
+                "phaseHead": "hv",
+                "sourceOccurrence": "dpO"
+              },
+              "relation": "Object scrambling through the phase edge",
+              "values": {
+                "dependency": "Noncriterial object scrambling",
+                "pronunciation": "The edge occurrence is pronounced; the VP-complement occurrence is silent."
+              }
+            }
+          ],
+          "stageRecord": "Internally merge the object from its VP-complement position at an outer vP edge, above the external argument. This is the intermediate step of object scrambling. It makes the object accessible outside the transitive verbal phase while leaving its thematic and accusative dependencies associated with its lower position. Pronounce the new occurrence and silence the source DP as a whole. The edge position is not assigned a contrastive-focus or discourse-topic interpretation: the isolated sentence provides no basis for requiring either interpretation.",
+          "statement": "Move the object to the outer edge of the verbal phase.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "oD1",
+                      "label": "D[accusative, masculine, singular]",
+                      "lineageId": "objectArticle",
+                      "word": "τὸν"
+                    },
+                    {
+                      "children": [],
+                      "id": "oN1",
+                      "label": "N[accusative, masculine, singular]",
+                      "lineageId": "objectNoun",
+                      "word": "ἵππον"
+                    }
+                  ],
+                  "id": "dpO1",
+                  "label": "DP",
+                  "lineageId": "object"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sD",
+                          "label": "D[nominative, masculine, singular]",
+                          "lineageId": "subjectArticle",
+                          "word": "ὁ"
+                        },
+                        {
+                          "children": [],
+                          "id": "sN",
+                          "label": "N[nominative, masculine, singular]",
+                          "lineageId": "subjectNoun",
+                          "word": "ἀνὴρ"
+                        }
+                      ],
+                      "id": "dpS",
+                      "label": "DP",
+                      "lineageId": "subject"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "V1",
+                              "label": "V[present, active, indicative, third-person singular]",
+                              "lineageId": "verb",
+                              "word": "λύει"
+                            },
+                            {
+                              "children": [],
+                              "id": "v0",
+                              "label": "v[transitive]",
+                              "lineageId": "lightVerb",
+                              "silent": true
+                            }
+                          ],
+                          "id": "hv",
+                          "label": "v",
+                          "lineageId": "complexVerb"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "V0",
+                              "label": "V[present, active, indicative, third-person singular]",
+                              "lineageId": "verb",
+                              "silent": true,
+                              "word": "λύει"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "oD",
+                                  "label": "D[accusative, masculine, singular]",
+                                  "lineageId": "objectArticle",
+                                  "word": "τὸν"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "oN",
+                                  "label": "N[accusative, masculine, singular]",
+                                  "lineageId": "objectNoun",
+                                  "word": "ἵππον"
+                                }
+                              ],
+                              "id": "dpO",
+                              "label": "DP",
+                              "lineageId": "object",
+                              "silent": true
+                            }
+                          ],
+                          "id": "vp",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "vDomain",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "vP",
+                  "label": "vP"
+                }
+              ],
+              "id": "vPScr",
+              "label": "vP"
+            },
+            {
+              "children": [],
+              "id": "t0",
+              "label": "T[present, finite]",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "c0",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "goal": "dpS",
+                "inactiveIntervener": "dpO1",
+                "probe": "t0"
+              },
+              "relation": "Finite agreement and nominative licensing",
+              "values": {
+                "case": "nominative",
+                "intervention": "The object's already licensed accusative makes it inactive for this case-sensitive probe.",
+                "number": "singular",
+                "person": "third"
+              }
+            },
+            {
+              "anchors": {
+                "host": "t0",
+                "landingLexicalHead": "V2",
+                "landingOccurrence": "hv1",
+                "resultingHead": "ht",
+                "sourceLexicalHead": "V1",
+                "sourceOccurrence": "hv"
+              },
+              "relation": "Head movement",
+              "values": {
+                "pronunciation": "Only the verbal occurrence inside the highest complex head is pronounced.",
+                "step": "v to T, carrying V"
+              }
+            }
+          ],
+          "stageRecord": "Merge finite present T with the scrambled verbal domain. T probes for an active nominal goal: the accusative object is already case-licensed and does not block agreement with the subject. Agree establishes third-person singular agreement with the man and licenses its nominative case. Next raise the complex v head to T, carrying the verbal occurrence with it. Silence the lower complex head, including its verbal descendant, and pronounce the new highest occurrence of λύει. The resulting finite head therefore precedes the remaining verbal domain. At this point the subject has not yet raised, and the object is still at the vP edge; further phrasal movement is necessary to derive the input's subject–object–verb order.",
+          "statement": "Introduce finite T, license the subject, and raise the complex verb to T.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "V2",
+                          "label": "V[present, active, indicative, third-person singular]",
+                          "lineageId": "verb",
+                          "word": "λύει"
+                        },
+                        {
+                          "children": [],
+                          "id": "v1",
+                          "label": "v[transitive]",
+                          "lineageId": "lightVerb",
+                          "silent": true
+                        }
+                      ],
+                      "id": "hv1",
+                      "label": "v",
+                      "lineageId": "complexVerb"
+                    },
+                    {
+                      "children": [],
+                      "id": "t0",
+                      "label": "T[present, finite]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "ht",
+                  "label": "T"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "oD1",
+                          "label": "D[accusative, masculine, singular]",
+                          "lineageId": "objectArticle",
+                          "word": "τὸν"
+                        },
+                        {
+                          "children": [],
+                          "id": "oN1",
+                          "label": "N[accusative, masculine, singular]",
+                          "lineageId": "objectNoun",
+                          "word": "ἵππον"
+                        }
+                      ],
+                      "id": "dpO1",
+                      "label": "DP",
+                      "lineageId": "object"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "sD",
+                              "label": "D[nominative, masculine, singular]",
+                              "lineageId": "subjectArticle",
+                              "word": "ὁ"
+                            },
+                            {
+                              "children": [],
+                              "id": "sN",
+                              "label": "N[nominative, masculine, singular]",
+                              "lineageId": "subjectNoun",
+                              "word": "ἀνὴρ"
+                            }
+                          ],
+                          "id": "dpS",
+                          "label": "DP",
+                          "lineageId": "subject"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "V1",
+                                  "label": "V[present, active, indicative, third-person singular]",
+                                  "lineageId": "verb",
+                                  "word": "λύει"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "v0",
+                                  "label": "v[transitive]",
+                                  "lineageId": "lightVerb",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "hv",
+                              "label": "v",
+                              "lineageId": "complexVerb",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "V0",
+                                  "label": "V[present, active, indicative, third-person singular]",
+                                  "lineageId": "verb",
+                                  "silent": true,
+                                  "word": "λύει"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "oD",
+                                      "label": "D[accusative, masculine, singular]",
+                                      "lineageId": "objectArticle",
+                                      "word": "τὸν"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "oN",
+                                      "label": "N[accusative, masculine, singular]",
+                                      "lineageId": "objectNoun",
+                                      "word": "ἵππον"
+                                    }
+                                  ],
+                                  "id": "dpO",
+                                  "label": "DP",
+                                  "lineageId": "object",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "vp",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "vDomain",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "vP",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "vPScr",
+                  "label": "vP"
+                }
+              ],
+              "id": "tpBase",
+              "label": "TP"
+            },
+            {
+              "children": [],
+              "id": "c0",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landingOccurrence": "dpO2",
+                "sourceOccurrence": "dpO1",
+                "targetDomain": "tpInner",
+                "targetHead": "ht"
+              },
+              "relation": "Continuation of object scrambling",
+              "values": {
+                "landingPosition": "Inner specifier of TP",
+                "pronunciation": "The TP occurrence is pronounced; the intermediate vP-edge occurrence is silent."
+              }
+            }
+          ],
+          "stageRecord": "Internally merge the object from its established vP-edge position into an inner specifier of the T-headed object. This continues the same noncriterial scrambling dependency and places the accusative DP before the verb now located in T. Pronounce this new occurrence and silence the intermediate vP-edge occurrence. The analysis commits to multiple specifiers of T: this object position is the inner specifier, and a subsequent outer specifier will host the subject. No new case or theta role is assigned to the object.",
+          "statement": "Place the scrambled object above the finite verbal head.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "oD2",
+                      "label": "D[accusative, masculine, singular]",
+                      "lineageId": "objectArticle",
+                      "word": "τὸν"
+                    },
+                    {
+                      "children": [],
+                      "id": "oN2",
+                      "label": "N[accusative, masculine, singular]",
+                      "lineageId": "objectNoun",
+                      "word": "ἵππον"
+                    }
+                  ],
+                  "id": "dpO2",
+                  "label": "DP",
+                  "lineageId": "object"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "V2",
+                              "label": "V[present, active, indicative, third-person singular]",
+                              "lineageId": "verb",
+                              "word": "λύει"
+                            },
+                            {
+                              "children": [],
+                              "id": "v1",
+                              "label": "v[transitive]",
+                              "lineageId": "lightVerb",
+                              "silent": true
+                            }
+                          ],
+                          "id": "hv1",
+                          "label": "v",
+                          "lineageId": "complexVerb"
+                        },
+                        {
+                          "children": [],
+                          "id": "t0",
+                          "label": "T[present, finite]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "ht",
+                      "label": "T"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "oD1",
+                              "label": "D[accusative, masculine, singular]",
+                              "lineageId": "objectArticle",
+                              "word": "τὸν"
+                            },
+                            {
+                              "children": [],
+                              "id": "oN1",
+                              "label": "N[accusative, masculine, singular]",
+                              "lineageId": "objectNoun",
+                              "word": "ἵππον"
+                            }
+                          ],
+                          "id": "dpO1",
+                          "label": "DP",
+                          "lineageId": "object",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "sD",
+                                  "label": "D[nominative, masculine, singular]",
+                                  "lineageId": "subjectArticle",
+                                  "word": "ὁ"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "sN",
+                                  "label": "N[nominative, masculine, singular]",
+                                  "lineageId": "subjectNoun",
+                                  "word": "ἀνὴρ"
+                                }
+                              ],
+                              "id": "dpS",
+                              "label": "DP",
+                              "lineageId": "subject"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "V1",
+                                      "label": "V[present, active, indicative, third-person singular]",
+                                      "lineageId": "verb",
+                                      "word": "λύει"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "v0",
+                                      "label": "v[transitive]",
+                                      "lineageId": "lightVerb",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "hv",
+                                  "label": "v",
+                                  "lineageId": "complexVerb",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "V0",
+                                      "label": "V[present, active, indicative, third-person singular]",
+                                      "lineageId": "verb",
+                                      "silent": true,
+                                      "word": "λύει"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "oD",
+                                          "label": "D[accusative, masculine, singular]",
+                                          "lineageId": "objectArticle",
+                                          "word": "τὸν"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "oN",
+                                          "label": "N[accusative, masculine, singular]",
+                                          "lineageId": "objectNoun",
+                                          "word": "ἵππον"
+                                        }
+                                      ],
+                                      "id": "dpO",
+                                      "label": "DP",
+                                      "lineageId": "object",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "vp",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "vDomain",
+                              "label": "vP"
+                            }
+                          ],
+                          "id": "vP",
+                          "label": "vP"
+                        }
+                      ],
+                      "id": "vPScr",
+                      "label": "vP"
+                    }
+                  ],
+                  "id": "tpBase",
+                  "label": "TP"
+                }
+              ],
+              "id": "tpInner",
+              "label": "TP"
+            },
+            {
+              "children": [],
+              "id": "c0",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "crossedScrambledObject": "dpO2",
+                "landingOccurrence": "dpS1",
+                "licensingHead": "t0",
+                "sourceOccurrence": "dpS",
+                "targetDomain": "tpOuter"
+              },
+              "relation": "Subject A-movement",
+              "values": {
+                "landingPosition": "Outer specifier of TP",
+                "pronunciation": "The raised subject is pronounced; its thematic occurrence is silent.",
+                "requirement": "Finite T's subject-position requirement"
+              }
+            },
+            {
+              "anchors": {
+                "clause": "tpOuter",
+                "forceHead": "c0"
+              },
+              "relation": "Clause force",
+              "values": {
+                "force": "declarative"
+              }
+            }
+          ],
+          "stageRecord": "Internally merge the subject from its previously established vP position into the outer specifier of TP, satisfying T's subject-position requirement. This A-movement is linked to the nominative and agreement dependency already established with that subject. The accusative scrambled object is not an eligible competing goal for this subject requirement. Pronounce the raised subject and silence its thematic occurrence. Finally merge silent declarative C with the completed TP, establishing root declarative force. The pronounced occurrences are now exactly ὁ ἀνὴρ τὸν ἵππον λύει: subject in the outer TP specifier, scrambled object in the inner TP specifier, and finite verb in T. The lower nominal and verbal copies remain syntactically represented but are unpronounced. No additional topic or focus projection is required by the input.",
+          "statement": "Raise the subject and complete the declarative clause.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "c0",
+                  "label": "C[declarative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sD1",
+                          "label": "D[nominative, masculine, singular]",
+                          "lineageId": "subjectArticle",
+                          "word": "ὁ"
+                        },
+                        {
+                          "children": [],
+                          "id": "sN1",
+                          "label": "N[nominative, masculine, singular]",
+                          "lineageId": "subjectNoun",
+                          "word": "ἀνὴρ"
+                        }
+                      ],
+                      "id": "dpS1",
+                      "label": "DP",
+                      "lineageId": "subject"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "oD2",
+                              "label": "D[accusative, masculine, singular]",
+                              "lineageId": "objectArticle",
+                              "word": "τὸν"
+                            },
+                            {
+                              "children": [],
+                              "id": "oN2",
+                              "label": "N[accusative, masculine, singular]",
+                              "lineageId": "objectNoun",
+                              "word": "ἵππον"
+                            }
+                          ],
+                          "id": "dpO2",
+                          "label": "DP",
+                          "lineageId": "object"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "V2",
+                                      "label": "V[present, active, indicative, third-person singular]",
+                                      "lineageId": "verb",
+                                      "word": "λύει"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "v1",
+                                      "label": "v[transitive]",
+                                      "lineageId": "lightVerb",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "hv1",
+                                  "label": "v",
+                                  "lineageId": "complexVerb"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "t0",
+                                  "label": "T[present, finite]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "ht",
+                              "label": "T"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "oD1",
+                                      "label": "D[accusative, masculine, singular]",
+                                      "lineageId": "objectArticle",
+                                      "word": "τὸν"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "oN1",
+                                      "label": "N[accusative, masculine, singular]",
+                                      "lineageId": "objectNoun",
+                                      "word": "ἵππον"
+                                    }
+                                  ],
+                                  "id": "dpO1",
+                                  "label": "DP",
+                                  "lineageId": "object",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "sD",
+                                          "label": "D[nominative, masculine, singular]",
+                                          "lineageId": "subjectArticle",
+                                          "word": "ὁ"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "sN",
+                                          "label": "N[nominative, masculine, singular]",
+                                          "lineageId": "subjectNoun",
+                                          "word": "ἀνὴρ"
+                                        }
+                                      ],
+                                      "id": "dpS",
+                                      "label": "DP",
+                                      "lineageId": "subject",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "V1",
+                                              "label": "V[present, active, indicative, third-person singular]",
+                                              "lineageId": "verb",
+                                              "word": "λύει"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "v0",
+                                              "label": "v[transitive]",
+                                              "lineageId": "lightVerb",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "hv",
+                                          "label": "v",
+                                          "lineageId": "complexVerb",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "V0",
+                                              "label": "V[present, active, indicative, third-person singular]",
+                                              "lineageId": "verb",
+                                              "silent": true,
+                                              "word": "λύει"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "oD",
+                                                  "label": "D[accusative, masculine, singular]",
+                                                  "lineageId": "objectArticle",
+                                                  "word": "τὸν"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "oN",
+                                                  "label": "N[accusative, masculine, singular]",
+                                                  "lineageId": "objectNoun",
+                                                  "word": "ἵππον"
+                                                }
+                                              ],
+                                              "id": "dpO",
+                                              "label": "DP",
+                                              "lineageId": "object",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "vp",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "vDomain",
+                                      "label": "vP"
+                                    }
+                                  ],
+                                  "id": "vP",
+                                  "label": "vP"
+                                }
+                              ],
+                              "id": "vPScr",
+                              "label": "vP"
+                            }
+                          ],
+                          "id": "tpBase",
+                          "label": "TP"
+                        }
+                      ],
+                      "id": "tpInner",
+                      "label": "TP"
+                    }
+                  ],
+                  "id": "tpOuter",
+                  "label": "TP"
+                }
+              ],
+              "id": "cp",
+              "label": "CP"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

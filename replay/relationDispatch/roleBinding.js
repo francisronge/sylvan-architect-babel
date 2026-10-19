@@ -10,6 +10,7 @@ import { productionValueRules } from './productionRoleConcepts.js';
 const items = value => Array.isArray(value) ? value : [value];
 const isRecord = value => value && typeof value === 'object' && !Array.isArray(value);
 const roleVocabulary = buildTier2SynonymIndex();
+const MOVEMENT_ENDPOINTS = new Set(['movement.source', 'movement.witness', 'movement.landing']);
 
 // Binding changes lookup keys only. Authored text, item order, cardinality and
 // references stay intact; ambiguous meanings never select the first candidate.
@@ -17,6 +18,15 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
   const bindings = [];
   const issues = [];
   const bound = { ...relation };
+  const movement = entry.id.startsWith('trajectory.') && currentForest
+    ? recoverMovementEvidence(relation, currentForest, priorForest).movement : undefined;
+  // Structure, not spelling, decides which of several directional fields names
+  // the moving occurrence. When the tree proves another field that reads as the
+  // same slot to be that endpoint, an openly named field it verifies as the
+  // occurrence's host, complex, site or carried member is context and does not
+  // compete for the slot. Registered role names keep their declared slot.
+  const structuralContext = new Set((movement?.context ?? [])
+    .filter(({ key }) => !movement.roles[normalizeTier2Synonym(key)]?.length).map(({ key }) => key));
   for (const field of ['anchors', 'priorAnchors', 'values']) {
     const signature = entry.signature[field];
     const rules = { ...(field === 'values' && entry.signature.anchors.allowContext ? productionValueRules(entry.id) : {}),
@@ -39,10 +49,20 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
           || concepts.includes(rules[role].concept)));
       return { spelled, candidates };
     };
+    // Another field that the tree proves to be this endpoint and that reads as its slot.
+    const provenEndpointField = (authoredRole, concept) => Object.keys(relation[field]).some(other =>
+      other !== authoredRole && movement.roles[normalizeTier2Synonym(other)]?.includes(concept)
+      && candidatesFor(other).candidates.some(role => rules[role].concept === concept));
     const record = Object.create(null);
     const assigned = [];
     for (const [authoredRole, value] of Object.entries(relation[field])) {
       const { spelled, candidates: meanings } = candidatesFor(authoredRole);
+      if (field === 'anchors' && !spelled.length && structuralContext.has(authoredRole) && meanings.length
+        && meanings.every(role => MOVEMENT_ENDPOINTS.has(rules[role].concept)
+          && provenEndpointField(authoredRole, rules[role].concept))) {
+        record[authoredRole] = value;
+        continue;
+      }
       let candidates = meanings;
       if (candidates.length > 1) {
         const arityMatches = candidates.filter(role => items(value).length >= rules[role].minItems
@@ -84,7 +104,6 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
   // signature is checked. One lower occurrence may fill both source and witness;
   // this adds lookup slots, never another node or an authored field.
   if (entry.id.startsWith('trajectory.') && currentForest && issues.length === 0) {
-    const { movement } = recoverMovementEvidence(relation, currentForest, priorForest);
     if (movement) {
       const rules = { ...entry.signature.anchors.required, ...entry.signature.anchors.optional };
       const requiredRoles = new Set([...Object.keys(entry.signature.anchors.required),
@@ -147,7 +166,6 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
     }
   }
   if (entry.id === 'trajectory.head' && currentForest && issues.length === 0) {
-    const { movement } = recoverMovementEvidence(relation, currentForest, priorForest);
     if (movement?.trajectoryKind === 'phrasal') issues.push({
       kind: 'movement-kind-conflict', reason: 'MOVEMENT_KIND_CONFLICT',
       registeredKind: 'head', structuralKind: movement.trajectoryKind,
