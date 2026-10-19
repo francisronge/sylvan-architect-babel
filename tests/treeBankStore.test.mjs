@@ -574,3 +574,69 @@ test("saves that App cannot display are quarantined or refused, never opened, an
     assert.deepEqual(await storedValue(f, "treeBank", value.id), value);
   assert.ok(await storedValue(f, "savedWorks", "current"));
 });
+
+test("refreshing the library revalidates only changed wrappers and rereads no version-1 entry", async () => {
+  const f = new IDBFactory();
+  const legacy = { ...input("legacy"), updatedAt: "2026-01-01T00:00:00.000Z" };
+  await raw(
+    f,
+    (db) =>
+      mutation(db, ["treeBank"], (tx) => tx.objectStore("treeBank").add(legacy)),
+    1,
+  );
+  const store = createTreeBankStore(f, "test");
+  for (let index = 0; index < 30; index++)
+    await store.saveTreeBankEntry(input(`work-${index}`));
+  const first = await store.listTreeBankEntries();
+  assert.equal(first.entries.length, 31);
+
+  const counts = { digests: 0, legacyReads: 0 };
+  const subtle = Object.getPrototypeOf(globalThis.crypto.subtle);
+  const { digest } = subtle;
+  const { get, getAll, openCursor } = IDBObjectStore.prototype;
+  const countLegacy = (original) =>
+    function (...args) {
+      if (this.name === "treeBank") counts.legacyReads++;
+      return original.apply(this, args);
+    };
+  subtle.digest = function (...args) {
+    counts.digests++;
+    return digest.apply(this, args);
+  };
+  IDBObjectStore.prototype.get = countLegacy(get);
+  IDBObjectStore.prototype.getAll = countLegacy(getAll);
+  IDBObjectStore.prototype.openCursor = countLegacy(openCursor);
+  const refresh = async () => {
+    counts.digests = 0;
+    counts.legacyReads = 0;
+    return store.listTreeBankEntries();
+  };
+  try {
+    assert.deepEqual(await refresh(), first);
+    assert.deepEqual(counts, { digests: 0, legacyReads: 0 });
+
+    await store.saveTreeBankEntry(input("added"));
+    const added = await refresh();
+    assert.equal(added.entries.length, 32);
+    assert.deepEqual(counts, { digests: 1, legacyReads: 0 });
+
+    const prepared = await prepareTreeBankSave(input("work-3"));
+    await raw(f, (db) =>
+      mutation(db, ["savedWorks"], (tx) =>
+        tx.objectStore("savedWorks").put({ ...prepared.work, sentence: "edited" }),
+      ),
+    );
+    const edited = await refresh();
+    assert.equal(counts.digests, 1, "only the rewritten wrapper is checked again");
+    assert.deepEqual(edited.issues.map((issue) => issue.id), ["work-3"]);
+    assert.equal(edited.entries.length, 31);
+
+    await store.removeTreeBankEntry("legacy");
+    const removed = await refresh();
+    assert.equal(removed.entries.some((entry) => entry.id === "legacy"), false);
+    assert.equal(counts.legacyReads, 0);
+  } finally {
+    subtle.digest = digest;
+    Object.assign(IDBObjectStore.prototype, { get, getAll, openCursor });
+  }
+});

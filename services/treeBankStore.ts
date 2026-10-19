@@ -10,7 +10,7 @@ import type {
   TreeBankRecord,
 } from "./treeBankRecords.ts";
 import type { ParseBundle } from "../types.ts";
-import { canonicalJson } from "../derivationalDatabase/jsonData.js";
+import { canonicalJson, copyJsonData } from "../derivationalDatabase/jsonData.js";
 import { loadTreeBankBundleSnapshot } from "../treeBankSnapshot.js";
 import { assertBundleDisplayable } from "./analysisDisplay.ts";
 export type { TreeBankSaveInput } from "./treeBankRecords.ts";
@@ -95,6 +95,15 @@ function legacySummary(v: any): TreeBankEntrySummary {
     legacy: true,
   };
 }
+type ListedEntry = { entry: TreeBankEntrySummary } | { issue: TreeBankIssue };
+/** Exact JSON bytes of a stored wrapper; undefined when it is not JSON data. */
+const jsonBytes = (value: unknown): string | undefined => {
+  try {
+    return canonicalJson(copyJsonData(value));
+  } catch {
+    return undefined;
+  }
+};
 type TreeBankTransaction<T> = (
   tx: IDBTransaction,
   set: (value: T) => void,
@@ -248,51 +257,80 @@ export function createTreeBankStore(
       const r = tx.objectStore(name).get(id);
       r.onsuccess = () => set(r.result);
     });
+  // Listing reruns on every focus and change notification. Wrappers are only
+  // ever added or deleted, and version-1 entries only deleted, so a refresh
+  // validates only wrapper bytes it has not already checked and reads only
+  // version-1 entries it has not already summarized.
+  let listedWorks = new Map<string, ListedEntry>();
+  let listedLegacy = new Map<IDBValidKey, ListedEntry>();
+  const listWork = async (w: any): Promise<ListedEntry> => {
+    try {
+      return { entry: summary(await validateTreeBankWork(w)) };
+    } catch (e) {
+      return {
+        issue: {
+          id: String(w?.id || "unknown"),
+          message: String((e as Error).message),
+        },
+      };
+    }
+  };
+  const listLegacy = (key: IDBValidKey, value: unknown): ListedEntry => {
+    try {
+      return { entry: legacySummary(value) };
+    } catch (error) {
+      return {
+        issue: { id: String(key), message: (error as Error).message },
+      };
+    }
+  };
   const listTreeBankEntries = async () => {
+    const knownWorks = listedWorks;
+    const knownLegacy = listedLegacy;
     const [works, old] = await Promise.all([
       all("savedWorks"),
-      transaction<{ entries: TreeBankEntrySummary[]; issues: TreeBankIssue[] }>(
+      transaction<{ keys: IDBValidKey[]; unread: Map<IDBValidKey, unknown> }>(
         [STORE],
         "readonly",
         (tx, set) => {
-          const result = {
-            entries: [] as TreeBankEntrySummary[],
-            issues: [] as TreeBankIssue[],
-          };
-          const request = tx.objectStore(STORE).openCursor();
+          const store = tx.objectStore(STORE);
+          const request = store.getAllKeys();
           request.onsuccess = () => {
-            const cursor = request.result;
-            if (!cursor) {
-              set(result);
-              return;
+            const unread = new Map<IDBValidKey, unknown>();
+            set({ keys: request.result, unread });
+            for (const key of request.result) {
+              if (knownLegacy.has(key)) continue;
+              const value = store.get(key);
+              value.onsuccess = () => unread.set(key, value.result);
             }
-            try {
-              result.entries.push(legacySummary(cursor.value));
-            } catch (error) {
-              result.issues.push({
-                id: String(cursor.key),
-                message: (error as Error).message,
-              });
-            }
-            cursor.continue();
           };
         },
       ),
     ]);
+    const nextWorks = new Map<string, ListedEntry>();
+    const listed = await Promise.all(
+      works.map(async (w) => {
+        const bytes = jsonBytes(w);
+        const result =
+          (bytes !== undefined && knownWorks.get(bytes)) || (await listWork(w));
+        if (bytes !== undefined) nextWorks.set(bytes, result);
+        return result;
+      }),
+    );
+    const nextLegacy = new Map<IDBValidKey, ListedEntry>();
+    for (const key of old.keys) {
+      const result =
+        knownLegacy.get(key) ?? listLegacy(key, old.unread.get(key));
+      nextLegacy.set(key, result);
+      listed.push(result);
+    }
+    listedWorks = nextWorks;
+    listedLegacy = nextLegacy;
     const entries: TreeBankEntrySummary[] = [];
     const issues: TreeBankIssue[] = [];
-    for (const w of works)
-      try {
-        await validateTreeBankWork(w);
-        entries.push(summary(w));
-      } catch (e) {
-        issues.push({
-          id: String(w?.id || "unknown"),
-          message: String((e as Error).message),
-        });
-      }
-    entries.push(...old.entries);
-    issues.push(...old.issues);
+    for (const result of listed)
+      if ("entry" in result) entries.push(result.entry);
+      else issues.push(result.issue);
     entries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     return { entries, issues };
   };
