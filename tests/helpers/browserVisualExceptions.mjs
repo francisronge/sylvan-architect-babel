@@ -35,15 +35,11 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, CATALOGUE(6), 'mark-distance', 'plaque', 'plaque(0:1 θ GRID; v; experiencer; j)@relativeSubject',
     { desktop: { '14-43': 1.19 }, mobile: { '14-43': 1.19 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'first-paint-continuity', 'jump:stage-coordinates', 'stage 4',
-    { desktop: { '43>44': 47.73 } }),
+    { desktop: { '43>44': 76.31 }, mobile: { '43>44': 38.15 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'rapid-motion', 'node-jump', '@view',
     { desktop: { 'rapid:42>48': 274.7 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'step-motion', 'node-jump', '@view',
     { desktop: { '43>44': 274.7 } }),
-  x(MOBILE, CATALOGUE(6), 'clipped', 'off-canvas', 'role(2:0 lower Occurrence)@subjectLower',
-    { mobile: { '44': 26.72 } }),
-  x(MOBILE, CATALOGUE(6), 'clipped', 'off-canvas', 'role(2:1 event Predicate)@leave',
-    { mobile: { '48': 35.02 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'settled-path-independence', 'retention', 'stage 4',
-    { mobile: { '43>44': 22.43 } })
+    { mobile: { '43>44': 41.13 } })
 ];

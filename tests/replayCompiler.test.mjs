@@ -43,13 +43,18 @@ test('mia-laughed replay finishes with visible syntax', () => {
 });
 
 
-test('the question projection attaches at head movement rather than preceding its landing', () => {
+test('wh-movement authored first waits for the head movement that builds the C′ its landing attaches to', () => {
   const bundle = JSON.parse(fs.readFileSync(path.join(normalizedDir, 'what-did-mia-see.xbar.json'), 'utf8'));
   const { steps } = buildReplaySnapshotProjection(bundle);
   const head = steps.findIndex(step => step.operation === 'auxiliary-head-movement');
   const phrase = steps.findIndex(step => step.operation === 'wh-movement');
-  assert(head > phrase && phrase > 0);
-  assert(!steps[phrase].replayVisibleNodeIds.includes('cbar_question'));
-  assert(!steps[phrase].replayVisibleNodeIds.includes('c_question'));
-  for (const id of ['cbar_question', 'c_question', 'did_terminal']) assert(steps[head].replayVisibleNodeIds.includes(id));
+  assert(phrase === head + 1 && head > 0, 'wh-movement plays right after the head movement');
+  for (const id of ['cbar_question', 'c_question', 'did_terminal']) {
+    assert(!steps[head - 1].replayVisibleNodeIds.includes(id));
+    assert(steps[head].replayVisibleNodeIds.includes(id));
+  }
+  for (const id of ['cp_question', 'dp_what_high', 'what_low']) {
+    assert(!steps[head].replayVisibleNodeIds.includes(id), `${id} waits for wh-movement`);
+    assert(steps[phrase].replayVisibleNodeIds.includes(id));
+  }
 });

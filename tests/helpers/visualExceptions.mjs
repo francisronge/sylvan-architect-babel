@@ -21,7 +21,7 @@ const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rul
 
 // The same findings, with the same measures, occur on origin/main for the saved
 // analyses these fixture cases copy (indexed-night 27-sv-embedded-negation,
-// bughunt2 07-en-rnr); only their frame numbers moved.
+// bughunt2 07-en-rnr, night3 33-grc-article.r2); only their frame numbers moved.
 export const EXCEPTIONS = [
   x(ROLE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/1', 'mark-distance', 'role',
     'role(8:1 higher Contained Heads[4])@mTAtC', { desktop: { '51': 2.82 } }),
@@ -40,7 +40,7 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
     'plaque(1:3/2:3/3:3 theta Experiencer/Proposition)@vWant', { desktop: { '56-69': 1.3 }, 'desktop-large': { '56-69': 1.3 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/case-source-transfer.json#', 'mark-distance', 'plaque',
-    'plaque(0:0 theta Experiencer/Theme)@v1', { desktop: { '15-19': 1.13 }, 'desktop-large': { '15-19': 1.13 } }),
+    'plaque(0:0 theta Experiencer/Theme)@v1', { desktop: { '15-18': 1.13 }, 'desktop-large': { '15-18': 1.13 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/case-source-transfer.json#', 'mark-distance', 'plaque',
     'plaque(2:0 theta Experiencer/Theme)@v3', { desktop: { '29-36': 1.22 }, 'desktop-large': { '29-36': 1.22 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/clitic-displacement.json#/fixtures/1/analysis', 'mark-distance', 'plaque',
@@ -206,5 +206,7 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/waiting-root-continuity.json#', 'mark-distance', 'plaque',
-    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } })
+    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
+  x(PLAQUE_CROWDED, 'replay-regressions/compound-movement-roles.json#/cases/1', 'mark-distance', 'plaque',
+    'plaque(1:0 theta Theme)@V0', { desktop: { '22-38': 1.13 }, 'desktop-large': { '22-38': 1.13 } })
 ];

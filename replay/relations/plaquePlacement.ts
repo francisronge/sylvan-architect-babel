@@ -100,7 +100,14 @@ const union = (rects: PlaqueRect[]): PlaqueRect => {
     height: Math.max(...rects.map(rect => rect.y + rect.height)) - y };
 };
 /** Placement-only union; connector queries keep their separate attachment and ink metadata. */
-export function uniquePlaqueObstacles(obstacles: PlaqueRect[]): PlaqueRect[] {
+export function uniquePlaqueObstacles(obstacles: readonly PlaqueRect[]): PlaqueRect[] {
+  const unique = prepareUniquePlaqueObstacles();
+  return obstacles.filter(box => unique.add(box));
+}
+
+/** The geometry equality of uniquePlaqueObstacles: bounds, downward extent and
+ * any precise curve with its padding. Other metadata never distinguishes boxes. */
+export function prepareUniquePlaqueObstacles() {
   type Buckets = Map<number, PlaqueRect[]>;
   const groups = new Map<string, Buckets>();
   const curves = new WeakMap<NonNullable<PlaqueRect['curve']>, Map<number | undefined, Buckets>>();
@@ -116,7 +123,8 @@ export function uniquePlaqueObstacles(obstacles: PlaqueRect[]): PlaqueRect[] {
     return seen;
   };
   const plain = group('');
-  return obstacles.filter(box => {
+  /** Whether an equal box was added already; `insert` adds this one when not. */
+  const find = (box: PlaqueRect, insert: boolean) => {
     let seen = plain;
     if (box.curve) {
       let pads = curves.get(box.curve);
@@ -138,10 +146,15 @@ export function uniquePlaqueObstacles(obstacles: PlaqueRect[]): PlaqueRect[] {
     const bucket = seen.get(key);
     if (bucket?.some(other => same(box.x, other.x) && same(box.y, other.y)
       && same(box.width, other.width) && same(box.height, other.height)
-      && Boolean(box.extendsDownward) === Boolean(other.extendsDownward))) return false;
-    if (bucket) bucket.push(box); else seen.set(key, [box]);
-    return true;
-  });
+      && Boolean(box.extendsDownward) === Boolean(other.extendsDownward))) return true;
+    if (insert) { if (bucket) bucket.push(box); else seen.set(key, [box]); }
+    return false;
+  };
+  return {
+    /** True for the first box of its geometry. */
+    add: (box: PlaqueRect) => !find(box, true),
+    has: (box: PlaqueRect) => find(box, false)
+  };
 }
 
 /** Carry a reserved offset with its actual Replay node, without choosing another pocket. */
@@ -236,7 +249,7 @@ export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[
   });
 }
 
-type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; thetaGrid?: boolean; scrollHeight?: number; caseAssignment?: boolean; caseRowY?: number; collectionRows?: CollectionRow[]; collectionWidth?: number; drawnWidth?: number; drawnHeight?: number };
+export type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; thetaGrid?: boolean; scrollHeight?: number; caseAssignment?: boolean; caseRowY?: number; collectionRows?: CollectionRow[]; collectionWidth?: number; drawnWidth?: number; drawnHeight?: number };
 
 /** Keep the lifetime pocket and ports while checking the content painted in this stage. */
 export function projectPlaqueContent<T extends PlaqueRect>(box: T, request: Pick<PlaqueRequest, 'width' | 'height' | 'caseRowY' | 'collectionRows'>): T {
@@ -264,11 +277,13 @@ const caseSourceRect = (anchor: Node): PlaqueRect => {
     width: word ? 150 : label.width, height: word ? 60 : label.height };
 };
 
-const caseRouteRectsFrom = (sourceRect: PlaqueRect, box: PlaqueRect): PlaqueRect[] => {
+type CurveRects = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, padding: number) => PlaqueRect[];
+const caseRouteRectsFrom = (sourceRect: PlaqueRect, box: PlaqueRect, rects: CurveRects = curveObstacleRects): PlaqueRect[] => {
   const curve = caseAssignmentPlaqueCurve(sourceRect, drawnPlaque(box), box.y + (box.caseRowY ?? 93));
-  return curveObstacleRects(curve, 8);
+  return rects(curve, 8);
 };
-const caseRouteRects = (anchor: Node, box: PlaqueRect): PlaqueRect[] => caseRouteRectsFrom(caseSourceRect(anchor), box);
+const caseRouteRects = (anchor: Node, box: PlaqueRect, rects?: CurveRects): PlaqueRect[] =>
+  caseRouteRectsFrom(caseSourceRect(anchor), box, rects);
 
 const curveBounds = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, padding: number): PlaqueRect => {
   const { source, control1, control2, target } = curve;
@@ -277,6 +292,20 @@ const curveBounds = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, pad
   return { x, y, width: Math.max(source.x, control1.x, control2.x, target.x) + padding - x,
     height: Math.max(source.y, control1.y, control2.y, target.y) + padding - y };
 };
+
+/** Equal connector curves share one list of their obstacle rectangles, which no
+ * caller mutates. Subcurves keep the end points by reference, so these key too. */
+export function prepareCurveObstacleRects(): CurveRects {
+  const cache = new Map<string, PlaqueRect[]>();
+  return (curve, padding) => {
+    const { source, control1, control2, target } = curve;
+    const key = [padding, source.x, source.y, control1.x, control1.y, control2.x, control2.y, target.x, target.y]
+      .map(exactNumber).join(' ') + JSON.stringify([source, target]);
+    let rects = cache.get(key);
+    if (!rects) cache.set(key, rects = curveObstacleRects(curve, padding));
+    return rects;
+  };
+}
 
 /** Exact subcurve hulls keep broad bounds conservative without filling their empty corners. */
 const curveObstacleRects = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, padding: number, depth = 5): PlaqueRect[] => {
@@ -293,13 +322,142 @@ export function caseAssignmentClears(anchor: Node, box: PlaqueRect, obstacles: P
   return prepareCasePlaqueSpace(anchor, obstacles)(box);
 }
 
+const finiteRect = (rect: ObstacleRect) => Number.isFinite(rect.x) && Number.isFinite(rect.y)
+  && Number.isFinite(rect.width) && Number.isFinite(rect.height);
+/** Exact text for a number, distinguishing -0, for keys that must not merge distinct inputs. */
+export const exactNumber = (value: number) => Object.is(value, -0) ? '-0' : String(value);
+type CrossingBound = { attachment: string | undefined; low: number; high: number; first: number; last: number };
+
+/** Connector sources and blockers of one immutable scene. Every allocation that
+ * adds its own plaques to the scene shares these; none of them is mutated. */
+export type ConnectorScene = {
+  readonly nodes: readonly Node[]; readonly obstacles: readonly PlaqueRect[]; readonly blockers: readonly PlaqueRect[];
+  readonly finite: boolean;
+  source(id: string): PlaqueRect | undefined;
+  inkIndex(attachment: string | undefined): ReturnType<typeof preparePlaqueObstacleIndex<PlaqueRect>>;
+  caseIndex(attachment: string): ReturnType<typeof preparePlaqueObstacleIndex<PlaqueRect>>;
+  bounds(axis: 'x' | 'y'): readonly CrossingBound[];
+  blockersSince(previous: ConnectorScene): readonly number[];
+  distinctBlockers(): readonly number[];
+  blockerKeys(): ReadonlyMap<string, number>;
+};
+export function prepareConnectorScene(nodes: readonly Node[], obstacles: readonly PlaqueRect[]): ConnectorScene {
+  const blockers = obstacles.filter(rect => rect.blocksConnectors);
+  let attachments: Map<string, PlaqueRect> | undefined;
+  let byId: Map<string, Node> | undefined;
+  const sourceCache = new Map<string, PlaqueRect | undefined>();
+  const inkIndexes = new Map<string | undefined, ReturnType<typeof preparePlaqueObstacleIndex<PlaqueRect>>>();
+  const caseIndexes = new Map<string, ReturnType<typeof preparePlaqueObstacleIndex<PlaqueRect>>>();
+  const bounds: Partial<Record<'x' | 'y', CrossingBound[]>> = {};
+  let keys: Map<string, number> | undefined, distinct: number[] | undefined;
+  const changed = new WeakMap<object, number[]>();
+  const scene: ConnectorScene = {
+    nodes, obstacles, blockers,
+    /** Split queries equal one combined query only on finite rectangles. */
+    finite: blockers.every(rect => finiteRect(rect) && (!rect.connectorInk || finiteRect(rect.connectorInk))),
+    // Ordinary plaques have no collection sources. Prepare only the exact source
+    // queried by a collection row; unqueried syntax cannot affect its route.
+    source(id: string): PlaqueRect | undefined {
+      if (sourceCache.has(id)) return sourceCache.get(id);
+      if (!attachments) {
+        attachments = new Map();
+        for (const obstacle of obstacles) if (obstacle.connectorAttachment !== undefined
+          && !attachments.has(obstacle.connectorAttachment)) attachments.set(obstacle.connectorAttachment, obstacle);
+        byId = new Map(nodes.map(node => [idOf(node), node]));
+      }
+      const node = byId!.get(id);
+      if (!node) return undefined;
+      let source = attachments.get(`${id}:category`) ?? attachments.get(`${id}:terminal`);
+      if (!source) {
+        const labels = plaqueTreeObstacles([node]);
+        source = labels.find(rect => rect.connectorAttachment === `${id}:category`)
+          ?? labels.find(rect => rect.connectorAttachment === `${id}:terminal`);
+      }
+      sourceCache.set(id, source); return source;
+    },
+    /** Collection ink that a route from this attachment must clear. */
+    inkIndex(attachment: string | undefined) {
+      let index = inkIndexes.get(attachment);
+      if (!index) {
+        index = preparePlaqueObstacleIndex(blockers.filter(rect => rect.connectorAttachment !== attachment)
+          .map(rect => rect.connectorInk ?? rect));
+        inkIndexes.set(attachment, index);
+      }
+      return index;
+    },
+    /** Opaque boxes that a Case arrow from this attachment must clear. */
+    caseIndex(attachment: string) {
+      let index = caseIndexes.get(attachment);
+      if (!index) {
+        index = preparePlaqueObstacleIndex(blockers.filter(rect => rect.connectorAttachment !== attachment));
+        caseIndexes.set(attachment, index);
+      }
+      return index;
+    },
+    // A fixed curve can need horizontal clearance as well as a different height.
+    // Solve both coordinates from sampled crossings; the allocator validates every
+    // proposed pocket with the exact curve, including orientation/handle changes.
+    bounds(axis: 'x' | 'y') { return bounds[axis] ??= crossingBounds(blockers, axis); },
+    /** Indices of blockers whose crossing hints `previous` lacks, in order. */
+    blockersSince(previous: ConnectorScene): number[] {
+      let indices = changed.get(previous);
+      if (!indices) {
+        const prior = previous.blockerKeys();
+        indices = [];
+        for (const [key, index] of scene.blockerKeys()) if (!prior.has(key)) indices.push(index);
+        indices.sort((a, b) => a - b);
+        changed.set(previous, indices);
+      }
+      return indices;
+    },
+    /** Blockers with distinct crossing hints, in order. */
+    distinctBlockers(): readonly number[] { return distinct ??= [...scene.blockerKeys().values()].sort((a, b) => a - b); },
+    /** Each distinct crossing-hint input, at its first blocker. */
+    blockerKeys(): ReadonlyMap<string, number> {
+      if (!keys) {
+        keys = new Map();
+        blockers.forEach((obstacle, index) => {
+          const rect = obstacle.connectorInk ?? obstacle;
+          const key = `${exactNumber(rect.x)} ${exactNumber(rect.y)} ${exactNumber(rect.width)} ${exactNumber(rect.height)}`
+            + (obstacle.connectorAttachment === undefined ? '' : ` ${obstacle.connectorAttachment}`);
+          if (!keys!.has(key)) keys!.set(key, index);
+        });
+      }
+      return keys;
+    }
+  };
+  return scene;
+}
+
+const crossingBounds = (blockers: readonly PlaqueRect[], axis: 'x' | 'y'): CrossingBound[] => blockers.map(obstacle => {
+  const rect = obstacle.connectorInk ?? obstacle;
+  const other = axis === 'x' ? 'y' : 'x';
+  const extent = axis === 'x' ? 'width' : 'height';
+  const otherExtent = axis === 'x' ? 'height' : 'width';
+  return { attachment: obstacle.connectorAttachment,
+    low: rect[other] - 8, high: rect[other] + rect[otherExtent] + 8,
+    first: rect[axis] - 8, last: rect[axis] + rect[extent] + 8 };
+});
+
+/** Added plaques can share a scene's fixed structures when they cannot change its
+ * sources and every rectangle is finite; otherwise query one combined list. */
+const sharesConnectorScene = (scene: ConnectorScene, added: readonly PlaqueRect[]) => scene.finite
+  && added.every(rect => rect.connectorAttachment === undefined && !rect.connectorInk && finiteRect(rect));
+
 /** Source ink and blockers stay fixed while the allocator searches candidate pockets. */
 export function prepareCasePlaqueSpace(anchor: Node, obstacles: PlaqueRect[]) {
+  return casePlaqueSpace(prepareConnectorScene([], obstacles), anchor);
+}
+
+/** The Case space of `scene` with `added` blockers, as if they ended its obstacles. */
+export function casePlaqueSpace(scene: ConnectorScene, anchor: Node, added: readonly PlaqueRect[] = []) {
+  const addedBlockers = added.filter(rect => rect.blocksConnectors);
+  if (addedBlockers.length && !sharesConnectorScene(scene, addedBlockers))
+    return casePlaqueSpace(prepareConnectorScene(scene.nodes, [...scene.obstacles, ...added]), anchor);
   const source = caseAssignmentSource(anchor);
   const rect = caseSourceRect(anchor);
   const attachment = `${idOf(source)}:${!source.children?.length && source.data.word ? 'terminal' : 'category'}`;
-  const blockers = obstacles.filter(rect => rect.blocksConnectors && rect.connectorAttachment !== attachment);
-  const index = preparePlaqueObstacleIndex(blockers);
+  const index = scene.caseIndex(attachment);
   let previousX = NaN, previousY = NaN, previousWidth = NaN, previousHeight = NaN, previousRowY = NaN;
   let previousResult = false;
   return (box: PlaqueRect) => {
@@ -310,51 +468,37 @@ export function prepareCasePlaqueSpace(anchor: Node, obstacles: PlaqueRect[]) {
       && drawn.height === previousHeight && rowY === previousRowY) return previousResult;
     previousX = drawn.x; previousY = drawn.y; previousWidth = drawn.width; previousHeight = drawn.height; previousRowY = rowY;
     const curve = caseAssignmentPlaqueCurve(rect, drawn, rowY);
+    const bounds = curveBounds(curve, 8);
+    const blocks = (blocker: PlaqueRect) => cubicIntersectsRect(curve, blocker, 8);
     // Collision clearance alone can leave an arrow shorter than its head.
     // Reserve a readable shaft in tree coordinates, so zoom keeps its proportion.
     previousResult = Math.hypot(curve.target.x - curve.source.x, curve.target.y - curve.source.y) >= CATEGORY_LINE_HEIGHT * 2
-      && !index.some(curveBounds(curve, 8), blocker => cubicIntersectsRect(curve, blocker, 8));
+      && !index.some(bounds, blocks) && !addedBlockers.some(blocker => plaquesOverlap(bounds, blocker, 0) && blocks(blocker));
     return previousResult;
   };
 }
 
 /** Measure source labels once per allocation space, not for every candidate pocket. */
 export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRect[] = []) {
-  let attachments: Map<string, PlaqueRect> | undefined;
-  let byId: Map<string, Node> | undefined;
-  const sourceCache = new Map<string, PlaqueRect | undefined>();
-  // Ordinary plaques have no collection sources. Prepare only the exact source
-  // queried by a collection row; unqueried syntax cannot affect its route.
-  const sources = { get(id: string): PlaqueRect | undefined {
-    if (sourceCache.has(id)) return sourceCache.get(id);
-    if (!attachments) {
-      attachments = new Map();
-      for (const obstacle of obstacles) if (obstacle.connectorAttachment !== undefined
-        && !attachments.has(obstacle.connectorAttachment)) attachments.set(obstacle.connectorAttachment, obstacle);
-      byId = new Map(nodes.map(node => [idOf(node), node]));
-    }
-    const node = byId!.get(id);
-    if (!node) return undefined;
-    let source = attachments.get(`${id}:category`) ?? attachments.get(`${id}:terminal`);
-    if (!source) {
-      const labels = plaqueTreeObstacles([node]);
-      source = labels.find(rect => rect.connectorAttachment === `${id}:category`)
-        ?? labels.find(rect => rect.connectorAttachment === `${id}:terminal`);
-    }
-    sourceCache.set(id, source); return source;
-  } };
-  const blockers = obstacles.filter(rect => rect.blocksConnectors);
-  const inkIndexes = new Map<string | undefined, ReturnType<typeof preparePlaqueObstacleIndex>>();
-  const inkIndex = (attachment: PlaqueRect) => {
-    const key = attachment.connectorAttachment;
-    let index = inkIndexes.get(key);
-    if (!index) {
-      index = preparePlaqueObstacleIndex(blockers.filter(rect => rect.connectorAttachment !== key)
-        .map(rect => rect.connectorInk ?? rect));
-      inkIndexes.set(key, index);
-    }
-    return index;
-  };
+  return collectionPlaqueSpace(prepareConnectorScene(nodes, obstacles));
+}
+
+/** The collection space of `scene` with `added` blockers, as if they ended its obstacles. */
+export function collectionPlaqueSpace(scene: ConnectorScene, added: readonly PlaqueRect[] = []) {
+  let addedBlockers = added.filter(rect => rect.blocksConnectors);
+  // A combined scene keeps the fixed blockers first, so their indices still apply.
+  let unshared: readonly number[] | undefined;
+  if (added.length && !sharesConnectorScene(scene, added)) {
+    const fixedCount = scene.blockers.length;
+    scene = prepareConnectorScene(scene.nodes, [...scene.obstacles, ...added]);
+    unshared = Array.from({ length: scene.blockers.length - fixedCount }, (_, index) => fixedCount + index);
+    added = addedBlockers = [];
+  }
+  // Port searches visit ink in index order. Keep one combined index for them.
+  let ordered: ReturnType<typeof collectionPlaqueSpace> | undefined;
+  const combined = () => ordered ??= collectionPlaqueSpace(prepareConnectorScene(scene.nodes, [...scene.obstacles, ...added]));
+  const sources = { get: (id: string) => scene.source(id) };
+  const inkIndex = (attachment: PlaqueRect) => scene.inkIndex(attachment.connectorAttachment);
   const curves = (box: PlaqueRect, sidesOnly = false) => (box.collectionRows ?? []).flatMap(row => {
     const attachment = sources.get(row.sourceNodeId);
     const edge = row.edge ?? (sidesOnly ? 'side' : undefined);
@@ -372,7 +516,7 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
       if (!cubicIntersectsRect(curve, blocker, 6)) return false;
       previousBlockers.set(index, blocker);
       return true;
-    });
+    }) && !addedBlockers.some(blocker => plaquesOverlap(bounds, blocker, 0) && cubicIntersectsRect(curve, blocker, 6));
   };
   const portGap = 24;
   const lastPort = (box: PlaqueRect) => Math.min(box.width, box.collectionWidth ?? box.width) - 24;
@@ -453,78 +597,33 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
     });
     return reserved;
   };
-  // A fixed curve can need horizontal clearance as well as a different height.
-  // Solve both coordinates from sampled crossings; the allocator validates every
-  // proposed pocket with the exact curve, including orientation/handle changes.
-  const crossingBounds = (axis: 'x' | 'y') => blockers.map(obstacle => {
-    const rect = obstacle.connectorInk ?? obstacle;
-    const other = axis === 'x' ? 'y' : 'x';
-    const extent = axis === 'x' ? 'width' : 'height';
-    const otherExtent = axis === 'x' ? 'height' : 'width';
-    return { attachment: obstacle.connectorAttachment,
-      low: rect[other] - 8, high: rect[other] + rect[otherExtent] + 8,
-      first: rect[axis] - 8, last: rect[axis] + rect[extent] + 8 };
-  });
-  const candidateBlockers = { x: crossingBounds('x'), y: crossingBounds('y') };
-  const candidateCoordinates = (box: PlaqueRect, axis: 'x' | 'y'): number[] => {
+  const addedBounds: Partial<Record<'x' | 'y', CrossingBound[]>> = {};
+  /** The sampled routes whose blocker crossings hint at `box[axis]`. */
+  const crossingRoutes = (box: PlaqueRect, axis: 'x' | 'y'): CrossingRoute[] => {
     const routes = curves(box);
     if (box.collectionRows?.some(row => !row.edge)) curves(box, true).forEach(route => {
       if (!routes.some(old => old.row === route.row && old.source.x === route.source.x && old.source.y === route.source.y
         && old.target.x === route.target.x && old.target.y === route.target.y)) routes.push(route);
     });
-    const candidates: number[] = [];
-    const other = axis === 'x' ? 'y' : 'x';
-    for (const curve of routes) {
-      const samples = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 64);
-      let minOther = Infinity, maxOther = -Infinity;
-      let increasing = true, decreasing = true;
-      for (let i = 1; i < 64; i++) {
-        minOther = Math.min(minOther, samples[i][other]);
-        maxOther = Math.max(maxOther, samples[i][other]);
-        if (i > 1) {
-          increasing &&= samples[i][other] >= samples[i - 1][other];
-          decreasing &&= samples[i][other] <= samples[i - 1][other];
-        }
-      }
-      // Search the existing samples, not an analytic substitute: the first/last
-      // crossing and its arithmetic define the candidate and stable tie order.
-      const sampleBound = (value: number, inclusive: boolean) => {
-        let low = 1, high = 64;
-        while (low < high) {
-          const middle = (low + high) >>> 1;
-          const coordinate = increasing ? samples[middle][other] : -samples[middle][other];
-          if (coordinate < value || (inclusive && coordinate === value)) low = middle + 1;
-          else high = middle;
-        }
-        return low;
-      };
-      for (const obstacle of candidateBlockers[axis]) {
-        if (obstacle.attachment === curve.attachment.connectorAttachment) continue;
-        const { low, high } = obstacle;
-        if (maxOther < low || minOther > high) continue;
-        let first = -1, last = -1;
-        if (increasing || decreasing) {
-          first = sampleBound(increasing ? low : -high, false);
-          last = sampleBound(increasing ? high : -low, true) - 1;
-          if (last < first) continue;
-        } else {
-          for (let i = 1; i < 64; i++) if (samples[i][other] >= low && samples[i][other] <= high) {
-            if (first < 0) first = i;
-            last = i;
-          }
-        }
-        if (first < 0) continue;
-        for (const i of [first, last]) {
-          const sourceWeight = candidateWeights[i], sample = samples[i][axis];
-          candidates.push(box[axis] + (obstacle.first - sample) / sourceWeight);
-          candidates.push(box[axis] + (obstacle.last - sample) / sourceWeight);
-        }
-      }
+    return routes.map(curve => crossingRoute(curve, axis));
+  };
+  /** Hints for each route, from the scene's blockers (only `fixed` of them,
+   * when given, in order) and then the added ones. */
+  const pushCandidates = (routes: readonly CrossingRoute[], coordinate: number, axis: 'x' | 'y',
+    fixed: readonly number[] | undefined, candidates: number[]) => {
+    if (fixed && unshared) fixed = [...fixed, ...unshared];
+    const sceneBounds = scene.bounds(axis), extra = addedBounds[axis] ??= crossingBounds(addedBlockers, axis);
+    for (const route of routes) {
+      pushCrossingCandidates(route, coordinate, sceneBounds, fixed, candidates);
+      pushCrossingCandidates(route, coordinate, extra, undefined, candidates);
     }
     return candidates;
   };
+  const candidateCoordinates = (box: PlaqueRect, axis: 'x' | 'y'): number[] =>
+    pushCandidates(crossingRoutes(box, axis), box[axis], axis, undefined, []);
   return {
     attach: <T extends PlaqueRect>(box: T, sidesOnly = false, adjustPorts = true): T => {
+      if (addedBlockers.length && adjustPorts) return combined().attach(box, sidesOnly, adjustPorts);
       const distinctSources = new Set(box.collectionRows?.map(row => row.sourceNodeId)).size > 1;
       let rows = box.collectionRows?.map(row => {
         const source = sources.get(row.sourceNodeId);
@@ -541,7 +640,7 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
       }
       return { ...box, ...(rows ? { collectionRows: rows } : {}) };
     },
-    withClearPorts: <T extends PlaqueRect>(box: T): T => ({ ...box,
+    withClearPorts: <T extends PlaqueRect>(box: T): T => addedBlockers.length ? combined().withClearPorts(box) : ({ ...box,
       collectionRows: box.collectionRows ? clearVerticalPorts(box, box.collectionRows) : undefined }),
     clears: (box: PlaqueRect): boolean => {
       for (const row of box.collectionRows ?? []) {
@@ -555,12 +654,77 @@ export function prepareCollectionPlaqueSpace(nodes: Node[], obstacles: PlaqueRec
     },
     candidateXs: (box: PlaqueRect): number[] => candidateCoordinates(box, 'x'),
     candidateYs: (box: PlaqueRect): number[] => candidateCoordinates(box, 'y'),
-    routeRects: (box: PlaqueRect) => curves(box).flatMap(collectionRouteRects)
+    crossingRoutes, pushCandidates,
+    /** Exactly what a route from `sourceNodeId` reads of this scene. */
+    sourceKey: (sourceNodeId: string): string => {
+      const source = sources.get(sourceNodeId);
+      if (!source) return '-';
+      const rect = source.connectorInk ?? source;
+      return `${exactNumber(rect.x)} ${exactNumber(rect.y)} ${exactNumber(rect.width)} ${exactNumber(rect.height)} ${source.connectorAttachment}`;
+    },
+    routeRects: (box: PlaqueRect, rects: CurveRects = curveObstacleRects) => curves(box).flatMap(curve => rects(curve, 6))
   };
 }
 
-const collectionRouteRects = (curve: ReturnType<typeof featureCollectionPlaqueCurve>) => {
-  return curveObstacleRects(curve, 6);
+type CrossingRoute = { attachment: string | undefined; samples: { x: number; y: number }[]; minOther: number; maxOther: number;
+  increasing: boolean; decreasing: boolean; other: 'x' | 'y' };
+const crossingRoute = (curve: ReturnType<typeof featureCollectionPlaqueCurve> & { attachment: PlaqueRect }, axis: 'x' | 'y'): CrossingRoute => {
+  const samples = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 64);
+  const other = axis === 'x' ? 'y' : 'x';
+  let minOther = Infinity, maxOther = -Infinity;
+  let increasing = true, decreasing = true;
+  for (let i = 1; i < 64; i++) {
+    minOther = Math.min(minOther, samples[i][other]);
+    maxOther = Math.max(maxOther, samples[i][other]);
+    if (i > 1) {
+      increasing &&= samples[i][other] >= samples[i - 1][other];
+      decreasing &&= samples[i][other] <= samples[i - 1][other];
+    }
+  }
+  return { attachment: curve.attachment.connectorAttachment, samples, minOther, maxOther, increasing, decreasing, other };
+};
+
+/** Append each blocker's crossing hints for one route, in blocker order. */
+const pushCrossingCandidates = (route: CrossingRoute, coordinate: number,
+  bounds: readonly CrossingBound[], indices: readonly number[] | undefined, candidates: number[]) => {
+  const { attachment, samples, minOther, maxOther, increasing, decreasing, other } = route;
+  const axis = other === 'x' ? 'y' : 'x';
+  // Search the existing samples, not an analytic substitute: the first/last
+  // crossing and its arithmetic define the candidate and stable tie order.
+  const sampleBound = (value: number, inclusive: boolean) => {
+    let low = 1, high = 64;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      const coordinate = increasing ? samples[middle][other] : -samples[middle][other];
+      if (coordinate < value || (inclusive && coordinate === value)) low = middle + 1;
+      else high = middle;
+    }
+    return low;
+  };
+  const count = indices ? indices.length : bounds.length;
+  for (let k = 0; k < count; k++) {
+    const obstacle = bounds[indices ? indices[k] : k];
+    if (obstacle.attachment === attachment) continue;
+    const { low, high } = obstacle;
+    if (maxOther < low || minOther > high) continue;
+    let first = -1, last = -1;
+    if (increasing || decreasing) {
+      first = sampleBound(increasing ? low : -high, false);
+      last = sampleBound(increasing ? high : -low, true) - 1;
+      if (last < first) continue;
+    } else {
+      for (let i = 1; i < 64; i++) if (samples[i][other] >= low && samples[i][other] <= high) {
+        if (first < 0) first = i;
+        last = i;
+      }
+    }
+    if (first < 0) continue;
+    for (const i of [first, last]) {
+      const sourceWeight = candidateWeights[i], sample = samples[i][axis];
+      candidates.push(coordinate + (obstacle.first - sample) / sourceWeight);
+      candidates.push(coordinate + (obstacle.last - sample) / sourceWeight);
+    }
+  }
 };
 
 /** Fixed Orchard collection curves stay clear by placement, never by rerouting. */
@@ -574,18 +738,19 @@ export function collectionPlaqueCandidateYs(box: PlaqueRect, nodes: Node[], obst
 }
 
 /** Reserve collections before other plaques choose their lifetime pockets. */
-export function plaqueCollectionConnectorObstacles(nodes: Node[], layout: Map<number, PlaquePlacement>): PlaqueRect[] {
+export function plaqueCollectionConnectorObstacles(nodes: Node[], layout: Map<number, PlaquePlacement>, rects?: CurveRects): PlaqueRect[] {
   const space = prepareCollectionPlaqueSpace(nodes);
-  return [...layout.values()].flatMap(box => space.routeRects(box));
+  return [...layout.values()].flatMap(box => space.routeRects(box, rects));
 }
 
 /** Reserve the same curved approach as the painter, including carried claims. */
-export function plaqueCaseConnectorObstacles(items: RelationPlanItem[], nodes: Node[], layout: Map<number, PlaquePlacement>): PlaqueRect[] {
+export function plaqueCaseConnectorObstacles(items: RelationPlanItem[], nodes: Node[], layout: Map<number, PlaquePlacement>,
+  rects?: CurveRects): PlaqueRect[] {
   const byId = new Map(nodes.map(node => [idOf(node), node]));
   return [...layout].flatMap(([index, box]) => {
     const item = items[index];
     const anchor = item?.kind === 'directed-path' && item.pathStyle === 'case-assignment' && byId.get(item.fromNodeId);
-    return anchor ? caseRouteRects(anchor, box) : [];
+    return anchor ? caseRouteRects(anchor, box, rects) : [];
   });
 }
 
@@ -647,9 +812,11 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
   return requests;
 }
 
-type PlaqueSpace = {
+export type PlaqueSpace = {
   obstacles: PlaqueRect[];
   acceptsConnector: (box: PlaqueRect) => boolean;
+  /** Search hints in first-occurrence order. The search reads each distinct value
+   * once, so a space may omit a repeat of an earlier hint. */
   connectorCandidateXs?: (box: PlaqueRect) => number[];
   connectorCandidateYs?: (box: PlaqueRect) => number[];
 };
