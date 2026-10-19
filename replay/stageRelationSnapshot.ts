@@ -40,7 +40,9 @@ export const createStageRelationSnapshots = (
   placements: StageRelationPlan,
   ordinaryStructuralNodeIds: ReadonlySet<string>,
   /** Ordinary attachments whose construction step has not run. */
-  heldAttachmentNodeIds: () => ReadonlySet<string> = () => new Set()
+  heldAttachmentNodeIds: () => ReadonlySet<string> = () => new Set(),
+  /** Whether one relation's moment plays after another's in this stage. */
+  playsAfter: (relationIndex: number, ownerIndex: number) => boolean = (relationIndex, ownerIndex) => relationIndex > ownerIndex
 ) => {
   const { frames, identity } = compilation;
   const {
@@ -219,9 +221,10 @@ export const createStageRelationSnapshots = (
         });
       });
     // Copy construction and realization may share a completed stage. Preserve
-    // the prior lexical fields until the later authored realization owns them.
+    // the prior lexical fields until the realization whose moment plays later
+    // owns them.
     const retainPendingPronunciation = (nodeId: string, priorNodeId: string, ownerIndex: number, receivingHead = false) => {
-      const realizationIndex = frameRelationSteps.findIndex((relation, relationIndex) => relationIndex > ownerIndex && relation.pronunciationNodeIds?.includes(nodeId));
+      const realizationIndex = frameRelationSteps.findIndex((relation, relationIndex) => playsAfter(relationIndex, ownerIndex) && relation.pronunciationNodeIds?.includes(nodeId));
       if (realizationIndex < 0 || activeRelationIndexes.has(realizationIndex))
         return;
       const prior = findExactNodeByIdInForest(previousFrameWorkspaceRoots, priorNodeId);
@@ -249,7 +252,7 @@ export const createStageRelationSnapshots = (
         const named = new Set([id]);
         for (let parentId = findParentNodeIdInForest(workspaceRoots, id); parentId; parentId = findParentNodeIdInForest(workspaceRoots, parentId))
           named.add(parentId);
-        const owner = frameRelationSteps.findIndex((relation, relationIndex) => relationIndex > ownerIndex
+        const owner = frameRelationSteps.findIndex((relation, relationIndex) => playsAfter(relationIndex, ownerIndex)
           && relation.pronunciationNodeIds?.some(named.has, named));
         return owner >= 0 && !activeRelationIndexes.has(owner);
       };
