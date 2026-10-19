@@ -26,6 +26,9 @@ const OPEN_ROLES = 'Open: no field of the claim names a movement direction or oc
 const INTERMEDIATE_TRACE = 'Open: the claim calls its lower occurrence intermediateTrace, which cannot select the endpoint because '
   + 'operator-variable chain claims use that name for a middle copy of the chain, and no other field names a movement role, so '
   + 'the copy stays neutral at its moment without an arrow.';
+const UNNAMED_LANDING = 'Open: the claim names its lower occurrence as source but calls the moved occurrence clitic and its new '
+  + 'complex result; no field names a landing, and the Tier 2 contract infers no movement from geometry, so the copy stays '
+  + 'neutral at its moment without an arrow.';
 const OBJECT_LANGUAGE_ROLES = 'Authored data: the claim and its fields are named in Chinese, so no movement role is read and the '
   + 'displacement stays a neutral copy at its moment without an arrow.';
 const RETAINED_HOST_SOURCE = 'Open: the prior fields name the moving negative and its receiving head, which keeps its slot and '
@@ -94,4 +97,5 @@ export const STEP_EXCEPTIONS = [
   x(RETAINED_HOST_SOURCE, 'replay-regressions/retained-head-attachment.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '46'),
   x(INTERMEDIATE_TRACE, 'replay-regressions/rewrite-stage-new-head.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '57'),
   x(INTERMEDIATE_TRACE, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '33'),
+  x(UNNAMED_LANDING, 'performance/french-relative.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "9:0", '105'),
 ];

@@ -1,0 +1,2699 @@
+{
+  "description": "Three coordinated Portuguese clauses, the last with a subject relative clause: 20 words, 5 stages, 111 Replay steps and 84 final nodes. Before 19 October 2026 its offline preparation took about 14 seconds, 11.5 of them in stage coordinate reservations.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (character-spellout-v3), 19 October 2026 (night4 batch, 16-pt-long-coordination, analysis 1), commit bcf1b56. Tokens are the shared word list of that run.",
+  "contract": "character-spellout-v3",
+  "sentence": "O menino comprou o pão, a menina preparou o café, e a avó que morava com eles arrumou a mesa.",
+  "framework": "xbar",
+  "inputTokens": [
+    "O",
+    "menino",
+    "comprou",
+    "o",
+    "pão",
+    "a",
+    "menina",
+    "preparou",
+    "o",
+    "café",
+    "e",
+    "a",
+    "avó",
+    "que",
+    "morava",
+    "com",
+    "eles",
+    "arrumou",
+    "a",
+    "mesa"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "arguments": [
+              "dpBoy",
+              "dpBread"
+            ],
+            "predicate": "vBuy"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "arguments": [
+              "Agent",
+              "Theme"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "arguments": [
+              "dpGirl",
+              "dpCoffee"
+            ],
+            "predicate": "vPrepare"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "arguments": [
+              "Agent",
+              "Theme"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "arguments": [
+              "op"
+            ],
+            "predicate": "vLive"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "arguments": [
+              "Resident"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "arguments": [
+              "dpGrandmother",
+              "dpTable"
+            ],
+            "predicate": "vArrange"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "arguments": [
+              "Agent",
+              "Theme"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "complement": "dpThem",
+            "governor": "pWith"
+          },
+          "relation": "prepositional theta-role and Case licensing",
+          "values": {
+            "case": "Oblique",
+            "thetaRole": "Comitative associate"
+          }
+        },
+        {
+          "anchors": {
+            "adjunct": "ppWith",
+            "modifiedProjection": "vbarLiveCore"
+          },
+          "relation": "VP-adjunct interpretation",
+          "values": {
+            "interpretation": "The relative-clause subject lived with the referents of eles."
+          }
+        },
+        {
+          "anchors": {
+            "governors": [
+              "vBuy",
+              "vPrepare",
+              "vArrange"
+            ],
+            "objects": [
+              "dpBread",
+              "dpCoffee",
+              "dpTable"
+            ]
+          },
+          "relation": "structural object Case",
+          "values": {
+            "objects": [
+              "Accusative",
+              "Accusative",
+              "Accusative"
+            ]
+          }
+        }
+      ],
+      "stageRecord": "The sentence contains three coordinated finite clauses, with a finite relative clause inside the third clause's subject. This analysis uses binary X-bar projections, VP-internal subjects, and subsequent movement to Spec-IP. Initially, the four clauses are separate IPs with unfilled subject positions above I′. The grandmother's relative clause has not yet been attached. Comprar, preparar, and arrumar each assign an Agent role to their VP-internal subject and a Theme role to their object. Morar assigns its resident role to a silent relative operator, which originates as its subject. The PP com eles is a low adjunct of morar: it describes living with those people, rather than helping to arrange the table. Com assigns its complement a comitative role and oblique Case. The three transitive verbs assign accusative Case to their objects. The finite verbs are entered with the inflected forms found in the sentence; subsequent V-to-I movement checks their finite features rather than creating a different written form. The relative operator and the abstract inflectional heads are silent.",
+      "statement": "Establish the four predicate domains and their base-generated arguments.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "inflBuy",
+                  "label": "I° [finite, past, 3sg]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "dBoy",
+                          "label": "D°",
+                          "word": "O"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nBoy",
+                                  "label": "N°",
+                                  "word": "menino"
+                                }
+                              ],
+                              "id": "nbarBoy",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npBoy",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "dpBoy",
+                      "label": "DP",
+                      "lineageId": "boyChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vBuy",
+                          "label": "V°",
+                          "lineageId": "buyHeadChain",
+                          "word": "comprou"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dBread",
+                              "label": "D°",
+                              "word": "o"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nBread",
+                                      "label": "N°",
+                                      "word": "pão"
+                                    }
+                                  ],
+                                  "id": "nbarBread",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npBread",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpBread",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarBuy",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpBuy",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarBuy",
+              "label": "I′"
+            }
+          ],
+          "id": "ipBuy",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "inflPrepare",
+                  "label": "I° [finite, past, 3sg]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "dGirl",
+                          "label": "D°",
+                          "word": "a"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nGirl",
+                                  "label": "N°",
+                                  "word": "menina"
+                                }
+                              ],
+                              "id": "nbarGirl",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npGirl",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "dpGirl",
+                      "label": "DP",
+                      "lineageId": "girlChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vPrepare",
+                          "label": "V°",
+                          "lineageId": "prepareHeadChain",
+                          "word": "preparou"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dCoffee",
+                              "label": "D°",
+                              "word": "o"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nCoffee",
+                                      "label": "N°",
+                                      "word": "café"
+                                    }
+                                  ],
+                                  "id": "nbarCoffee",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npCoffee",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpCoffee",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarPrepare",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpPrepare",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarPrepare",
+              "label": "I′"
+            }
+          ],
+          "id": "ipPrepare",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "inflLive",
+                  "label": "I° [finite, past, imperfective, 3sg]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "op",
+                      "label": "DP [relative operator]",
+                      "lineageId": "relativeChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "vLive",
+                              "label": "V°",
+                              "lineageId": "liveHeadChain",
+                              "word": "morava"
+                            }
+                          ],
+                          "id": "vbarLiveCore",
+                          "label": "V′"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "pWith",
+                                  "label": "P°",
+                                  "word": "com"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "pronThem",
+                                      "label": "D° [pronominal]",
+                                      "word": "eles"
+                                    }
+                                  ],
+                                  "id": "dpThem",
+                                  "label": "DP [personal pronoun, masculine plural]"
+                                }
+                              ],
+                              "id": "pbarWith",
+                              "label": "P′"
+                            }
+                          ],
+                          "id": "ppWith",
+                          "label": "PP"
+                        }
+                      ],
+                      "id": "vbarLive",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpLive",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarLive",
+              "label": "I′"
+            }
+          ],
+          "id": "ipLive",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "inflArrange",
+                  "label": "I° [finite, past, 3sg]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "dGrandmother",
+                          "label": "D°",
+                          "word": "a"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nGrandmother",
+                                  "label": "N°",
+                                  "word": "avó"
+                                }
+                              ],
+                              "id": "nbarGrandmother",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npGrandmother",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "dpGrandmother",
+                      "label": "DP",
+                      "lineageId": "grandmotherChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vArrange",
+                          "label": "V°",
+                          "lineageId": "arrangeHeadChain",
+                          "word": "arrumou"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dTable",
+                              "label": "D°",
+                              "word": "a"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nTable",
+                                      "label": "N°",
+                                      "word": "mesa"
+                                    }
+                                  ],
+                                  "id": "nbarTable",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npTable",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpTable",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarArrange",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpArrange",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarArrange",
+              "label": "I′"
+            }
+          ],
+          "id": "ipArrange",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "inflection": "inflBuy",
+            "landingHead": "iheadBuy",
+            "movedHead": "vBuy",
+            "sourceTrace": "tVBuy"
+          },
+          "priorAnchors": {
+            "sourceHead": "vBuy",
+            "targetInflection": "inflBuy"
+          },
+          "relation": "V-to-I head movement and finite-feature checking",
+          "values": {
+            "features": [
+              "Past",
+              "Third-person singular"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "inflPrepare",
+            "landingHead": "iheadPrepare",
+            "movedHead": "vPrepare",
+            "sourceTrace": "tVPrepare"
+          },
+          "priorAnchors": {
+            "sourceHead": "vPrepare",
+            "targetInflection": "inflPrepare"
+          },
+          "relation": "V-to-I head movement and finite-feature checking",
+          "values": {
+            "features": [
+              "Past",
+              "Third-person singular"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "inflLive",
+            "landingHead": "iheadLive",
+            "movedHead": "vLive",
+            "sourceTrace": "tVLive"
+          },
+          "priorAnchors": {
+            "sourceHead": "vLive",
+            "targetInflection": "inflLive"
+          },
+          "relation": "V-to-I head movement and finite-feature checking",
+          "values": {
+            "features": [
+              "Past",
+              "Imperfective",
+              "Third-person singular"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "inflArrange",
+            "landingHead": "iheadArrange",
+            "movedHead": "vArrange",
+            "sourceTrace": "tVArrange"
+          },
+          "priorAnchors": {
+            "sourceHead": "vArrange",
+            "targetInflection": "inflArrange"
+          },
+          "relation": "V-to-I head movement and finite-feature checking",
+          "values": {
+            "features": [
+              "Past",
+              "Third-person singular"
+            ]
+          }
+        },
+        {
+          "anchors": {
+            "licensingHead": "iheadBuy",
+            "sourceTrace": "tBoy",
+            "subject": "dpBoy"
+          },
+          "priorAnchors": {
+            "sourceSubject": "dpBoy"
+          },
+          "relation": "subject A-movement, nominative Case, and agreement",
+          "values": {
+            "agreement": "Third-person singular",
+            "case": "Nominative"
+          }
+        },
+        {
+          "anchors": {
+            "licensingHead": "iheadPrepare",
+            "sourceTrace": "tGirl",
+            "subject": "dpGirl"
+          },
+          "priorAnchors": {
+            "sourceSubject": "dpGirl"
+          },
+          "relation": "subject A-movement, nominative Case, and agreement",
+          "values": {
+            "agreement": "Third-person singular",
+            "case": "Nominative"
+          }
+        },
+        {
+          "anchors": {
+            "licensingHead": "iheadLive",
+            "sourceTrace": "tOpVP",
+            "subject": "op"
+          },
+          "priorAnchors": {
+            "sourceSubject": "op"
+          },
+          "relation": "subject A-movement and nominative Case",
+          "values": {
+            "agreement": "Third-person singular",
+            "case": "Nominative"
+          }
+        }
+      ],
+      "stageRecord": "Each lexical verb first raises from its previously represented V position and adjoins to the corresponding finite I head. A silent V trace remains at each source, preserving the verbal dependency and the objects' established licensing. These four local movements check the past-tense and third-person singular features, including imperfective aspect for morava. Next, o menino and a menina move from Spec-VP to their respective Spec-IP positions; their chains retain the Agent roles assigned below and receive nominative Case from finite I. The silent relative operator likewise moves from the subject position of morar to Spec-IP and receives nominative Case. It has not yet undergone relative A′-movement: its intermediate subject position must be present before that next movement. The grandmother remains in her VP-internal position so that her relative modifier can be completed and attached before the entire subject DP raises.",
+      "statement": "Raise the finite verbs and establish the first three subject chains.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "dBoy",
+                  "label": "D°",
+                  "word": "O"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nBoy",
+                          "label": "N°",
+                          "word": "menino"
+                        }
+                      ],
+                      "id": "nbarBoy",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npBoy",
+                  "label": "NP"
+                }
+              ],
+              "id": "dpBoy",
+              "label": "DP",
+              "lineageId": "boyChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vBuy",
+                      "label": "V°",
+                      "lineageId": "buyHeadChain",
+                      "word": "comprou"
+                    },
+                    {
+                      "children": [],
+                      "id": "inflBuy",
+                      "label": "I° [finite, past, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "iheadBuy",
+                  "label": "I°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tBoy",
+                      "label": "DP [A-trace]",
+                      "lineageId": "boyChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tVBuy",
+                          "label": "V° [head trace]",
+                          "lineageId": "buyHeadChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dBread",
+                              "label": "D°",
+                              "word": "o"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nBread",
+                                      "label": "N°",
+                                      "word": "pão"
+                                    }
+                                  ],
+                                  "id": "nbarBread",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npBread",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpBread",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarBuy",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpBuy",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarBuy",
+              "label": "I′"
+            }
+          ],
+          "id": "ipBuy",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "dGirl",
+                  "label": "D°",
+                  "word": "a"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nGirl",
+                          "label": "N°",
+                          "word": "menina"
+                        }
+                      ],
+                      "id": "nbarGirl",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npGirl",
+                  "label": "NP"
+                }
+              ],
+              "id": "dpGirl",
+              "label": "DP",
+              "lineageId": "girlChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vPrepare",
+                      "label": "V°",
+                      "lineageId": "prepareHeadChain",
+                      "word": "preparou"
+                    },
+                    {
+                      "children": [],
+                      "id": "inflPrepare",
+                      "label": "I° [finite, past, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "iheadPrepare",
+                  "label": "I°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tGirl",
+                      "label": "DP [A-trace]",
+                      "lineageId": "girlChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tVPrepare",
+                          "label": "V° [head trace]",
+                          "lineageId": "prepareHeadChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dCoffee",
+                              "label": "D°",
+                              "word": "o"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nCoffee",
+                                      "label": "N°",
+                                      "word": "café"
+                                    }
+                                  ],
+                                  "id": "nbarCoffee",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npCoffee",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpCoffee",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarPrepare",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpPrepare",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarPrepare",
+              "label": "I′"
+            }
+          ],
+          "id": "ipPrepare",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "op",
+              "label": "DP [relative operator]",
+              "lineageId": "relativeChain",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vLive",
+                      "label": "V°",
+                      "lineageId": "liveHeadChain",
+                      "word": "morava"
+                    },
+                    {
+                      "children": [],
+                      "id": "inflLive",
+                      "label": "I° [finite, past, imperfective, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "iheadLive",
+                  "label": "I°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tOpVP",
+                      "label": "DP [A-trace]",
+                      "lineageId": "relativeChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tVLive",
+                              "label": "V° [head trace]",
+                              "lineageId": "liveHeadChain",
+                              "silent": true
+                            }
+                          ],
+                          "id": "vbarLiveCore",
+                          "label": "V′"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "pWith",
+                                  "label": "P°",
+                                  "word": "com"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "pronThem",
+                                      "label": "D° [pronominal]",
+                                      "word": "eles"
+                                    }
+                                  ],
+                                  "id": "dpThem",
+                                  "label": "DP [personal pronoun, masculine plural]"
+                                }
+                              ],
+                              "id": "pbarWith",
+                              "label": "P′"
+                            }
+                          ],
+                          "id": "ppWith",
+                          "label": "PP"
+                        }
+                      ],
+                      "id": "vbarLive",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpLive",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarLive",
+              "label": "I′"
+            }
+          ],
+          "id": "ipLive",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vArrange",
+                      "label": "V°",
+                      "lineageId": "arrangeHeadChain",
+                      "word": "arrumou"
+                    },
+                    {
+                      "children": [],
+                      "id": "inflArrange",
+                      "label": "I° [finite, past, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "iheadArrange",
+                  "label": "I°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "dGrandmother",
+                          "label": "D°",
+                          "word": "a"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nGrandmother",
+                                  "label": "N°",
+                                  "word": "avó"
+                                }
+                              ],
+                              "id": "nbarGrandmother",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npGrandmother",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "dpGrandmother",
+                      "label": "DP",
+                      "lineageId": "grandmotherChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tVArrange",
+                          "label": "V° [head trace]",
+                          "lineageId": "arrangeHeadChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dTable",
+                              "label": "D°",
+                              "word": "a"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nTable",
+                                      "label": "N°",
+                                      "word": "mesa"
+                                    }
+                                  ],
+                                  "id": "nbarTable",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npTable",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpTable",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarArrange",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpArrange",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarArrange",
+              "label": "I′"
+            }
+          ],
+          "id": "ipArrange",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complementizer": "cRelative",
+            "intermediateTrace": "tOpIP",
+            "landingProjection": "cpRelative",
+            "operator": "op",
+            "thetaPositionTrace": "tOpVP"
+          },
+          "priorAnchors": {
+            "sourceClause": "ipLive",
+            "sourceOperator": "op"
+          },
+          "relation": "relative A′-movement and operator binding",
+          "values": {
+            "dependency": "Subject relative",
+            "locality": "Clause-internal movement to the immediately containing Spec-CP"
+          }
+        },
+        {
+          "anchors": {
+            "modifiedProjection": "nbarGrandmotherRelative",
+            "nominalHead": "nGrandmother",
+            "operator": "op",
+            "relativeClause": "cpRelative"
+          },
+          "relation": "restrictive relative predication",
+          "values": {
+            "agreement": "The operator variable is third-person singular, matching avó and morava.",
+            "interpretation": "The grandmother is identified as a person who lived with them."
+          }
+        }
+      ],
+      "stageRecord": "The silent relative operator now moves from the Spec-IP position established in the preceding stage to Spec-CP, leaving an intermediate subject trace. Its chain includes that trace and the original VP-subject trace. The overt invariant form que is analyzed as C, not as the pronounced operator; C hosts the relative clause while the silent operator binds the subject variable. The movement is confined to this clause, with no intervening clause or island crossed. The completed CP then adjoins to the N′ headed by avó, still inside the VP-internal matrix subject. This establishes restrictive relative predication: the grandmother denoted by the modified nominal is the person who lived with them. No comma separates avó from its relative clause, supporting this integrated restrictive structure. The DP remains in its original matrix theta-position throughout attachment, so no late attachment to an already raised subject is required.",
+      "statement": "Complete the subject relative and attach it restrictively to avó.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "dBoy",
+                  "label": "D°",
+                  "word": "O"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nBoy",
+                          "label": "N°",
+                          "word": "menino"
+                        }
+                      ],
+                      "id": "nbarBoy",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npBoy",
+                  "label": "NP"
+                }
+              ],
+              "id": "dpBoy",
+              "label": "DP",
+              "lineageId": "boyChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vBuy",
+                      "label": "V°",
+                      "lineageId": "buyHeadChain",
+                      "word": "comprou"
+                    },
+                    {
+                      "children": [],
+                      "id": "inflBuy",
+                      "label": "I° [finite, past, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "iheadBuy",
+                  "label": "I°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tBoy",
+                      "label": "DP [A-trace]",
+                      "lineageId": "boyChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tVBuy",
+                          "label": "V° [head trace]",
+                          "lineageId": "buyHeadChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dBread",
+                              "label": "D°",
+                              "word": "o"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nBread",
+                                      "label": "N°",
+                                      "word": "pão"
+                                    }
+                                  ],
+                                  "id": "nbarBread",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npBread",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpBread",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarBuy",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpBuy",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarBuy",
+              "label": "I′"
+            }
+          ],
+          "id": "ipBuy",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "dGirl",
+                  "label": "D°",
+                  "word": "a"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nGirl",
+                          "label": "N°",
+                          "word": "menina"
+                        }
+                      ],
+                      "id": "nbarGirl",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npGirl",
+                  "label": "NP"
+                }
+              ],
+              "id": "dpGirl",
+              "label": "DP",
+              "lineageId": "girlChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vPrepare",
+                      "label": "V°",
+                      "lineageId": "prepareHeadChain",
+                      "word": "preparou"
+                    },
+                    {
+                      "children": [],
+                      "id": "inflPrepare",
+                      "label": "I° [finite, past, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "iheadPrepare",
+                  "label": "I°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tGirl",
+                      "label": "DP [A-trace]",
+                      "lineageId": "girlChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tVPrepare",
+                          "label": "V° [head trace]",
+                          "lineageId": "prepareHeadChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dCoffee",
+                              "label": "D°",
+                              "word": "o"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nCoffee",
+                                      "label": "N°",
+                                      "word": "café"
+                                    }
+                                  ],
+                                  "id": "nbarCoffee",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npCoffee",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpCoffee",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarPrepare",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpPrepare",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarPrepare",
+              "label": "I′"
+            }
+          ],
+          "id": "ipPrepare",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vArrange",
+                      "label": "V°",
+                      "lineageId": "arrangeHeadChain",
+                      "word": "arrumou"
+                    },
+                    {
+                      "children": [],
+                      "id": "inflArrange",
+                      "label": "I° [finite, past, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "iheadArrange",
+                  "label": "I°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "dGrandmother",
+                          "label": "D°",
+                          "word": "a"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nGrandmother",
+                                      "label": "N°",
+                                      "word": "avó"
+                                    }
+                                  ],
+                                  "id": "nbarGrandmother",
+                                  "label": "N′"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "op",
+                                      "label": "DP [relative operator]",
+                                      "lineageId": "relativeChain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "cRelative",
+                                          "label": "C° [relative]",
+                                          "word": "que"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "tOpIP",
+                                              "label": "DP [subject-position trace]",
+                                              "lineageId": "relativeChain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "vLive",
+                                                      "label": "V°",
+                                                      "lineageId": "liveHeadChain",
+                                                      "word": "morava"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "inflLive",
+                                                      "label": "I° [finite, past, imperfective, 3sg]",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "iheadLive",
+                                                  "label": "I°"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "tOpVP",
+                                                      "label": "DP [A-trace]",
+                                                      "lineageId": "relativeChain",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "tVLive",
+                                                              "label": "V° [head trace]",
+                                                              "lineageId": "liveHeadChain",
+                                                              "silent": true
+                                                            }
+                                                          ],
+                                                          "id": "vbarLiveCore",
+                                                          "label": "V′"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "pWith",
+                                                                  "label": "P°",
+                                                                  "word": "com"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "pronThem",
+                                                                      "label": "D° [pronominal]",
+                                                                      "word": "eles"
+                                                                    }
+                                                                  ],
+                                                                  "id": "dpThem",
+                                                                  "label": "DP [personal pronoun, masculine plural]"
+                                                                }
+                                                              ],
+                                                              "id": "pbarWith",
+                                                              "label": "P′"
+                                                            }
+                                                          ],
+                                                          "id": "ppWith",
+                                                          "label": "PP"
+                                                        }
+                                                      ],
+                                                      "id": "vbarLive",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "vpLive",
+                                                  "label": "VP"
+                                                }
+                                              ],
+                                              "id": "ibarLive",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "ipLive",
+                                          "label": "IP"
+                                        }
+                                      ],
+                                      "id": "cbarRelative",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "cpRelative",
+                                  "label": "CP [restrictive relative]"
+                                }
+                              ],
+                              "id": "nbarGrandmotherRelative",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npGrandmother",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "dpGrandmother",
+                      "label": "DP",
+                      "lineageId": "grandmotherChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tVArrange",
+                          "label": "V° [head trace]",
+                          "lineageId": "arrangeHeadChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dTable",
+                              "label": "D°",
+                              "word": "a"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nTable",
+                                      "label": "N°",
+                                      "word": "mesa"
+                                    }
+                                  ],
+                                  "id": "nbarTable",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npTable",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpTable",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarArrange",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpArrange",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarArrange",
+              "label": "I′"
+            }
+          ],
+          "id": "ipArrange",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "includedRelativeClause": "cpRelative",
+            "licensingHead": "iheadArrange",
+            "sourceTrace": "tGrandmother",
+            "subject": "dpGrandmother"
+          },
+          "priorAnchors": {
+            "sourceProjection": "vpArrange",
+            "sourceSubject": "dpGrandmother"
+          },
+          "relation": "subject A-movement, nominative Case, and agreement",
+          "values": {
+            "agreement": "Third-person singular",
+            "case": "Nominative",
+            "movementDomain": "The entire DP, including its restrictive relative clause"
+          }
+        }
+      ],
+      "stageRecord": "The complete DP a avó que morava com eles moves from the previously represented Spec-VP position of arrumar to Spec-IP. Its restrictive relative clause travels inside the DP rather than being extracted or independently repositioned. A silent DP trace remains in the Agent position. Finite I licenses the raised subject with nominative Case and third-person singular agreement, yielding the order of the full subject followed by arrumou a mesa. The relative operator dependency remains internal to the moved DP, and the earlier subject and verb chains in the other clauses remain unchanged.",
+      "statement": "Raise the complete grandmother DP to the matrix subject position.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "dBoy",
+                  "label": "D°",
+                  "word": "O"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nBoy",
+                          "label": "N°",
+                          "word": "menino"
+                        }
+                      ],
+                      "id": "nbarBoy",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npBoy",
+                  "label": "NP"
+                }
+              ],
+              "id": "dpBoy",
+              "label": "DP",
+              "lineageId": "boyChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vBuy",
+                      "label": "V°",
+                      "lineageId": "buyHeadChain",
+                      "word": "comprou"
+                    },
+                    {
+                      "children": [],
+                      "id": "inflBuy",
+                      "label": "I° [finite, past, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "iheadBuy",
+                  "label": "I°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tBoy",
+                      "label": "DP [A-trace]",
+                      "lineageId": "boyChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tVBuy",
+                          "label": "V° [head trace]",
+                          "lineageId": "buyHeadChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dBread",
+                              "label": "D°",
+                              "word": "o"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nBread",
+                                      "label": "N°",
+                                      "word": "pão"
+                                    }
+                                  ],
+                                  "id": "nbarBread",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npBread",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpBread",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarBuy",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpBuy",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarBuy",
+              "label": "I′"
+            }
+          ],
+          "id": "ipBuy",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "dGirl",
+                  "label": "D°",
+                  "word": "a"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nGirl",
+                          "label": "N°",
+                          "word": "menina"
+                        }
+                      ],
+                      "id": "nbarGirl",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npGirl",
+                  "label": "NP"
+                }
+              ],
+              "id": "dpGirl",
+              "label": "DP",
+              "lineageId": "girlChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vPrepare",
+                      "label": "V°",
+                      "lineageId": "prepareHeadChain",
+                      "word": "preparou"
+                    },
+                    {
+                      "children": [],
+                      "id": "inflPrepare",
+                      "label": "I° [finite, past, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "iheadPrepare",
+                  "label": "I°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tGirl",
+                      "label": "DP [A-trace]",
+                      "lineageId": "girlChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tVPrepare",
+                          "label": "V° [head trace]",
+                          "lineageId": "prepareHeadChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dCoffee",
+                              "label": "D°",
+                              "word": "o"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nCoffee",
+                                      "label": "N°",
+                                      "word": "café"
+                                    }
+                                  ],
+                                  "id": "nbarCoffee",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npCoffee",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpCoffee",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarPrepare",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpPrepare",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarPrepare",
+              "label": "I′"
+            }
+          ],
+          "id": "ipPrepare",
+          "label": "IP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "dGrandmother",
+                  "label": "D°",
+                  "word": "a"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "nGrandmother",
+                              "label": "N°",
+                              "word": "avó"
+                            }
+                          ],
+                          "id": "nbarGrandmother",
+                          "label": "N′"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "op",
+                              "label": "DP [relative operator]",
+                              "lineageId": "relativeChain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "cRelative",
+                                  "label": "C° [relative]",
+                                  "word": "que"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "tOpIP",
+                                      "label": "DP [subject-position trace]",
+                                      "lineageId": "relativeChain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "vLive",
+                                              "label": "V°",
+                                              "lineageId": "liveHeadChain",
+                                              "word": "morava"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "inflLive",
+                                              "label": "I° [finite, past, imperfective, 3sg]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "iheadLive",
+                                          "label": "I°"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "tOpVP",
+                                              "label": "DP [A-trace]",
+                                              "lineageId": "relativeChain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "tVLive",
+                                                      "label": "V° [head trace]",
+                                                      "lineageId": "liveHeadChain",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "vbarLiveCore",
+                                                  "label": "V′"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "pWith",
+                                                          "label": "P°",
+                                                          "word": "com"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "pronThem",
+                                                              "label": "D° [pronominal]",
+                                                              "word": "eles"
+                                                            }
+                                                          ],
+                                                          "id": "dpThem",
+                                                          "label": "DP [personal pronoun, masculine plural]"
+                                                        }
+                                                      ],
+                                                      "id": "pbarWith",
+                                                      "label": "P′"
+                                                    }
+                                                  ],
+                                                  "id": "ppWith",
+                                                  "label": "PP"
+                                                }
+                                              ],
+                                              "id": "vbarLive",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "vpLive",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "ibarLive",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "ipLive",
+                                  "label": "IP"
+                                }
+                              ],
+                              "id": "cbarRelative",
+                              "label": "C′"
+                            }
+                          ],
+                          "id": "cpRelative",
+                          "label": "CP [restrictive relative]"
+                        }
+                      ],
+                      "id": "nbarGrandmotherRelative",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npGrandmother",
+                  "label": "NP"
+                }
+              ],
+              "id": "dpGrandmother",
+              "label": "DP",
+              "lineageId": "grandmotherChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "vArrange",
+                      "label": "V°",
+                      "lineageId": "arrangeHeadChain",
+                      "word": "arrumou"
+                    },
+                    {
+                      "children": [],
+                      "id": "inflArrange",
+                      "label": "I° [finite, past, 3sg]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "iheadArrange",
+                  "label": "I°"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tGrandmother",
+                      "label": "DP [A-trace]",
+                      "lineageId": "grandmotherChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tVArrange",
+                          "label": "V° [head trace]",
+                          "lineageId": "arrangeHeadChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dTable",
+                              "label": "D°",
+                              "word": "a"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nTable",
+                                      "label": "N°",
+                                      "word": "mesa"
+                                    }
+                                  ],
+                                  "id": "nbarTable",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npTable",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpTable",
+                          "label": "DP"
+                        }
+                      ],
+                      "id": "vbarArrange",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vpArrange",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibarArrange",
+              "label": "I′"
+            }
+          ],
+          "id": "ipArrange",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "conjuncts": [
+              "ipPrepare",
+              "ipArrange"
+            ],
+            "coordination": "copInner",
+            "coordinator": "coOvert"
+          },
+          "relation": "additive coordination",
+          "values": {
+            "interpretation": "Both finite propositions are asserted."
+          }
+        },
+        {
+          "anchors": {
+            "conjuncts": [
+              "ipBuy",
+              "copInner"
+            ],
+            "coordination": "copOuter",
+            "coordinator": "coSilent",
+            "listMembers": [
+              "ipBuy",
+              "ipPrepare",
+              "ipArrange"
+            ]
+          },
+          "relation": "additive list coordination",
+          "values": {
+            "interpretation": "A three-member additive list of finite clauses",
+            "pronunciation": "The first coordination boundary has no pronounced conjunction."
+          }
+        },
+        {
+          "anchors": {
+            "localFiniteDomain": "ipLive",
+            "localSubjectPosition": "tOpIP",
+            "pronoun": "dpThem",
+            "relativeOperator": "op"
+          },
+          "relation": "Principle B licensing",
+          "values": {
+            "bindingStatus": "Free in its local finite domain",
+            "reference": "Plural reference is discourse-dependent; no particular antecedent is syntactically imposed."
+          }
+        }
+      ],
+      "stageRecord": "The second and third finite IPs first combine through the pronounced additive coordinator e. The first IP then combines with that coordination through a silent additive coordinator, representing the comma-separated first boundary in this three-member list. The recursive CoP structure preserves binary X-bar branching; it is an encoding of three coordinated assertions, not a claim that the second clause is subordinate to the first or that the relative clause modifies the whole coordination. Each conjunct has its own overt subject and finite verb, so no subject sharing, gapping, or VP ellipsis is posited. Finally, eles is checked as a personal pronoun free in its local finite clause, whose subject variable belongs to the grandmother's relative chain. It is not locally bound by that singular subject. Its plural reference can be supplied by discourse, including the previously mentioned boy and girl together, but the sentence does not force that reference or establish a syntactic binding relation from those separate conjunct subjects. All movement sources are silent traces; the pronounced terminals now spell the input in its original order.",
+      "statement": "Complete the three-clause coordination and the binding interpretation.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "dBoy",
+                      "label": "D°",
+                      "word": "O"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "nBoy",
+                              "label": "N°",
+                              "word": "menino"
+                            }
+                          ],
+                          "id": "nbarBoy",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "npBoy",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "dpBoy",
+                  "label": "DP",
+                  "lineageId": "boyChain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "vBuy",
+                          "label": "V°",
+                          "lineageId": "buyHeadChain",
+                          "word": "comprou"
+                        },
+                        {
+                          "children": [],
+                          "id": "inflBuy",
+                          "label": "I° [finite, past, 3sg]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "iheadBuy",
+                      "label": "I°"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tBoy",
+                          "label": "DP [A-trace]",
+                          "lineageId": "boyChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "tVBuy",
+                              "label": "V° [head trace]",
+                              "lineageId": "buyHeadChain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "dBread",
+                                  "label": "D°",
+                                  "word": "o"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "nBread",
+                                          "label": "N°",
+                                          "word": "pão"
+                                        }
+                                      ],
+                                      "id": "nbarBread",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "npBread",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "dpBread",
+                              "label": "DP"
+                            }
+                          ],
+                          "id": "vbarBuy",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "vpBuy",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "ibarBuy",
+                  "label": "I′"
+                }
+              ],
+              "id": "ipBuy",
+              "label": "IP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "coSilent",
+                  "label": "Co° [additive]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "dGirl",
+                              "label": "D°",
+                              "word": "a"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nGirl",
+                                      "label": "N°",
+                                      "word": "menina"
+                                    }
+                                  ],
+                                  "id": "nbarGirl",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npGirl",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "dpGirl",
+                          "label": "DP",
+                          "lineageId": "girlChain"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "vPrepare",
+                                  "label": "V°",
+                                  "lineageId": "prepareHeadChain",
+                                  "word": "preparou"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "inflPrepare",
+                                  "label": "I° [finite, past, 3sg]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "iheadPrepare",
+                              "label": "I°"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "tGirl",
+                                  "label": "DP [A-trace]",
+                                  "lineageId": "girlChain",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "tVPrepare",
+                                      "label": "V° [head trace]",
+                                      "lineageId": "prepareHeadChain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "dCoffee",
+                                          "label": "D°",
+                                          "word": "o"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "nCoffee",
+                                                  "label": "N°",
+                                                  "word": "café"
+                                                }
+                                              ],
+                                              "id": "nbarCoffee",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "npCoffee",
+                                          "label": "NP"
+                                        }
+                                      ],
+                                      "id": "dpCoffee",
+                                      "label": "DP"
+                                    }
+                                  ],
+                                  "id": "vbarPrepare",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vpPrepare",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibarPrepare",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ipPrepare",
+                      "label": "IP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "coOvert",
+                          "label": "Co° [additive]",
+                          "word": "e"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "dGrandmother",
+                                  "label": "D°",
+                                  "word": "a"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "nGrandmother",
+                                              "label": "N°",
+                                              "word": "avó"
+                                            }
+                                          ],
+                                          "id": "nbarGrandmother",
+                                          "label": "N′"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "op",
+                                              "label": "DP [relative operator]",
+                                              "lineageId": "relativeChain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "cRelative",
+                                                  "label": "C° [relative]",
+                                                  "word": "que"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "tOpIP",
+                                                      "label": "DP [subject-position trace]",
+                                                      "lineageId": "relativeChain",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "vLive",
+                                                              "label": "V°",
+                                                              "lineageId": "liveHeadChain",
+                                                              "word": "morava"
+                                                            },
+                                                            {
+                                                              "children": [],
+                                                              "id": "inflLive",
+                                                              "label": "I° [finite, past, imperfective, 3sg]",
+                                                              "silent": true
+                                                            }
+                                                          ],
+                                                          "id": "iheadLive",
+                                                          "label": "I°"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "tOpVP",
+                                                              "label": "DP [A-trace]",
+                                                              "lineageId": "relativeChain",
+                                                              "silent": true
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "tVLive",
+                                                                      "label": "V° [head trace]",
+                                                                      "lineageId": "liveHeadChain",
+                                                                      "silent": true
+                                                                    }
+                                                                  ],
+                                                                  "id": "vbarLiveCore",
+                                                                  "label": "V′"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "pWith",
+                                                                          "label": "P°",
+                                                                          "word": "com"
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "pronThem",
+                                                                              "label": "D° [pronominal]",
+                                                                              "word": "eles"
+                                                                            }
+                                                                          ],
+                                                                          "id": "dpThem",
+                                                                          "label": "DP [personal pronoun, masculine plural]"
+                                                                        }
+                                                                      ],
+                                                                      "id": "pbarWith",
+                                                                      "label": "P′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "ppWith",
+                                                                  "label": "PP"
+                                                                }
+                                                              ],
+                                                              "id": "vbarLive",
+                                                              "label": "V′"
+                                                            }
+                                                          ],
+                                                          "id": "vpLive",
+                                                          "label": "VP"
+                                                        }
+                                                      ],
+                                                      "id": "ibarLive",
+                                                      "label": "I′"
+                                                    }
+                                                  ],
+                                                  "id": "ipLive",
+                                                  "label": "IP"
+                                                }
+                                              ],
+                                              "id": "cbarRelative",
+                                              "label": "C′"
+                                            }
+                                          ],
+                                          "id": "cpRelative",
+                                          "label": "CP [restrictive relative]"
+                                        }
+                                      ],
+                                      "id": "nbarGrandmotherRelative",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "npGrandmother",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "dpGrandmother",
+                              "label": "DP",
+                              "lineageId": "grandmotherChain"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "vArrange",
+                                      "label": "V°",
+                                      "lineageId": "arrangeHeadChain",
+                                      "word": "arrumou"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "inflArrange",
+                                      "label": "I° [finite, past, 3sg]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "iheadArrange",
+                                  "label": "I°"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "tGrandmother",
+                                      "label": "DP [A-trace]",
+                                      "lineageId": "grandmotherChain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "tVArrange",
+                                          "label": "V° [head trace]",
+                                          "lineageId": "arrangeHeadChain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "dTable",
+                                              "label": "D°",
+                                              "word": "a"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "nTable",
+                                                      "label": "N°",
+                                                      "word": "mesa"
+                                                    }
+                                                  ],
+                                                  "id": "nbarTable",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "npTable",
+                                              "label": "NP"
+                                            }
+                                          ],
+                                          "id": "dpTable",
+                                          "label": "DP"
+                                        }
+                                      ],
+                                      "id": "vbarArrange",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "vpArrange",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "ibarArrange",
+                              "label": "I′"
+                            }
+                          ],
+                          "id": "ipArrange",
+                          "label": "IP"
+                        }
+                      ],
+                      "id": "cobarInner",
+                      "label": "Co′"
+                    }
+                  ],
+                  "id": "copInner",
+                  "label": "CoP"
+                }
+              ],
+              "id": "cobarOuter",
+              "label": "Co′"
+            }
+          ],
+          "id": "copOuter",
+          "label": "CoP"
+        }
+      ]
+    }
+  ]
+}

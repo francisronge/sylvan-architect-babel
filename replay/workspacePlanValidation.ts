@@ -94,7 +94,7 @@ export function validateWorkspacePlacement({ scenes, baseline, direction, placem
       for (let i = 0; i < roots.length; i++) {
         for (let j = i + 1; j < roots.length; j++) {
           let query = indexes.get(roots[j]);
-          if (!query) indexes.set(roots[j], query = verticalObstacleIndex(footprints(roots[j])));
+          if (!query) indexes.set(roots[j], query = verticalObstacleIndex(footprints(roots[j]), { overlapOnly: true }));
           for (const a of footprints(roots[i])) {
             if (query(a, b => Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) > 1e-6
               && Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) > 1e-6
