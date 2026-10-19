@@ -290,17 +290,19 @@ test('link-only compatibility callers also retain movement values literally', ()
 });
 
 const saved = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url), 'utf8'));
-test('the saved Astra licensing conflict remains stored without appearing in the Replay panel', () => {
-  const record = saved.find(record => record.name === 'astra-xbar');
-  const stages = record.derivationStages;
+test('a saved relation timing conflict remains stored without appearing in the Replay panel', () => {
+  // Continued V-to-I and I-to-C each need syntax the other's moment introduces.
+  const stages = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/case-source-transfer.json', import.meta.url))).derivationStages;
   const plan = buildDerivationReplayPlan({ derivationStages: stages });
   const steps = buildPlaybackStepsFromDerivationFrames({
     frames: adaptDerivationStagesForReplay(stages),
     replayPlan: plan
   });
-  const licensing = steps.find(step => step.replayRelationIdentity?.stageIndex === 4 && step.replayRelationIdentity?.relationIndex === 0);
-  assert.match(licensing.movementDiagnostics.join('\n'), /Stage 5, relation 1 \(wh licensing\) requires frontedNP before relation 2/);
-  assert.equal(buildReplayPanelContent(licensing, stages).supportLines.some(line => line.label === 'Audit'), false);
+  const continued = steps.find(step => step.replayRelationIdentity?.stageIndex === 2 && step.replayRelationIdentity?.relationIndex === 1);
+  assert.match(continued.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 3, relation 2 .* requires iFeatures3 before relation 3/);
+  const content = buildReplayPanelContent(continued, stages);
+  assert.deepEqual(content, buildReplayPanelContent({ ...continued, movementDiagnostics: [] }, stages));
+  assert.ok(!JSON.stringify(content).includes('RELATION_TIMING_CONFLICT'));
 });
 for (const record of saved) {
   test(`${record.name}: every compiled relation panel resolves the full original without changing Replay`, () => {
