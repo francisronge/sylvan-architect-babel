@@ -6103,7 +6103,7 @@
       ]
     },
     {
-      "description": "Stage 2 merges one shared object in both verb phrases: the claim relates the new occurrence object-sell to the preceding object-buy. The rewrite owned only object-buy, so its moment showed object-sell without its words (frame 20) and vp-sell and object-sell's words appeared only at the Stage Record (frame 21). vp-buy is now an ordinary merge, and the claim's moment introduces the complete object-sell with vp-sell.",
+      "description": "Stage 2 merges one shared object in both verb phrases: the claim relates the new occurrence object-sell to the preceding object-buy. The rewrite owned only object-buy, so its moment showed object-sell without its words (frame 20) and vp-sell and object-sell's words appeared only at the Stage Record (frame 21). vp-buy is now an ordinary merge. object-sell repeats object-buy in the other conjunct and the stage displaces neither, so it is selected and merged by its own steps, with vp-sell, and the claim adds no syntax.",
       "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, commit ee11d20, 18 October 2026 (second bug-hunt batch, 07-en-rnr, analysis 1 of 1).",
       "sentence": "Mary bought, and John sold, the house.",
       "framework": "minimalism",
