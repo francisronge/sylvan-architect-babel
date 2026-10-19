@@ -12,8 +12,9 @@ const STRUCTURAL_OPERATIONS = new Set(['LexicalSelect', 'Project', 'ExternalMerg
 interface Restatement {
   id: string;
   prior: SyntaxNode;
-  /** The first relation of the stage naming the occurrence. */
-  owner: number;
+  /** The first relation of the stage naming the occurrence. Without one, only
+   * the word waits, for its realizer; the form goes with the stage's first step. */
+  owner?: number;
   /** Relations whose movement carries the occurrence within its landing or lower occurrence. */
   movers: Set<number>;
   /** The first relation that realizes the occurrence's word, by naming it or an ancestor. */
@@ -76,9 +77,9 @@ const restoreFields = (node: SyntaxNode, prior: SyntaxNode, fields: readonly str
   fields.forEach(field => { if (source[field] === undefined) delete target[field]; else target[field] = source[field]; });
 };
 
-/** The restatements of each stage that a relation of that stage names, with
- * the movements that carry them and any relation that separately realizes
- * their word. */
+/** The restatements of each stage that a relation of that stage names or
+ * whose word it realizes, with the movements that carry them and any relation
+ * that separately realizes their word. */
 const collectRestatements = (frames: readonly ReplayDerivationFrame[],
   frameRelations?: (frameIndex: number) => DerivationReplayPlanStep[]) => {
   const pending = new Map<number, Restatement[]>();
@@ -100,13 +101,15 @@ const collectRestatements = (frames: readonly ReplayDerivationFrame[],
       const prior = before.get(id);
       if (!prior || [...FORM, ...WORD].every(key => prior[key] === node[key])) continue;
       const owner = relations.findIndex(relation => [...anchorIds(relation?.anchors), ...anchorIds(relation?.priorAnchors)].includes(id));
-      if (owner < 0) continue;
+      // Only a relation that pronounces an ancestor can own a word no relation names.
+      if (owner < 0 && WORD.every(key => prior[key] === node[key])) continue;
       resolved ??= resolve();
       const lineage = [id];
       for (let parent = current.parents.get(id); parent; parent = current.parents.get(parent)) lineage.push(parent);
       const realizers = resolved.filter(relation => lineage.some(at => relation.pronounced.has(at))).map(relation => relation.index);
+      if (owner < 0 && !realizers.length) continue;
       if (!pending.has(stageIndex)) pending.set(stageIndex, []);
-      pending.get(stageIndex)!.push({ id, prior, owner,
+      pending.get(stageIndex)!.push({ id, prior, ...(owner < 0 ? {} : { owner }),
         movers: new Set(resolved.filter(relation => relation.carried.has(id)).map(relation => relation.index)),
         ...(realizers.length ? { realizer: Math.min(...realizers) } : {}) });
     }
@@ -127,10 +130,12 @@ const collectRestatements = (frames: readonly ReplayDerivationFrame[],
  * occurrence's word, by naming it or an ancestor, keeps its word and input
  * address until that relation's moment. The Stage Record shows the completed
  * stage. A restatement no relation names takes effect with the stage's first
- * step. Steps from the owning step on are unchanged, so a later owner, such as
- * a movement whose source keeps its form until its own moment, keeps its own
- * timing. A structural step whose only change was a derived word that now
- * waits for its owner is not a step and is removed; the caller recounts.
+ * step, apart from a word that a relation pronouncing an ancestor realizes,
+ * which waits for that relation. Steps from the owning step on are unchanged,
+ * so a later owner, such as a movement whose source keeps its form until its
+ * own moment, keeps its own timing. A structural step whose only change was a
+ * derived word that now waits for its owner is not a step and is removed; the
+ * caller recounts.
  */
 export const retainRestatementsUntilOwningStep = (steps: PlaybackStep[], frames: readonly ReplayDerivationFrame[],
   frameRelations?: (frameIndex: number) => DerivationReplayPlanStep[]): PlaybackStep[] => {
@@ -152,10 +157,10 @@ export const retainRestatementsUntilOwningStep = (steps: PlaybackStep[], frames:
     const relation = step.replayKind === 'relation' && step.replayRelationIdentity?.stageIndex === stageIndex
       ? step.replayRelationIdentity.relationIndex : undefined;
     for (const entry of entries) {
-      const key = `${stageIndex}|${entry.id}`, state = released.get(key) ?? { form: false, word: false };
+      const key = `${stageIndex}|${entry.id}`, state = released.get(key) ?? { form: entry.owner === undefined, word: false };
       const before = previousChildren.get(entry.id);
       const gains = before !== undefined && [...children.get(entry.id) ?? []].some(child => !before.has(child));
-      const owns = relation === entry.owner || step.replayKind === 'micro' && String(step.targetNodeId ?? '') === entry.id || gains
+      const owns = relation !== undefined && relation === entry.owner || step.replayKind === 'micro' && String(step.targetNodeId ?? '') === entry.id || gains
         || relation !== undefined && entry.movers.has(relation);
       const complete = step.replayKind === 'macro';
       if (owns || complete) state.form = true;

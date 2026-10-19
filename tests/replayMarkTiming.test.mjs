@@ -105,6 +105,23 @@ test('a movement keeps the landing word that a later realization owns until that
   assert.deepEqual(checkStepSemantics(replay, record), []);
 });
 
+test('a movement keeps a landing word that a relation pronouncing its ancestor realizes until that relation', () => {
+  // No relation names n; the insertion pronounces the DP that holds it, so n's word is that insertion's.
+  for (const label of ['N [unvalued]', 'N [valued]']) {
+    const { record, replay } = replayOf(raising(dp(label, 'dogs'), { relation: 'VocabularyInsertion', anchors: { terminal: 'dp' } }));
+    const steps = replay.playbackSteps, moves = moment(steps, 1, 0), inserts = moment(steps, 1, 1);
+    assert.equal(frameStructure(steps[moves]).parent.get('dp'), 'tp');
+    assert.deepEqual(shown(steps[moves], 'n'), { label, word: 'dog', words: ['dog'] }, label);
+    assert.deepEqual(shown(steps[inserts], 'n'), { label, word: 'dogs', words: ['dogs'] }, label);
+    assert.deepEqual([...checkStepSemantics(replay, record), ...checkNoEarlyReveal(replay)], []);
+    // Control: the word changing with the movement is reported, though the movement owns the landing.
+    const broken = { ...replay, playbackSteps: structuredClone(steps) };
+    broken.playbackSteps[moves].replayCanvasData = structuredClone(steps[inserts].replayCanvasData);
+    assert(checkStepSemantics(broken, record).some(found => found.subtype === 'unowned-repaint' && found.subject === 'n::__leaf'
+      && found.frame === moves + 1), label);
+  }
+});
+
 /** A retained head under a new T: stage 2 restates it, and its second relation names it. */
 const underT = (before, after, relations) => {
   const vp = head => ({ id: 'vp', label: 'VP', children: [head, { id: 'obj', label: 'DP', word: 'home', tokenIndex: 2 }] });
@@ -150,6 +167,26 @@ test('a waiting occurrence keeps its derived word, or its lack of one, until the
   }
 });
 
+test('a word with its own pronunciation owner comes or goes only at that owner, not at an earlier relation naming it', () => {
+  // Agree names v first; the insertion establishes v's pronunciation.
+  const relations = [{ relation: 'Agree', anchors: { probe: 't', goal: 'v' } }, { relation: 'VocabularyInsertion', anchors: { terminal: 'v' } }];
+  for (const [before, after] of [[{ id: 'v', label: 'V', word: 'walked', tokenIndex: 1 }, { id: 'v', label: 'V' }],
+    [{ id: 'v', label: 'V' }, { id: 'v', label: 'V', word: 'walked', tokenIndex: 1 }]]) {
+    const { record, replay } = replayOf(underT(before, after, relations)), steps = replay.playbackSteps;
+    const agrees = moment(steps, 1, 0), inserts = moment(steps, 1, 1), words = word => word ? [word] : [];
+    assert.deepEqual(shown(steps[agrees], 'v').words, words(before.word));
+    assert.deepEqual(shown(steps[inserts], 'v').words, words(after.word));
+    assert.deepEqual([...checkStepSemantics(replay, record), ...checkNoEarlyReveal(replay)], []);
+    // Control: the insertion's frame shown at the Agree moment instead.
+    const broken = { ...replay, playbackSteps: structuredClone(steps) };
+    Object.assign(broken.playbackSteps[agrees], { replayCanvasData: structuredClone(steps[inserts].replayCanvasData),
+      replayVisibleNodeIds: [...steps[inserts].replayVisibleNodeIds] });
+    const findings = before.word ? checkStepSemantics(broken, record) : checkNoEarlyReveal(broken);
+    assert(findings.some(found => found.frame === agrees + 1 && found.detail.startsWith(`v::__leaf ${before.word ? 'disappears' : 'appears'}`)),
+      JSON.stringify(findings));
+  }
+});
+
 const thetaForest = [{ id: 'vp', label: 'VP', children: [{ id: 'agent', label: 'X', word: 'Mia' },
   { id: 'bar', label: "V'", children: [{ id: 'v', label: 'X', word: 'bought' }, { id: 'theme', label: 'X', word: 'books' }] }] }];
 const theta = (arguments_, labels) => ({ relation: 'ThetaAssignment', anchors: { predicate: 'v', arguments: arguments_ }, values: { arguments: labels } });
@@ -163,4 +200,23 @@ test('restating a theta claim does not compose its grid: the badges yield to the
   const plan = compileRelationRenderPlan([thetaStage([theme]), thetaStage([theme]), thetaStage([both])]);
   assert(themeBadges(plan, 1) && !themeBadges(plan, 1).supersededAt, 'a restatement alone composes nothing');
   assert.deepEqual(yieldsAt(themeBadges(plan, 2)), [2, 0], 'the badges stay into the composing stage until its moment');
+});
+
+test('a theta grid composed in an earlier stage stays composed when a later stage restates its contributors', () => {
+  const theme = theta(['theme'], ['Theme']), both = theta(['agent', 'theme'], ['Agent', 'Theme']);
+  const record = { sentence: 'Mia bought books', derivationStages: [thetaStage([theme, both]),
+    thetaStage([{ relation: 'Context', anchors: { head: 'v' } }, theme, both])] };
+  const { replay } = replayOf(record), plan = replay.relationRenderPlan;
+  const badges = frame => plan.frames[frame].items.filter(item => item.kind === 'node-badges' && item.badgeStyle === 'theta-role');
+  // Stage 1 composes the grids at the Agent+Theme moment; neither claim's badges return in stage 2.
+  assert.deepEqual(badges(0).map(item => planItemRelationRefs(item).map(ref => `${ref.stageIndex}:${ref.relationIndex}`)), [['0:0']]);
+  assert.deepEqual(badges(1), []);
+  assert.deepEqual(checkMarkPersistence(replay, record), []);
+  // Control: the Theme badges painted again beside the grid composing them with Agent+Theme.
+  const { supersededAt: _yield, ...returned } = badges(0)[0];
+  const broken = { ...replay, relationRenderPlan: { ...plan, frames: plan.frames.map((frame, index) => index === 1
+    ? { ...frame, items: [...frame.items, { ...returned, appearsAtStage: 0 }] } : frame) } };
+  const first = replay.playbackSteps.findIndex(step => step.replayFrameIndex === 1);
+  assert(checkMarkPersistence(broken, record).some(found => found.subtype === 'composed-still-paints'
+    && found.subject === 'node-badges theta.grid 0:0' && found.frame === first + 1));
 });
