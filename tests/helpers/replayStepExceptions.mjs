@@ -82,7 +82,7 @@ export const STEP_EXCEPTIONS = [
   x(CHAIN_ROLES, 'replay-regressions/independent-clause-and-realization.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "0:2", '22'),
   x(CHAIN_ROLES, 'replay-regressions/obsolete-plaque-pockets.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '49'),
   x(CHAIN_ROLES, 'replay-regressions/renamed-head-anchors.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:1", '27'),
-  x(ORDER_BEFORE_CONTEXT, 'replay-regressions/case-source-transfer.json#', 'step-semantics', 'trajectory-off-moment', "2:1", '29'),
+  x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'step-semantics', 'trajectory-off-moment', "2:1", '29'),
   x(OPEN_ROLES, 'replay-regressions/kept-id-landing.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '36'),
   x(OPEN_ROLES, 'replay-regressions/kept-id-landing.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "4:0", '46'),
   x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '34'),
