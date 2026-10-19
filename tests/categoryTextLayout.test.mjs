@@ -109,7 +109,7 @@ test('a word that fits on a line stays whole even when that adds a line', () => 
   assert.deepEqual(lines('Mod[circumstantialpossibility]'), ['Mod[circumstanti', 'alpossibility]']);
 });
 
-test('no line is blank: a space that overflows starts the next line or hangs past the width', () => {
+test('no line is blank: spaces that would fill a line alone hang at the end of the line before', () => {
   const inked = (text, measure) => {
     const { lines } = categoryTextLayout(text, measure);
     assert.equal(lines.join(''), text);
@@ -117,14 +117,22 @@ test('no line is blank: a space that overflows starts the next line or hangs pas
     return lines;
   };
   // Each of these left a line holding only a space.
-  assert.deepEqual(inked('Mod[circumstantial interpretation]'), ['Mod', '[circumstantial', ' interpretation]']);
-  assert.deepEqual(inked('C [declarative, topic-compatible]'), ['C [declarative,', ' topic-', 'compatible]']);
-  assert.deepEqual(inked('C[interrogativeness, uninterpretability]', measureCategoryText),
-    ['C', '[interrogativeness,', ' uninterpretability]']);
-  // When the next word fills a line on its own, the space hangs at the end of the line before it.
+  assert.deepEqual(inked('Mod[circumstantial interpretation]'), ['Mod', '[circumstantial ', 'interpretation]']);
   assert.deepEqual(inked('Mod[circumstantial interpretations]'), ['Mod', '[circumstantial ', 'interpretations]']);
-  // Trailing spaces hang on the last line instead of forming their own.
+  assert.deepEqual(inked('C [declarative, topic-compatible]'), ['C [declarative, ', 'topic-', 'compatible]']);
+  assert.deepEqual(inked('C[interrogativeness, uninterpretability]', measureCategoryText),
+    ['C', '[interrogativeness, ', 'uninterpretability]']);
+  // Spaces at either end of a label stay on the line next to them.
   assert.deepEqual(inked('interrogatives  '), ['interrogatives  ']);
+  assert.deepEqual(inked('  interrogatives'), ['  interrogatives']);
+});
+
+test('joining blank lines takes no measurements beyond the lines it paints', () => {
+  let probes = 0;
+  const measure = text => { probes++; return measureCategoryText(text); };
+  assert.deepEqual(categoryTextLayout('T[uninterpretable, perfect/completive]', measure).lines,
+    ['T[uninterpretable,', ' perfect/', 'completive]']);
+  assert.equal(probes, 50);
 });
 
 test('a slash or dash break replaces a split word, even when it adds a line', () => {
