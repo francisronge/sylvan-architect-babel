@@ -396,7 +396,7 @@ test('two movements and intervening relations retain order before a higher merge
   assert.ok(steps.findIndex(s => s.targetNodeId === 'root') > steps.indexOf(relations[3]));
 });
 
-test('a movement waits for the later movement that introduces its contextual anchor', () => {
+test('movement diagnoses future contextual anchors without changing its own transition', () => {
   const phrase = (id, lineageId, silent = false) => ({ id, label: 'DP', lineageId, word: lineageId, silent });
   const record = transitionRecord([phrase('a', 'A'), phrase('b', 'B')], [{
     id: 'root', label: 'XP', children: [
@@ -415,23 +415,14 @@ test('a movement waits for the later movement that introduces its contextual anc
     if (context === 'prior') early.priorAnchors.context = 'b';
     else early.anchors.context = context === 'future' ? 'b_hi' : context === 'existing' ? 'b' : 'a_hi';
     const original = structuredClone(current), steps = play(current), [first, second] = moments(steps, 1);
-    assert.ok(!steps.some(step => step.movementDiagnostics?.some(message => message.includes('RELATION_TIMING_CONFLICT'))), context);
-    if (context === 'future') {
-      assert.deepEqual([first, second].map(step => step.replayRelationIdentity.relationIndex), [1, 0]);
-      assert.equal(steps.indexOf(second), steps.indexOf(first) + 1, 'the waiting movement plays right after');
-      for (const id of ['a_hi', 'b_hi']) assert.ok(!visible(steps[steps.indexOf(first) - 1], id), id);
-      assert.ok(visible(first, 'b_hi'));
-      assert.ok(!visible(first, 'a_hi'), 'the waiting movement keeps its own landing');
-      assert.ok(visible(first, 'a') && nodes(first.replayCanvasData).find(node => node.id === 'a').silent !== true,
-        'its source keeps its preceding form until its own moment');
-      for (const id of ['a_hi', 'b_hi']) assert.ok(visible(second, id), id);
-      const settled = list => geometry(list).map(step => ({ ...step, visible: [...step.visible].sort() }));
-      assert.deepEqual(settled(steps.slice(steps.indexOf(second) + 1)), settled(base.slice(base.indexOf(moments(base, 1)[1]) + 1)),
-        'both transitions complete the same stage');
-    } else {
-      assert.deepEqual([first, second].map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
-      assert.deepEqual(geometry(steps), geometry(base), context);
-    }
+    assert.deepEqual(moments(steps, 1).map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
+    assert.ok(visible(first, 'a_hi'));
+    assert.ok(!visible(first, 'b_hi'));
+    assert.ok(visible(second, 'b_hi'));
+    if (context === 'future') assert.match(first.movementDiagnostics.join('\n'),
+      /RELATION_TIMING_CONFLICT: Stage 2, relation 1.*unavailable authored context: b_hi before relation 2/);
+    else assert.ok(!first.movementDiagnostics?.some(message => message.includes('unavailable authored context')), context);
+    assert.deepEqual(geometry(steps), geometry(base), context);
     assert.deepEqual(current, original);
   }
 });

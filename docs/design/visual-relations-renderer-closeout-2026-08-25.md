@@ -567,9 +567,10 @@ Relation moments follow authored order with one exception. In October Francis
 decided that Babel must not limit how a model orders the claims of one stage. A
 relation needing syntax that a later relation of its stage introduces plays right
 after that relation's moment, or after the last such moment when it needs
-several. Its needs are its current anchors and, for a relation that builds
-structure, the material its new landing host or parent attaches to, followed
-through the construction that builds them. The introducing relation may be a
+several. Its needs are its current anchors (for a movement, its source and
+landing) and, for a relation that builds structure, the material its new
+landing host or parent attaches to, followed through the construction that
+builds them. A movement does not wait for its other, contextual anchors. The introducing relation may be a
 recognized movement, a neutral transition or another rewrite; its tier does not
 change the order. Relations waiting for the same moment keep authored order, a
 chain of needs resolves in turn, and every other relation keeps its authored
@@ -1104,14 +1105,13 @@ silence state. This does not transfer ownership of its other children or later
 realization claims. A later exact realization owner still controls that
 container's word and token metadata.
 
-A movement envelope may also contain contextual claims. A current contextual
-anchor introduced by a later relation makes the movement wait for that relation's
-moment, as the relation-order exception in Replay preparation describes; the
-movement's own transition is unchanged, and its construction never builds that
-context early. When waiting would complete a cycle, or the context is built only
-by ordinary construction that has not yet run, report the timing conflict and keep
-the movement's moment. Valid sibling claims are not delayed. Prior-stage witnesses
-remain prior evidence and need not be present in the current drawing.
+A movement envelope may also contain contextual claims. If a current contextual
+anchor is introduced only by a later relation, report the timing conflict while
+preserving the independently proved movement and its moment: a movement does not
+wait for context, since waiting can cost a later landing its reserved slot and
+shift unmoved syntax. Do not reveal that
+context early or delay valid sibling claims. Prior-stage witnesses remain prior
+evidence and need not be present in the current drawing.
 
 Restoring a prior source also restores its effective pronunciation before its
 owning moment, including silence inherited from its preceding ancestors. A

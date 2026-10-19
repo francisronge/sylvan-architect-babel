@@ -282,7 +282,8 @@ export const finalizeStageReplay = (
       });
     });
     // What a relation's moment needs from other moments and construction: its
-    // anchors, and the material its new parents attach to.
+    // anchors (for a movement, its source and landing), and the material its
+    // new parents attach to.
     const requiredNodeIds = (placement: RelationPlacement, available: ReadonlySet<string>): string[] => {
       const landingHostIds = new Set(getMovementCreatedLandingHostNodeIds(placement));
       const attachmentPrerequisites = [...landingHostIds].flatMap(nodeId => findNodeByIdInForest(workspaceRoots, nodeId)?.children || [])
@@ -305,8 +306,8 @@ export const finalizeStageReplay = (
         .forEach(child => attachmentPrerequisites.push(child.id));
       return [...placement.relationAnchorNodeIds, ...attachmentPrerequisites].filter(nodeId => relationProducers.get(nodeId) !== placement.relationIndex);
     };
-    // A movement's other current anchors are context: they are never built
-    // early for it, but it waits for the moment that introduces them.
+    // A movement's other current anchors are context: its moment neither
+    // waits for them nor builds them early.
     const contextNodeIds = (placement: RelationPlacement): string[] => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
       ? [...new Set(relationAnchorNodeIds(placement.relation.anchors))].filter(nodeId => !placement.relationAnchorNodeIds.includes(nodeId)
         && findExactNodeByIdInForest(workspaceRoots, nodeId))
@@ -331,10 +332,7 @@ export const finalizeStageReplay = (
     };
     const momentOrder = orderRelationMoments(relationPlacements.map(placement => placement.relationIndex), new Map(relationPlacements.map(placement => [
       placement.relationIndex,
-      new Set([
-        ...requiredNodeIds(placement, initiallyAvailableNodeIds).flatMap(nodeId => producingRelations(nodeId)),
-        ...contextNodeIds(placement).flatMap(nodeId => relationProducers.get(nodeId) ?? [])
-      ])
+      new Set(requiredNodeIds(placement, initiallyAvailableNodeIds).flatMap(nodeId => producingRelations(nodeId)))
     ])));
     const momentPosition = new Map(momentOrder.map((relationIndex, position) => [relationIndex, position]));
     const orderedPlacements = momentOrder.map(relationIndex => relationPlacements.find(placement => placement.relationIndex === relationIndex)!);
@@ -516,9 +514,9 @@ export const finalizeStageReplay = (
           if (owner === placement.relationIndex)
             availableNodeIds.add(nodeId);
         });
-        // A recovered movement's own construction never builds its context.
+        // A recovered movement stands independently of its contextual anchors.
         // Diagnose current context that no earlier moment has introduced,
-        // without revealing it early.
+        // without delaying the movement or revealing that context early.
         const unavailableContext = contextNodeIds(placement).filter(nodeId => !missing.includes(nodeId) && !availableNodeIds.has(nodeId));
         if (unavailableContext.length) {
           const descriptions = unavailableContext.map(nodeId => {
@@ -529,7 +527,7 @@ export const finalizeStageReplay = (
           placement.relation = {
             ...placement.relation, movementDiagnostics: [
               ...(placement.relation.movementDiagnostics || []),
-              `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${(placement.relation.authoredRelationIndex ?? placement.relationIndex) + 1} (${placement.relationLabel}) has unavailable authored context: ${descriptions.join('; ')}. No Replay order provides it first; its proven movement keeps its moment, and unavailable context is not introduced early.`
+              `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${(placement.relation.authoredRelationIndex ?? placement.relationIndex) + 1} (${placement.relationLabel}) has unavailable authored context: ${descriptions.join('; ')}. Its proven movement keeps its moment; unavailable context is not introduced early.`
             ]
           };
         }

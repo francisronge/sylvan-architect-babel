@@ -43,8 +43,7 @@ const movements = relations => ({ derivationStages: [
   { statement: 'Three movements.', stageRecord: 'Each phrase moves.', relations,
     workspaceForest: [{ id: 'root', label: 'XP', children: ['a', 'b', 'c'].map(host) }] }
 ] });
-const move = (id, context) => ({ relation: 'Internal Merge',
-  anchors: { lowerCopy: id, higherCopy: `${id}_hi`, ...(context ? { context } : {}) }, priorAnchors: { source: id } });
+const move = id => ({ relation: 'Internal Merge', anchors: { lowerCopy: id, higherCopy: `${id}_hi` }, priorAnchors: { source: id } });
 const claim = (...ids) => ({ relation: 'Observation', anchors: Object.fromEntries(ids.map((id, index) => [`participant${index + 1}`, id])) });
 const play = record => buildReplayPlayback({ sentence: 'a b c', analyses: [record] }).steps;
 const relationMoments = (steps, stage = 1) => steps.filter(step => step.replayFrameIndex === stage && step.replayKind === 'relation');
@@ -67,15 +66,23 @@ test('Replay: a claim naming a later movement\'s landing plays right after it; t
 });
 
 test('Replay: a chain of needs resolves in turn', () => {
-  // The claim needs b's landing; b's movement names c's landing as context.
-  const steps = play(movements([claim('b_hi'), move('b', 'c_hi'), move('c'), move('a')]));
-  assert.deepEqual(order(steps), [2, 1, 0, 3]);
-  const [c, b, waiting] = [2, 1, 0].map(index => momentOf(steps, index));
-  assert.ok(visible(c, 'c_hi') && !visible(c, 'b_hi'));
-  assert.ok(visible(b, 'b_hi') && visible(b, 'c_hi'));
-  assert.ok(visible(waiting, 'b_hi'));
-  assert.ok(!visible(waiting, 'a_hi'));
+  // "What did Mia see?" with a claim on the wh landing authored first: the claim
+  // needs wh-movement's landing, and wh-movement needs the C′ that the
+  // auxiliary head movement builds.
+  const bundle = JSON.parse(fs.readFileSync(new URL('../fixtures/normalized/what-did-mia-see.xbar.json', import.meta.url)));
+  const analysis = structuredClone(bundle.analyses[0]);
+  analysis.derivationStages[3].relations.unshift({ relation: 'Question operator', anchors: { operator: 'dp_what_high' } });
+  const original = structuredClone(analysis);
+  const steps = buildReplayPlayback({ ...bundle, analyses: [analysis] }).steps;
+  const stage = relationMoments(steps, 3);
+  assert.deepEqual(stage.map(step => step.replayRelationIdentity.relationIndex), [2, 1, 0]);
+  const [head, phrase, claim] = stage;
+  assert.ok(visible(head, 'cbar_question') && !visible(head, 'dp_what_high'));
+  assert.ok(visible(phrase, 'dp_what_high') && visible(phrase, 'cp_question'));
+  assert.ok(visible(claim, 'dp_what_high'));
+  assert.ok(!visible(steps[steps.indexOf(head) - 1], 'cbar_question'), 'nothing is introduced early');
   assert.deepEqual(timingConflicts(steps), []);
+  assert.deepEqual(analysis, original);
 });
 
 test('Replay: one relation with several anchors stays one moment after every movement it needs', () => {
@@ -94,30 +101,40 @@ test('Replay: claims waiting for the same movement keep authored order', () => {
   assert.deepEqual(timingConflicts(steps), []);
 });
 
-test('Replay: movements needing each other\'s landing keep authored order with the timing diagnostic', () => {
-  const record = movements([claim('a_hi'), move('a', 'b_hi'), move('b', 'a_hi'), move('c')]);
-  const original = structuredClone(record), steps = play(record);
-  assert.deepEqual(order(steps), [0, 1, 2, 3], 'the cycle and the claim needing it keep authored order');
-  const [waiting, a, b] = [0, 1, 2].map(index => momentOf(steps, index));
-  assert.ok(!visible(waiting, 'a_hi'), 'no landing is introduced early');
-  assert.ok(visible(a, 'a_hi') && !visible(a, 'b_hi'));
-  assert.ok(visible(b, 'b_hi'));
-  assert.match(waiting.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 2, relation 1 \(Observation\) requires a_hi before relation 2/);
-  assert.match(a.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 2, relation 2 \(Internal Merge\) has unavailable authored context: b_hi before relation 3/);
+test('Replay: relations needing each other\'s syntax keep authored order with the timing diagnostic', () => {
+  // Icelandic stage 3: continued V-to-I needs iFeatures3, which I-to-C
+  // introduces, and I-to-C needs iComplex3, which continued V-to-I introduces.
+  // The theta-role claim before them needs v3 from that cycle.
+  const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/case-source-transfer.json', import.meta.url)));
+  const original = structuredClone(record);
+  const steps = buildReplayPlayback({ sentence: record.sentence, inputTokens: record.inputTokens, analyses: [record] }).steps;
+  const stage = relationMoments(steps, 2);
+  assert.deepEqual(stage.slice(0, 3).map(step => step.replayRelationIdentity.relationIndex), [0, 1, 2]);
+  const [theta, continued, raising] = stage;
+  for (const step of [theta, continued]) assert.ok(!visible(step, 'iFeatures3'), 'no syntax is introduced early');
+  assert.ok(visible(raising, 'iFeatures3'));
+  assert.match(theta.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 3, relation 1 \(theta-role assignment\) requires v3 before relation 2/);
+  assert.match(continued.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 3, relation 2 .* requires iFeatures3 before relation 3/);
   assert.deepEqual(record, original);
 });
 
-test('saved relative pied-piping: two claims that each need the other keep authored order with the diagnostic', () => {
+test('saved relative pied-piping: the Internal Merge naming wh2 plays right after the movement that introduces it', () => {
   // "This is the man to whom I gave the book." Stage 8: the neutral relative
-  // Internal Merge builds cpRel and pp2 and names wh2; the recognized
-  // operator-variable movement introduces wh2 inside pp2 and names cpRel.
+  // Internal Merge builds cpRel and pp2 and names wh2, which the recognized
+  // operator-variable movement introduces. That movement names cpRel only as
+  // context, so it does not wait and its missing context stays diagnosed.
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/unrecognized-movement.json', import.meta.url))).cases[2];
+  const original = structuredClone(record);
   const steps = buildReplayPlayback({ sentence: record.sentence, inputTokens: record.inputTokens, analyses: [record] }).steps;
-  assert.deepEqual(relationMoments(steps, 7).map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
-  const [merge, dependency] = relationMoments(steps, 7);
-  assert.ok(visible(merge, 'pp2') && visible(merge, 'cpRel'));
-  assert.ok(!visible(merge, 'wh2'), 'wh2 is not introduced early');
+  const [dependency, merge] = relationMoments(steps, 7);
+  assert.deepEqual([dependency, merge].map(step => step.replayRelationIdentity.relationIndex), [1, 0]);
+  assert.equal(steps.indexOf(merge), steps.indexOf(dependency) + 1);
+  assert.ok(!visible(steps[steps.indexOf(dependency) - 1], 'wh2'), 'wh2 is not introduced early');
   assert.ok(visible(dependency, 'wh2'));
-  assert.match(merge.movementDiagnostics.join('\n'),
-    /RELATION_TIMING_CONFLICT: Stage 8, relation 1 \(relative Internal Merge\) requires wh2 before relation 2/);
+  assert.ok(!visible(dependency, 'pp2') && !visible(dependency, 'cpRel'), 'the Internal Merge keeps its own new parents');
+  for (const id of ['wh2', 'pp2', 'cpRel']) assert.ok(visible(merge, id), id);
+  assert.ok(!merge.movementDiagnostics?.some(message => message.startsWith('RELATION_TIMING_CONFLICT')));
+  assert.match(dependency.movementDiagnostics.join('\n'),
+    /RELATION_TIMING_CONFLICT: Stage 8, relation 2 \(relative operator-variable dependency\) has unavailable authored context: cpRel/);
+  assert.deepEqual(record, original);
 });

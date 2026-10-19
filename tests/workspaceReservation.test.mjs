@@ -98,10 +98,8 @@ for (const [width, height] of [[1408, 680], [386, 698]]) for (const direction of
   });
 
   test(`${width}px ${direction}: Icelandic reserves the subject landing without changing the C–IP merge`, () => {
-    const { frame, immutable, steps } = setup('icelandic-raising-passive/0', width, height, direction);
-    // The raising chain names the verb trace, so it waits for V-to-I (frame 38).
-    assert.equal(steps[37].operation, 'V-to-I head movement');
-    const before = frame(38), after = frame(39);
+    const { frame, immutable } = setup('icelandic-raising-passive/0', width, height, direction);
+    const before = frame(37), after = frame(38);
     assert.equal(before.nodes.get('rootCbar').data.label, "C′");
     assert.deepEqual(before.nodes.get('rootCbar').children.map(getNodeId), ['rootC', 'matrixIP']);
     assert(!before.nodes.has('matrixSubjectDP'));
