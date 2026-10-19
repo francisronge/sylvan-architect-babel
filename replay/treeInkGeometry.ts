@@ -110,6 +110,51 @@ export function treeInkObstacles(
   });
 }
 
+/** Tree ink for the repeated paintings of one canvas. A node's own label, word
+ * and stem depend only on its position, and a branch only on its endpoints, so
+ * each is measured once per exact position. `obstacles(nodes, precise)` equals
+ * `treeInkObstacles(nodes, ..., precise, ...)` rectangle for rectangle, in the
+ * same order. Its arrays are shared and must not be modified. */
+export type TreeInkCache = ReturnType<typeof createTreeInkCache>;
+export function createTreeInkCache(measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
+  labelRuns?: ReadonlyMap<string, readonly TreeLabelRuns[]>, measureTreeLabel?: TreeLabelMeasure) {
+  const own = new Map<string, PlaqueRect[]>(), branches = new Map<string, PlaqueRect[]>();
+  // Shortest round-trip decimals, with signed zero kept: equal keys are equal doubles.
+  const exact = (value: number) => Object.is(value, -0) ? '-0' : String(value);
+  const ownInk = (node: Node) => {
+    const key = `${getNodeId(node)} ${exact(node.x)} ${exact(node.y)}`;
+    let result = own.get(key);
+    if (!result) own.set(key, result = treeInkObstacles([node], measureCategoryText, measureTreeInk, false, labelRuns, measureTreeLabel));
+    return result;
+  };
+  const branchInk = (parent: Node, node: Node, precise: boolean) => {
+    const key = `${precise} ${exact(parent.x)} ${exact(parent.y)} ${exact(node.x)} ${exact(node.y)}`;
+    let result = branches.get(key);
+    if (!result) branches.set(key, result = plaqueBranchObstacles(parent, node, precise));
+    return result;
+  };
+  const workspace = (node: Node) => node.data.replayOrigin?.kind === 'workspace';
+  return {
+    /** treeInkObstacles([node], ...): the node's own text and stem. */
+    own: ownInk,
+    /** plaqueBranchObstacles(parent, node, precise). */
+    branch: branchInk,
+    obstacles(nodes: readonly Node[], precise = false): PlaqueRect[] {
+      // plaqueTreeObstacles: each painted node's text and stem, then the branch
+      // from its parent when that parent is listed and painted. Measured text
+      // replaces each node's own rectangles in place.
+      const included = new Set(nodes), result: PlaqueRect[] = [];
+      for (const node of nodes) {
+        if (workspace(node)) continue;
+        for (const rect of ownInk(node)) result.push(rect);
+        if (node.parent && included.has(node.parent) && !workspace(node.parent))
+          for (const rect of branchInk(node.parent, node, precise)) result.push(rect);
+      }
+      return result;
+    }
+  };
+}
+
 /** Validation visits overlapping subtrees of one immutable rendered scene.
  * Measure each node and visible edge once, retaining the ordinary DFS order. */
 export function prepareTreeInkSubtrees(

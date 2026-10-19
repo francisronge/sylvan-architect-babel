@@ -13,6 +13,9 @@ const PLAQUE_CROWDED = 'Open (catalog #3): no nearby pocket stays clear for the 
 const LANE = 'Open: a neutral counter-lane connector runs its lane through tree text. Only its stems are clipped around '
   + 'labels, and the lane sits just below the participants, above deeper unrelated syntax.';
 
+const LATER_OCCUPANT = 'Defect, fixed separately (fix/replay-slot-fits-every-occupant): a reserved slot is sized for its later '
+  + 'occupant, so the current categories crowd it. The same measures occur on origin/main for this saved analysis.';
+
 const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
 
 // The same findings, with the same measures, occur on origin/main for the saved
@@ -23,6 +26,15 @@ export const EXCEPTIONS = [
     'plaque(2:0 theta Agent)@v-buy', { desktop: { '29-54': 1.12 }, 'desktop-large': { '29-54': 1.12 } }),
   x(SPOKE_ATTACHED, 'performance/german-embedded.json#', 'line-clearance', 'connector-plaque',
     'connector(0:4)reportNP→reportN plaque(0:1 directed-path case-assignment)@read', { desktop: { '57': 1.44 } }),
+  // The long-sentence preparation cases, as on their saved night4 analyses.
+  x(PLAQUE_CROWDED, 'performance/portuguese-coordination.json#', 'mark-distance', 'plaque',
+    'plaque(0:2 theta Resident)@vLive', { desktop: { '99-111': 1.3 }, 'desktop-large': { '99-111': 1.3 } }),
+  x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
+    'plaque(0:0 theta theme)@read', { desktop: { '19-22': 1.15 }, 'desktop-large': { '19-22': 1.15 } }),
+  x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
+    'plaque(0:1 theta agent)@embeddedVoice', { desktop: { '20-27': 1.12, '28-107': 1.14 }, 'desktop-large': { '20-27': 1.12, '28-107': 1.14 } }),
+  x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
+    'plaque(7:2 theta theme)@find', { desktop: { '105-107': 1.12 }, 'desktop-large': { '105-107': 1.12 } }),
   x(PLAQUE_CROWDED, 'movement/clause-context.json#/cases/7', 'mark-distance', 'plaque',
     'plaque(0:0 theta Agent/Theme)@ev', { desktop: { '22-26': 1.16 }, 'desktop-large': { '22-26': 1.16 } }),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
@@ -155,6 +167,10 @@ export const EXCEPTIONS = [
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/waiting-root-continuity.json#', 'mark-distance', 'plaque',
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
+  x(LATER_OCCUPANT, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'glyph-overlap', 'text',
+    'd_pbar:category d_v:category', { desktop: { '24': 4.59 }, 'desktop-large': { '24': 10.75 } }),
+  x(LATER_OCCUPANT, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'line-clearance', 'branch-text',
+    'd_p->d_pbar d_v:category', { desktop: { '24': 2.85 }, 'desktop-large': { '24': 6.68 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/compound-movement-roles.json#/cases/1', 'mark-distance', 'plaque',
     'plaque(1:0 theta Theme)@V0', { desktop: { '22-38': 1.13 }, 'desktop-large': { '22-38': 1.13 } })
 ];

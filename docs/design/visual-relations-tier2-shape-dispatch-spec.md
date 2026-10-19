@@ -282,6 +282,9 @@ A movement relation may supply several sources and either one shared landing or
 an inventory of independent landings. Each source must match exactly one preceding
 occurrence and landing through the existing movement checks. Preceding-source
 matches must be distinct; independent landings require a complete bijection.
+When occurrences of one shared lineage, as in across-the-board movement, pass
+those checks with several listed landings, a source pairs only with the landing
+whose parent contains it; any remaining ambiguity still refuses the group.
 Array order supplies no association. Preserve
 authored witnesses, context, routing and outcome for each recovered path. All
 paths, landings and their smallest necessary attachment parents appear at the

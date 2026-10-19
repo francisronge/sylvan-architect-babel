@@ -68,8 +68,10 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
         obstacles: ink(child).map(box => ({ ...box, x: box.x - child.x, y: box.y - child.y })) })))) return false;
       groups.push(daughters);
     }
+    const indexes = new Map<Node, ReturnType<typeof verticalObstacleIndex<ReturnType<typeof ink>[number]>>>();
     for (const group of groups) for (let i = 0; i < group.length; i++) for (let j = i + 1; j < group.length; j++) {
-      const query = verticalObstacleIndex(ink(group[j]));
+      let query = indexes.get(group[j]);
+      if (!query) indexes.set(group[j], query = verticalObstacleIndex(ink(group[j]), { overlapOnly: true }));
       for (const a of ink(group[i])) if (query(a, b =>
         Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) > epsilon
         && Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) > epsilon

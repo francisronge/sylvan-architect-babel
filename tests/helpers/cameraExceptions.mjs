@@ -14,6 +14,9 @@ const SPREAD_RETENTION = 'Open (layout): the new stage spreads the unmoved share
 const MOVED_OFF_CANVAS = 'Open (camera, low severity): the moved constituent\'s landing first paints beyond the canvas while the '
   + 'unmoved syntax stays in place; the camera then travels to it.';
 
+const NEXT_PINNED = 'Open (camera, low severity): reached by Next inside the completed stage, the retained pose keeps the wide '
+  + 'final tree against the header edge, leaving just over a third of the view empty below; a direct selection fits it.';
+
 const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
 
 export const EXCEPTIONS = [
@@ -109,4 +112,5 @@ export const EXCEPTIONS = [
     'stage 3', { desktop: { '43>44': 64.58 }, mobile: { '43>44': 32.12 } }),
   x(SPREAD_RETENTION, 'replay-regressions/waiting-root-continuity.json#', 'settled-path-independence', 'retention',
     'stage 3', { desktop: { '43>44': 35.03 }, mobile: { '43>44': 37.77 } }),
+  x(NEXT_PINNED, 'performance/turkish-embedded.json#', 'content-placement', 'pinned', 'stage 5', { desktop: { '89': 0.34 } }),
 ];
