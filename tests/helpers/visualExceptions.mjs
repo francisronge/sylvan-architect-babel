@@ -173,12 +173,4 @@ export const EXCEPTIONS = [
     'd_p->d_pbar d_v:category', { desktop: { '24': 2.85 }, 'desktop-large': { '24': 6.68 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/compound-movement-roles.json#/cases/1', 'mark-distance', 'plaque',
     'plaque(1:0 theta Theme)@V0', { desktop: { '22-38': 1.13 }, 'desktop-large': { '22-38': 1.13 } }),
-  // On 711ef7d the saved analysis this case copies (night4 09-en-tough-relative-long)
-  // also crowds both relative-clause plaques. Binding each hop to its new trace
-  // removes those; 7:1's label stays crowded, and 8:0's, crowded there only on
-  // mobile, is now crowded on desktop too.
-  x(ROLE_CROWDED, 'replay-regressions/successive-cyclic-source.json#/cases/0', 'mark-distance', 'role',
-    'role(7:1 selecting Verb)@expected', { desktop: { '92': 2.66 } }),
-  x(ROLE_CROWDED, 'replay-regressions/successive-cyclic-source.json#/cases/0', 'mark-distance', 'role',
-    'role(8:0 operator)@secondRelOp', { desktop: { '96': 3.04 } })
 ];
