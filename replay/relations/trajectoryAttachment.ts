@@ -11,10 +11,12 @@ export const terminalTrajectoryAttachment = (node: SyntaxNode): 'terminal' | 'sh
   countDisplayTerminals(node) === 0 ? 'shell-bottom' : 'terminal';
 
 /** A compound head is the authored endpoint, not one arbitrarily chosen morpheme.
- * Simple heads keep their terminal; wordless heads use their exact shell. */
-export const headTrajectoryAttachment = (node: SyntaxNode): 'terminal' | 'shell-bottom' => {
+ * Simple heads keep their terminal; wordless heads use their exact shell. The
+ * label must read as a head unless recovered movement evidence has already
+ * proved this landing a head (`provedHead`), as it can for prose labels. */
+export const headTrajectoryAttachment = (node: SyntaxNode, provedHead = false): 'terminal' | 'shell-bottom' => {
   const count = countDisplayTerminals(node);
-  const compoundHead = readCategoryLabel(node.label)?.kind === 'head' && count > 1;
+  const compoundHead = (provedHead || readCategoryLabel(node.label)?.kind === 'head') && count > 1;
   return count === 0 || compoundHead ? 'shell-bottom' : 'terminal';
 };
 
