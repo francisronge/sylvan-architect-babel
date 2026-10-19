@@ -101,4 +101,9 @@ export const EXCEPTIONS = [
     'stage 2', { desktop: { '44>43': 54.37 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:stage-coordinates',
     'stage 3', { desktop: { '43>44': 57.15 } }),
+  // Binding each hop to its new trace removes the saved analysis's off-canvas
+  // unmoved poses (stages 9-10) and stage 11 relayout jumps on 74d84eb; the final
+  // subject raising now first paints part of its landing beyond the canvas.
+  x(MOVED_OFF_CANVAS, 'replay-regressions/successive-cyclic-source.json#/cases/0', 'first-paint-continuity', 'off-canvas:moved', 'stage 12',
+    { desktop: { '121>122': 27.71 }, mobile: { '121>122': 56.45 } }),
 ];
