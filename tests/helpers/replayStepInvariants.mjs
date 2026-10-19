@@ -281,8 +281,11 @@ export function vanishedAnchors(plan) {
  *   later relation paints, allowed at that relation's moment
  *   (`composed-before-moment`); otherwise allowed only for a lifetime that ends
  *   or is replaced (`dropped`).
- * An ended mark does not paint again (`paints-again`). A piece revealed at its
- * relation's moment paints there (`late-start` when later, `never-paints`).
+ * An ended mark does not paint again (`paints-again`). A relation-only mark that
+ * coalesces identical claims of several relations paints at each of their
+ * moments as the mark of that moment's claim, so each claim paints once. A
+ * piece revealed at its relation's moment paints there (`late-start` when
+ * later, `never-paints`).
  * A composed theta grid replaces its contributors' badges: theta badges do not
  * paint beside a grid that composes their claim with another claim already
  * played, in this stage or an earlier one (`composed-still-paints`).
@@ -303,10 +306,13 @@ export function checkMarkPersistence(replay, record, { select = isPlanItemReveal
     if (identity?.stageIndex === stage) played.get(stage).add(identity.relationIndex);
     const resolver = anchorResolver(step), painted = new Map(), all = new Map();
     const report = (subtype, key, detail) => out.push(finding('mark-persistence', subtype, describeKey(key), frame, `${describeKey(key)} ${detail}`));
+    // A relation-only mark coalescing identical claims paints, at each moment, for the claim whose moment it is.
+    const momentKey = identity?.stageIndex === stage ? refKey(identity) : null;
+    const paintsFor = (mark, key) => mark.item.persistence !== 'relation-only' || refKey(keyRef(key)) === momentKey;
     for (const mark of stepMarks(plan, step, played.get(stage), { select, resolver })) for (const key of markKeys(mark.item)) {
       if (!all.has(key)) all.set(key, []);
       all.get(key).push(mark);
-      if (mark.painted && !painted.has(key)) painted.set(key, mark);
+      if (mark.painted && paintsFor(mark, key) && !painted.has(key)) painted.set(key, mark);
       if (mark.selected !== mark.revealed && !disagreed.has(`${frame} ${key}`)) {
         disagreed.add(`${frame} ${key}`);
         report('reveal-selector', key, `is ${mark.selected ? 'selected' : 'not selected'} where the authored moments ${mark.revealed ? 'reveal' : 'hide'} it`);
