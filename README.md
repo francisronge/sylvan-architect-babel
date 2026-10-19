@@ -136,6 +136,10 @@ The bottom control panel supports:
 - Framework-sensitive placeholder guidance
 - In-panel error/status feedback
 
+The console appears in Canopy and Notes. Derivation Replay leaves its space to
+the tree and the Replay panel; return to Canopy to enter a new sentence. Replay
+keeps the console only while a request is running or a failure is shown.
+
 ### 5) Parse execution flow
 
 When you submit a sentence, Babel shows:

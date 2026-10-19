@@ -19,6 +19,17 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const saved = JSON.parse(await readFile(new URL('../../fixtures/normalized/mia-laughed.xbar.json', import.meta.url), 'utf8'));
 const bundle = { ...saved, sentence: 'Mia laughed.', inputTokens: ['Mia', 'laughed', '.'],
   ambiguityDetected: true, analyses: [saved.analyses[0], saved.analyses[0]] };
+const sentenceInput = page => page.getByRole('textbox', { name: 'Sentence to analyze' });
+
+/** Replay gives the sentence input's place to the tree and its panel, and
+ * leaves no hidden control behind to receive focus. */
+async function assertReplayWithoutInput(page) {
+  assert.equal(await sentenceInput(page).count(), 0, 'Replay removes the sentence input');
+  assert.equal(await page.locator('[data-babel-tree-controls="bottom"]').count(), 0, 'Replay removes the input bar and its restore control');
+  const clearance = await page.locator('[data-babel-replay-panel]').evaluate(panel =>
+    panel.closest('[data-babel-workspace]').getBoundingClientRect().bottom - panel.getBoundingClientRect().bottom);
+  assert.ok(clearance <= 24, `the Replay panel takes the input bar's place: ${clearance}px below it`);
+}
 
 test('recovered optional word addresses render quietly and survive Tree Bank reload', { timeout: 120_000 }, async () => {
   const sentence = 'Mia smiled.';
@@ -226,21 +237,31 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
             await page.getByRole('button', { name: 'Pause', exact: true }).click();
             await page.getByRole('slider', { name: 'Replay frame' }).fill('4');
             await waitForReplayPaint(page, 4);
+            await assertReplayWithoutInput(page);
             await page.screenshot({ path: path.join(output, `recovery-before-${engine}-${width}.png`) });
+            // A new sentence is entered from Canopy. Its failure keeps the input
+            // in Replay, so the later attempts are retried from there.
+            await page.getByRole('button', { name: 'Canopy', exact: true }).click();
+            await waitForCanopyPaint(page);
             const failedDraft = 'Nia laughed.';
-            await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill(failedDraft);
-            for (const kind of ['connection-closed', 'invalid-json', 'empty-result', 'provider-unavailable', 'malformed-model-output']) {
+            await sentenceInput(page).fill(failedDraft);
+            for (const [attempt, kind] of ['connection-closed', 'invalid-json', 'empty-result', 'provider-unavailable', 'malformed-model-output'].entries()) {
               response = kind;
               const request = page.waitForRequest('**/api/parse');
               await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
               await request;
               await page.getByRole('button', { name: 'Analyze sentence', exact: true }).waitFor();
+              if (attempt === 0) {
+                await waitForCanopyPaint(page);
+                await page.getByRole('button', { name: 'Derivation Replay', exact: true }).click();
+              }
               await waitForReplayPaint(page, 4);
               assert.equal(await page.getByRole('button', { name: 'Parse 2', exact: true }).getAttribute('aria-pressed'), 'true');
               assert.equal(await page.getByRole('slider', { name: 'Replay frame' }).inputValue(), '4');
               assert.equal(await page.getByRole('button', { name: 'Pause', exact: true }).count(), 0);
               assert.equal(await page.getByRole('button', { name: 'Play', exact: true }).count(), 1);
-              assert.equal(await page.getByRole('textbox', { name: 'Sentence to analyze' }).inputValue(), failedDraft);
+              assert.ok(await sentenceInput(page).isVisible(), 'a failure keeps the input in Replay');
+              assert.equal(await sentenceInput(page).inputValue(), failedDraft);
               assert.equal(await page.getByRole('alert').count(), 1, 'failure remains visible and announced');
               if (kind === 'malformed-model-output') {
                 const rawDownload = page.waitForEvent('download');
@@ -278,8 +299,10 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
             await waitForReplayPaint(page, 4);
             assert.equal(await page.getByRole('button', { name: 'Parse 2', exact: true }).getAttribute('aria-pressed'), 'true');
             assert.equal(await page.getByRole('button', { name: 'Play', exact: true }).count(), 1);
+            await assertReplayWithoutInput(page);
             await page.getByRole('button', { name: 'Notes', exact: true }).click();
             await waitForNotesPaint(page);
+            assert.ok(await sentenceInput(page).isVisible(), 'Notes keeps the sentence input');
             await page.getByRole('button', { name: 'Canopy', exact: true }).click();
             await waitForCanopyPaint(page);
             assert.match(await page.locator('svg[data-babel-tree]').textContent(), /IP/);
