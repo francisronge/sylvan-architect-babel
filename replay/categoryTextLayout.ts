@@ -47,7 +47,16 @@ const openingBracket = /^\p{Ps}/u, closingBracket = /^\p{Pe}/u;
 // complete the text before them, so no line starts with one.
 const completesPrevious = /^[\p{Pe}\p{Pf},.;:!?、。，．：；！？′″‴'°⁰]/u;
 const punctuationOnly = /^[\p{P}\p{S}\s]+$/u;
+const whitespace = /^\s/u;
 
+// Graphemes `from` to `to` are all whitespace, so a line of them would be blank.
+const blank = (segments: string[], from: number, to: number) => {
+  for (let index = from; index < to; index++) if (!whitespace.test(segments[index])) return false;
+  return true;
+};
+// A break at `index` leaves a blank line neither before it nor after it.
+const keepsInk = (segments: string[], start: number, index: number) => !blank(segments, start, index)
+  && !blank(segments, index, segments.length);
 const insideWord = (segments: string[], index: number) => wordCharacter.test(segments[index - 1])
   && wordCharacter.test(segments[index] ?? '');
 const splitsWord = (segments: string[], index: number) => insideWord(segments, index)
@@ -113,15 +122,20 @@ function wrapBreaks(segments: string[], fits: Fits): number[] {
 }
 
 /** Word-preserving breaks in the line from `start` that overflows at `end`,
- * latest first: after a space, comma, slash, hyphen or dash, or before an
- * opening bracket. No line starts with a space or completing mark. A greedy
- * break inside a word may also move back up to two graphemes, which keeps a
- * final remnant together with the end of its word. */
+ * latest first: after an overflowing space, which hangs past the width because
+ * it has no ink; after a space, comma, slash, hyphen or dash; or before an
+ * opening bracket. No line starts with a space or completing mark, and no line
+ * is blank. A greedy break inside a word may also move back up to two
+ * graphemes, which keeps a final remnant together with the end of its word. */
 function alternativeBreaks(segments: string[], start: number, end: number, greedy: number) {
   const breaks: number[] = [];
+  let hanging = end;
+  while (hanging < segments.length && whitespace.test(segments[hanging])) hanging++;
+  if (hanging > end && hanging !== greedy && !completesPrevious.test(segments[hanging] ?? '')
+    && keepsInk(segments, start, hanging)) breaks.push(hanging);
   for (let index = end; index > start; index--) {
     const before = segments[index - 1], after = segments[index];
-    if (index === greedy || /^\s/u.test(after) || completesPrevious.test(after)) continue;
+    if (index === greedy || whitespace.test(after) || completesPrevious.test(after) || !keepsInk(segments, start, index)) continue;
     if (breakAfter.test(before)
       || openingBracket.test(after) && !openingBracket.test(before) && !/^\s/u.test(before)
       || index - 1 > start && joiner.test(before) && wordCharacter.test(segments[index - 2])
@@ -136,19 +150,20 @@ function alternativeBreaks(segments: string[], start: number, end: number, greed
  * `start`; the line keeps graphemes before the returned index, and an index
  * past `end` keeps the overflowing grapheme on the line. Prefer the last space
  * or comma, then a break before an overflowing space, which already ends a
- * word. An overflowing completing mark then hangs past the width rather than
- * start a line, so it never adds one. Otherwise take the latest of two
- * word-preserving breaks: after a hyphen joining two word characters when the
- * rest of the label fits on one line, or before an opening bracket whose
+ * word. No break leaves a blank line: spaces that end the label hang past the
+ * width instead. An overflowing completing mark then hangs past the width
+ * rather than start a line, so it never adds one. Otherwise take the latest of
+ * two word-preserving breaks: after a hyphen joining two word characters when
+ * the rest of the label fits on one line, or before an opening bracket whose
  * complete group, with any text attached up to the next space or comma, fits on
  * one line. Otherwise break before the overflowing grapheme; that splits a word,
  * so `wrapBreaks` then weighs the line's other breaks, including hyphen breaks
- * that add a line. Lines exceed the width only by hanging marks or a single
- * wider grapheme. */
+ * that add a line. Lines exceed the width only by hanging marks and spaces or a
+ * single wider grapheme. */
 function lineBreak(segments: string[], start: number, end: number, fits: Fits) {
   for (let index = end; index > start; index--)
-    if (breakAfter.test(segments[index - 1]) && !completesPrevious.test(segments[index])) return index;
-  if (/^\s/u.test(segments[end])) return end;
+    if (breakAfter.test(segments[index - 1]) && !completesPrevious.test(segments[index]) && keepsInk(segments, start, index)) return index;
+  if (whitespace.test(segments[end])) return keepsInk(segments, start, end) ? end : end + 1;
   if (completesPrevious.test(segments[end])) return end + 1;
   const afterHyphen = (index: number) => index - 1 > start && hyphen.test(segments[index - 1])
     && wordCharacter.test(segments[index - 2]) && wordCharacter.test(segments[index]) && fits(index, segments.length);

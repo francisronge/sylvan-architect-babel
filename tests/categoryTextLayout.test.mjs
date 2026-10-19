@@ -109,6 +109,24 @@ test('a word that fits on a line stays whole even when that adds a line', () => 
   assert.deepEqual(lines('Mod[circumstantialpossibility]'), ['Mod[circumstanti', 'alpossibility]']);
 });
 
+test('no line is blank: a space that overflows starts the next line or hangs past the width', () => {
+  const inked = (text, measure) => {
+    const { lines } = categoryTextLayout(text, measure);
+    assert.equal(lines.join(''), text);
+    assert(lines.every(line => line.trim()), `${JSON.stringify(lines)} has a blank line`);
+    return lines;
+  };
+  // Each of these left a line holding only a space.
+  assert.deepEqual(inked('Mod[circumstantial interpretation]'), ['Mod', '[circumstantial', ' interpretation]']);
+  assert.deepEqual(inked('C [declarative, topic-compatible]'), ['C [declarative,', ' topic-', 'compatible]']);
+  assert.deepEqual(inked('C[interrogativeness, uninterpretability]', measureCategoryText),
+    ['C', '[interrogativeness,', ' uninterpretability]']);
+  // When the next word fills a line on its own, the space hangs at the end of the line before it.
+  assert.deepEqual(inked('Mod[circumstantial interpretations]'), ['Mod', '[circumstantial ', 'interpretations]']);
+  // Trailing spaces hang on the last line instead of forming their own.
+  assert.deepEqual(inked('interrogatives  '), ['interrogatives  ']);
+});
+
 test('a slash or dash break replaces a split word, even when it adds a line', () => {
   const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
   const measure = s => [...graphemes.segment(s)].length * 22;
