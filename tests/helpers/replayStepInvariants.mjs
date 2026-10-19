@@ -14,7 +14,7 @@ import {
 } from '../../replay/relations/renderPlan.ts';
 import { projectThetaGrid } from '../../replay/relations/thetaGridComposition.ts';
 import { resolveSavedInputTokens } from '../../server/babelParser/surfaceTokens.js';
-import { authoredIdentity, frameStructure, momentOwnership } from './replayInvariants.mjs';
+import { authoredIdentity, frameStructure, momentOwnership, pronunciationOwners, voicesOccurrence } from './replayInvariants.mjs';
 
 const finding = (rule, subtype, subject, frame, detail) => ({ rule, subtype, subject, frame, detail });
 const EMPTY_FRAME = { nodes: new Map(), visible: new Set(), displayed: new Set(), parent: new Map(), children: new Map() };
@@ -38,12 +38,22 @@ const authoredOf = (structure, id) => {
   const identity = authoredIdentity(structure.nodes.get(id));
   return identity.derivedWordOf ?? identity.id;
 };
+/** The authored occurrence whose pronunciation a displayed node paints: a derived word leaf's owner, by its authored id. */
+const occurrenceOf = (structure, id) => {
+  const owner = authoredOf(structure, id);
+  return owner !== id && structure.nodes.has(owner) ? authoredOf(structure, owner) : owner;
+};
 
 /** What a displayed node paints. The sentence-initial word is compared without
  * case: Replay recases it from its visible context, which is not a change. */
 const paintOf = (node, initialKey) => {
   const uncased = value => initialKey && value.toLocaleLowerCase() === initialKey ? initialKey : value;
   return JSON.stringify([uncased(trimmed(node.data.label)), uncased(trimmed(node.data.word)), node.data.silent === true]);
+};
+/** The word a displayed node paints: a derived word leaf's text, or an occurrence's word field. */
+const wordOf = (node, initialKey) => {
+  const [label, word] = JSON.parse(paintOf(node, initialKey));
+  return node.data.replayOrigin?.kind === 'word' ? label : word;
 };
 const describePaint = (node, initialKey) => {
   const [label, word, silent] = JSON.parse(paintOf(node, initialKey));
@@ -63,7 +73,8 @@ function frameChange(previous, current, initialKey) {
     added: [...current.displayed].filter(id => !previous.displayed.has(id)),
     removed: [...previous.displayed].filter(id => !current.displayed.has(id)),
     reparented: kept.filter(id => previous.parent.get(id) !== current.parent.get(id)),
-    repainted: kept.filter(id => paintOf(previous.nodes.get(id), initialKey) !== paintOf(current.nodes.get(id), initialKey))
+    repainted: kept.filter(id => paintOf(previous.nodes.get(id), initialKey) !== paintOf(current.nodes.get(id), initialKey)),
+    reworded: kept.filter(id => wordOf(previous.nodes.get(id), initialKey) !== wordOf(current.nodes.get(id), initialKey))
   };
 }
 
@@ -85,13 +96,17 @@ function frameChange(previous, current, initialKey) {
  *   proved rewrite with their subtrees, and for removal the previous-stage
  *   witnesses it names), or a Stage Record removes or re-parents syntax its
  *   stage authors or names. An edge to a parent already displayed is left to
- *   attach-at-merge.
+ *   attach-at-merge. The derived word of an occurrence may leave while the
+ *   occurrence stays at the moment that voices it: that is its repaint. A
+ *   relation that pronounces the occurrence or an ancestor
+ *   (`pronunciationOwners`) voices it; without one, a relation naming it does.
  * - `unowned-repaint`: a node's label, word or silence changes at a step that
  *   does not own it: a structural step owns its target and word leaf, a
  *   relation moment what it owns, names or attaches new material to, a Stage
  *   Record nothing. A stage's first step may restate retained syntax no
  *   relation of the stage names; a change to syntax a relation names belongs
- *   to that relation's moment.
+ *   to that relation's moment. A word with a pronunciation owner changes only
+ *   at that relation's moment, whatever else owns the occurrence.
  * - `movement-incomplete`: a movement moment without its displayed landing or
  *   lower occurrence, or whose landing was already displayed, unless an
  *   earlier moment of the stage introduced that shared landing.
@@ -99,6 +114,7 @@ function frameChange(previous, current, initialKey) {
  */
 export function checkStepSemantics(replay, record) {
   const steps = replay.playbackSteps, out = [], stages = authoredStages(record), introducedLandings = new Set();
+  const pronunciation = pronunciationOwners(replay);
   const initialKey = String(resolveSavedInputTokens(record.sentence ?? '', record.inputTokens)[0] ?? '').trim().toLocaleLowerCase();
   let previous = EMPTY_FRAME;
   steps.forEach((step, index) => {
@@ -111,8 +127,12 @@ export function checkStepSemantics(replay, record) {
     const move = id => `${id} moves from ${previous.parent.get(id) ?? 'no parent'} to ${current.parent.get(id) ?? 'no parent'}`;
     // An edge to a parent displayed at the preceding step is attach-at-merge's.
     const newEdgeElsewhere = id => !(current.parent.get(id) && previous.displayed.has(current.parent.get(id)));
+    const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
+    // A word whose occurrence has a pronunciation owner belongs to that owner's moment alone.
+    const separatelyVoiced = id => change.reworded.includes(id) && pronunciation(stageIndex, occurrenceOf(current, id)) !== undefined
+      && !(identity?.stageIndex === stageIndex && voicesOccurrence(pronunciation, identity, occurrenceOf(current, id), false));
     const reportRepaints = owns => change.repainted
-      .filter(id => !owns(id) && !(firstOfStage && !stage?.named.has(authoredOf(current, id))))
+      .filter(id => separatelyVoiced(id) || !owns(id) && !(firstOfStage && !stage?.named.has(authoredOf(current, id))))
       .forEach(id => report('unowned-repaint', id, `${id} repaints from ${describePaint(previous.nodes.get(id), initialKey)} `
         + `to ${describePaint(current.nodes.get(id), initialKey)}`));
 
@@ -140,7 +160,11 @@ export function checkStepSemantics(replay, record) {
       const named = new Set([...anchorIds(authored?.anchors), ...prior, ...ownership.anchored]);
       const ownedIn = (structure, id, owned) => [id, ...ancestorsIn(structure, id)].some(at => owned.has(at) || owned.has(authoredOf(structure, at)));
       const removable = new Set([...structural, ...prior]);
-      change.removed.filter(id => !ownedIn(previous, id, removable)).forEach(id => report('unowned-removal', id, `${id} disappears`));
+      // A derived word leaving an occurrence that stays, at the moment voicing it, is that occurrence's repaint.
+      const unvoiced = id => { const origin = previous.nodes.get(id)?.data.replayOrigin;
+        return origin?.kind === 'word' && current.displayed.has(origin.ownerId)
+          && voicesOccurrence(pronunciation, step.replayRelationIdentity, authoredOf(previous, origin.ownerId), named.has(origin.ownerId)); };
+      change.removed.filter(id => !ownedIn(previous, id, removable) && !unvoiced(id)).forEach(id => report('unowned-removal', id, `${id} disappears`));
       change.reparented.filter(id => newEdgeElsewhere(id) && !ownedIn(previous, id, removable) && !ownedIn(current, id, structural)
         && !change.added.includes(current.parent.get(id))).forEach(id => report('unowned-move', id, move(id)));
       const owned = new Set([...structural, ...named]), receiving = new Set(change.added.map(id => current.parent.get(id)).filter(Boolean));
@@ -213,6 +237,12 @@ const markKeys = item => planItemRelationRefs(item).map(ref => JSON.stringify([i
 const keyRef = key => { const [, , , , stageIndex, relationIndex] = JSON.parse(key); return { stageIndex, relationIndex }; };
 const describeKey = key => { const [kind, family] = JSON.parse(key); return `${kind}${family ? ` ${family}` : ''} ${refKey(keyRef(key))}`; };
 const ENDING_PERSISTENCE = new Set(['stage-only', 'relation-only', 'replace-prior-stage', 'replace-previous-instance']);
+const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object'
+  ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+/** An authored claim, so an identical restatement under another moment is the same claim. */
+const claimKey = ref => JSON.stringify(canonical([ref.relation ?? null, ref.anchors ?? null, ref.values ?? null]));
+const isThetaBadges = item => item.kind === 'node-badges' && item.badgeStyle === 'theta-role';
+const isComposedThetaGrid = item => item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid' && Boolean(item.composedRefs?.length);
 
 const VANISHED = /^persistent mark from stage (\d+) is not drawn at stage (\d+): anchored node\(s\) (.+) no longer exist in this stage's forest/;
 /** The plan compiler's record of persistent marks it did not materialize because
@@ -241,6 +271,9 @@ export function vanishedAnchors(plan) {
  *   or is replaced (`dropped`).
  * An ended mark does not paint again (`paints-again`). A piece revealed at its
  * relation's moment paints there (`late-start` when later, `never-paints`).
+ * A composed theta grid replaces its contributors' badges: theta badges do not
+ * paint beside a grid that composes their claim with another claim already
+ * played, in this stage or an earlier one (`composed-still-paints`).
  * `reveal-selector` reports a frame where the production selector disagrees
  * with the authored moments. Whether an authored removal renames an occurrence
  * is a contract question (replayContractWarnings.mjs, renamed-anchor).
@@ -249,7 +282,7 @@ export function checkMarkPersistence(replay, record, { select = isPlanItemReveal
   const steps = replay.playbackSteps, plan = replay.relationRenderPlan, out = [], stages = authoredStages(record);
   if (!plan) return out;
   const vanished = new Map(vanishedAnchors(plan).map(entry => [`${entry.frameIndex}|${entry.relation}`, entry.ids]));
-  const played = new Map(), ended = new Map(), first = new Set(), unpaintedAtMoment = new Map(), disagreed = new Set();
+  const played = new Map(), ended = new Map(), first = new Set(), unpaintedAtMoment = new Map(), disagreed = new Set(), composed = new Set();
   let previousPainted = new Map();
   steps.forEach((step, index) => {
     const stage = step.replayFrameIndex, frame = index + 1;
@@ -266,6 +299,17 @@ export function checkMarkPersistence(replay, record, { select = isPlanItemReveal
         disagreed.add(`${frame} ${key}`);
         report('reveal-selector', key, `is ${mark.selected ? 'selected' : 'not selected'} where the authored moments ${mark.revealed ? 'reveal' : 'hide'} it`);
       }
+    }
+    const hasPlayed = ref => ref.stageIndex < stage || ref.stageIndex === stage && played.get(stage).has(ref.relationIndex);
+    const shown = [...new Set(painted.values())], grids = shown.filter(mark => isComposedThetaGrid(mark.item));
+    for (const mark of shown.filter(candidate => isThetaBadges(candidate.item))) {
+      const refs = planItemRelationRefs(mark.item), own = new Set(refs.map(refKey)), claims = new Set(refs.map(claimKey));
+      const key = markKeys(mark.item)[0];
+      const other = grids.map(grid => planItemRelationRefs(grid.item)).filter(gridRefs => gridRefs.some(ref => own.has(refKey(ref))))
+        .flat().find(ref => !own.has(refKey(ref)) && !claims.has(claimKey(ref)) && hasPlayed(ref));
+      if (!other || composed.has(key)) continue;
+      composed.add(key);
+      report('composed-still-paints', key, `paints beside a theta grid that composes it with ${refKey(other)}, which has played`);
     }
     for (const [key, before] of previousPainted) {
       if (painted.has(key)) continue;
