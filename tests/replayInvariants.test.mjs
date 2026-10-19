@@ -3,9 +3,9 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  checkAttachAtMerge, checkInputUnchanged, checkMarksAtOwningMoment, checkNoEarlyReveal, checkNoVisibleScaffolding,
-  checkOneLetterPerLabel, checkParentAfterChildren, checkRelationMoments, checkStableConstruction, checkStageCompletion,
-  checkVisibleInCanvas, frameStructure
+  checkAttachAtMerge, checkInputUnchanged, checkMarksAtOwningMoment, checkMovementLandingParent, checkNoEarlyReveal,
+  checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationMoments, checkStableConstruction,
+  checkStageCompletion, checkVisibleInCanvas, frameStructure
 } from './helpers/replayInvariants.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 import { matchFindings } from './helpers/findings.mjs';
@@ -209,6 +209,20 @@ test('control: marks-at-owning-moment reports a mark before its moment and a mar
     && violation.detail.includes(`${lasting.relationRef.stageIndex}:${lasting.relationRef.relationIndex} is revealed`)));
 });
 
+test('control: movement-landing-parent reports a movement moment that paints its landing without the new parent attaching it', () => {
+  // GPT-6.1 Sol analysis 6 of 我昨天看见的那个人走了。: the subject movement lands
+  // beside T′ (matrixTProjection), the new parent over TP's earlier T and vP.
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/waiting-root-continuity.json#').record;
+  const prepared = prepare(record), moment = prepared.playbackSteps.findIndex(step => step.operation === 'Matrix subject movement and licensing');
+  assert.deepEqual(checkMovementLandingParent(prepared, record), []);
+  assert.deepEqual(frameStructure(prepared.playbackSteps[moment]).children.get('matrixTP'), ['subjectHigher', 'matrixTProjection']);
+  const withheld = { ...prepared, playbackSteps: structuredClone(prepared.playbackSteps) };
+  const step = withheld.playbackSteps[moment];
+  step.replayVisibleNodeIds = step.replayVisibleNodeIds.filter(id => id !== 'matrixTProjection');
+  assert(reported(checkMovementLandingParent(withheld, record), 'movement-landing-parent', moment + 1,
+    'matrixTProjection is not painted beside landing subjectHigher under matrixTP'));
+});
+
 /* The sweep: every rule on every frame of every committed saved analysis.
  * Real defects stay listed below with the exact subject node of each violation;
  * a new violation fails, and so does a listed one that no longer occurs. */
@@ -252,8 +266,8 @@ const REPORTED_BY = new Map([['attach-at-merge', 'no-early-reveal']]);
 const subjectOf = violation => violation.detail.split(' ')[0];
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments',
-  'no-early-reveal', 'parent-after-children', 'stable-construction', 'attach-at-merge', 'visible-in-canvas', 'marks-at-owning-moment',
-  'one-letter-per-label'];
+  'no-early-reveal', 'parent-after-children', 'stable-construction', 'attach-at-merge', 'movement-landing-parent', 'visible-in-canvas',
+  'marks-at-owning-moment', 'one-letter-per-label'];
 let sweep;
 before(() => {
   sweep = corpus.records.map(({ id, record, contract }) => {
@@ -263,7 +277,8 @@ before(() => {
       return { id, frames: prepared.playbackSteps.length, violations: [
         ...checkInputUnchanged(snapshot, authored), ...checkNoVisibleScaffolding(prepared), ...checkStageCompletion(prepared, authored),
         ...checkRelationMoments(prepared, authored), ...checkNoEarlyReveal(prepared), ...checkParentAfterChildren(prepared),
-        ...checkStableConstruction(prepared), ...checkAttachAtMerge(prepared), ...checkVisibleInCanvas(prepared),
+        ...checkStableConstruction(prepared), ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored),
+        ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),
         ...checkContractWarnings(prepared, authored, { contract })] };

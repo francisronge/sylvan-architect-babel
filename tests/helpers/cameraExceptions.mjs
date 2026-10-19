@@ -9,6 +9,8 @@ const STAGE_RELAYOUT = 'Open (layout): the new stage lays out the unmoved shared
   + 'first pose carried by its median shift (PR #77) still leaves it jumping or partly beyond the canvas.';
 const RELAYOUT_WITHIN_STAGE = 'Open (construction/layout, not camera): with the camera unchanged inside one stage, an inserted node '
   + 'or rebuilt workspace displaces syntax whose attachment is unchanged.';
+const SPREAD_RETENTION = 'Open (layout): the new stage spreads the unmoved shared syntax in opposite directions, so its carried '
+  + 'median shift is near zero and the retained view holds that syntax a few pixels less still than a fresh fit would.';
 const MOVED_OFF_CANVAS = 'Open (camera, low severity): the moved constituent\'s landing first paints beyond the canvas while the '
   + 'unmoved syntax stays in place; the camera then travels to it.';
 
@@ -88,21 +90,27 @@ export const EXCEPTIONS = [
   x(STAGE_RELAYOUT, 'replay-regressions/workspace-spanish-continuity.json#', 'first-paint-continuity', 'jump:camera', 'stage 2',
     { desktop: { '8>9': 61.11 }, mobile: { '8>9': 37.53 } }),
   // Catalog #24's record (47-zh-relative.r1.B a6), also committed as the waiting-root fixture. Waiting slots
-  // fixed catalog #19-#21 (16>17) and the off-canvas first paint into stage 3; with the middle-head column (#94) its mobile stage crossing is also clear, and the desktop stage relayout remains.
+  // fixed catalog #19-#21 (16>17) and the off-canvas first paint into stage 3; its stage relayout remains.
+  // The subject movement now brings T' at 43>44, so the clause rises a row while 我 and 昨天 stay; the
+  // insertion of the T that 昨天 adjoins to is its own External Merge at 45>46, no longer the scope claim's 48>49.
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:relayout',
-    'stage 3', { desktop: { '48>49,49>48': 26.72 } }),
+    'stage 3', { desktop: { '45>46,46>45': 26.72 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:stage-coordinates',
-    'stage 2', { desktop: { '44>43': 54.37 } }),
+    'stage 2', { desktop: { '44>43': 65.74 }, mobile: { '44>43': 35.63 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'first-paint-continuity', 'jump:stage-coordinates',
-    'stage 3', { desktop: { '43>44': 57.15 } }),
+    'stage 3', { desktop: { '43>44': 64.58 }, mobile: { '43>44': 32.12 } }),
+  x(SPREAD_RETENTION, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'settled-path-independence', 'retention',
+    'stage 3', { desktop: { '43>44': 35.03 }, mobile: { '43>44': 37.77 } }),
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:relayout',
-    'stage 3', { desktop: { '48>49,49>48': 26.72 } }),
+    'stage 3', { desktop: { '45>46,46>45': 26.72 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:stage-coordinates',
-    'stage 2', { desktop: { '44>43': 54.37 } }),
+    'stage 2', { desktop: { '44>43': 65.74 }, mobile: { '44>43': 35.63 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/waiting-root-continuity.json#', 'first-paint-continuity', 'jump:stage-coordinates',
-    'stage 3', { desktop: { '43>44': 57.15 } }),
+    'stage 3', { desktop: { '43>44': 64.58 }, mobile: { '43>44': 32.12 } }),
+  x(SPREAD_RETENTION, 'replay-regressions/waiting-root-continuity.json#', 'settled-path-independence', 'retention',
+    'stage 3', { desktop: { '43>44': 35.03 }, mobile: { '43>44': 37.77 } }),
   // Binding each hop to its new trace removes the saved analysis's off-canvas
-  // unmoved poses (stages 9-10) and stage 11 relayout jumps on 74d84eb; the final
+  // unmoved poses (stages 9-10) and stage 11 relayout jumps on 564e52b; the final
   // subject raising now first paints part of its landing beyond the canvas.
   x(MOVED_OFF_CANVAS, 'replay-regressions/successive-cyclic-source.json#/cases/0', 'first-paint-continuity', 'off-canvas:moved', 'stage 12',
     { desktop: { '121>122': 27.71 }, mobile: { '121>122': 56.45 } }),

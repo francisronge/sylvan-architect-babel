@@ -499,8 +499,11 @@ export function recoverMovementEvidence(
     && current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource)?.lineageId
     && sameAuthoredValue(current.nodes.get(id), prior.nodes.get(id)) && samePriorSlot(id, id));
   // Several trace fields may cite unchanged earlier copies beside the step's
-  // new lower witness. Those copies do not compete with it.
-  const stepWitnesses = witnesses.filter(id => !isEarlierChainOccurrence(id));
+  // new lower witness. Those copies do not compete with it. Only a lineage the
+  // preceding source already declares identifies them: at a first copy every
+  // other trace remains a competing witness.
+  const priorSourceLineage = priorSource ? prior.nodes.get(priorSource)?.lineageId : undefined;
+  const stepWitnesses = priorSourceLineage ? witnesses.filter(id => !isEarlierChainOccurrence(id)) : witnesses;
   if (witnesses.length > 1 && stepWitnesses.length === 1) {
     if (sources === witnesses) sources = stepWitnesses;
     witnesses = stepWitnesses;

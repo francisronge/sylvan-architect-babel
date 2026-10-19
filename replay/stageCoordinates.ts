@@ -310,7 +310,11 @@ type PaintedFrame = readonly [TreeCoordinateReservation | undefined, [number, nu
 const stageOffsets = new WeakMap<StageFrames, Map<string, WeakMap<object, StageOffset>>>();
 const completedStage = {};
 const alignedStages = new WeakMap<StageFrames, Map<string, StageFrames>>();
-const alignedChoices = new WeakMap<StageFrames, 'stage' | 'slotted' | 'aligned'>();
+type PlanChoice = { mode: 'stage' | 'slotted' | 'aligned'; shift: StageOffset };
+const alignedChoices = new WeakMap<StageFrames, PlanChoice>();
+// Each chosen reservation translated onto the established plan's final tree, per
+// shift, so a reused layout returns the same reservations.
+const shiftedReservations = new WeakMap<TreeCoordinateReservation, Map<string, TreeCoordinateReservation>>();
 // The slot pass per planned reservation, so a reused layout does not repeat it.
 const slotPlans = new WeakMap<StageFrames, Map<string, StageFrames>>();
 const stageStepOrder = (step: PlaybackStep) => step.replayStageStepIndex ?? (step.replayKind === 'macro' ? Infinity : 0);
@@ -409,9 +413,14 @@ export function alignedStageFrames(steps: readonly PlaybackStep[], stage: number
 
 /** Motion a plan's own frames show: components the step does not own that move,
  * and existing daughters that move as a new parent joins them. A host lowered
- * below an inserted parent that takes its row keeps only its horizontal motion. */
+ * below an inserted parent that takes its row keeps only its horizontal motion.
+ * A component that keeps its painted parent stays one row below it, so when the
+ * step moves that parent to another row the component's row change is the
+ * parent's; its other motion counts. */
 function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep) => PaintedFrame, direction: TreeDirection) {
-  const scenes = steps.flatMap(step => {
+  // Playback order, whatever order the steps were passed in.
+  const ordered = [...steps].sort((a, b) => (a.replayFrameIndex ?? 0) - (b.replayFrameIndex ?? 0) || stageStepOrder(a) - stageStepOrder(b));
+  const scenes = ordered.flatMap(step => {
     const [coordinates, size] = step.replayCanvasData && painted(step) || [];
     return coordinates && size ? [{ step, canvas: step.replayCanvasData!, size, coordinates,
       nodes: paintedSyntax(step, size, direction, coordinates) }] : [];
@@ -428,8 +437,9 @@ function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep
       // Across a stage crossing, distance is measured after the camera carry.
       const before = scenes[reflow.index - 1], after = scenes[reflow.index];
       const carry = before.step.replayFrameIndex === after.step.replayFrameIndex ? { x: 0, y: 0 } : carriedShift(before.nodes, after.nodes);
-      const from = before.nodes.get(reflow.rootId)!, to = after.nodes.get(reflow.rootId)!;
-      return [`${reflow.index}:${reflow.rootId}`, Math.hypot(to.x - from.x - carry.x, to.y - from.y - carry.y)] as const;
+      const from = before.nodes.get(reflow.rootId)!, to = after.nodes.get(reflow.rootId)!, parent = paintedParent(after, reflow.rootId);
+      const rows = parent ? after.nodes.get(parent)!.y - before.nodes.get(parent)!.y : carry.y;
+      return [`${reflow.index}:${reflow.rootId}`, Math.hypot(to.x - from.x - carry.x, to.y - from.y - rows)] as const;
     }));
   const joins = new Map<string, number>();
   scenes.forEach((scene, index) => {
@@ -462,27 +472,35 @@ function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep
     final: last ? [...last.nodes].map(([id, node]) => [id, node.x, node.y] as const) : [] };
 }
 
+/** The painted shift that carries one plan's final tree onto another's, when
+ * every final node keeps its place relative to the others; null otherwise. Such
+ * a translation is the same tree, since the stage camera fits it. */
+function finalTreeShift(before: ReturnType<typeof planMotion>, after: ReturnType<typeof planMotion>): StageOffset | null {
+  const final = new Map(before.final.map(([id, x, y]) => [id, [x, y]]));
+  const [first] = after.final, origin = first && final.get(first[0]);
+  if (after.final.length !== before.final.length || (first && !origin)) return null;
+  const x = first ? first[1] - origin![0] : 0, y = first ? first[2] - origin![1] : 0;
+  return after.final.every(([id, px, py]) => final.has(id) && Math.hypot(px - x - final.get(id)![0], py - y - final.get(id)![1]) <= 1e-6)
+    ? { x, y } : null;
+}
+
 /** An aligned plan replaces an established one only when it removes motion and
  * adds none: no new unowned component, no surviving one or join that moves
  * farther, and the same final tree. */
 export function alignmentImprovesMotion(before: ReturnType<typeof planMotion>, after: ReturnType<typeof planMotion>) {
-  const final = new Map(before.final.map(([id, x, y]) => [id, [x, y]]));
-  return after.count < before.count && after.final.length === before.final.length
-    && after.final.every(([id, x, y]) => final.has(id) && Math.hypot(x - final.get(id)![0], y - final.get(id)![1]) <= 1e-6)
+  return after.count < before.count && finalTreeShift(before, after) !== null
     && [...after.unowned].every(([key, distance]) => before.unowned.has(key) && distance <= before.unowned.get(key)! + 1e-6)
     && [...after.joins].every(([key, distance]) => distance <= (before.joins.get(key) ?? 1) + 1e-6);
 }
 
 /** Slots in stage-local frames change only the pieces they place, so they are
  * judged without ownership: no painted node may move farther in any frame, total
- * motion must fall, and the final tree stays exactly the same. */
+ * motion must fall, and the final tree stays the same. */
 function slotsReduceMotion(before: ReturnType<typeof planMotion>, after: ReturnType<typeof planMotion>) {
-  const final = new Map(before.final.map(([id, x, y]) => [id, [x, y]]));
   const total = (moves: ReadonlyMap<string, number>) => [...moves.values()].reduce((sum, distance) => sum + distance, 0);
   return after.count < before.count && total(after.moves) < total(before.moves) - 1
     && [...after.moves].every(([key, distance]) => distance <= (before.moves.get(key) ?? 0) + 1)
-    && after.final.length === before.final.length
-    && after.final.every(([id, x, y]) => final.has(id) && Math.hypot(x - final.get(id)![0], y - final.get(id)![1]) <= 1e-6);
+    && finalTreeShift(before, after) !== null;
 }
 
 /** All consumers share the same placement plan. Stage-local geometry is built
@@ -549,24 +567,37 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
   };
   // A plan with motion is replaced by the aligned plan when that removes motion
   // under `alignmentImprovesMotion`, otherwise by its slotted form when no painted
-  // node moves farther in any frame.
+  // node moves farther in any frame. A replacement whose final tree is the
+  // established one translated is moved back as a whole, every stage alike, so
+  // the final tree keeps its coordinates and the camera sees no difference.
   const settle = (chosen: ReturnType<typeof plan>, orderedContours: boolean) => {
     if (!sizeForStage) return chosen.frames;
     let choice = alignedChoices.get(chosen.key);
     if (choice === undefined) {
       const before = planMotion(steps, chosen.painted, direction);
-      choice = 'stage';
-      if (before.count) {
-        const aligned = plan(orderedContours, 'aligned');
-        if (ordered(aligned) && alignmentImprovesMotion(before, planMotion(steps, aligned.painted, direction))) choice = 'aligned';
-        else {
-          const slotted = plan(orderedContours, 'slotted');
-          if (ordered(slotted) && slotsReduceMotion(before, planMotion(steps, slotted.painted, direction))) choice = 'slotted';
-        }
-      }
+      choice = { mode: 'stage', shift: { x: 0, y: 0 } };
+      const accept = (mode: 'slotted' | 'aligned', candidate: ReturnType<typeof plan>, improves: typeof alignmentImprovesMotion) => {
+        if (!ordered(candidate)) return false;
+        const after = planMotion(steps, candidate.painted, direction), shift = finalTreeShift(before, after);
+        if (!shift || !improves(before, after)) return false;
+        // Reservations are stored before right-to-left reflection, so a painted shift reverses x.
+        choice = { mode, shift: { x: direction === 'rtl' ? shift.x : -shift.x, y: -shift.y } };
+        return true;
+      };
+      if (before.count && !accept('aligned', plan(orderedContours, 'aligned'), alignmentImprovesMotion))
+        accept('slotted', plan(orderedContours, 'slotted'), slotsReduceMotion);
       alignedChoices.set(chosen.key, choice);
     }
-    return choice === 'stage' ? chosen.frames : plan(orderedContours, choice).frames;
+    if (choice.mode === 'stage') return chosen.frames;
+    const frames = plan(orderedContours, choice.mode).frames, { x, y } = choice.shift, key = `${x},${y}`;
+    if (Math.abs(x) <= 1e-9 && Math.abs(y) <= 1e-9) return frames;
+    return new Map([...frames].map(([canvas, coordinates]) => {
+      let shifted = shiftedReservations.get(coordinates);
+      if (!shifted) shiftedReservations.set(coordinates, shifted = new Map());
+      let result = shifted.get(key);
+      if (!result) shifted.set(key, result = new Map([...coordinates].map(([id, point]) => [id, { x: point.x + x, y: point.y + y }])));
+      return [canvas, result] as const;
+    }));
   };
   const established = plan(false);
   const record = (status: ContourPlanStatus) => {
