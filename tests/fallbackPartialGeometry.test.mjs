@@ -246,23 +246,23 @@ test('two organizational roles sharing nodes join their own badges', () => {
   assert.deepEqual(rails.map(rail => rail.anchors.map(anchor => anchor.nodeId)), [ids, [...ids].reverse()]);
   assert.ok(rails[0].anchors.every(anchor => !rails[1].anchors.includes(anchor)), 'a shared node does not merge distinct role marks');
 });
-test('Astra wh licensing draws C and adds its future operator only at the following movement moment', () => {
+test('Astra wh licensing waits for the movement that introduces its operator, then marks C and the operator together', () => {
   const records = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
   const record = records.find(r => r.name === 'astra-xbar');
   const steps = buildReplayPlayback({ sentence: record.sentence, analyses: [record] }).steps;
   const p = compileRelationRenderPlan(record.derivationStages);
   p.frames[4].items = p.frames[4].items.filter(i => i.kind === 'fallback' && i.relationRef.stageIndex === 4 && i.relationRef.relationIndex === 0);
   assert.equal(p.frames[4].items.length, 1);
-  for (const [relationIndex, expected] of [[0, ['questionC']], [1, ['frontedNP', 'questionC']]]) {
-    const step = steps.find(step => step.replayRelationIdentity?.stageIndex === 4
-      && step.replayRelationIdentity.relationIndex === relationIndex);
-    assert.ok(step);
-    const visible = new Set(step.replayVisibleNodeIds);
-    const bound = bindRelationPlanFrame(p, 4, id => visible.has(id) ? { x: 100, y: 100 } : null);
-    assert.deepEqual(bound.primitives.filter(p => p.type === 'fallback-mark').map(p => p.nodeId), expected);
-    assert.equal(bound.primitives.some(p => p.type === 'segment'), relationIndex === 1);
-    assert.match(step.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT/);
-  }
+  const moments = steps.filter(step => step.replayKind === 'relation' && step.replayRelationIdentity?.stageIndex === 4);
+  assert.deepEqual(moments.slice(0, 2).map(step => step.replayRelationIdentity.relationIndex), [1, 0],
+    'the A′-chain that introduces frontedNP plays first');
+  const [movement, licensing] = moments;
+  assert.ok(!steps[steps.indexOf(movement) - 1].replayVisibleNodeIds.includes('frontedNP'), 'the operator is not revealed early');
+  const visible = new Set(licensing.replayVisibleNodeIds);
+  const bound = bindRelationPlanFrame(p, 4, id => visible.has(id) ? { x: 100, y: 100 } : null);
+  assert.deepEqual(bound.primitives.filter(p => p.type === 'fallback-mark').map(p => p.nodeId), ['frontedNP', 'questionC']);
+  assert.ok(bound.primitives.some(p => p.type === 'segment'));
+  assert.ok(!steps.some(step => step.movementDiagnostics?.some(message => message.includes('RELATION_TIMING_CONFLICT'))));
 });
 
 test('the production reveal filter keeps neutral badges independent of hidden peers', () => {
