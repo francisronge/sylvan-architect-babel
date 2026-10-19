@@ -217,15 +217,61 @@ export function preparePlaqueColumnIntervals(obstacles: readonly ObstacleRect[],
   const ordered = obstacles.map(box => ({ x: box.x, right: box.x + box.width + gap,
     low: box.y - height - gap, high: box.extendsDownward ? Infinity : box.y + box.height + gap }))
     .sort((a, b) => a.low - b.low);
-  return (x: number, width: number): number[][] => {
+  type Interval = (typeof ordered)[number];
+  const merge = (merged: number[][], interval: Interval) => {
+    const last = merged[merged.length - 1];
+    if (last && interval.low < last[1]) last[1] = Math.max(last[1], interval.high);
+    else merged.push([interval.low, interval.high]);
+  };
+  const scan = (x: number, width: number) => {
     const right = x + width + gap;
     const merged: number[][] = [];
-    for (const interval of ordered) {
-      if (!(x < interval.right && right > interval.x)) continue;
-      const last = merged[merged.length - 1];
-      if (last && interval.low < last[1]) last[1] = Math.max(last[1], interval.high);
-      else merged.push([interval.low, interval.high]);
-    }
+    for (const interval of ordered) if (x < interval.right && right > interval.x) merge(merged, interval);
+    return merged;
+  };
+  // Repeated searches query many columns. Fixed-width cells hold the positions in
+  // `ordered` of the intervals that reach them; a query merges its matches in
+  // that order, exactly as the complete scan visits them. Unbounded or very wide
+  // spans, and coordinates whose cells cannot be counted exactly, stay linear.
+  const cell = 256, reach = 64, limit = 2 ** 40;
+  const cellOf = (value: number) => {
+    const key = Math.floor(value / cell);
+    return Math.abs(key) <= limit ? key : NaN;
+  };
+  let cells: Map<number, number[]> | undefined, seen: Uint32Array | undefined;
+  const everywhere: number[] = [];
+  const index = () => {
+    cells = new Map();
+    seen = new Uint32Array(ordered.length);
+    ordered.forEach((interval, position) => {
+      const first = cellOf(interval.x), last = cellOf(interval.right);
+      if (!(last - first <= reach)) { everywhere.push(position); return; }
+      for (let key = first; key <= last; key++) {
+        const members = cells!.get(key);
+        if (members) members.push(position); else cells!.set(key, [position]);
+      }
+    });
+  };
+  let queried = false, stamp = 0;
+  return (x: number, width: number): number[][] => {
+    const right = x + width + gap;
+    const first = cellOf(x), last = cellOf(right);
+    // A single column needs no index.
+    if (!queried || !(last - first <= reach)) { queried = true; return scan(x, width); }
+    if (!cells) index();
+    if (++stamp === 0xffffffff) { seen!.fill(0); stamp = 1; }
+    const matches: number[] = [];
+    const visit = (position: number) => {
+      if (seen![position] === stamp) return;
+      seen![position] = stamp;
+      const interval = ordered[position];
+      if (x < interval.right && right > interval.x) matches.push(position);
+    };
+    everywhere.forEach(visit);
+    for (let key = first; key <= last; key++) cells!.get(key)?.forEach(visit);
+    matches.sort((a, b) => a - b);
+    const merged: number[][] = [];
+    for (const position of matches) merge(merged, ordered[position]);
     return merged;
   };
 }

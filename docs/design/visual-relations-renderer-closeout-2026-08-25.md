@@ -563,6 +563,30 @@ stage cursor advances afterwards. Canvas projection, movement transitions,
 layout, visibility and presentation have independent owners. Workspace placement
 separates attachment proposals and search from rendered-plan validation.
 
+Relation moments follow authored order with one exception. In October Francis
+decided that Babel must not limit how a model orders the claims of one stage. A
+relation needing syntax that a later relation of its stage introduces plays right
+after that relation's moment, or after the last such moment when it needs
+several. Its needs are its current anchors (for a movement, its source and
+landing) and, for a relation that builds structure, the material its new
+landing host or parent attaches to, followed through the construction that
+builds them. A movement also needs the parent each landing joins when another
+relation's moment introduces it, so a landing never appears without its
+parent. A movement does not wait for its other, contextual anchors. The
+introducing relation may be a recognized movement, a neutral transition or
+another rewrite; its tier does not change the order. Relations waiting for the same moment keep authored order, a
+chain of needs resolves in turn, and every other relation keeps its authored
+position. A construction step already under way, which may build what the
+waiting relation needs, completes first. `replay/relationMomentOrder.ts` computes
+the order once per stage, and `stageScheduling.ts` plays it without introducing
+syntax early. Needs that form a cycle cannot all be met: the cycle's members keep
+authored order among themselves, a relation needing a member keeps its authored
+position relative to it, and Replay reports the unavailable syntax as
+`RELATION_TIMING_CONFLICT`. A realization that plays after a movement still owns
+the later pronunciation of that movement's landing. The authored record, the
+relation plan and each relation's marks are unchanged; only the order of moments
+within the stage differs.
+
 `TreeVisualizer.tsx` connects React state with `components/renderer/treeFrame.ts`,
 which owns frame drawing order and disposal. `relationScene.ts` binds the plan
 and dispatches family painters; `frameCamera.ts` owns fitting and retained pose.
@@ -669,8 +693,11 @@ no ink collision is added. Placements that span stages use stage frames
 translated, as a whole, by the median shift of the unmoved syntax they share
 with the next stage, as the camera carry does, with the completed stage as the
 anchor. A plan that still shows motion is replaced by such a plan only when it
-removes motion, adds none, moves no join farther and keeps the final tree
-exactly, or, within stages, when no painted node moves farther.
+removes motion, adds none, moves no join farther and keeps the final tree, or,
+within stages, when no painted node moves farther. One translation of the whole
+final tree is the same tree, since the stage camera fits it. A daughter that
+keeps its painted parent stays one row below it, so when the step owning that
+parent moves it to another row, the daughter's own motion is what remains.
 
 A later locked fork may require more clearance than its earlier incarnation
 reserved. Carry that measured requirement back only through the same ordered
@@ -973,9 +1000,10 @@ indistinguishable unproved siblings are insufficient. Unsupported ownership and
 multiple PF owners retain their ambiguity. Replay retains the earlier association through
 ambiguous moments and shows the completed association at the Stage Record. It
 does not guess ownership from open prose, relation names or linguistic expectations.
-Diagnostics list the candidate relation numbers. A direct owner whose
-participants are not yet visible also defers to the Stage Record rather than
-handing ownership to a later movement. The Japanese stem/allomorph and
+Diagnostics list the candidate relation numbers. A direct owner waits for the
+moment that introduces its participants; one whose participants are still not
+visible at its moment defers to the Stage Record rather than handing ownership
+to a later movement. The Japanese stem/allomorph and
 orthographic-association regression exercises competing direct coverage without
 changing the authored structure or pronunciation.
 
@@ -1071,9 +1099,11 @@ container's word and token metadata.
 
 A movement envelope may also contain contextual claims. If a current contextual
 anchor is introduced only by a later relation, report the timing conflict while
-preserving the independently proved movement and its authored moment. Do not
-reveal that context early or delay valid sibling claims. Prior-stage witnesses
-remain prior evidence and need not be present in the current drawing.
+preserving the independently proved movement and its moment: a movement does not
+wait for context, since waiting can cost a later landing its reserved slot and
+shift unmoved syntax. Do not reveal that
+context early or delay valid sibling claims. Prior-stage witnesses remain prior
+evidence and need not be present in the current drawing.
 
 Restoring a prior source also restores its effective pronunciation before its
 owning moment, including silence inherited from its preceding ancestors. A
@@ -1087,6 +1117,19 @@ new root cannot skip ready selections, projections or binary merges inside a
 retained root. An unrelated pending rewrite cannot withhold ordinary merges
 whose preceding operands are already available. Pending relation-owned outputs
 and relocations retain their own timing.
+
+A neutral claim that names an earlier phrase in `priorAnchors` and a new parent
+of it in `anchors` restates that phrase; the new parent alone does not make the
+claim its owner. When that parent takes over the phrase's own slot and is the
+only new or changed material there apart from what the stage's recovered
+movements own at their moments (its other daughters are earlier workspaces that
+join whole and unchanged, no claim that can own a change names that material,
+its earlier form or an ancestor, and everything else the claim names is earlier
+material unchanged under its earlier parent), ordinary construction builds it
+with its own External Merge before the claim's moment, which then adds only the
+claim's marks. Anything else keeps the claim's atomic rewrite. A movement's
+landing parent inside the phrase is then the movement's, and arrives at its
+moment.
 
 A new occurrence replacing another chain member in the same retained parent
 slot is that member's lower witness. A later chain description must not use it
