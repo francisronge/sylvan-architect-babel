@@ -20,6 +20,18 @@ const OBJECT_LANGUAGE = 'Authored data: the analysis names relations, roles and 
 const PRIOR_SOURCE = 'Open: movement recognition cannot prove the source in the preceding stage (a first-stage claim, or a source the '
   + 'stage does not keep), so the movement draws no path.';
 const CHAIN_ROLES = 'Open: a chain or licensing relation with movement-shaped roles; recognition finds no single source and landing.';
+const OPEN_ROLES = 'Open: no field of the claim names a movement direction or occurrence role (subject, thetaPosition, topic, '
+  + 'edgeOccurrence, sourceBeforeMovement), and the Tier 2 contract infers no movement from geometry, so the displacement '
+  + 'stays a neutral copy at its moment without an arrow.';
+const INTERMEDIATE_TRACE = 'Open: the claim calls its lower occurrence intermediateTrace, which cannot select the endpoint because '
+  + 'operator-variable chain claims use that name for a middle copy of the chain, and no other field names a movement role, so '
+  + 'the copy stays neutral at its moment without an arrow.';
+const OBJECT_LANGUAGE_ROLES = 'Authored data: the claim and its fields are named in Chinese, so no movement role is read and the '
+  + 'displacement stays a neutral copy at its moment without an arrow.';
+const RETAINED_HOST_SOURCE = 'Open: the prior fields name the moving negative and its receiving head, which keeps its slot and '
+  + 'lineage as it becomes the complex, so recognition finds two preceding sources and draws no head path.';
+const IDENTITY_CONSTRUCTION = 'Defect, fixed separately (fix/replay-identity-claims-keep-construction): a shared-identity claim\'s '
+  + 'moment reveals ordinary construction, so the later merge attaches nothing new.';
 
 const x = (reason, record, rule, subtype, subject, frames) => ({ reason, record, rule, subtype, subject, at: { '-': { [frames]: null } } });
 
@@ -70,4 +82,21 @@ export const STEP_EXCEPTIONS = [
   x(CHAIN_ROLES, 'replay-regressions/independent-clause-and-realization.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "0:2", '22'),
   x(CHAIN_ROLES, 'replay-regressions/obsolete-plaque-pockets.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '49'),
   x(CHAIN_ROLES, 'replay-regressions/renamed-head-anchors.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:1", '27'),
+  x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'step-semantics', 'trajectory-off-moment', "2:1", '29'),
+  x(OPEN_ROLES, 'replay-regressions/kept-id-landing.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '36'),
+  x(OPEN_ROLES, 'replay-regressions/kept-id-landing.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "4:0", '46'),
+  x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '34'),
+  x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:1", '35'),
+  x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/object-language-metalanguage.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '21'),
+  x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/object-language-metalanguage.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "5:0", '56'),
+  x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/0', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '21'),
+  x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/0', 'movement-unrendered', 'COPY_WITHOUT_PATH', "5:0", '56'),
+  x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/5', 'movement-unrendered', 'COPY_WITHOUT_PATH', "1:1", '24'),
+  x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/5', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '29'),
+  x(RETAINED_HOST_SOURCE, 'replay-regressions/retained-head-attachment.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '46'),
+  x(INTERMEDIATE_TRACE, 'replay-regressions/rewrite-stage-new-head.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '57'),
+  x(INTERMEDIATE_TRACE, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '33'),
+  x(INTERMEDIATE_TRACE, 'replay-regressions/later-occupant-source-before-movement.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '33'),
+  x(IDENTITY_CONSTRUCTION, 'replay-regressions/unnamed-movement-roles.json#/cases/1', 'step-semantics', 'empty-step', "sellVP", '16'),
+  x(IDENTITY_CONSTRUCTION, 'replay-regressions/unnamed-movement-roles.json#/cases/1', 'step-semantics', 'empty-step', "sellTProjection", '32'),
 ];

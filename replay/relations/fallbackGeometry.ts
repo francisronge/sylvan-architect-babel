@@ -201,50 +201,84 @@ export const fallbackMarkerScale = (fitZoom: number, labelHeights: number[]): nu
   return Math.min(13, Math.max(9, median * fitZoom * 1.15)) / (18 * fitZoom);
 };
 
-/** Accepted Orchard side placement, reserving all marks before any relation is revealed. */
+/** Overlap of two boxes in their shallower direction; zero when they do not meet. */
+const overlapDepth = (a: Rect, b: Rect) => Math.max(0, Math.min(
+  Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x),
+  Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y)));
+
+// A role searches no farther than this multiple of its farthest preferred spot.
+const ROLE_SEARCH_REACH = 2;
+
+/** Accepted Orchard side placement, reserving all marks before any relation is
+ * revealed. The first free preferred spot wins. When all are taken, the role
+ * takes the nearest free spot on either side of its node or in the rows above
+ * and below, searched in steps of its own height up to twice its farthest
+ * preferred spot; it never drifts beyond that reach. With a viewport, a free
+ * spot inside it comes first. When nothing within reach is free, the role takes
+ * the spot there that overlaps least, inside the viewport first. */
 export const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidth' | 'textHeight'>,
   scale: number, occupied: Rect[], viewport?: Rect): Point => {
   const rect = mark.labelRect;
-  const leftExtent = (mark.textWidth / 2 + 4) * scale;
-  const rightExtent = leftExtent;
+  const extent = (mark.textWidth / 2 + 4) * scale;
   const gap = (mark.textWidth / 2 + 7) * scale;
   const above = rect.y - 15 * scale;
+  const below = rect.y + rect.height + 15 * scale;
+  const center = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
   const boxFor = (point: Point): Rect => fallbackLabelRect({ ...mark, ...point }, scale);
-  const candidates = [
-    { x: rect.x + rect.width + gap, y: rect.y + rect.height / 2 },
-    { x: rect.x - gap, y: rect.y + rect.height / 2 },
-    { x: rect.x + rect.width / 2, y: above },
+  const preferred = [
+    { x: rect.x + rect.width + gap, y: center.y },
+    { x: rect.x - gap, y: center.y },
+    { x: center.x, y: above },
     { x: rect.x + rect.width + gap, y: above },
     { x: rect.x - gap, y: above }
   ];
-  const free = (point: Point) => {
+  const meets = (box: Rect, other: Rect) => box.x < other.x + other.width - 0.5
+    && box.x + box.width > other.x + 0.5 && box.y < other.y + other.height - 0.5
+    && box.y + box.height > other.y + 0.5;
+  const contained = (point: Point) => {
+    if (!viewport) return true;
     const box = boxFor(point);
-    return !occupied.some(other => box.x < other.x + other.width - 0.5
-      && box.x + box.width > other.x + 0.5 && box.y < other.y + other.height - 0.5
-      && box.y + box.height > other.y + 0.5);
+    return box.x >= viewport.x && box.y >= viewport.y
+      && box.x + box.width <= viewport.x + viewport.width
+      && box.y + box.height <= viewport.y + viewport.height;
   };
-  // More than five relations can share a node. Continue outward only after the
-  // Orchard's preferred positions are occupied; never place two marks together.
-  let chosen = candidates.find(free);
-  for (let offset = 1; !chosen; offset++) {
-    chosen = candidates.map(point => ({ ...point, x: point.x + (rightExtent + leftExtent + 4 * scale) * offset })).find(free);
-  }
-  if (viewport) {
-    const contained = (point: Point) => {
-      const box = boxFor(point);
-      return box.x >= viewport.x && box.y >= viewport.y
-        && box.x + box.width <= viewport.x + viewport.width
-        && box.y + box.height <= viewport.y + viewport.height;
-    };
-    if (!contained(chosen)) {
+  let chosen = preferred.find(point => contained(point) && !occupied.some(other => meets(boxFor(point), other)));
+  if (!chosen) {
+    const distance = (point: Point) => Math.hypot(point.x - center.x, point.y - center.y);
+    const limit = ROLE_SEARCH_REACH * Math.max(...[...preferred, { x: center.x, y: below }].map(distance));
+    const step = boxFor(center).height;
+    const searched: Point[] = [];
+    if (viewport) {
       // A long role may fit above or below its node even when neither side fits.
-      // Keep normal placements intact; use text height for vertical clearance.
-      const x = Math.max(viewport.x + leftExtent,
-        Math.min(rect.x + rect.width / 2, viewport.x + viewport.width - rightExtent));
-      const alternatives = [...candidates,
-      { x, y: rect.y - 15 * scale },
-      { x, y: rect.y + rect.height + 15 * scale }];
-      chosen = alternatives.find(point => contained(point) && free(point)) ?? chosen;
+      const x = Math.max(viewport.x + extent, Math.min(center.x, viewport.x + viewport.width - extent));
+      searched.push({ x, y: above }, { x, y: below });
+    }
+    // Equal distances go to rows above and to the right side, as the preferred spots run.
+    const offsets = [0];
+    for (let k = 1; k * step <= limit; k++) offsets.push(-k, k);
+    for (const row of offsets) for (const column of offsets) {
+      const point = { x: center.x - column * step, y: center.y + row * step };
+      if (distance(point) <= limit) searched.push(point);
+    }
+    const reachable = inflateRect(boxFor(center), limit);
+    const nearby = occupied.filter(other => meets(reachable, other));
+    // Preferred spots keep their order; searched spots go nearest first. A spot
+    // covering the node's own label, or its edge outline, is never taken.
+    const spots = [...preferred, ...searched.map(point => ({ point, far: distance(point) }))
+      .sort((a, b) => a.far - b.far).map(({ point }) => point)]
+      .filter(point => distance(point) <= limit && !meets(boxFor(point), rect));
+    const free = (point: Point) => {
+      const box = boxFor(point);
+      return !nearby.some(other => meets(box, other));
+    };
+    chosen = spots.find(point => contained(point) && free(point)) ?? spots.find(free);
+    if (!chosen) {
+      const overlap = (point: Point) => {
+        const box = boxFor(point);
+        return Math.max(0, ...nearby.map(other => overlapDepth(box, other)));
+      };
+      chosen = spots.map(point => ({ point, outside: Number(!contained(point)), overlap: overlap(point) }))
+        .sort((a, b) => a.outside - b.outside || a.overlap - b.overlap || distance(a.point) - distance(b.point))[0].point;
     }
   }
   occupied.push(boxFor(chosen));

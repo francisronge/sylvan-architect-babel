@@ -204,3 +204,17 @@ test('the earlier arrow transfers at the new hop even when that claim also cites
   assert.equal(at(new Set()).targetNodeId, 'wh', 'rewind restores the earlier landing');
   assert.deepEqual(input, original);
 });
+
+
+test('a cited older foot of the same lineage does not compete with the step\'s new lower trace', () => {
+  const input = successiveUnfamiliarRoles(), original = structuredClone(input);
+  input.relation.anchors = { landing: 'mover', sourceTrace: 'new-copy', lowerTrace: 'old-copy' };
+  input.relation.priorAnchors = { source: 'mover' };
+  const result = recoverMovementEvidence(input.relation, input.after, input.before);
+  assert.deepEqual([result.movement?.priorSourceNodeId, result.movement?.sourceNodeId, result.movement?.targetNodeId,
+    result.movement?.witnessNodeId], ['mover', 'new-copy', 'mover', 'new-copy']);
+  assert.deepEqual(input.before, original.before);
+  index(input.after).get('old-copy').lineageId = 'other-chain';
+  assert.equal(recoverMovementEvidence(input.relation, input.after, input.before).failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED',
+    'a trace of another lineage still competes');
+});

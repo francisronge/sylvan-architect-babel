@@ -439,6 +439,14 @@ reveal, and syntax and plaque obstacles remain reserved. Static inspection keeps
 the combined allocation because its claims can be displayed together. Vertical
 clearance uses label height rather than the width of the authored role name.
 
+A role label takes the first free of its five preferred spots: right of its
+witness label, left, above, above right and above left. When all five are taken,
+it takes the nearest free spot on either side or in the rows above and below,
+searched in steps of its own height out to twice its farthest preferred spot. A
+free spot inside the fitted viewport comes first. If nothing within that reach
+is free, the label takes the spot there that overlaps least. It never covers its
+own witness label and never moves beyond that reach.
+
 When a neutral role annotates a witness already enclosed by a phase-edge
 outline, its placement reserves that outline's padding as well as the category
 text. After all deferred relation marks are drawn, neutral role placement also

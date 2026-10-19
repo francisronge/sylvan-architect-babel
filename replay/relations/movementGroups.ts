@@ -1,5 +1,5 @@
 import { recoverMovementEvidence } from './movementEvidence.ts';
-import { containsOccurrence } from './movementSourceEvidence.ts';
+import { containsOccurrence, indexMovementOccurrences } from './movementSourceEvidence.ts';
 import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import { buildTier2SynonymIndex, normalizeTier2Synonym, relationRoleConcepts } from './tier2Synonyms.ts';
 
@@ -32,13 +32,26 @@ export function recoverMovementGroups(evidence: Tier2FacetEvidence) {
   if (source.items.length < 2 || targets.some(target => !target.items.length || new Set(target.items).size !== target.items.length) || previous.items.length !== source.items.length
     || new Set(source.items).size !== source.items.length || new Set(previous.items).size !== previous.items.length
     || targets.some(target => target.items.some(id => source.items.includes(id)))) return [];
-  const pairs = source.items.map(sourceId => previous.items.flatMap((priorId, priorIndex) => retained && priorId !== sourceId ? [] : targetChoices.flatMap(targetIndex => {
-    const result = recoverMovementEvidence({ relation: 'Authored movement group',
-      anchors: Object.fromEntries(current.map(entry => [entry.key, entry === source ? sourceId : entry === listedTarget ? entry.items[targetIndex] : [...entry.items]])),
-      priorAnchors: Object.fromEntries(prior.map(entry => [entry.key, entry === previous ? priorId : [...entry.items]]))
-    }, evidence.currentForest, evidence.priorForest);
-    return result.movement ? [{ movement: result.movement, diagnostics: result.diagnostics, priorIndex, targetIndex }] : [];
-  })));
+  // Occurrences of one shared lineage, as in across-the-board movement, can
+  // each pair with every listed landing. A landing commands the position it
+  // displaces, so among proven candidates only a landing whose parent
+  // contains the source pairs with it.
+  const { parents } = indexMovementOccurrences(evidence.currentForest ?? []);
+  const commands = (targetId: string, sourceId: string): boolean => {
+    const parent = parents.get(targetId);
+    return Boolean(parent && containsOccurrence(parent, sourceId));
+  };
+  const pairs = source.items.map(sourceId => {
+    const matches = previous.items.flatMap((priorId, priorIndex) => retained && priorId !== sourceId ? [] : targetChoices.flatMap(targetIndex => {
+      const result = recoverMovementEvidence({ relation: 'Authored movement group',
+        anchors: Object.fromEntries(current.map(entry => [entry.key, entry === source ? sourceId : entry === listedTarget ? entry.items[targetIndex] : [...entry.items]])),
+        priorAnchors: Object.fromEntries(prior.map(entry => [entry.key, entry === previous ? priorId : [...entry.items]]))
+      }, evidence.currentForest, evidence.priorForest);
+      return result.movement ? [{ movement: result.movement, diagnostics: result.diagnostics, priorIndex, targetIndex }] : [];
+    }));
+    const commanding = matches.filter(match => commands(match.movement.targetNodeId, match.movement.sourceNodeId));
+    return matches.length > 1 && commanding.length === 1 ? commanding : matches;
+  });
   if (pairs.some(matches => matches.length !== 1)
     || new Set(pairs.map(matches => matches[0].priorIndex)).size !== source.items.length
     || listedTarget && (listedTarget.items.length !== source.items.length
