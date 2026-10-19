@@ -30,8 +30,6 @@ const OBJECT_LANGUAGE_ROLES = 'Authored data: the claim and its fields are named
   + 'displacement stays a neutral copy at its moment without an arrow.';
 const RETAINED_HOST_SOURCE = 'Open: the prior fields name the moving negative and its receiving head, which keeps its slot and '
   + 'lineage as it becomes the complex, so recognition finds two preceding sources and draws no head path.';
-const IDENTITY_CONSTRUCTION = 'Defect, fixed separately (fix/replay-identity-claims-keep-construction): a shared-identity claim\'s '
-  + 'moment reveals ordinary construction, so the later merge attaches nothing new.';
 
 const x = (reason, record, rule, subtype, subject, frames) => ({ reason, record, rule, subtype, subject, at: { '-': { [frames]: null } } });
 
@@ -85,8 +83,8 @@ export const STEP_EXCEPTIONS = [
   x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'step-semantics', 'trajectory-off-moment', "2:1", '29'),
   x(OPEN_ROLES, 'replay-regressions/kept-id-landing.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '36'),
   x(OPEN_ROLES, 'replay-regressions/kept-id-landing.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "4:0", '46'),
-  x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '34'),
-  x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:1", '35'),
+  x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '40'),
+  x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:1", '41'),
   x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/object-language-metalanguage.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '21'),
   x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/object-language-metalanguage.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "5:0", '56'),
   x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/0', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '21'),
@@ -96,6 +94,4 @@ export const STEP_EXCEPTIONS = [
   x(RETAINED_HOST_SOURCE, 'replay-regressions/retained-head-attachment.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '46'),
   x(INTERMEDIATE_TRACE, 'replay-regressions/rewrite-stage-new-head.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '57'),
   x(INTERMEDIATE_TRACE, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '33'),
-  x(IDENTITY_CONSTRUCTION, 'replay-regressions/unnamed-movement-roles.json#/cases/1', 'step-semantics', 'empty-step', "sellVP", '16'),
-  x(IDENTITY_CONSTRUCTION, 'replay-regressions/unnamed-movement-roles.json#/cases/1', 'step-semantics', 'empty-step', "sellTProjection", '32'),
 ];
