@@ -505,3 +505,72 @@ test("notification failures cannot turn committed saves into failures", async ()
     else globalThis.window = previousWindow;
   }
 });
+
+const storedValue = (f, name, id) =>
+  raw(
+    f,
+    (db) =>
+      new Promise((resolve, reject) => {
+        const r = db.transaction(name).objectStore(name).get(id);
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      }),
+  );
+
+test("saves that App cannot display are quarantined or refused, never opened, and keep their bytes", async () => {
+  const f = new IDBFactory();
+  const store = createTreeBankStore(f, "test");
+  const legacy = (id, analyses) => ({
+    id,
+    sentence: "Mia laughed",
+    framework: "xbar",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    bundle: { ambiguityDetected: false, analyses },
+  });
+  const tree = { id: "n", label: "N", word: "Mia" };
+  const good = legacy("good", [{ tree, derivationStages: [] }]);
+  // Old records lack inputTokens, so App reads every stage to recover them.
+  const nullStage = legacy("null-stage", [{ tree, derivationStages: [null] }]);
+  const laterAnalysis = legacy("later-analysis", [
+    { tree },
+    { tree, derivationStages: { 0: "stage" } },
+  ]);
+  const brokenTree = { id: "r", label: "NP", children: [null] };
+  const undisplayable = legacy("undisplayable", [{ tree: brokenTree }]);
+  await raw(
+    f,
+    (db) =>
+      mutation(db, ["treeBank"], (tx) => {
+        for (const value of [good, nullStage, laterAnalysis, undisplayable])
+          tx.objectStore("treeBank").add(value);
+      }),
+    1,
+  );
+  const current = input("current");
+  current.bundle.analyses[0].tree = brokenTree;
+  await store.saveTreeBankEntry(current);
+
+  const listed = await store.listTreeBankEntries();
+  assert.deepEqual(
+    listed.entries.map((entry) => entry.id).sort(),
+    ["current", "good", "undisplayable"],
+  );
+  assert.deepEqual(
+    listed.issues.map((issue) => issue.id).sort(),
+    ["later-analysis", "null-stage"],
+  );
+  assert.equal((await store.loadTreeBankEntry("good")).entry.id, "good");
+  await assert.rejects(store.loadTreeBankEntry("null-stage"), /stages/);
+  await assert.rejects(store.loadTreeBankEntry("later-analysis"), /stages/);
+  await assert.rejects(
+    store.loadTreeBankEntry("undisplayable"),
+    /Saved analysis 1 cannot be displayed/,
+  );
+  await assert.rejects(
+    store.loadTreeBankEntry("current"),
+    /Saved analysis 1 cannot be displayed/,
+  );
+  for (const value of [nullStage, laterAnalysis, undisplayable])
+    assert.deepEqual(await storedValue(f, "treeBank", value.id), value);
+  assert.ok(await storedValue(f, "savedWorks", "current"));
+});

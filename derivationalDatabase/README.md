@@ -87,9 +87,13 @@ metadata remains missing. Native import/export adaptation is separate work.
 analysis references, shared generation context, view state, and preview in one
 transaction. Hashes are calculated before starting that transaction and checked
 before reopening a saved analysis. Invalid bytes remain in storage and produce
-an explicit error; other entries remain accessible. Listing reads thin wrappers,
-and previews load separately as cards enter view. Version-1 entries remain in
-their original store and retain the existing read/delete path without migration.
+an explicit error; other entries remain accessible. Reopening also derives each
+analysis's display values with `services/analysisDisplay.ts`, the code App runs
+while rendering, so an analysis that cannot be displayed fails its open request
+rather than the workspace. Listing reads thin wrappers, and previews load
+separately as cards enter view. Version-1 entries remain in their original store
+and retain the existing read/delete path without migration; one whose analyses
+or derivation stages are not objects is listed as unreadable.
 
 An explicit delete removes the selected saved-work wrapper and any content or
 preview that no remaining wrapper references. When malformed references prevent

@@ -12,6 +12,7 @@ import type {
 import type { ParseBundle } from "../types.ts";
 import { canonicalJson } from "../derivationalDatabase/jsonData.js";
 import { loadTreeBankBundleSnapshot } from "../treeBankSnapshot.js";
+import { assertBundleDisplayable } from "./analysisDisplay.ts";
 export type { TreeBankSaveInput } from "./treeBankRecords.ts";
 export interface TreeBankEntrySummary {
   id: string;
@@ -43,6 +44,8 @@ const summary = (w: TreeBankWork): TreeBankEntrySummary => ({
   previewId: w.previewId,
   legacy: false,
 });
+const isObject = (value: unknown) =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
 function legacySummary(v: any): TreeBankEntrySummary {
   if (
     !v ||
@@ -53,6 +56,17 @@ function legacySummary(v: any): TreeBankEntrySummary {
     !v.bundle.analyses.length
   )
     throw new Error("Invalid legacy Tree Bank entry.");
+  // Version-1 bundles predate record validation; any analysis can be selected.
+  for (const analysis of v.bundle.analyses) {
+    if (!isObject(analysis))
+      throw new Error("Invalid legacy Tree Bank analysis.");
+    const stages = analysis.derivationStages;
+    if (
+      stages !== undefined &&
+      (!Array.isArray(stages) || !stages.every(isObject))
+    )
+      throw new Error("Invalid legacy Tree Bank derivation stages.");
+  }
   const i =
     Number.isInteger(v.activeParseIndex) &&
     v.activeParseIndex >= 0 &&
@@ -67,9 +81,7 @@ function legacySummary(v: any): TreeBankEntrySummary {
       throw new Error(`Invalid legacy Tree Bank ${field}.`);
     }
   }
-  const stages = v.bundle.analyses[i]?.derivationStages;
-  if (stages !== undefined && !Array.isArray(stages))
-    throw new Error("Invalid legacy Tree Bank stage count.");
+  const stages = v.bundle.analyses[i].derivationStages;
   return {
     id: v.id,
     sentence: v.sentence,
@@ -364,9 +376,11 @@ export function createTreeBankStore(
     );
     if (data.old) {
       const entry = legacySummary(data.old);
+      const bundle = loadTreeBankBundleSnapshot(data.old.bundle) as ParseBundle;
+      assertBundleDisplayable(bundle, entry.sentence);
       return {
         entry,
-        bundle: loadTreeBankBundleSnapshot(data.old.bundle) as ParseBundle,
+        bundle,
         view: "tree" as const,
         replayStep: null,
         abstractionMode: false,
@@ -374,6 +388,7 @@ export function createTreeBankStore(
     }
     if (!data.work) throw new Error("Saved Tree Bank entry was not found.");
     const bundle = await restoreTreeBankBundle(data.work, data.records);
+    assertBundleDisplayable(bundle, data.work.sentence);
     return {
       entry: summary(data.work),
       bundle,

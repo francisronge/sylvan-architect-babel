@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useGeneration } from './hooks/useGeneration';
-import { recoverLegacyInputTokens } from './services/legacyInputTokens';
 import { useSporeDrift, type Spore } from './hooks/useSporeDrift';
 import { captureVisibleTreeSnapshot } from './services/treeSnapshot';
-import { buildMilesNotation } from './services/milesNotation';
+import { deriveAnalysisDisplay } from './services/analysisDisplay';
 import { useTreeBank } from './hooks/useTreeBank';
 import { useDevPreview, type DevAnalysisOptions, type SavedPreview } from './hooks/useDevPreview';
 import type { TreeBankEntrySummary } from './services/treeBankStore';
@@ -17,9 +16,7 @@ import TreeVisualizer from './components/AsyncTreeVisualizer';
 import RootLogo from './components/RootLogo';
 import LoadingMark from './components/LoadingMark';
 import FailurePanel from './components/FailurePanel';
-import { collectDerivationStageRecords } from './derivationNotes.js';
 import { GENERATION_MODEL_IDS, getResearchModel } from './server/babelParser/researchModelCatalog.js';
-import { displayTreeForAnalysis, finalForestForAnalysis } from './replay/finalForest.ts';
 import { 
   RotateCcw, 
   Sparkles,
@@ -152,8 +149,9 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const replayPositions = useRef(new WeakMap<ParseResult, number>());
   const [initialReplayPosition, setInitialReplayPosition] = useState<number | null>(null);
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
-  const replayInputTokens = useMemo(() => analysisBundle?.inputTokens
-    ?? recoverLegacyInputTokens(activeParse, parsedSentence), [analysisBundle, activeParse, parsedSentence]);
+  const activeDisplay = useMemo(() => analysisBundle && activeParse
+    ? deriveAnalysisDisplay(analysisBundle, activeParse, parsedSentence) : null, [analysisBundle, activeParse, parsedSentence]);
+  const replayInputTokens = activeDisplay?.inputTokens;
   const rememberReplayPosition = useCallback((step: number) => {
     if (activeParse) replayPositions.current.set(activeParse, step);
   }, [activeParse]);
@@ -170,8 +168,9 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
     setWorkspaceView(current => current === 'treeBank' ? 'arboretum' : 'treeBank');
   };
-  const activeFinalForest = useMemo(() => finalForestForAnalysis(activeParse), [activeParse]);
-  const activeDisplayTree = useMemo(() => displayTreeForAnalysis(activeParse), [activeParse]);
+  const activeDisplayTree = activeDisplay?.displayTree ?? null;
+  const milesNotation = activeDisplay?.notation ?? '';
+  const derivationalNoteParagraphs = activeDisplay?.stageRecords ?? [];
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) > 1;
   const selectedModel = getResearchModel(modelRoute)!;
   const selectedModelLabel = selectedModel.label;
@@ -181,14 +180,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const reasoningControlLabel = selectedModel.controls[0].label;
   const isTreeBankView = workspaceView === 'treeBank';
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
-  const milesNotation = useMemo(() => {
-    if (!activeParse) return '';
-    return buildMilesNotation(activeFinalForest);
-  }, [activeParse, activeFinalForest]);
-  const derivationalNoteParagraphs = useMemo(() => {
-    if (!activeParse) return [];
-    return collectDerivationStageRecords(activeParse.derivationStages);
-  }, [activeParse]);
   const acceptDevAnalysis = useCallback((bundle: ParseBundle, options: DevAnalysisOptions) => {
     setInitialReplayPosition(null);
     setAnalysisBundle(bundle);
