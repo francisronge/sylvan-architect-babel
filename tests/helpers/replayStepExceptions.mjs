@@ -8,9 +8,12 @@
 
 const UNRESOLVED_ENDPOINTS = 'Open: movement recognition finds no single source and landing (list-valued or competing landing '
   + 'fields), so the claim stays neutral and draws no path; its own moment still introduces the copy.';
-const ORDER_BEFORE_CONTEXT = 'Contract conflict (diagnosed RELATION_TIMING_CONFLICT): the relation precedes the movement moment '
-  + 'that introduces its anchor. Authored order is kept and structure is not introduced early, so no moment shows the mark '
-  + 'with its anchor: it starts late or never paints.';
+const NEEDS_CYCLE = 'Contract conflict (diagnosed RELATION_TIMING_CONFLICT): two relations of the stage each need syntax the '
+  + 'other\'s moment introduces, so no Replay order satisfies both. They, and a relation needing either, keep authored order, and '
+  + 'structure is not introduced early, so this mark has no displayed anchor at its own moment.';
+const CONTEXT_NOT_AWAITED = 'Diagnosed RELATION_TIMING_CONFLICT: the raising chain names, only as context, the verb trace that the '
+  + 'later V-to-I movement introduces. A movement keeps its own moment rather than wait for a contextual anchor, so this mark has '
+  + 'no displayed anchor at its moment.';
 const RENAMED = 'Authored data: the model writes a moved or restated occurrence under a new id, so marks anchored at the old id end.';
 const SELF_SPELLED = 'Authored data: a whole unspaced sentence grouped as one word under the spell-out contract.';
 const OBJECT_LANGUAGE = 'Authored data: the analysis names relations, roles and labels in Chinese.';
@@ -38,20 +41,12 @@ export const STEP_EXCEPTIONS = [
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/2', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '29'),
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/2', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "7:0", '42'),
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/3', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:0", '30'),
-  x(ORDER_BEFORE_CONTEXT, 'replay-regressions/unrecognized-movement.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 7:0", '42'),
-  x(ORDER_BEFORE_CONTEXT, 'movement/holdout-transitions.json#/1', 'mark-persistence', 'never-paints', "fallback 1:0", '36'),
-  x(ORDER_BEFORE_CONTEXT, 'movement/projected-head-landing.json#/analyses/0', 'mark-persistence', 'never-paints', "fallback 1:1", '27'),
-  x(ORDER_BEFORE_CONTEXT, 'movement/restated-chains.json#/0', 'mark-persistence', 'never-paints', "fallback 3:6", '62'),
-  x(ORDER_BEFORE_CONTEXT, 'movement/saved-qualification.json#/1', 'mark-persistence', 'never-paints', "fallback 4:0", '32'),
-  x(ORDER_BEFORE_CONTEXT, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'late-start', "node-badges theta.grid 1:0", '21'),
-  x(ORDER_BEFORE_CONTEXT, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'late-start', "node-plaque theta.grid 1:0", '21'),
-  x(ORDER_BEFORE_CONTEXT, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'never-paints', "fallback 2:1", '28'),
-  x(ORDER_BEFORE_CONTEXT, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'late-start', "trajectory tier2.movement-path 2:1", '29'),
-  x(ORDER_BEFORE_CONTEXT, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'late-start', "node-plaque theta.grid 2:0", '29'),
-  x(ORDER_BEFORE_CONTEXT, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'late-start', "coindex identity.occurrences 2:3", '31'),
-  x(ORDER_BEFORE_CONTEXT, 'replay-regressions/scaffold-parent-visibility.json#', 'mark-persistence', 'never-paints', "fallback 2:0", '17'),
-  x(ORDER_BEFORE_CONTEXT, 'replay-regressions/workspace-component-lifetime.json#/cases/3', 'mark-persistence', 'never-paints', "fallback 4:1", '36'),
-  x(ORDER_BEFORE_CONTEXT, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 3:0", '38'),
+  x(CONTEXT_NOT_AWAITED, 'movement/holdout-transitions.json#/1', 'mark-persistence', 'never-paints', "fallback 1:0", '36'),
+  x(CONTEXT_NOT_AWAITED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 3:0", '38'),
+  x(NEEDS_CYCLE, 'replay-regressions/unrecognized-movement.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 7:0", '42'),
+  x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'never-paints', "fallback 2:1", '28'),
+  x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'late-start', "trajectory tier2.movement-path 2:1", '29'),
+  x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'late-start', "node-plaque theta.grid 2:0", '29'),
   x(RENAMED, 'movement/source-occurrence-ownership.json#/0', 'contract-output', 'renamed-anchor', "4:a1_vi", 'record'),
   x(RENAMED, 'replay-regressions/case-source-transfer.json#', 'contract-output', 'renamed-anchor', "3:v2", 'record'),
   x(RENAMED, 'replay-regressions/complex-head-chain-restatement.json#', 'contract-output', 'renamed-anchor', "3:i0", 'record'),

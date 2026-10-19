@@ -583,7 +583,14 @@ export function recoverMovementEvidence(
     };
     // A phrase's target head may remain in place or project beside the landing.
     // Leave that field unclaimed after proving the phrase's lineage and exact
-    // preceding slot; it establishes no additional movement endpoint.
+    // preceding slot; it establishes no additional movement endpoint. A branching
+    // head qualifies only as a complex that earlier head movement built, such as
+    // T after verb raising: an adjoined member whose lineage also occurs outside
+    // it, beside the retained host. Bare labels alone may spell a phrase.
+    const isMovedHeadComplex = (complex: SyntaxNode): boolean => (complex.children ?? []).some(member =>
+      Boolean(member.lineageId) && !current.duplicates.has(member.id)
+      && [...current.nodes.values()].some(node => node.lineageId === member.lineageId && !contains(complex, node.id))
+      && isHeadComplex(complex, member.id, previous));
     const isHeadParticipantRole = (key: string): boolean => key === 'target' || key === 'head'
       || /^(?:movement )?(?:target|landing|higher|upper|raised|moved) (?:[a-z]+ )*head$/.test(key);
     // The exact preceding root pair can identify an openly named landing even
@@ -617,7 +624,8 @@ export function recoverMovementEvidence(
         && before?.lineageId && before.lineageId === lineage && !prior.duplicates.has(before.id)
         && precedingId && samePriorSlot(sources[0], precedingId)
         && landingKind(target, current.parents.get(occurrence), previous, { node: before, parent: prior.parents.get(precedingId ?? '') }, { current, prior }) === 'phrasal'
-        && readCategoryLabel(head.label)?.kind === 'head' && !head.children?.length
+        && readCategoryLabel(head.label)?.kind === 'head'
+        && (!head.children?.length || isMovedHeadComplex(head) && !contains(head, sources[0]) && !contains(head, occurrence))
         && head.lineageId !== lineage
         && landingParent && contains(landingParent, id)
         && (!precedingHead || sameAuthoredValue(precedingHead, head))
