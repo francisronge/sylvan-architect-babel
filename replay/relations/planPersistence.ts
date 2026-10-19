@@ -29,13 +29,20 @@ export function materializePlanFrames(
 ): RelationRenderPlan['frames'] {
   // Track the enclosing head position without changing the initial terminal attachment.
   // Later movement can leave an exact authored witness at that landing position.
+  // Notation proves the complex here; a prose-labelled complex keeps the site
+  // that its own movement evidence proved structurally.
   const headLandingSites = new Map<TrajectoryPlanItem, string>();
   items.forEach(item => {
     if (item.kind !== 'trajectory' || item.trajectoryKind !== 'head') return;
     const forest = stageList[item.appearsAtStage].workspaceForest;
+    const dispatch = stageDispatches[item.relationRef.stageIndex]?.[item.relationRef.relationIndex];
+    const provedSites = new Set((dispatch ? recoveredClaimMovements(dispatch) : []).flatMap(movement =>
+      movement.trajectoryKind === 'head' && movement.targetNodeId === item.targetNodeId
+        && movement.structuralHeadComplexNodeId ? [movement.structuralHeadComplexNodeId] : []));
     const candidates = [...stageNodeMaps[item.appearsAtStage].values()].filter(node =>
       node.children?.some(child => child.id === item.targetNodeId)
-      && movementContextFailure(forest, item.targetNodeId, node.id, 'head-complex', stageList[item.appearsAtStage - 1]?.workspaceForest) === undefined);
+      && (provedSites.has(node.id)
+        || movementContextFailure(forest, item.targetNodeId, node.id, 'head-complex', stageList[item.appearsAtStage - 1]?.workspaceForest) === undefined));
     if (candidates.length === 1) headLandingSites.set(item, candidates[0].id);
   });
   const headLandingForFrame = (item: TrajectoryPlanItem, frameIndex: number): TrajectoryPlanItem['headLandingSite'] => {
@@ -100,6 +107,26 @@ export function materializePlanFrames(
     }
     return transfers.length ? { ...projected, occurrenceTransfers: transfers } : projected;
   };
+  /* An anchor the stage no longer authors may still be on screen until a
+   * movement of that stage carries it away: it lies inside the movement's
+   * preceding source, which keeps its form until the movement's moment. The
+   * mark then stays until that moment and yields with the anchor, instead of
+   * ending at the stage's first step. Returns the earliest such moment that
+   * accounts for every missing anchor, or undefined. */
+  const removingMovement = (missing: string[], frameIndex: number): PlanRelationRef | undefined => {
+    if (frameIndex < 1 || !missing.every(id => stageNodeIdSets[frameIndex - 1].has(id))) return undefined;
+    const removals = stageDispatches[frameIndex].flatMap((dispatch, relationIndex) => recoveredClaimMovements(dispatch)
+      .filter(movement => movement.transition)
+      .map(movement => ({ relationIndex, ids: new Set(collectSubtreeIds(stageNodeMaps[frameIndex - 1].get(movement.priorSourceNodeId))) })));
+    if (!missing.every(id => removals.some(removal => removal.ids.has(id)))) return undefined;
+    const relationIndex = Math.min(...removals.filter(removal => missing.some(id => removal.ids.has(id))).map(removal => removal.relationIndex));
+    const relation = stageList[frameIndex].relations[relationIndex];
+    return { stageIndex: frameIndex, relationIndex, relation: relation.relation, anchors: relation.anchors,
+      ...(relation.priorAnchors ? { priorAnchors: relation.priorAnchors } : {}), ...(relation.values ? { values: relation.values } : {}) };
+  };
+  const earlierMoment = (left: PlanRelationRef | undefined, right: PlanRelationRef | undefined) => !left || !right ? left ?? right
+    : left.stageIndex !== right.stageIndex ? (left.stageIndex < right.stageIndex ? left : right)
+      : left.relationIndex <= right.relationIndex ? left : right;
   const reportedVanished = new Set<string>();
   const materializeIntoFrame = (
     item: RelationPlanItem,
@@ -108,6 +135,7 @@ export function materializePlanFrames(
   ) => {
     const projected = transferOccurrences(item, frameIndex);
     const missing = vanishedAnchorIds(projected, frameIndex);
+    const removal = missing.length ? removingMovement(missing, frameIndex) : undefined;
     if (missing.length > 0) {
       const dedupeKey = [
         frameIndex,
@@ -125,9 +153,11 @@ export function materializePlanFrames(
           detail: `persistent mark from stage ${item.appearsAtStage + 1} is not drawn at stage `
             + `${frameIndex + 1}: anchored node(s) ${missing.join(', ')} no longer exist in this `
             + 'stage\'s forest; the mark keeps its earlier history and is never retargeted'
+            + (removal ? `, and stays until relation ${removal.relationIndex + 1} (${removal.relation}) moves them` : '')
         });
       }
-      return;
+      if (!removal) return;
+      supersededAt = earlierMoment(supersededAt, removal);
     }
     /*
      * Each frame owns its own item instance. Persistence used to push ONE
@@ -150,7 +180,8 @@ export function materializePlanFrames(
         ? { headLandingSite: headLandingForFrame(item, frameIndex) } : {}),
       ...(supersededAt ? { supersededAt } : {})
     };
-    if (frameIndex > item.appearsAtStage && projected.subtreeDerived) {
+    // A mark awaiting the movement that removes its anchor keeps its snapshot.
+    if (!removal && frameIndex > item.appearsAtStage && projected.subtreeDerived) {
       const frameNodes = stageNodeMaps[frameIndex];
       projected.subtreeDerived.forEach((declaration) => {
         const rootNode = frameNodes?.get(declaration.rootNodeId);
@@ -168,13 +199,16 @@ export function materializePlanFrames(
       for (const transfer of projected.occurrenceTransfers ?? []) {
         projectedCompanion = remapPlanOccurrence(projectedCompanion, transfer.fromNodeId, transfer.toNodeId);
       }
-      if (vanishedAnchorIds(projectedCompanion, frameIndex).length) continue;
+      const companionMissing = vanishedAnchorIds(projectedCompanion, frameIndex);
+      const companionRemoval = companionMissing.length ? removingMovement(companionMissing, frameIndex) : undefined;
+      if (companionMissing.length && !companionRemoval) continue;
+      const companionYield = earlierMoment(supersededAt, companionRemoval);
       const occurrenceTransfers = [...new Map([...(projectedCompanion.occurrenceTransfers ?? []),
       ...(projected.occurrenceTransfers ?? [])].map(transfer => [JSON.stringify(transfer), transfer])).values()];
       frames[frameIndex].items.push({
         ...projectedCompanion,
         ...(occurrenceTransfers.length ? { occurrenceTransfers } : {}),
-        ...(supersededAt ? { supersededAt } : {})
+        ...(companionYield ? { supersededAt: companionYield } : {})
       });
     }
   };

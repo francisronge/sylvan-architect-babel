@@ -117,7 +117,12 @@ test('persistent marks do not transfer to a same-lineage substitute without a un
   ]) {
     const stages = structuredClone(input.analyses[0].derivationStages); mutate(stages);
     const plan = compileRelationRenderPlan(stages);
-    assert(!plan.frames[2].items.some(item => item.kind === 'trajectory' && item.relationRef.stageIndex === 1));
+    // The earlier arrow may stay only on its own anchors, until the movement that carries bookSubject away.
+    for (const item of plan.frames[2].items.filter(item => item.kind === 'trajectory' && item.relationRef.stageIndex === 1)) {
+      assert.equal(item.targetNodeId, 'bookSubject');
+      assert.equal(item.occurrenceTransfers, undefined);
+      assert.deepEqual([item.supersededAt?.stageIndex, item.supersededAt?.relation], [2, 'subject fronting']);
+    }
     assert(plan.diagnostics.some(d => d.kind === 'anchor-vanished' && /bookSubject/.test(d.detail)));
   }
 });
