@@ -19,6 +19,9 @@
 const PLAQUE_CROWDED = 'Open (catalog #3): no nearby pocket stays clear for the plaque\'s lifetime, so the allocator takes '
   + 'the nearest clear pocket beyond its nearby candidates. #74 and #84 relocate plaques whose anchor moves, not these.';
 const MOBILE = 'mobile canvas: role label/landing past the canvas edge';
+const STAGE_CROSSING = 'Open (stage-crossing layout): entering the last stage at 43>44, the subject movement relays out the clause, so '
+  + '了, 走 and the matrix T slide into the raised subject\'s gap (the motion comparator\'s remaining frame-44 motion). '
+  + 'Waiting pieces (#95) no longer move here; this slide is deferred to the stage-crossing layout work.';
 const CATALOGUE = index => `replay-regressions/visual-human-catalog.json#/cases/${index}/analyses/0`;
 const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
 
@@ -28,5 +31,19 @@ export const EXCEPTIONS = [
   x(MOBILE, CATALOGUE(1), 'clipped', 'off-canvas', 'role(3:0 thematic Subject Trace)@subjectVTrace', { mobile: { '27': 91.24 } }),
   x(MOBILE, CATALOGUE(2), 'first-paint-continuity', 'off-canvas:moved', 'stage 7', { mobile: { '61>62': 30.59 } }),
   x(MOBILE, CATALOGUE(3), 'clipped', 'off-canvas', 'role(2:2 theta Assigner)@stolen', { mobile: { '29': 21.83 } }),
-  x(MOBILE, CATALOGUE(3), 'clipped', 'off-canvas', 'role(3:1 antecedent Nominal)@manBaseNBar', { mobile: { '41': 2.41 } })
+  x(MOBILE, CATALOGUE(3), 'clipped', 'off-canvas', 'role(3:1 antecedent Nominal)@manBaseNBar', { mobile: { '41': 2.41 } }),
+  x(PLAQUE_CROWDED, CATALOGUE(6), 'mark-distance', 'plaque', 'plaque(0:1 θ GRID; v; experiencer; j)@relativeSubject',
+    { desktop: { '14-43': 1.19 }, mobile: { '14-43': 1.19 } }),
+  x(STAGE_CROSSING, CATALOGUE(6), 'first-paint-continuity', 'jump:stage-coordinates', 'stage 4',
+    { desktop: { '43>44': 47.73 } }),
+  x(STAGE_CROSSING, CATALOGUE(6), 'rapid-motion', 'node-jump', '@view',
+    { desktop: { 'rapid:42>48': 274.7 } }),
+  x(STAGE_CROSSING, CATALOGUE(6), 'step-motion', 'node-jump', '@view',
+    { desktop: { '43>44': 274.7 } }),
+  x(MOBILE, CATALOGUE(6), 'clipped', 'off-canvas', 'role(2:0 lower Occurrence)@subjectLower',
+    { mobile: { '44': 26.72 } }),
+  x(MOBILE, CATALOGUE(6), 'clipped', 'off-canvas', 'role(2:1 event Predicate)@leave',
+    { mobile: { '48': 35.02 } }),
+  x(STAGE_CROSSING, CATALOGUE(6), 'settled-path-independence', 'retention', 'stage 4',
+    { mobile: { '43>44': 22.43 } })
 ];
