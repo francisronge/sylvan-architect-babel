@@ -43,15 +43,15 @@ GitHub repository settings.
 `portuguese-coordination.json`, `french-relative.json` and `turkish-embedded.json`
 are the three slowest analyses of the 19 October 2026 long-sentence batch (night4,
 GPT-6.1 Sol with high reasoning effort, character spell-out contract). Each file
-records its source run and the run's shared word list; the table gives each raw
-response's SHA-256. Replay
+records its source run and the run's shared word list; the table gives the SHA-256
+of each run's `attempts/parse/raw-output.txt` (the model's raw response text). Replay
 preparation of the Portuguese case is dominated by stage coordinate reservations;
 the French and Turkish cases by the plaque schedule. They are ordinary committed
 fixtures for offline preparation timing and the fixture sweeps. The renderer
 performance gate reads `german-embedded.json` by name, so these cases change
 neither its fixture nor its budget.
 
-| File | Run and analysis | Raw output SHA-256 |
+| File | Run and analysis | `raw-output.txt` SHA-256 |
 |---|---|---|
 | `portuguese-coordination.json` | `16-pt-long-coordination`, analysis 1 | `8a1a169c04d98c49cb698871596f9a6ed28ee67f77c66402ded291d56dac1920` |
 | `french-relative.json` | `13-fr-long-relative`, analysis 1 | `363bc4b063be985e5134ac28743a32e5b0f96c8e0e0a502b0c8e148d689f4dd2` |
