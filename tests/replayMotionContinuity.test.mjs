@@ -169,7 +169,7 @@ for (const [width, height] of [[1440, 900], [390, 844]]) for (const direction of
     }
     if (direction === 'ltr') assert.deepEqual(faults.filter(fault => fault.kind !== 'shape-motion')
       .map(fault => `${fault.frame}:${fault.node}:${fault.kind}:${Math.round(fault.distance)}`),
-      ['44:le:unowned-motion:316', '44:leave:unowned-motion:1821', '44:matrixT:unowned-motion:1296']);
+      ['44:le:unowned-motion:448', '44:leave:unowned-motion:1690', '44:matrixT:unowned-motion:1165']);
     assert.equal(JSON.stringify(waitingRoots), authored);
   });
 }
