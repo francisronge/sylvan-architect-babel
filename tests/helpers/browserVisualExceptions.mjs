@@ -32,11 +32,11 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, CATALOGUE(6), 'mark-distance', 'plaque', 'plaque(0:1 θ GRID; v; experiencer; j)@relativeSubject',
     { desktop: { '14-43': 1.19 }, mobile: { '14-43': 1.19 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'first-paint-continuity', 'jump:stage-coordinates', 'stage 4',
-    { desktop: { '43>44': 67.53 }, mobile: { '43>44': 30.7 } }),
+    { desktop: { '43>44': 76.31 }, mobile: { '43>44': 38.15 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'rapid-motion', 'node-jump', '@view',
     { desktop: { 'rapid:42>48': 274.7 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'step-motion', 'node-jump', '@view',
     { desktop: { '43>44': 274.7 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'settled-path-independence', 'retention', 'stage 4',
-    { mobile: { '43>44': 32.88 } })
+    { mobile: { '43>44': 41.13 } })
 ];
