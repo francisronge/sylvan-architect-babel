@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
+import { carriedShift } from './cameraCarry.ts';
 import { categoryMetricKey } from './categoryMetricKey.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { compactCurrentRootForks } from './currentRootCompaction.ts';
@@ -7,6 +8,7 @@ import { retainCurrentRootFork } from './currentRootFork.ts';
 import { retainCurrentSiblingRanks, retainCurrentUnaryRank } from './currentSiblingRanks.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { retainedSubtreeMaterial } from './displayWordMaterial.ts';
+import { reserveMovementSlotClearance } from './movementSlotClearance.ts';
 import { retainMovementSourceSlots } from './movementSourceContinuity.ts';
 import { siblingContoursOrdered } from './siblingContours.ts';
 import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
@@ -325,30 +327,6 @@ function paintedSyntax(step: PlaybackStep, size: [number, number], direction: Tr
     .map(node => [getNodeId(node), node] as const));
 }
 
-/** The renderer's camera carry (carryCamera in components/treeViewport.ts): the
- * median shift of shared syntax whose shared ancestors are unchanged. A moved or
- * reattached constituent is left out unless nothing else is shared. */
-function carriedShift(before: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>, after: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>) {
-  const parentOf = (nodes: typeof before, id: string) => {
-    const parent = nodes.get(id)!.parent;
-    return parent && nodes.has(getNodeId(parent)) ? getNodeId(parent) : null;
-  };
-  const sharedAncestors = (nodes: typeof before, id: string) => {
-    const ids: string[] = [];
-    for (let parent = parentOf(nodes, id); parent; parent = parentOf(nodes, parent)) if (before.has(parent) && after.has(parent)) ids.push(parent);
-    return ids.join(' ');
-  };
-  const shared = [...before.keys()].filter(id => after.has(id));
-  const unmoved = shared.filter(id => sharedAncestors(before, id) === sharedAncestors(after, id));
-  const reference = unmoved.length ? unmoved : shared;
-  if (!reference.length) return { x: 0, y: 0 };
-  const median = (values: number[]) => {
-    values.sort((a, b) => a - b);
-    return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
-  };
-  return { x: median(reference.map(id => after.get(id)!.x - before.get(id)!.x)), y: median(reference.map(id => after.get(id)!.y - before.get(id)!.y)) };
-}
-
 /** Each stage lays out its own frame, centred on its own size. Those origins are
  * arbitrary, but retained workspaces and attachment lifetimes carry coordinates
  * across stage boundaries. Translate each earlier stage, as a whole, by the median
@@ -528,6 +506,9 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
     let continuous = mode === 'stage' ? retained : slotted.get(mode);
     if (!continuous) slotted.set(mode, continuous = reserveWaitingSlots({ steps, sizes, coordinates: retained, direction,
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, withinStage: !alignStages }));
+    // Every placement above can hold a movement's slot for its lower occurrence alone.
+    continuous = reserveMovementSlotClearance({ steps, sizes, coordinates: continuous, direction,
+      measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel });
     return { frames: new Map([...original].map(([canvas, coordinates]) => [canvas, continuous.get(canvas) ?? coordinates])),
       key: continuous, painted: (step: PlaybackStep): PaintedFrame => {
         const stageSize = sizes.get(step.replayFrameIndex!);
