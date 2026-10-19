@@ -199,7 +199,7 @@ function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height,
     if (visibleIds) visitForks(step.replayCanvasData!);
     const root = hierarchy(step.replayCanvasData!);
     const currentTree = layoutSyntaxTree(root,
-      stageSize ?? treeLayoutSize(root.descendants().length, root.height, width, height), direction,
+      stageSize ?? treeLayoutSize(root.descendants().length, root.height), direction,
       coordinates, visibleIds ?? undefined);
     const movedNodeIds = preceding && step.replayKind === 'relation'
       ? changedPlaqueAttachments(preceding.tree.descendants().filter(node => !preceding!.visibleIds || preceding!.visibleIds.has(nodeId(node))),
@@ -233,7 +233,7 @@ function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height,
   }
   const root = hierarchy(completedCanvas);
   const completedTree = layoutSyntaxTree(root,
-    stageSize ?? treeLayoutSize(root.descendants().length, root.height, width, height), direction,
+    stageSize ?? treeLayoutSize(root.descendants().length, root.height), direction,
     reservations?.get(completedCanvas));
   return { scenes, completedTree };
 }
@@ -591,13 +591,20 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
   return { nodes, obstacles: measured.flatMap(scene => scene.obstacles), scenes: measured };
 }
 
-export function treeLayoutSize(nodeCount: number, depth: number, width: number, height: number) {
-  return [Math.max(width * 1.5, nodeCount * 180) - 600,
-    Math.max(height, (depth + 2) * 220) - 520] as [number, number];
+/** Layout reads no window size. Every canvas lays out at this reference canvas,
+ * so an analysis draws the same tree in every window and on every device; only
+ * the camera fits the actual canvas. */
+export const LAYOUT_REFERENCE_CANVAS = { width: 1600, height: 948 } as const;
+
+export function treeLayoutSize(nodeCount: number, depth: number) {
+  return [Math.max(LAYOUT_REFERENCE_CANVAS.width * 1.5, nodeCount * 180) - 600,
+    Math.max(LAYOUT_REFERENCE_CANVAS.height, (depth + 2) * 220) - 520] as [number, number];
 }
 
-/** Compatible continuations retain the original stage's dimensions; new content still expands fit bounds. */
-export function stageTreeLayoutSize(steps: PlaybackStep[], stageIndex: number, width: number, height: number,
+/** Compatible continuations retain the original stage's dimensions; new content still expands fit bounds.
+ * The viewport arguments do not select layout (see LAYOUT_REFERENCE_CANVAS); they remain because
+ * the corpus harness passes them to this checkout and to older baselines alike. */
+export function stageTreeLayoutSize(steps: PlaybackStep[], stageIndex: number, _viewportWidth: number, _viewportHeight: number,
   layoutGroups?: StageLayoutInput['layoutGroups']) {
   const layoutStageIndex = layoutGroups?.find(group => group.includes(stageIndex))?.[0] ?? stageIndex;
   const completedCanvas = steps.find(step => step.replayFrameIndex === layoutStageIndex
@@ -614,7 +621,7 @@ export function stageTreeLayoutSize(steps: PlaybackStep[], stageIndex: number, w
     nodeCount = Math.max(nodeCount, root.descendants().length - Number(temporaryWorkspace));
     depth = Math.max(depth, root.height - Number(temporaryWorkspace));
   }
-  return nodeCount ? treeLayoutSize(nodeCount, depth, width, height) : null;
+  return nodeCount ? treeLayoutSize(nodeCount, depth) : null;
 }
 
 type StageCameraInput = StageLayoutInput & {

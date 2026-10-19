@@ -528,13 +528,20 @@ Automatic framing fits the new viewport. A manual camera keeps its scale and
 viewport centre. Manual poses are recorded and restored against the SVG's own
 size, which changes before a held frame is redrawn. Before the first painted
 frame, sizes apply at once.
-Replay layout reads the viewport only through each stage's horizontal layout
-size, never its vertical size. A resize that keeps every stage's size reuses the
-prepared coordinates and plaques. Otherwise the new layout is prepared while the
-earlier frame stays on screen with its own viewport, and the swap is that one
-redraw. The layout cover belongs to opening and non-viewport changes. Until the
-settled viewport is drawn, the tree carries `data-babel-viewport-pending` and
-capture readiness waits for it to clear.
+Replay and Canopy layout read no window size. Every canvas lays out at one
+1600×948 reference canvas, so an analysis draws the same tree in every window and
+on every device, and a resize reuses the prepared coordinates and plaques. Stage
+layout sizes once followed the window width, and workspace placement combined
+stages sized differently at different widths. If a layout key ever changes with
+the viewport, the earlier frame stays on screen with its own viewport until the
+new layout is ready, and the swap is one redraw. The offline visual audit reports
+`layout-width` when any audited viewport lays out a Replay frame or the Canopy
+differently from the first one, beyond one translation per stage.
+`verify:visual-offline` compares the two desktop sizes;
+`tests/visualInvariants.test.mjs` compares mobile and proves that text measured
+wider at one viewport is reported. The layout cover belongs to opening and
+non-viewport changes. Until the settled viewport is drawn, the tree carries
+`data-babel-viewport-pending` and capture readiness waits for it to clear.
 
 ## Replay preparation
 
@@ -663,6 +670,20 @@ after the renderer reproduces its coordinates and passes current rank, order
 and clearance checks. Incoming fork branches must also clear the other
 children's label envelopes. Keep the prior plan and an infeasibility diagnostic
 when those constraints cannot be satisfied. Already stable plans remain intact.
+
+Syntax stands from its first frame where it will be once attached. A waiting
+workspace or a newly selected head appears at its attachment slot and keeps it
+until its own merge, which then moves nothing already on screen. A piece that
+attaches through a parent inserted above an existing host waits at its final x
+beside that host's current row: branches keep their one-row length, and the
+insertion lowers the host and the piece together. A slot holds only while every
+painted member keeps the parent it attaches with, every frame stays valid and
+no ink collision is added. Placements that span stages use stage frames
+translated, as a whole, by the median shift of the unmoved syntax they share
+with the next stage, as the camera carry does, with the completed stage as the
+anchor. A plan that still shows motion is replaced by such a plan only when it
+removes motion, adds none, moves no join farther and keeps the final tree
+exactly, or, within stages, when no painted node moves farther.
 
 A later locked fork may require more clearance than its earlier incarnation
 reserved. Carry that measured requirement back only through the same ordered

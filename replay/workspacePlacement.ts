@@ -60,7 +60,7 @@ export const getCoherentWorkspaceDiagnostics = (steps: readonly PlaybackStep[]) 
  * No syntax, branch ranks, pronunciation or relation timing is added here. */
 export function reserveWorkspaceAttachments({
   steps, sizes, direction, coordinatesForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, minimumSiblingGap = 0,
-  orderedContours = false
+  orderedContours = false, alignedStages = false
 }: {
   steps: readonly PlaybackStep[];
   sizes: ReadonlyMap<number, [number, number]>;
@@ -73,9 +73,11 @@ export function reserveWorkspaceAttachments({
   minimumSiblingGap?: number;
   /** End each attachment lifetime before its members interleave a sister subtree. */
   orderedContours?: boolean;
+  /** Distinguishes plans over translated stage frames in the plan cache. */
+  alignedStages?: boolean;
 }): Reservations {
   const stageSizes = [...sizes].sort(([a], [b]) => a - b);
-  const key = JSON.stringify([direction, stageSizes, minimumSiblingGap, orderedContours]);
+  const key = JSON.stringify([direction, stageSizes, minimumSiblingGap, orderedContours, alignedStages]);
   let measurements = cache.get(steps);
   if (!measurements) cache.set(steps, measurements = new Map());
   const metricKey = JSON.stringify([categoryMetricKey(steps, measureCategoryText),
