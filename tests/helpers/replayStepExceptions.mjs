@@ -14,7 +14,6 @@ const ORDER_BEFORE_CONTEXT = 'Contract conflict (diagnosed RELATION_TIMING_CONFL
 const RENAMED = 'Authored data: the model writes a moved or restated occurrence under a new id, so marks anchored at the old id end.';
 const SELF_SPELLED = 'Authored data: a whole unspaced sentence grouped as one word under the spell-out contract.';
 const OBJECT_LANGUAGE = 'Authored data: the analysis names relations, roles and labels in Chinese.';
-const SPACED_ROLES = 'Open: space-separated role names ("host head") defeat head-movement recognition, so the movement draws no arrow.';
 const PRIOR_SOURCE = 'Open: movement recognition cannot prove the source in the preceding stage (a first-stage claim, or a source the '
   + 'stage does not keep), so the movement draws no path.';
 const CHAIN_ROLES = 'Open: a chain or licensing relation with movement-shaped roles; recognition finds no single source and landing.';
@@ -49,12 +48,10 @@ export const STEP_EXCEPTIONS = [
   x(RENAMED, 'replay-regressions/renamed-head-anchors.json#', 'contract-output', 'renamed-anchor', "3:v1", 'record'),
   x(RENAMED, 'replay-regressions/renamed-head-anchors.json#', 'contract-output', 'renamed-anchor', "3:o2", 'record'),
   x(RENAMED, 'replay-regressions/renamed-head-anchors.json#', 'contract-output', 'renamed-anchor', "4:subject1", 'record'),
-  x(RENAMED, 'replay-regressions/unrendered-head-movement.json#', 'contract-output', 'renamed-anchor', "3:verb", 'record'),
   x(SELF_SPELLED, 'replay-regressions/self-spelled-realization.json#', 'contract-output', 'self-spelled-realization', "3:bPronoun,bRun,bGo,bBuy,bRice", 'record'),
   x(OBJECT_LANGUAGE, 'replay-regressions/object-language-metalanguage.json#', 'contract-output', 'object-language-metalanguage', "Han", 'record'),
   x(OBJECT_LANGUAGE, 'replay-regressions/unrecognized-movement.json#/cases/0', 'contract-output', 'object-language-metalanguage', "Han", 'record'),
   x(OBJECT_LANGUAGE, 'replay-regressions/unrecognized-movement.json#/cases/5', 'contract-output', 'object-language-metalanguage', "Han", 'record'),
-  x(SPACED_ROLES, 'replay-regressions/unrendered-head-movement.json#', 'movement-unrendered', 'MOVEMENT_CONTEXT_UNRESOLVED', "2:0", '43'),
   x(PRIOR_SOURCE, 'movement/clause-context.json#/cases/6', 'movement-unrendered', 'MOVEMENT_PRIOR_SOURCE_UNPROVEN', "0:0", '4'),
   x(PRIOR_SOURCE, 'movement/holdout-transitions.json#/0', 'movement-unrendered', 'MOVEMENT_PRIOR_SOURCE_UNPROVEN', "0:0", '16'),
   x(PRIOR_SOURCE, 'movement/holdout-transitions.json#/2', 'movement-unrendered', 'MOVEMENT_PRIOR_SOURCE_UNPROVEN', "0:0", '19'),

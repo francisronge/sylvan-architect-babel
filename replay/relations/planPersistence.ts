@@ -29,13 +29,20 @@ export function materializePlanFrames(
 ): RelationRenderPlan['frames'] {
   // Track the enclosing head position without changing the initial terminal attachment.
   // Later movement can leave an exact authored witness at that landing position.
+  // Notation proves the complex here; a prose-labelled complex keeps the site
+  // that its own movement evidence proved structurally.
   const headLandingSites = new Map<TrajectoryPlanItem, string>();
   items.forEach(item => {
     if (item.kind !== 'trajectory' || item.trajectoryKind !== 'head') return;
     const forest = stageList[item.appearsAtStage].workspaceForest;
+    const dispatch = stageDispatches[item.relationRef.stageIndex]?.[item.relationRef.relationIndex];
+    const provedSites = new Set((dispatch ? recoveredClaimMovements(dispatch) : []).flatMap(movement =>
+      movement.trajectoryKind === 'head' && movement.targetNodeId === item.targetNodeId
+        && movement.structuralHeadComplexNodeId ? [movement.structuralHeadComplexNodeId] : []));
     const candidates = [...stageNodeMaps[item.appearsAtStage].values()].filter(node =>
       node.children?.some(child => child.id === item.targetNodeId)
-      && movementContextFailure(forest, item.targetNodeId, node.id, 'head-complex', stageList[item.appearsAtStage - 1]?.workspaceForest) === undefined);
+      && (provedSites.has(node.id)
+        || movementContextFailure(forest, item.targetNodeId, node.id, 'head-complex', stageList[item.appearsAtStage - 1]?.workspaceForest) === undefined));
     if (candidates.length === 1) headLandingSites.set(item, candidates[0].id);
   });
   const headLandingForFrame = (item: TrajectoryPlanItem, frameIndex: number): TrajectoryPlanItem['headLandingSite'] => {

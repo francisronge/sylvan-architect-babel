@@ -124,6 +124,21 @@ the moved nominal as the path endpoint. Explicit competing occurrence roles
 still refuse recovery. Bundled head notation such as `T/Aux` remains a head
 only when every bundled category is a head. Descriptive leaf labels inside an
 exactly preserved receiving head do not require rewriting into category names.
+When at least one label in a head complex is prose rather than category
+notation, structure can establish the adjunction instead: a new parent holds
+only the landing and one unchanged terminal host, in that host's exact
+preceding slot, and the relation names that host or the new complex in a
+receiving-head or head-complex role. The named node must hold the position that
+its role checks: a host role naming the new complex, or a complex role naming
+the host, establishes nothing. A phrasal attractor role does not qualify,
+since a phrase can take the same shape beside a bare head, and explicit parent
+and host heads must agree. A branching landing still needs head evidence of its
+own: two adjacent stages cannot show that head movement, rather than phrasal
+movement, assembled it. A recovered head landing with several terminals
+attaches at its shell whatever its label spells. The complex proved this way is
+the landing site that persistence keeps: when later head movement carries it
+on, the earlier arrow moves to the lower witness at that later moment, as it
+does for a notation-labelled complex.
 
 Qualified input associations can pair contributor inventories with their exact
 input spelling. `TokenSources` and `Spelling` carry the same proof as
