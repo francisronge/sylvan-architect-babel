@@ -379,6 +379,49 @@ export function checkAttachAtMerge(replay) {
   return out;
 }
 
+/** A movement moment introduces its landing together with the smallest new
+ * parent needed to attach it above an existing subtree. In the authored stage
+ * forest that parent is the landing's only sister when the landing's parent had
+ * two or more children in the preceding stage and the sister holds exactly
+ * those children, in order. Whenever the moment paints the landing, the landing
+ * and that sister are painted as daughters of the landing's parent; otherwise
+ * the moment shows the landing beside the earlier children instead. */
+export function checkMovementLandingParent(replay, record) {
+  const out = [], stages = record.derivationStages ?? [];
+  const parents = forest => {
+    const parent = new Map(), pending = (forest ?? []).map(root => [root, null]);
+    while (pending.length) {
+      const [node, owner] = pending.pop();
+      if (!node || typeof node !== 'object') continue;
+      parent.set(String(node.id ?? ''), { node, owner });
+      for (const child of node.children ?? []) pending.push([child, node]);
+    }
+    return parent;
+  };
+  const childIds = node => (node?.children ?? []).map(child => String(child.id ?? ''));
+  replay.playbackSteps.forEach((step, index) => {
+    const identity = step.replayRelationIdentity;
+    if (step.replayKind !== 'relation' || !identity) return;
+    const key = `${identity.stageIndex}:${identity.relationIndex}`;
+    const landings = new Set((step.replayRelationLinks ?? []).filter(link => link.authoredRelationKey === key
+      && link.movementTransition === true).map(link => link.targetNodeId).filter(Boolean).map(String));
+    if (!landings.size) return;
+    const current = parents(stages[identity.stageIndex]?.workspaceForest), previous = parents(stages[identity.stageIndex - 1]?.workspaceForest);
+    const frame = frameStructure(step);
+    for (const landing of landings) {
+      const host = current.get(landing)?.owner, earlier = host && previous.get(String(host.id ?? ''))?.node;
+      const sister = childIds(host).length === 2 ? host.children.find(child => String(child.id ?? '') !== landing) : null;
+      if (!sister || childIds(earlier).length < 2 || JSON.stringify(childIds(sister)) !== JSON.stringify(childIds(earlier))
+        || !frame.displayed.has(landing)) continue;
+      const hostId = String(host.id), sisterId = String(sister.id);
+      if (frame.parent.get(landing) !== hostId || frame.parent.get(sisterId) !== hostId)
+        out.push(violation('movement-landing-parent', index + 1,
+          `${sisterId} is not painted beside landing ${landing} under ${hostId} at its movement moment`));
+    }
+  });
+  return out;
+}
+
 /** Uses the renderer's own frame selection: within a stage, the relations played
  * so far and the active moment decide which compiled marks are revealed. */
 export function checkMarksAtOwningMoment(replay) {
