@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { resolveDisplayedTrajectoryAttachments } from '../replay/relations/renderPlan.ts';
+import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 import * as invariants from './helpers/replayInvariants.mjs';
 import { checkMarkPersistence, checkStepSemantics } from './helpers/replayStepInvariants.mjs';
@@ -68,6 +70,36 @@ test('the successive-cyclic analysis satisfies every Replay invariant', () => {
   const found = [...invariants.checkInputUnchanged(snapshot, record), ...structural,
     ...checkStepSemantics(prepared, record), ...checkMarkPersistence(prepared, record)];
   assert.deepEqual(found.map(item => `${item.rule}${item.subtype ? `:${item.subtype}` : ''} @${item.frame}: ${item.detail}`), []);
+});
+
+test('a second claim of the same hop shares its arrow and keeps the earlier landing transfer at the hop', () => {
+  const record = fixture.cases.find(c => c.key === 'object-wh-shared-hop');
+  const original = structuredClone(record.derivationStages), plan = compileRelationRenderPlan(structuredClone(record.derivationStages));
+  const nodes = stage => {
+    const map = new Map(), visit = node => { map.set(node.id, node); node.children?.forEach(visit); };
+    record.derivationStages[stage].workspaceForest.forEach(visit);
+    return map;
+  };
+  const arrowsAt = stage => plan.frames[stage].items.filter(item => item.kind === 'trajectory');
+  assert.deepEqual(arrowsAt(3).map(item => `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`), ['1:1', '3:0']);
+  const shared = arrowsAt(3).find(item => item.relationRef.stageIndex === 3);
+  assert.deepEqual([shared.sourceNodeId, shared.targetNodeId], ['npEdgeTrace', 'npWhat']);
+  assert.ok(shared.coalescedRefs?.some(ref => ref.stageIndex === 3 && ref.relationIndex === 1), 'the restating claim shares the hop\'s arrow');
+  for (const stage of [3, 4, 5]) {
+    const earlier = arrowsAt(stage).find(item => item.relationRef.stageIndex === 1);
+    const at = played => resolveDisplayedTrajectoryAttachments(earlier, id => nodes(stage).get(id), { stageIndex: 3, playedRelationIndices: played });
+    const endpoints = item => [item.sourceNodeId, item.targetNodeId];
+    assert.deepEqual(earlier.occurrenceTransfers, [{ fromNodeId: 'npWhat', toNodeId: 'npEdgeTrace', stageIndex: 3, relationIndex: 0 }]);
+    if (stage === 3) {
+      assert.deepEqual(endpoints(at(new Set())), ['npObjectTrace', 'npWhat'], 'before the hop the earlier arrow still reaches the operator');
+      assert.deepEqual(endpoints(at(new Set([0]))), ['npObjectTrace', 'npEdgeTrace'], 'its landing moves to the new trace at the hop');
+      assert.deepEqual(endpoints(at(new Set([0, 1]))), ['npObjectTrace', 'npEdgeTrace'], 'the restating claim does not move it again');
+      assert.deepEqual(endpoints(at(new Set())), ['npObjectTrace', 'npWhat'], 'rewinding restores the earlier landing');
+    }
+    assert.deepEqual(endpoints(resolveDisplayedTrajectoryAttachments(earlier, id => nodes(stage).get(id),
+      { stageIndex: stage, playedRelationIndices: null })), ['npObjectTrace', 'npEdgeTrace'], `completed stage ${stage + 1}`);
+  }
+  assert.deepEqual(record.derivationStages, original);
 });
 
 // Prior stage: the operator sits at the lower edge above an older trace.

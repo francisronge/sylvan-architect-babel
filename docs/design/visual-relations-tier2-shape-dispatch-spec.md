@@ -872,6 +872,9 @@ lower endpoint, whatever its field is called. An older copy of the same chain
 kept unchanged in its own slot is chain context in any source or witness field:
 it neither becomes the source nor competes with the new witness. The claim must
 still cite a source or witness; without one, it does not become a movement.
+Another claim of the stage that this rule binds to the same hop shares its
+arrow. Claims restating one transition are one occurrence transfer, at the
+first claim's moment, so an earlier arrow's landing still moves to the new trace.
 
 An explicitly anchored head-movement host or complex is accepted only when the
 current tree proves its relationship to the landing. A phase head is not a

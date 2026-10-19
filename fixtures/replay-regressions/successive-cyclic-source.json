@@ -1,5 +1,5 @@
 {
-  "description": "A saved analysis in which operators that keep their ids move one more hop and leave a new trace in their preceding slot, while each claim names that trace under an open field and an older trace of the same chain, kept unchanged in its own slot, under a source or witness field. No field names the preceding occurrence, so recovery read the older trace as the hop's source. The new trace in the moved occurrence's preceding slot is the source, whatever its field is called; the older trace is chain context. Frames are the 1-based Replay frames on 74d84eb.",
+  "description": "Saved analyses in which operators that keep their ids move one more hop and leave a new trace in their preceding slot, while each claim names that trace under an open field and an older trace of the same chain, kept unchanged in its own slot, under a source or witness field. No field names the preceding occurrence, so recovery read the older trace as the hop's source. The new trace in the moved occurrence's preceding slot is the source, whatever its field is called; the older trace is chain context. Frames are the 1-based Replay frames on 564e52b.",
   "cases": [
     {
       "key": "tough-relative",
@@ -4521,6 +4521,1186 @@
                 }
               ],
               "id": "matrixCP",
+              "label": "CP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "object-wh-shared-hop",
+      "description": "Stage 4 moves npWhat, which keeps its id, from the edge of cpEmbedded to the edge of cpMatrix and leaves npEdgeTrace in its preceding slot. Relation 1 of the stage names npEdgeTrace as sourceTrace and the movement draws npEdgeTrace to npWhat. Relation 2 describes the same hop with intermediateTrace npEdgeTrace and variable npObjectTrace, the unchanged older trace, so it drew a second arrow from npObjectTrace to npWhat without a transition at frame 43. Bound to the hop, it shares relation 1's arrow, and stage 2's arrow still moves its landing from npWhat to npEdgeTrace at relation 1's moment, frame 42.",
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (v3), commit 6f10f39, 18 October 2026 (movement-id A/B batch, en-long-object-wh.B, analysis 1 of 1).",
+      "sentence": "What did John say that Mary bought?",
+      "framework": "xbar",
+      "inputTokens": [
+        "What",
+        "did",
+        "John",
+        "say",
+        "that",
+        "Mary",
+        "bought"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "agent": "npMary",
+                "predicate": "vBought",
+                "theme": "npWhat"
+              },
+              "relation": "theta-role assignment",
+              "values": {
+                "agentRole": "Agent",
+                "themeRole": "Theme"
+              }
+            },
+            {
+              "anchors": {
+                "nominativeBearer": "npMary",
+                "nominativeLicensor": "iEmbedded",
+                "objectiveBearer": "npWhat",
+                "objectiveLicensor": "vBought"
+              },
+              "relation": "Case licensing",
+              "values": {
+                "objectCase": "objective",
+                "subjectCase": "nominative"
+              }
+            },
+            {
+              "anchors": {
+                "preteriteVerb": "vBought",
+                "tense": "iEmbedded"
+              },
+              "relation": "finite tense realization",
+              "values": {
+                "lexicalRealization": "bought",
+                "tenseValue": "past"
+              }
+            }
+          ],
+          "stageRecord": "The embedded clause is an IP with Mary base-generated in Spec-IP and bought heading the VP. This analysis uses the traditional GB placement of the subject in Spec-IP rather than a VP-internal subject derivation. Bought assigns its external Agent role to Mary and its internal Theme role to what. Finite embedded I licenses nominative Case on Mary, while bought governs and assigns objective Case to what. The silent past-tense I is associated with the overt preterite bought; bought is retained as the lexical terminal, so no separate morphological realization group is needed.",
+          "statement": "Establish the embedded clause and the original object position of what.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nMary",
+                          "label": "N",
+                          "word": "Mary"
+                        }
+                      ],
+                      "id": "nbarMary",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npMary",
+                  "label": "NP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "iEmbedded",
+                      "label": "I [+finite, +past]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "vBought",
+                              "label": "V",
+                              "word": "bought"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "nWhat",
+                                      "label": "N [+wh]",
+                                      "word": "What"
+                                    }
+                                  ],
+                                  "id": "nbarWhat",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "npWhat",
+                              "label": "NP [+wh]",
+                              "lineageId": "whatChain"
+                            }
+                          ],
+                          "id": "vbarBought",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "vpBought",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "ibarEmbedded",
+                  "label": "I′"
+                }
+              ],
+              "id": "ipEmbedded",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "selectedClause": "ipEmbedded",
+                "selector": "cThat"
+              },
+              "relation": "complementizer selection",
+              "values": {
+                "selectedType": "finite declarative IP"
+              }
+            },
+            {
+              "anchors": {
+                "edge": "cpEmbedded",
+                "landing": "npWhat",
+                "objectGovernor": "vBought",
+                "sourceTrace": "npObjectTrace"
+              },
+              "priorAnchors": {
+                "source": "npWhat"
+              },
+              "relation": "successive-cyclic A-bar movement",
+              "values": {
+                "boundingDomainCrossed": "embedded IP",
+                "preservedInterpretation": "objective Case and Theme role at the object position",
+                "step": "object position to embedded Spec-CP"
+              }
+            }
+          ],
+          "stageRecord": "The overt complementizer that selects the finite embedded IP and projects CP. What then moves from its previously established object position to Spec-CP, leaving a silent NP trace. This is an intermediate A-bar position, not the interrogative scope position: the embedded clause remains declarative. The movement link crosses the embedded IP and provides the successive-cyclic escape route needed for the later long-distance dependency. The object trace remains governed by bought and preserves the chain's object Case and Theme interpretation. Although what is overt at this intermediate stage, it will leave this edge in a subsequent stage; the completed structure therefore does not pronounce both an embedded wh-specifier and that.",
+          "statement": "Project the embedded complementizer and move what to the embedded clause edge.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nWhat",
+                          "label": "N [+wh]",
+                          "word": "What"
+                        }
+                      ],
+                      "id": "nbarWhat",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npWhat",
+                  "label": "NP [+wh]",
+                  "lineageId": "whatChain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "cThat",
+                      "label": "C [declarative]",
+                      "word": "that"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nMary",
+                                  "label": "N",
+                                  "word": "Mary"
+                                }
+                              ],
+                              "id": "nbarMary",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npMary",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "iEmbedded",
+                              "label": "I [+finite, +past]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "vBought",
+                                      "label": "V",
+                                      "word": "bought"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "tObject",
+                                          "label": "t",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "npObjectTrace",
+                                      "label": "NP",
+                                      "lineageId": "whatChain",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "vbarBought",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vpBought",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibarEmbedded",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ipEmbedded",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbarEmbedded",
+                  "label": "C′"
+                }
+              ],
+              "id": "cpEmbedded",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "agent": "npJohn",
+                "content": "cpEmbedded",
+                "predicate": "vSay"
+              },
+              "relation": "matrix selection and theta-role assignment",
+              "values": {
+                "agentRole": "Agent",
+                "complementRole": "propositional Content",
+                "selectedCategory": "finite declarative CP"
+              }
+            },
+            {
+              "anchors": {
+                "bearer": "npJohn",
+                "licensor": "iMatrix"
+              },
+              "relation": "matrix nominative Case licensing",
+              "values": {
+                "case": "nominative"
+              }
+            }
+          ],
+          "stageRecord": "Say takes the entire embedded CP as its complement, and John occupies matrix Spec-IP. Say assigns an Agent role to John and a propositional Content role to its CP complement. Matrix finite I licenses nominative Case on John. Matrix past tense is present but has not yet received an overt auxiliary exponent; say remains the bare lexical verb. The existing wh dependency is contained inside the selected CP, ready for continuation to the matrix clause edge.",
+          "statement": "Build the matrix clause with say selecting the embedded CP.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nJohn",
+                          "label": "N",
+                          "word": "John"
+                        }
+                      ],
+                      "id": "nbarJohn",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npJohn",
+                  "label": "NP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "iMatrix",
+                      "label": "I [+finite, +past]",
+                      "lineageId": "finiteAuxiliary",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "vSay",
+                              "label": "V",
+                              "word": "say"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "nWhat",
+                                          "label": "N [+wh]",
+                                          "word": "What"
+                                        }
+                                      ],
+                                      "id": "nbarWhat",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "npWhat",
+                                  "label": "NP [+wh]",
+                                  "lineageId": "whatChain"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "cThat",
+                                      "label": "C [declarative]",
+                                      "word": "that"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "nMary",
+                                                  "label": "N",
+                                                  "word": "Mary"
+                                                }
+                                              ],
+                                              "id": "nbarMary",
+                                              "label": "N′"
+                                            }
+                                          ],
+                                          "id": "npMary",
+                                          "label": "NP"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "iEmbedded",
+                                              "label": "I [+finite, +past]",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "vBought",
+                                                      "label": "V",
+                                                      "word": "bought"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "tObject",
+                                                          "label": "t",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "npObjectTrace",
+                                                      "label": "NP",
+                                                      "lineageId": "whatChain",
+                                                      "silent": true
+                                                    }
+                                                  ],
+                                                  "id": "vbarBought",
+                                                  "label": "V′"
+                                                }
+                                              ],
+                                              "id": "vpBought",
+                                              "label": "VP"
+                                            }
+                                          ],
+                                          "id": "ibarEmbedded",
+                                          "label": "I′"
+                                        }
+                                      ],
+                                      "id": "ipEmbedded",
+                                      "label": "IP"
+                                    }
+                                  ],
+                                  "id": "cbarEmbedded",
+                                  "label": "C′"
+                                }
+                              ],
+                              "id": "cpEmbedded",
+                              "label": "CP"
+                            }
+                          ],
+                          "id": "vbarSay",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "vpSay",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "ibarMatrix",
+                  "label": "I′"
+                }
+              ],
+              "id": "ipMatrix",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landing": "npWhat",
+                "landingClause": "cpMatrix",
+                "lowerObjectTrace": "npObjectTrace",
+                "sourceTrace": "npEdgeTrace"
+              },
+              "priorAnchors": {
+                "source": "npWhat"
+              },
+              "relation": "successive-cyclic A-bar movement",
+              "values": {
+                "boundingDomainCrossed": "matrix IP",
+                "step": "embedded Spec-CP to matrix Spec-CP"
+              }
+            },
+            {
+              "anchors": {
+                "intermediateTrace": "npEdgeTrace",
+                "interrogativeHead": "cQuestion",
+                "operator": "npWhat",
+                "scopeDomain": "ipMatrix",
+                "variable": "npObjectTrace"
+              },
+              "relation": "interrogative operator licensing and scope",
+              "values": {
+                "chainType": "A-bar operator-variable chain",
+                "interpretation": "Which thing is such that John said that Mary bought it?"
+              }
+            },
+            {
+              "anchors": {
+                "finitePosition": "iMatrix",
+                "trigger": "cQuestion"
+              },
+              "relation": "interrogative inversion requirement",
+              "values": {
+                "requirement": "finite auxiliary must occupy matrix C"
+              }
+            }
+          ],
+          "stageRecord": "An interrogative matrix C projects CP over the matrix IP. What moves from the embedded Spec-CP already present in the preceding workspace to matrix Spec-CP, leaving a silent intermediate trace. This second A-bar link crosses the matrix IP; together with the first link, it avoids a single movement step across both IP bounding nodes. Matrix interrogative C licenses what as the question operator, giving it scope over John's saying while its variable remains the Theme of bought. The overt embedded that remains in C and does not create a subject-extraction that-trace configuration: the lowest gap is an object. Matrix interrogative C also requires finite auxiliary inversion, which remains to be carried out.",
+          "statement": "Complete long-distance wh movement to matrix Spec-CP.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nWhat",
+                          "label": "N [+wh]",
+                          "word": "What"
+                        }
+                      ],
+                      "id": "nbarWhat",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npWhat",
+                  "label": "NP [+wh]",
+                  "lineageId": "whatChain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "cQuestion",
+                      "label": "C [+Q]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nJohn",
+                                  "label": "N",
+                                  "word": "John"
+                                }
+                              ],
+                              "id": "nbarJohn",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npJohn",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "iMatrix",
+                              "label": "I [+finite, +past]",
+                              "lineageId": "finiteAuxiliary",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "vSay",
+                                      "label": "V",
+                                      "word": "say"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "tEdge",
+                                              "label": "t",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "npEdgeTrace",
+                                          "label": "NP",
+                                          "lineageId": "whatChain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "cThat",
+                                              "label": "C [declarative]",
+                                              "word": "that"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "nMary",
+                                                          "label": "N",
+                                                          "word": "Mary"
+                                                        }
+                                                      ],
+                                                      "id": "nbarMary",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "npMary",
+                                                  "label": "NP"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "iEmbedded",
+                                                      "label": "I [+finite, +past]",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "vBought",
+                                                              "label": "V",
+                                                              "word": "bought"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "tObject",
+                                                                  "label": "t",
+                                                                  "silent": true
+                                                                }
+                                                              ],
+                                                              "id": "npObjectTrace",
+                                                              "label": "NP",
+                                                              "lineageId": "whatChain",
+                                                              "silent": true
+                                                            }
+                                                          ],
+                                                          "id": "vbarBought",
+                                                          "label": "V′"
+                                                        }
+                                                      ],
+                                                      "id": "vpBought",
+                                                      "label": "VP"
+                                                    }
+                                                  ],
+                                                  "id": "ibarEmbedded",
+                                                  "label": "I′"
+                                                }
+                                              ],
+                                              "id": "ipEmbedded",
+                                              "label": "IP"
+                                            }
+                                          ],
+                                          "id": "cbarEmbedded",
+                                          "label": "C′"
+                                        }
+                                      ],
+                                      "id": "cpEmbedded",
+                                      "label": "CP"
+                                    }
+                                  ],
+                                  "id": "vbarSay",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vpSay",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibarMatrix",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ipMatrix",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbarMatrix",
+                  "label": "C′"
+                }
+              ],
+              "id": "cpMatrix",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "finiteAuxiliary": "iMatrix",
+                "inversionTrigger": "cQuestion",
+                "lexicalVerb": "vSay"
+              },
+              "priorAnchors": {
+                "unrealizedFiniteHead": "iMatrix"
+              },
+              "relation": "do-support and past-tense realization",
+              "values": {
+                "insertedAuxiliary": "do",
+                "insertionSite": "matrix I",
+                "lexicalVerbForm": "bare say",
+                "pastRealization": "did"
+              }
+            }
+          ],
+          "stageRecord": "Do-support supplies the overt auxiliary did in the previously silent matrix finite I. This analysis commits to insertion in I before movement to C, rather than inserting did directly in C. The auxiliary carries matrix past tense because interrogative inversion requires an overt finite head and ordinary lexical say does not raise to C in this construction. Say consequently remains in its bare form. The separate workspace makes the insertion site available as the source of the following head movement.",
+          "statement": "Supply did in matrix I before auxiliary inversion.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nWhat",
+                          "label": "N [+wh]",
+                          "word": "What"
+                        }
+                      ],
+                      "id": "nbarWhat",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npWhat",
+                  "label": "NP [+wh]",
+                  "lineageId": "whatChain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "cQuestion",
+                      "label": "C [+Q]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nJohn",
+                                  "label": "N",
+                                  "word": "John"
+                                }
+                              ],
+                              "id": "nbarJohn",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npJohn",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "iMatrix",
+                              "label": "I [+finite, +past]",
+                              "lineageId": "finiteAuxiliary",
+                              "word": "did"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "vSay",
+                                      "label": "V",
+                                      "word": "say"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "tEdge",
+                                              "label": "t",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "npEdgeTrace",
+                                          "label": "NP",
+                                          "lineageId": "whatChain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "cThat",
+                                              "label": "C [declarative]",
+                                              "word": "that"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "nMary",
+                                                          "label": "N",
+                                                          "word": "Mary"
+                                                        }
+                                                      ],
+                                                      "id": "nbarMary",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "npMary",
+                                                  "label": "NP"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "iEmbedded",
+                                                      "label": "I [+finite, +past]",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "vBought",
+                                                              "label": "V",
+                                                              "word": "bought"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "tObject",
+                                                                  "label": "t",
+                                                                  "silent": true
+                                                                }
+                                                              ],
+                                                              "id": "npObjectTrace",
+                                                              "label": "NP",
+                                                              "lineageId": "whatChain",
+                                                              "silent": true
+                                                            }
+                                                          ],
+                                                          "id": "vbarBought",
+                                                          "label": "V′"
+                                                        }
+                                                      ],
+                                                      "id": "vpBought",
+                                                      "label": "VP"
+                                                    }
+                                                  ],
+                                                  "id": "ibarEmbedded",
+                                                  "label": "I′"
+                                                }
+                                              ],
+                                              "id": "ipEmbedded",
+                                              "label": "IP"
+                                            }
+                                          ],
+                                          "id": "cbarEmbedded",
+                                          "label": "C′"
+                                        }
+                                      ],
+                                      "id": "cpEmbedded",
+                                      "label": "CP"
+                                    }
+                                  ],
+                                  "id": "vbarSay",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vpSay",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibarMatrix",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ipMatrix",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbarMatrix",
+                  "label": "C′"
+                }
+              ],
+              "id": "cpMatrix",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "movedAuxiliary": "iMatrix",
+                "resultingHead": "cComplex",
+                "sourceTrace": "iMatrixTrace",
+                "targetHead": "cQuestion"
+              },
+              "priorAnchors": {
+                "source": "iMatrix",
+                "target": "cQuestion"
+              },
+              "relation": "I-to-C head movement",
+              "values": {
+                "inversionRequirement": "satisfied",
+                "operation": "left-adjunction of finite I to interrogative C",
+                "result": "subject-auxiliary inversion"
+              }
+            },
+            {
+              "anchors": {
+                "intermediateTrace": "npEdgeTrace",
+                "objectGovernor": "vBought",
+                "objectTrace": "npObjectTrace",
+                "operator": "npWhat"
+              },
+              "relation": "completed chain licensing",
+              "values": {
+                "Case": "objective Case licensed at the object position",
+                "emptyCategoryLicensing": "lexical government of the object trace and antecedent government along the successive-cyclic chain",
+                "thetaRole": "Theme assigned at the object position"
+              }
+            },
+            {
+              "anchors": {
+                "rExpressions": [
+                  "npJohn",
+                  "npMary"
+                ]
+              },
+              "relation": "Binding Principle C",
+              "values": {
+                "status": "both R-expressions are free"
+              }
+            }
+          ],
+          "stageRecord": "Did moves from the overt matrix I established in the preceding stage and adjoins to matrix C, leaving a silent I trace. This satisfies the interrogative inversion requirement and places did before John without moving the subject. The completed structure pronounces What did John say that Mary bought, with the object and intermediate wh traces silent. The wh chain satisfies the Case and theta requirements through its original object position; bought properly governs the object trace, and the successive-cyclic chain supplies antecedent government for the intermediate trace. John and Mary are unbound R-expressions, satisfying Binding Principle C. The resulting reading asks for the object Mary bought according to John's statement, not for an independent object of say.",
+          "statement": "Invert did into matrix C and complete the interrogative.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "nWhat",
+                          "label": "N [+wh]",
+                          "word": "What"
+                        }
+                      ],
+                      "id": "nbarWhat",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "npWhat",
+                  "label": "NP [+wh]",
+                  "lineageId": "whatChain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "iMatrix",
+                          "label": "I [+finite, +past]",
+                          "lineageId": "finiteAuxiliary",
+                          "word": "did"
+                        },
+                        {
+                          "children": [],
+                          "id": "cQuestion",
+                          "label": "C [+Q]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "cComplex",
+                      "label": "C"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "nJohn",
+                                  "label": "N",
+                                  "word": "John"
+                                }
+                              ],
+                              "id": "nbarJohn",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "npJohn",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "iMatrixTrace",
+                              "label": "I",
+                              "lineageId": "finiteAuxiliary",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "vSay",
+                                      "label": "V",
+                                      "word": "say"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "tEdge",
+                                              "label": "t",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "npEdgeTrace",
+                                          "label": "NP",
+                                          "lineageId": "whatChain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "cThat",
+                                              "label": "C [declarative]",
+                                              "word": "that"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "nMary",
+                                                          "label": "N",
+                                                          "word": "Mary"
+                                                        }
+                                                      ],
+                                                      "id": "nbarMary",
+                                                      "label": "N′"
+                                                    }
+                                                  ],
+                                                  "id": "npMary",
+                                                  "label": "NP"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "iEmbedded",
+                                                      "label": "I [+finite, +past]",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "vBought",
+                                                              "label": "V",
+                                                              "word": "bought"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "tObject",
+                                                                  "label": "t",
+                                                                  "silent": true
+                                                                }
+                                                              ],
+                                                              "id": "npObjectTrace",
+                                                              "label": "NP",
+                                                              "lineageId": "whatChain",
+                                                              "silent": true
+                                                            }
+                                                          ],
+                                                          "id": "vbarBought",
+                                                          "label": "V′"
+                                                        }
+                                                      ],
+                                                      "id": "vpBought",
+                                                      "label": "VP"
+                                                    }
+                                                  ],
+                                                  "id": "ibarEmbedded",
+                                                  "label": "I′"
+                                                }
+                                              ],
+                                              "id": "ipEmbedded",
+                                              "label": "IP"
+                                            }
+                                          ],
+                                          "id": "cbarEmbedded",
+                                          "label": "C′"
+                                        }
+                                      ],
+                                      "id": "cpEmbedded",
+                                      "label": "CP"
+                                    }
+                                  ],
+                                  "id": "vbarSay",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "vpSay",
+                              "label": "VP"
+                            }
+                          ],
+                          "id": "ibarMatrix",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "ipMatrix",
+                      "label": "IP"
+                    }
+                  ],
+                  "id": "cbarMatrix",
+                  "label": "C′"
+                }
+              ],
+              "id": "cpMatrix",
               "label": "CP"
             }
           ]
