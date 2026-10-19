@@ -8,6 +8,7 @@ import { createBindingDrawing, indexLetterLabels } from '../../components/render
 import { labelBelongsToNode, shellLabelElement, terminalLabelElement } from '../../components/renderer/treeMeasurements.ts';
 import { planIndexLetters, primitiveIndexLetters } from '../../components/renderer/indexLetters.ts';
 import { applyVizIds, getNodeId } from '../../replay/displayIdentity.ts';
+import { createFrameRelationResolver } from '../../replay/frameRelations.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { planItemDependencyNodeIds, planItemOwnsRelationMoment, planItemRelationRefs } from '../../replay/relations/renderPlan.ts';
 import { visiblePlanFrameItems } from '../../replay/relations/relationFrame.ts';
@@ -60,6 +61,45 @@ export function authoredIdentity(node) {
   if (origin?.kind === 'lexical') return { id: origin.authoredId };
   return { id: node.data.id ?? getNodeId(node) };
 }
+
+const pronunciationTables = new WeakMap();
+/** The relation that establishes each authored occurrence's pronunciation in
+ * its stage, as claim dispatch proves it (`pronunciationNodeIds`): the first
+ * relation naming the occurrence or an ancestor. Its word may come, go or
+ * change only at that relation's moment; without one, the relations naming the
+ * occurrence own it. Returns `(stageIndex, authoredId) => relationIndex`, or
+ * undefined. Relations are dispatched on the first lookup. */
+export function pronunciationOwners(replay) {
+  if (!pronunciationTables.has(replay)) pronunciationTables.set(replay, { tables: new Map() });
+  const cache = pronunciationTables.get(replay), tables = cache.tables, frames = replay.replayDerivationFrames ?? [];
+  return (stageIndex, id) => {
+    if (!tables.has(stageIndex)) {
+      cache.resolve ??= createFrameRelationResolver(frames, replay.derivationReplayPlan);
+      const relations = (frames[stageIndex] ? cache.resolve(stageIndex) : []).map((relation, index) => ({
+        index: Number.isInteger(relation.authoredRelationIndex) ? relation.authoredRelationIndex : index,
+        pronounced: new Set(relation.pronunciationNodeIds ?? [])
+      })).filter(relation => relation.pronounced.size);
+      const table = new Map();
+      const visit = (node, lineage) => {
+        const ids = node?.id ? [String(node.id), ...lineage] : lineage;
+        const owners = relations.filter(relation => ids.some(at => relation.pronounced.has(at))).map(relation => relation.index);
+        if (node?.id && owners.length) table.set(String(node.id), Math.min(...owners));
+        (node?.children ?? []).forEach(child => visit(child, ids));
+      };
+      if (relations.length) (frames[stageIndex].workspaceForest ?? []).forEach(root => visit(root, []));
+      tables.set(stageIndex, table);
+    }
+    return tables.get(stageIndex).get(String(id));
+  };
+}
+
+/** Whether the relation at `identity` may show, remove or change the word of
+ * the occurrence a display node stands for: the occurrence's pronunciation
+ * owner, or with none a relation whose moment owns or names it (`named`). */
+export const voicesOccurrence = (pronunciation, identity, authoredId, named) => {
+  const owner = pronunciation(identity.stageIndex, authoredId);
+  return owner === undefined ? named : owner === identity.relationIndex;
+};
 
 const stepsOfStage = (steps, stageIndex) => steps.flatMap((step, index) => step.replayFrameIndex === stageIndex ? [index] : []);
 
@@ -342,15 +382,16 @@ export function momentOwnership(step) {
  * held its source; for a rewrite, the shown workspace that held its prior
  * input), the new sisters created where a landing attaches (a new
  * parent over an existing subtree, or a receiving head's new inner head), and
- * the word a relation realizes on an occurrence it anchors that is already shown. */
-function revealedByRelation(node, ownership, previous) {
+ * the word a relation realizes on an occurrence already shown: its own
+ * pronunciation owner's, or with none one the relation anchors (`voices`). */
+function revealedByRelation(node, ownership, previous, voices) {
   const { endpoints, sources, inputs, rewritten, anchored } = ownership;
   const isOwned = candidate => named(candidate, endpoints) || named(candidate, rewritten);
   const shownBefore = candidate => previous.displayed.has(getNodeId(candidate));
   if (node.ancestors().some(ancestor => named(ancestor, endpoints))) return true;
   const origin = node.data.replayOrigin;
   if (named(node, rewritten) || origin?.kind === 'word' && rewritten.has(origin.ownerId)) return true;
-  if (origin?.kind === 'word' && anchored.has(origin.ownerId) && node.parent && shownBefore(node.parent)) return true;
+  if (origin?.kind === 'word' && node.parent && shownBefore(node.parent) && voices(node.parent, anchored.has(origin.ownerId))) return true;
   const rootBefore = id => { while (previous.parent.get(id)) id = previous.parent.get(id); return id; };
   const rootsOf = ids => new Set([...previous.displayed].filter(id => !ids || named(previous.nodes.get(id), ids)).map(rootBefore));
   const sourceRoots = sources.size ? rootsOf(sources) : inputs.size && rootsOf(inputs).size ? rootsOf(inputs) : rootsOf();
@@ -369,18 +410,24 @@ function revealedByRelation(node, ownership, previous) {
 
 /** A node first painted at step k must be earned by step k. Structural
  * micro-steps reveal only their own target (and its derived word leaf); a
- * relation moment reveals what it introduces; a stage's completed state adds nothing. */
+ * relation moment reveals what it introduces, including the derived word of an
+ * occurrence whose pronunciation it owns, or with no separate owner one its
+ * authored record anchors; a stage's completed state adds nothing. */
 export function checkNoEarlyReveal(replay) {
-  const steps = replay.playbackSteps, out = [];
+  const steps = replay.playbackSteps, out = [], pronunciation = pronunciationOwners(replay);
   let previous = EMPTY_FRAME;
   steps.forEach((step, index) => {
     const structure = frameStructure(step), target = String(step.targetNodeId ?? '');
-    const ownership = step.replayKind === 'relation' && step.replayRelationIdentity ? momentOwnership(step) : null;
+    const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
+    const authored = identity && replay.replayDerivationFrames?.[identity.stageIndex]?.relations?.[identity.relationIndex];
+    const ownership = identity ? momentOwnership(step) : null;
+    Object.values(authored?.anchors ?? {}).flat().forEach(id => ownership?.anchored.add(String(id)));
+    const voices = (owner, named) => voicesOccurrence(pronunciation, identity, authoredIdentity(owner).id, named);
     for (const id of structure.displayed) {
       if (previous.displayed.has(id)) continue;
       const node = structure.nodes.get(id), origin = node.data.replayOrigin;
       if (step.replayKind === 'micro' && (id === target || origin?.kind === 'word' && origin.ownerId === target)) continue;
-      if (ownership && revealedByRelation(node, ownership, previous)) continue;
+      if (ownership && revealedByRelation(node, ownership, previous, voices)) continue;
       out.push(violation('no-early-reveal', index + 1, `${id} appears at ${step.replayKind} ${step.operation} (target ${target})`));
     }
     previous = structure;

@@ -186,8 +186,6 @@ export const EXCEPTIONS = [
   x(ROLE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'role',
     'role(4:2 governor)@vComplex', { desktop: { '54': 3.23 } }),
   x(ROLE_CROWDED, 'replay-regressions/unrendered-head-movement.json#', 'mark-distance', 'role',
-    'role(1:2 honorific nominative exponent)@subjectParticle', { desktop: { '41': 3.86 } }),
-  x(ROLE_CROWDED, 'replay-regressions/unrendered-head-movement.json#', 'mark-distance', 'role',
     'role(3:0 lower head trace)@honorificTrace', { desktop: { '45': 4.63 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
