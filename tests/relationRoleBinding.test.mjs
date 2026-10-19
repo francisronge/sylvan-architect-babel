@@ -249,3 +249,38 @@ test('blocked extraction does not produce successful-movement diagnostics', () =
   assert.equal(step.recoveredMovement, undefined);
   assert.equal(step.movementDiagnostics, undefined);
 });
+
+const compoundRoles = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/compound-movement-roles.json', import.meta.url))).cases;
+const savedClaim = (caseIndex, stageIndex, relationIndex, anchors = {}) => {
+  const stages = compoundRoles[caseIndex].derivationStages, original = stages[stageIndex].relations[relationIndex];
+  const relation = { ...structuredClone(original), anchors: { ...original.anchors, ...anchors } };
+  return { relation, result: dispatchRelationClaims({ relation, currentForest: stages[stageIndex].workspaceForest,
+    priorForest: stages[stageIndex - 1].workspaceForest, stageIndex, relationIndex }) };
+};
+
+test('a compound head field the tree proves to be host or carried context does not compete for the endpoint', () => {
+  for (const [caseIndex, stageIndex, relationIndex, context] of [[0, 5, 0, ['targetHead']], [1, 4, 1, ['landingLexicalHead', 'sourceLexicalHead']]]) {
+    const { relation, result } = savedClaim(caseIndex, stageIndex, relationIndex);
+    const original = structuredClone(relation);
+    assert.equal(result.primaryClaim.tier, 1, JSON.stringify(result.tier1Dispatch.signatureIssues));
+    assert.equal(result.tier1Dispatch.roleBindings.some(binding => context.includes(binding.authoredRole)), false);
+    assert.deepEqual(relation, original);
+  }
+  // Pointed at a head outside the landing complex, the same field is a competing landing again.
+  const unrelated = savedClaim(0, 5, 0, { targetHead: 'a_pred' }).result;
+  assert.equal(unrelated.primaryClaim.tier, 3);
+  assert.ok(unrelated.tier1Dispatch.signatureIssues.some(issue => issue.kind === 'conflicting-role-bindings'));
+  const uncarried = savedClaim(1, 4, 1, { sourceLexicalHead: 'V0' }).result;
+  assert.equal(uncarried.primaryClaim.tier, 3);
+  assert.ok(uncarried.tier1Dispatch.signatureIssues.some(issue => issue.kind === 'conflicting-role-bindings'
+    && issue.roles.includes('sourceLexicalHead')));
+});
+
+test('a phrase\'s target head may be the complex head movement built, but only beside the landing', () => {
+  const stages = compoundRoles[1].derivationStages, original = stages[5].relations[0];
+  const recover = targetHead => recoverMovementEvidence({ ...original, anchors: { ...original.anchors, targetHead } },
+    stages[5].workspaceForest, stages[4].workspaceForest);
+  const complex = recover('ht');
+  assert.deepEqual([complex.movement?.sourceNodeId, complex.movement?.targetNodeId], ['dpO1', 'dpO2']);
+  assert.equal(recover('c0').failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED');
+});

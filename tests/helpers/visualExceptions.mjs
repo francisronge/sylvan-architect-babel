@@ -15,9 +15,9 @@ const LANE = 'Open: a neutral counter-lane connector runs its lane through tree 
 
 const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
 
-// The same finding, with the same measure, occurs on origin/main for the saved
-// analysis the first fixture case copies (bughunt2 07-en-rnr); only its frame
-// numbers moved.
+// The same findings, with the same measures, occur on origin/main for the saved
+// analyses these fixture cases copy (bughunt2 07-en-rnr, night3
+// 33-grc-article.r2); only their frame numbers moved.
 export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/4', 'mark-distance', 'plaque',
     'plaque(2:0 theta Agent)@v-buy', { desktop: { '29-54': 1.12 }, 'desktop-large': { '29-54': 1.12 } }),
@@ -154,5 +154,7 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/waiting-root-continuity.json#', 'mark-distance', 'plaque',
-    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } })
+    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
+  x(PLAQUE_CROWDED, 'replay-regressions/compound-movement-roles.json#/cases/1', 'mark-distance', 'plaque',
+    'plaque(1:0 theta Theme)@V0', { desktop: { '22-38': 1.13 }, 'desktop-large': { '22-38': 1.13 } })
 ];
