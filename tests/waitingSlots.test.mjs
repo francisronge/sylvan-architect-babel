@@ -37,6 +37,17 @@ test('the aligned plan may not let a surviving jump grow, even when another disa
   assert.equal(alignmentImprovesMotion(before, motion(new Map([['5:x', 10]]))), true, 'a surviving jump that keeps its distance is fine');
 });
 
+test('the aligned plan may translate the whole final tree, which the camera absorbs, but not reshape it', () => {
+  const final = [['a', 0, 0], ['b', -110, 220], ['c', 110, 220]];
+  const motion = (points, unowned = new Map()) => ({ unowned, joins: new Map(), count: unowned.size, final: points, moves: new Map() });
+  const before = motion(final, new Map([['5:x', 300]]));
+  const shifted = final.map(([id, x, y]) => [id, x + 734, y - 220]);
+  assert.equal(alignmentImprovesMotion(before, motion(shifted)), true, 'one translation of every final node is the same tree');
+  assert.equal(alignmentImprovesMotion(before, motion(shifted.map(([id, x, y]) => [id, id === 'c' ? x + 1 : x, y]))), false,
+    'a final node that moves relative to the others changes the tree');
+  assert.equal(alignmentImprovesMotion(before, motion(shifted.slice(1))), false, 'a missing final node changes the tree');
+});
+
 test('repeated identical layout requests reuse one slot pass', () => {
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/waiting-root-continuity.json', import.meta.url)));
   const steps = prepareReplay({ ...record, includePlayback: true }).playbackSteps;

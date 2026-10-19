@@ -36,7 +36,12 @@ import {
   findExactNodesByIdInForest,
   indexExactForestNodeLocations
 } from './syntaxForest.ts';
-import { anchoredCopyDisplacement, resolveFallbackTreeTransitionOwnership } from './treeTransitions.ts';
+import {
+  anchoredCopyDisplacement,
+  movementLandingWrapper,
+  priorWitnessWrapperNodeIds,
+  resolveFallbackTreeTransitionOwnership
+} from './treeTransitions.ts';
 import {
   type DerivationReplayPlan,
   type DerivationReplayPlanStage,
@@ -365,13 +370,32 @@ export const getFrameRelations = (
       ...[movement!.sourceNodeId, movement!.targetNodeId].flatMap(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(currentForest, id))),
       ...collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement!.priorSourceNodeId))
     ]));
+  // What the stage's recovered movements own at their moments: their current
+  // landing and lower-occurrence subtrees, the earlier material of a moved
+  // phrase that no longer exists (the moment replaces it), and the new parent a
+  // movement moment introduces to attach its landing above the landing host's
+  // earlier children. Earlier material of a moved phrase that ends up elsewhere
+  // is not theirs.
+  const currentIds = new Set(currentForest.flatMap(root => collectSyntaxSubtreeNodeIds(root)));
+  const movementOwnedIds = new Set(recovered.flatMap(step => (step.recoveredMovements ?? [step.recoveredMovement]))
+    .filter(movement => movement?.transition).flatMap((movement) => {
+      const wrapper = movementLandingWrapper(currentForest, previousForest, movement!.targetNodeId);
+      return [...[movement!.sourceNodeId, movement!.targetNodeId].flatMap(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(currentForest, id))),
+        ...collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement!.priorSourceNodeId)).filter(id => !currentIds.has(id)),
+        ...(wrapper ? [wrapper.wrapperId] : [])];
+    }));
   return recovered.map((step, relationIndex) => {
     const anchoredCopy = anchoredCopyDisplacement(step, previousForest, currentForest, claimedNodeIds);
     const ambiguous = anchoredCopy?.copies.filter(copy => !copy.earlierNodeId).map(copy => copy.nodeId) ?? [];
-    const displaced = anchoredCopy ? { ...step, anchoredCopyDisplacement: anchoredCopy, ...(ambiguous.length ? { movementDiagnostics: [
+    // Ordinary construction builds a new parent around a restated witness only
+    // when nothing else there changes outside the stage's movements.
+    const witnessWrapperNodeIds = anchoredCopy ? [] : priorWitnessWrapperNodeIds(step,
+      recovered.filter((_other, otherIndex) => otherIndex !== relationIndex), previousForest, currentForest, movementOwnedIds);
+    const wrapping = witnessWrapperNodeIds.length ? { ...step, witnessWrapperNodeIds } : step;
+    const displaced = anchoredCopy ? { ...wrapping, anchoredCopyDisplacement: anchoredCopy, ...(ambiguous.length ? { movementDiagnostics: [
       ...(step.movementDiagnostics ?? []),
       `COPY_SOURCE_AMBIGUOUS: Stage ${(plannedStage?.stageIndex ?? 0) + 1}, relation ${(step.authoredRelationIndex ?? relationIndex) + 1} (${step.relation}) relates ${ambiguous.join(', ')} to more than one earlier occurrence of the same object, and no single one is displaced. No earlier form stands in for a later pronunciation.`
-    ] } : {}) } : step;
+    ] } : {}) } : wrapping;
     resolveFallbackTreeTransitionOwnership(displaced, previousForest, currentForest)?.currentNodeIds
       .forEach(id => claimedNodeIds.add(id));
     return displaced;
