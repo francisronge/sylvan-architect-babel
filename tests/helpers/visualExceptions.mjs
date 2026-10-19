@@ -15,6 +15,9 @@ const LANE = 'Open: a neutral counter-lane connector runs its lane through tree 
 const ROLE_CROWDED = 'Open: every preferred spot beside the witness label is taken, so the role placer steps outward until '
   + 'free and the label lands beside other syntax.';
 
+const LATER_OCCUPANT = 'Defect, fixed separately (fix/replay-slot-fits-every-occupant): a reserved slot is sized for its later '
+  + 'occupant, so the current categories crowd it. The same measures occur on origin/main for this saved analysis.';
+
 const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
 
 // The same findings, with the same measures, occur on origin/main for the saved
@@ -192,5 +195,9 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/waiting-root-continuity.json#', 'mark-distance', 'plaque',
-    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } })
+    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
+  x(LATER_OCCUPANT, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'glyph-overlap', 'text',
+    'd_pbar:category d_v:category', { desktop: { '24': 4.59 }, 'desktop-large': { '24': 10.75 } }),
+  x(LATER_OCCUPANT, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'line-clearance', 'branch-text',
+    'd_p->d_pbar d_v:category', { desktop: { '24': 2.85 }, 'desktop-large': { '24': 6.68 } })
 ];

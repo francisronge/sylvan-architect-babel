@@ -1,0 +1,1932 @@
+{
+  "description": "Stage 12 completes the matrix wh dependency. Relation 1 moves who3 to the new matrix specifier who4 under a new C′ (mcbar) that wraps the existing C head and TP. Relation 2, a chain claim, also recovers movements into who4 from the earlier intermediate copies who2 and who1. While relation 2 was still pending, its landing wrapper was collapsed at relation 1's moment, withdrawing who4 and mcbar again: the movement step changed nothing and the landing, C′ and arrow appeared with relation 2. A landing an active relation has introduced is no longer withdrawn by a later claim about it.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (character-spellout-v3), 19 October 2026 (night3 batch, 59-en-wh-island, analysis 1), commit bcf1b56. Tokens are the shared word list of that run.",
+  "contract": "character-spellout-v3",
+  "sentence": "Who do you wonder whether Mary saw?",
+  "framework": "minimalism",
+  "inputTokens": [
+    "Who",
+    "do",
+    "you",
+    "wonder",
+    "whether",
+    "Mary",
+    "saw"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "who0",
+            "predicate": "saw"
+          },
+          "relation": "internal-argument interpretation",
+          "values": {
+            "role": "theme"
+          }
+        }
+      ],
+      "stageRecord": "Externally merge saw with the interrogative pronoun Who. The pronoun is the internal argument of see and receives its theme interpretation here. Proper names and pronouns are treated as minimal nominal objects headed by D. Throughout, repeated category labels identify projections of the same head under Bare Phrase Structure; they do not introduce an independently stipulated X-bar template. This is the beginning of the extraction analysis required by the input, not a repair of its eventual wh-island configuration.",
+      "statement": "Build the embedded transitive predicate and its interrogative object.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "saw",
+              "label": "V",
+              "word": "saw"
+            },
+            {
+              "children": [],
+              "id": "who0",
+              "label": "D[wh]",
+              "lineageId": "who-chain",
+              "word": "Who"
+            }
+          ],
+          "id": "eVP",
+          "label": "V"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "mary0",
+            "introducer": "ev",
+            "predicate": "saw"
+          },
+          "relation": "external-argument interpretation",
+          "values": {
+            "role": "perceiver"
+          }
+        },
+        {
+          "anchors": {
+            "goal": "who0",
+            "licensor": "ev"
+          },
+          "relation": "accusative licensing",
+          "values": {
+            "case": "accusative"
+          }
+        }
+      ],
+      "stageRecord": "Merge transitive little v with the verbal object, then externally merge Mary as its external argument. Mary receives the perceiver role associated with seeing. Transitive little v licenses accusative Case on the object Who. Both nominals remain in their first-merged positions at this stage.",
+      "statement": "Introduce the embedded external argument and transitive little v.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "mary0",
+              "label": "D",
+              "lineageId": "mary-chain",
+              "word": "Mary"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "ev",
+                  "label": "v[transitive]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "saw",
+                      "label": "V",
+                      "word": "saw"
+                    },
+                    {
+                      "children": [],
+                      "id": "who0",
+                      "label": "D[wh]",
+                      "lineageId": "who-chain",
+                      "word": "Who"
+                    }
+                  ],
+                  "id": "eVP",
+                  "label": "V"
+                }
+              ],
+              "id": "evbar",
+              "label": "v"
+            }
+          ],
+          "id": "evp",
+          "label": "v"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landing": "who1",
+            "phaseHead": "ev",
+            "source": "who0"
+          },
+          "relation": "A-bar movement to a phase edge",
+          "values": {
+            "landingPronunciation": "pronounced",
+            "sourcePronunciation": "silent",
+            "trigger": "edge feature"
+          }
+        }
+      ],
+      "stageRecord": "Internally merge Who at an outer edge of the embedded v projection. This provides an accessible occurrence for subsequent long-distance extraction under the Phase Impenetrability Condition. The object occurrence already displayed inside the verbal projection becomes an unpronounced copy; the new edge occurrence is currently pronounced. This is A-bar movement and does not replace Mary's external-argument position.",
+      "statement": "Move the object to the embedded v-phase edge.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "who1",
+              "label": "D[wh]",
+              "lineageId": "who-chain",
+              "word": "Who"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "mary0",
+                  "label": "D",
+                  "lineageId": "mary-chain",
+                  "word": "Mary"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "ev",
+                      "label": "v[transitive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "saw",
+                          "label": "V",
+                          "word": "saw"
+                        },
+                        {
+                          "children": [],
+                          "id": "who0",
+                          "label": "D[wh]",
+                          "lineageId": "who-chain",
+                          "silent": true,
+                          "word": "Who"
+                        }
+                      ],
+                      "id": "eVP",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "evbar",
+                  "label": "v"
+                }
+              ],
+              "id": "evp",
+              "label": "v"
+            }
+          ],
+          "id": "evpEdge",
+          "label": "v"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "goal": "mary0",
+            "probe": "et"
+          },
+          "relation": "finite subject agreement and Case licensing",
+          "values": {
+            "case": "nominative",
+            "number": "singular",
+            "person": "third"
+          }
+        },
+        {
+          "anchors": {
+            "attractor": "et",
+            "landing": "mary1",
+            "source": "mary0"
+          },
+          "relation": "A-movement to the subject position",
+          "values": {
+            "landingPronunciation": "pronounced",
+            "sourcePronunciation": "silent"
+          }
+        },
+        {
+          "anchors": {
+            "tense": "et",
+            "verb": "saw"
+          },
+          "relation": "finite past licensing",
+          "values": {
+            "lexicalForm": "saw",
+            "tense": "past",
+            "verbMovementToT": "absent"
+          }
+        }
+      ],
+      "stageRecord": "Merge silent past T above the embedded v projection. T agrees with Mary, licenses nominative Case, and attracts Mary to its subject edge. The accusative-licensed wh object is not an active competitor for this nominative dependency. The first-merged occurrence of Mary becomes silent. This analysis retains saw as the inflected lexical V: past T licenses that form without syntactic V-to-T movement, and T has no separate pronunciation.",
+      "statement": "Build the embedded finite clause and raise Mary.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "mary1",
+              "label": "D",
+              "lineageId": "mary-chain",
+              "word": "Mary"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "et",
+                  "label": "T[past]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "who1",
+                      "label": "D[wh]",
+                      "lineageId": "who-chain",
+                      "word": "Who"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "mary0",
+                          "label": "D",
+                          "lineageId": "mary-chain",
+                          "silent": true,
+                          "word": "Mary"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "ev",
+                              "label": "v[transitive]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "saw",
+                                  "label": "V",
+                                  "word": "saw"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "who0",
+                                  "label": "D[wh]",
+                                  "lineageId": "who-chain",
+                                  "silent": true,
+                                  "word": "Who"
+                                }
+                              ],
+                              "id": "eVP",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "evbar",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "evp",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "evpEdge",
+                  "label": "v"
+                }
+              ],
+              "id": "etbar",
+              "label": "T"
+            }
+          ],
+          "id": "eTP",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "finiteComplement": "eTP",
+            "head": "whether",
+            "questionDomain": "eCP"
+          },
+          "relation": "embedded interrogative typing",
+          "values": {
+            "force": "polar interrogative",
+            "scopeOfWho": "not licensed as an embedded constituent question",
+            "whetherCategory": "C"
+          }
+        }
+      ],
+      "stageRecord": "Merge whether as the overt embedded interrogative C selecting the finite clause. On this analysis whether is a head, not a nominal occupying the position through which Who must pass. It contributes embedded polar-question force; it does not give Who embedded constituent-question scope. The presence of this interrogative C is nevertheless crucial: subsequent extraction will cross a wh-island boundary.",
+      "statement": "Introduce the embedded polar interrogative headed by whether.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "whether",
+              "label": "C[polar interrogative]",
+              "word": "whether"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "mary1",
+                  "label": "D",
+                  "lineageId": "mary-chain",
+                  "word": "Mary"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "et",
+                      "label": "T[past]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "who1",
+                          "label": "D[wh]",
+                          "lineageId": "who-chain",
+                          "word": "Who"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "mary0",
+                              "label": "D",
+                              "lineageId": "mary-chain",
+                              "silent": true,
+                              "word": "Mary"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "ev",
+                                  "label": "v[transitive]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "saw",
+                                      "label": "V",
+                                      "word": "saw"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "who0",
+                                      "label": "D[wh]",
+                                      "lineageId": "who-chain",
+                                      "silent": true,
+                                      "word": "Who"
+                                    }
+                                  ],
+                                  "id": "eVP",
+                                  "label": "V"
+                                }
+                              ],
+                              "id": "evbar",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "evp",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "evpEdge",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "etbar",
+                  "label": "T"
+                }
+              ],
+              "id": "eTP",
+              "label": "T"
+            }
+          ],
+          "id": "eCP",
+          "label": "C"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landing": "who2",
+            "phaseHead": "whether",
+            "source": "who1"
+          },
+          "relation": "A-bar movement to the embedded C edge",
+          "values": {
+            "landingPronunciation": "pronounced",
+            "scopeEffect": "no embedded constituent-question scope",
+            "sourcePronunciation": "silent",
+            "trigger": "general escape-edge feature"
+          }
+        }
+      ],
+      "stageRecord": "Internally merge Who from the already established embedded v edge to an outer edge of the whether projection. Its former edge occurrence becomes silent. This analysis allows a general escape-edge feature on phase heads, including interrogative C, so phase accessibility alone does not prohibit the step. That assumption does not remove the wh-island restriction: the escape occurrence is not an embedded question operator licensed by whether, and extraction beyond this interrogative domain remains subject to an island assessment.",
+      "statement": "Provide a successive-cyclic occurrence at the embedded C edge.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "who2",
+              "label": "D[wh]",
+              "lineageId": "who-chain",
+              "word": "Who"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "whether",
+                  "label": "C[polar interrogative]",
+                  "word": "whether"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mary1",
+                      "label": "D",
+                      "lineageId": "mary-chain",
+                      "word": "Mary"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "et",
+                          "label": "T[past]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "who1",
+                              "label": "D[wh]",
+                              "lineageId": "who-chain",
+                              "silent": true,
+                              "word": "Who"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "mary0",
+                                  "label": "D",
+                                  "lineageId": "mary-chain",
+                                  "silent": true,
+                                  "word": "Mary"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "ev",
+                                      "label": "v[transitive]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "saw",
+                                          "label": "V",
+                                          "word": "saw"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "who0",
+                                          "label": "D[wh]",
+                                          "lineageId": "who-chain",
+                                          "silent": true,
+                                          "word": "Who"
+                                        }
+                                      ],
+                                      "id": "eVP",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "evbar",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "evp",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "evpEdge",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "etbar",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "eTP",
+                  "label": "T"
+                }
+              ],
+              "id": "ecbar",
+              "label": "C"
+            }
+          ],
+          "id": "eCP",
+          "label": "C"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complement": "eCP",
+            "selector": "wonder"
+          },
+          "relation": "interrogative complement selection",
+          "values": {
+            "complementRole": "content of wondering",
+            "selectedType": "question-denoting clause"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "you0",
+            "introducer": "mv",
+            "predicate": "wonder"
+          },
+          "relation": "matrix external-argument interpretation",
+          "values": {
+            "role": "experiencer"
+          }
+        }
+      ],
+      "stageRecord": "Externally merge wonder with the embedded interrogative projection. Wonder selects a question-denoting complement, so the whether clause is its selected complement rather than an adjunct or a relative clause. Merge matrix little v and introduce you as the experiencer of wondering. The wh dependency still originates as the object of saw; wonder supplies no alternative object position for Who.",
+      "statement": "Embed the whether question under wonder and introduce you.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "you0",
+              "label": "D",
+              "lineageId": "you-chain",
+              "word": "you"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "mv",
+                  "label": "v",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "wonder",
+                      "label": "V",
+                      "word": "wonder"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "who2",
+                          "label": "D[wh]",
+                          "lineageId": "who-chain",
+                          "word": "Who"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "whether",
+                              "label": "C[polar interrogative]",
+                              "word": "whether"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "mary1",
+                                  "label": "D",
+                                  "lineageId": "mary-chain",
+                                  "word": "Mary"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "et",
+                                      "label": "T[past]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "who1",
+                                          "label": "D[wh]",
+                                          "lineageId": "who-chain",
+                                          "silent": true,
+                                          "word": "Who"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "mary0",
+                                              "label": "D",
+                                              "lineageId": "mary-chain",
+                                              "silent": true,
+                                              "word": "Mary"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "ev",
+                                                  "label": "v[transitive]",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "saw",
+                                                      "label": "V",
+                                                      "word": "saw"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "who0",
+                                                      "label": "D[wh]",
+                                                      "lineageId": "who-chain",
+                                                      "silent": true,
+                                                      "word": "Who"
+                                                    }
+                                                  ],
+                                                  "id": "eVP",
+                                                  "label": "V"
+                                                }
+                                              ],
+                                              "id": "evbar",
+                                              "label": "v"
+                                            }
+                                          ],
+                                          "id": "evp",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "evpEdge",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "etbar",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "eTP",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "ecbar",
+                          "label": "C"
+                        }
+                      ],
+                      "id": "eCP",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "mVP",
+                  "label": "V"
+                }
+              ],
+              "id": "mvbar",
+              "label": "v"
+            }
+          ],
+          "id": "mvp",
+          "label": "v"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landing": "who3",
+            "phaseHead": "mv",
+            "source": "who2"
+          },
+          "relation": "A-bar movement to the matrix v edge",
+          "values": {
+            "landingPronunciation": "pronounced",
+            "sourcePronunciation": "silent",
+            "trigger": "edge feature"
+          }
+        },
+        {
+          "anchors": {
+            "embeddedOccurrence": "who2",
+            "externalOccurrence": "who3",
+            "islandDomain": "eCP",
+            "islandHead": "whether"
+          },
+          "relation": "extraction across an interrogative island",
+          "values": {
+            "configuration": "extraction from a selected polar interrogative",
+            "restriction": "wh-island",
+            "statusUnderCategoricalRestriction": "illicit"
+          }
+        }
+      ],
+      "stageRecord": "Internally merge Who from the embedded C edge to the matrix v edge, silencing its embedded edge occurrence. Successive cyclicity preserves phase accessibility, but this step now establishes extraction out of the selected whether interrogative. It therefore creates the wh-island dependency characteristic of the exact input. In a grammar enforcing the wh-island restriction categorically, this attempted dependency is illicit; continuing the representation records the attempted parse rather than claiming that phase-edge movement repairs the island.",
+      "statement": "Continue extraction into the matrix clause and expose the island dependency.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "who3",
+              "label": "D[wh]",
+              "lineageId": "who-chain",
+              "word": "Who"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "you0",
+                  "label": "D",
+                  "lineageId": "you-chain",
+                  "word": "you"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "mv",
+                      "label": "v",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "wonder",
+                          "label": "V",
+                          "word": "wonder"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "who2",
+                              "label": "D[wh]",
+                              "lineageId": "who-chain",
+                              "silent": true,
+                              "word": "Who"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "whether",
+                                  "label": "C[polar interrogative]",
+                                  "word": "whether"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "mary1",
+                                      "label": "D",
+                                      "lineageId": "mary-chain",
+                                      "word": "Mary"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "et",
+                                          "label": "T[past]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "who1",
+                                              "label": "D[wh]",
+                                              "lineageId": "who-chain",
+                                              "silent": true,
+                                              "word": "Who"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "mary0",
+                                                  "label": "D",
+                                                  "lineageId": "mary-chain",
+                                                  "silent": true,
+                                                  "word": "Mary"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "ev",
+                                                      "label": "v[transitive]",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "saw",
+                                                          "label": "V",
+                                                          "word": "saw"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "who0",
+                                                          "label": "D[wh]",
+                                                          "lineageId": "who-chain",
+                                                          "silent": true,
+                                                          "word": "Who"
+                                                        }
+                                                      ],
+                                                      "id": "eVP",
+                                                      "label": "V"
+                                                    }
+                                                  ],
+                                                  "id": "evbar",
+                                                  "label": "v"
+                                                }
+                                              ],
+                                              "id": "evp",
+                                              "label": "v"
+                                            }
+                                          ],
+                                          "id": "evpEdge",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "etbar",
+                                      "label": "T"
+                                    }
+                                  ],
+                                  "id": "eTP",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "ecbar",
+                              "label": "C"
+                            }
+                          ],
+                          "id": "eCP",
+                          "label": "C"
+                        }
+                      ],
+                      "id": "mVP",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "mvbar",
+                  "label": "v"
+                }
+              ],
+              "id": "mvp",
+              "label": "v"
+            }
+          ],
+          "id": "mvpEdge",
+          "label": "v"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "auxiliary": "do0",
+            "lexicalVerb": "wonder"
+          },
+          "relation": "auxiliary tense support",
+          "values": {
+            "auxiliaryForm": "do",
+            "lexicalVerbForm": "bare",
+            "lexicalVerbMovementToT": "absent",
+            "tense": "present"
+          }
+        },
+        {
+          "anchors": {
+            "goal": "you0",
+            "probe": "do0"
+          },
+          "relation": "matrix subject agreement and Case licensing",
+          "values": {
+            "case": "nominative",
+            "number": "not disambiguated by the input",
+            "person": "second"
+          }
+        },
+        {
+          "anchors": {
+            "attractor": "do0",
+            "landing": "you1",
+            "source": "you0"
+          },
+          "relation": "matrix subject A-movement",
+          "values": {
+            "landingPronunciation": "pronounced",
+            "sourcePronunciation": "silent"
+          }
+        }
+      ],
+      "stageRecord": "Merge finite auxiliary do in matrix T. The lexical choice of do supplies an overt tense-bearing auxiliary while wonder remains a bare lexical verb; the following root interrogative structure will license this otherwise unnecessary support auxiliary. T agrees with you, licenses nominative Case, and attracts you from its external-argument position to the matrix subject edge. The lower subject occurrence becomes silent. The spelling you does not distinguish singular from plural, so this derivation does not impose a number interpretation.",
+      "statement": "Build the matrix finite clause with auxiliary do and the raised subject.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "you1",
+              "label": "D",
+              "lineageId": "you-chain",
+              "word": "you"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "do0",
+                  "label": "T[present, auxiliary]",
+                  "lineageId": "do-chain",
+                  "word": "do"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "who3",
+                      "label": "D[wh]",
+                      "lineageId": "who-chain",
+                      "word": "Who"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "you0",
+                          "label": "D",
+                          "lineageId": "you-chain",
+                          "silent": true,
+                          "word": "you"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "mv",
+                              "label": "v",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "wonder",
+                                  "label": "V",
+                                  "word": "wonder"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "who2",
+                                      "label": "D[wh]",
+                                      "lineageId": "who-chain",
+                                      "silent": true,
+                                      "word": "Who"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "whether",
+                                          "label": "C[polar interrogative]",
+                                          "word": "whether"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "mary1",
+                                              "label": "D",
+                                              "lineageId": "mary-chain",
+                                              "word": "Mary"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "et",
+                                                  "label": "T[past]",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "who1",
+                                                      "label": "D[wh]",
+                                                      "lineageId": "who-chain",
+                                                      "silent": true,
+                                                      "word": "Who"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "mary0",
+                                                          "label": "D",
+                                                          "lineageId": "mary-chain",
+                                                          "silent": true,
+                                                          "word": "Mary"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "ev",
+                                                              "label": "v[transitive]",
+                                                              "silent": true
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "saw",
+                                                                  "label": "V",
+                                                                  "word": "saw"
+                                                                },
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "who0",
+                                                                  "label": "D[wh]",
+                                                                  "lineageId": "who-chain",
+                                                                  "silent": true,
+                                                                  "word": "Who"
+                                                                }
+                                                              ],
+                                                              "id": "eVP",
+                                                              "label": "V"
+                                                            }
+                                                          ],
+                                                          "id": "evbar",
+                                                          "label": "v"
+                                                        }
+                                                      ],
+                                                      "id": "evp",
+                                                      "label": "v"
+                                                    }
+                                                  ],
+                                                  "id": "evpEdge",
+                                                  "label": "v"
+                                                }
+                                              ],
+                                              "id": "etbar",
+                                              "label": "T"
+                                            }
+                                          ],
+                                          "id": "eTP",
+                                          "label": "T"
+                                        }
+                                      ],
+                                      "id": "ecbar",
+                                      "label": "C"
+                                    }
+                                  ],
+                                  "id": "eCP",
+                                  "label": "C"
+                                }
+                              ],
+                              "id": "mVP",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "mvbar",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "mvp",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "mvpEdge",
+                  "label": "v"
+                }
+              ],
+              "id": "mtbar",
+              "label": "T"
+            }
+          ],
+          "id": "mTP",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "finiteAuxiliary": "do0",
+            "finiteComplement": "mTP",
+            "questionHead": "mq",
+            "whGoal": "who3"
+          },
+          "relation": "matrix interrogative requirements",
+          "values": {
+            "edgeRequirement": "wh movement",
+            "force": "root constituent question",
+            "headRequirement": "finite T-to-C movement",
+            "supportLicensing": "interrogative do-support"
+          }
+        }
+      ],
+      "stageRecord": "Merge a silent root interrogative C above the matrix finite clause. Unlike embedded whether, this C carries the constituent-question requirement that will attract Who and the root interrogative requirement that will attract the finite auxiliary. The overt auxiliary selected in T is thereby justified as interrogative do-support. Neither movement has occurred yet: their source occurrences remain visibly available in the workspace.",
+      "statement": "Introduce the matrix constituent-question head.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "mq",
+              "label": "C[root Q, wh]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "you1",
+                  "label": "D",
+                  "lineageId": "you-chain",
+                  "word": "you"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "do0",
+                      "label": "T[present, auxiliary]",
+                      "lineageId": "do-chain",
+                      "word": "do"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "who3",
+                          "label": "D[wh]",
+                          "lineageId": "who-chain",
+                          "word": "Who"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "you0",
+                              "label": "D",
+                              "lineageId": "you-chain",
+                              "silent": true,
+                              "word": "you"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "mv",
+                                  "label": "v",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "wonder",
+                                      "label": "V",
+                                      "word": "wonder"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "who2",
+                                          "label": "D[wh]",
+                                          "lineageId": "who-chain",
+                                          "silent": true,
+                                          "word": "Who"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "whether",
+                                              "label": "C[polar interrogative]",
+                                              "word": "whether"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "mary1",
+                                                  "label": "D",
+                                                  "lineageId": "mary-chain",
+                                                  "word": "Mary"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "et",
+                                                      "label": "T[past]",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "who1",
+                                                          "label": "D[wh]",
+                                                          "lineageId": "who-chain",
+                                                          "silent": true,
+                                                          "word": "Who"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "mary0",
+                                                              "label": "D",
+                                                              "lineageId": "mary-chain",
+                                                              "silent": true,
+                                                              "word": "Mary"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "ev",
+                                                                  "label": "v[transitive]",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "saw",
+                                                                      "label": "V",
+                                                                      "word": "saw"
+                                                                    },
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "who0",
+                                                                      "label": "D[wh]",
+                                                                      "lineageId": "who-chain",
+                                                                      "silent": true,
+                                                                      "word": "Who"
+                                                                    }
+                                                                  ],
+                                                                  "id": "eVP",
+                                                                  "label": "V"
+                                                                }
+                                                              ],
+                                                              "id": "evbar",
+                                                              "label": "v"
+                                                            }
+                                                          ],
+                                                          "id": "evp",
+                                                          "label": "v"
+                                                        }
+                                                      ],
+                                                      "id": "evpEdge",
+                                                      "label": "v"
+                                                    }
+                                                  ],
+                                                  "id": "etbar",
+                                                  "label": "T"
+                                                }
+                                              ],
+                                              "id": "eTP",
+                                              "label": "T"
+                                            }
+                                          ],
+                                          "id": "ecbar",
+                                          "label": "C"
+                                        }
+                                      ],
+                                      "id": "eCP",
+                                      "label": "C"
+                                    }
+                                  ],
+                                  "id": "mVP",
+                                  "label": "V"
+                                }
+                              ],
+                              "id": "mvbar",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "mvp",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "mvpEdge",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "mtbar",
+                  "label": "T"
+                }
+              ],
+              "id": "mTP",
+              "label": "T"
+            }
+          ],
+          "id": "mCP",
+          "label": "C"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complexHead": "mChead",
+            "host": "mq",
+            "landing": "do1",
+            "source": "do0"
+          },
+          "relation": "T-to-C head movement",
+          "values": {
+            "landingPronunciation": "pronounced",
+            "sourcePronunciation": "silent",
+            "surfaceEffect": "auxiliary precedes the matrix subject",
+            "trigger": "root interrogative head requirement"
+          }
+        }
+      ],
+      "stageRecord": "Internally merge the finite auxiliary from T into a complex C head, preceding the silent interrogative head. The T occurrence becomes an unpronounced copy, while the C occurrence of do is pronounced. This head movement produces subject–auxiliary inversion: the pronounced auxiliary now precedes the raised subject you. Lexical wonder remains in its original verbal position.",
+      "statement": "Move finite do to matrix C.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "do1",
+                  "label": "T[present, auxiliary]",
+                  "lineageId": "do-chain",
+                  "word": "do"
+                },
+                {
+                  "children": [],
+                  "id": "mq",
+                  "label": "C[root Q, wh]",
+                  "silent": true
+                }
+              ],
+              "id": "mChead",
+              "label": "C"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "you1",
+                  "label": "D",
+                  "lineageId": "you-chain",
+                  "word": "you"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "do0",
+                      "label": "T[present, auxiliary]",
+                      "lineageId": "do-chain",
+                      "silent": true,
+                      "word": "do"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "who3",
+                          "label": "D[wh]",
+                          "lineageId": "who-chain",
+                          "word": "Who"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "you0",
+                              "label": "D",
+                              "lineageId": "you-chain",
+                              "silent": true,
+                              "word": "you"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "mv",
+                                  "label": "v",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "wonder",
+                                      "label": "V",
+                                      "word": "wonder"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "who2",
+                                          "label": "D[wh]",
+                                          "lineageId": "who-chain",
+                                          "silent": true,
+                                          "word": "Who"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "whether",
+                                              "label": "C[polar interrogative]",
+                                              "word": "whether"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "mary1",
+                                                  "label": "D",
+                                                  "lineageId": "mary-chain",
+                                                  "word": "Mary"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "et",
+                                                      "label": "T[past]",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "who1",
+                                                          "label": "D[wh]",
+                                                          "lineageId": "who-chain",
+                                                          "silent": true,
+                                                          "word": "Who"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "mary0",
+                                                              "label": "D",
+                                                              "lineageId": "mary-chain",
+                                                              "silent": true,
+                                                              "word": "Mary"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "ev",
+                                                                  "label": "v[transitive]",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "saw",
+                                                                      "label": "V",
+                                                                      "word": "saw"
+                                                                    },
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "who0",
+                                                                      "label": "D[wh]",
+                                                                      "lineageId": "who-chain",
+                                                                      "silent": true,
+                                                                      "word": "Who"
+                                                                    }
+                                                                  ],
+                                                                  "id": "eVP",
+                                                                  "label": "V"
+                                                                }
+                                                              ],
+                                                              "id": "evbar",
+                                                              "label": "v"
+                                                            }
+                                                          ],
+                                                          "id": "evp",
+                                                          "label": "v"
+                                                        }
+                                                      ],
+                                                      "id": "evpEdge",
+                                                      "label": "v"
+                                                    }
+                                                  ],
+                                                  "id": "etbar",
+                                                  "label": "T"
+                                                }
+                                              ],
+                                              "id": "eTP",
+                                              "label": "T"
+                                            }
+                                          ],
+                                          "id": "ecbar",
+                                          "label": "C"
+                                        }
+                                      ],
+                                      "id": "eCP",
+                                      "label": "C"
+                                    }
+                                  ],
+                                  "id": "mVP",
+                                  "label": "V"
+                                }
+                              ],
+                              "id": "mvbar",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "mvp",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "mvpEdge",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "mtbar",
+                  "label": "T"
+                }
+              ],
+              "id": "mTP",
+              "label": "T"
+            }
+          ],
+          "id": "mCP",
+          "label": "C"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "attractor": "mq",
+            "landing": "who4",
+            "source": "who3"
+          },
+          "relation": "matrix wh movement",
+          "values": {
+            "landingPronunciation": "pronounced",
+            "sourcePronunciation": "silent",
+            "trigger": "matrix wh requirement"
+          }
+        },
+        {
+          "anchors": {
+            "intermediateOccurrences": [
+              "who3",
+              "who2",
+              "who1"
+            ],
+            "operator": "who4",
+            "questionHead": "mq",
+            "thematicOccurrence": "who0",
+            "thematicPredicate": "saw"
+          },
+          "relation": "matrix interrogative dependency",
+          "values": {
+            "interpretation": "For which person x do you wonder whether Mary saw x?",
+            "scope": "matrix constituent question"
+          }
+        },
+        {
+          "anchors": {
+            "embeddedObject": "who0",
+            "interveningQuestionDomain": "eCP",
+            "interveningQuestionHead": "whether",
+            "matrixOperator": "who4"
+          },
+          "relation": "completed dependency island assessment",
+          "values": {
+            "categoricalIslandGrammar": "nonconvergent",
+            "configuration": "wh-island extraction",
+            "judgment": "degraded or unacceptable under restrictive judgments; variable tolerance for argument extraction",
+            "phaseEdges": "successive cyclicity does not itself remove the island restriction"
+          }
+        }
+      ],
+      "stageRecord": "Internally merge Who from the matrix v edge to the outer edge of matrix C, silencing the former occurrence. Matrix C now licenses the constituent-question dependency, while the original object occurrence of Who supplies its thematic interpretation with saw. The pronounced terminals yield exactly Who do you wonder whether Mary saw. The resulting interpretation asks for the person such that you wonder whether Mary saw that person. Crucially, the dependency crosses the embedded whether question: this is a wh-island configuration, not a well-formed long-distance extraction from an ordinary declarative complement. It is degraded or excluded under restrictive standard-English judgments, although argument extraction across a weak wh island is variably tolerated across speakers and contexts. That judgment variation does not introduce a second structural reading. In a categorical island grammar, this final tree is the completed representation of an unsuccessful derivational attempt, not a claim of grammatical convergence.",
+      "statement": "Complete the matrix wh dependency and assess the exact sentence.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "who4",
+              "label": "D[wh]",
+              "lineageId": "who-chain",
+              "word": "Who"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "do1",
+                      "label": "T[present, auxiliary]",
+                      "lineageId": "do-chain",
+                      "word": "do"
+                    },
+                    {
+                      "children": [],
+                      "id": "mq",
+                      "label": "C[root Q, wh]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "mChead",
+                  "label": "C"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "you1",
+                      "label": "D",
+                      "lineageId": "you-chain",
+                      "word": "you"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "do0",
+                          "label": "T[present, auxiliary]",
+                          "lineageId": "do-chain",
+                          "silent": true,
+                          "word": "do"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "who3",
+                              "label": "D[wh]",
+                              "lineageId": "who-chain",
+                              "silent": true,
+                              "word": "Who"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "you0",
+                                  "label": "D",
+                                  "lineageId": "you-chain",
+                                  "silent": true,
+                                  "word": "you"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "mv",
+                                      "label": "v",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "wonder",
+                                          "label": "V",
+                                          "word": "wonder"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "who2",
+                                              "label": "D[wh]",
+                                              "lineageId": "who-chain",
+                                              "silent": true,
+                                              "word": "Who"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "whether",
+                                                  "label": "C[polar interrogative]",
+                                                  "word": "whether"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "mary1",
+                                                      "label": "D",
+                                                      "lineageId": "mary-chain",
+                                                      "word": "Mary"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "et",
+                                                          "label": "T[past]",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "who1",
+                                                              "label": "D[wh]",
+                                                              "lineageId": "who-chain",
+                                                              "silent": true,
+                                                              "word": "Who"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "mary0",
+                                                                  "label": "D",
+                                                                  "lineageId": "mary-chain",
+                                                                  "silent": true,
+                                                                  "word": "Mary"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "ev",
+                                                                      "label": "v[transitive]",
+                                                                      "silent": true
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "saw",
+                                                                          "label": "V",
+                                                                          "word": "saw"
+                                                                        },
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "who0",
+                                                                          "label": "D[wh]",
+                                                                          "lineageId": "who-chain",
+                                                                          "silent": true,
+                                                                          "word": "Who"
+                                                                        }
+                                                                      ],
+                                                                      "id": "eVP",
+                                                                      "label": "V"
+                                                                    }
+                                                                  ],
+                                                                  "id": "evbar",
+                                                                  "label": "v"
+                                                                }
+                                                              ],
+                                                              "id": "evp",
+                                                              "label": "v"
+                                                            }
+                                                          ],
+                                                          "id": "evpEdge",
+                                                          "label": "v"
+                                                        }
+                                                      ],
+                                                      "id": "etbar",
+                                                      "label": "T"
+                                                    }
+                                                  ],
+                                                  "id": "eTP",
+                                                  "label": "T"
+                                                }
+                                              ],
+                                              "id": "ecbar",
+                                              "label": "C"
+                                            }
+                                          ],
+                                          "id": "eCP",
+                                          "label": "C"
+                                        }
+                                      ],
+                                      "id": "mVP",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "mvbar",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "mvp",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "mvpEdge",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "mtbar",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "mTP",
+                  "label": "T"
+                }
+              ],
+              "id": "mcbar",
+              "label": "C"
+            }
+          ],
+          "id": "mCP",
+          "label": "C"
+        }
+      ]
+    }
+  ]
+}

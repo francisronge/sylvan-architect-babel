@@ -203,10 +203,13 @@ export const createStageRelationSnapshots = (
         return group.recoveredMovement?.transition ? [{ ...group, preserveMovementLanding: true }] : [];
       });
     }), previousFrameWorkspaceRoots);
+    // A pending claim's new landing wrapper waits for its moment, unless an
+    // active relation has already introduced that landing, which the
+    // restoration above also keeps.
     relationPlacements
       .filter(placement => !activeRelationIndexes.has(placement.relationIndex))
       .forEach(placement => {
-        placement.authoredTargetNodeIds.forEach(targetId => {
+        placement.authoredTargetNodeIds.filter(targetId => !activeTreeTransitionTargetNodeIds.has(targetId)).forEach(targetId => {
           const kind = (placement.relation.recoveredMovements?.find(movement => movement.targetNodeId === targetId) ?? placement.relation.recoveredMovement)?.trajectoryKind || registeredTrajectoryDisplayKind(placement.relationLabel, placement.relation.resolvedAnchors);
           if (kind !== 'phrasal') return;
           const wrapper = movementLandingWrapper(workspaceRoots, previousFrameWorkspaceRoots, targetId);

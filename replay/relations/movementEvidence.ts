@@ -481,6 +481,19 @@ export function recoverMovementEvidence(
   }
   const priorSources = explicitPriorSources.length ? explicitPriorSources : structuralPriorSources;
   const priorSource = priorSources.length === 1 ? priorSources[0] : undefined;
+  // In a successive step, only the anchored occurrence occupying this source's
+  // preceding slot is its new lower witness. Older copies stay separate evidence.
+  const isEarlierChainOccurrence = (id: string): boolean => Boolean(priorSource && id !== priorSource
+    && !current.duplicates.has(id) && !prior.duplicates.has(id)
+    && current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource)?.lineageId
+    && sameAuthoredValue(current.nodes.get(id), prior.nodes.get(id)) && samePriorSlot(id, id));
+  // Several trace fields may cite unchanged earlier copies beside the step's
+  // new lower witness. Those copies do not compete with it.
+  const stepWitnesses = witnesses.filter(id => !isEarlierChainOccurrence(id));
+  if (witnesses.length > 1 && stepWitnesses.length === 1) {
+    if (sources === witnesses) sources = stepWitnesses;
+    witnesses = stepWitnesses;
+  }
   const sourcePair = priorSource ? sourceOccurrencePair(current, prior, priorSource, anchored) : undefined;
   const sourceContainers = anchored.filter(id => entries.filter(entry => entry.ids.includes(id)
     && hasRole(entry.key, 'movement.source')).every(entry => sourceContainerRole(entry.key)));
@@ -519,12 +532,6 @@ export function recoverMovementEvidence(
       structurallyBound = true;
     }
   }
-  // In a successive step, only the anchored occurrence occupying this source's
-  // preceding slot is its new lower witness. Older copies stay separate evidence.
-  const isEarlierChainOccurrence = (id: string): boolean => Boolean(priorSource && id !== priorSource
-    && !current.duplicates.has(id) && !prior.duplicates.has(id)
-    && current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource)?.lineageId
-    && sameAuthoredValue(current.nodes.get(id), prior.nodes.get(id)) && samePriorSlot(id, id));
   const onlyEarlierChainSources = sources.length > 0 && sources.every(isEarlierChainOccurrence);
   if ((!sources.length || onlyEarlierChainSources) && priorSource && canBindStructuralEndpoints) {
     const lower = anchored.filter(id => current.nodes.get(id)?.lineageId
