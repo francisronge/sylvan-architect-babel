@@ -25,11 +25,6 @@ syntactic rules. Desktop remains the primary experience.
      no shape across a single-root stage. A head that becomes a head complex
      jumps the same way in 23 steps. Add a shape check that ignores parent
      recentring, then fix the layout.
-   - The adjunction in frame 49 of that analysis should be an External Merge
-     step, not part of its scope relation (`fix/replay-relation-wrapper-growth`).
-     Together with waiting slots it brings back the 我/昨天 jumps, because the
-     released wrapper also lets the subject movement's new parent arrive at its
-     movement, which main's waiting-slot plan does not expect.
    - Head-movement arrows when the model writes category labels in prose
      (`fix/relations-prose-category-labels`). It recovers 4 of 5 missing arrows;
      two review findings remain (a host role naming the wrong node still
