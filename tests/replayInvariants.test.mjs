@@ -3,7 +3,7 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  checkAttachAtMerge, checkInputUnchanged, checkMarksAtOwningMoment, checkMovementLandingParent, checkNoEarlyReveal,
+  checkAttachAtMerge, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkNoEarlyReveal,
   checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationMoments, checkStableConstruction,
   checkStageCompletion, checkVisibleInCanvas, frameStructure
 } from './helpers/replayInvariants.mjs';
@@ -86,7 +86,7 @@ test('control: a waiting root projection is allowed only until a later relation 
   assert(reported(checkStageCompletion(waiting, named), 'stage-completion', completion, 'authored matrixCP is not displayed'));
 });
 
-test('control: relation-moments reports a lost, repeated, misplaced or reordered moment', () => {
+test('control: relation-moments reports a lost, repeated, misplaced or needlessly reordered moment', () => {
   assert.deepEqual(checkRelationMoments(replay, sample), []);
   const [first, second] = relationMoments.filter(index => steps[index].replayFrameIndex === 3);
   assert(second !== undefined, 'the sample stage has two separate relations');
@@ -99,7 +99,20 @@ test('control: relation-moments reports a lost, repeated, misplaced or reordered
   const reordered = breakReplay(copy => {
     [copy[first].replayRelationIdentity, copy[second].replayRelationIdentity] = [copy[second].replayRelationIdentity, copy[first].replayRelationIdentity];
   });
-  assert(reported(checkRelationMoments(reordered, sample), 'relation-moments', first + 1, 'relation 3:1 plays before earlier authored relation 3:0'));
+  assert(reported(checkRelationMoments(reordered, sample), 'relation-moments', second + 1,
+    'relation 3:0 plays after later authored relation 3:1 without waiting for syntax it introduces'));
+});
+
+test('control: landing-attached reports a movement landing shown before the parent it joins', () => {
+  assert.deepEqual(checkLandingAttached(replay), []);
+  const index = steps.findIndex(step => step.replayKind === 'relation' && (step.replayRelationLinks ?? []).some(link =>
+    link.movementTransition === true && link.authoredRelationKey === `${step.replayRelationIdentity.stageIndex}:${step.replayRelationIdentity.relationIndex}`));
+  assert(index >= 0, 'the sample has a movement moment');
+  const { targetNodeId } = steps[index].replayRelationLinks.find(link => link.movementTransition === true);
+  const landing = [...frameStructure(steps[index]).nodes.values()].find(node => node.data.id === targetNodeId);
+  const parent = landing.parent.data.id;
+  const detached = breakReplay(copy => { copy[index].replayVisibleNodeIds = copy[index].replayVisibleNodeIds.filter(id => id !== parent); });
+  assert(reported(checkLandingAttached(detached), 'landing-attached', index + 1, `${targetNodeId} lands without its parent ${parent}`));
 });
 
 test('control: no-early-reveal reports syntax first shown by a micro-step, a relation moment or a completed stage', () => {
@@ -229,10 +242,9 @@ test('control: movement-landing-parent reports a movement moment that paints its
 
 const FIRST_STAGE_REWRITE = 'Defect: a first-stage movement claim with no preceding stage to prove its source becomes a neutral rewrite; '
   + 'its moment shows only the anchored root of the rewritten phrase, and the rest of that phrase appears later with an ordinary merge.';
-const ORDER_BEFORE_CONTEXT = 'Defect (diagnosed RELATION_TIMING_CONFLICT): wh-movement is authored before the auxiliary movement '
-  + 'that builds C′; Replay keeps authored order and shows CP with its landing but without C′.';
 const CONTEXT_MERGE_AT_MOMENT = 'Defect (diagnosed RELATION_TIMING_CONFLICT): continued V-to-I is authored before the I-to-C movement '
-  + 'that builds its context; its moment reveals the ordinary merge C′ instead of giving C′ its own step.';
+  + 'that builds its context, and each needs syntax the other introduces, so no Replay order satisfies both and authored order is '
+  + 'kept; its moment reveals the ordinary merge C′ instead of giving C′ its own step.';
 
 const KNOWN_DEFECTS = [
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'parent-after-children', 16, 'detP portraitBar'],
@@ -256,7 +268,6 @@ const KNOWN_DEFECTS = [
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 12, 'rVAtT rvAtTLeaf rVAtT::__leaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 28, 'mVAtT mvAtTLeaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 29, 'mVAtT mvAtTLeaf mVAtT::__leaf'],
-  [ORDER_BEFORE_CONTEXT, 'normalized/what-did-mia-see.xbar.json#/analyses/0', 'parent-after-children', 15, 'cbar_question'],
   [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar'],
 ];
 
@@ -265,7 +276,7 @@ const KNOWN_DEFECTS = [
 const REPORTED_BY = new Map([['attach-at-merge', 'no-early-reveal']]);
 const subjectOf = violation => violation.detail.split(' ')[0];
 
-const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments',
+const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments', 'landing-attached',
   'no-early-reveal', 'parent-after-children', 'stable-construction', 'attach-at-merge', 'movement-landing-parent', 'visible-in-canvas',
   'marks-at-owning-moment', 'one-letter-per-label'];
 let sweep;
@@ -276,9 +287,9 @@ before(() => {
       const prepared = prepareReplay({ ...authored, includePlayback: true });
       return { id, frames: prepared.playbackSteps.length, violations: [
         ...checkInputUnchanged(snapshot, authored), ...checkNoVisibleScaffolding(prepared), ...checkStageCompletion(prepared, authored),
-        ...checkRelationMoments(prepared, authored), ...checkNoEarlyReveal(prepared), ...checkParentAfterChildren(prepared),
-        ...checkStableConstruction(prepared), ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored),
-        ...checkVisibleInCanvas(prepared),
+        ...checkRelationMoments(prepared, authored), ...checkLandingAttached(prepared), ...checkNoEarlyReveal(prepared),
+        ...checkParentAfterChildren(prepared), ...checkStableConstruction(prepared), ...checkAttachAtMerge(prepared),
+        ...checkMovementLandingParent(prepared, authored), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),
         ...checkContractWarnings(prepared, authored, { contract })] };
