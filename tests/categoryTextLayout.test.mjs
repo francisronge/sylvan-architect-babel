@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { categoryTextLayout } from '../replay/categoryTextLayout.ts';
+import { measureCategoryText } from './helpers/visualFontMetrics.mjs';
+import { checkLabelTypography } from './helpers/visualRules.mjs';
 import { authoredDeterminerHasNominalComplement } from '../replay/replayCasing.ts';
 import { isPhrasalReplayMovement } from '../replay/movementLinks.ts';
 
@@ -43,7 +45,9 @@ test('a closing mark hangs past the width instead of starting a line, and a word
   assert.deepEqual(lines('V[past, third-person feminine singular]'), ['V[past, ', 'third-person ', 'feminine ', 'singular]']);
   const accented = 'e\u0301'.repeat(17) + '\u2032';
   assert.deepEqual(lines(accented), [accented]);
-  assert.deepEqual(lines(`X[${'e\u0301'.repeat(16)}]`), [`X[${'e\u0301'.repeat(15)}`, 'e\u0301]']);
+  // Rather than split the word and leave a remnant, the group moves down whole
+  // and its closing mark hangs.
+  assert.deepEqual(lines(`X[${'e\u0301'.repeat(16)}]`), ['X', `[${'e\u0301'.repeat(16)}]`]);
 });
 
 test('a hyphenated word breaks after its hyphen when the rest of the label fits on one line', () => {
@@ -62,6 +66,42 @@ test('a hyphenated word breaks after its hyphen when the rest of the label fits 
   assert.equal(lines('Experiencer-voice head')[0], 'Experiencer-voice');
   // A minus feature value is not a word-joining hyphen, so it never ends a line on its own.
   assert.deepEqual(lines('Neg[-interrogatives]'), ['Neg', '[-interrogatives]']);
+});
+
+test('saved labels end lines between words and never leave a remnant line', () => {
+  const lines = text => categoryTextLayout(text, measureCategoryText).lines;
+  const findings = wrapped => checkLabelTypography({ texts: [{ id: 'label', kind: 'category', lines: wrapped, boxes: [] }] });
+  // These saved labels were split inside a word or left at most two graphemes on their last line.
+  for (const [text, expected] of [
+    ['D\u2070 [relative, class 7]', ['D\u2070 [relative, ', 'class 7]']],
+    ['DP [relative, class 7]', ['DP [relative, ', 'class 7]']],
+    ['T: perfect/completive', ['T: perfect/', 'completive']],
+    ['Num\u2070 [cardinal\u2013classifier]', ['Num\u2070 [cardinal\u2013', 'classifier]']],
+    ['Asp[perfect/completive]', ['Asp[perfect/', 'completive]']],
+    ['Appl[recipient/beneficiary]', ['Appl[recipient/', 'beneficiary]']],
+    ['T [anterior/perfective, adnominal]', ['T [anterior/', 'perfective, ', 'adnominal]']],
+    ['v: external-argument constituent', ['v: external-', 'argument ', 'constituent']]
+  ]) {
+    assert.deepEqual(lines(text), expected, text);
+    assert.deepEqual(findings(expected), [], text);
+  }
+  // A repair never adds a line: without a shorter word-preserving wrapping, the word still splits.
+  assert.deepEqual(lines('V[gerund-participle, transitive]'), ['V[gerund-participl', 'e, transitive]']);
+});
+
+test('a slash or dash break replaces a split word only when it adds no line', () => {
+  const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+  const measure = s => [...graphemes.segment(s)].length * 22;
+  const lines = text => categoryTextLayout(text, measure).lines;
+  assert.deepEqual(lines('Asp[perfective/imperfective]'), ['Asp[perfective/', 'imperfective]']);
+  assert.deepEqual(lines('Num[cardinal\u2014classifier]'), ['Num[cardinal\u2014', 'classifier]']);
+  // A later break after the slash fills the first line instead of leaving the head symbol alone.
+  assert.deepEqual(lines('T: perfect/completive'), ['T: perfect/', 'completive']);
+  // A line never ends on a slash that does not join two words.
+  assert.deepEqual(lines('Neg[/interrogativeness]'), ['Neg[/interrogativ', 'eness]']);
+  // Clean wrappings keep their established breaks.
+  assert.deepEqual(lines('V[past, third-person feminine singular]'), ['V[past, ', 'third-person ', 'feminine ', 'singular]']);
+  assert.deepEqual(lines('T[finite, indirect-evidential, agreement]'), ['T[finite, ', 'indirect-evidenti', 'al, agreement]']);
 });
 
 test('a selected determiner retains its authored nominal context before its projection exists', () => {
