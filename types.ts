@@ -158,7 +158,8 @@ export interface RawOutputArtifact {
 export type PayloadRepairKind =
   | 'insert_closers_before_mismatched_closer'
   | 'remove_unmatched_closer'
-  | 'append_closers_at_end_of_output';
+  | 'append_closers_at_end_of_output'
+  | 'remove_excess_closers_at_line_end';
 
 export interface JsonDiagnostic {
   kind: 'json-syntax' | 'json-root-type';

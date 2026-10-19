@@ -2,6 +2,8 @@
 
 `raw/` contains hand-authored model-shaped payloads for the current parser contract. Each file follows the instruction surface in `server/babelParser/systemInstruction.js` and contains `sentence`, `framework`, `modelRoute`, and a four-field `derivationStages` payload. The fixtures make no provider or network calls.
 
+`raw/*.output.txt` files are unaltered provider responses that exercise JSON ingress; their tests name the sentence, model and run. `de-verb-cluster-overclosed-lines.output.txt` has twelve one-line trees with two extra closers each, recovered by the over-closed line repair in `server/babelParser/strictJson.js`.
+
 `normalized/` contains committed whole-output snapshots produced by:
 
 ```sh

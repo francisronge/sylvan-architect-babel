@@ -120,6 +120,73 @@ const repairDelimiterDamage = (candidate) => {
     : null;
 };
 
+/** Index just past the closer that completes the value opened at `start`, or
+ * -1 when the line does not complete it or closes it with the wrong delimiter. */
+const endOfLineValue = (line, start) => {
+  const stack = [];
+  let inString = false;
+  let escaped = false;
+  for (let index = start; index < line.length; index += 1) {
+    const char = line[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') inString = false;
+    } else if (char === '"') {
+      inString = true;
+    } else if (char === '{' || char === '[') {
+      stack.push(char);
+    } else if (char === '}' || char === ']') {
+      if (stack.pop() !== CLOSE_TO_OPEN[char]) return -1;
+      if (stack.length === 0) return index + 1;
+    }
+  }
+  return -1;
+};
+
+const EXCESS_LINE_CLOSERS = /^(\s*)([\]}](?:\s*[\]}])*)\s*,?\s*$/;
+
+/**
+ * Over-closed one-line values in a multi-line response. A line that begins
+ * with { or [ and completes that value, then closes containers the following
+ * lines close again, ends the root early. Only those trailing closers are
+ * removed; every other byte, and the structure the lines themselves lay out,
+ * is kept. The caller keeps the result only if it parses.
+ */
+const trimOverclosedLines = (candidate) => {
+  const lines = candidate.split('\n');
+  if (lines.length < 2) return null;
+  const diagnostics = [];
+  let lineByteOffset = 0;
+  const repairedLines = lines.map((line) => {
+    const offset = lineByteOffset;
+    lineByteOffset += UTF8_ENCODER.encode(line).byteLength + 1;
+    const start = line.search(/\S/);
+    if (start < 0 || (line[start] !== '{' && line[start] !== '[')) return line;
+    const end = endOfLineValue(line, start);
+    const excess = end < 0 ? null : EXCESS_LINE_CLOSERS.exec(line.slice(end));
+    if (!excess) return line;
+    const removedFrom = end + excess[1].length;
+    const removedText = excess[2];
+    diagnostics.push(createRepairDiagnostic({
+      kind: 'remove_excess_closers_at_line_end',
+      candidateByteOffset: offset + UTF8_ENCODER.encode(line.slice(0, removedFrom)).byteLength,
+      removedText
+    }));
+    return line.slice(0, removedFrom) + line.slice(removedFrom + removedText.length);
+  });
+  return diagnostics.length > 0
+    ? { repairedCandidate: repairedLines.join('\n'), repairDiagnostics: diagnostics }
+    : null;
+};
+
+// Tried in order after the strict parse fails; the first whose result parses is
+// kept and flagged. Attempted edits are retained when none parses.
+const PAYLOAD_REPAIRS = [
+  { repair: repairDelimiterDamage, flag: 'json_delimiter_damage_repaired' },
+  { repair: trimOverclosedLines, flag: 'json_overclosed_lines_repaired' }
+];
+
 const describeJsonError = (error, candidate, rawText) => {
   const message = String(error.message);
   const position = message.match(/\bposition (\d+)/);
@@ -173,16 +240,24 @@ const parseStrictJsonCandidate = (
     parsed = JSON.parse(candidate);
   } catch (initialError) {
     jsonDiagnostic = describeJsonError(initialError, candidate, rawTextForError);
-    const repair = repairDelimiterDamage(candidate);
-    if (!repair) {
-      throw createBadJsonError(createError, rawTextForError, repairDiagnostics, jsonDiagnostic);
+    const attempted = [];
+    let repaired = false;
+    for (const { repair, flag } of PAYLOAD_REPAIRS) {
+      const result = repair(candidate);
+      if (!result) continue;
+      try {
+        parsed = JSON.parse(result.repairedCandidate);
+      } catch {
+        attempted.push(...result.repairDiagnostics);
+        continue;
+      }
+      repairDiagnostics.push(...result.repairDiagnostics);
+      integrityFlags.push(flag);
+      repaired = true;
+      break;
     }
-    repairDiagnostics.push(...repair.repairDiagnostics);
-    try {
-      parsed = JSON.parse(repair.repairedCandidate);
-      integrityFlags.push('json_delimiter_damage_repaired');
-    } catch {
-      throw createBadJsonError(createError, rawTextForError, repairDiagnostics, jsonDiagnostic);
+    if (!repaired) {
+      throw createBadJsonError(createError, rawTextForError, [...repairDiagnostics, ...attempted], jsonDiagnostic);
     }
   }
 

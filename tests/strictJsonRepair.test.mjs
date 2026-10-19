@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { readFile, readdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
+
+import { writeSpelloutAttempts } from '../contractQualification/spelloutArtifacts.js';
+import { resolveResearchModelSelection } from '../server/babelParser/researchModelCatalog.js';
 
 import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 import { parseModelJsonDetailed } from '../server/babelParser/modelJson.js';
@@ -187,7 +193,7 @@ test('the local route retains repair diagnostics when normalization rejects the 
   );
 });
 
-test('committed raw fixtures activate no delimiter repair', async () => {
+test('committed raw fixtures activate no JSON repair', async () => {
   const fixtureNames = (await readdir(fixturesDirectory))
     .filter((name) => name.endsWith('.json'))
     .sort();
@@ -195,8 +201,167 @@ test('committed raw fixtures activate no delimiter repair', async () => {
 
   for (const fixtureName of fixtureNames) {
     const rawFixture = await readFile(new URL(fixtureName, fixturesDirectory), 'utf8');
-    const parsed = parseModelJsonDetailed(rawFixture);
-    assert.deepEqual(parsed.repairDiagnostics, [], fixtureName);
-    assert.equal(parsed.integrityFlags.includes('json_delimiter_damage_repaired'), false, fixtureName);
+    for (const layout of [rawFixture, JSON.stringify(JSON.parse(rawFixture), null, 2)]) {
+      const parsed = parseModelJsonDetailed(layout);
+      assert.deepEqual(parsed.repairDiagnostics, [], fixtureName);
+      assert.deepEqual(parsed.integrityFlags, [], fixtureName);
+      assert.equal(parsed.jsonDiagnostic, undefined, fixtureName);
+    }
+  }
+});
+
+// One stage's one-line tree closes its forest and stage, which the next lines
+// close again, so the root ends before the second stage.
+const overclosedStages = [
+  '{',
+  '  "derivationStages": [',
+  '    {',
+  '      "statement": "Bäume.",',
+  '      "workspaceForest": [',
+  '        {"id":"a","label":"A","children":[{"id":"b","label":"B","children":[]}]}]}',
+  '      ]',
+  '    },',
+  '    {',
+  '      "statement": "two",',
+  '      "workspaceForest": [',
+  '        {"id":"c","label":"C","children":[]}',
+  '      ]',
+  '    }',
+  '  ]',
+  '}'
+];
+const overclosedPayload = { derivationStages: [
+  { statement: 'Bäume.', workspaceForest: [{ id: 'a', label: 'A', children: [{ id: 'b', label: 'B', children: [] }] }] },
+  { statement: 'two', workspaceForest: [{ id: 'c', label: 'C', children: [] }] }
+] };
+const overclosedValue = '{"id":"a","label":"A","children":[{"id":"b","label":"B","children":[]}]}';
+const excessCloserOffset = (text) => Buffer.byteLength(text.slice(0, text.indexOf(overclosedValue) + overclosedValue.length), 'utf8');
+
+test('removes the closers an over-closed line adds after its complete value', () => {
+  const candidate = overclosedStages.join('\n');
+  assert.throws(() => JSON.parse(candidate));
+  const parsed = parseModelJsonDetailed(candidate);
+
+  assert.deepEqual(parsed.payload, overclosedPayload);
+  assert.deepEqual(parsed.integrityFlags, ['json_overclosed_lines_repaired']);
+  assert.equal(parsed.jsonDiagnostic.kind, 'json-syntax');
+  assert.deepEqual(parsed.repairDiagnostics, [expectedDiagnostic({
+    kind: 'remove_excess_closers_at_line_end',
+    candidateByteOffset: excessCloserOffset(candidate),
+    removedText: ']}'
+  })]);
+});
+
+test('over-closed line repair keeps CRLF line ends and a trailing comma', () => {
+  const lines = overclosedStages.slice();
+  lines[5] = '        {"id":"a","label":"A","children":[{"id":"b","label":"B","children":[]}]}]},';
+  lines.splice(6, 0, '        {"id":"z","label":"Z","children":[]}');
+  const candidate = lines.join('\r\n');
+  const parsed = parseModelJsonDetailed(candidate);
+
+  assert.deepEqual(parsed.payload.derivationStages[0].workspaceForest.map((root) => root.id), ['a', 'z']);
+  assert.deepEqual(parsed.repairDiagnostics, [expectedDiagnostic({
+    kind: 'remove_excess_closers_at_line_end',
+    candidateByteOffset: excessCloserOffset(candidate),
+    removedText: ']}'
+  })]);
+});
+
+test('valid JSON whose lines close containers they did not open is never rewritten', () => {
+  const candidate = ['{', '  "a": [', '    {"b":"]}"}]}'].join('\n');
+  const parsed = parseModelJsonDetailed(candidate);
+
+  assert.deepEqual(parsed.payload, { a: [{ b: ']}' }] });
+  assert.deepEqual(parsed.integrityFlags, []);
+  assert.deepEqual(parsed.repairDiagnostics, []);
+  assert.equal(parsed.jsonDiagnostic, undefined);
+});
+
+test('over-closed line repair is kept only when the whole response then parses', () => {
+  const unrepairable = overclosedStages.slice();
+  unrepairable[9] = '      "statement": "two"';
+  const candidate = unrepairable.join('\n');
+  assert.throws(
+    () => parseModelJsonDetailed(candidate),
+    (error) => {
+      assert.equal(error instanceof ParseApiError, true);
+      assert.equal(error.code, 'BAD_MODEL_RESPONSE');
+      assert.equal(error.failure.processingStep, 'json-decoding');
+      assert.match(error.details.jsonDiagnostic.message, /after JSON/);
+      const kinds = error.details.payloadRepairDiagnostics.map((diagnostic) => diagnostic.kind);
+      assert.ok(kinds.includes('remove_unmatched_closer'));
+      assert.deepEqual(error.details.payloadRepairDiagnostics.at(-1), expectedDiagnostic({
+        kind: 'remove_excess_closers_at_line_end',
+        candidateByteOffset: excessCloserOffset(candidate),
+        removedText: ']}'
+      }));
+      return true;
+    }
+  );
+});
+
+test('over-closed line repair needs the line layout and one complete value before the closers', () => {
+  // One line has no layout that shows which closers are extra.
+  const oneLine = '{"derivationStages":[{"workspaceForest":[{"id":"a"}]}]},{"workspaceForest":[]}]}';
+  const withLine = (line) => Object.assign(overclosedStages.slice(), { 5: line }).join('\n');
+  const candidates = [oneLine,
+    // Two values share the line before its closers.
+    withLine('        {"id":"a","label":"A","children":[]},{"id":"b","label":"B","children":[]}]}'),
+    // The line's value is closed by the wrong delimiter.
+    withLine('        {"id":"a","label":"A","children":[}]}]}')];
+  for (const candidate of candidates) {
+    assert.throws(
+      () => parseModelJsonDetailed(candidate),
+      (error) => {
+        assert.equal(error.code, 'BAD_MODEL_RESPONSE');
+        assert.equal((error.details.payloadRepairDiagnostics ?? [])
+          .some((diagnostic) => diagnostic.kind === 'remove_excess_closers_at_line_end'), false);
+        return true;
+      }
+    );
+  }
+});
+
+const overclosedOutput = {
+  // GPT-6.1 Sol at high effort, Codex qualification night4-20261019, unaltered.
+  file: new URL('de-verb-cluster-overclosed-lines.output.txt', fixturesDirectory),
+  sentence: 'Ich glaube, dass der Arzt den Patienten nicht hätte operieren lassen dürfen.',
+  framework: 'xbar'
+};
+
+test('a provider response with over-closed tree lines yields every analysis with its repairs in provenance', async () => {
+  const rawText = await readFile(overclosedOutput.file, 'utf8');
+  const bundle = await createLocalRoutes(rawText).parseSentenceWithLocalModel(overclosedOutput.sentence, overclosedOutput.framework);
+
+  assert.equal(bundle.analyses.length, 6);
+  const raw = Buffer.from(rawText, 'utf8');
+  for (const analysis of bundle.analyses) {
+    assert.ok(analysis.provenance.payloadIntegrityFlags.includes('json_overclosed_lines_repaired'));
+    const repairs = analysis.provenance.payloadRepairDiagnostics;
+    assert.equal(repairs.length, 12);
+    for (const repair of repairs) {
+      assert.equal(repair.kind, 'remove_excess_closers_at_line_end');
+      // The response has no BOM or leading space, so candidate offsets are raw offsets.
+      assert.equal(raw.subarray(repair.candidateByteOffset, repair.candidateByteOffset + 3).toString('utf8'), ']}\n');
+    }
+    assert.deepEqual(createTreeBankBundleSnapshot({ ...bundle, analyses: [analysis] })
+      .analyses[0].provenance.payloadRepairDiagnostics, repairs);
+  }
+});
+
+test('qualification spell-out keeps the over-closed line repairs and every analysis', async () => {
+  const text = await readFile(overclosedOutput.file, 'utf8');
+  const outputPath = mkdtempSync(path.join(tmpdir(), 'babel-overclosed-'));
+  try {
+    const written = writeSpelloutAttempts({ outputPath, sentence: overclosedOutput.sentence, framework: overclosedOutput.framework,
+      model: resolveResearchModelSelection('openai:gpt-6.1-sol', {}), text });
+    assert.deepEqual(written.map((item) => [item.reviewEntry.attemptId, item.receipt.outcome.status]), [['parse', 'valid-pending-review']]);
+    assert.equal(written[0].receipt.artifacts.analysisCount, 6);
+    const { ingress } = JSON.parse(readFileSync(path.join(outputPath, 'spellout.json'), 'utf8'));
+    assert.equal(ingress.status, 'parsed');
+    assert.deepEqual(ingress.integrityFlags, ['json_overclosed_lines_repaired']);
+    assert.equal(ingress.repairDiagnostics.length, 12);
+  } finally {
+    rmSync(outputPath, { recursive: true, force: true });
   }
 });
