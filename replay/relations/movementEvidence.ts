@@ -479,7 +479,18 @@ export function recoverMovementEvidence(
       });
     });
   }
-  const priorSources = explicitPriorSources.length ? explicitPriorSources : structuralPriorSources;
+  // A moved occurrence can keep its ID without a prior anchor. When a claimed
+  // landing has left its preceding slot and one anchored same-lineage
+  // occurrence new in this stage holds that slot, the landing's own preceding
+  // occurrence is the prior source. Only a claim that already names a source
+  // or witness qualifies; earlier unchanged copies cannot compete as landings.
+  const retainedLandingSources = !explicitPriorSources.length && !structuralPriorSources.length && sources.length
+    ? targets.filter(id => {
+      const pair = sourceOccurrencePair(current, prior, id, anchored);
+      return pair?.landing.id === id && !prior.nodes.has(pair.source.id);
+    }) : [];
+  const priorSources = explicitPriorSources.length ? explicitPriorSources
+    : structuralPriorSources.length ? structuralPriorSources : retainedLandingSources;
   const priorSource = priorSources.length === 1 ? priorSources[0] : undefined;
   // In a successive step, only the anchored occurrence occupying this source's
   // preceding slot is its new lower witness. Older copies stay separate evidence.
@@ -498,6 +509,10 @@ export function recoverMovementEvidence(
     witnesses = stepWitnesses;
   }
   const sourcePair = priorSource ? sourceOccurrencePair(current, prior, priorSource, anchored) : undefined;
+  // The landing kept its ID and one new occurrence holds its preceding slot:
+  // the step is structurally proved whatever the lower field is called.
+  const retainedLandingHop = Boolean(sourcePair && sourcePair.landing.id === priorSource
+    && targets.includes(sourcePair.landing.id) && !prior.nodes.has(sourcePair.source.id));
   const sourceContainers = anchored.filter(id => entries.filter(entry => entry.ids.includes(id)
     && hasRole(entry.key, 'movement.source')).every(entry => sourceContainerRole(entry.key)));
   const sourceAnchors = sourcePair && priorSource
@@ -536,7 +551,8 @@ export function recoverMovementEvidence(
     }
   }
   const onlyEarlierChainSources = sources.length > 0 && sources.every(isEarlierChainOccurrence);
-  if ((!sources.length || onlyEarlierChainSources) && priorSource && canBindStructuralEndpoints) {
+  if (priorSource && (!sources.length ? canBindStructuralEndpoints
+    : onlyEarlierChainSources && (canBindStructuralEndpoints || retainedLandingHop))) {
     const lower = anchored.filter(id => current.nodes.get(id)?.lineageId
       && current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource)?.lineageId && samePriorSlot(id, priorSource));
     if (lower.length === 1) {

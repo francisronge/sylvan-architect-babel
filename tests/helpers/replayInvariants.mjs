@@ -457,6 +457,66 @@ export function checkNoEarlyReveal(replay) {
   return out;
 }
 
+/** Each authored node of a forest by id, with its parent id and root; a repeated id maps to null. */
+function locateAuthored(forest) {
+  const out = new Map();
+  const visit = (node, parentId, root) => {
+    if (!node?.id) return;
+    out.set(String(node.id), out.has(String(node.id)) ? null : { node, parentId, root });
+    (node.children ?? []).forEach(child => visit(child, String(node.id), root));
+  };
+  (forest ?? []).forEach((root, index) => visit(root, null, index));
+  return out;
+}
+const canonical = (value, skip = new Set()) => JSON.stringify(value, (key, field) => skip.has(key) ? undefined
+  : field && typeof field === 'object' && !Array.isArray(field) ? Object.fromEntries(Object.keys(field).sort().map(name => [name, field[name]])) : field);
+const OCCURRENCE_FIELDS = new Set(['id', 'silent', 'tokenIndex']);
+/** The same syntax and words, whichever occurrence is pronounced or addressed. */
+const sameMaterial = (left, right) => canonical(left, OCCURRENCE_FIELDS) === canonical(right, OCCURRENCE_FIELDS);
+
+/** New syntax in a stage is built by that stage's construction steps unless
+ * displacement introduces it. A relation moment may show syntax new in its
+ * stage only as a proved movement, whose extent no-early-reveal bounds, or
+ * when its claim names an earlier occurrence the stage displaces: removes,
+ * changes (its subtree differs) or gives another parent, or re-merges as an
+ * unchanged copy of its lineage inside the syntactic object that holds it, or
+ * names a new occurrence whose lineage's earlier occurrence is displaced. A
+ * preceding root that gains a parent is merged, not displaced. A claim that
+ * relates only material merged as it was, such as an identity across
+ * conjuncts or a realization of a newly built phrase, would take over that
+ * construction. Derived words are pronunciation, not construction. */
+export function checkRelationConstruction(replay, record) {
+  const steps = replay.playbackSteps, stages = record.derivationStages ?? [], out = [];
+  steps.forEach((step, index) => {
+    if (index === 0 || step.replayKind !== 'relation' || !step.replayRelationIdentity || momentOwnership(step).endpoints.size) return;
+    const { stageIndex, relationIndex } = step.replayRelationIdentity;
+    const before = locateAuthored(stages[stageIndex - 1]?.workspaceForest), after = locateAuthored(stages[stageIndex]?.workspaceForest);
+    const previous = frameStructure(steps[index - 1]), current = frameStructure(step);
+    const fresh = [...current.displayed].filter(id => !previous.displayed.has(id)).filter(id => {
+      const identity = authoredIdentity(current.nodes.get(id));
+      return identity.derivedWordOf === undefined && !before.has(String(identity.id));
+    });
+    if (!fresh.length) return;
+    const named = relationMentions(stages[stageIndex]?.relations?.[relationIndex]).filter(id => before.has(id));
+    // A repeated id cannot be compared, so it is not reported.
+    const displaced = id => {
+      const was = before.get(id), now = after.get(id);
+      return !was || !now || canonical(was.node) !== canonical(now.node) || Boolean(was.parentId) && was.parentId !== now.parentId;
+    };
+    const copies = fresh.map(id => after.get(String(authoredIdentity(current.nodes.get(id)).id))).filter(Boolean);
+    const remerged = id => Boolean(before.get(id).node.lineageId) && copies.some(copy => copy.node.lineageId === before.get(id).node.lineageId
+      && sameMaterial(copy.node, before.get(id).node) && copy.root === after.get(id).root);
+    // A new occurrence the claim names continues its lineage's displaced earlier occurrence.
+    const namedLineages = new Set(relationMentions(stages[stageIndex]?.relations?.[relationIndex])
+      .filter(id => !before.has(id) && after.get(id)?.node.lineageId).map(id => after.get(id).node.lineageId));
+    const copiesDisplaced = [...before].some(([id, was]) => was && namedLineages.has(was.node.lineageId) && displaced(id));
+    if (copiesDisplaced || named.some(id => displaced(id) || remerged(id))) return;
+    fresh.forEach(id => out.push(violation('relation-construction', index + 1,
+      `${id} appears at relation "${step.operation}", whose claim displaces nothing the stage had`)));
+  });
+  return out;
+}
+
 /** A parent already on screen gains a child only at a step that owns that
  * attachment. An edge to a parent displayed at the preceding step is new when
  * the child was not displayed under it there, either because the child is new
