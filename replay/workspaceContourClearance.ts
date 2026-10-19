@@ -4,7 +4,9 @@ import type { SyntaxNode } from '../types.ts';
 import type { TreeCoordinateReservation } from './treeLayout.ts';
 import { getNodeId, applyVizIds } from './displayIdentity.ts';
 import { plaqueTreeObstacles } from './relations/plaquePlacement.ts';
+import { boundedObstacleIndex } from './verticalObstacleIndex.ts';
 
+type Box = ReturnType<typeof plaqueTreeObstacles>[number];
 type Scene = {
   canvas: SyntaxNode;
   nodes: Map<string, d3.HierarchyPointNode<SyntaxNode>>;
@@ -38,9 +40,34 @@ export function separateWorkspaceContours<T extends Scene>(scenes: T[], measureC
       members.forEach(node => membership.set(getNodeId(node), owner));
       boxes[owner].push(...plaqueTreeObstacles(members, measureCategoryText));
     }
+    // A pair's gap is the largest `a.x + a.width + 34 - b.x` over vertically
+    // overlapping boxes; with finite x and widths no term is NaN, so the maximum
+    // is independent of visiting order. Rounding is monotone, so no obstacle at or
+    // right of a range's leftmost `x` can raise the gap above that bound's term.
+    const extents = boxes.map(rects => {
+      let left = Infinity, right = -Infinity, finite = true;
+      for (const rect of rects) {
+        finite &&= Number.isFinite(rect.x) && Number.isFinite(rect.width);
+        left = Math.min(left, rect.x); right = Math.max(right, rect.x + rect.width + 34);
+      }
+      return { left, right, finite };
+    });
+    const indexes = new Map<number, ReturnType<typeof boundedObstacleIndex<Box>>>();
     for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+      const bounded = extents[i].finite && extents[j].finite, left = extents[j].left;
+      if (bounded && extents[i].right - left <= 0) continue;
       let gap = 0;
-      for (const a of boxes[i]) for (const b of boxes[j]) {
+      if (bounded) {
+        let query = indexes.get(j);
+        if (!query) indexes.set(j, query = boundedObstacleIndex(boxes[j]));
+        for (const a of boxes[i]) {
+          if (a.x + a.width + 34 - left <= gap) continue;
+          query(a, b => {
+            if (!(Math.min(a.y + a.height, b.y + b.height) <= Math.max(a.y, b.y))) gap = Math.max(gap, a.x + a.width + 34 - b.x);
+            return false;
+          }, range => a.x + a.width + 34 - range > gap);
+        }
+      } else for (const a of boxes[i]) for (const b of boxes[j]) {
         if (Math.min(a.y + a.height, b.y + b.height) <= Math.max(a.y, b.y)) continue;
         gap = Math.max(gap, a.x + a.width + 34 - b.x);
       }

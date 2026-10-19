@@ -103,3 +103,27 @@ test('many disjoint obstacles do not change a rejected optional tie or its later
   assert.equal(expected.accepted, true);
   assert.deepEqual(make(true), expected);
 });
+
+test('repeated contours place exactly as distinct copies of them, wherever they meet', () => {
+  // The same immutable obstacle lists meet in several frames, at equal and at
+  // different offsets. Shared lists are measured once per exact placement;
+  // copies are measured per frame.
+  const ink = (seed, count) => Array.from({ length: count }, (_, index) => ({
+    x: ((seed * 37 + index * 53) % 97) / 3 - 40, y: ((seed * 11 + index * 29) % 41) * 7.25 - 140,
+    width: 9 + (index % 5) * 6.5, height: 6 + (index % 3) * 9 }));
+  const make = shared => {
+    const lists = [ink(1, 40), ink(2, 36)];
+    const list = index => shared ? lists[index] : structuredClone(lists[index]);
+    // Two peers placed first share one contour list but stand apart. The later
+    // contour meets both in every frame, so one pair of lists recurs at two offsets.
+    const frames = [frame([atom('a', 0, list(0)), atom('z', 2, list(0))]),
+      ...Array.from({ length: 5 }, () => frame([atom('a', 0, list(0)), atom('z', 2, list(0)), atom('b', 1, list(1))]))];
+    const positions = [{ a: [-200, 0], z: [20.5, 0] },
+      ...Array.from({ length: 5 }, () => ({ a: [-200, 0], z: [20.5, 0], b: [10 / 3, 0.5] }))];
+    return placeRigidGroups(rigidPoseGraph(frames), refs(...positions));
+  };
+  const copies = make(false);
+  assert.equal(copies.accepted, true);
+  assert.notEqual(copies.coordinates[5].get('b').x, 10 / 3, 'the later contour is cleared from the second peer');
+  assert.deepEqual(make(true), copies);
+});
