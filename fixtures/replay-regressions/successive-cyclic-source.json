@@ -1,5 +1,5 @@
 {
-  "description": "Saved analyses in which operators that keep their ids move one more hop and leave a new trace in their preceding slot, while each claim names that trace under an open field and an older trace of the same chain, kept unchanged in its own slot, under a source or witness field. No field names the preceding occurrence, so recovery read the older trace as the hop's source. The new trace in the moved occurrence's preceding slot is the source, whatever its field is called; the older trace is chain context. Frames are the 1-based Replay frames on 564e52b.",
+  "description": "Saved analyses in which operators that keep their ids move one more hop and leave a new trace in their preceding slot, while each claim names that trace under an open field and an older trace of the same chain, kept unchanged in its own slot, under a source or witness field. No field names the preceding occurrence, so recovery read the older trace as the hop's source. The new trace in the moved occurrence's preceding slot is the source, whatever its field is called; the older trace is chain context. Frames are the 1-based Replay frames on 711ef7d.",
   "cases": [
     {
       "key": "tough-relative",

@@ -110,8 +110,8 @@ export const EXCEPTIONS = [
   x(SPREAD_RETENTION, 'replay-regressions/waiting-root-continuity.json#', 'settled-path-independence', 'retention',
     'stage 3', { desktop: { '43>44': 35.03 }, mobile: { '43>44': 37.77 } }),
   // Binding each hop to its new trace removes the saved analysis's off-canvas
-  // unmoved poses (stages 9-10) and stage 11 relayout jumps on 564e52b; the final
-  // subject raising now first paints part of its landing beyond the canvas.
+  // unmoved pose at stage 10 on 711ef7d; the final subject raising now first
+  // paints part of its landing beyond the canvas.
   x(MOVED_OFF_CANVAS, 'replay-regressions/successive-cyclic-source.json#/cases/0', 'first-paint-continuity', 'off-canvas:moved', 'stage 12',
     { desktop: { '121>122': 27.71 }, mobile: { '121>122': 56.45 } }),
 ];
