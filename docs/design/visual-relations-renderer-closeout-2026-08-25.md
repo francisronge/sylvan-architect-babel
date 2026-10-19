@@ -563,6 +563,27 @@ stage cursor advances afterwards. Canvas projection, movement transitions,
 layout, visibility and presentation have independent owners. Workspace placement
 separates attachment proposals and search from rendered-plan validation.
 
+Relation moments follow authored order with one exception. In October Francis
+decided that Babel must not limit how a model orders the claims of one stage. A
+relation needing syntax that a later relation of its stage introduces plays right
+after that relation's moment, or after the last such moment when it needs
+several. Its needs are its current anchors and, for a relation that builds
+structure, the material its new landing host or parent attaches to, followed
+through the construction that builds them. The introducing relation may be a
+recognized movement, a neutral transition or another rewrite; its tier does not
+change the order. Relations waiting for the same moment keep authored order, a
+chain of needs resolves in turn, and every other relation keeps its authored
+position. A construction step already under way, which may build what the
+waiting relation needs, completes first. `replay/relationMomentOrder.ts` computes
+the order once per stage, and `stageScheduling.ts` plays it without introducing
+syntax early. Needs that form a cycle cannot all be met: the cycle's members keep
+authored order among themselves, a relation needing a member keeps its authored
+position relative to it, and Replay reports the unavailable syntax as
+`RELATION_TIMING_CONFLICT`. A realization that plays after a movement still owns
+the later pronunciation of that movement's landing. The authored record, the
+relation plan and each relation's marks are unchanged; only the order of moments
+within the stage differs.
+
 `TreeVisualizer.tsx` connects React state with `components/renderer/treeFrame.ts`,
 which owns frame drawing order and disposal. `relationScene.ts` binds the plan
 and dispatches family painters; `frameCamera.ts` owns fitting and retained pose.
@@ -986,9 +1007,10 @@ indistinguishable unproved siblings are insufficient. Unsupported ownership and
 multiple PF owners retain their ambiguity. Replay retains the earlier association through
 ambiguous moments and shows the completed association at the Stage Record. It
 does not guess ownership from open prose, relation names or linguistic expectations.
-Diagnostics list the candidate relation numbers. A direct owner whose
-participants are not yet visible also defers to the Stage Record rather than
-handing ownership to a later movement. The Japanese stem/allomorph and
+Diagnostics list the candidate relation numbers. A direct owner waits for the
+moment that introduces its participants; one whose participants are still not
+visible at its moment defers to the Stage Record rather than handing ownership
+to a later movement. The Japanese stem/allomorph and
 orthographic-association regression exercises competing direct coverage without
 changing the authored structure or pronunciation.
 
@@ -1082,10 +1104,13 @@ silence state. This does not transfer ownership of its other children or later
 realization claims. A later exact realization owner still controls that
 container's word and token metadata.
 
-A movement envelope may also contain contextual claims. If a current contextual
-anchor is introduced only by a later relation, report the timing conflict while
-preserving the independently proved movement and its authored moment. Do not
-reveal that context early or delay valid sibling claims. Prior-stage witnesses
+A movement envelope may also contain contextual claims. A current contextual
+anchor introduced by a later relation makes the movement wait for that relation's
+moment, as the relation-order exception in Replay preparation describes; the
+movement's own transition is unchanged, and its construction never builds that
+context early. When waiting would complete a cycle, or the context is built only
+by ordinary construction that has not yet run, report the timing conflict and keep
+the movement's moment. Valid sibling claims are not delayed. Prior-stage witnesses
 remain prior evidence and need not be present in the current drawing.
 
 Restoring a prior source also restores its effective pronunciation before its

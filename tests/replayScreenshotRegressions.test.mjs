@@ -42,13 +42,15 @@ for (const [name, parent, landing, source, cHead, whRelation] of [
   });
 }
 
-test('early wh licensing retains its original relation and diagnostic without revealing future syntax', () => {
+test('early wh licensing retains its original relation and waits for its operator without revealing future syntax', () => {
   const record = records.find(item => item.name === 'astra-xbar');
   const steps = play(record);
   const step = steps[moment(steps, 4, 0)];
   assert.equal(buildReplayPanelContent(step, record.derivationStages).heading, 'wh licensing');
-  assert.match(step.movementDiagnostics.join('\n'), /requires frontedNP before relation 2/);
-  assert.match(step.movementDiagnostics.join('\n'), /unavailable structure is not introduced early/);
+  assert.equal(moment(steps, 4, 0), moment(steps, 4, 1) + 1, 'it plays right after the A′-chain that introduces frontedNP');
+  assert(visible(step, 'frontedNP'));
+  assert(!steps[moment(steps, 4, 1) - 1].replayVisibleNodeIds.includes('frontedNP'), 'frontedNP is not revealed early');
+  assert(!step.movementDiagnostics?.some(message => message.startsWith('RELATION_TIMING_CONFLICT')));
   for (const node of nodes(step.replayCanvasData)) {
     if (node.replayLayoutOnly) assert(!visible(step, node.id), `future node exposed: ${node.id}`);
   }

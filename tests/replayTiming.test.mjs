@@ -125,7 +125,7 @@ test('a neutral copied occurrence cannot publish a later owned realization early
   }
 });
 
-test('earlier neutral claims diagnose later-owned outputs without changing their visibility or order', () => {
+test('an earlier neutral claim waits for the later rewrite that introduces its anchor', () => {
   for (const renamed of [false, true]) for (const early of [true, false]) {
     const id = value => renamed ? ` ${value}::__leaf ` : value;
     const output = abstractItem(id('output'), [realizedItem(id('word'))]);
@@ -137,18 +137,17 @@ test('earlier neutral claims diagnose later-owned outputs without changing their
     const record = transitionRecord(root([input, independent]), root([output, independent]),
       early ? [annotation, change] : [change, annotation]);
     const original = structuredClone(record);
-    const relationSteps = moments(play(record), 1);
-    assert.deepEqual(relationSteps.map(s => s.replayRelationIdentity.relationIndex), [0, 1]);
-    const observed = relationSteps[early ? 0 : 1];
-    assert.equal(visible(observed, id('word')), !early);
-    assert.ok(visible(observed, id('independent')));
-    if (early) {
-      assert.ok(visible(observed, id('input')));
-      assert.match(observed.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 2, relation 1.*before relation 2/);
-    } else assert.equal(observed.movementDiagnostics?.length || 0, 0);
-    const changed = relationSteps[early ? 1 : 0];
+    const steps = play(record), relationSteps = moments(steps, 1);
+    assert.deepEqual(relationSteps.map(s => s.replayRelationIdentity.relationIndex), early ? [1, 0] : [0, 1]);
+    const [changed, observed] = relationSteps;
+    const before = steps[steps.indexOf(changed) - 1];
+    assert.ok(visible(before, id('input')));
+    assert.ok(!visible(before, id('word')), 'the rewrite output is not revealed early');
     assert.ok(visible(changed, id('word')));
     assert.ok(!visible(changed, id('input')));
+    assert.ok(visible(observed, id('word')), 'the claim shows the anchor it waited for');
+    assert.ok(visible(observed, id('independent')));
+    assert.ok(!steps.some(s => s.movementDiagnostics?.some(message => message.includes('RELATION_TIMING_CONFLICT'))));
     assert.deepEqual(record, original);
   }
 });
@@ -250,18 +249,18 @@ for (const anchor of ['d_john_hi', 'higher_head']) {
 }
 
 for (const anchor of ['t_did_hi', 'c_complex']) {
-  test(`a future ${anchor} is diagnosed without reordering or revealing it`, () => {
-    const steps = play(mixedHeadStage(anchor));
-    const [ordinary, movement] = moments(steps, 3);
-    assert.deepEqual(moments(steps, 3).map(s => s.replayRelationIdentity.relationIndex), [0, 1]);
-    assert.ok(!visible(ordinary, anchor));
-    const diagnostic = ordinary.movementDiagnostics.join('\n');
-    assert.match(diagnostic, /Stage 4/);
-    assert.match(diagnostic, /relation 1/);
-    assert.match(diagnostic, /before relation 2/);
-    assert.match(diagnostic, /order is preserved/);
-    assert.ok(visible(movement, 't_did_hi'));
+  test(`a claim naming a future ${anchor} plays right after the head movement that introduces it`, () => {
+    const record = mixedHeadStage(anchor), original = structuredClone(record);
+    const steps = play(record);
+    const [movement, ordinary] = moments(steps, 3);
+    assert.deepEqual([movement, ordinary].map(s => s.replayRelationIdentity.relationIndex), [1, 0]);
+    assert.equal(steps.indexOf(ordinary), steps.indexOf(movement) + 1);
+    assert.ok(!visible(steps[steps.indexOf(movement) - 1], anchor), 'the anchor is not revealed early');
+    assert.ok(visible(movement, anchor));
+    assert.ok(visible(ordinary, anchor));
+    assert.ok(!steps.some(s => s.movementDiagnostics?.some(message => message.includes('RELATION_TIMING_CONFLICT'))));
     assert.ok(visible(steps.at(-1), anchor), 'the authored final state remains inspectable');
+    assert.deepEqual(record, original);
   });
 }
 
@@ -299,13 +298,15 @@ test('open head categories allow an earlier claim to use the receiving projectio
   }
 });
 
-test('open receiving-head notation does not release a future landing or complex for an earlier claim', () => {
+test('open receiving-head notation does not release a future landing or complex early; an earlier claim waits for it', () => {
   for (const label of ['Foc', 'AgrO', 'NovelHead']) for (const anchor of ['t_did_hi', 'c_complex']) {
     const record = labelledReceivingHead(label, anchor), original = structuredClone(record);
-    const [ordinary, movement] = moments(play(record), 3);
-    assert.ok(!visible(ordinary, anchor), `${label}: ${anchor}`);
-    assert.match(ordinary.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 4, relation 1.*before relation 2/);
+    const steps = play(record), [movement, ordinary] = moments(steps, 3);
+    assert.deepEqual([movement, ordinary].map(s => s.replayRelationIdentity.relationIndex), [1, 0], `${label}: ${anchor}`);
+    assert.ok(!visible(steps[steps.indexOf(movement) - 1], anchor), `${label}: ${anchor}`);
     assert.ok(visible(movement, anchor), `${label}: ${anchor}`);
+    assert.ok(visible(ordinary, anchor), `${label}: ${anchor}`);
+    assert.ok(!steps.some(s => s.movementDiagnostics?.some(message => message.includes('RELATION_TIMING_CONFLICT'))), `${label}: ${anchor}`);
     assert.deepEqual(record, original);
   }
 });
@@ -313,7 +314,8 @@ test('open receiving-head notation does not release a future landing or complex 
 test('phrases and intermediate projections do not become head hosts merely through matching labels', () => {
   for (const label of ['FocP', 'Foc′', 'Foc (projection)', 'Foc broken notation']) {
     const record = labelledReceivingHead(label), original = structuredClone(record);
-    const [ordinary, movement] = moments(play(record), 3);
+    const relations = moments(play(record), 3), moment = index => relations.find(s => s.replayRelationIdentity.relationIndex === index);
+    const [ordinary, movement] = [moment(0), moment(1)];
     assert.match(movement.movementDiagnostics.join('\n'), /MOVEMENT_CONTEXT_UNRESOLVED/);
     assert.deepEqual(nodes(ordinary.replayCanvasData).find(node => node.id === 'c_complex').children.map(node => node.id), ['t_did_hi', 'c_q']);
     assert.deepEqual(record, original);
@@ -394,7 +396,7 @@ test('two movements and intervening relations retain order before a higher merge
   assert.ok(steps.findIndex(s => s.targetNodeId === 'root') > steps.indexOf(relations[3]));
 });
 
-test('movement diagnoses future contextual anchors without changing its own transition', () => {
+test('a movement waits for the later movement that introduces its contextual anchor', () => {
   const phrase = (id, lineageId, silent = false) => ({ id, label: 'DP', lineageId, word: lineageId, silent });
   const record = transitionRecord([phrase('a', 'A'), phrase('b', 'B')], [{
     id: 'root', label: 'XP', children: [
@@ -413,14 +415,23 @@ test('movement diagnoses future contextual anchors without changing its own tran
     if (context === 'prior') early.priorAnchors.context = 'b';
     else early.anchors.context = context === 'future' ? 'b_hi' : context === 'existing' ? 'b' : 'a_hi';
     const original = structuredClone(current), steps = play(current), [first, second] = moments(steps, 1);
-    assert.deepEqual(moments(steps, 1).map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
-    assert.ok(visible(first, 'a_hi'));
-    assert.ok(!visible(first, 'b_hi'));
-    assert.ok(visible(second, 'b_hi'));
-    if (context === 'future') assert.match(first.movementDiagnostics.join('\n'),
-      /RELATION_TIMING_CONFLICT: Stage 2, relation 1.*unavailable authored context: b_hi before relation 2/);
-    else assert.ok(!first.movementDiagnostics?.some(message => message.includes('unavailable authored context')), context);
-    assert.deepEqual(geometry(steps), geometry(base), context);
+    assert.ok(!steps.some(step => step.movementDiagnostics?.some(message => message.includes('RELATION_TIMING_CONFLICT'))), context);
+    if (context === 'future') {
+      assert.deepEqual([first, second].map(step => step.replayRelationIdentity.relationIndex), [1, 0]);
+      assert.equal(steps.indexOf(second), steps.indexOf(first) + 1, 'the waiting movement plays right after');
+      for (const id of ['a_hi', 'b_hi']) assert.ok(!visible(steps[steps.indexOf(first) - 1], id), id);
+      assert.ok(visible(first, 'b_hi'));
+      assert.ok(!visible(first, 'a_hi'), 'the waiting movement keeps its own landing');
+      assert.ok(visible(first, 'a') && nodes(first.replayCanvasData).find(node => node.id === 'a').silent !== true,
+        'its source keeps its preceding form until its own moment');
+      for (const id of ['a_hi', 'b_hi']) assert.ok(visible(second, id), id);
+      const settled = list => geometry(list).map(step => ({ ...step, visible: [...step.visible].sort() }));
+      assert.deepEqual(settled(steps.slice(steps.indexOf(second) + 1)), settled(base.slice(base.indexOf(moments(base, 1)[1]) + 1)),
+        'both transitions complete the same stage');
+    } else {
+      assert.deepEqual([first, second].map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
+      assert.deepEqual(geometry(steps), geometry(base), context);
+    }
     assert.deepEqual(current, original);
   }
 });

@@ -53,6 +53,8 @@ export const EXCEPTIONS = [
     { desktop: { '42>43,43>42': 27.73 } }),
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/workspace-arabic-continuity.json#/cases/9', 'first-paint-continuity', 'jump:relayout', 'stage 2',
     { desktop: { '43>44,44>43': 37.56 } }),
+  x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/workspace-reservation.json#/cases/2', 'first-paint-continuity', 'jump:relayout', 'stage 4',
+    { desktop: { '38>39,39>38': 121.23 }, mobile: { '38>39,39>38': 81.78 } }),
   x(STAGE_RELAYOUT, 'movement/clause-context.json#/cases/3', 'first-paint-continuity', 'jump:camera', 'stage 1',
     { desktop: { '51>50': 72.03 }, mobile: { '51>50': 29.47 } }),
   x(STAGE_RELAYOUT, 'movement/clause-context.json#/cases/3', 'first-paint-continuity', 'jump:camera', 'stage 2',

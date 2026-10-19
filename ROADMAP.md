@@ -48,8 +48,17 @@ syntactic rules. Desktop remains the primary experience.
      (no glide), so it needs a layout answer or acceptance.
    - Decide whether a lower occurrence should stay within its source's old
      horizontal span (81 of 136 land outside it).
-   - Decide the 14 relations authored before the same-stage movement that
-     creates their anchor: today their mark never appears with the anchor.
+   - Relations authored before the same-stage movement that creates their
+     anchor now play right after it (`fix/replay-relation-after-anchor-movement`).
+     Two cycles stay diagnosed as `RELATION_TIMING_CONFLICT`: in the relative
+     pied-piping run the recognized operator-variable movement owns wh2 inside
+     the PP that the neutral Internal Merge introduces, and in the Icelandic
+     case transfer continued V-to-I and I-to-C each own part of one moving head
+     complex. Each needs a decision about which claim introduces the shared
+     syntax, not a different order. The new order also exposes a layout gap:
+     when the Icelandic raising chain waits for V-to-I (workspace-reservation
+     case 2), its subject landing loses its reserved slot and the matrix IP
+     shifts about 120 px at frame 39 (listed camera exception).
    - Mobile calibration and a desktop minimum-zoom clamp.
 3. Clean up the tests:
    - Retire hand-picked per-frame Replay checks that the invariant sweep

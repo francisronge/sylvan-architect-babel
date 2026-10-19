@@ -67,7 +67,7 @@ test('movement owns its new lower occurrence before a later contextual restateme
   assert.equal(movement.movementDiagnostics?.some(message => message.includes('RELATION_TIMING_CONFLICT')) ?? false, false);
 });
 
-test('a contextual claim cannot introduce a future movement occurrence early', () => {
+test('a contextual claim waits for the later movement that introduces its anchor, which is never revealed early', () => {
   const source = leaf('source', 'one', { label: 'NP', lineageId: 'chain' });
   const verb = leaf('verb', 'read');
   const base = node('vp', [source, verb]);
@@ -77,15 +77,21 @@ test('a contextual claim cannot introduce a future movement occurrence early', (
     { relation: 'Contextual observation', anchors: { participant: 'landing' }, priorAnchors: { participant: 'source' } },
     { relation: 'A-movement', anchors: { raisedOccurrence: 'landing', lowerOccurrence: 'trace' }, priorAnchors: { sourceOccurrence: 'source' } }
   ])];
+  const original = structuredClone(stages);
   const steps = replay(stages);
-  const context = steps.find(step => step.replayRelationIdentity?.stageIndex === 1 && step.replayRelationIdentity.relationIndex === 0);
-  const movement = steps.find(step => step.replayRelationIdentity?.stageIndex === 1 && step.replayRelationIdentity.relationIndex === 1);
-  assert.ok(!context.replayVisibleNodeIds.includes('landing'));
-  assert.ok(!context.replayVisibleNodeIds.includes('trace'));
-  assert.ok(context.replayVisibleNodeIds.includes('source'));
-  assert.ok(context.movementDiagnostics?.some(message => message.includes('RELATION_TIMING_CONFLICT')));
-  assert.ok(movement.replayVisibleNodeIds.includes('landing'));
-  assert.ok(movement.replayVisibleNodeIds.includes('trace'));
+  const moments = steps.filter(step => step.replayFrameIndex === 1 && step.replayKind === 'relation');
+  assert.deepEqual(moments.map(step => step.replayRelationIdentity.relationIndex), [1, 0], 'the movement plays first');
+  const [movement, context] = moments;
+  assert.equal(steps.indexOf(context), steps.indexOf(movement) + 1, 'the claim plays right after the movement');
+  const before = steps[steps.indexOf(movement) - 1];
+  assert.ok(before.replayVisibleNodeIds.includes('source'));
+  for (const id of ['landing', 'trace']) {
+    assert.ok(!before.replayVisibleNodeIds.includes(id), `${id} waits for the movement`);
+    assert.ok(movement.replayVisibleNodeIds.includes(id));
+    assert.ok(context.replayVisibleNodeIds.includes(id), `the claim's moment shows ${id}`);
+  }
+  assert.ok(!steps.some(step => step.movementDiagnostics?.some(message => message.includes('TIMING_CONFLICT'))));
+  assert.deepEqual(stages, original, 'the authored relation order is not rewritten');
 });
 
 test('a retained transition witness does not withhold its newly constructed licensing context', () => {

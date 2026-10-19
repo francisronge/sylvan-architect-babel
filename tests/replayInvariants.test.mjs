@@ -86,7 +86,7 @@ test('control: a waiting root projection is allowed only until a later relation 
   assert(reported(checkStageCompletion(waiting, named), 'stage-completion', completion, 'authored matrixCP is not displayed'));
 });
 
-test('control: relation-moments reports a lost, repeated, misplaced or reordered moment', () => {
+test('control: relation-moments reports a lost, repeated, misplaced or needlessly reordered moment', () => {
   assert.deepEqual(checkRelationMoments(replay, sample), []);
   const [first, second] = relationMoments.filter(index => steps[index].replayFrameIndex === 3);
   assert(second !== undefined, 'the sample stage has two separate relations');
@@ -99,7 +99,8 @@ test('control: relation-moments reports a lost, repeated, misplaced or reordered
   const reordered = breakReplay(copy => {
     [copy[first].replayRelationIdentity, copy[second].replayRelationIdentity] = [copy[second].replayRelationIdentity, copy[first].replayRelationIdentity];
   });
-  assert(reported(checkRelationMoments(reordered, sample), 'relation-moments', first + 1, 'relation 3:1 plays before earlier authored relation 3:0'));
+  assert(reported(checkRelationMoments(reordered, sample), 'relation-moments', second + 1,
+    'relation 3:0 plays after later authored relation 3:1 without waiting for syntax it introduces'));
 });
 
 test('control: no-early-reveal reports syntax first shown by a micro-step, a relation moment or a completed stage', () => {
@@ -215,10 +216,9 @@ test('control: marks-at-owning-moment reports a mark before its moment and a mar
 
 const FIRST_STAGE_REWRITE = 'Defect: a first-stage movement claim with no preceding stage to prove its source becomes a neutral rewrite; '
   + 'its moment shows only the anchored root of the rewritten phrase, and the rest of that phrase appears later with an ordinary merge.';
-const ORDER_BEFORE_CONTEXT = 'Defect (diagnosed RELATION_TIMING_CONFLICT): wh-movement is authored before the auxiliary movement '
-  + 'that builds C′; Replay keeps authored order and shows CP with its landing but without C′.';
 const CONTEXT_MERGE_AT_MOMENT = 'Defect (diagnosed RELATION_TIMING_CONFLICT): continued V-to-I is authored before the I-to-C movement '
-  + 'that builds its context; its moment reveals the ordinary merge C′ instead of giving C′ its own step.';
+  + 'that builds its context, and each needs syntax the other introduces, so no Replay order satisfies both and authored order is '
+  + 'kept; its moment reveals the ordinary merge C′ instead of giving C′ its own step.';
 
 const KNOWN_DEFECTS = [
   [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'parent-after-children', 16, 'detP portraitBar'],
@@ -242,7 +242,6 @@ const KNOWN_DEFECTS = [
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 12, 'rVAtT rvAtTLeaf rVAtT::__leaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 28, 'mVAtT mvAtTLeaf'],
   [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 29, 'mVAtT mvAtTLeaf mVAtT::__leaf'],
-  [ORDER_BEFORE_CONTEXT, 'normalized/what-did-mia-see.xbar.json#/analyses/0', 'parent-after-children', 15, 'cbar_question'],
   [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar'],
 ];
 

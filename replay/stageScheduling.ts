@@ -13,6 +13,7 @@ import {
   relationAnchorNodeIds,
   resolveRelationAnchorNodeId
 } from './relationAnchors.ts';
+import { orderRelationMoments } from './relationMomentOrder.ts';
 import { buildRenderableCommittedCanvasData } from './replayCanvas.ts';
 import { mergeReplayDetailBlocks } from './replayPanelFormatting.ts';
 import type { ReplayStageContext } from './stageContext.ts';
@@ -257,9 +258,93 @@ export const finalizeStageReplay = (
         .forEach(child => ordinaryStructuralNodeIds.add(child.id));
     });
     laterAttachments.forEach(nodeIds => nodeIds.forEach(id => ordinaryStructuralNodeIds.add(id)));
+    const availableNodeIds = new Set(previousFrameWorkspaceRoots.flatMap(root => collectSyntaxSubtreeNodeIds(buildRenderableCommittedCanvasData(root))));
+    const structuralProducers = new Map(pendingStructuralSteps.map((step, stepIndex) => [step.targetNodeId, stepIndex]));
+    const relationProducers = new Map<string, number>();
+    relationPlacements.forEach((placement) => {
+      const ownedIds = placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
+        ? [
+          ...[...placement.authoredTargetNodeIds, ...placement.sourceNodeIds].flatMap(nodeId => collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId)))
+            .filter(nodeId => !findExactNodeByIdInForest(structuralWorkspaceRoots, nodeId)),
+          ...getMovementCreatedLandingHostNodeIds(placement),
+          ...(placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).flatMap(movement => newReceivingHeadNodeIds(movement, previousFrameWorkspaceRoots, workspaceRoots))
+        ]
+        : [...(nonMovementTransitionNodeIds.get(placement.relationIndex) || []),
+          ...[...transitionHostNodeIds].filter(([, relationIndex]) => relationIndex === placement.relationIndex).map(([nodeId]) => nodeId)];
+      ownedIds.filter(nodeId => !availableNodeIds.has(nodeId)).forEach(nodeId => {
+        const existingOwner = relationProducers.get(nodeId);
+        // Proven movement owns both new occurrences. A contextual claim
+        // may mention either copy, but cannot steal its construction.
+        if (existingOwner === undefined || (placement.relation.recoveredMovement?.transition
+          && !frameRelationSteps[existingOwner].recoveredMovement?.transition)) {
+          relationProducers.set(nodeId, placement.relationIndex);
+        }
+      });
+    });
+    // What a relation's moment needs from other moments and construction: its
+    // anchors, and the material its new parents attach to.
+    const requiredNodeIds = (placement: RelationPlacement, available: ReadonlySet<string>): string[] => {
+      const landingHostIds = new Set(getMovementCreatedLandingHostNodeIds(placement));
+      const attachmentPrerequisites = [...landingHostIds].flatMap(nodeId => findNodeByIdInForest(workspaceRoots, nodeId)?.children || [])
+        .map(node => node.id)
+        .filter(nodeId => !placement.authoredTargetNodeIds.includes(nodeId) && !landingHostIds.has(nodeId));
+      getMovementCreatedLandingHostPaths(placement).forEach(path => {
+        const outerLandingHost = path.at(-1)!;
+        const attachmentParentId = findParentNodeIdInForest(workspaceRoots, outerLandingHost);
+        const attachmentParent = findNodeByIdInForest(workspaceRoots, attachmentParentId);
+        const structuralAttachment = findNodeByIdInForest(structuralWorkspaceRoots, attachmentParentId);
+        if (structuralProducers.has(attachmentParentId)
+          && !structuralAttachment?.children?.some(child => child.id === outerLandingHost)
+          && attachmentParent?.children?.some(child => child.id !== outerLandingHost && collectSyntaxSubtreeNodeIds(child).some(id => available.has(id)))) {
+          attachmentPrerequisites.push(attachmentParentId);
+        }
+      });
+      // A neutral claim's new parents appear with its output, after their other material.
+      [...transitionHostNodeIds].filter(([, owner]) => owner === placement.relationIndex)
+        .flatMap(([hostId]) => findNodeByIdInForest(workspaceRoots, hostId)?.children || [])
+        .forEach(child => attachmentPrerequisites.push(child.id));
+      return [...placement.relationAnchorNodeIds, ...attachmentPrerequisites].filter(nodeId => relationProducers.get(nodeId) !== placement.relationIndex);
+    };
+    // A movement's other current anchors are context: they are never built
+    // early for it, but it waits for the moment that introduces them.
+    const contextNodeIds = (placement: RelationPlacement): string[] => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
+      ? [...new Set(relationAnchorNodeIds(placement.relation.anchors))].filter(nodeId => !placement.relationAnchorNodeIds.includes(nodeId)
+        && findExactNodeByIdInForest(workspaceRoots, nodeId))
+      : [];
+    // The relations whose moments a node waits for, through the construction
+    // that builds it: the static counterpart of `ensureNodeAvailable`.
+    const initiallyAvailableNodeIds = new Set(availableNodeIds);
+    const producingRelations = (nodeId: string, visiting: Set<string> = new Set()): number[] => {
+      const structuralProducer = structuralProducers.get(nodeId);
+      if (initiallyAvailableNodeIds.has(nodeId) && structuralProducer === undefined)
+        return [];
+      const relationProducer = relationProducers.get(nodeId);
+      if (relationProducer !== undefined)
+        return [relationProducer];
+      if (structuralProducer === undefined || visiting.has(nodeId))
+        return [];
+      visiting.add(nodeId);
+      const step = pendingStructuralSteps[structuralProducer];
+      const producers = (step.sourceNodeIds || []).filter(id => id !== step.targetNodeId).flatMap(id => producingRelations(id, visiting));
+      visiting.delete(nodeId);
+      return producers;
+    };
+    const momentOrder = orderRelationMoments(relationPlacements.map(placement => placement.relationIndex), new Map(relationPlacements.map(placement => [
+      placement.relationIndex,
+      new Set([
+        ...requiredNodeIds(placement, initiallyAvailableNodeIds).flatMap(nodeId => producingRelations(nodeId)),
+        ...contextNodeIds(placement).flatMap(nodeId => relationProducers.get(nodeId) ?? [])
+      ])
+    ])));
+    const momentPosition = new Map(momentOrder.map((relationIndex, position) => [relationIndex, position]));
+    const orderedPlacements = momentOrder.map(relationIndex => relationPlacements.find(placement => placement.relationIndex === relationIndex)!);
+    const playsAfter = (relationIndex: number, ownerIndex: number) => momentPosition.has(relationIndex) && momentPosition.has(ownerIndex)
+      ? momentPosition.get(relationIndex)! > momentPosition.get(ownerIndex)!
+      : relationIndex > ownerIndex;
     const { rebuildStructuralStepForActiveRelations, buildRelationPlaybackStep } = createStageRelationSnapshots(
       compilation, stage, placements, ordinaryStructuralNodeIds,
-      () => new Set([...laterAttachments].flatMap(([wrapper, hosts]) => releasedWrappers.has(wrapper) ? [] : hosts))
+      () => new Set([...laterAttachments].flatMap(([wrapper, hosts]) => releasedWrappers.has(wrapper) ? [] : hosts)),
+      playsAfter
     );
     const relationInsertionIndex = (placement: NonNullable<RelationPlacement>): number => {
       const landingHostNodeIds = getMovementCreatedLandingHostPaths(placement).map(path => path.at(-1)!);
@@ -290,32 +375,9 @@ export const finalizeStageReplay = (
         insertionIndex: relationInsertionIndex(placement)
       }))
       .sort((left, right) => left.insertionIndex === right.insertionIndex
-        ? left.placement.relationIndex - right.placement.relationIndex
+        ? momentPosition.get(left.placement.relationIndex)! - momentPosition.get(right.placement.relationIndex)!
         : left.insertionIndex - right.insertionIndex);
     const stagePlaybackSteps: PlaybackStep[] = [];
-    const availableNodeIds = new Set(previousFrameWorkspaceRoots.flatMap(root => collectSyntaxSubtreeNodeIds(buildRenderableCommittedCanvasData(root))));
-    const structuralProducers = new Map(pendingStructuralSteps.map((step, stepIndex) => [step.targetNodeId, stepIndex]));
-    const relationProducers = new Map<string, number>();
-    relationPlacements.forEach((placement) => {
-      const ownedIds = placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
-        ? [
-          ...[...placement.authoredTargetNodeIds, ...placement.sourceNodeIds].flatMap(nodeId => collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId)))
-            .filter(nodeId => !findExactNodeByIdInForest(structuralWorkspaceRoots, nodeId)),
-          ...getMovementCreatedLandingHostNodeIds(placement),
-          ...(placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).flatMap(movement => newReceivingHeadNodeIds(movement, previousFrameWorkspaceRoots, workspaceRoots))
-        ]
-        : [...(nonMovementTransitionNodeIds.get(placement.relationIndex) || []),
-          ...[...transitionHostNodeIds].filter(([, relationIndex]) => relationIndex === placement.relationIndex).map(([nodeId]) => nodeId)];
-      ownedIds.filter(nodeId => !availableNodeIds.has(nodeId)).forEach(nodeId => {
-        const existingOwner = relationProducers.get(nodeId);
-        // Proven movement owns both new occurrences. A contextual claim
-        // may mention either copy, but cannot steal its construction.
-        if (existingOwner === undefined || (placement.relation.recoveredMovement?.transition
-          && !frameRelationSteps[existingOwner].recoveredMovement?.transition)) {
-          relationProducers.set(nodeId, placement.relationIndex);
-        }
-      });
-    });
     const emittedStructuralSteps = new Set<number>();
     const visitingStructuralSteps = new Set<number>();
     let nextRelation = 0;
@@ -344,9 +406,9 @@ export const finalizeStageReplay = (
         ]))
       };
     };
-    // Preferred insertion positions control presentation, never authored
-    // relation order. A prerequisite may pull independent tree-building
-    // forward, but may not activate a later relation to satisfy an earlier one.
+    // Preferred insertion positions control presentation, never the order of
+    // relation moments. A prerequisite may pull independent tree-building
+    // forward, but may not activate a later moment to satisfy an earlier one.
     const ensureNodeAvailable = (nodeId: string, forRelation?: number): string[] => {
       const structuralProducer = structuralProducers.get(nodeId);
       // Retaining an occurrence does not establish its new child attachment.
@@ -355,7 +417,7 @@ export const finalizeStageReplay = (
         return [];
       const relationProducer = relationProducers.get(nodeId);
       if (relationProducer !== undefined) {
-        if (forRelation !== undefined && relationProducer >= forRelation)
+        if (forRelation !== undefined && !playsAfter(forRelation, relationProducer))
           return [nodeId];
         emitRelationsThrough(relationProducer);
         return availableNodeIds.has(nodeId) ? [] : [nodeId];
@@ -414,30 +476,20 @@ export const finalizeStageReplay = (
       emittedStructuralSteps.add(stepIndex);
       return [];
     };
+    // After a moment, every relation authored before it that has yet to play
+    // follows at once: a relation waiting for that moment plays right after
+    // it, once any construction step in progress, which may build what the
+    // relation needs, completes.
+    let latestAuthored = -1;
+    const relationDue = (through: number) => nextRelation < orderedPlacements.length && (nextRelation <= through
+      || visitingStructuralSteps.size === 0 && orderedPlacements[nextRelation].relationIndex < latestAuthored);
+    const emitWaitingRelations = () => emitRelationsThrough(-1);
     const emitRelationsThrough = (relationIndex: number) => {
-      while (nextRelation < relationPlacements.length
-        && relationPlacements[nextRelation].relationIndex <= relationIndex) {
-        const placement = relationPlacements[nextRelation++];
-        const landingHostIds = new Set(getMovementCreatedLandingHostNodeIds(placement));
-        const attachmentPrerequisites = [...landingHostIds].flatMap(nodeId => findNodeByIdInForest(workspaceRoots, nodeId)?.children || [])
-          .map(node => node.id)
-          .filter(nodeId => !placement.authoredTargetNodeIds.includes(nodeId) && !landingHostIds.has(nodeId));
-        getMovementCreatedLandingHostPaths(placement).forEach(path => {
-          const outerLandingHost = path.at(-1)!;
-          const attachmentParentId = findParentNodeIdInForest(workspaceRoots, outerLandingHost);
-          const attachmentParent = findNodeByIdInForest(workspaceRoots, attachmentParentId);
-          const structuralAttachment = findNodeByIdInForest(structuralWorkspaceRoots, attachmentParentId);
-          if (structuralProducers.has(attachmentParentId)
-            && !structuralAttachment?.children?.some(child => child.id === outerLandingHost)
-            && attachmentParent?.children?.some(child => child.id !== outerLandingHost && collectSyntaxSubtreeNodeIds(child).some(id => availableNodeIds.has(id)))) {
-            attachmentPrerequisites.push(attachmentParentId);
-          }
-        });
-        // A neutral claim's new parents appear with its output, after their other material.
-        [...transitionHostNodeIds].filter(([, owner]) => owner === placement.relationIndex)
-          .flatMap(([hostId]) => findNodeByIdInForest(workspaceRoots, hostId)?.children || [])
-          .forEach(child => attachmentPrerequisites.push(child.id));
-        const requiredIds = [...placement.relationAnchorNodeIds, ...attachmentPrerequisites].filter(nodeId => relationProducers.get(nodeId) !== placement.relationIndex);
+      const through = momentPosition.get(relationIndex) ?? -1;
+      while (relationDue(through)) {
+        const placement = orderedPlacements[nextRelation++];
+        latestAuthored = Math.max(latestAuthored, placement.relationIndex);
+        const requiredIds = requiredNodeIds(placement, availableNodeIds);
         const missing = Array.from(new Set(requiredIds.flatMap(nodeId => ensureNodeAvailable(nodeId, placement.relationIndex))));
         if (missing.length) {
           const descriptions = missing.map(nodeId => {
@@ -445,7 +497,7 @@ export const finalizeStageReplay = (
             return owner === undefined ? `${nodeId} before its structural prerequisites are available`
               : `${nodeId} before relation ${(frameRelationSteps[owner].authoredRelationIndex ?? owner) + 1} (${frameRelationSteps[owner].relation}) introduces it`;
           });
-          const message = `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${(placement.relation.authoredRelationIndex ?? placement.relationIndex) + 1} (${placement.relationLabel}) requires ${descriptions.join('; ')}. Authored relation order is preserved; unavailable structure is not introduced early.`;
+          const message = `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${(placement.relation.authoredRelationIndex ?? placement.relationIndex) + 1} (${placement.relationLabel}) requires ${descriptions.join('; ')}. No Replay order provides it first, so authored relation order is kept; unavailable structure is not introduced early.`;
           const involvedRelations = new Set([
             placement.relationIndex,
             ...missing.map(nodeId => relationProducers.get(nodeId))
@@ -464,13 +516,10 @@ export const finalizeStageReplay = (
           if (owner === placement.relationIndex)
             availableNodeIds.add(nodeId);
         });
-        // A recovered movement can stand independently of its envelope's
-        // contextual claims. Diagnose unavailable current context without
-        // delaying that movement or pulling a later occurrence forward.
-        const unavailableContext = (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
-          ? [...new Set(relationAnchorNodeIds(placement.relation.anchors))].filter(nodeId => !placement.relationAnchorNodeIds.includes(nodeId) && !missing.includes(nodeId)
-            && findExactNodeByIdInForest(workspaceRoots, nodeId) && !availableNodeIds.has(nodeId))
-          : [];
+        // A recovered movement's own construction never builds its context.
+        // Diagnose current context that no earlier moment has introduced,
+        // without revealing it early.
+        const unavailableContext = contextNodeIds(placement).filter(nodeId => !missing.includes(nodeId) && !availableNodeIds.has(nodeId));
         if (unavailableContext.length) {
           const descriptions = unavailableContext.map(nodeId => {
             const owner = relationProducers.get(nodeId);
@@ -480,7 +529,7 @@ export const finalizeStageReplay = (
           placement.relation = {
             ...placement.relation, movementDiagnostics: [
               ...(placement.relation.movementDiagnostics || []),
-              `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${(placement.relation.authoredRelationIndex ?? placement.relationIndex) + 1} (${placement.relationLabel}) has unavailable authored context: ${descriptions.join('; ')}. Its proven movement and independent claims retain authored order; unavailable context is not introduced early.`
+              `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${(placement.relation.authoredRelationIndex ?? placement.relationIndex) + 1} (${placement.relationLabel}) has unavailable authored context: ${descriptions.join('; ')}. No Replay order provides it first; its proven movement keeps its moment, and unavailable context is not introduced early.`
             ]
           };
         }
@@ -504,6 +553,7 @@ export const finalizeStageReplay = (
       if (structuralStepIndex >= pendingStructuralSteps.length)
         continue;
       emitStructuralStep(structuralStepIndex);
+      emitWaitingRelations();
     }
     const stageStepCount = stagePlaybackSteps.length + 1;
     let stageStepNumber = 1;
