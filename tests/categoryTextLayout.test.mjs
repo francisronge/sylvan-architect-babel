@@ -97,9 +97,7 @@ test('a word that fits on a line stays whole even when that adds a line', () => 
     ['Mod[circumstantial possibility]', ['Mod', '[circumstantial ', 'possibility]']],
     ['NP[supplementary CP adjunction]', ['NP', '[supplementary ', 'CP adjunction]']],
     ['v[transitive, external-argument-introducing]', ['v[transitive, ', 'external-', 'argument-', 'introducing]']],
-    ['v [transitive; external-argument introducer]', ['v [transitive; ', 'external-', 'argument ', 'introducer]']],
-    ['T[finite; evidential-anterior; agreement:3sg; subject-edge]',
-      ['T[finite; ', 'evidential-', 'anterior; ', 'agreement:3sg; ', 'subject-edge]']]
+    ['v [transitive; external-argument introducer]', ['v [transitive; ', 'external-', 'argument ', 'introducer]']]
   ]) {
     assert.deepEqual(lines(text), expected, text);
     assert.deepEqual(findings(expected), [], text);
@@ -149,6 +147,30 @@ test('a slash or dash break replaces a split word, even when it adds a line', ()
   assert.deepEqual(lines('Neg[/interrogativeness]'), ['Neg[/interrogativ', 'eness]']);
   // Clean wrappings keep their established breaks.
   assert.deepEqual(lines('V[past, third-person feminine singular]'), ['V[past, ', 'third-person ', 'feminine ', 'singular]']);
+});
+
+test('a label that would need more than four lines widens them, up to twice the width, instead of pushing its sisters down a row', () => {
+  const lines = text => categoryTextLayout(text, measureCategoryText).lines;
+  // Both saved labels took five lines at the normal width, which lowered their sisters' row.
+  assert.deepEqual(lines('T[finite; evidential-anterior; agreement:3sg; subject-edge]'),
+    ['T[finite; ', 'evidential-anterior; ', 'agreement:3sg; ', 'subject-edge]']);
+  assert.deepEqual(lines('I\u2070 [finite, perfective/past, third-person masculine singular]'),
+    ['I\u2070 [finite, ', 'perfective/past, ', 'third-person ', 'masculine singular]']);
+  // Four lines at the normal width stay as they are.
+  assert.deepEqual(lines('v[transitive, external-argument-introducing]'), ['v[transitive, ', 'external-', 'argument-', 'introducing]']);
+  // A wider wrapping is taken only if it splits no more words than the normal one.
+  assert.deepEqual(lines('Fin(antipassivization\u00b7causative\u00b7irrealis\u00b7+definite\u00b7agreement:3sg\u27e9'),
+    ['Fin', '(antipassivization\u00b7caus', 'ative\u00b7irrealis\u00b7+definite\u00b7', 'agreement:3sg\u27e9']);
+  // A label that needs more than four lines even at twice the width keeps its
+  // normal wrapping, without measuring widths four lines could never fill.
+  let probes = 0;
+  const measure = s => { probes++; return [...s].length * 20; };
+  const long = `V[${Array.from({ length: 24 }, (_, index) => `feature${index}`).join(', ')}]`;
+  const kept = categoryTextLayout(long, measure);
+  assert.equal(kept.lines.join(''), long);
+  assert(kept.lines.length > 4);
+  assert(kept.lines.every(line => measure(line.trimEnd()) <= 380));
+  assert(probes < 400, `${probes} measurements`);
 });
 
 test('a selected determiner retains its authored nominal context before its projection exists', () => {

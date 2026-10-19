@@ -20,18 +20,48 @@ export function categoryTextLayout(text: string, measure: CategoryTextMeasure = 
   return { ...layout, lines: [...layout.lines] };
 }
 
+const LINE_WIDTH = 380;
+// A label taller than this pushes its sisters' row down, so a label that would
+// need more lines widens them, in eight steps up to twice the normal width.
+const MAX_LINES = 4;
+const WIDENING_STEPS = 8;
+// What a line may hang past its width, generously: spaces and closing marks.
+const HANG_ALLOWANCE = 100;
+
 /** Wrap display text without abbreviating, interpreting or changing its characters. */
 function wrapCategoryText(text: string, measure: CategoryTextMeasure) {
-  const maxWidth = 380;
   const unwrappedWidth = measure(text);
-  if (unwrappedWidth <= maxWidth) return { lines: [text], width: unwrappedWidth, height: 52, x: -unwrappedWidth / 2, y: -56 };
+  if (unwrappedWidth <= LINE_WIDTH) return { lines: [text], width: unwrappedWidth, height: 52, x: -unwrappedWidth / 2, y: -56 };
   const segments = [...graphemes.segment(text)].map(part => part.segment);
-  const fits = (from: number, to: number) => measure(segments.slice(from, to).join('')) <= maxWidth;
-  const starts = [0, ...joinBlankLines(segments, wrapBreaks(segments, fits))];
+  const wrapAt = (maxWidth: number) => {
+    const fits = (from: number, to: number) => measure(segments.slice(from, to).join('')) <= maxWidth;
+    return [0, ...joinBlankLines(segments, wrapBreaks(segments, fits))];
+  };
+  let starts = wrapAt(LINE_WIDTH);
+  if (starts.length > MAX_LINES) starts = widened(segments, starts, unwrappedWidth, wrapAt);
   const lines = starts.map((from, index) => segments.slice(from, starts[index + 1]).join(''));
   const width = Math.max(...lines.map(measure));
   const height = 52 + (lines.length - 1) * CATEGORY_LINE_HEIGHT;
   return { lines, width, height, x: -width / 2, y: -height - 4 };
+}
+
+/** The first wider wrapping within `MAX_LINES` that splits no more words and
+ * leaves no more remnants than `starts`, or `starts` itself. Widths whose four
+ * lines cannot hold the whole text are skipped without measuring. */
+function widened(segments: string[], starts: number[], unwrappedWidth: number, wrapAt: (maxWidth: number) => number[]) {
+  const defects = (lineStarts: number[]) => lineStarts.reduce(([splits, remnants], from, index) => index === 0 ? [splits, remnants]
+    : [splits + (splitsWord(segments, from) ? 1 : 0),
+      remnants + (isRemnant(segments, from, lineStarts[index + 1] ?? segments.length) ? 1 : 0)], [0, 0]);
+  const [splits, remnants] = defects(starts);
+  for (let step = 1; step <= WIDENING_STEPS; step++) {
+    const maxWidth = LINE_WIDTH * (1 + step / WIDENING_STEPS);
+    if (MAX_LINES * (maxWidth + HANG_ALLOWANCE) < unwrappedWidth) continue;
+    const wider = wrapAt(maxWidth);
+    if (wider.length > MAX_LINES) continue;
+    const [widerSplits, widerRemnants] = defects(wider);
+    if (widerSplits <= splits && widerRemnants <= remnants) return wider;
+  }
+  return starts;
 }
 
 type Fits = (from: number, to: number) => boolean;

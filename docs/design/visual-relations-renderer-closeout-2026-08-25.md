@@ -516,7 +516,11 @@ dependent rails remain below the deepest connector lane. Native Orchard paint
 and the initial fitted appearance are unchanged.
 
 Long category labels wrap at measured display width without abbreviating or
-changing their characters. Combining sequences stay intact. Wrapped categories
+changing their characters. Combining sequences stay intact. Lines break between
+words; a word that fits on a line stays whole even when that adds a line. A label
+takes at most four lines, because a taller one pushes its sisters' row down: one
+that would need more widens its lines, up to twice the normal width, when that
+splits no more words. Wrapped categories
 use the same multiline bounds for plaque obstacles and stage Fit. Native branch
 geometry never depends on label height. Category glyphs and their dark stroke
 paint over branches without masking the surrounding multiline rectangle. The
