@@ -28,10 +28,7 @@ const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rul
 export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, CATALOGUE(3), 'mark-distance', 'plaque', 'plaque(0:1 θ GRID; stolen; Theme; i)@stolen',
     { desktop: { '17-20': 1.24 }, mobile: { '17-20': 1.24 } }),
-  x(MOBILE, CATALOGUE(1), 'clipped', 'off-canvas', 'role(3:0 thematic Subject Trace)@subjectVTrace', { mobile: { '27': 91.24 } }),
   x(MOBILE, CATALOGUE(2), 'first-paint-continuity', 'off-canvas:moved', 'stage 7', { mobile: { '61>62': 30.59 } }),
-  x(MOBILE, CATALOGUE(3), 'clipped', 'off-canvas', 'role(2:2 theta Assigner)@stolen', { mobile: { '29': 21.83 } }),
-  x(MOBILE, CATALOGUE(3), 'clipped', 'off-canvas', 'role(3:1 antecedent Nominal)@manBaseNBar', { mobile: { '41': 2.41 } }),
   x(PLAQUE_CROWDED, CATALOGUE(6), 'mark-distance', 'plaque', 'plaque(0:1 θ GRID; v; experiencer; j)@relativeSubject',
     { desktop: { '14-43': 1.19 }, mobile: { '14-43': 1.19 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'first-paint-continuity', 'jump:stage-coordinates', 'stage 4',
@@ -40,8 +37,6 @@ export const EXCEPTIONS = [
     { desktop: { 'rapid:42>48': 274.7 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'step-motion', 'node-jump', '@view',
     { desktop: { '43>44': 274.7 } }),
-  x(MOBILE, CATALOGUE(6), 'clipped', 'off-canvas', 'role(1:2 nominal Head)@person',
-    { mobile: { '40': 8.47 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'settled-path-independence', 'retention', 'stage 4',
     { mobile: { '43>44': 32.88 } })
 ];
