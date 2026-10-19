@@ -15,46 +15,43 @@ syntactic rules. Desktop remains the primary experience.
 1. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
    the Max plan's monthly API credits can be claimed (around 2026-10-24). Spend
    only those credits.
-2. Renderer follow-ups held back from the October renderer pass. Each has
-   saved evidence; branches that exist are named.
-   - Stage crossings that reshape unchanged syntax: in 83 Replay steps of 71
-     saved analyses, untouched sisters move by different amounts when a stage
-     begins (up to about 360 px), for example 了, 走 and the matrix T sliding
-     into the raised subject's gap at frame 44 of the Chinese relative clause
-     (catalog case 6). Stage-local layout (`buildStageLocalCoordinates`) keeps
-     no shape across a single-root stage. A head that becomes a head complex
-     jumps the same way in 23 steps. Add a shape check that ignores parent
-     recentring, then fix the layout.
-   - Head-movement arrows when the model writes category labels in prose
-     (`fix/relations-prose-category-labels`). It recovers 4 of 5 missing arrows;
-     two review findings remain (a host role naming the wrong node still
-     authorizes a head arrow; a recovered arrow does not follow a later hop).
-   - Relation marks that vanish or change at the wrong step
-     (`fix/replay-mark-timing`): a persistent mark disappearing at a stage start
-     while its anchor is still on screen, theta badges removed before the
-     composing relation, and restated features or words painted at a stage's
-     first step. Three review findings remain: pronunciation owned by an
-     ancestor still appears at the movement, composed theta badges can return,
-     and the checker's new exemption for repainted words hides early unvoicing.
+2. Renderer follow-ups left after the October renderer pass. Each has saved
+   evidence; branches that exist are named.
    - Plaques left far from their anchor (catalog #3;
      `fix/renderer-plaque-reach`): a narrower margin brings 12 of 55 listed
      plaques within reach but moves some others farther away.
    - A host drops a row when a parent is inserted above it. This stays instant
      (no glide), so it needs a layout answer or acceptance.
-   - Decide whether a lower occurrence should stay within its source's old
-     horizontal span (81 of 136 land outside it).
-   - Relations authored before the same-stage movement that creates their
-     anchor now play right after it (`fix/replay-relation-after-anchor-movement`).
-     Still diagnosed as `RELATION_TIMING_CONFLICT`: two cycles no order
-     satisfies. In the relative pied-piping run, the neutral Internal Merge
-     names wh2, which the recognized operator-variable movement introduces,
-     and that movement's landing joins the pp2 the Internal Merge builds; in
-     the Icelandic case transfer, continued V-to-I and I-to-C each own part of
-     one moving head complex. Each needs a decision about which claim
-     introduces the shared syntax. A movement also does not wait for a
-     contextual anchor, so the Icelandic raising chain's verb-trace role lacks
-     its anchor at its moment (waiting would cost the subject landing its
-     reserved slot and shift the matrix IP about 120 px).
+   - Two `RELATION_TIMING_CONFLICT` cycles that no order satisfies. In the
+     relative pied-piping run, the neutral Internal Merge names wh2, which the
+     recognized operator-variable movement introduces, and that movement's
+     landing joins the pp2 the Internal Merge builds; in the Icelandic case
+     transfer, continued V-to-I and I-to-C each own part of one moving head
+     complex. Each needs a decision about which claim introduces the shared
+     syntax. A movement also does not wait for a contextual anchor, so the
+     Icelandic raising chain's verb-trace role lacks its anchor at its moment
+     (waiting would cost the subject landing its reserved slot and shift the
+     matrix IP about 120 px).
+   - Movements still drawn as copies without an arrow: the Hungarian verbal
+     particle's topicalization (night3 14-hu-verbal-particle), and hop 8:0 of
+     the long tough relative (night4 09-en-tough-relative-long), whose claim
+     names only the landing and the new trace. Both belong with recognition
+     (item 4).
+   - An identity claim still introduces a repeat when both conjuncts already
+     share one current root (across-the-board questions).
+   - After a failed parse in Derivation Replay, the sentence input stays
+     visible: the failure panel has no dismiss control.
+   - Stage coordinate preparation keeps an ink cache that raises peak memory
+     by about 100 MiB on the largest saved analyses.
+   - A wrapped category line can start with the space that overflowed the
+     line before (22 saved labels).
+   - Saved analyses that still fail a Replay invariant (14 findings in 6 of 986
+     analyses, all older than the pass): a step that does not do what it says
+     in the French clitic-climbing causative (all three analyses); marks that
+     do not persist as defined in the English gapping, raising/control mix and
+     relative pied-piping runs; a parent shown before its children in the
+     raising/control mix; and unstable construction in the second
+     there-insertion analysis.
    - Mobile calibration and a desktop minimum-zoom clamp.
 3. Clean up the tests:
    - Retire hand-picked per-frame Replay checks that the invariant sweep

@@ -670,6 +670,12 @@ awaiting a later attachment retains its completed component coordinates. Its new
 surrounding parents are centered at their actual construction steps. This applies
 only when every current branch remains valid, and does not change camera fitting.
 
+Each stage lays out its own forest, so unchanged sisters may slide sideways when a
+stage begins, for example into the gap a raised subject leaves. That reflow is
+accepted product behavior; it is not a teleport. A lower occurrence is drawn where
+the authored tree places it and need not stay within its source's earlier
+horizontal span.
+
 An ordinary construction boundary can also resize or reorder completed workspace
 objects. Reserve their first attachment positions through their earlier scenes.
 Compose that reservation backwards through prior movement, keeping the source
