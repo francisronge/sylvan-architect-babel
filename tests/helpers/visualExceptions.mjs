@@ -13,6 +13,9 @@ const PLAQUE_CROWDED = 'Open (catalog #3): no nearby pocket stays clear for the 
 const LANE = 'Open: a neutral counter-lane connector runs its lane through tree text. Only its stems are clipped around '
   + 'labels, and the lane sits just below the participants, above deeper unrelated syntax.';
 
+const LATER_OCCUPANT = 'Defect, fixed separately (fix/replay-slot-fits-every-occupant): a reserved slot is sized for its later '
+  + 'occupant, so the current categories crowd it. The same measures occur on origin/main for this saved analysis.';
+
 const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
 
 // The same findings, with the same measures, occur on origin/main for the saved
@@ -164,6 +167,10 @@ export const EXCEPTIONS = [
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/waiting-root-continuity.json#', 'mark-distance', 'plaque',
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
+  x(LATER_OCCUPANT, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'glyph-overlap', 'text',
+    'd_pbar:category d_v:category', { desktop: { '24': 4.59 }, 'desktop-large': { '24': 10.75 } }),
+  x(LATER_OCCUPANT, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'line-clearance', 'branch-text',
+    'd_p->d_pbar d_v:category', { desktop: { '24': 2.85 }, 'desktop-large': { '24': 6.68 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/compound-movement-roles.json#/cases/1', 'mark-distance', 'plaque',
     'plaque(1:0 theta Theme)@V0', { desktop: { '22-38': 1.13 }, 'desktop-large': { '22-38': 1.13 } })
 ];
