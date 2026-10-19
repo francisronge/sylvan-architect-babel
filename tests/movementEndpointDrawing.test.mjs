@@ -186,6 +186,41 @@ test('prose-labelled head movement and the complexes it builds draw exact arrows
   assert.deepEqual(proseHeads, original);
 });
 
+// Relabel only the next landing as notation, so the next hop is head movement
+// on its own evidence; the notation control also relabels the first complex.
+const findNode = (nodes, id) => nodes.map(n => n.id === id ? n : findNode(n.children ?? [], id)).find(Boolean);
+const relabelled = notation => {
+  const record = structuredClone(proseHeads);
+  record.derivationStages.forEach((stage, stageIndex) => {
+    const labels = { honorificAtInflection: 'H⁰', ...notation && stageIndex >= 2 ? { honorificComplex: 'H', verbAtHonorific: 'V', honorific: 'H' } : {} };
+    for (const [id, label] of Object.entries(labels)) { const node = findNode(stage.workspaceForest, id); if (node) node.label = label; }
+  });
+  return record;
+};
+for (const notation of [false, true]) test(`the first ${notation ? 'notation' : 'prose'}-labelled head arrow stays at its landing site when the complex moves on`, () => {
+  const record = relabelled(notation), original = structuredClone(record);
+  const prepared = prepareReplay({ ...record, includePlayback: true });
+  const identity = { stageIndex: 2, relationIndex: 0 }, start = momentIndex(prepared, identity);
+  const next = momentIndex(prepared, { stageIndex: 3, relationIndex: 0 });
+  assert(start > 0 && next > start);
+  const nextArrow = drawReplayRelation(prepared, next, { stageIndex: 3, relationIndex: 0 });
+  assert.equal(nextArrow.displayed.trajectoryKind, 'head', 'the next hop is head movement');
+  const drawn = [];
+  for (let index = start; index < prepared.playbackSteps.length; index++) {
+    const result = drawReplayRelation(prepared, index, identity);
+    const [targetId, attachment] = index < next ? ['verbAtHonorific', 'terminal'] : ['honorificTrace', 'shell-bottom'];
+    assert.equal(result.displayed.targetNodeId, targetId, `Replay ${index + 1}`);
+    assert.deepEqual(result.requested, [['verbTrace', 'shell-bottom'], [targetId, attachment]], `Replay ${index + 1}`);
+    assert.deepEqual(result.bound.failed, [], `Replay ${index + 1}`);
+    assert.equal(result.path?.['marker-end'], 'url(#arrow)', `Replay ${index + 1} paints an arrow`);
+    assert.doesNotMatch(result.path.d, /NaN|Infinity/);
+    drawn[index] = result;
+  }
+  for (const index of [next - 1, start]) assert.deepEqual(drawReplayRelation(prepared, index, identity), drawn[index],
+    `rewinding to Replay ${index + 1} restores its endpoint`);
+  assert.deepEqual(record, original, 'authored records are unchanged');
+});
+
 test('a proved head landing with several terminals attaches at its shell whatever its label spells', () => {
   const stage = (workspaceForest, relations = []) => ({ statement: '', stageRecord: '', workspaceForest, relations });
   const verb = id => ({ id, label: 'V⁰, compound', lineageId: 'verbChain', children: [

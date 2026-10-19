@@ -54,6 +54,8 @@ const recover = ({ relation, current, prior }) => {
   const result = recoverMovementEvidence(relation, current, prior);
   return result.movement ? `${result.movement.trajectoryKind}:${result.movement.sourceNodeId}->${result.movement.targetNodeId}` : result.failure;
 };
+const unproven = ({ relation, current, prior }) => recoverMovementEvidence(relation, current, prior).diagnostics
+  .filter(diagnostic => diagnostic.startsWith('MOVEMENT_CONTEXT_UNPROVEN'));
 
 // A bare D merges beside an unchanged terminal T, in T's preceding slot, under
 // a new prose-labelled parent.
@@ -86,6 +88,18 @@ test('a phrase beside a bare terminal head is not head adjunction without furthe
     'an explicit host head of another category does not project the complex');
   for (const right of [false, true]) assert.equal(recover(besideBareHead({ right, anchors: named })), 'head:dLow->dHigh',
     'an explicitly named host proves the adjunction');
+});
+
+test('the field that authorizes the structural reading is checked in its own role', () => {
+  for (const anchors of [{ 'host head': 'tProj' }, { 'head complex': 't' }]) {
+    assert.equal(recover(besideBareHead({ anchors })), 'MOVEMENT_CONTEXT_UNRESOLVED',
+      `${Object.keys(anchors)[0]} names the wrong node, so it proves no adjunction`);
+  }
+  for (const anchors of [{ 'host head': 't' }, { 'head complex': 'tProj' }, { host: 't' }, { host: 'tProj' }]) {
+    const input = besideBareHead({ anchors });
+    assert.equal(recover(input), 'head:dLow->dHigh', JSON.stringify(anchors));
+    assert.deepEqual(unproven(input), [], 'an authorizing field is never itself reported unproven');
+  }
 });
 
 // [A N] whose modifier copy left its trace beside it: that earlier movement

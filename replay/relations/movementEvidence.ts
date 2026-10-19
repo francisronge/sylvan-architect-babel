@@ -34,6 +34,10 @@ export interface RecoveredMovement {
   priorContextKeys?: string[];
   /** Exact authored fields verified as structural context, not extra dependencies. */
   context?: Array<{ key: string; nodeId: string; kind: MovementContextKind }>;
+  /** A head landing's enclosing complex when structure, not category notation,
+   * proved the adjunction. Its labels cannot prove it again later, so landing
+   * persistence takes the site from here. */
+  structuralHeadComplexNodeId?: string;
 }
 
 type MovementContextKind = 'site' | 'head-host' | 'head-complex' | 'head-landing' | 'head-member';
@@ -274,6 +278,11 @@ export interface MovementEvidenceResult {
 
 const vocabulary = buildTier2SynonymIndex();
 const hasRole = (key: string, concept: string) => relationRoleConcepts(vocabulary, key).includes(concept);
+/** The position an authored receiving-head or head-complex field must occupy
+ * beside a head landing; a plain host may be either the host or the complex. */
+const headContextKind = (key: string): MovementContextKind | undefined => hasRole(key, 'movement.complex') ? 'head-complex'
+  : hasRole(key, 'movement.host') ? ['landing head', 'receiving head'].includes(key) ? 'head-landing' : 'head-host'
+  : key === 'host' ? 'head-landing' : undefined;
 const genericRoles = new Set(['source', 'sources', 'origin', 'origins', 'from', 'target', 'targets', 'to', 'destination', 'destinations', 'landing', 'landings', 'landing site', 'landing sites', 'filler', 'fillers', 'operator', 'operators', 'head', 'heads', 'variable', 'variables', 'real gap', 'real gaps']);
 const sourceContainerRole = (key: string): boolean => /^(?:(?:prior|movement) )?(?:source|lower|base|intermediate) (?:[a-z]+ )?(?:clauses?|phrases?|constituents?|objects?|[a-z]+p)$/u.test(normalizeTier2Synonym(key));
 const sourceComplexRole = (key: string): boolean => /^(?:(?:prior|movement) )?(?:source|lower|base|intermediate) (?:head )?complex$/u.test(normalizeTier2Synonym(key));
@@ -711,18 +720,25 @@ export function recoverMovementEvidence(
   if (current.duplicates.has(witnessId)) return fail('MOVEMENT_ENDPOINTS_AMBIGUOUS', `Witness ${witnessId} occurs more than once.`);
   if (!contains(source, witnessId)) return fail('MOVEMENT_WITNESS_OUTSIDE_SOURCE', `${witnessId} is not within source ${sourceId}.`);
   const precedingId = prior.nodes.has(sourceId) ? sourceId : priorSource || targetId;
-  // The prose-label structural reading needs the receiving head or complex
-  // named explicitly. A phrasal attractor names no adjunction host.
-  const anchoredHeadContext = (structural: boolean) => entries.some(entry => entry.ids.length === 1
+  const headContext = entries.some(entry => entry.ids.length === 1
     && (hasRole(entry.key, 'movement.host') || hasRole(entry.key, 'movement.complex') || entry.key === 'host')
-    && !(structural && entry.key === 'attracting head')
-    && movementContextFailure(forest, targetId, entry.ids[0], hasRole(entry.key, 'movement.complex')
-      ? 'head-complex' : 'head-landing', previous, undefined, structural ? { current, prior } : undefined) === undefined);
-  const headContext = anchoredHeadContext(false), structuralHost = anchoredHeadContext(true);
+    && movementContextFailure(forest, targetId, entry.ids[0],
+      hasRole(entry.key, 'movement.complex') ? 'head-complex' : 'head-landing', previous) === undefined);
+  // The prose-label structural reading needs the receiving head or complex
+  // named explicitly, in the role that the context check below verifies. A
+  // phrasal attractor names no adjunction host.
+  const structuralHost = entries.some(entry => {
+    const contextKind = headContextKind(entry.key);
+    return entry.ids.length === 1 && entry.key !== 'attracting head' && contextKind !== undefined
+      && movementContextFailure(forest, targetId, entry.ids[0], contextKind, previous, undefined, { current, prior }) === undefined;
+  });
   const kind = landingKind(target, current.parents.get(targetId), previous,
     { node: prior.nodes.get(precedingId), parent: prior.parents.get(precedingId) }, { current, prior },
     headContext, structuralHost);
   if (!kind) return fail('MOVEMENT_CONTEXT_UNRESOLVED', `The anchored structure does not establish a supported head or phrasal landing for ${targetId}.`);
+  const landingParent = current.parents.get(targetId);
+  const structuralHeadComplex = kind === 'head' && structuralHost && landingParent
+    && adjoinsHostInPlace(landingParent, targetId, { current, prior }) ? landingParent.id : undefined;
   const priorCandidates = prior.nodes.has(sourceId) ? [sourceId]
     : [...new Set(priorSources.length ? priorSources : [targetId])];
   const priorSourceId = priorCandidates.length === 1 ? priorCandidates[0] : '';
@@ -791,10 +807,10 @@ export function recoverMovementEvidence(
     if (phrasalHeadParticipants.has(e.authoredKey)) return;
     // A phrasal attractor is not the head-adjunction host of that phrase.
     if (kind === 'phrasal' && e.key === 'attracting head') return;
-    const contextKind: MovementContextKind | undefined = hasRole(e.key, 'movement.complex') ? 'head-complex'
-      : hasRole(e.key, 'movement.host') ? ['landing head', 'receiving head'].includes(e.key) ? 'head-landing' : 'head-host'
-      : e.key === 'host' || (hasRole(e.key, 'movement.landing') && !e.ids.includes(targetId))
-        ? kind === 'head' && e.key !== 'landing site' ? 'head-landing' : 'site' : undefined;
+    // A plain host is a phrase's landing site, but a head's host or complex.
+    const landingField = e.key === 'host' || (hasRole(e.key, 'movement.landing') && !e.ids.includes(targetId));
+    const contextKind: MovementContextKind | undefined = (e.key !== 'host' ? headContextKind(e.key) : undefined)
+      ?? (landingField ? kind === 'head' && e.key !== 'landing site' ? 'head-landing' : 'site' : undefined);
     if (!contextKind) return;
     const reason = e.ids.length !== 1 ? 'context-needs-one-exact-node'
       : movementContextFailure(forest, targetId, e.ids[0], contextKind, previous,
@@ -824,7 +840,8 @@ export function recoverMovementEvidence(
       roles,
       ...(priorAnchorKeys.length ? { priorAnchorKeys } : {}),
       ...(priorCarrierKeys.size ? { priorContextKeys: [...priorCarrierKeys] } : {}),
-      ...(context.length ? { context } : {})
+      ...(context.length ? { context } : {}),
+      ...(structuralHeadComplex ? { structuralHeadComplexNodeId: structuralHeadComplex } : {})
     }
   };
 }
