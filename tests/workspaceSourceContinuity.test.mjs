@@ -7,6 +7,7 @@ import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCamera.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const records = JSON.parse(fs.readFileSync(new URL(
   '../fixtures/replay-regressions/workspace-source-continuity.json', import.meta.url))).cases;
@@ -52,9 +53,13 @@ const topology = (node, nodes) => JSON.stringify([
   (node.children ?? []).filter(child => nodes.has(getNodeId(child))).map(getNodeId)
 ]);
 
+// Right to left this runs only for a record whose layout is not the reflection of
+// its left-to-right layout (tests/helpers/rtlMirror.mjs).
+const runs = (key, direction) => directionsFor(`replay-regressions/workspace-source-continuity.json#/cases/${
+  records.findIndex(record => record.key === key)}`).includes(direction);
 for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
   const context = `${width}px ${direction}`;
-  test(`${context}: selecting finite I leaves all existing German objects stationary`, () => {
+  if (runs('fresh/german-embedded/0', direction)) test(`${context}: selecting finite I leaves all existing German objects stationary`, () => {
     const { frame, immutable } = setup('fresh/german-embedded/0', width, height, direction);
     const before = frame(35), after = frame(36);
     assert.equal(before.step.replayKind, 'macro');
@@ -73,7 +78,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     immutable();
   });
 
-  test(`${context}: waiting German heads and words retain their first slots through attachment`, () => {
+  if (runs('fresh/german-embedded/0', direction)) test(`${context}: waiting German heads and words retain their first slots through attachment`, () => {
     const { steps, frame, immutable } = setup('fresh/german-embedded/0', width, height, direction);
     for (const id of ['glaubeV', 'dassC']) {
       const first = steps.findIndex(step => step.replayVisibleNodeIds.includes(id)) + 1;
@@ -98,7 +103,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     immutable();
   });
 
-  test(`${context}: the full auxiliary source survives selection, then moves at its relation`, () => {
+  if (runs('fresh/german-embedded/0', direction)) test(`${context}: the full auxiliary source survives selection, then moves at its relation`, () => {
     const { frame, immutable } = setup('fresh/german-embedded/0', width, height, direction);
     const selected = frame(28), projected = frame(29), prior = frame(41), movement = frame(42);
     assert.equal(selected.step.operation, 'LexicalSelect');
@@ -134,7 +139,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
   for (const [key, boundaries] of [
     ['archive/english-negation-xbar-sol/0', [[30, 31], [42, 43]]],
     ['holdout/swahili-passive/0', [[41, 42]]]
-  ]) test(`${context}: ${key} keeps previously stationary components at later construction boundaries`, () => {
+  ]) if (runs(key, direction)) test(`${context}: ${key} keeps previously stationary components at later construction boundaries`, () => {
     const { frame, immutable } = setup(key, width, height, direction);
     for (const [first, second] of boundaries) {
       const before = frame(first), after = frame(second);
