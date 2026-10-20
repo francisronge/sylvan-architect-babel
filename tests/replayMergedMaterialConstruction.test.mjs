@@ -47,6 +47,16 @@ test('an occurrence shared across conjuncts is selected and merged in its own co
   }
 });
 
+test('an occurrence shared across conjuncts stays with construction when the stage also joins the conjuncts beneath one root', () => {
+  const record = fixture.cases[2], replay = play(2), steps = replay.playbackSteps;
+  assertBuiltByOwnStep(steps, 'whatSellObject');
+  for (const phrase of ['sellVP', 'vpCoordinationLower', 'vpCoordination']) assertBuiltByOwnStep(steps, phrase, 'ExternalMerge');
+  const at = moment(steps, 1, 0);
+  assert.ok(firstShown(steps, 'vpCoordination') < at, 'the coordination is merged before the identity claim names its occurrences');
+  assertMomentAddsNothing(steps, at);
+  assert.deepEqual(emptySteps(replay, record, 1), [], 'stage 2 has no empty construction step');
+});
+
 test('a phrase whose boundary a realization claim describes is merged by its own step before both claims', () => {
   const record = fixture.cases[1], replay = play(1), steps = replay.playbackSteps;
   assertBuiltByOwnStep(steps, 'song-dp', 'ExternalMerge');
@@ -80,6 +90,13 @@ test('a repeat of an occurrence\'s material is its claim\'s copy only inside the
   assert.deepEqual(['new::__leaf', 'new', 'sellVP'].map(id => firstStepOf(apart, id)),
     ['LexicalSelect new::__leaf', 'Project new', 'ExternalMerge sellVP']);
   assertMomentAddsNothing(apart, moment(apart, 1, 0));
+  // Joining the conjuncts gives the repeat its occurrence's root, but it was
+  // still merged with sell, not beside an object that holds the occurrence.
+  const joined = compile(twoStages([object(), verb('buy'), verb('sell')], [branch('both', '&P', branch('buyVP', 'VP', verb('buy'), object()),
+    branch('sellVP', 'VP', verb('sell'), leaf('new', 'D', { word: 'it', lineageId: 'shared' })))], claim)).playbackSteps;
+  assert.deepEqual(['new::__leaf', 'new', 'sellVP', 'both'].map(id => firstStepOf(joined, id)),
+    ['LexicalSelect new::__leaf', 'Project new', 'ExternalMerge sellVP', 'ExternalMerge both']);
+  assertMomentAddsNothing(joined, moment(joined, 1, 0));
   const remerged = twoStages([branch('vp', 'VP', verb('buy'), object())], [branch('top', 'XP',
     leaf('new', 'D', { word: 'it', lineageId: 'shared' }), branch('vp', 'VP', verb('buy'), object()))], claim);
   const inside = compile(remerged);
