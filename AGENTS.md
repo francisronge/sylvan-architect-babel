@@ -102,6 +102,7 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 - Keep heavy gates sequential. Offline tests run two files at a time; the browser gate runs specs serially and limits esbuild CPU parallelism to two. Close unneeded visible test browsers.
 - Renderer startup has a PR performance budget. For renderer, layout, worker, or font changes, run `npm run verify:renderer-performance -- --baseline-root /path/to/base-checkout` with installed locked dependencies in both checkouts. A slowdown must be investigated and fixed before sign-off; do not weaken the fixture, timing boundary, or budget to make it pass. Intentional budget changes require explicit user approval.
 - Behavior changes require focused regression tests.
+- Fix a failing Replay, visual or camera check; do not list it. Only Francis accepts a fault as an exception: put his approval on the entry with where he gave it, and never write one you did not receive. Do not narrow a rule, add a carve-out or rewrite a test so that it accepts a shape he has not accepted.
 - For relation drawing changes, run `npm run verify:renderer-browser` to check native endpoint attachment, persistence, zoom/Fit and narrow viewports. Keep this browser gate separate from the offline suite.
 - Run `npm run verify:all` once before completing broad, shared, contract, fixture, or release work. Documentation-only changes do not require it.
 - Wait for a real completion signal: a receipt or event, successful process exit, listening server, or rendered UI state.
@@ -124,6 +125,7 @@ prerequisites, not rendered correctness, and starts no server or provider reques
 | Change or concern | Command and evidence |
 |---|---|
 | Default completion gate | `npm run verify:all` runs typechecking and provider-free tests. Contract verification reuses the parser's rules; malformed individual relations remain explicit warnings, not proof of correct relations. |
+| Exception lists in `tests/helpers/*Exceptions.mjs` | `npm run verify:exceptions`, part of `verify:all` and CI, fails when a change adds an exception, lists a fault at more places or raises a bound without Francis's approval on that entry (`approval: { by, on, expires, note }`), and when an approval expires. Renumbered frames are not growth. |
 | Focused relation geometry | `npm run verify:renderer-browser` checks native endpoints, persistence, zoom/Fit and narrow views. |
 | Complete browser behavior | `npm run verify:browser` runs every required browser spec, including real app failure recovery and Tree Bank save/reopen. Missing, unowned or skipped required specs fail. |
 | Engine and review-page compatibility | `npm run verify:browser-webkit` runs the bounded Chromium/WebKit renderer and comparison-visibility matrix. This does not substitute for macOS in-app-browser review of relevant UI changes. |

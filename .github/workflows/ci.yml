@@ -30,6 +30,15 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      # verify:all compares tests/helpers/*Exceptions.mjs with the revision this
+      # change starts from (scripts/checkExceptionGrowth.mjs).
+      - name: Fetch the revision this change starts from
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+        run: |
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then git fetch --no-tags --depth=1 origin "$BASE"; fi
+          echo "BABEL_EXCEPTION_BASE=$BASE" >> "$GITHUB_ENV"
+
       - name: Typecheck and verify provider-free contract
         run: npm run verify:all
 

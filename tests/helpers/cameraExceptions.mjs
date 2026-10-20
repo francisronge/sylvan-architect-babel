@@ -3,7 +3,9 @@
  * Matching follows tests/helpers/findings.mjs: a new finding fails, so does one
  * beyond its bound, and so does every listed frame where the fault no longer
  * occurs. Each place keeps its own bound, the rule's measure in CSS pixels;
- * frames are steps 'a>b'. */
+ * frames are steps 'a>b'. An entry a change adds or lets
+ * grow also takes the owner's approval as its last argument
+ * (scripts/checkExceptionGrowth.mjs). */
 
 const STAGE_RELAYOUT = 'Open (layout): the new stage lays out the unmoved shared syntax differently, not merely shifted, so the '
   + 'first pose carried by its median shift (PR #77) still leaves it jumping or partly beyond the canvas.';
@@ -17,7 +19,7 @@ const MOVED_OFF_CANVAS = 'Open (camera, low severity): the moved constituent\'s 
 const NEXT_PINNED = 'Open (camera, low severity): reached by Next inside the completed stage, the retained pose keeps the wide '
   + 'final tree against the header edge, leaving just over a third of the view empty below; a direct selection fits it.';
 
-const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
+const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 export const EXCEPTIONS = [
   x(MOVED_OFF_CANVAS, 'movement/clause-context.json#/cases/2', 'first-paint-continuity', 'off-canvas:moved', 'stage 2',
