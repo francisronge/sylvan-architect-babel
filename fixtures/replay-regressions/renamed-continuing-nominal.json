@@ -1,0 +1,685 @@
+{
+  "description": "Stage 2 authors the nominal associate catsDP again as restrictedDP and its Num phrase numberP as restrictedNum. Each keeps its category, slot and daughters; only cats gains a new N parent (restrictedN) holding the merged-in PP. The renamed nodes continue their predecessors, so the stage builds only N + P -> N, in place inside the DP. Replay previously detached the null D and three at that merge and rebuilt the Num and the D in two further merges.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, 18 October 2026 (spellout-v3-product batch, 03-en-there-insertion, analysis 2).",
+  "sentence": "There seem to be three cats in the garden.",
+  "framework": "minimalism",
+  "inputTokens": [
+    "There",
+    "seem",
+    "to",
+    "be",
+    "three",
+    "cats",
+    "in",
+    "the",
+    "garden"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "associate": "catsDP",
+            "noun": "cats",
+            "numeral": "three"
+          },
+          "relation": "Cardinality and nominal number",
+          "values": {
+            "cardinality": "three",
+            "number": "plural"
+          }
+        },
+        {
+          "anchors": {
+            "ground": "gardenDP",
+            "preposition": "in"
+          },
+          "relation": "Prepositional Ground",
+          "values": {
+            "role": "Ground"
+          }
+        }
+      ],
+      "stageRecord": "This analysis gives in the garden a restrictive attachment inside the associate: three counts cats that are in the garden. Bare Phrase Structure labels name projecting heads rather than X-bar levels. Initially, silent indefinite D combines with the numeral projection three cats. Three establishes cardinality three and plural number. Independently, in combines with the garden, whose definite nominal supplies the preposition's Ground. The modifier has not yet been attached, so its attachment must be established in the next workspace.",
+      "statement": "Build the nominal associate and a separate potential nominal modifier.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "indefD",
+              "label": "D",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "three",
+                  "label": "Num",
+                  "word": "three"
+                },
+                {
+                  "children": [],
+                  "id": "cats",
+                  "label": "N",
+                  "word": "cats"
+                }
+              ],
+              "id": "numberP",
+              "label": "Num"
+            }
+          ],
+          "id": "catsDP",
+          "label": "D"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "in",
+              "label": "P",
+              "word": "in"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "the",
+                  "label": "D",
+                  "word": "the"
+                },
+                {
+                  "children": [],
+                  "id": "garden",
+                  "label": "N",
+                  "word": "garden"
+                }
+              ],
+              "id": "gardenDP",
+              "label": "D"
+            }
+          ],
+          "id": "gardenPP",
+          "label": "P"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "modifiedNoun": "cats",
+            "modifier": "gardenPP",
+            "quantifier": "three",
+            "restrictedNominal": "restrictedN"
+          },
+          "relation": "Restrictive nominal modification",
+          "values": {
+            "attachment": "nominal",
+            "interpretation": "three counts cats that are in the garden"
+          }
+        },
+        {
+          "anchors": {
+            "associate": "restrictedDP",
+            "predicate": "be"
+          },
+          "relation": "Existential associate",
+          "values": {
+            "interpretation": "existence is asserted of three members of the restricted nominal set"
+          }
+        }
+      ],
+      "stageRecord": "The independent garden phrase adjoins to the noun projection cats, forming the restriction cats in the garden. This requires replacing the previously built containing nominal projections with projections containing the expanded noun; it is a bottom-up reconstruction of the nominal, not movement or countercyclic insertion into an unchanged tree. Three now counts members of that restricted nominal set. Existential be then combines with the completed associate. Consequently, the garden phrase is contained within the associate rather than modifying the existential verbal projection.",
+      "statement": "Rebuild the associate with a nominal restriction and merge existential be.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "be",
+              "label": "V",
+              "word": "be"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "indefD",
+                  "label": "D",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "three",
+                      "label": "Num",
+                      "word": "three"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "cats",
+                          "label": "N",
+                          "word": "cats"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "in",
+                              "label": "P",
+                              "word": "in"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "the",
+                                  "label": "D",
+                                  "word": "the"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "garden",
+                                  "label": "N",
+                                  "word": "garden"
+                                }
+                              ],
+                              "id": "gardenDP",
+                              "label": "D"
+                            }
+                          ],
+                          "id": "gardenPP",
+                          "label": "P"
+                        }
+                      ],
+                      "id": "restrictedN",
+                      "label": "N"
+                    }
+                  ],
+                  "id": "restrictedNum",
+                  "label": "Num"
+                }
+              ],
+              "id": "restrictedDP",
+              "label": "D"
+            }
+          ],
+          "id": "existV",
+          "label": "V"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complement": "existV",
+            "tense": "to"
+          },
+          "relation": "Infinitival complementation",
+          "values": {
+            "finiteness": "nonfinite"
+          }
+        },
+        {
+          "anchors": {
+            "expletive": "thereLow",
+            "subjectProjection": "embeddedTP",
+            "tense": "to"
+          },
+          "relation": "Embedded expletive licensing",
+          "values": {
+            "subjectRequirement": "satisfied by external Merge",
+            "thematicStatus": "non-thematic expletive"
+          }
+        }
+      ],
+      "stageRecord": "Infinitival T, realized as to, combines with the existential verbal projection containing the restricted associate. Expletive there is then externally merged at the edge of T to satisfy the embedded subject requirement. It is non-thematic and is not a locative expression. The nominal associate, including its garden modifier, remains below be.",
+      "statement": "Introduce infinitival T and its expletive subject.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "thereLow",
+              "label": "D",
+              "lineageId": "thereChain",
+              "word": "There"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "to",
+                  "label": "T",
+                  "word": "to"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "be",
+                      "label": "V",
+                      "word": "be"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "indefD",
+                          "label": "D",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "three",
+                              "label": "Num",
+                              "word": "three"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "cats",
+                                  "label": "N",
+                                  "word": "cats"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "in",
+                                      "label": "P",
+                                      "word": "in"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "the",
+                                          "label": "D",
+                                          "word": "the"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "garden",
+                                          "label": "N",
+                                          "word": "garden"
+                                        }
+                                      ],
+                                      "id": "gardenDP",
+                                      "label": "D"
+                                    }
+                                  ],
+                                  "id": "gardenPP",
+                                  "label": "P"
+                                }
+                              ],
+                              "id": "restrictedN",
+                              "label": "N"
+                            }
+                          ],
+                          "id": "restrictedNum",
+                          "label": "Num"
+                        }
+                      ],
+                      "id": "restrictedDP",
+                      "label": "D"
+                    }
+                  ],
+                  "id": "existV",
+                  "label": "V"
+                }
+              ],
+              "id": "infinitivalT",
+              "label": "T"
+            }
+          ],
+          "id": "embeddedTP",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complement": "embeddedTP",
+            "predicate": "seem"
+          },
+          "relation": "Raising-predicate complementation",
+          "values": {
+            "externalThematicRole": "none",
+            "selection": "nonfinite clause"
+          }
+        },
+        {
+          "anchors": {
+            "associate": "restrictedDP",
+            "finiteVerb": "seem",
+            "interveningExpletive": "thereLow",
+            "probe": "presentT"
+          },
+          "relation": "Finite agreement and verbal realization",
+          "values": {
+            "accessibility": "embedded nonfinite T is defective and does not block Agree",
+            "number": "plural",
+            "person": "third",
+            "tense": "present",
+            "verbalForm": "seem"
+          }
+        }
+      ],
+      "stageRecord": "Seem selects the infinitival clause without assigning an external thematic role. Silent present T then combines with this matrix verbal projection. Finite T establishes third-person plural agreement with the entire restricted associate; the defective embedded T and the feature-deficient expletive do not block that dependency. The plural present verb is realized as seem, with no separate overt tense or agreement terminal. The matrix subject requirement still awaits raising.",
+      "statement": "Construct the matrix raising clause and value finite agreement.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "presentT",
+              "label": "T",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "seem",
+                  "label": "V",
+                  "word": "seem"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "thereLow",
+                      "label": "D",
+                      "lineageId": "thereChain",
+                      "word": "There"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "to",
+                          "label": "T",
+                          "word": "to"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "be",
+                              "label": "V",
+                              "word": "be"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "indefD",
+                                  "label": "D",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "three",
+                                      "label": "Num",
+                                      "word": "three"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "cats",
+                                          "label": "N",
+                                          "word": "cats"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "in",
+                                              "label": "P",
+                                              "word": "in"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "the",
+                                                  "label": "D",
+                                                  "word": "the"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "garden",
+                                                  "label": "N",
+                                                  "word": "garden"
+                                                }
+                                              ],
+                                              "id": "gardenDP",
+                                              "label": "D"
+                                            }
+                                          ],
+                                          "id": "gardenPP",
+                                          "label": "P"
+                                        }
+                                      ],
+                                      "id": "restrictedN",
+                                      "label": "N"
+                                    }
+                                  ],
+                                  "id": "restrictedNum",
+                                  "label": "Num"
+                                }
+                              ],
+                              "id": "restrictedDP",
+                              "label": "D"
+                            }
+                          ],
+                          "id": "existV",
+                          "label": "V"
+                        }
+                      ],
+                      "id": "infinitivalT",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "embeddedTP",
+                  "label": "T"
+                }
+              ],
+              "id": "matrixV",
+              "label": "V"
+            }
+          ],
+          "id": "matrixT",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "attractingTense": "presentT",
+            "higherOccurrence": "thereHigh",
+            "lowerOccurrence": "thereLow"
+          },
+          "relation": "Expletive raising",
+          "values": {
+            "operation": "Internal Merge",
+            "subjectRequirement": "matrix requirement satisfied",
+            "thematicEffect": "none"
+          }
+        },
+        {
+          "anchors": {
+            "pronouncedOccurrence": "thereHigh",
+            "unpronouncedOccurrence": "thereLow"
+          },
+          "relation": "Copy-chain pronunciation",
+          "values": {
+            "pronunciation": "highest occurrence only"
+          }
+        }
+      ],
+      "stageRecord": "The embedded occurrence of there undergoes Internal Merge to the matrix subject position, satisfying finite T's subject requirement. The lower occurrence is then silenced, leaving the higher copy pronounced. No part of the restricted associate moves, so in the garden remains inside the nominal throughout the completed clause. The finite T projection completes this declarative without an independently required complementizer layer. This reading presents an apparent existential claim about three garden-located cats; unlike verbal attachment, the location is encoded in the nominal restriction.",
+      "statement": "Raise the expletive and complete the nominal-restriction reading.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "thereHigh",
+              "label": "D",
+              "lineageId": "thereChain",
+              "word": "There"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "presentT",
+                  "label": "T",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "seem",
+                      "label": "V",
+                      "word": "seem"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "thereLow",
+                          "label": "D",
+                          "lineageId": "thereChain",
+                          "silent": true,
+                          "word": "There"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "to",
+                              "label": "T",
+                              "word": "to"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "be",
+                                  "label": "V",
+                                  "word": "be"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "indefD",
+                                      "label": "D",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "three",
+                                          "label": "Num",
+                                          "word": "three"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "cats",
+                                              "label": "N",
+                                              "word": "cats"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "in",
+                                                  "label": "P",
+                                                  "word": "in"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "the",
+                                                      "label": "D",
+                                                      "word": "the"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "garden",
+                                                      "label": "N",
+                                                      "word": "garden"
+                                                    }
+                                                  ],
+                                                  "id": "gardenDP",
+                                                  "label": "D"
+                                                }
+                                              ],
+                                              "id": "gardenPP",
+                                              "label": "P"
+                                            }
+                                          ],
+                                          "id": "restrictedN",
+                                          "label": "N"
+                                        }
+                                      ],
+                                      "id": "restrictedNum",
+                                      "label": "Num"
+                                    }
+                                  ],
+                                  "id": "restrictedDP",
+                                  "label": "D"
+                                }
+                              ],
+                              "id": "existV",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "infinitivalT",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "embeddedTP",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "matrixV",
+                  "label": "V"
+                }
+              ],
+              "id": "matrixT",
+              "label": "T"
+            }
+          ],
+          "id": "completeTP",
+          "label": "T"
+        }
+      ]
+    }
+  ]
+}

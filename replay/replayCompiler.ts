@@ -1,6 +1,7 @@
 /** Compile completed authored stages through stage preparation, construction, and relation scheduling. */
 import { resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 import { createReplayCompilation, type ReplayCompilationInput } from './compilationContext.ts';
+import { displayContinuedOccurrences } from './continuedOccurrences.ts';
 import { normalizePlaybackSequence, recountReplayProgress } from './playbackVisibility.ts';
 import { attachReplayRealizations } from './realizationReplay.ts';
 import { normalizeReplaySentenceInitialCasing } from './replayCasing.ts';
@@ -29,5 +30,6 @@ export const buildPlaybackStepsFromDerivationFrames = (input: ReplayCompilationI
   const positionedSteps = orderDetachedReplayWorkspaces(countedSteps, frames);
   const retainedSteps = retainRestatementsUntilOwningStep(positionedSteps, frames, compilation.resolveFrameRelations);
   const timedSteps = retainedSteps.length === positionedSteps.length ? retainedSteps : recountReplayProgress(retainedSteps, replayPlan);
-  return attachReplayRealizations(normalizeReplaySentenceInitialCasing(timedSteps, sentenceInitialSurface), frames, resolveSavedInputTokens(sentence, inputTokens));
+  const realizedSteps = attachReplayRealizations(normalizeReplaySentenceInitialCasing(timedSteps, sentenceInitialSurface), frames, resolveSavedInputTokens(sentence, inputTokens));
+  return displayContinuedOccurrences(realizedSteps, frames, compilation.continuedOccurrenceIds);
 };

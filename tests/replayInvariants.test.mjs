@@ -3,7 +3,7 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  checkAttachAtMerge, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkNoEarlyReveal,
+  checkAttachAtMerge, checkContinuedOccurrences, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkNoEarlyReveal,
   checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationConstruction, checkRelationMoments,
   checkStableConstruction,
   checkStageCompletion, checkVisibleInCanvas, frameStructure
@@ -186,6 +186,31 @@ test('control: stable-construction reports retained syntax that disappears or mo
   assert(reported(checkStableConstruction(unparented), 'stable-construction', nested + 1, `${child} is detached from ${hidden}`));
 });
 
+test('control: continued-occurrence reports a continued node that is rebuilt, loses a daughter or changes id at its stage', () => {
+  assert.deepEqual(checkContinuedOccurrences(replay, sample), []);
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/renamed-continuing-nominal.json#').record;
+  const continued = prepare(record), list = continued.playbackSteps;
+  assert.deepEqual(checkContinuedOccurrences(continued, record), []);
+  const completion = list.findLastIndex(step => step.replayFrameIndex === 0), merge = completion + 1;
+  assert.equal(list[merge].targetNodeId, 'restrictedN', 'the stage opens with its one new merge');
+  const edit = change => { const copy = { ...continued, playbackSteps: structuredClone(list) }; change(copy.playbackSteps); return checkContinuedOccurrences(copy, record); };
+  // The preceding stage painted with its authored ids: the D and Num change id where the stage begins.
+  const authored = edit(copy => {
+    const rename = node => ({ ...node, ...(node.aliasIds?.length === 1 && !node.replayOrigin ? { id: node.aliasIds[0], aliasIds: undefined } : {}),
+      ...(node.children ? { children: node.children.map(rename) } : {}) });
+    copy[completion].replayCanvasData = rename(copy[completion].replayCanvasData);
+    copy[completion].replayVisibleNodeIds = copy[completion].replayVisibleNodeIds.map(id => ({ restrictedDP: 'catsDP', restrictedNum: 'numberP' })[id] ?? id);
+  });
+  assert(reported(authored, 'continued-occurrence', merge + 1, 'restrictedDP continues catsDP but is painted as [restrictedDP] after [catsDP]'));
+  const rebuilt = edit(copy => { copy[merge].targetNodeId = 'restrictedNum'; });
+  assert(reported(rebuilt, 'continued-occurrence', merge + 1, 'restrictedNum continues numberP but is built again'));
+  const detached = edit(copy => { copy[merge].replayVisibleNodeIds = copy[merge].replayVisibleNodeIds.filter(id => id !== 'restrictedDP'); });
+  assert(reported(detached, 'continued-occurrence', merge + 1, 'restrictedDP continues catsDP but is not painted'));
+  // Hiding the inserted N leaves cats drawn as a separate root.
+  const separated = edit(copy => { copy[merge].replayVisibleNodeIds = copy[merge].replayVisibleNodeIds.filter(id => id !== 'restrictedN'); });
+  assert(reported(separated, 'continued-occurrence', merge + 1, 'cats leaves restrictedNum, which continues numberP'));
+});
+
 test('control: attach-at-merge reports a child attached to its retained parent before that parent\'s merge', () => {
   assert.deepEqual(checkAttachAtMerge(replay), []);
   const record = corpus.records.find(entry => entry.id === 'replay-regressions/retained-parent-attachment.json#').record;
@@ -317,7 +342,8 @@ const REPORTED_BY = new Map([['attach-at-merge', 'no-early-reveal']]);
 const subjectOf = violation => violation.detail.split(' ')[0];
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments', 'landing-attached',
-  'no-early-reveal', 'relation-construction', 'parent-after-children', 'stable-construction', 'attach-at-merge', 'movement-landing-parent',
+  'no-early-reveal', 'relation-construction', 'parent-after-children', 'stable-construction', 'continued-occurrence', 'attach-at-merge',
+  'movement-landing-parent',
   'visible-in-canvas',
   'marks-at-owning-moment', 'one-letter-per-label'];
 let sweep;
@@ -330,6 +356,7 @@ before(() => {
         ...checkInputUnchanged(snapshot, authored), ...checkNoVisibleScaffolding(prepared), ...checkStageCompletion(prepared, authored),
         ...checkRelationMoments(prepared, authored), ...checkLandingAttached(prepared), ...checkNoEarlyReveal(prepared),
         ...checkRelationConstruction(prepared, authored), ...checkParentAfterChildren(prepared), ...checkStableConstruction(prepared),
+        ...checkContinuedOccurrences(prepared, authored),
         ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),

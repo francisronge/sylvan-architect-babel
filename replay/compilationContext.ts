@@ -1,8 +1,10 @@
 /** Per-compilation identity, authored relation cache, and preceding-stage visibility. */
 import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
+import { stageContinuedOccurrences } from './continuedOccurrences.ts';
 import { createReplayIdentityContext } from './displayIdentity.ts';
 import { createFrameRelationResolver } from './frameRelations.ts';
 import { isRegisteredFrontingTrajectoryRelation } from './relations/movementIdentities.ts';
+import { getReplayPlanStage } from './playbackFormatting.ts';
 import { normalizeToken } from './syntaxForest.ts';
 import { type DerivationReplayPlan, type DerivationReplayPlanStep, type ReplayDerivationFrame } from './types.ts';
 
@@ -31,6 +33,14 @@ export const createReplayCompilation = ({
     stageIndex: number;
     relationIndex: number;
   }> = [];
+  // Each stage's continuations of its preceding stage, `previous id -> current id`.
+  const continuations = new Map<number, Map<string, string>>();
+  const continuedOccurrenceIds = (index: number): Map<string, string> => {
+    if (!continuations.has(index)) continuations.set(index, index > 0
+      ? stageContinuedOccurrences(frames, index, getReplayPlanStage(replayPlan, index) ? resolveFrameRelations(index) : [])
+      : new Map());
+    return continuations.get(index)!;
+  };
   const previousVisibleNodeIds = new Set<string>();
   const previousWorkspaceRootIds = new Set<string>();
   const sentenceInitialSurface = String(resolveSavedInputTokens(sentence, inputTokens)[0] || '').trim();
@@ -64,6 +74,7 @@ export const createReplayCompilation = ({
     plannedRelationsByFrame,
     pendingProjectionReveals,
     previousVisibleNodeIds,
+    continuedOccurrenceIds,
     identity,
     previousWorkspaceRootIds,
     getPreFrontingLexicalSurface,

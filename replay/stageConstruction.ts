@@ -45,7 +45,8 @@ export const buildStageConstruction = (compilation: ReplayCompilation, stage: Re
       sentence,
       layoutScaffoldForest: structuralLayoutScaffold || undefined,
       identity,
-      inputTokens
+      inputTokens,
+      continuedOccurrenceIds: compilation.continuedOccurrenceIds(index)
     })
     : [];
   if (frameIsPureVisualTrajectoryStage) {
