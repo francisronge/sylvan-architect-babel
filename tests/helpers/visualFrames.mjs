@@ -433,9 +433,11 @@ export function layoutWidthFindings(visual, viewports, { canopy = true, metrics 
   });
 }
 
-/** One record's findings: every Replay frame at each viewport and the Canopy. */
-export function auditVisualRecord(id, record, { viewports = VIEWPORTS, canopy = true, thresholds = THRESHOLDS } = {}) {
-  const visual = prepareVisualRecord(record);
+/** One record's findings: every Replay frame at each viewport and the Canopy.
+ * `visual` may be the record's prepareVisualRecord result shared with another
+ * audit; this audit only reads it. */
+export function auditVisualRecord(id, record, { viewports = VIEWPORTS, canopy = true, thresholds = THRESHOLDS,
+  visual = prepareVisualRecord(record) } = {}) {
   const frames = layoutVisualFrames(visual, viewports);
   if (canopy) frames.push(...viewports.map(viewport => layoutCanopyVisualFrame(visual, viewport)).filter(Boolean));
   return { steps: visual.prepared.playbackSteps.length, frames: frames.length,
