@@ -13,7 +13,7 @@ interface TrajectoryDrawingContext extends Pick<RelationLayers,
   | 'ensureTrajectoryRelationLayer'
   | 'trajectoryMarkerIds'
 > {
-  sampleNativeBranchOverlay: (targetNodeId: string) => { d: string; sourceNodeId: string; targetNodeId: string; };
+  sampleNativeBranchOverlay: (targetNodeId: string) => { d: string; sourceNodeId: string; targetNodeId: string; } | null;
   markPreterminalLensNode: (nodeId: string, role: string) => void;
   clearMovedCopyClassForAnchors: (nodeIds: string[]) => void;
 }

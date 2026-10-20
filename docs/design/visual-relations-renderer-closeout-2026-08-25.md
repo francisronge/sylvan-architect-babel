@@ -255,6 +255,19 @@ pocket unless a clear pocket is at least a quarter nearer, or nearby while its o
 is not. Between those movements it keeps one offset, and plaques placed later
 avoid its pocket as they avoid any other.
 
+A proximity plaque still beyond its nearby reach once every phase is allocated
+gets a second look for each run of consecutive phases in which it keeps one
+anchor-relative pocket. It may take the nearest pocket that, in every scene of the
+run, keeps half the margin (12 units) from syntax, trajectories and connectors,
+and the full margin from every other plaque's allocated pocket. The run moves
+there only when that pocket is nearby and at most three quarters of the old
+distance, and only if the change of pocket at either end of the run grows no
+longer. No other plaque is allocated again, so a plaque within reach never moves
+and none moves farther, and a plaque changes pocket only where the allocation
+already changes it. A stage enters the schedule, and early delivery, only after
+every remote run covering it has been decided; a requested stage that such a
+run covers can therefore wait for later phases.
+
 Reservations account for tree ink, trajectories, neutral connector stems and
 already allocated claims. The nearest clear pocket search has no arbitrary radius
 cutoff that sends an otherwise local plaque beneath the tree. Later spelling
