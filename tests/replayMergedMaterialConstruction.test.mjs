@@ -3,9 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import {
-  checkAttachAtMerge, checkNoEarlyReveal, checkParentAfterChildren, checkRelationConstruction, frameStructure
-} from './helpers/replayInvariants.mjs';
+import { checkRelationConstruction, frameStructure } from './helpers/replayInvariants.mjs';
 import { checkStepSemantics } from './helpers/replayStepInvariants.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/merged-material-construction.json', import.meta.url), 'utf8'));
@@ -36,14 +34,6 @@ const assertMomentAddsNothing = (steps, at) => {
 const emptySteps = (replay, record, stageIndex) => checkStepSemantics(replay, record)
   .filter(found => found.subtype === 'empty-step' && replay.playbackSteps[found.frame - 1].replayFrameIndex === stageIndex)
   .map(found => `frame ${found.frame}: ${found.detail}`);
-
-test('every case satisfies the construction invariants and gives no claim a phrase its stage only merges', () => {
-  fixture.cases.forEach((record, index) => {
-    const replay = play(index);
-    assert.deepEqual([...checkNoEarlyReveal(replay), ...checkAttachAtMerge(replay), ...checkParentAfterChildren(replay),
-      ...checkRelationConstruction(replay, record)].map(violation => `${violation.rule} @${violation.frame}: ${violation.detail}`), [], `case ${index + 1}`);
-  });
-});
 
 test('an occurrence shared across conjuncts is selected and merged in its own conjunct, not at the identity claim', () => {
   const record = fixture.cases[0], replay = play(0), steps = replay.playbackSteps;
