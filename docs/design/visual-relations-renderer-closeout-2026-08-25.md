@@ -1082,6 +1082,17 @@ claim's marks. Anything else keeps the claim's atomic rewrite. A movement's
 landing parent inside the phrase is then the movement's, and arrives at its
 moment.
 
+The model may give the new id to either node around a movement's new landing
+parent. When the landing's parent keeps its preceding id, the new node is the
+landing's only sister and holds that parent's earlier daughters in order. Each
+slot holds the earlier daughter itself or a node new in the stage that contains
+it, such as the complex another movement of the stage forms there. That sister
+gets no construction step. Until the movement, the kept parent shows its
+daughters as the stage has changed them so far, and the movement moment inserts
+the sister together with the landing, the lower occurrence and the trajectory.
+When the sister's daughters come from another relation's moment, the movement
+waits for that moment.
+
 A new occurrence replacing another chain member in the same retained parent
 slot is that member's lower witness. A later chain description must not use it
 as a fresh landing and postpone its appearance. For an actual chain extension,

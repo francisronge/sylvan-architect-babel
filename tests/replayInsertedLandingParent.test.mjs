@@ -7,6 +7,7 @@ import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { stageTreeLayoutSize, buildStageLayoutGroups } from '../replay/stageCamera.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
+import { checkMovementLandingParent, frameStructure } from './helpers/replayInvariants.mjs';
 
 const find = (node, id) => node.id === id ? node : node.children?.map(child => find(child, id)).find(Boolean);
 const childrenAt = (step, id) => find(step.replayCanvasData, id)?.children?.map(child => child.id) || [];
@@ -137,4 +138,52 @@ test('an inserted parent does not reveal unrelated new syntax before its own ste
   assert.equal(childrenAt(moment, 'host').includes('fresh') && moment.replayVisibleNodeIds.includes('host'), false, 'the moment does not attach it');
   assert.ok(steps.some(step => step.replayKind === 'micro' && step.targetNodeId === 'host' && childrenAt(step, 'host').includes('fresh')));
   assert.equal(steps.at(-1).replayVisibleNodeIds.includes('fresh'), true);
+});
+
+// The landing's parent keeps its earlier id and the new parent below it, which
+// only attaches the landing above that parent's earlier daughters, gets the new
+// id. Another change of the stage can hold an earlier daughter inside a new node
+// in its own slot; the new parent is still the movement's.
+const keptHost = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/inserted-landing-parent-below-kept-host.json', import.meta.url)));
+test('Sol French analysis 1: the subject movement introduces T′ below the kept TP, with no construction step for it', () => {
+  const p = compile(keptHost), stage = p.playbackSteps.filter(step => step.replayFrameIndex === 1);
+  assert.deepEqual(stage.map(step => step.replayKind === 'relation' ? step.operation : `${step.replayKind} ${step.operation}`),
+    ['clitic-movement', 'subject-movement', 'macro StageRecord']);
+  const [clitic, subject] = stage.map(frameStructure);
+  assert.deepEqual(clitic.children.get('tp'), ['cliticHead', 'voiceProj'], 'the clitic complex takes finite T\'s place under TP');
+  assert.equal(clitic.displayed.has('tinner') || clitic.displayed.has('marieHigh'), false);
+  assert.notEqual(clitic.nodes.get('marieLow').data.silent, true, 'the source keeps its pronunciation until its movement');
+  assert.deepEqual(subject.children.get('tp'), ['marieHigh', 'tinner']);
+  assert.deepEqual(subject.children.get('tinner'), ['cliticHead', 'voiceProj']);
+  assert.equal(subject.nodes.get('marieLow').data.silent, true);
+  const trajectory = step => (step.replayRelationLinks ?? []).some(link => link.authoredRelationKey === '1:1' && link.movementTransition);
+  assert.deepEqual(stage.map(trajectory), [false, true, true]);
+  assert.deepEqual(checkMovementLandingParent(p, keptHost), []);
+});
+
+test('the subject movement authored first waits for the clitic complex its new T′ holds', () => {
+  const record = structuredClone(keptHost);
+  record.derivationStages[1].relations.reverse();
+  const p = compile(record), stage = p.playbackSteps.filter(step => step.replayFrameIndex === 1);
+  assert.deepEqual(stage.map(step => step.operation), ['clitic-movement', 'subject-movement', 'StageRecord']);
+  assert.deepEqual(frameStructure(stage[0]).children.get('tp'), ['cliticHead', 'voiceProj']);
+  assert.deepEqual(frameStructure(stage[1]).children.get('tinner'), ['cliticHead', 'voiceProj']);
+  assert.deepEqual(stage.flatMap(step => step.movementDiagnostics ?? []).filter(text => text.startsWith('RELATION_TIMING_CONFLICT')), []);
+  assert.deepEqual(checkMovementLandingParent(p, record), []);
+});
+
+test('an ordinary adjunction in an earlier daughter\'s slot leaves the inserted landing parent to the movement', () => {
+  const word = (id, label, extra = {}) => ({ id, label, word: id, ...extra });
+  const record = { sentence: 'sa ho ad zu', derivationStages: [
+    stage([node('p', [word('ho', 'X0'), node('c', [word('sa', 'Y', { lineageId: 'S' }), word('zu', 'Z0')], 'Z')], 'X')]),
+    stage([node('p', [word('sa2', 'Y', { lineageId: 'S', word: 'sa' }), node('w', [word('ho', 'X0'),
+      node('a', [word('ad', 'Adv'), node('c', [word('sa', 'Y', { lineageId: 'S', silent: true }), word('zu', 'Z0')], 'Z')], 'Z')], 'X')], 'X')],
+    [{ relation: 'movement', anchors: { higherOccurrence: 'sa2', lowerOccurrence: 'sa' }, priorAnchors: { source: 'sa' } }])
+  ] };
+  const p = compile(record), steps = p.playbackSteps, moment = steps.findIndex(step => step.replayKind === 'relation');
+  assert.equal(steps.some(step => step.replayKind === 'micro' && step.targetNodeId === 'w'), false, 'no construction step builds w');
+  assert.deepEqual(frameStructure(steps[moment - 1]).children.get('p'), ['ho', 'a'], 'the adjunction merges in place under p');
+  assert.deepEqual(frameStructure(steps[moment]).children.get('p'), ['sa2', 'w']);
+  assert.deepEqual(frameStructure(steps[moment]).children.get('w'), ['ho', 'a']);
+  assert.deepEqual(checkMovementLandingParent(p, record), []);
 });
