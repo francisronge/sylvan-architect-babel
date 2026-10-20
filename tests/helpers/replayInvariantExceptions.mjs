@@ -4,7 +4,9 @@
  * reports at one frame and expands to one exception per subject in the format
  * of tests/helpers/findings.mjs. The sweep matches them exactly: a new
  * violation fails, and so does a listed one that no longer occurs. These rules
- * have no measure, so every bound is null. */
+ * have no measure, so every bound is null. An entry a change adds or lets
+ * grow also takes the owner's approval as its last argument
+ * (scripts/checkExceptionGrowth.mjs). */
 
 const FIRST_STAGE_REWRITE = 'Defect: a first-stage movement claim with no preceding stage to prove its source becomes a neutral rewrite; '
   + 'its moment shows only the anchored root of the rewritten phrase, and the rest of that phrase appears later with an ordinary merge.';
@@ -16,8 +18,8 @@ const UNPROVEN_SOURCE_LANDING = 'Open: movement recognition cannot prove the sou
   + 'or a source the stage does not keep), so the claim stays neutral; its moment still introduces the authored landing, which no '
   + 'construction step builds.';
 
-const x = (reason, record, rule, frame, subjects) => subjects.split(' ')
-  .map(subject => ({ reason, record, rule, subtype: null, subject, at: { '-': { [String(frame)]: null } } }));
+const x = (reason, record, rule, frame, subjects, approval) => subjects.split(' ')
+  .map(subject => ({ reason, record, rule, subtype: null, subject, at: { '-': { [String(frame)]: null } }, ...(approval && { approval }) }));
 
 export const EXCEPTIONS = [
   x(FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'parent-after-children', 16, 'detP portraitBar'),
