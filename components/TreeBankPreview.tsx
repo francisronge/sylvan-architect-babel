@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { readTreeBankPreview } from '../services/treeBankStore';
 
 /** Preview bytes are loaded only when their card approaches the viewport. */
