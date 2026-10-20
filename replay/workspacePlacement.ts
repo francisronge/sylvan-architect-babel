@@ -218,24 +218,36 @@ export function reserveWorkspaceAttachments({
     let value = byId.get(id);
     if (value) return value;
     const original = scene.nodes.get(id)!, prior = before.nodes.get(id);
+    let currentAncestors: Set<string> | undefined;
     const topology = !prior || visibleParentId(original, scene.nodes) !== visibleParentId(prior, before.nodes)
       || JSON.stringify(visibleChildIds(original, scene.nodes)) !== JSON.stringify(visibleChildIds(prior, before.nodes))
       || scene.step.replayKind === 'relation' && visibleAncestors(prior, before.nodes).some(ancestor =>
         before.nodes.has(getNodeId(ancestor)) && ancestor.data.replayOrigin?.kind !== 'workspace'
-        && !visibleAncestors(original, scene.nodes).some(current => getNodeId(current) === getNodeId(ancestor)));
+        && !(currentAncestors ??= new Set(visibleAncestors(original, scene.nodes).map(getNodeId))).has(getNodeId(ancestor)));
     // The merge participants can translate when they join. Unrelated
     // components and relation-only scenes still obey the motion guard.
     const mergeParticipant = scene.step.replayKind === 'micro' && scene.step.operation === 'ExternalMerge'
       && visibleAncestors(original, scene.nodes).some(ancestor => getNodeId(ancestor) === scene.step.targetNodeId);
     // A branch centers over its actual daughters after internal growth.
     // Its unchanged descendants remain independently constrained below.
-    const regrown = !topology && visibleChildIds(original, scene.nodes).length > 0
-      && visibleComponentNodes(original, scene.nodes).some(child => {
-        const old = before.nodes.get(getNodeId(child));
-        return !old || child.data.label !== old.data.label || child.data.word !== old.data.word
-          || child.data.silent !== old.data.silent || JSON.stringify(visibleChildIds(child, scene.nodes)) !== JSON.stringify(visibleChildIds(old, before.nodes));
-      });
+    const regrown = !topology && visibleChildIds(original, scene.nodes).length > 0 && grownBelow(before, scene, original);
     byId.set(id, value = { topology, mergeParticipant, regrown });
+    return value;
+  };
+  // Whether any member of a node's visible component, itself included, is new or
+  // changed its material or visible children since the preceding scene.
+  const grown = new WeakMap<Scene, Map<Node, boolean>>();
+  const grownBelow = (before: Scene, scene: Scene, node: Node): boolean => {
+    let byNode = grown.get(scene);
+    if (!byNode) grown.set(scene, byNode = new Map());
+    let value = byNode.get(node);
+    if (value === undefined) {
+      const old = before.nodes.get(getNodeId(node));
+      value = !old || node.data.label !== old.data.label || node.data.word !== old.data.word
+        || node.data.silent !== old.data.silent || JSON.stringify(visibleChildIds(node, scene.nodes)) !== JSON.stringify(visibleChildIds(old, before.nodes))
+        || (node.children ?? []).some(child => scene.nodes.has(getNodeId(child)) && grownBelow(before, scene, child));
+      byNode.set(node, value);
+    }
     return value;
   };
   // Painted maps and their attachment changes, once per rendered reservation.
