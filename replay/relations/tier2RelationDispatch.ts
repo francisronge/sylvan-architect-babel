@@ -47,6 +47,7 @@ import type {
   Tier3RecoveredClaim
 } from './relationClaims.ts';
 import { buildTier2FacetEvidence } from './relationEvidence.ts';
+import { readStructuralMovementForStages } from './structuralMovement.ts';
 import { PRODUCTION_RENDER_FAMILIES } from './renderFamilies.ts';
 import { typedInterpretiveRoles, typedThematicAssignment } from './thematicAssignment.ts';
 import { indexTier2Forests, type Tier2ForestIndexes } from './tier2EvidenceQueries.ts';
@@ -345,7 +346,8 @@ export const dispatchRelationClaims = (
     priorForest,
     activeLens,
     registry = productionRelationRegistry,
-    synonymIndex = DEFAULT_SYNONYM_INDEX
+    synonymIndex = DEFAULT_SYNONYM_INDEX,
+    structuralMovement
   } = input;
   const authoredTier1Dispatch = dispatchRelation({
     registry,
@@ -353,7 +355,8 @@ export const dispatchRelationClaims = (
     stageIndex,
     relationIndex,
     currentForest,
-    priorForest
+    priorForest,
+    ...(structuralMovement ? { structuralMovement } : {})
   });
   const registryEntry = findRelationRegistryEntry(registry, relation.relation);
   const evidence = buildTier2FacetEvidence({
@@ -363,7 +366,8 @@ export const dispatchRelationClaims = (
     ...(priorRealizations ? { priorRealizations } : {}),
     priorForest,
     activeLens,
-    synonymIndex
+    synonymIndex,
+    ...(structuralMovement ? { structuralMovement } : {})
   });
   const declaredPrimaryAnchorKeys = new Set<string>(registryEntry
     ? [
@@ -864,14 +868,18 @@ export function dispatchStageRelations(stages: readonly { workspaceForest: Synta
   options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens'> = {}): RelationClaimDispatch[][] {
   const assignmentContext = createAssignmentContext();
   const controlContext = createControlContext();
+  const structural = readStructuralMovementForStages(stages);
   return stages.map((stage, stageIndex) => {
     beginControlStage(controlContext, stage.workspaceForest);
     return stage.relations.map((relation, relationIndex) => {
-      const dispatch = dispatchRelationClaims({
+      const structuralMovement = structural?.[stageIndex].movements.get(relationIndex);
+      const claimDispatch = dispatchRelationClaims({
         ...options, relation, stageIndex, relationIndex, assignmentContext, controlContext,
         currentForest: stage.workspaceForest, currentRealizations: stage.realizations,
-        priorRealizations: stages[stageIndex - 1]?.realizations, priorForest: stages[stageIndex - 1]?.workspaceForest
+        priorRealizations: stages[stageIndex - 1]?.realizations, priorForest: stages[stageIndex - 1]?.workspaceForest,
+        ...(structuralMovement ? { structuralMovement } : {})
       });
+      const dispatch = structural ? { ...claimDispatch, structuralCarriedNodeIds: structural[stageIndex].carriedNodeIds } : claimDispatch;
       recoveredClaimMovements(dispatch).forEach(movement => {
         rememberAssignmentMovement(assignmentContext, movement);
         rememberControlMovement(controlContext, stageIndex, movement);

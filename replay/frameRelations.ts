@@ -297,6 +297,7 @@ export const getFrameRelations = (
         const key = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
         const transition = !ownedMovements.has(key)
           && !isCarriedHeadMemberTransition(movement, earlierMovements, previousForest, currentForest)
+          && !dispatch.structuralCarriedNodeIds?.has(movement.targetNodeId)
           && Boolean(owner?.evaluation.earnedTransitions.includes('movement'));
         if (transition) {
           ownedMovements.add(key);
@@ -346,8 +347,11 @@ export const getFrameRelations = (
       ...(dispatch.tier1Dispatch.signatureIssues || []).map(issue => `Tier 1 signature: ${JSON.stringify(issue)}`)
     ] : [];
     const movementKey = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
+    // Under the structural experiment, a landing inside a displaced phrase
+    // travels with that phrase; its claim keeps the drawing, not the change.
     const transition = !ownedMovements.has(movementKey)
       && !isCarriedHeadMemberTransition(movement, earlierMovements, previousForest, currentForest)
+      && !dispatch.structuralCarriedNodeIds?.has(movement.targetNodeId)
       && (facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition);
     // Later claims may inspect the same dependency; its structural change occurs once.
     if (transition) {

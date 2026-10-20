@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '../types.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { recoverMovementEvidence } from './relations/movementEvidence.ts';
+import { readStructuralMovementForStages, type StructuralStageMovement } from './relations/structuralMovement.ts';
 import { establishesAssignment } from './relations/outcomeResolver.ts';
 import { dispatchRelationClaims } from './relations/tier2RelationDispatch.ts';
 import { type RelationClaimDispatch } from './relations/relationClaims.ts';
@@ -114,7 +115,9 @@ export const resolveRealizationChanges = (
   previous: ReplayDerivationFrame | undefined,
   current: ReplayDerivationFrame,
   stageIndex: number,
-  inputTokens?: readonly string[]
+  inputTokens?: readonly string[],
+  /** Experimental structural movements of this stage; see structuralMovement.ts. */
+  structural?: StructuralStageMovement
 ): RealizationChange[] => {
   const changes = changedGroups(previous?.after?.realizations || [], current.after?.realizations || []);
   if (!changes.length) return [];
@@ -125,16 +128,19 @@ export const resolveRealizationChanges = (
   };
   const oldNodes = nodes(previous?.workspaceForest || []), newNodes = nodes(current.workspaceForest);
   const exactNode = (index: Map<string, SyntaxNode[]>, id: string) => index.get(id)?.length === 1 ? index.get(id)![0] : undefined;
-  const relations = (current.relations || []).map(relation => ({
+  const relations = (current.relations || []).map((relation, relationIndex) => ({
     current: anchorIds(relation.anchors), prior: anchorIds(relation.priorAnchors),
     movement: recoverMovementEvidence(relation, current.workspaceForest, previous?.workspaceForest || []).movement
+      ?? structural?.movements.get(relationIndex)
   }));
   const claimDispatches = new Map<number, RelationClaimDispatch>();
   const claimsFor = (relationIndex: number) => {
+    const structuralMovement = structural?.movements.get(relationIndex);
     if (!claimDispatches.has(relationIndex)) claimDispatches.set(relationIndex, dispatchRelationClaims({
       relation: current.relations![relationIndex], stageIndex, relationIndex,
       currentForest: current.workspaceForest, priorForest: previous?.workspaceForest,
-      currentRealizations: current.after?.realizations, priorRealizations: previous?.after?.realizations
+      currentRealizations: current.after?.realizations, priorRealizations: previous?.after?.realizations,
+      ...(structuralMovement ? { structuralMovement } : {})
     }));
     return claimDispatches.get(relationIndex)!;
   };
@@ -482,6 +488,7 @@ export const attachReplayRealizations = (
   const moments = new Set(steps.filter(step => step.replayKind === 'relation' && step.replayRelationIdentity)
     .map(step => `${step.replayRelationIdentity!.stageIndex}:${step.replayRelationIdentity!.relationIndex}`));
   const changesByStage = new Map<number, RealizationChange[]>();
+  const structural = readStructuralMovementForStages(frames);
   const states = new Map<number, SurfaceRealization[]>();
   const diagnostics = new Map<number, string[]>();
   return steps.map(step => {
@@ -489,7 +496,7 @@ export const attachReplayRealizations = (
     if (stageIndex === undefined || !frames[stageIndex]) return step;
     const frame = frames[stageIndex];
     if (!changesByStage.has(stageIndex)) {
-      const changes = resolveRealizationChanges(frames[stageIndex - 1], frame, stageIndex, inputTokens);
+      const changes = resolveRealizationChanges(frames[stageIndex - 1], frame, stageIndex, inputTokens, structural?.[stageIndex]);
       changesByStage.set(stageIndex, changes);
       states.set(stageIndex, cloneRealizations(frames[stageIndex - 1]?.after?.realizations || []));
       diagnostics.set(stageIndex, changes.flatMap(change => {

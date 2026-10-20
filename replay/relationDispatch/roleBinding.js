@@ -14,12 +14,13 @@ const MOVEMENT_ENDPOINTS = new Set(['movement.source', 'movement.witness', 'move
 
 // Binding changes lookup keys only. Authored text, item order, cardinality and
 // references stay intact; ambiguous meanings never select the first candidate.
-export const bindRelationRoles = (relation, entry, currentForest, priorForest) => {
+export const bindRelationRoles = (relation, entry, currentForest, priorForest, structuralMovement = undefined) => {
   const bindings = [];
   const issues = [];
   const bound = { ...relation };
+  // An experimental structural movement stands in only where wording proves none.
   const movement = entry.id.startsWith('trajectory.') && currentForest
-    ? recoverMovementEvidence(relation, currentForest, priorForest).movement : undefined;
+    ? recoverMovementEvidence(relation, currentForest, priorForest).movement ?? structuralMovement : undefined;
   // Structure, not spelling, decides which of several directional fields names
   // the moving occurrence. When the tree proves another field that reads as the
   // same slot to be that endpoint, an openly named field it verifies as the

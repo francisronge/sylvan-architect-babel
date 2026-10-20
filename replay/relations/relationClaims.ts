@@ -3,6 +3,7 @@ import type { productionRelationRegistry } from '../relationDispatch/productionR
 import type { dispatchRelation } from '../relationDispatch/relationDispatch.js';
 import type { AssignmentContext, AssignmentScope } from './assignmentContinuity.ts';
 import type { ControlContext } from './controlEvidence.ts';
+import type { RecoveredMovement } from './movementEvidence.ts';
 import type { Tier2FacetOutputIdentity } from './tier2FacetIdentity.ts';
 import type { Tier2FacetEvaluation, Tier2FacetEvidence, Tier2FacetRecipe } from './tier2FacetTypes.ts';
 import type { Tier2SynonymIndex } from './tier2Synonyms.ts';
@@ -104,6 +105,8 @@ export type RelationClaimDispatch = ClaimDispatchBase & {
   /** Internal role lookup; original spelling remains in primaryRelation. */
   boundPrimaryRelation: DerivationStageRelation;
   residualRelation?: DerivationStageRelation;
+  /** Experimental: landings inside a displaced phrase of this stage, which own no transition of their own. */
+  structuralCarriedNodeIds?: ReadonlySet<string>;
 };
 
 export type ExclusiveRelationDispatchInput = {
@@ -119,6 +122,8 @@ export type ExclusiveRelationDispatchInput = {
   controlContext?: ControlContext;
   registry?: typeof productionRelationRegistry;
   synonymIndex?: Tier2SynonymIndex;
+  /** Experimental structural movement for this claim; see structuralMovement.ts. */
+  structuralMovement?: RecoveredMovement;
 };
 
 export type RelationClaimDispatchEntry = {
