@@ -28,9 +28,11 @@ The production Orchard loads
 `npm run orchard:build` builds it from the production renderer and copies the
 identical artifact to the research site's `relation-orchard.bundle.js`.
 
-Drawing paint is shared in
-[`relation-visuals.css`](../research/relation-orchard/relation-visuals.css). The app
-imports it, both Orchard pages link it, and the Tier-2 review build includes it.
+Drawing paint is owned by the renderer in
+[`relation-visuals.css`](../../components/renderer/relation-visuals.css). The app
+imports it and the Tier-2 review build includes it. Both Orchard pages link the
+research site's exact copy, which `npm run orchard:build` refreshes and
+`tests/relationVisualStyles.test.mjs` compares byte for byte.
 Keep page layout and lens visibility outside that stylesheet. Hover uses the
 shared ink/halo class without replacing relation-moment opacity.
 
