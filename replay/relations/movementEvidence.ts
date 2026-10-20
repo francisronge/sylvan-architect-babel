@@ -80,7 +80,7 @@ const memberAtPath = (root: SyntaxNode, path: readonly number[]): SyntaxNode | u
   for (const index of path) member = member?.children?.[index];
   return member;
 };
-const readsAsProjection = (node: SyntaxNode): boolean => ['bar', 'phrase'].includes(readCategoryLabel(node.label)?.kind ?? '');
+export const readsAsProjection = (node: SyntaxNode): boolean => ['bar', 'phrase'].includes(readCategoryLabel(node.label)?.kind ?? '');
 // Explicit zero-level notation, which may be followed by an annotation.
 const HEAD_NOTATION = /^([A-Za-z][A-Za-z]*)(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u;
 const notatedHeads = (label?: string): string[] | undefined => {
@@ -145,7 +145,7 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
 };
 
 type MovementOccurrences = ReturnType<typeof indexMovementOccurrences>;
-type MovementWorkspaces = { current: MovementOccurrences; prior: MovementOccurrences };
+export type MovementWorkspaces = { current: MovementOccurrences; prior: MovementOccurrences };
 
 const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: SyntaxNode,
   workspaces?: MovementWorkspaces): boolean => {
@@ -186,7 +186,7 @@ type PriorSourcePosition = { node?: SyntaxNode; parent?: SyntaxNode };
 
 // A nested head assembly retains a matching head host at each branching level.
 // Merely having bare labels throughout a clause does not satisfy that shape.
-const isHeadAssembly = (node: SyntaxNode): boolean => {
+export const isHeadAssembly = (node: SyntaxNode): boolean => {
   if (readCategoryLabel(node.label)?.kind !== 'head') return false;
   const children = node.children ?? [];
   return children.every(isHeadAssembly) && (children.length < 2
@@ -203,7 +203,7 @@ const hasAssembledMemberWitness = (source: SyntaxNode, sisters: readonly SyntaxN
       && readCategoryLabel(witness.label)?.kind === 'head' && sharesHeadCategory(witness, member)));
 };
 
-const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly SyntaxNode[] = [],
+export const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly SyntaxNode[] = [],
   priorSource: PriorSourcePosition = {}, workspaces?: MovementWorkspaces,
   headContext = false, structuralHost = false): 'head' | 'phrasal' | undefined => {
   const shape = readCategoryLabel(target.label);

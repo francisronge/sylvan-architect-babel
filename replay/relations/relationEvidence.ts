@@ -1,7 +1,7 @@
 import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '../../types.ts';
 import { exactRealizationGroup, sameRealizationMembers } from '../realizationGroups.ts';
 import { isUnqualifiedGrammaticalProperty, uniqueCurrentOwners } from './evidenceScopes.ts';
-import { recoverMovementEvidence } from './movementEvidence.ts';
+import { recoverMovementEvidence, type RecoveredMovement } from './movementEvidence.ts';
 import { directedNominalConcordMembers, nominalConcordMembers } from './nominalConcord.ts';
 import {
   isRecognizedOutcomeLiteral,
@@ -114,13 +114,18 @@ export const buildTier2FacetEvidence = ({
   priorRealizations,
   priorForest,
   activeLens,
-  synonymIndex = DEFAULT_SYNONYM_INDEX
+  synonymIndex = DEFAULT_SYNONYM_INDEX,
+  structuralMovement
 }: { relation: DerivationStageRelation; currentForest: readonly SyntaxNode[]; currentRealizations?: readonly SurfaceRealization[];
   priorRealizations?: readonly SurfaceRealization[];
-  priorForest?: readonly SyntaxNode[]; activeLens?: boolean; synonymIndex?: Tier2SynonymIndex }): Tier2FacetEvidence => {
+  priorForest?: readonly SyntaxNode[]; activeLens?: boolean; synonymIndex?: Tier2SynonymIndex;
+  structuralMovement?: RecoveredMovement }): Tier2FacetEvidence => {
   const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex, { ...relation, forest: currentForest });
   const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex, { ...relation, anchors: relation.priorAnchors ?? {}, forest: priorForest });
-  const { movement, failure: movementFailure, diagnostics: movementDiagnostics } = recoverMovementEvidence(relation, currentForest, priorForest);
+  const worded = recoverMovementEvidence(relation, currentForest, priorForest);
+  // A structurally proved displacement stands in only where wording proves none.
+  const { movement, failure: movementFailure, diagnostics: movementDiagnostics } = !worded.movement && structuralMovement
+    ? { movement: structuralMovement, failure: undefined, diagnostics: [] } : worded;
   // A proven movement transition is structural fact, and Replay draws its
   // path. An outcome the resolver cannot read does not deny it, so that
   // literal remains a neutral qualifier beside the path.

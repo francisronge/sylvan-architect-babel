@@ -79,11 +79,16 @@ test('asserted covert operations recover structurally proved endpoints with open
   }
 });
 
-test('lower and upper plus shared identity do not invent movement for unrelated claims', () => {
+test('lower and upper plus shared identity do not invent QR for unrelated claims; structure reads the displacement', () => {
+  // Wording finds no movement. The stage difference shows a new copy of the
+  // kept lower occurrence, which the claim anchors at both ends, so structure
+  // draws the ordinary arrow; the QR picture still needs authored covert meaning.
   for (const relation of ['Interpretation', 'Quantifier scope', 'agreement', 'A claim about Quantifier Raising']) {
     const value = input(); value.relation.relation = relation;
     assert.equal(recoverMovementEvidence(value.relation, value.currentForest, value.priorForest).movement, undefined, relation);
-    assert(!items(value).some(item => ['quantifier-raising', 'trajectory'].includes(item.kind)), relation);
+    assert(!items(value).some(item => item.kind === 'quantifier-raising'), relation);
+    assert.deepEqual(items(value).filter(item => item.kind === 'trajectory').map(item => [item.sourceNodeId, item.targetNodeId]),
+      [['lower', 'upper']], relation);
   }
 });
 

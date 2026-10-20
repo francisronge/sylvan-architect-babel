@@ -64,7 +64,7 @@ test('an untagged witness is no earlier chain copy of a first copy, so it still 
   assert.equal(result.failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED');
 });
 
-test('an unknown category keeps one neutral first-copy moment without inventing a trajectory', () => {
+test('an unknown category keeps one first-copy moment; wording invents no trajectory and structure reads it from the landing context', () => {
   const input = example();
   for (const forest of [input.priorForest, input.currentForest]) find(forest, 'source').label = 'An open syntax label';
   find(input.currentForest, 'landing').label = 'An open syntax label';
@@ -90,7 +90,10 @@ test('an unknown category keeps one neutral first-copy moment without inventing 
   }
   assert.ok(replay.playbackSteps[index].replayVisibleNodeIds.includes('landing'));
   assert.equal(find([replay.playbackSteps[index].replayCanvasData], 'source').silent, true);
-  assert.ok(!replay.relationRenderPlan.frames[1].items.some(item => item.kind === 'trajectory'));
+  // Wording reads no trajectory kind for the open label; the stage difference
+  // does: the new copy lands inside TP, a phrase projection, so it is phrasal.
+  assert.deepEqual(replay.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory')
+    .map(item => [item.sourceNodeId, item.targetNodeId, item.trajectoryKind]), [['source', 'landing', 'phrasal']]);
   assert.deepEqual(input, before);
 });
 
