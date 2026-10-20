@@ -136,7 +136,10 @@ prerequisites, not rendered correctness, and starts no server or provider reques
 | Camera, Replay motion or stage layout changes | `npm run verify:camera-offline` runs the real camera fit on the same offline frames at 1440×900 and 390×844 through every adjacent step, a reversal after each arrival and direct selection, and checks settled path independence (justified forward retention only), content placement, first-paint continuity and within-stage stability (`tests/helpers/cameraInvariants.mjs`). It fails like the visual audit, against `tests/helpers/cameraExceptions.mjs`, and CI runs both offline audits. `--audit camera --batches /path/codex-qualification --viewports desktop,wide-short,mobile` covers saved runs. It does not see browser timing or the painted motion between poses. |
 
 Browser receipts, TAP output and failure captures go outside the worktree. Use
-`-- --evidence /tmp/babel-browser-check` for a named directory. CI retains browser
+`-- --evidence /tmp/babel-browser-check` for a named directory. Videos are off by
+default because no check reads them; add `-- --video` (or set `BABEL_BROWSER_VIDEO=1`)
+to record the app workflow, closeout and feature-composition sessions when reviewing
+motion. Failure screenshots are always kept. CI retains browser
 and timing artifacts. Native-browser checks and the offline corpus comparator
 prove different things: the comparator checks Replay, plans and unmeasured tree
 reservations; it does not measure fonts, plaques, connector painting or the camera.
