@@ -13,7 +13,7 @@ import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
-import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
+import { extentOverlap, obstacleExtent, verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { visibleChildIds, visibleComponentNodes, visibleParentId } from './visibleComponent.ts';
 import { reserveAttachmentLifetimes, type WorkspaceAttachmentPolicy, type WorkspaceAttachmentScene } from './workspaceAttachmentPlan.ts';
 import { planCoherentWorkspace, type CoherentWorkspaceDiagnostic } from './workspaceCoherentPlan.ts';
@@ -338,6 +338,9 @@ export function reserveWorkspaceAttachments({
     }
     const overlaps = new Map<string, number>();
     for (const components of groups) for (let i = 0; i < components.length; i++) for (let j = i + 1; j < components.length; j++) {
+      // Only pairs overlapping on both axes add area.
+      const extent = extentOverlap(obstacleExtent(rects(components[i])), obstacleExtent(rects(components[j])));
+      if (extent.x <= 0 || extent.y <= 0) continue;
       let area = 0;
       const query = indexFor(components[j]);
       for (const a of rects(components[i])) query(a, b => {
