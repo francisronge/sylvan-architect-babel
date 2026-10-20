@@ -26,6 +26,7 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 - `npm start` — start the Express runtime and provider routes.
 - `npm run build` — bundle the frontend; this does not typecheck and is not a completion gate.
 - `npm run verify:all` — run typecheck plus the complete offline verification path. Use this as the default completion gate.
+- `npm run lint` — check React's hook rules (`rules-of-hooks` and `exhaustive-deps`) in the TypeScript sources. It is not yet part of `verify:all`.
 
 ## Commits and PRs
 
