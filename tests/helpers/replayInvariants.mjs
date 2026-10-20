@@ -479,12 +479,13 @@ const sameMaterial = (left, right) => canonical(left, OCCURRENCE_FIELDS) === can
  * stage only as a proved movement, whose extent no-early-reveal bounds, or
  * when its claim names an earlier occurrence the stage displaces: removes,
  * changes (its subtree differs) or gives another parent, or re-merges as an
- * unchanged copy of its lineage inside the syntactic object that holds it, or
- * names a new occurrence whose lineage's earlier occurrence is displaced. A
- * preceding root that gains a parent is merged, not displaced. A claim that
- * relates only material merged as it was, such as an identity across
- * conjuncts or a realization of a newly built phrase, would take over that
- * construction. Derived words are pronunciation, not construction. */
+ * unchanged copy of its lineage beside an object that holds it, or names a
+ * new occurrence whose lineage's earlier occurrence is displaced. A preceding
+ * root that gains a parent is merged, not displaced. A claim that relates only
+ * material merged as it was, such as an identity across conjuncts, even once
+ * they are joined beneath one root, or a realization of a newly built phrase,
+ * would take over that construction. Derived words are pronunciation, not
+ * construction. */
 export function checkRelationConstruction(replay, record) {
   const steps = replay.playbackSteps, stages = record.derivationStages ?? [], out = [];
   steps.forEach((step, index) => {
@@ -504,8 +505,12 @@ export function checkRelationConstruction(replay, record) {
       return !was || !now || canonical(was.node) !== canonical(now.node) || Boolean(was.parentId) && was.parentId !== now.parentId;
     };
     const copies = fresh.map(id => after.get(String(authoredIdentity(current.nodes.get(id)).id))).filter(Boolean);
+    const holds = (node, id) => String(node.id) === id || (node.children ?? []).some(child => holds(child, id));
+    // Internal Merge puts a copy beside an object that holds its earlier
+    // occurrence. Sharing a root with it, as joined conjuncts do, is not re-merge.
+    const besideHolder = (copy, id) => (after.get(copy.parentId)?.node.children ?? []).some(sister => sister !== copy.node && holds(sister, id));
     const remerged = id => Boolean(before.get(id).node.lineageId) && copies.some(copy => copy.node.lineageId === before.get(id).node.lineageId
-      && sameMaterial(copy.node, before.get(id).node) && copy.root === after.get(id).root);
+      && sameMaterial(copy.node, before.get(id).node) && besideHolder(copy, id));
     // A new occurrence the claim names continues its lineage's displaced earlier occurrence.
     const namedLineages = new Set(relationMentions(stages[stageIndex]?.relations?.[relationIndex])
       .filter(id => !before.has(id) && after.get(id)?.node.lineageId).map(id => after.get(id).node.lineageId));

@@ -156,6 +156,21 @@ test('control: relation-construction reports a claim showing a phrase its stage 
   assert.deepEqual(checkRelationConstruction(copied, copy), []);
 });
 
+test('control: relation-construction reports an identity claim building a conjunct that only shares a root with its occurrence', () => {
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/merged-material-construction.json#/cases/2').record;
+  const joined = prepare(record), at = joined.playbackSteps.findIndex(step => step.replayKind === 'relation'
+    && step.replayRelationIdentity.stageIndex === 1 && step.replayRelationIdentity.relationIndex === 0);
+  assert.deepEqual(checkRelationConstruction(joined, record), []);
+  // The shape the defect showed: the second conjunct and the coordination
+  // that joins it first painted at the identity claim.
+  const built = new Set(['vpCoordination', 'vpCoordinationLower', 'sellVP', 'whatSellObject', 'whatSellObject::__leaf']);
+  const claimed = { ...joined, playbackSteps: structuredClone(joined.playbackSteps) };
+  claimed.playbackSteps.slice(0, at).forEach(step => {
+    step.replayVisibleNodeIds = step.replayVisibleNodeIds.filter(id => !built.has(id));
+  });
+  assert(reported(checkRelationConstruction(claimed, record), 'relation-construction', at + 1, 'whatSellObject appears at relation'));
+});
+
 test('control: parent-after-children reports a new parent without its child and a retained parent that loses one', () => {
   assert.deepEqual(checkParentAfterChildren(replay), []);
   const merge = steps.findIndex(step => step.replayKind === 'micro' && step.operation === 'ExternalMerge');

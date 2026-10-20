@@ -37,8 +37,6 @@ syntactic rules. Desktop remains the primary experience.
      the long tough relative (night4 09-en-tough-relative-long), whose claim
      names only the landing and the new trace. Both belong with recognition
      (item 4).
-   - An identity claim still introduces a repeat when both conjuncts already
-     share one current root (across-the-board questions).
    - After a failed parse in Derivation Replay, the sentence input stays
      visible: the failure panel has no dismiss control.
    - Stage coordinate preparation keeps an ink cache that raises peak memory

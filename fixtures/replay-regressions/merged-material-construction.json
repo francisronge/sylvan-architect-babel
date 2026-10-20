@@ -1,5 +1,5 @@
 {
-  "description": "Saved analyses whose claims relate material that their stage only merges: an occurrence shared across conjuncts, or a phrase whose boundary a realization claim describes. No earlier occurrence is displaced, so each new phrase keeps its own selection, projection and External Merge, and the claims play once their anchors are built, adding no syntax. Frames are the 1-based Replay frames on origin/main 7ebe635.",
+  "description": "Saved analyses, and one controlled variant of them, whose claims relate material that their stage only merges: an occurrence shared across conjuncts, or a phrase whose boundary a realization claim describes. No earlier occurrence is displaced, so each new phrase keeps its own selection, projection and External Merge, and the claims play once their anchors are built, adding no syntax. Frames are the 1-based Replay frames on origin/main 7ebe635.",
   "cases": [
     {
       "description": "Stages 2 and 5 build both conjuncts with a shared occurrence: whatSellObject repeats whatObject, and didSell repeats did, in the second conjunct. The identity claims (shared nominal identity, shared auxiliary identity) owned each repeat as a copy, so their moments showed sellVP with sell and What (frame 15) and the TP with did (frame 31), and the External Merges that followed (frames 16 and 32) were empty. Each repeat is now selected and projected, its phrase merges at its own step, and the claim adds nothing.",
@@ -2417,6 +2417,186 @@
               ],
               "id": "root-c",
               "label": "C"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "Stage 2 of case 1, also joining both verb phrases beneath one coordination root, vpCoordination. whatSellObject repeats whatObject in the second conjunct, and the shared root comes only from that coordination: whatSellObject is merged with sell, not beside an object that holds whatObject, so the repeat is not Internal Merge. The identity claim (shared nominal identity) owned the repeat, so its moment showed vpCoordination, vpCoordinationLower, sellVP and whatSellObject (frame 17 on origin/main 1243537) and the External Merge of sellVP after it was empty (frame 18). The repeat is now selected and projected, sellVP and both coordination nodes merge at their own steps, and the claim adds nothing.",
+      "source": "Controlled variant of case 1 (night3 49-en-atb), made for review; no model produced it. It keeps stages 1 and 2, and stage 2 adds the coordinator and the two &P nodes above buyVP and sellVP, with one sentence in its statement.",
+      "sentence": "What did John buy and Mary sell?",
+      "framework": "minimalism",
+      "inputTokens": [
+        "What",
+        "did",
+        "John",
+        "buy",
+        "and",
+        "Mary",
+        "sell"
+      ],
+      "derivationStages": [
+        {
+          "relations": [],
+          "stageRecord": "The analysis treats the sentence as a question over coordinated clauses: John bought some object and Mary sold that same object. The two predicates have different subjects, so this is not coordination of predicates sharing John. What is a single interrogative nominal that will be shared across the two object positions. Did is likewise a shared auxiliary, rather than an auxiliary that licenses deletion of an otherwise unrepresented second clause. The workspace initially contains these lexical objects. Proper names and the interrogative nominal are atomic D objects; their maximal status follows from their positions rather than from an obligatory unary DP shell. Projection labels used below describe structures built by Merge, not pre-existing phrase-structure templates.",
+          "statement": "Select the lexical objects for an across-the-board constituent question.",
+          "workspaceForest": [
+            {
+              "children": [],
+              "id": "whatObject",
+              "label": "D[wh]",
+              "lineageId": "sharedWh",
+              "word": "What"
+            },
+            {
+              "children": [],
+              "id": "buy",
+              "label": "V",
+              "word": "buy"
+            },
+            {
+              "children": [],
+              "id": "sell",
+              "label": "V",
+              "word": "sell"
+            },
+            {
+              "children": [],
+              "id": "john",
+              "label": "D",
+              "lineageId": "johnChain",
+              "word": "John"
+            },
+            {
+              "children": [],
+              "id": "mary",
+              "label": "D",
+              "lineageId": "maryChain",
+              "word": "Mary"
+            },
+            {
+              "children": [],
+              "id": "did",
+              "label": "T[past, auxiliary]",
+              "lineageId": "sharedAuxiliary",
+              "word": "did"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "occurrences": [
+                  "whatObject",
+                  "whatSellObject"
+                ]
+              },
+              "relation": "shared nominal identity",
+              "values": {
+                "interpretation": "one interrogative variable shared across both object positions"
+              }
+            },
+            {
+              "anchors": {
+                "arguments": [
+                  "whatObject",
+                  "whatSellObject"
+                ],
+                "predicates": [
+                  "buy",
+                  "sell"
+                ]
+              },
+              "relation": "internal theta-role assignment",
+              "values": {
+                "roles": [
+                  "Theme",
+                  "Theme"
+                ]
+              }
+            }
+          ],
+          "stageRecord": "Parallel Merge combines buy and sell with the same interrogative object. The two displayed object occurrences serialize a shared syntactic object: the second occurrence is not an independently chosen interrogative. This is base sharing, not movement out of one predicate into the other. Buy assigns its Theme role to its object occurrence, and sell assigns its Theme role to its own occurrence. Consequently, the eventual answer supplies an object satisfying both predicates.",
+          "statement": "Build the two verb–object structures with one shared interrogative nominal. Coordinate them beneath one root.",
+          "workspaceForest": [
+            {
+              "id": "vpCoordination",
+              "label": "&P",
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "buy",
+                      "label": "V",
+                      "word": "buy"
+                    },
+                    {
+                      "children": [],
+                      "id": "whatObject",
+                      "label": "D[wh]",
+                      "lineageId": "sharedWh",
+                      "word": "What"
+                    }
+                  ],
+                  "id": "buyVP",
+                  "label": "VP"
+                },
+                {
+                  "id": "vpCoordinationLower",
+                  "label": "&P",
+                  "children": [
+                    {
+                      "id": "and",
+                      "label": "&",
+                      "word": "and",
+                      "children": []
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "sell",
+                          "label": "V",
+                          "word": "sell"
+                        },
+                        {
+                          "children": [],
+                          "id": "whatSellObject",
+                          "label": "D[wh]",
+                          "lineageId": "sharedWh",
+                          "word": "What"
+                        }
+                      ],
+                      "id": "sellVP",
+                      "label": "VP"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "children": [],
+              "id": "john",
+              "label": "D",
+              "lineageId": "johnChain",
+              "word": "John"
+            },
+            {
+              "children": [],
+              "id": "mary",
+              "label": "D",
+              "lineageId": "maryChain",
+              "word": "Mary"
+            },
+            {
+              "children": [],
+              "id": "did",
+              "label": "T[past, auxiliary]",
+              "lineageId": "sharedAuxiliary",
+              "word": "did"
             }
           ]
         }
