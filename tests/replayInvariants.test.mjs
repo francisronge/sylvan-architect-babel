@@ -259,6 +259,24 @@ test('control: movement-landing-parent reports a movement moment that paints its
     'matrixTProjection is not painted beside landing subjectHigher under matrixTP'));
 });
 
+test('control: movement-landing-parent reports a new parent below the kept landing parent painted before its movement moment', () => {
+  // GPT-6.1 Sol analysis 1 of Marie le fera lire à Paul.: TP keeps its id, and
+  // the new T′ (tinner) holds the clitic complex in finite T's slot.
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/inserted-landing-parent-below-kept-host.json#').record;
+  const prepared = prepare(record), moment = prepared.playbackSteps.findIndex(step => step.operation === 'subject-movement');
+  assert.deepEqual(checkMovementLandingParent(prepared, record), []);
+  const early = { ...prepared, playbackSteps: structuredClone(prepared.playbackSteps) };
+  const [before, at] = early.playbackSteps.slice(moment - 1, moment + 1);
+  before.replayCanvasData = at.replayCanvasData;
+  before.replayVisibleNodeIds = at.replayVisibleNodeIds.filter(id => !id.startsWith('marieHigh'));
+  assert(reported(checkMovementLandingParent(early, record), 'movement-landing-parent', moment,
+    `tinner is painted at relation clitic-movement before the movement moment (frame ${moment + 1})`));
+  const withheld = { ...prepared, playbackSteps: structuredClone(prepared.playbackSteps) };
+  withheld.playbackSteps[moment].replayVisibleNodeIds = withheld.playbackSteps[moment].replayVisibleNodeIds.filter(id => id !== 'tinner');
+  assert(reported(checkMovementLandingParent(withheld, record), 'movement-landing-parent', moment + 1,
+    'tinner is not painted beside landing marieHigh under tp'));
+});
+
 /* The sweep: every rule on every frame of every committed saved analysis.
  * Real defects stay listed below with the exact subject node of each violation;
  * a new violation fails, and so does a listed one that no longer occurs. */

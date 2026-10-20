@@ -551,12 +551,17 @@ export function checkAttachAtMerge(replay) {
 /** A movement moment introduces its landing together with the smallest new
  * parent needed to attach it above an existing subtree. In the authored stage
  * forest that parent is the landing's only sister when the landing's parent had
- * two or more children in the preceding stage and the sister holds exactly
- * those children, in order. Whenever the moment paints the landing, the landing
- * and that sister are painted as daughters of the landing's parent; otherwise
- * the moment shows the landing beside the earlier children instead. */
+ * two or more children in the preceding stage and the sister holds those
+ * children in order, each slot holding the earlier child itself or a node new
+ * in this stage that contains it (such as the complex another movement of the
+ * stage forms on it). The landing's parent keeps its earlier id, so the sister
+ * is the inserted node. Whenever the moment paints the landing, the landing and
+ * that sister are painted as daughters of the landing's parent; otherwise the
+ * moment shows the landing beside the earlier children instead. A new sister
+ * belongs to the first such moment of its stage: no earlier step of the stage
+ * paints it, so no construction step builds it. */
 export function checkMovementLandingParent(replay, record) {
-  const out = [], stages = record.derivationStages ?? [];
+  const out = [], stages = record.derivationStages ?? [], introduced = new Set();
   const parents = forest => {
     const parent = new Map(), pending = (forest ?? []).map(root => [root, null]);
     while (pending.length) {
@@ -568,6 +573,7 @@ export function checkMovementLandingParent(replay, record) {
     return parent;
   };
   const childIds = node => (node?.children ?? []).map(child => String(child.id ?? ''));
+  const contains = (node, id) => String(node?.id ?? '') === id || (node?.children ?? []).some(child => contains(child, id));
   replay.playbackSteps.forEach((step, index) => {
     const identity = step.replayRelationIdentity;
     if (step.replayKind !== 'relation' || !identity) return;
@@ -580,9 +586,20 @@ export function checkMovementLandingParent(replay, record) {
     for (const landing of landings) {
       const host = current.get(landing)?.owner, earlier = host && previous.get(String(host.id ?? ''))?.node;
       const sister = childIds(host).length === 2 ? host.children.find(child => String(child.id ?? '') !== landing) : null;
-      if (!sister || childIds(earlier).length < 2 || JSON.stringify(childIds(sister)) !== JSON.stringify(childIds(earlier))
-        || !frame.displayed.has(landing)) continue;
+      const slots = childIds(earlier);
+      if (!sister || slots.length < 2 || childIds(sister).length !== slots.length
+        || !sister.children.every((child, slot) => String(child.id ?? '') === slots[slot]
+          || !previous.has(String(child.id ?? '')) && contains(child, slots[slot]))) continue;
       const hostId = String(host.id), sisterId = String(sister.id);
+      if (!previous.has(sisterId) && !introduced.has(`${identity.stageIndex}:${sisterId}`)) {
+        introduced.add(`${identity.stageIndex}:${sisterId}`);
+        const early = replay.playbackSteps.findIndex((other, otherIndex) => otherIndex < index
+          && other.replayFrameIndex === identity.stageIndex && frameStructure(other).displayed.has(sisterId));
+        if (early >= 0)
+          out.push(violation('movement-landing-parent', early + 1, `${sisterId} is painted at ${replay.playbackSteps[early].replayKind} `
+            + `${replay.playbackSteps[early].operation} before the movement moment (frame ${index + 1}) that attaches landing ${landing} under ${hostId}`));
+      }
+      if (!frame.displayed.has(landing)) continue;
       if (frame.parent.get(landing) !== hostId || frame.parent.get(sisterId) !== hostId)
         out.push(violation('movement-landing-parent', index + 1,
           `${sisterId} is not painted beside landing ${landing} under ${hostId} at its movement moment`));
