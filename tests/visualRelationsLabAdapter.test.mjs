@@ -473,7 +473,8 @@ test('the visual vocabulary is exhaustive, isolated, and tree-free', async () =>
     'AFTER',
     'PRIOR DOMAIN',
     'CURRENT DOMAIN',
-    'CyclicLinearization · order'
+    'CyclicLinearization · order',
+    'Cyclic Linearization · order'
   ]) {
     assert.equal(vocabulary.includes(authoredValue), false, `${authoredValue} is card content, not a primitive`);
   }

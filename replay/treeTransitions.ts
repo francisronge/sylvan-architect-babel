@@ -1419,6 +1419,15 @@ export const planNeutralTransitionAttachments = (
   });
 };
 
+/**
+ * The new parent below a landing parent that keeps its preceding id: the
+ * landing's only sister, when that parent had two or more children in the
+ * preceding stage and the sister holds them in order. A slot holds the earlier
+ * child itself, or a node new in this stage that contains it, such as the
+ * complex another movement of the stage forms on it. The sister only attaches
+ * the landing above the earlier daughters, so the movement moment introduces
+ * it, as `landingAttachmentPath` does when the new id is on the upper node.
+ */
 export const movementLandingWrapper = (
   currentForest: SyntaxNode[],
   previousForest: SyntaxNode[],
@@ -1437,7 +1446,9 @@ export const movementLandingWrapper = (
   const wrapper = currentChildren.find(child => child.id !== landingNodeId);
   if (!wrapper || wrapper.children?.length !== previousChildren.length)
     return null;
-  if (!wrapper.children.every((child, index) => child.id === previousChildren[index].id))
+  if (!wrapper.children.every((child, index) => child.id === previousChildren[index].id
+    || !findNodeByIdInForest(previousForest, child.id)
+      && collectSyntaxSubtreeNodeIds(child).includes(previousChildren[index].id)))
     return null;
   return { parentId, wrapperId: wrapper.id };
 };
