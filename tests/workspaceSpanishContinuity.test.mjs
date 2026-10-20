@@ -8,10 +8,14 @@ import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCamera.ts';
 import { visibleComponentNodes } from '../replay/visibleComponent.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/workspace-spanish-continuity.json', import.meta.url)));
 const original = JSON.stringify(record);
 
+// Right to left the selection checks run only for a record whose layout is not
+// the reflection of its left-to-right layout (tests/helpers/rtlMirror.mjs).
+const runs = direction => directionsFor('replay-regressions/workspace-spanish-continuity.json#').includes(direction);
 for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
   const replay = prepareReplay({ ...record, includePlayback: true });
   const steps = replay.playbackSteps, frames = new Map();
@@ -30,7 +34,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
   };
 
   for (const [beforeFrame, afterFrame, rootId] of [[10, 11, 'b_embPred'], [32, 33, 'b_matrixPred']]) {
-    test(`${width}px ${direction}: Spanish selection ${afterFrame} preserves the complete existing predicate`, () => {
+    if (runs(direction)) test(`${width}px ${direction}: Spanish selection ${afterFrame} preserves the complete existing predicate`, () => {
       const before = frame(beforeFrame), after = frame(afterFrame);
       assert.equal(after.step.operation, 'LexicalSelect');
       const component = visibleComponentNodes(before.nodes.get(rootId), before.nodes);
@@ -44,6 +48,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     });
   }
 
+  // Right to left as well: no controlled right-to-left change has yet been shown to fail it while the mirror check reports its record.
   test(`${width}px ${direction}: Spanish movement preserves the preceding full source and sister ranks`, () => {
     for (const [beforeFrame, afterFrame, source, landing] of [
       [8, 9, 'b_vengaLow', 'b_vengaAtv'], [30, 31, 'b_quieroLow', 'b_quieroAtv']

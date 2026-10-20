@@ -15,6 +15,7 @@ const requiredPaths = [
   'LICENSES/RELATION-ORCHARD-BUNDLE.txt',
   'docs/design/babel-visual-relations-research.production-only-audit.html',
   'docs/design/visual-relations-current-lab.tsx',
+  'docs/design/visual-relations-lab-cards.ts',
   'docs/design/visual-relations-current-lab.production-only-audit.r96.bundle.js',
   'docs/design/visual-relations-source-gallery.tsx',
   'docs/research/relation-orchard/index.md',

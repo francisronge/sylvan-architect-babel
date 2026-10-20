@@ -11,6 +11,7 @@ import { visibleComponentNodes } from '../replay/visibleComponent.ts';
 import { plaqueTreeObstacles } from '../replay/relations/plaquePlacement.ts';
 import { workspaceComponentLifetimeSeeds } from '../replay/workspaceComponentLifetime.ts';
 import { measureCategoryText, measureTreeInk } from './helpers/treeFontMetrics.mjs';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const cases = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/workspace-component-lifetime.json', import.meta.url))).cases;
 const cache = new Map();
@@ -51,19 +52,24 @@ function stationary(before, after) {
   assert(count >= 20, 'checks the complete existing scene');
 }
 
+// Right to left these run only for a record whose layout is not the reflection of
+// its left-to-right layout (tests/helpers/rtlMirror.mjs), and for the record laid
+// out with measured text, which the unmeasured mirror check does not cover.
+const runs = (key, direction) => key === 'english-late-adjunct/1' || directionsFor(
+  `replay-regressions/workspace-component-lifetime.json#/cases/${cases.findIndex(row => row.key === key)}`).includes(direction);
 for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
   for (const [key, boundaries] of [
     ['english-late-adjunct/1', [[47, 48]]],
     ['dutch-auxiliary/0', [[53, 54]]],
     ['hungarian-dative/1', [[33, 34], [38, 39]]],
     ['turkish-relative/0', [[49, 50], [55, 56]]]
-  ]) test(`${width}px ${direction}: ${key} keeps unchanged syntax fixed at selection or relation-only entry`, () => {
+  ]) if (runs(key, direction)) test(`${width}px ${direction}: ${key} keeps unchanged syntax fixed at selection or relation-only entry`, () => {
     const run = setup(key, width, height, direction);
     for (const [a, b] of boundaries) stationary(run.frame(a), run.frame(b));
     run.immutable();
   });
 
-  test(`${width}px ${direction}: the late adjunct keeps selection and its following merge continuous`, () => {
+  if (runs('english-late-adjunct/1', direction)) test(`${width}px ${direction}: the late adjunct keeps selection and its following merge continuous`, () => {
     const run = setup('english-late-adjunct/1', width, height, direction);
     stationary(run.frame(47), run.frame(48));
     const before = run.frame(48), after = run.frame(49);
@@ -79,6 +85,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     run.immutable();
   });
 
+  // Right to left as well: no controlled right-to-left change has yet been shown to fail it while the mirror check reports its record.
   test(`${width}px ${direction}: the Turkish source and real movement remain authored`, () => {
     const run = setup('turkish-relative/0', width, height, direction);
     const before = run.frame(56), after = run.frame(57);
