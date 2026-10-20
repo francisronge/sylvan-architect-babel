@@ -418,6 +418,32 @@ const displacedInStage = (
 };
 
 /**
+ * `displacedInStage`, apart from what the stage's recovered movements change.
+ * An occurrence they relate (`moved`) that keeps its subtree and only leaves its
+ * parent moves with them, an earlier one they replace is theirs, and a slot
+ * whose earlier and current children are both their occurrences holds the copy
+ * they exchanged. Any other change displaces the node.
+ */
+const displacedOutsideMovements = (
+  node: SyntaxNode,
+  previous: ForestLocations,
+  current: ForestLocations,
+  moved: ReadonlySet<string>
+): boolean => {
+  if (!moved.size)
+    return displacedInStage(node, previous, current);
+  const before = previous.get(String(node.id || '')), after = current.get(String(node.id || ''));
+  if (!after)
+    return !moved.has(String(node.id || ''));
+  const unchanged = (left: SyntaxNode, right: SyntaxNode): boolean => ownNodeContent(left) === ownNodeContent(right)
+    && (left.children || []).length === (right.children || []).length
+    && (left.children || []).every((child, index) => moved.has(String(child.id || '')) && moved.has(String(right.children![index].id || ''))
+      || unchanged(child, right.children![index]));
+  return !unchanged(node, after.node)
+    || Boolean(before?.parentId) && before!.parentId !== after.parentId && !moved.has(String(node.id || ''));
+};
+
+/**
  * True when a retained witness kept its own content and exact slot, and every
  * earlier descendant, in order and under its earlier parent, and gained only
  * new nodes or whole earlier workspaces. Ordinary construction builds that
@@ -678,16 +704,18 @@ const resolvePriorWitnessTreeTransitionOwnership = (
   // its current anchors, the earlier material inside them, and the earlier
   // occurrences of a new node's lineage there), that material is merged as it
   // was: the stage's construction builds what now contains it, and the claim
-  // owns only a copy it relates to its witnesses.
+  // owns only a copy it relates to its witnesses. What the stage's recovered
+  // movements change is theirs, not this claim's displacement.
   const coveredCurrentIds = currentAnchors.flatMap(([node]) => [...collectExactSubtreeNodeIds(node)]);
   const copiedLineages = new Set(coveredCurrentIds.filter(id => !previousLocations.has(id))
     .map(id => currentLocations.get(id)?.node.lineageId).filter(Boolean));
   const coveredEarlierIds = new Set([...priorAnchorIds, ...coveredCurrentIds, ...[...previousLocations]
     .filter(([, location]) => location?.node.lineageId && copiedLineages.has(location.node.lineageId)).map(([id]) => id)]
     .filter(id => previousLocations.has(id)));
+  const movementOccurrences = new Set(relation.movementOccurrenceNodeIds ?? []);
   const rewritesWitness = !retainedPriorAnchors || [...coveredEarlierIds].some(id => {
     const earlier = previousLocations.get(id);
-    return !earlier || displacedInStage(earlier.node, previousLocations, currentLocations);
+    return !earlier || displacedOutsideMovements(earlier.node, previousLocations, currentLocations, movementOccurrences);
   });
   // When the preceding witnesses still exist, they identify the material
   // being updated. Other current anchors can supply its newly built context
