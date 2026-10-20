@@ -354,7 +354,7 @@ test('the visual vocabulary is exhaustive, isolated, and tree-free', async () =>
     'utf8'
   );
   const html = `${await readFile(
-    new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url), 'utf8'
+    new URL('../components/renderer/relation-visuals.css', import.meta.url), 'utf8'
   )}\n${await readFile(
     new URL('../docs/design/babel-visual-relations-research.production-only-audit.html', import.meta.url), 'utf8'
   )}`;
