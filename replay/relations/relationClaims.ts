@@ -119,6 +119,8 @@ export type ExclusiveRelationDispatchInput = {
   controlContext?: ControlContext;
   registry?: typeof productionRelationRegistry;
   synonymIndex?: Tier2SynonymIndex;
+  /** Experimental structure-only rules; empty or absent leaves dispatch unchanged. */
+  structuralRules?: ReadonlySet<import('./structuralRecognition.ts').StructuralRuleId>;
 };
 
 export type RelationClaimDispatchEntry = {

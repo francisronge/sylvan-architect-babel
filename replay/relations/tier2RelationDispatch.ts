@@ -49,6 +49,7 @@ import type {
 import { buildTier2FacetEvidence } from './relationEvidence.ts';
 import { PRODUCTION_RENDER_FAMILIES } from './renderFamilies.ts';
 import { typedInterpretiveRoles, typedThematicAssignment } from './thematicAssignment.ts';
+import { structuralClaimScopes, structuralRecognitionRules } from './structuralRecognition.ts';
 import { indexTier2Forests, type Tier2ForestIndexes } from './tier2EvidenceQueries.ts';
 import { evaluateTier2FacetRecipe } from './tier2FacetEvaluation.ts';
 import { buildTier2FacetIdentity, buildTier2FacetOutputIdentities } from './tier2FacetIdentity.ts';
@@ -614,8 +615,19 @@ export const dispatchRelationClaims = (
     const evaluation = evaluateTier2FacetRecipe(recipe, scope.evidence, indexes);
     if (evaluation.complete) continued.push({ recipe, evaluation, evidence: scope.evidence, origins: scope.origins });
   }
-  const completedClaims = registryEntry ? [...selected, ...continued]
+  let completedClaims = registryEntry ? [...selected, ...continued]
     : ownFiniteTenseContext([...selected, ...continued], evidence, indexes);
+  // Experimental: an unregistered envelope that earned no claim may still earn one
+  // from its structure alone. Off by default; see structuralRecognitionRules.
+  if (!registryEntry && !completedClaims.length && input.structuralRules?.size && !relation.relationContractFailure) {
+    completedClaims = structuralClaimScopes(evidence, {
+      relation, currentForest, priorForest, currentRealizations, priorRealizations
+    }, input.structuralRules).flatMap(scope => {
+      const recipe = TIER2_FACET_RECIPES.find(entry => entry.id === scope.kind)!;
+      const evaluation = evaluateTier2FacetRecipe(recipe, scope.evidence, indexes);
+      return evaluation.complete ? [{ recipe, evaluation, evidence: scope.evidence, origins: scope.origins }] : [];
+    });
+  }
   const tier2ClaimFacets = [...new Map(attachFacetIdentities(completedClaims, evidence, stageIndex, indexes)
     .map(facet => [JSON.stringify([facet.facetIdentity, facet.evaluation.consumedEvidence]), facet])).values()];
   const companions = attachFacetIdentities(
@@ -861,7 +873,9 @@ export const dispatchRelationClaimBatch = (
 
 /** Earlier claims can clarify later restatements; later relations never justify earlier ones. */
 export function dispatchStageRelations(stages: readonly { workspaceForest: SyntaxNode[]; relations: DerivationStageRelation[]; realizations?: SurfaceRealization[] }[],
-  options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens'> = {}): RelationClaimDispatch[][] {
+  options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens' | 'structuralRules'> = {}): RelationClaimDispatch[][] {
+  const structuralRules = options.structuralRules ?? structuralRecognitionRules();
+  if (structuralRules.size) options = { ...options, structuralRules };
   const assignmentContext = createAssignmentContext();
   const controlContext = createControlContext();
   return stages.map((stage, stageIndex) => {
