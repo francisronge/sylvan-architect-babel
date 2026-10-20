@@ -59,6 +59,25 @@ function buildSpecimens() {
   }));
 }
 
+/* Everything a specimen gives the page and the checks, apart from its name, its
+ * framework label and the analysis provenance. The page renders the sentence,
+ * input tokens, derivation stages and final forest; provenance never reaches
+ * TreeVisualizer (tests/helpers/tier2ProductionEntry.tsx). */
+const renderedContent = ({ id, framework, bundle, ...specimen }) => JSON.stringify({ ...specimen,
+  bundle: { ...bundle, analyses: bundle.analyses.map(({ provenance, ...analysis }) => analysis) } });
+
+/** Every specimen is built and compared. A Minimalism specimen whose rendered
+ * content equals its X-bar twin's is painted by that twin, so the browser paints
+ * X-bar always and Minimalism only where the framework changes what is drawn. */
+function selectPaintedSpecimens(specimens) {
+  const xbar = new Map(specimens.filter(specimen => specimen.framework === 'xbar')
+    .map(specimen => [`${specimen.recipe} ${specimen.variant}`, renderedContent(specimen)]));
+  const coveredByXbar = specimens.filter(specimen => specimen.framework !== 'xbar'
+    && xbar.get(`${specimen.recipe} ${specimen.variant}`) === renderedContent(specimen)).map(specimen => specimen.id);
+  const covered = new Set(coveredByXbar);
+  return { painted: specimens.filter(specimen => !covered.has(specimen.id)), coveredByXbar };
+}
+
 // Existence is insufficient: check paintable geometry, ancestor visibility, text,
 // and attributes. A canvas must contain nontransparent pixels, not just exist.
 async function paintedChecks(page, checks) {
@@ -147,7 +166,7 @@ test('public Tier 2 recipes paint their intended pieces in the production render
   const output = process.env.BABEL_TIER2_PRODUCTION_EVIDENCE || await fs.mkdtemp(path.join(os.tmpdir(), 'babel-tier2-production-'));
   await fs.mkdir(output, { recursive: true });
   const source = await sourceManifest();
-  let server, browser, base, specimens, runtimeProvenance, compiledSources = [], runtimeAsset = null;
+  let server, browser, base, specimens, painted, coveredByXbar, runtimeProvenance, compiledSources = [], runtimeAsset = null;
   const results = [], failures = [], errors = [], blockedProviderRequests = [];
   try {
     const provided = process.env.BABEL_TIER2_ATLAS_URL;
@@ -191,11 +210,13 @@ test('public Tier 2 recipes paint their intended pieces in the production render
     for (const framework of ['xbar', 'minimalism']) for (const recipe of TIER2_FACET_RECIPES) {
       assert(specimens.some(specimen => specimen.framework === framework && specimen.recipe === recipe.id && specimen.variant === 'default'), `Missing ${framework} ${recipe.id}`);
     }
+    ({ painted, coveredByXbar } = selectPaintedSpecimens(specimens));
+    assert.equal(painted.filter(specimen => specimen.framework === 'xbar').length, TIER2_FACET_RECIPES.length + 2, 'Paint every X-bar specimen.');
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1 });
     page.on('pageerror', error => errors.push({ url: page.url(), message: String(error) }));
     await page.route('**/api/**', route => { blockedProviderRequests.push(route.request().url()); return route.abort(); });
-    for (const specimen of specimens) {
+    for (const specimen of painted) {
       const result = { id: specimen.id, recipe: specimen.recipe, framework: specimen.framework, variant: specimen.variant,
         frameIndex: specimen.frameIndex, relationStageIndex: specimen.relationStageIndex, relationIndex: specimen.relationIndex,
         activeLens: specimen.activeLens, expectedPrimitives: specimen.expectedPrimitives,
@@ -254,7 +275,8 @@ test('public Tier 2 recipes paint their intended pieces in the production render
     finally { await server?.close(); }
     const finalSource = await sourceManifest();
     const report = { started, finished: new Date().toISOString(), providerCallsMade: 0,
-      expectedCases: specimens?.length ?? null, attemptedCases: results.length,
+      expectedCases: specimens?.length ?? null, paintedCases: painted?.length ?? null, coveredByXbar: coveredByXbar ?? null,
+      attemptedCases: results.length,
       domPassedCases: results.filter(result => result.domPassed).length,
       manualChecks: results.flatMap(result => result.manual.map(check => ({ id: result.id, ...check }))),
       source, sourceUnchangedDuringRun: finalSource.sha256 === source.sha256, runtimeProvenance, compiledSources, runtimeAsset,
