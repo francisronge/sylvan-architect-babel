@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const visualSourceImagePaths = [
   'visual-relations-assets/agree-formal-features.jpg',
   'visual-relations-assets/agree-merge-and-agree.jpg',

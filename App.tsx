@@ -41,7 +41,7 @@ import {
 
 type AppTab = 'tree' | 'derivation' | 'notes';
 
-const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number }>; label: string }> = [
+const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number; className?: string }>; label: string }> = [
   { id: 'tree', icon: Layers, label: 'Canopy' },
   { id: 'derivation', icon: FlameKindling, label: 'Derivation Replay' },
   { id: 'notes', icon: FileText, label: 'Notes' },
