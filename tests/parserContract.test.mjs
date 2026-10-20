@@ -120,7 +120,10 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(instruction, /Do not add a relation solely to announce one of these construction events\./);
     assert.match(instruction, /Record every additional relational claim introduced or changed in the analysis, including claims established through those construction events\./);
     assert.doesNotMatch(instruction, /construction steps recoverable from workspace changes|not fully expressed by the forest's ordinary mother-daughter or sisterhood branching/);
-    assert.match(instruction, /- relations: an array of relations introduced or changed in this stage\./);
+    assert.match(instruction, /- relations: an array of relations introduced or changed in this stage\. A relation stays in force in later stages and is listed again only if it changes\./);
+    assert.match(instruction, /Keep an occurrence's id while it persists across stages\. If you remove or rebuild a node, say why in stageRecord\./);
+    assert.match(instruction, /Rewrite a node when any of its authored fields changes; it keeps its id, and unchanged descendant subtrees may still use refId\./);
+    assert.match(instruction, /Repeat every nontrivial association that still holds in each later stage; they are not inherited merely because the nodes persist\./);
     assert.match(instruction, /Explain every relation introduced or changed in this stage within stageRecord, stating what it establishes and which participants it connects\./);
     assert.match(instruction, /Present these explanations in establishment order and list relations in the same order\./);
     assert.match(instruction, /One relation entry contains claims established together; claims established at different points need separate entries\./);

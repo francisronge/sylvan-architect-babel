@@ -15,7 +15,7 @@ An occurrence moves only from a position that an earlier stage already shows. Se
 Each stage has these four required fields, written in this order:
 - statement: a nonblank string naming what the stage establishes.
 - stageRecord: a nonblank prose string explaining the operations, their order, and why the resulting state follows within the analysis. Include the reasoning needed to understand this stage, without programming identifiers or JSON bookkeeping.
-- relations: an array of relations introduced or changed in this stage.
+- relations: an array of relations introduced or changed in this stage. A relation stays in force in later stages and is listed again only if it changes.
 - workspaceForest: an array containing every currently active syntax tree or separate syntax object after these operations.
 It may then contain realizations, the optional input-association field defined below. No other stage fields are allowed.
 After objects combine, show their combined structure rather than retaining their former independent roots.
@@ -30,11 +30,11 @@ Its optional fields are word, silent, and lineageId:
 - word is a string holding a terminal's lexical content. A wordless abstract item may remain wordless.
 - silent is a boolean. On a terminal, true means unpronounced in this stage, even if word retains lexical content. On a non-terminal, true means every terminal beneath it is unpronounced. Represent each occurrence's current status, not the status it will acquire later.
 - lineageId is a nonblank string shared by distinct occurrences of the same continuing syntactic object. It expresses identity, not a particular dependency type.
-Keep an occurrence's id while it persists across stages. When an occurrence moves, either the landing or the occurrence left at the source keeps its id. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis, including its choice of copy or trace representation.
+Keep an occurrence's id while it persists across stages. If you remove or rebuild a node, say why in stageRecord. When an occurrence moves, either the landing or the occurrence left at the source keeps its id. Distinct positions in one workspace need distinct ids, sharing lineageId when the analysis identifies them as occurrences of the same object. Preserve the syntax and pronunciation of each occurrence according to the analysis, including its choice of copy or trace representation.
 
 Earlier subtrees
 An earlier-subtree reference is an object containing only refId, whose value is an exact earlier node id. It carries that node's latest earlier definition and all its descendants into the current workspace. It cannot refer to a node first introduced in the current or a later stage.
-To reuse an unchanged subtree, use refId or write out the entire subtree, including its children. Rewrite a node when any of its authored fields changes; unchanged descendant subtrees may still use refId. An unchanged subtree may be referenced when it becomes part of a larger structure. Each occurrence's id must appear at only one position in the expanded workspace, including nodes introduced through refId.
+To reuse an unchanged subtree, use refId or write out the entire subtree, including its children. Rewrite a node when any of its authored fields changes; it keeps its id, and unchanged descendant subtrees may still use refId. An unchanged subtree may be referenced when it becomes part of a larger structure. Each occurrence's id must appear at only one position in the expanded workspace, including nodes introduced through refId.
 The complete nodes and reference objects use only the fields defined above.
 
 Realizations
