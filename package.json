@@ -60,6 +60,7 @@
     "undici": "^7.29.1"
   },
   "devDependencies": {
+    "@types/d3": "~7.4.3",
     "@types/node": "^22.14.0",
     "@types/react": "~19.2.18",
     "@types/react-dom": "~19.2.7",

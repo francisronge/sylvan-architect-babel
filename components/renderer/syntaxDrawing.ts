@@ -327,7 +327,7 @@ export function paintSyntaxTree({
       return step <= effectiveRevealThreshold ? 0.6 : 0;
     })
     .style('transition', 'opacity 280ms ease')
-    .attr('d', d3.linkVertical().x((d: d3.HierarchyPointNode<SyntaxNode>) => d.x).y((d: d3.HierarchyPointNode<SyntaxNode>) => d.y));
+    .attr('d', d3.linkVertical<d3.HierarchyPointLink<SyntaxNode>, d3.HierarchyPointNode<SyntaxNode>>().x(d => d.x).y(d => d.y));
 
   // The Lab can disable the compiled overlay. Resolved movement arrows draw
   // here only when that overlay is not already drawing authored trajectories.
