@@ -47,13 +47,10 @@ syntactic rules. Desktop remains the primary experience.
      by about 100 MiB on the largest saved analyses.
    - A wrapped category line can start with the space that overflowed the
      line before (22 saved labels).
-   - Saved analyses that still fail a Replay invariant (14 findings in 6 of 986
-     analyses, all older than the pass): a step that does not do what it says
-     in the French clitic-climbing causative (all three analyses); marks that
-     do not persist as defined in the English gapping, raising/control mix and
-     relative pied-piping runs; a parent shown before its children in the
-     raising/control mix; and unstable construction in the second
-     there-insertion analysis.
+   - Saved analyses that still fail a Replay invariant (3 findings in 2 of 986
+     analyses, all older than the pass): a mark that does not persist as
+     defined in the English relative pied-piping run, and unstable
+     construction in the second there-insertion analysis.
    - Mobile calibration and a desktop minimum-zoom clamp.
 3. Clean up the tests:
    - Retire hand-picked per-frame Replay checks that the invariant sweep

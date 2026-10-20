@@ -695,6 +695,17 @@ export function treeLayoutSize(nodeCount: number, depth: number) {
 export function stageTreeLayoutSize(steps: PlaybackStep[], stageIndex: number, _viewportWidth: number, _viewportHeight: number,
   layoutGroups?: StageLayoutInput['layoutGroups']) {
   const layoutStageIndex = layoutGroups?.find(group => group.includes(stageIndex))?.[0] ?? stageIndex;
+  let extents = stageTreeExtents.get(steps);
+  if (!extents) stageTreeExtents.set(steps, extents = new Map());
+  let extent = extents.get(layoutStageIndex);
+  if (extent === undefined) extents.set(layoutStageIndex, extent = stageTreeExtent(steps, layoutStageIndex));
+  return extent && treeLayoutSize(extent.nodeCount, extent.depth);
+}
+
+/** Prepared steps and their canvases are immutable, and each per-stage plan asks
+ * for the size of every stage. Each call still returns its own size tuple. */
+const stageTreeExtents = new WeakMap<readonly PlaybackStep[], Map<number, { nodeCount: number; depth: number } | null>>();
+function stageTreeExtent(steps: readonly PlaybackStep[], layoutStageIndex: number) {
   const completedCanvas = steps.find(step => step.replayFrameIndex === layoutStageIndex
     && step.replayKind === 'macro')?.replayCanvasData;
   const completesSingleTree = Boolean(completedCanvas && completedCanvas.replayOrigin?.kind !== 'workspace');
@@ -709,7 +720,7 @@ export function stageTreeLayoutSize(steps: PlaybackStep[], stageIndex: number, _
     nodeCount = Math.max(nodeCount, root.descendants().length - Number(temporaryWorkspace));
     depth = Math.max(depth, root.height - Number(temporaryWorkspace));
   }
-  return nodeCount ? treeLayoutSize(nodeCount, depth) : null;
+  return nodeCount ? { nodeCount, depth } : null;
 }
 
 type StageCameraInput = StageLayoutInput & {
