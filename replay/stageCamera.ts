@@ -655,6 +655,43 @@ export function buildStageCameraBounds(input: StageCameraInput): OverlayBounds |
   } : null;
 }
 
+/** Families whose accepted composition fits the tree first: their stage camera
+ * omits relation overlays and contains their plaques separately. */
+export const TREE_FIRST_FAMILIES: ReadonlySet<string> = new Set(['copy.multiple-pronunciation', 'copy.partial-deletion',
+  'multidominance.shared-node', 'argument-sharing.domains', 'pf.phrasal-spellout', 'pf.correspondence', 'pf.fission',
+  'pf.impoverishment', 'pf.local-dislocation', 'pf.cyclic-linearization', 'cooper-storage.ledger', 'scope.operator-variable',
+  'accord.link', 'accord.strong-npi', 'focus.prominence', 'focus.f-projection', 'theta.grid']);
+
+export const isTreeFirstComposition = (items: readonly { familyId?: string }[]) =>
+  items.some(item => TREE_FIRST_FAMILIES.has(item.familyId ?? ''));
+
+/** Every measure the painter reads must reach the camera. The keys are required,
+ * so a caller cannot fit a camera from estimates the painter does not draw. */
+type StageCameraMeasures = { [Key in 'measurePlaqueText' | 'measureCategoryText' | 'measureTreeInk' | 'treeLabelRuns' | 'measureTreeLabel']-?:
+  StageLayoutInput[Key] | undefined };
+
+export type StageCameraFitInput = Omit<StageCameraInput, 'includeOverlays' | 'includePlaques' | 'includeBindingDomains'
+  | 'plaqueLayout' | keyof StageCameraMeasures> & StageCameraMeasures & {
+  plaqueSchedule: ReplayPlaqueSchedule;
+  disableRelationOverlay?: boolean;
+};
+
+export type StageCameraFit = { bounds: OverlayBounds | null; containment: OverlayBounds | null };
+
+/** The stage camera Replay fits: its bounds, plus the plaque containment that
+ * tree-first compositions and binding domains add. TreeVisualizer and the offline
+ * camera audit both call this, so the audit checks the camera the app fits. */
+export function buildStageCameraFit({ disableRelationOverlay = false, ...input }: StageCameraFitInput): StageCameraFit {
+  const items = input.plan?.frames[input.stageIndex]?.items ?? [];
+  const treeFirst = isTreeFirstComposition(items);
+  const common = { ...input, plaqueLayout: selectReplayPlaqueLayout(input.plaqueSchedule, input.stageIndex) };
+  const bounds = buildStageCameraBounds({ ...common, includeOverlays: !disableRelationOverlay && !treeFirst });
+  const containment = bounds && !disableRelationOverlay && (treeFirst || items.some(item => item.kind === 'binding-domain'))
+    ? buildStageCameraBounds({ ...common, includeOverlays: false, includePlaques: true, includeBindingDomains: true })
+    : null;
+  return { bounds, containment };
+}
+
 function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
   abstractionMode = false, protectedNodeIds = new Set<string>(), includeOverlays = true,
   includePlaques = includeOverlays, includeBindingDomains = false,
