@@ -45,6 +45,9 @@ jobs:
       - name: Verify static Replay geometry offline
         run: npm run verify:visual-offline
 
+      - name: Verify the Replay camera offline
+        run: npm run verify:camera-offline
+
       - name: Build production frontend
         run: npm run build
 
