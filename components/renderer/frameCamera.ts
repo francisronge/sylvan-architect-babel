@@ -6,6 +6,7 @@ import {
 } from '../../replay/relations/overlayGeometry.ts';
 import type { RelationRenderPlan } from '../../replay/relations/renderPlan.ts';
 import { getNodeId } from '../../replay/displayIdentity.ts';
+import { CAMERA_ZOOM, isCompactViewport, LEAF_INK_EXTENT_Y } from '../../replay/rendererMetrics.ts';
 import {
   STAGE_CAMERA_PADDING
 } from '../../replay/stageCamera.ts';
@@ -51,7 +52,7 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
     && item.nativeContent?.kind === 'linearization'
   );
   const hasCyclicLinearizationPlate = Boolean(cyclicLinearizationPlateItem);
-  const compactViewport = containerWidth < 500;
+  const compactViewport = isCompactViewport(containerWidth);
   const cyclicLinearizationPlateHeight = nativeLinearizationPlateHeight(
     cyclicLinearizationPlateItem?.kind === 'node-plaque' ? cyclicLinearizationPlateItem.nativeContent : undefined
   );
@@ -84,7 +85,7 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
         { x: node.x, y: node.y, parentId: node.parent ? getNodeId(node.parent) : null }]))
     }
   });
-  const minimumInitialScale = compactViewport || hasCyclicLinearizationPlate ? 0.02 : 0.06;
+  const minimumInitialScale = CAMERA_ZOOM.minimumFitScale[compactViewport || hasCyclicLinearizationPlate ? 'compact' : 'regular'];
   const fitToRenderedBounds = () => {
     if (derivationFrameFitNodes && derivationFrameFitNodes.length > 0) {
       const minNodeX = stageCameraBounds?.minX ?? Math.min(
@@ -100,7 +101,7 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
         overlayFitBounds?.minY ?? Infinity
       );
       const maxNodeY = stageCameraBounds?.maxY ?? Math.max(
-        d3.max(derivationFrameFitNodes, (node) => node.y + (!node.children || node.children.length === 0 ? 130 : 0)) ?? 0,
+        d3.max(derivationFrameFitNodes, (node) => node.y + (!node.children || node.children.length === 0 ? LEAF_INK_EXTENT_Y : 0)) ?? 0,
         overlayFitBounds?.maxY ?? -Infinity
       );
       const availableWidth = Math.max(1, fitRight - fitLeft);
@@ -149,7 +150,7 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
     const minNodeX = d3.min(visibleNodes, (node) => node.x) ?? 0;
     const maxNodeX = d3.max(visibleNodes, (node) => node.x) ?? 0;
     const minNodeY = d3.min(visibleNodes, (node) => node.y) ?? 0;
-    const maxNodeY = d3.max(visibleNodes, (node) => node.y + (!node.children || node.children.length === 0 ? 130 : 0)) ?? 0;
+    const maxNodeY = d3.max(visibleNodes, (node) => node.y + (!node.children || node.children.length === 0 ? LEAF_INK_EXTENT_Y : 0)) ?? 0;
     const contentWidth = Math.max(1, (maxNodeX - minNodeX) + 2 * STAGE_CAMERA_PADDING.x);
     const contentHeight = Math.max(1, (maxNodeY - minNodeY) + 2 * STAGE_CAMERA_PADDING.y);
     const fallbackViewportPadLeft = fitLeft;

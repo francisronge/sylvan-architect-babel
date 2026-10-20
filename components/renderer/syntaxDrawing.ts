@@ -1,6 +1,9 @@
 import * as d3 from 'd3';
 import type { ResolvedRelationLink } from '../../relationLinks.ts';
-import { CATEGORY_LINE_HEIGHT, categoryTextLayout } from '../../replay/categoryTextLayout.ts';
+import { categoryTextLayout } from '../../replay/categoryTextLayout.ts';
+import {
+  CATEGORY_LABEL, categoryLineBaselineY, quadraticTrajectoryBellyY, TERMINAL_LABEL, TERMINAL_STEM, TRAJECTORY_ROUTES
+} from '../../replay/rendererMetrics.ts';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import {
   buildResolvedLinkOperatorVariableIndexMap,
@@ -387,12 +390,13 @@ export function paintSyntaxTree({
         const sourceOffset = getGroupedOffset(arrowsBySource.get(getNodeId(arrow.source)), arrow);
         const targetOffset = getGroupedOffset(arrowsByTarget.get(getNodeId(arrow.target)), arrow);
         const direction = Math.sign(arrow.target.x - arrow.source.x) || 1;
-        const sx = arrow.source.x + 8 * direction + sourceOffset;
+        const inset = TRAJECTORY_ROUTES.quadraticEndpointInset;
+        const sx = arrow.source.x + inset * direction + sourceOffset;
         const sy = arrow.source.y + 24;
-        const tx = arrow.target.x - 8 * direction + targetOffset;
+        const tx = arrow.target.x - inset * direction + targetOffset;
         const ty = arrow.target.y + 24;
         const controlX = (sx + tx) / 2;
-        const controlY = Math.max(sy, ty) + Math.max(42, Math.abs(tx - sx) * 0.2);
+        const controlY = quadraticTrajectoryBellyY({ x: sx, y: sy }, { x: tx, y: ty });
         return `M ${sx} ${sy} Q ${controlX} ${controlY}, ${tx} ${ty}`;
       });
   }
@@ -422,22 +426,22 @@ export function paintSyntaxTree({
   categories.append('text')
     .attr('class', 'category-label')
     .attr('data-category-node-id', (d) => getNodeId(d))
-    .attr('y', -10)
+    .attr('y', CATEGORY_LABEL.baselineY)
     .attr('text-anchor', 'middle')
-    .attr('font-size', '42px') // Slightly reduced to balance visuals
-    .attr('font-weight', '900')
+    .attr('font-size', `${CATEGORY_LABEL.fontSize}px`)
+    .attr('font-weight', String(CATEGORY_LABEL.fontWeight))
     .attr('fill', categoryInk)
     .style('fill', categoryInk, 'important')
     .style('font-style', 'normal')
     .style('font-family', 'Quicksand, sans-serif')
     .style('paint-order', 'stroke')
     .style('stroke', '#020806')
-    .style('stroke-width', '10px')
+    .style('stroke-width', `${CATEGORY_LABEL.strokeWidth}px`)
     .attr('xml:space', 'preserve')
     .each(function (d) {
       const { lines } = categoryTextLayout(d.data.label, measureCategoryText);
       d3.select(this).selectAll('tspan').data(lines).join('tspan')
-        .attr('x', 0).attr('y', (_line, index) => -10 - (lines.length - 1 - index) * CATEGORY_LINE_HEIGHT)
+        .attr('x', 0).attr('y', (_line, index) => categoryLineBaselineY(index, lines.length))
         .text(line => line);
     });
 
@@ -576,12 +580,12 @@ export function paintSyntaxTree({
         inheritedTraceIndex || aliasedTraceIndex || extractMovementIndex(fallback)
       );
     })
-    .attr('y', 115)
+    .attr('y', TERMINAL_LABEL.baselineY)
     .attr('text-anchor', 'middle')
-    .attr('font-size', '56px')
-    .attr('font-weight', '900')
+    .attr('font-size', `${TERMINAL_LABEL.fontSize}px`)
+    .attr('font-weight', String(TERMINAL_LABEL.fontWeight))
     .attr('fill', fill)
-    .attr('style', `fill: ${fill} !important; font-family: 'Quicksand', sans-serif; font-style: italic; paint-order: stroke; stroke: #020806; stroke-width: 8px;`)
+    .attr('style', `fill: ${fill} !important; font-family: 'Quicksand', sans-serif; font-style: italic; paint-order: stroke; stroke: #020806; stroke-width: ${TERMINAL_LABEL.strokeWidth}px;`)
     .style('fill', fill, 'important')
     .text(d => getReplayRenderedTerminalText(d));
 
@@ -610,8 +614,8 @@ export function paintSyntaxTree({
 
   // Vertical dashed connection for leaf nodes
   terminals.append('line')
-    .attr('x1', 0).attr('y1', 20).attr('x2', 0).attr('y2', 65)
-    .attr('stroke', BRANCH_COLOR).attr('stroke-width', 3).attr('stroke-dasharray', '8,8').attr('opacity', 0.6);
+    .attr('x1', 0).attr('y1', TERMINAL_STEM.topY).attr('x2', 0).attr('y2', TERMINAL_STEM.bottomY)
+    .attr('stroke', BRANCH_COLOR).attr('stroke-width', TERMINAL_STEM.strokeWidth).attr('stroke-dasharray', '8,8').attr('opacity', 0.6);
 
   // 5. ABSTRACTION MODE (Triangles)
   const triangles = nodeGroups.filter((d: TriangulatedNode) => d.isTriangulated);

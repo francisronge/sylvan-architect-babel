@@ -1,5 +1,8 @@
 import * as d3 from 'd3';
-import { CATEGORY_LINE_HEIGHT, categoryTextLayout } from '../../replay/categoryTextLayout.ts';
+import { categoryTextLayout } from '../../replay/categoryTextLayout.ts';
+import {
+  CATEGORY_LABEL, categoryLineBaselineY, markerScaleAtZoom, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TERMINAL_LABEL
+} from '../../replay/rendererMetrics.ts';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import type { BoundFallbackMark, BoundFrame, FallbackMeasurements } from '../../replay/relations/boundGeometry.ts';
 import { type BoundAnchorSetRail, type BoundPrimitive, type BoundSegment, type PlanPositionProvider } from '../../replay/relations/boundGeometry.ts';
@@ -86,9 +89,10 @@ export function measureFallbackLabels({
       text.removeAttribute('class');
       text.removeAttribute('id');
       text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('y', category ? '-10' : '115');
-      text.setAttribute('font-size', category ? '42' : '56');
-      text.setAttribute('font-weight', '900');
+      const style = category ? CATEGORY_LABEL : TERMINAL_LABEL;
+      text.setAttribute('y', String(style.baselineY));
+      text.setAttribute('font-size', String(style.fontSize));
+      text.setAttribute('font-weight', String(style.fontWeight));
       text.style.fontFamily = 'Quicksand, sans-serif';
       text.style.fontStyle = category ? 'normal' : 'italic';
       if (category) {
@@ -96,7 +100,7 @@ export function measureFallbackLabels({
         lines.forEach((line, index) => {
           const span = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
           span.setAttribute('x', '0');
-          span.setAttribute('y', String(-10 - (lines.length - 1 - index) * CATEGORY_LINE_HEIGHT));
+          span.setAttribute('y', String(categoryLineBaselineY(index, lines.length)));
           span.textContent = line;
           text.appendChild(span);
         });
@@ -164,10 +168,10 @@ export function createFallbackPlacement({ fallbackMeasurements, boundFrame, mark
   const fitFallbackOverlays = (fitZoom: number, fittedViewport: Rect) => {
     lastFallbackFit = { zoom: fitZoom, viewport: fittedViewport };
     const scale = fallbackMarkerScale(fitZoom, fallbackMeasurements.labels.map(rect => rect.height));
-    const anchorScale = Math.min(1 / fitZoom, 3);
+    const anchorScale = markerScaleAtZoom(fitZoom);
     fitFallbackGeometry(boundFrame, {
-      markerScale, fittedMarkerScale: scale, fittedAnchorScale: anchorScale, badgeGap, laneGap: 60, fallbackMeasurements,
-      railBaseY: frameMaxNodeY + 240, fittedViewport, relationInkObstacles,
+      markerScale, fittedMarkerScale: scale, fittedAnchorScale: anchorScale, badgeGap, laneGap: RELATION_BINDING_METRICS.laneGap, fallbackMeasurements,
+      railBaseY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase, fittedViewport, relationInkObstacles,
       separateFallbackMoments: animated && usesDerivationFrames
     }).forEach((fitted, original) => {
       if (original.type === 'fallback-mark' && fitted.type === 'fallback-mark') {

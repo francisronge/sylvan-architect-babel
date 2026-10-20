@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import { getNodeId } from '../../replay/displayIdentity.ts';
+import { markerScaleAtZoom } from '../../replay/rendererMetrics.ts';
 import { isSyntheticWorkspaceRootNode } from '../../replay/replayCanvas.ts';
 import { formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue, isTraceLike, isWordlessCategoryLeaf } from '../../replay/replaySurfaceNotation.ts';
 import type { HierNode } from '../../replay/types.ts';
@@ -50,7 +51,7 @@ export const hasTreeGapNotation = (g: DrawingLayer, nodeId: string, text: string
     .node()
 );
 
-const overlayMarkerScale = (zoom: number) => Math.min(1 / (zoom || 1), 3);
+const overlayMarkerScale = (zoom: number) => markerScaleAtZoom(zoom || 1);
 
 /** Deferred markers read the mounted camera when painted, after fitting. */
 export function appendOverlayMarker(

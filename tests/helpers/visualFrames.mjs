@@ -16,7 +16,12 @@ import * as coordinates from '../../replay/stageCoordinates.ts';
 import * as display from '../../replay/displayIdentity.ts';
 import * as layout from '../../replay/treeLayout.ts';
 import * as plaqueJob from '../../replay/plaqueLayoutJob.ts';
-import { CATEGORY_FONT, CATEGORY_LINE_HEIGHT, categoryTextLayout } from '../../replay/categoryTextLayout.ts';
+import { categoryTextLayout } from '../../replay/categoryTextLayout.ts';
+import {
+  CAMERA_ZOOM, CATEGORY_FONT, categoryLineBaselineY, INDEX_LABEL, isCompactViewport, markerScaleAtZoom, RELATION_BINDING_METRICS,
+  RELATION_LANES_BELOW_DEEPEST_NODE, SHELL_ATTACHMENT_CLEARANCE, TERMINAL_ATTACHMENT_Y, TERMINAL_FONT, TERMINAL_LABEL, TERMINAL_STEM,
+  TRAJECTORY_ROUTES
+} from '../../replay/rendererMetrics.ts';
 import { prepareReplay } from '../../replay/prepareReplay.ts';
 import { TREE_ROW_HEIGHT } from '../../replay/treeSpacing.ts';
 import { prepareTreeLabelRuns } from '../../replay/prepareTreeLabelRuns.ts';
@@ -37,7 +42,7 @@ import { buildMovementProtectedNodeIds, isUnderTriangulation } from '../../repla
 import * as notation from '../../components/renderer/treeNotation.ts';
 import { fitTreeCamera } from '../../components/renderer/frameCamera.ts';
 import { createPrimitiveVisibility } from '../../components/renderer/relationVisibility.ts';
-import { createTreeInkTextMeasure, TERMINAL_FONT } from '../../components/treeInkTextMeasure.ts';
+import { createTreeInkTextMeasure } from '../../components/treeInkTextMeasure.ts';
 import { createTreeLabelMeasure } from '../../components/treeLabelMeasure.ts';
 import { availableTreeViewport } from '../../components/treeViewport.ts';
 import { layoutReplayFrames } from '../../scripts/replayFrameLayout.mjs';
@@ -104,11 +109,12 @@ export function labelGeometry(node, run) {
   const lines = terminal ? [run.text] : run.lines ?? [run.text];
   const boxes = [], cells = [];
   lines.forEach((line, index) => {
-    const baseline = node.y + (terminal ? 115 : -10 - (lines.length - 1 - index) * CATEGORY_LINE_HEIGHT);
+    const baseline = node.y + (terminal ? TERMINAL_LABEL.baselineY : categoryLineBaselineY(index, lines.length));
     const pieces = [{ text: line, font, dx: 0, shift: 0 }];
+    const indexStyle = INDEX_LABEL[terminal ? 'terminal' : 'category'];
     if (index === lines.length - 1) for (const indexRun of run.indices) pieces.push({ text: indexRun.text,
-      font: { ...INDEX_FONT, size: terminal ? 30 : 22 }, dx: 5,
-      shift: indexRun.mode === 'identity' ? (terminal ? 6 : 4.4) : terminal ? 14 : 9 });
+      font: { ...INDEX_FONT, size: indexStyle.fontSize }, dx: INDEX_LABEL.dx,
+      shift: indexRun.mode === 'identity' ? (terminal ? 6 : 4.4) : indexStyle.thetaDy });
     const measured = pieces.map(piece => ({ ...piece, run: measureRun(piece.text, piece.font) }));
     let pen = node.x - measured.reduce((sum, piece) => sum + piece.dx + piece.run.width, 0) / 2;
     for (const piece of measured) {
@@ -168,7 +174,7 @@ export function plaqueRecord(item, box, anchor) {
     rect: rect(box.x, box.y, box.drawnWidth ?? box.width, box.drawnHeight ?? box.height), radius: 14,
     size: { width: box.width, height: box.height }, grid,
     joined: item.kind === 'directed-path' || Boolean(box.collectionRows?.length),
-    anchor: anchor && { x: anchor.x, y: anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0) } };
+    anchor: anchor && { x: anchor.x, y: anchor.y + (!anchor.children?.length && anchor.data.word ? TERMINAL_ATTACHMENT_Y : 0) } };
 }
 
 /** The neutral role placer's preferred spots (fallbackGeometry.ts,
@@ -218,8 +224,8 @@ function paintedTree(tree, visible, runsFor) {
       const run = firstRun(runs, 'terminal') ?? { kind: 'terminal', text: resolveLeafSurface(node).trim(), indices: [] };
       const { boxes, cell } = labelGeometry(node, run);
       if (boxes.length) texts.push({ id: `${id}:word`, kind: 'word', text: run.text, boxes, cell, halo: 4, nodes: [id], claims: [] });
-      lines.push({ id: `${id}:stem`, kind: 'stem', paths: [[{ x: node.x, y: node.y + 20 }, { x: node.x, y: node.y + 65 }]],
-        halfWidth: 1.5, nodes: [id], claims: [] });
+      lines.push({ id: `${id}:stem`, kind: 'stem', paths: [[{ x: node.x, y: node.y + TERMINAL_STEM.topY }, { x: node.x, y: node.y + TERMINAL_STEM.bottomY }]],
+        halfWidth: TERMINAL_STEM.strokeWidth / 2, nodes: [id], claims: [] });
     }
     if (node.parent && shown.has(node.parent)) lines.push({ id: `${display.getNodeId(node.parent)}->${id}`, kind: 'branch',
       paths: [branchPoints(node.parent, node)], halfWidth: 2, nodes: [display.getNodeId(node.parent), id], claims: [] });
@@ -313,12 +319,14 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     if (attachment === 'terminal') {
       const { terminal } = resolveUniqueDisplayTerminal(anchor, node => node.children || [], node => isDisplayTerminalNode(node.data));
       const cell = terminal && cells.get(`${display.getNodeId(terminal)}:word`);
-      return !terminal ? null : cell ? { x: cell.x + cell.width / 2, y: cell.y + cell.height + 6 } : { x: terminal.x, y: terminal.y + 140 };
+      return !terminal ? null : cell ? { x: cell.x + cell.width / 2, y: cell.y + cell.height + SHELL_ATTACHMENT_CLEARANCE.bottom }
+        : { x: terminal.x, y: terminal.y + TERMINAL_ATTACHMENT_Y };
     }
     if (attachment === 'parent') return anchor.parent ? { x: anchor.parent.x, y: anchor.parent.y } : null;
     const cell = cells.get(`${display.getNodeId(anchor)}:category`);
-    if (attachment === 'shell-top') return cell ? { x: cell.x + cell.width / 2, y: cell.y - 8 } : { x: anchor.x, y: anchor.y - 8 };
-    if (attachment === 'shell-bottom') return cell ? { x: cell.x + cell.width / 2, y: cell.y + cell.height + 6 } : { x: anchor.x, y: anchor.y + 6 };
+    const { top, bottom } = SHELL_ATTACHMENT_CLEARANCE;
+    if (attachment === 'shell-top') return cell ? { x: cell.x + cell.width / 2, y: cell.y - top } : { x: anchor.x, y: anchor.y - top };
+    if (attachment === 'shell-bottom') return cell ? { x: cell.x + cell.width / 2, y: cell.y + cell.height + bottom } : { x: anchor.x, y: anchor.y + bottom };
     return { x: anchor.x, y: anchor.y };
   };
   const placements = projectPlaqueLayout(camera.selectReplayPlaqueLayout(schedule, stage, stepIndex), id => laidOut.get(id) ?? null);
@@ -345,18 +353,19 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     visibleLabels: [...labelRects].filter(([id]) => visibleIds.has(id)).map(([, value]) => value),
     visibleObstacles: visiblePlacements.map(([, box]) => box), labelFor: id => rectFor(id, false), subtreeFor: id => rectFor(id, true),
     bottom: Math.max(0, ...[...labelRects.values()].map(value => value.y + value.height)) };
-  const markerScale = Math.min(1 / fitted.k, 3), maxY = d3.max(all, node => node.y) ?? 0;
-  const textTop = d3.min(painted.texts, text => text.cell.y) ?? -90;
+  const markerScale = markerScaleAtZoom(fitted.k), maxY = d3.max(all, node => node.y) ?? 0;
+  const textTop = d3.min(painted.texts, text => text.cell.y) ?? TRAJECTORY_ROUTES.textTopFallbackY;
+  const lanes = RELATION_LANES_BELOW_DEEPEST_NODE;
   const runText = (id, text) => (runs.get(id) ?? []).some(run => run.text + run.indices.map(index => index.text).join('') === text);
   const bound = bindRelationPlanFrame({ ...plan, frames: plan.frames.map((frame, index) => index === stage ? { ...frame, items } : frame) },
-    stage, positionFor, { labelWidth: 150, labelHeight: 70, badgeGap: 46, laneGap: 60, markerScale,
+    stage, positionFor, { ...RELATION_BINDING_METRICS, markerScale,
       hasExistingGapNotation: runText, plaqueTextLayout: { measureText: measurePlaqueText }, fallbackMeasurements,
-      separateFallbackMoments: true, isItemRevealed: index => revealed.has(index), trajectoryCeilingY: textTop - 90,
-      trajectoryFloorY: maxY + 180, connectorBaselineY: maxY + 130, railBaseY: maxY + 240 });
+      separateFallbackMoments: true, isItemRevealed: index => revealed.has(index), trajectoryCeilingY: textTop - TRAJECTORY_ROUTES.ceilingAboveTextTop,
+      trajectoryFloorY: maxY + lanes.trajectoryFloor, connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase });
   const scale = fallbackMarkerScale(fitted.k, fallbackMeasurements.labels.map(value => value.height));
   // measureRelationInkObstacles reserves filled plaque shells with five units of padding.
-  const refit = fitFallbackGeometry(bound, { markerScale, fittedMarkerScale: scale, fittedAnchorScale: Math.min(1 / fitted.k, 3),
-    badgeGap: 46, laneGap: 60, fallbackMeasurements, railBaseY: maxY + 240, separateFallbackMoments: true, fittedViewport: fitted.view,
+  const refit = fitFallbackGeometry(bound, { markerScale, fittedMarkerScale: scale, fittedAnchorScale: markerScaleAtZoom(fitted.k),
+    badgeGap: RELATION_BINDING_METRICS.badgeGap, laneGap: RELATION_BINDING_METRICS.laneGap, fallbackMeasurements, railBaseY: maxY + lanes.railBase, separateFallbackMoments: true, fittedViewport: fitted.view,
     relationInkObstacles: plaques.map(({ rect: shell }) => rect(shell.x - 5, shell.y - 5, shell.width + 10, shell.height + 10)) });
   const drawable = createPrimitiveVisibility(items, resolveOverlayAnchor);
   const marks = bound.primitives.filter(primitive => revealed.has(primitive.itemIndex) && drawable(primitive));
@@ -395,7 +404,7 @@ export function layoutCanopyVisualFrame(visual, viewport) {
   const painted = paintedTree(tree, null, () => undefined);
   const box = union([...painted.texts.map(text => text.cell), ...painted.lines.flatMap(line => line.paths.flat().map(p => rect(p.x, p.y, 0, 0)))]);
   const view = availableTreeViewport(viewport.width, viewport.height, viewportObstacles(viewport, false));
-  const zoom = Math.max(viewport.width < 500 ? 0.02 : 0.06, Math.min((view.right - view.left) / box.width, (view.bottom - view.top) / box.height, 1));
+  const zoom = Math.max(CAMERA_ZOOM.minimumFitScale[isCompactViewport(viewport.width) ? 'compact' : 'regular'], Math.min((view.right - view.left) / box.width, (view.bottom - view.top) / box.height, 1));
   const pose = { x: (view.left + view.right) / 2 - (box.x + box.width / 2) * zoom, y: (view.top + view.bottom) / 2 - (box.y + box.height / 2) * zoom, k: zoom };
   return { frame: 'canopy', viewport: viewport.name, zoom, rowHeight: TREE_ROW_HEIGHT, texts: painted.texts, plaques: [], lines: painted.lines,
     chrome: frameChrome(viewport, pose, false) };

@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { CATEGORY_FONT } from '../replay/categoryTextLayout.ts';
+import { CAMERA_ZOOM, CATEGORY_FALLBACK_GLYPH_WIDTH, CATEGORY_FONT } from '../replay/rendererMetrics.ts';
 import { initialReplayStepIndex, replayStartState } from '../replay/initialReplayStep.ts';
 import { buildResolvedLinkTraceIndexMap } from '../replay/movementIndices.ts';
 import { isPhrasalReplayMovement } from '../replay/movementLinks.ts';
@@ -88,7 +88,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const treeDirection = useTreeDirection(sentence);
   const svgRef = useRef<SVGSVGElement>(null);
   // An active D3 gesture must dispatch to the current frame's handler after a redraw.
-  const zoomBehavior = useMemo(() => d3.zoom<SVGSVGElement, unknown>().scaleExtent([0.05, 10]), []);
+  const zoomBehavior = useMemo(() => d3.zoom<SVGSVGElement, unknown>().scaleExtent([...CAMERA_ZOOM.userZoomExtent]), []);
   const containerRef = useRef<HTMLDivElement>(null);
   const replayHeaderRef = useRef<HTMLDivElement>(null);
   const replayPanelRef = useRef<HTMLDivElement>(null);
@@ -123,7 +123,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const cache = new Map<string, { args: [string]; result: number }>();
     const measure = (text: string) => {
       let cached = cache.get(text);
-      if (!cached) cache.set(text, cached = { args: [text], result: context?.measureText(text).width ?? [...text].length * 25 });
+      if (!cached) cache.set(text, cached = { args: [text], result: context?.measureText(text).width ?? [...text].length * CATEGORY_FALLBACK_GLYPH_WIDTH });
       return cached.result;
     };
     return Object.assign(measure, { runs: () => cache.values() });

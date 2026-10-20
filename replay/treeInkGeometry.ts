@@ -5,6 +5,7 @@ import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayo
 import { getNodeId } from './displayIdentity.ts';
 import { plaqueBranchObstacles, plaqueTreeObstacles, type PlaqueRect } from './relations/plaquePlacement.ts';
 import { REPLAY_GENERATED_TERMINAL_GLYPHS } from './replaySurfaceNotation.ts';
+import { CATEGORY_LABEL, CATEGORY_LINE_HEIGHT, TERMINAL_LABEL, terminalStemInk } from './rendererMetrics.ts';
 import type { TreeLabelBounds, TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 
 export type TreeInkTextStyle = 'category' | 'terminal' | 'category-index' | 'terminal-index';
@@ -15,6 +16,8 @@ export type TreeInkTextMetrics = {
 };
 export type TreeInkTextMeasure = (text: string, style: TreeInkTextStyle) => TreeInkTextMetrics | undefined;
 type Node = HierarchyPointNode<SyntaxNode>;
+// Canvas glyph bounds exclude the painted outline; pad them by half its width.
+const CATEGORY_HALF_STROKE = CATEGORY_LABEL.strokeWidth / 2, TERMINAL_HALF_STROKE = TERMINAL_LABEL.strokeWidth / 2;
 
 const valid = (metrics: TreeInkTextMetrics | undefined): metrics is TreeInkTextMetrics => Boolean(metrics
   && [metrics.width, metrics.left, metrics.right, metrics.ascent, metrics.descent, metrics.fontAscent, metrics.fontDescent].every(Number.isFinite)
@@ -50,8 +53,8 @@ export function collectTreeInkMeasurements(
     result.terminal = {
       ascent: Math.max(index.ascent, ...terminal.flatMap(metric => [metric.ascent, metric.fontAscent])),
       descent: Math.max(index.descent, ...terminal.flatMap(metric => [metric.descent, metric.fontDescent])),
-      left: Math.min(...actualWords.map(metric => -metric.width / 2 + metric.left - 4)),
-      right: Math.max(...actualWords.map(metric => -metric.width / 2 + metric.right + 4))
+      left: Math.min(...actualWords.map(metric => -metric.width / 2 + metric.left - TERMINAL_HALF_STROKE)),
+      right: Math.max(...actualWords.map(metric => -metric.width / 2 + metric.right + TERMINAL_HALF_STROKE))
     };
   }
   return result;
@@ -81,22 +84,22 @@ export function treeInkObstacles(
     if (category.length && measured.category && measured.categoryIndex) {
       const left = Math.min(...category.map(rect => rect.x)), right = Math.max(...category.map(rect => rect.x + rect.width));
       replacements.set(categoryKey, measured.category.map(({ metrics }, index, runs) => {
-        const baseline = node.y - 10 - (runs.length - 1 - index) * 48;
+        const baseline = node.y + CATEGORY_LABEL.baselineY - (runs.length - 1 - index) * CATEGORY_LINE_HEIGHT;
         const ascent = Math.max(metrics.ascent, measured.categoryIndex!.ascent);
         const descent = Math.max(metrics.descent, measured.categoryIndex!.descent);
-        const x = Math.min(left, node.x - metrics.width / 2 + metrics.left - 5);
-        return { x, y: baseline - ascent - 5,
-          width: Math.max(right, node.x - metrics.width / 2 + metrics.right + 5) - x,
-          height: ascent + descent + 10, connectorAttachment: categoryKey };
+        const x = Math.min(left, node.x - metrics.width / 2 + metrics.left - CATEGORY_HALF_STROKE);
+        return { x, y: baseline - ascent - CATEGORY_HALF_STROKE,
+          width: Math.max(right, node.x - metrics.width / 2 + metrics.right + CATEGORY_HALF_STROKE) - x,
+          height: ascent + descent + CATEGORY_LABEL.strokeWidth, connectorAttachment: categoryKey };
       }));
     }
     const terminal = byAttachment.get(terminalKey)?.[0];
     if (terminal && measured.terminal
       && node.x + measured.terminal.left >= terminal.x
       && node.x + measured.terminal.right <= terminal.x + terminal.width) {
-      replacements.set(terminalKey, [{ ...terminal, y: node.y + 115 - measured.terminal.ascent - 4,
-        height: measured.terminal.ascent + measured.terminal.descent + 8 }]);
-      terminalStems.set(id, { x: node.x - 1.5, y: node.y + 18.5, width: 3, height: 48, terminalStemNodeId: id });
+      replacements.set(terminalKey, [{ ...terminal, y: node.y + TERMINAL_LABEL.baselineY - measured.terminal.ascent - TERMINAL_HALF_STROKE,
+        height: measured.terminal.ascent + measured.terminal.descent + TERMINAL_LABEL.strokeWidth }]);
+      terminalStems.set(id, { ...terminalStemInk(node), terminalStemNodeId: id });
     }
   }
   const used = new Set<string>();
@@ -243,7 +246,7 @@ function styledLabelObstacles(
       for (const rect of old) { left = Math.min(left, rect.x); right = Math.max(right, rect.x + rect.width); }
       for (const box of boxes) { left = Math.min(left, node.x + box.x); right = Math.max(right, node.x + box.x + box.width); }
       replacement.set(key, boxes.map(box => ({x:left,y:node.y+box.y,width:right-left,height:box.height,connectorAttachment:key})));
-      if (kind === 'terminal') stems.set(id, {x:node.x-1.5,y:node.y+18.5,width:3,height:48,terminalStemNodeId:id});
+      if (kind === 'terminal') stems.set(id, { ...terminalStemInk(node), terminalStemNodeId: id });
     }
   }
   const used = new Set<string>();
