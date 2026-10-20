@@ -30,6 +30,7 @@ export function useReplayPlaqueLayout<V extends { width: number; height: number 
   [content, viewport.width, viewport.height]);
   // Viewports with equal keys prepare the same layout, so a request keeps its first viewport.
   const input = useMemo<StageLayoutInput | null>(() => content && key !== null
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the viewport is read through the listed key.
     ? { ...content, width: viewport.width, height: viewport.height } : null, [content, key]);
   useEffect(() => {
     if (!input) return;

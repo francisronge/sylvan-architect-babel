@@ -42,7 +42,8 @@
     "start": "node server/index.js",
     "local:provider-effort": "node .artifacts/provider_effort_local_test.cjs",
     "audit": "npm audit",
-    "orchard:build": "node scripts/buildRelationOrchard.mjs"
+    "orchard:build": "node scripts/buildRelationOrchard.mjs",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@fontsource/crimson-pro": "^5.2.8",
@@ -62,9 +63,12 @@
     "@types/node": "^22.14.0",
     "@types/react": "~19.2.18",
     "@types/react-dom": "~19.2.7",
+    "@typescript-eslint/parser": "^8.72.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.24",
     "esbuild": "^0.25.12",
+    "eslint": "^10.13.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "fake-indexeddb": "^6.2.5",
     "playwright": "^1.62.0",
     "postcss": "^8.5.6",

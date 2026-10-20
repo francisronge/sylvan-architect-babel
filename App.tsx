@@ -108,10 +108,10 @@ interface AppProps {
 const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const MODEL_OPTIONS = useMemo(() => modelIds.map(id => getResearchModel(id)!), [modelIds]);
   const DEFAULT_MODEL_ID = modelIds[0];
-  const coerceModelRoute = (value?: string): ModelMode =>
-    modelIds.includes(value || '') ? value! : DEFAULT_MODEL_ID;
-  const inferModelRouteFromModel = (modelUsed?: string): ModelMode =>
-    MODEL_OPTIONS.find(model => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID;
+  const coerceModelRoute = useCallback((value?: string): ModelMode =>
+    modelIds.includes(value || '') ? value! : DEFAULT_MODEL_ID, [modelIds, DEFAULT_MODEL_ID]);
+  const inferModelRouteFromModel = useCallback((modelUsed?: string): ModelMode =>
+    MODEL_OPTIONS.find(model => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID, [MODEL_OPTIONS, DEFAULT_MODEL_ID]);
   const appContainerRef = useRef<HTMLDivElement>(null);
   const copiedCodeTimeoutRef = useRef<number | null>(null);
   const showcaseMode = useMemo(() => {
@@ -217,7 +217,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     setIsInputExpanded(true);
     setWorkspaceView('arboretum');
     resetGeneration();
-  }, [modelRoute, reasoningEffort]);
+  }, [modelRoute, reasoningEffort, coerceModelRoute, resetGeneration]);
 
   const acceptSavedPreview = useCallback((preview: SavedPreview) => {
     const { bundle, sentence, framework: nextFramework, tab, captureMode } = preview;
@@ -237,7 +237,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     resetGeneration();
     setIsInputVisible(!(showcaseMode || captureMode));
     setIsInputExpanded(!(showcaseMode || captureMode));
-  }, [showcaseMode, reasoningEffort]);
+  }, [showcaseMode, reasoningEffort, coerceModelRoute, inferModelRouteFromModel, resetGeneration]);
 
   const devCaptureMode = useDevPreview({
     analysisBundle,
