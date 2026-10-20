@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import TreeVisualizer from '../components/TreeVisualizer';

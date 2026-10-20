@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import TreeVisualizer from '../../components/TreeVisualizer';
 import { displayTreeForAnalysis } from '../../replay/finalForest';

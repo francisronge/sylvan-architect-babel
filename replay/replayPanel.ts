@@ -236,7 +236,7 @@ const buildAuthoredRelationAnchorLines = (
 };
 
 const buildRelationReplayLine = (relation: DerivationReplayPlanStep, replayCanvasData?: SyntaxNode | null): string => {
-  const relationLabel = formatReplaySupportValue(String(relation?.relation || '').trim());
+  const relationLabel = spaceAuthoredName(formatReplaySupportValue(String(relation?.relation || '').trim()), { snakeCase: true });
   const anchors = relation?.anchors && typeof relation.anchors === 'object' && !Array.isArray(relation.anchors)
     ? relation.anchors
     : {};
@@ -471,10 +471,10 @@ export const buildReplayPanelContent = (step: PlaybackStep | null | undefined, d
     supportLines.unshift({ label: 'Statement', value: statement });
   }
   return {
-    heading: authoredRelation ? spaceAuthoredName(authoredRelation.relation) : formatPlaybackOperationTitle(step),
+    heading: authoredRelation ? spaceAuthoredName(authoredRelation.relation, { snakeCase: true }) : formatPlaybackOperationTitle(step),
     supportLines: supportLines.map((line, index) => ({
       ...line,
-      label: `${spaceAuthoredName(line.label)}${line.scope === 'previous' ? ' (previous stage)' : ''}`,
+      label: `${spaceAuthoredName(line.label, { snakeCase: true })}${line.scope === 'previous' ? ' (previous stage)' : ''}`,
       value: line.referenceStatus ? `participant ${line.referenceStatus}`
         : line.emptyList ? 'empty list' : line.value === '' ? '""' : line.value,
       key: `${prefix}:${index}`

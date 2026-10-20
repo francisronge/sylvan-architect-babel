@@ -11,6 +11,7 @@ import * as display from '../replay/displayIdentity.ts';
 import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
 import { motionFrame, replayMotionFaults } from '../scripts/replayMotionContinuity.mjs';
 import { carryCamera } from '../components/treeViewport.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const point = (id, x, y, parent = null) => ({ id, x, y, parent });
 const frame = (operation, target, points, kind = 'micro', links = []) => ({ kind, operation, target, links, points });
@@ -141,7 +142,9 @@ test('a word that shifts under a stationary phrase is reported, whoever owns the
 // brings T′, which takes 了's clause up a row; 了 rides with it and still slides
 // sideways into the raised subject's gap, a stage-crossing slide Francis accepted.
 const waitingRoots = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/waiting-root-continuity.json', import.meta.url)));
-for (const [width, height] of [[1440, 900], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
+// Right to left this runs only for a record whose layout is not the reflection of
+// its left-to-right layout (tests/helpers/rtlMirror.mjs).
+for (const [width, height] of [[1440, 900], [390, 844]]) for (const direction of directionsFor('replay-regressions/waiting-root-continuity.json#')) {
   test(`${width}px ${direction}: defects 19–21 — 我 and 昨天 keep their place in the tree from their first frame`, () => {
     const authored = JSON.stringify(waitingRoots);
     const { playbackSteps: steps } = prepareReplay({ ...waitingRoots, includePlayback: true });
