@@ -8,6 +8,7 @@ import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCame
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/construction-slot-continuity.json', import.meta.url))).cases;
 const close = (a, b, message) => assert(Math.abs(a - b) < 1e-6, `${message}: ${a} vs ${b}`);
@@ -33,7 +34,10 @@ function setup(record, width, height, direction) {
   return { steps, at: n => scenes[n - 1].nodes };
 }
 
-for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
+// Right to left this runs only for a record whose layout is not the reflection of
+// its left-to-right layout (tests/helpers/rtlMirror.mjs).
+const directions = [...new Set([0, 1].flatMap(index => directionsFor(`replay-regressions/construction-slot-continuity.json#/cases/${index}`)))];
+for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of directions) {
   test(`${width}px ${direction}: selected word waits at its projection and merge slot despite sentence casing`, () => {
     const record = records[0], original = JSON.stringify(record), { steps, at } = setup(record, width, height, direction);
     assert.equal(steps[14].operation, 'LexicalSelect'); assert.equal(steps[15].operation, 'Project');

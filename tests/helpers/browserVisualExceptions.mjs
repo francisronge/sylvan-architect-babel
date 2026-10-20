@@ -12,8 +12,10 @@
  * clearance distinguishes a connector that touches a plaque ('connector-plaque')
  * from one that runs into it ('connector-plaque-crossing'). A run writes
  * candidates for unexpected findings to proposed-exceptions.json; add one only
- * with a reason. A painted motion fault that an immediate re-run does not show
- * again is a warning in the receipt, not a failure, so it is never listed.
+ * with a reason and the owner's approval as its last argument
+ * (scripts/checkExceptionGrowth.mjs). A painted motion fault that an
+ * immediate re-run does not show again is a warning in the receipt, not a
+ * failure, so it is never listed.
  * Reviewed against the first native run of the gate (Chromium, 18 October). */
 
 const PLAQUE_CROWDED = 'Open (catalog #3): no nearby pocket stays clear for the plaque\'s lifetime, so the allocator takes '
@@ -23,7 +25,7 @@ const STAGE_CROSSING = 'Open (stage-crossing layout): entering the last stage at
   + '了, 走 and the matrix T slide into the raised subject\'s gap (the motion comparator\'s remaining frame-44 motion). '
   + 'Waiting pieces (#95) no longer move here; this slide is deferred to the stage-crossing layout work.';
 const CATALOGUE = index => `replay-regressions/visual-human-catalog.json#/cases/${index}/analyses/0`;
-const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
+const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, CATALOGUE(3), 'mark-distance', 'plaque', 'plaque(0:1 θ GRID; stolen; Theme; i)@stolen',

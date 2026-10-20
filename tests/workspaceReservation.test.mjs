@@ -7,6 +7,7 @@ import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import { stageTreeLayoutSize, buildStageLayoutGroups, buildStageCameraBounds } from '../replay/stageCamera.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/workspace-reservation.json', import.meta.url))).cases;
 function setup(key, width, height, direction) {
@@ -49,7 +50,13 @@ test('retained workspace coordinates cannot reuse the other direction’s cache'
   }
 });
 
+// Right to left these run only for a record whose layout is not the reflection of
+// its left-to-right layout (tests/helpers/rtlMirror.mjs). The camera test below
+// runs in both directions: the mirror check does not cover stage camera bounds.
+const runs = (key, direction) => directionsFor(`replay-regressions/workspace-reservation.json#/cases/${
+  records.findIndex(record => record.key === key)}`).includes(direction);
 for (const [width, height] of [[1408, 680], [386, 698]]) for (const direction of ['ltr', 'rtl']) {
+  // Right to left as well: no controlled right-to-left change has yet been shown to fail it while the mirror check reports its record.
   for (const reading of [0, 1]) test(`${width}px ${direction}: Arabic ${reading + 1} uses one branch rank through head movement`, () => {
     const { frame, immutable } = setup(`arabic-relative-predicate/${reading}`, width, height, direction);
     for (const number of [19, 20, 21, 22]) {
@@ -97,7 +104,7 @@ for (const [width, height] of [[1408, 680], [386, 698]]) for (const direction of
     immutable();
   });
 
-  test(`${width}px ${direction}: Icelandic reserves the subject landing without changing the C–IP merge`, () => {
+  if (runs('icelandic-raising-passive/0', direction)) test(`${width}px ${direction}: Icelandic reserves the subject landing without changing the C–IP merge`, () => {
     const { frame, immutable } = setup('icelandic-raising-passive/0', width, height, direction);
     const before = frame(37), after = frame(38);
     assert.equal(before.nodes.get('rootCbar').data.label, "C′");
@@ -111,7 +118,7 @@ for (const [width, height] of [[1408, 680], [386, 698]]) for (const direction of
     immutable();
   });
 
-  test(`${width}px ${direction}: Arabic builds the clause in its attachment position and keeps its lower witness there`, () => {
+  if (runs('arabic-relative-predicate/1', direction)) test(`${width}px ${direction}: Arabic builds the clause in its attachment position and keeps its lower witness there`, () => {
     const { frame, immutable } = setup('arabic-relative-predicate/1', width, height, direction);
     const completed = frame(49), clause = completed.nodes.get('matrix-t-complement');
     const members = clause.descendants().map(getNodeId);
