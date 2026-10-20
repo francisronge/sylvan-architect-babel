@@ -749,14 +749,14 @@ const sameMaterial = (left: SyntaxNode, right: SyntaxNode): boolean => {
  * occurrence of the same object. A new anchored node is a copy when the claim
  * also anchors a preceding occurrence of its lineage that is displaced in this
  * stage (removed, rewritten, re-pronounced or given another parent) or whose
- * complete material the new node repeats; a shared lineage alone, as for an
- * identity or coreference observation over different material, establishes
- * nothing. Each copy names its earlier occurrence when one candidate, or one
- * displaced candidate, identifies it. `earlierNodeIds` are the displaced
- * occurrences, which change with the copy and keep their preceding form until
- * its moment. `claimedNodeIds`, what the stage's recovered movements and
- * earlier claims already own, are excluded. Relation and field names play no
- * part.
+ * complete material the new node repeats where Internal Merge puts it; a
+ * shared lineage alone, as for an identity or coreference observation over
+ * different material, establishes nothing. Each copy names its earlier
+ * occurrence when one candidate, or one displaced candidate, identifies it.
+ * `earlierNodeIds` are the displaced occurrences, which change with the copy
+ * and keep their preceding form until its moment. `claimedNodeIds`, what the
+ * stage's recovered movements and earlier claims already own, are excluded.
+ * Relation and field names play no part.
  */
 export const anchoredCopyDisplacement = (
   relation: DerivationReplayPlanStep,
@@ -777,11 +777,15 @@ export const anchoredCopyDisplacement = (
   const earlier = [...new Set([...currentIds, ...relationAnchorNodeIds(relation.priorAnchors)])]
     .map(id => unique(previousForest, id))
     .filter((node): node is SyntaxNode => Boolean(node?.lineageId));
-  // A repeat is a copy only inside the syntactic object that holds the
-  // earlier occurrence, as Internal Merge makes it. A repeat in a separate
-  // workspace, such as an occurrence shared across conjuncts, is built there.
-  const repeatedInPlace = (occurrence: SyntaxNode, node: SyntaxNode): boolean => sameMaterial(occurrence, node)
-    && current.get(occurrence.id)?.rootIndex === current.get(node.id)?.rootIndex;
+  // A repeat is a copy only where Internal Merge puts it: merged beside an
+  // object that contains the earlier occurrence. A repeat merged elsewhere,
+  // such as an occurrence shared across conjuncts, is built there, even when
+  // the stage then joins the conjuncts beneath one root.
+  const repeatedInPlace = (occurrence: SyntaxNode, node: SyntaxNode): boolean => {
+    const at = current.get(String(node.id || ''));
+    return sameMaterial(occurrence, node) && (at?.parent?.children || [])
+      .some(sister => sister !== at!.node && collectExactSubtreeNodeIds(sister).has(occurrence.id));
+  };
   const copies = currentIds
     .filter(id => !claimedNodeIds.has(id) && !findExactNodesByIdInForest(previousForest, id).length)
     .map(id => unique(currentForest, id))
