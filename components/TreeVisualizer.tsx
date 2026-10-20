@@ -14,7 +14,6 @@ import {
   buildRenderableDerivationCanvasData
 } from '../replay/replayCanvas.ts';
 import {
-  buildStageCameraBounds,
   buildStageLayoutGroups,
   selectReplayPlaqueLayout,
   stageTreeLayoutSize
@@ -22,6 +21,8 @@ import {
 import { buildMovementProtectedNodeIds } from '../replay/triangulation.ts';
 import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 import { type DerivationStage, type SyntaxNode } from '../types';
+import { activeStageCameraBounds } from './activeStageCameraBounds.ts';
+import { selectReplayCanvas } from './replayStepCanvas.ts';
 import { withPlaqueTextMeasure } from './renderer/plaqueText.ts';
 import { applyRelationEmphasis } from './renderer/relationInteraction.ts';
 import { updateSyntaxReveal } from './renderer/syntaxReveal.ts';
@@ -363,16 +364,13 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     };
   }, [playbackSteps]);
 
-  const canvasData = useMemo(() => {
-    if (usesDerivationFrames) {
-      return activeDerivationReplayStep?.replayCanvasData
-        || committedCanonicalDerivationCanvasData
-        || committedDerivationCanvasData
-        || data;
-    }
-    if (animated) return data;
-    return buildRenderableCommittedCanvasData(data);
-  }, [
+  const canvasData = useMemo(() => selectReplayCanvas({
+    usesDerivationFrames, animated, stepCanvas: activeDerivationReplayStep?.replayCanvasData,
+    activeForest: activeDerivationFrame?.workspaceForest,
+    committedCanonicalCanvas: committedCanonicalDerivationCanvasData,
+    committedDerivationCanvas: committedDerivationCanvasData, data
+  }), [
+    activeDerivationFrame,
     activeDerivationReplayStep,
     animated,
     committedCanonicalDerivationCanvasData,
@@ -423,7 +421,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       ? stageTreeLayoutSize(playbackSteps, activeDerivationFrameIndex, frameViewport.width, frameViewport.height, stageLayoutGroups)
       : null
   ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, frameViewport, stageLayoutGroups]);
-  const missingReplayCoordinates = Boolean(layoutContent && plaqueLayoutReady && usesDerivationFrames
+  // An empty stage paints no syntax, so it needs no coordinates.
+  const missingReplayCoordinates = Boolean(layoutContent && plaqueLayoutReady && usesDerivationFrames && canvasData
     && !replayCoordinates?.get(activeDerivationFrameIndex)?.has(canvasData));
   const layoutReady = settledFontText === fontText && dimensions.width > 0 && plaqueLayoutReady && !missingReplayCoordinates;
   const stagePlaqueLayout = useMemo(() => selectReplayPlaqueLayout(replayPlaqueSchedule, activeDerivationFrameIndex),
@@ -434,10 +433,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     && playbackSteps[currentStepIndex]?.replayKind === 'macro' ? currentStepIndex : undefined;
   const stageCameraBounds = useMemo(() => {
     if (!layoutReady || !animated || !usesDerivationFrames || !activeDerivationFrame || !frameViewport?.width) return null;
-    return buildStageCameraBounds({
+    return activeStageCameraBounds(activeDerivationFrame.workspaceForest || [], {
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       stepIndex: completedReplayStep,
-      completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
       plan: relationRenderPlan, width: frameViewport.width, height: frameViewport.height, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       includeOverlays: !disableRelationOverlay && !acceptedCompositionIsTreeFirst,
       plaqueLayout: stagePlaqueLayout, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
@@ -449,10 +447,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const hasBindingDomain = relationRenderPlan?.frames[activeDerivationFrameIndex]?.items.some(item => item.kind === 'binding-domain');
     if (!stageCameraBounds || !activeDerivationFrame || !frameViewport || disableRelationOverlay
       || (!acceptedCompositionIsTreeFirst && !hasBindingDomain)) return null;
-    return buildStageCameraBounds({
+    return activeStageCameraBounds(activeDerivationFrame.workspaceForest || [], {
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       stepIndex: completedReplayStep,
-      completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
       plan: relationRenderPlan, width: frameViewport.width, height: frameViewport.height, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
       includeOverlays: false, includePlaques: true, includeBindingDomains: true,
       plaqueLayout: stagePlaqueLayout, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
@@ -589,6 +586,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       d3.select(svgRef.current).attr('data-babel-rendered-step', null);
       return;
     }
+    if (!canvasData) return;
     updateSyntaxReveal({
       animated,
       activeStepIndex,
@@ -631,7 +629,16 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   ]);
 
   useEffect(() => {
-    if (!layoutReady || !canvasData || !svgRef.current || !frameViewport?.width) return;
+    if (!layoutReady || !svgRef.current || !frameViewport?.width) return;
+    if (!canvasData) {
+      // An empty authored stage paints an empty canvas.
+      d3.select(svgRef.current).selectAll('*').remove();
+      svgRef.current.setAttribute('data-babel-rendered-step', String(activeStepIndex));
+      framePaintedRef.current = true;
+      if (frameViewport.width === dimensions.width && frameViewport.height === dimensions.height
+        && !viewportSettlerRef.current?.pending) svgRef.current.removeAttribute('data-babel-viewport-pending');
+      return;
+    }
 
     const disposeFrame = drawTreeFrame({
       layout: {
