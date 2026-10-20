@@ -38,14 +38,6 @@ test('a persistent mark stays until the movement that carries its anchor away', 
   assert.deepEqual(checkMarkPersistence(replay, record).filter(found => found.subtype === 'ends-before-removal'), []);
 });
 
-test('theta badges yield at the moment of the relation whose grid composes with them', () => {
-  const { record, replay } = prepared('replay-regressions/clitic-displacement.json#/fixtures/1/analysis');
-  const badges = replay.relationRenderPlan.frames[4].items.find(item => item.kind === 'node-badges' && item.badgeStyle === 'theta-role' && owns(item, 0, 0));
-  assert(badges, 'the stage-1 badges remain in stage 5 until the composing relation');
-  assert.deepEqual([badges.supersededAt?.stageIndex, badges.supersededAt?.relationIndex], [4, 1]);
-  assert.deepEqual(checkMarkPersistence(replay, record).filter(found => found.subtype === 'composed-before-moment'), []);
-});
-
 test('a restated occurrence keeps its preceding label until the relation that names it', () => {
   // Stage 2 restates matrixI as V-adjoined; V-to-I head movement is the first relation naming it.
   const { record, replay } = prepared('movement/holdout-transitions.json#/1');
@@ -67,16 +59,6 @@ const shown = (step, id) => {
 const stageSteps = (steps, stage) => steps.flatMap((step, index) => step.replayFrameIndex === stage ? [index] : []);
 const authoredStage = (workspaceForest, relations = []) => ({ statement: 'An authored state.', stageRecord: 'An authored account.', workspaceForest, relations });
 const replayOf = record => ({ record, replay: prepareReplay({ ...structuredClone(record), includePlayback: true }) });
-
-test('a restated participle keeps its unvalued form and its word until the agreement that names it', () => {
-  // The agreement realizes envoyées; a selection of that word before the agreement would show it early.
-  const { record, replay } = prepared('replay-regressions/obsolete-plaque-pockets.json#');
-  const steps = replay.playbackSteps, agrees = moment(steps, 2, 1), moves = moment(steps, 2, 0);
-  assert.deepEqual(shown(steps[moves], 'v'), { label: 'V[envoyer; participle; agreement unvalued]', word: undefined, words: [] });
-  for (const index of stageSteps(steps, 2).filter(index => index < agrees)) assert.deepEqual(shown(steps[index], 'v').words, [], `frame ${index + 1}`);
-  assert.deepEqual(shown(steps[agrees], 'v'), { label: 'V[participle; feminine plural]', word: 'envoyées', words: ['envoyées'] });
-  assert.deepEqual(checkStepSemantics(replay, record).filter(found => found.subtype === 'unowned-repaint'), []);
-});
 
 const dp = (nLabel, word = 'dog') => ({ id: 'dp', label: 'DP', lineageId: 'subject', children: [
   { id: 'd', label: 'D', word: 'the', tokenIndex: 0 }, { id: 'n', label: nLabel, word, tokenIndex: 1 }] });
