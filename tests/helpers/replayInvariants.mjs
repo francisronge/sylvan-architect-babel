@@ -354,6 +354,43 @@ export function checkParentAfterChildren(replay) {
   });
 }
 
+/** Every frame paints each authored node with as many daughters as the
+ * preceding or the current authored stage gives it. Construction builds
+ * forward: a new parent appears with all its daughters at its merge, a retained
+ * node keeps its earlier daughters until the step that gives it its new ones,
+ * and a movement moment brings the landing with the new parent that attaches
+ * it. So no frame paints a unary chain, a partial parent or an extra daughter
+ * that neither stage authors, whichever ids the stages assign and whichever
+ * step or relation paints it. The count is of painted daughters, so hiding a
+ * daughter in the canvas does not satisfy it; derived word leaves are
+ * pronunciation, not daughters. Nodes neither stage authors are left to the
+ * construction rules. */
+export function checkAuthoredArity(replay, record) {
+  const arities = (record.derivationStages ?? []).map(stage => {
+    const out = new Map();
+    const visit = node => { if (!node?.id) return; out.set(String(node.id), (node.children ?? []).length); (node.children ?? []).forEach(visit); };
+    (stage.workspaceForest ?? []).forEach(visit);
+    return out;
+  });
+  const daughterOf = (structure, id) => authoredIdentity(structure.nodes.get(id)).derivedWordOf === undefined;
+  return replay.playbackSteps.flatMap((step, index) => {
+    const own = step.replayFrameIndex, structure = frameStructure(step);
+    const where = `${step.replayKind} ${step.operation} (target ${step.targetNodeId ?? ''})`;
+    return [...structure.displayed].flatMap(id => {
+      const node = structure.nodes.get(id), authored = String(authoredIdentity(node).id ?? '');
+      if (!authored) return [];
+      // A node continuing other authored ids (its aliases) may paint any of their arities.
+      const names = [...new Set([authored, ...(node.data.aliasIds ?? []).map(String)])];
+      const counts = [own - 1, own].flatMap(stage => names.filter(name => arities[stage]?.has(name))
+        .map(name => [stage + 1, name, arities[stage].get(name)]));
+      const daughters = (structure.children.get(id) ?? []).filter(child => daughterOf(structure, child));
+      return !counts.length || counts.some(([, , count]) => count === daughters.length) ? [] : [violation('authored-arity', index + 1,
+        `${authored} paints ${daughters.length} ${daughters.length === 1 ? 'daughter' : 'daughters'} [${daughters.join(', ')}] at ${where}; `
+        + counts.map(([stage, name, count]) => `stage ${stage} authors ${count}${name === authored ? '' : ` for ${name}`}`).join(', '))];
+    });
+  });
+}
+
 const nodeNames = node => [getNodeId(node), node.data.id, ...(node.data.aliasIds ?? [])].filter(Boolean);
 
 const named = (node, ids) => nodeNames(node).some(name => ids.has(name));

@@ -3,7 +3,7 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  checkAttachAtMerge, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkNoEarlyReveal,
+  checkAttachAtMerge, checkAuthoredArity, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkNoEarlyReveal,
   checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationConstruction, checkRelationMoments,
   checkStableConstruction,
   checkStageCompletion, checkVisibleInCanvas, frameStructure
@@ -275,6 +275,29 @@ test('control: movement-landing-parent reports a movement moment that paints its
     'matrixTProjection is not painted beside landing subjectHigher under matrixTP'));
 });
 
+test('control: authored-arity reports a parent painted with daughters neither adjacent stage authors', () => {
+  // The subject movement of 我昨天看见的那个人走了。 lands beside T′, the new parent
+  // over TP's earlier T and vP. Before #104 its moment painted TP with three
+  // daughters; #119 and #122 painted a retained node over one daughter.
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/waiting-root-continuity.json#').record;
+  const prepared = prepare(record), moment = prepared.playbackSteps.findIndex(step => step.operation === 'Matrix subject movement and licensing');
+  assert.deepEqual(checkAuthoredArity(prepared, record), []);
+  assert.deepEqual(checkAuthoredArity(replay, sample), []);
+  const painted = edit => {
+    const broken = { ...prepared, playbackSteps: structuredClone(prepared.playbackSteps) };
+    edit(d3.hierarchy(broken.playbackSteps[moment].replayCanvasData).find(node => node.data.id === 'matrixTP').data);
+    return checkAuthoredArity(broken, record);
+  };
+  const ternary = painted(tp => { tp.children = [tp.children[0], ...tp.children[1].children]; });
+  assert(reported(ternary, 'authored-arity', moment + 1, 'matrixTP paints 3 daughters [subjectHigher, matrixT, matrixVP]'));
+  const unary = painted(tp => { tp.children = tp.children.slice(1); });
+  assert(reported(unary, 'authored-arity', moment + 1, 'matrixTP paints 1 daughter [matrixTProjection]'));
+  const hidden = { ...prepared, playbackSteps: structuredClone(prepared.playbackSteps) };
+  hidden.playbackSteps[moment].replayVisibleNodeIds = hidden.playbackSteps[moment].replayVisibleNodeIds.filter(id => id !== 'subjectHigher');
+  assert(reported(checkAuthoredArity(hidden, record), 'authored-arity', moment + 1, 'matrixTP paints 1 daughter'),
+    'a daughter kept in the canvas but hidden is not painted');
+});
+
 /* The sweep: every rule on every frame of every committed saved analysis.
  * Real defects stay listed in tests/helpers/replayInvariantExceptions.mjs with
  * the exact subject node of each violation; a new violation fails, and so does
@@ -284,10 +307,21 @@ test('control: movement-landing-parent reports a movement moment that paints its
 // no-early-reveal; that step's attachment of the same node is not reported again.
 const REPORTED_BY = new Map([['attach-at-merge', 'no-early-reveal']]);
 const subjectOf = violation => violation.detail.split(' ')[0];
+// A node painted without a daughter that parent-after-children reports hidden
+// under it is that rule's defect, from the frame it reports for as long as the
+// node stays short of its authored daughters.
+const hiddenDaughterRun = (violations, violation) => {
+  const short = new Set(violations.filter(other => other.rule === 'authored-arity' && subjectOf(other) === subjectOf(violation))
+    .map(other => other.frame));
+  for (let frame = violation.frame; short.has(frame); frame -= 1)
+    if (violations.some(other => other.rule === 'parent-after-children' && other.frame === frame
+      && other.detail.endsWith(` under displayed ${subjectOf(violation)}`))) return true;
+  return false;
+};
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments', 'landing-attached',
-  'no-early-reveal', 'relation-construction', 'parent-after-children', 'stable-construction', 'attach-at-merge', 'movement-landing-parent',
-  'visible-in-canvas',
+  'no-early-reveal', 'relation-construction', 'parent-after-children', 'authored-arity', 'stable-construction', 'attach-at-merge',
+  'movement-landing-parent', 'visible-in-canvas',
   'marks-at-owning-moment', 'one-letter-per-label'];
 let sweep;
 before(() => {
@@ -298,7 +332,8 @@ before(() => {
       return { id, frames: prepared.playbackSteps.length, violations: [
         ...checkInputUnchanged(snapshot, authored), ...checkNoVisibleScaffolding(prepared), ...checkStageCompletion(prepared, authored),
         ...checkRelationMoments(prepared, authored), ...checkLandingAttached(prepared), ...checkNoEarlyReveal(prepared),
-        ...checkRelationConstruction(prepared, authored), ...checkParentAfterChildren(prepared), ...checkStableConstruction(prepared),
+        ...checkRelationConstruction(prepared, authored), ...checkParentAfterChildren(prepared), ...checkAuthoredArity(prepared, authored),
+        ...checkStableConstruction(prepared),
         ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),
@@ -318,8 +353,8 @@ test('the sweep accounts for every committed analysis with derivationStages', ()
 });
 
 for (const rule of RULES) test(`sweep: ${rule} holds on every frame of every committed analysis, apart from listed defects`, () => {
-  const reportedElsewhere = (violations, violation) => violations.some(other => other.rule === REPORTED_BY.get(rule)
-    && other.frame === violation.frame && subjectOf(other) === subjectOf(violation));
+  const reportedElsewhere = (violations, violation) => rule === 'authored-arity' ? hiddenDaughterRun(violations, violation)
+    : violations.some(other => other.rule === REPORTED_BY.get(rule) && other.frame === violation.frame && subjectOf(other) === subjectOf(violation));
   const findings = sweep.flatMap(entry => (entry.violations ?? [])
     .filter(violation => violation.rule === rule && !reportedElsewhere(entry.violations, violation))
     .map(violation => ({ rule, subtype: null, record: entry.id, subject: subjectOf(violation), frame: violation.frame, viewport: null,
