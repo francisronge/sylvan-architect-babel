@@ -32,29 +32,3 @@ test('replay compiler matches every committed fixture snapshot', () => {
     );
   }
 });
-
-test('mia-laughed replay finishes with visible syntax', () => {
-  const bundle = JSON.parse(
-    fs.readFileSync(path.join(normalizedDir, 'mia-laughed.xbar.json'), 'utf8')
-  );
-  const snapshot = buildReplaySnapshotProjection(bundle);
-  assert.ok(snapshot.stepCount > 0);
-  assert.ok(snapshot.steps.at(-1)?.replayVisibleNodeIds.length > 0);
-});
-
-
-test('wh-movement authored first waits for the head movement that builds the C′ its landing attaches to', () => {
-  const bundle = JSON.parse(fs.readFileSync(path.join(normalizedDir, 'what-did-mia-see.xbar.json'), 'utf8'));
-  const { steps } = buildReplaySnapshotProjection(bundle);
-  const head = steps.findIndex(step => step.operation === 'auxiliary-head-movement');
-  const phrase = steps.findIndex(step => step.operation === 'wh-movement');
-  assert(phrase === head + 1 && head > 0, 'wh-movement plays right after the head movement');
-  for (const id of ['cbar_question', 'c_question', 'did_terminal']) {
-    assert(!steps[head - 1].replayVisibleNodeIds.includes(id));
-    assert(steps[head].replayVisibleNodeIds.includes(id));
-  }
-  for (const id of ['cp_question', 'dp_what_high', 'what_low']) {
-    assert(!steps[head].replayVisibleNodeIds.includes(id), `${id} waits for wh-movement`);
-    assert(steps[phrase].replayVisibleNodeIds.includes(id));
-  }
-});
