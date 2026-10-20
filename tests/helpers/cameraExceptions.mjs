@@ -46,6 +46,8 @@ export const EXCEPTIONS = [
     { mobile: { '48>49': 28.03 } }),
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/dissolved-constituent-rebuild.json#', 'first-paint-continuity', 'jump:relayout', 'stage 5',
     { desktop: { '33>34,34>33': 71.88 }, mobile: { '33>34,34>33': 34.7 } }),
+  x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/dissolved-root-rebuild.json#', 'first-paint-continuity', 'jump:relayout', 'stage 2',
+    { desktop: { '19>20,20>19': 44.44, '20>21,21>20': 75.75 }, mobile: { '20>21,21>20': 32.49 } }),
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/diverse-recovery.json#/examples/0/analysis', 'first-paint-continuity', 'jump:relayout', 'stage 2',
     { desktop: { '38>39,39>38': 33.2 } }),
   x(RELAYOUT_WITHIN_STAGE, 'replay-regressions/diverse-recovery.json#/examples/6/analysis', 'first-paint-continuity', 'jump:relayout', 'stage 3',

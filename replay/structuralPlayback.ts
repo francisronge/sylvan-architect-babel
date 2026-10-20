@@ -8,6 +8,7 @@ import { categoryLabel } from './categoryLabel.ts';
 import {
   constructionAttachmentUpdates,
   hasConstructionWrapperInsertions,
+  holdDissolvedRoots,
   preserveConstructionAttachments,
   regroupingParents,
   restoreRegroupedConstituents
@@ -394,13 +395,21 @@ export const buildStructuralDerivationPlaybackSteps = ({
     const attachedForest = hasAttachmentContinuity
       ? preserveConstructionAttachments(forest, previousConstructionForest, pendingAttachmentNodeIds, snapshotVisibleNodeIds)
       : forest;
-    const constructionForest = restoreRegroupedConstituents(attachedForest, previousConstructionForest, pendingRegroupingIds);
+    const regroupedForest = restoreRegroupedConstituents(attachedForest, previousConstructionForest, pendingRegroupingIds);
+    // A dissolved preceding root keeps the material whose merge is still to
+    // come, in the borrowed future layout too.
+    const pendingParentIds = new Set(pendingRevealNodes.map(getNodeId));
+    const holdDissolved = (target: SyntaxNode[]) => frameIndex > 0
+      ? holdDissolvedRoots(target, previousConstructionForest, pendingParentIds, snapshotVisibleNodeIds) : target;
+    const constructionForest = holdDissolved(regroupedForest);
+    const stepLayoutScaffold = layoutScaffoldForest && constructionForest !== regroupedForest
+      ? holdDissolved(layoutScaffoldForest) : layoutScaffoldForest;
     // A held attachment keeps its new child a separate root until the parent's
     // merge. Stage reservations keep its slot; the scaffold cannot attach it early.
-    const activeLayoutScaffold = layoutScaffoldForest
-      && forestCanUseCurrentMaterialLayoutScaffold(constructionForest, layoutScaffoldForest,
+    const activeLayoutScaffold = stepLayoutScaffold
+      && forestCanUseCurrentMaterialLayoutScaffold(constructionForest, stepLayoutScaffold,
         hasAttachmentContinuity ? pendingAttachmentNodeIds : undefined)
-      ? layoutScaffoldForest
+      ? stepLayoutScaffold
       : undefined;
     const frameReplaySnapshot = buildDerivationReplaySnapshot({
       forest: constructionForest,
