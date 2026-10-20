@@ -33,9 +33,12 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta theme)@read', { desktop: { '19-22': 1.15 }, 'desktop-large': { '19-22': 1.15 } }),
   x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
-    'plaque(0:1 theta agent)@embeddedVoice', { desktop: { '20-27': 1.12, '28-107': 1.14 }, 'desktop-large': { '20-27': 1.12, '28-107': 1.14 } }),
+    'plaque(0:1 theta agent)@embeddedVoice', { desktop: { '20-27': 1.12, '28-106': 1.14 }, 'desktop-large': { '20-27': 1.12, '28-106': 1.14 } }),
   x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
-    'plaque(7:2 theta theme)@find', { desktop: { '105-107': 1.12 }, 'desktop-large': { '105-107': 1.12 } }),
+    'plaque(7:2 theta theme)@find', { desktop: { '96-98': 1.19, '104-106': 1.16 }, 'desktop-large': { '96-98': 1.19, '104-106': 1.16 } },
+    { by: 'Francis Ronge', on: '2026-10-20', expires: '2027-01-20', note: 'Accepted on the side-by-side review of '
+      + 'T′ arriving at the subject movement: stage 9 loses its T′ merge step, so the tree nearer find takes main\'s '
+      + 'pocket and the theme plaque sits up to 1.19 of its reach in frames 96-98 and 104-106.' }),
   x(PLAQUE_CROWDED, 'movement/clause-context.json#/cases/7', 'mark-distance', 'plaque',
     'plaque(0:0 theta Agent/Theme)@ev', { desktop: { '22-26': 1.16 }, 'desktop-large': { '22-26': 1.16 } }),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
