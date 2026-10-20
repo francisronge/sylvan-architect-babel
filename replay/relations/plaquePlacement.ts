@@ -39,7 +39,9 @@ export type PlaqueRect = ObstacleRect & {
   terminalStemNodeId?: string;
   caseRowY?: number; collectionRows?: CollectionRow[]; collectionWidth?: number; drawnWidth?: number; drawnHeight?: number;
   blocksConnectors?: boolean; connectorAttachment?: string;
-  connectorInk?: { x: number; y: number; width: number; height: number } };
+  connectorInk?: { x: number; y: number; width: number; height: number };
+  /** A fixed native plaque's footprint: a plaque, not syntax or a connector. */
+  plaqueShell?: boolean };
 type CollectionRow = { sourceNodeId: string; y: number; lane?: number; ownerKeys?: string[]; featureKey?: string; edge?: CollectionEdge; portX?: number };
 type Node = HierarchyPointNode<SyntaxNode>;
 const drawnPlaque = (box: PlaqueRect): PlaqueRect =>
@@ -74,6 +76,14 @@ const nearbyPocketTops = (height: number) => [-height - 60, -height / 2, 55, 115
 const nearbyPocketGap = 110;
 /** A pocket clearly nearer than an incumbent lies within this fraction of its distance. */
 export const MIN_RELOCATION_GAIN = 0.75;
+/** Plaques keep this gap from every obstacle. */
+export const PLAQUE_GAP = 24;
+/** The gap a remote plaque's second look keeps from syntax, trajectories and
+ * connectors. It keeps the full gap from other plaques. */
+export const DETACHED_PLAQUE_GAP = PLAQUE_GAP / 2;
+/** Allocated plaques and fixed native plaques; everything else is syntax or a connector. */
+const isPlaqueShell = (obstacle: PlaqueRect) => Boolean(obstacle.plaqueShell
+  || obstacle.blocksConnectors && obstacle.connectorAttachment === undefined && !obstacle.curve);
 /** Distances are measured from a word-bearing leaf's word, else from the anchor's label. */
 export function plaqueAnchorPoint(anchor: Pick<Node, 'x' | 'y' | 'data' | 'children'>) {
   return { x: anchor.x, y: anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0) };
@@ -836,6 +846,8 @@ type PlaqueLifetime = {
    * again at once, keeping this pocket as the incumbent, so later claims avoid the
    * pocket actually chosen. */
   relocate?: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>, box: PlaqueRect) => PlaqueSpace | undefined;
+  /** Search pockets at this narrower gap from everything but plaques. */
+  syntaxGap?: number;
 };
 
 /** Geometry only: a common enclosing subtree locates a plaque, never establishes a linguistic domain. */
@@ -891,6 +903,10 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const anchor = anchors[0];
     const space = lifetime?.spaceFor(request.index, anchor, result);
     const occupied = [...(space?.obstacles ?? obstacles), ...placed];
+    // At a narrower gap, plaques grow by the difference: they keep the full gap.
+    const gap = lifetime?.syntaxGap ?? PLAQUE_GAP, grow = PLAQUE_GAP - gap;
+    const searched = grow ? occupied.map(obstacle => isPlaqueShell(obstacle) ? { ...obstacle, x: obstacle.x - grow,
+      y: obstacle.y - grow, width: obstacle.width + 2 * grow, height: obstacle.height + 2 * grow } : obstacle) : occupied;
     let obstacleIndex: ReturnType<typeof preparePlaqueOverlapIndex> | undefined;
     let queriedPocket = false;
     const overlaps = (box: PlaqueRect) => {
@@ -898,9 +914,9 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       // does not need a sorted spatial hierarchy; later searches reuse one.
       if (!queriedPocket) {
         queriedPocket = true;
-        return occupied.some(obstacle => plaquesOverlap(box, obstacle));
+        return searched.some(obstacle => plaquesOverlap(box, obstacle, gap));
       }
-      return (obstacleIndex ??= preparePlaqueOverlapIndex(occupied)).overlaps(box);
+      return (obstacleIndex ??= preparePlaqueOverlapIndex(searched)).overlaps(box, gap);
     };
     const caseClears = request.caseAssignment && !space ? prepareCasePlaqueSpace(anchor, occupied) : undefined;
     const sourceRect = request.caseAssignment ? caseSourceRect(anchor) : undefined;
@@ -968,7 +984,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       placement = priorCandidate;
       // Search the nearest clear pocket, including one just beyond the initial
       // candidates. A radius cutoff would send a local claim below its subtree.
-      const gap = 24 + 1e-6;
+      const scanGap = gap + 1e-6;
       const sourceX = sourceRect ? sourceRect.x + sourceRect.width / 2 : anchor.x;
       const horizontalGap = (x: number) => request.caseAssignment
         ? Math.max(x - sourceX, sourceX - x - width, 0) : Math.abs(x + width / 2 - anchor.x);
@@ -978,10 +994,10 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         return (space?.connectorCandidateXs?.(candidate) ?? collectionSpace?.candidateXs(candidate) ?? [])
           .flatMap(x => [x, x - 16, x + 16]);
       }) : [];
-      const xs = [...new Set([...candidates.map(box => box.x), ...connectorColumns, ...occupied.flatMap(box =>
-        [box.x - width - gap, box.x + box.width + gap])])]
+      const xs = [...new Set([...candidates.map(box => box.x), ...connectorColumns, ...searched.flatMap(box =>
+        [box.x - width - scanGap, box.x + box.width + scanGap])])]
         .sort((a, b) => horizontalGap(a) - horizontalGap(b));
-      const columnIntervals = preparePlaqueColumnIntervals(occupied, height, gap);
+      const columnIntervals = preparePlaqueColumnIntervals(searched, height, scanGap);
       let bestDistance = priorDistance;
       for (const x of xs) {
         const dx = horizontalGap(x);

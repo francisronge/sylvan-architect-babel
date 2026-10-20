@@ -17,9 +17,13 @@ syntactic rules. Desktop remains the primary experience.
    only those credits.
 2. Renderer follow-ups left after the October renderer pass. Each has saved
    evidence; branches that exist are named.
-   - Plaques left far from their anchor (catalog #3;
-     `fix/renderer-plaque-reach`): a narrower margin brings 12 of 55 listed
-     plaques within reach but moves some others farther away.
+   - Plaques left far from their anchor (catalog #3): a second look after
+     allocation brings 8 of the 63 listed plaques within reach, and a ninth for
+     part of its life, without moving any other plaque. The other 54 need a
+     decision: 11 have no room, 19 lose the near pocket to later syntax while
+     their anchor stands still, 10 to positions their anchor reaches by reflow,
+     7 to a plaque placed earlier, and 7 to other plaques' final pockets or the
+     quarter-nearer condition.
    - A host drops a row when a parent is inserted above it. This stays instant
      (no glide), so it needs a layout answer or acceptance.
    - Two `RELATION_TIMING_CONFLICT` cycles that no order satisfies. In the

@@ -10,7 +10,8 @@ import { promisify } from 'node:util';
 const script = fileURLToPath(new URL('../scripts/auditReplayVisuals.mjs', import.meta.url));
 const run = promisify(execFile);
 // One analysis with findings in both audits, so equal reports are not empty ones.
-const RECORD = 'movement/clause-context.json#/cases/7';
+// Its visual findings are listed role-label lanes and crowded plaques.
+const RECORD = 'replay-regressions/sol-spanish-qr.json#/analyses/1';
 const VISUAL = ['--audit', 'visual', '--viewports', 'desktop,desktop-large'];
 const CAMERA = ['--audit', 'camera', '--viewports', 'desktop,mobile'];
 
