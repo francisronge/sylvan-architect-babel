@@ -293,6 +293,25 @@ test('native cyclic comparison and height use prepared columns for canonical and
   }
 });
 
+test('the Ordering rail caption spaces its relation and role names as the Replay panel does', () => {
+  const ids = ['one', 'two', 'three', 'four', 'five'];
+  const forest = [{ id: 'root', label: 'TP', children: ids.map((id) => ({ id, label: 'D', word: id, children: [] })) }];
+  for (const [relationName, role, caption] of [
+    ['CyclicLinearization', 'order', 'Cyclic Linearization · order'],
+    ['CyclicLinearization', 'precedence_order', 'Cyclic Linearization · precedence order']
+  ]) {
+    const relation = { relation: relationName, anchors: { [role]: ids }, priorAnchors: { [role]: ids } };
+    const original = structuredClone(relation);
+    const plan = compileRelationRenderPlan([stage([], forest), stage([relation], forest)]);
+    assert.deepEqual(plan.diagnostics, []);
+    const svg = drawNative('scheduleAcceptedCyclicLinearization', plan.frames[1].items, forest);
+    assert.deepEqual(svg('babel-anchor-set-rail-label').map((node) => node.textContent), [caption]);
+    assert.deepEqual(svg('babel-anchor-set-badge').map((node) => node.attrs['data-anchor-set-role']), ids.map(() => role),
+      'badges keep the authored role');
+    assert.deepEqual(relation, original);
+  }
+});
+
 test('native cyclic comparison does not depend on a large-array rail', () => {
   const relation = { relation: 'CyclicLinearization', anchors: { sequence: ['a', 'mid'] },
     priorAnchors: { order: ['mid', 'a'] } };

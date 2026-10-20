@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import { getNodeId } from '../../replay/displayIdentity.ts';
+import { spaceAuthoredName } from '../../replay/displayText.ts';
 import {
   type RelationPlanItem
 } from '../../replay/relations/renderPlan.ts';
@@ -106,9 +107,9 @@ export function createLinearizationDrawing({
               .attr('x', Math.max(rail.x1, railLabelMinX).toFixed(1))
               .attr('y', (y - localPx(6)).toFixed(1))
               .style('font-size', `${localPx(10)}px`)
-              .text(`${anchorSetItem.set.relation}${anchorSetItem.set.instanceIndex > 0
+              .text(`${spaceAuthoredName(anchorSetItem.set.relation, { snakeCase: true })}${anchorSetItem.set.instanceIndex > 0
                 ? ` (${anchorSetItem.set.instanceIndex + 1})`
-                : ''} · ${rail.role}`);
+                : ''} · ${spaceAuthoredName(rail.role, { snakeCase: true })}`);
             const overflow = (caption.node()?.getBoundingClientRect().bottom ?? 0) - railLabelBottom;
             if (overflow > 0) {
               caption.attr('y', (y - localPx(6) - localPx(overflow)).toFixed(1));

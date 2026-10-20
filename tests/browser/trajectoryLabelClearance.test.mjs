@@ -118,7 +118,7 @@ test('cyclic ordering captions stay clear of Replay in desktop and narrow views'
           return { text: caption.textContent, bottom: panel.top - label.bottom,
             left: label.left - canvas.left, right: canvas.right - label.right };
         });
-        assert.equal(clearance.text, 'CyclicLinearization · order');
+        assert.equal(clearance.text, 'Cyclic Linearization · order');
         assert.ok(clearance.bottom >= 15.9, `${engine} ${width}×${height}: caption needs 16px above Replay, got ${clearance.bottom}`);
         assert.ok(clearance.left >= 0 && clearance.right >= 0, `${engine}: caption must fit inside the canvas`);
         await page.close();
