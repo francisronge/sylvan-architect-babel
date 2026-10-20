@@ -197,3 +197,15 @@ test('historical: step-semantics reports a movement whose landing and path arriv
   assert(reported(checkStepSemantics(broken, record), 'step-semantics', 'trajectory-off-moment', moment + 2,
     `the movement path of relation 11:0 first appears at frame ${moment + 2}, not at its own moment at frame ${moment + 1}`));
 });
+
+test('historical: mark-persistence counts a relation-only mark coalescing two claims once per claim (48-en-gapping)', () => {
+  const { record } = regression('coalesced-relation-only-mark'), fixed = prepare(record), list = fixed.playbackSteps;
+  const shared = fixed.relationRenderPlan.frames[0].items.find(item => item.kind === 'fallback' && item.persistence === 'relation-only'
+    && planItemRelationRefs(item).length === 2);
+  assert.deepEqual(planItemRelationRefs(shared).map(ref => ref.relationIndex), [2, 4], 'one relation-only mark holds both claims');
+  assert.deepEqual(checkMarkPersistence(fixed, record), []);
+  // The claim of relation 3 played again at relation 5's step paints its mark a second time.
+  const second = momentOf(list, 0, 4);
+  const repeated = checkMarkPersistence(edited(fixed, copy => { copy[second].replayRelationIdentity = { stageIndex: 0, relationIndex: 2 }; }), record);
+  assert(reported(repeated, 'mark-persistence', 'paints-again', second + 1, `fallback 0:2 paints again after ending at frame ${second}`));
+});

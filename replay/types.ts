@@ -171,6 +171,9 @@ export interface DerivationReplayPlanStep {
   anchoredCopyDisplacement?: { copies: Array<{ nodeId: string; earlierNodeId?: string }>; earlierNodeIds: string[] };
   /** The new parent a prior-witness claim names that only wrapped its one retained witness; ordinary construction builds it. See `priorWitnessWrapperNodeIds`. */
   witnessWrapperNodeIds?: string[];
+  /** On a claim without a movement of its own: the occurrences the stage's recovered movements relate (their current
+   * landing and lower-occurrence subtrees and the earlier source subtree). The claim's displacement is judged outside them. */
+  movementOccurrenceNodeIds?: string[];
   preserveMovementLanding?: boolean;
   pronunciationNodeIds?: string[];
   movementDiagnostics?: string[];
