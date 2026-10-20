@@ -41,14 +41,19 @@ export function createLinearizationDrawing({
     emphasis: RelationEmphasis
   ) => {
     if (item.kind !== 'node-plaque' && item.kind !== 'anchor-set') return false;
-    const key = relationLayerKey(item);
+    // A large-array rail belongs to its authored relation, not to one claim, so
+    // it carries no Tier-2 claim identity. A Tier-2 Ordering owns its rail
+    // through the rail's organization owners; a Tier-1 Ordering shares its key.
+    const organizes = (owner: RelationPlanItem, rail: RelationPlanItem) => rail.kind === 'anchor-set'
+      && rail.relationRef.stageIndex === owner.relationRef.stageIndex
+      && rail.relationRef.relationIndex === owner.relationRef.relationIndex
+      && (relationLayerKey(rail) === relationLayerKey(owner)
+        || Boolean(owner.tier2ClaimIdentity && rail.organizationOwners?.includes(owner.tier2ClaimIdentity)));
     const cyclicItem = frameItems.find((candidate) =>
       candidate.familyId === 'pf.cyclic-linearization'
       && candidate.kind === 'node-plaque'
-      && relationLayerKey(candidate) === key);
-    const anchorSetItem = frameItems.find((candidate) =>
-      candidate.kind === 'anchor-set'
-      && relationLayerKey(candidate) === key);
+      && (item.kind === 'anchor-set' ? organizes(candidate, item) : relationLayerKey(candidate) === relationLayerKey(item)));
+    const anchorSetItem = cyclicItem && frameItems.find((candidate) => organizes(cyclicItem, candidate));
     if (cyclicItem?.kind !== 'node-plaque' || cyclicItem.nativeContent?.kind !== 'linearization') return false;
     const content = cyclicItem.nativeContent;
     const drawingKey = acceptedRelationDrawingKey(cyclicItem);

@@ -298,7 +298,8 @@ test('the Ordering rail caption spaces its relation and role names as the Replay
   const forest = [{ id: 'root', label: 'TP', children: ids.map((id) => ({ id, label: 'D', word: id, children: [] })) }];
   for (const [relationName, role, caption] of [
     ['CyclicLinearization', 'order', 'Cyclic Linearization · order'],
-    ['CyclicLinearization', 'precedence_order', 'Cyclic Linearization · precedence order']
+    ['CyclicLinearization', 'precedence_order', 'Cyclic Linearization · precedence order'],
+    ['cyclic_linearization', 'precedence_order', 'cyclic linearization · precedence order']
   ]) {
     const relation = { relation: relationName, anchors: { [role]: ids }, priorAnchors: { [role]: ids } };
     const original = structuredClone(relation);
@@ -310,6 +311,27 @@ test('the Ordering rail caption spaces its relation and role names as the Replay
       'badges keep the authored role');
     assert.deepEqual(relation, original);
   }
+});
+
+test('a Tier-2 Ordering draws its own large-array rail as the Tier-1 Ordering does', () => {
+  const ids = ['one', 'two', 'three', 'four', 'five'];
+  const forest = [{ id: 'root', label: 'TP', children: ids.map((id) => ({ id, label: 'D', word: id, children: [] })) }];
+  const drawn = {};
+  for (const relationName of ['CyclicLinearization', 'cyclic_linearization']) {
+    const plan = compileRelationRenderPlan([stage([], forest),
+      stage([{ relation: relationName, anchors: { order: ids }, priorAnchors: { order: ids } }], forest)]);
+    const items = plan.frames[1].items;
+    assert.deepEqual(items.map((item) => [item.kind, item.claimTier]),
+      [['node-plaque', relationName === 'CyclicLinearization' ? 1 : 2], ['anchor-set', relationName === 'CyclicLinearization' ? 1 : 2]]);
+    // The plaque and the rail each claim the native drawing, so the rail is never also painted generically.
+    drawn[relationName] = items.map((item) => {
+      const svg = drawNative('scheduleAcceptedCyclicLinearization', items, forest, [item]);
+      return ['babel-anchor-set-badge', 'babel-anchor-set-rail', 'babel-anchor-set-stub', 'babel-linearization-row']
+        .map((className) => svg(className).length);
+    });
+  }
+  assert.deepEqual(drawn.cyclic_linearization, drawn.CyclicLinearization);
+  assert.deepEqual(drawn.CyclicLinearization, [[5, 1, 5, 8], [5, 1, 5, 8]]);
 });
 
 test('native cyclic comparison does not depend on a large-array rail', () => {
