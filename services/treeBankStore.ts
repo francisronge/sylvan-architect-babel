@@ -99,35 +99,36 @@ export function completeTreeBankTransaction<T>(
   return new Promise((resolve, reject) => {
     let value: T;
     let failure: unknown;
-    let tx: IDBTransaction;
+    let tx: IDBTransaction | undefined;
     try {
-      tx = db.transaction(
+      const transaction = db.transaction(
         names,
         mode,
         mode === "readwrite" ? { durability: "strict" } : undefined,
       );
-      tx.oncomplete = () => {
+      tx = transaction;
+      transaction.oncomplete = () => {
         db.close();
         resolve(value);
       };
-      tx.onabort = () => {
+      transaction.onabort = () => {
         db.close();
         reject(
-          failure || tx.error || new Error("Tree Bank transaction aborted."),
+          failure || transaction.error || new Error("Tree Bank transaction aborted."),
         );
       };
-      tx.onerror = () => {
-        failure ||= tx.error;
+      transaction.onerror = () => {
+        failure ||= transaction.error;
       };
       run(
-        tx,
+        transaction,
         (v) => {
           value = v;
         },
         (e) => {
           failure ||= e;
           try {
-            tx.abort();
+            transaction.abort();
           } catch {}
         },
       );

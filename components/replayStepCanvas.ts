@@ -9,7 +9,7 @@ import type { SyntaxNode } from '../types.ts';
  */
 export function selectReplayCanvas({ usesDerivationFrames, animated, stepCanvas, activeForest,
   committedCanonicalCanvas, committedDerivationCanvas, data }: {
-  usesDerivationFrames: boolean; animated: boolean; stepCanvas: SyntaxNode | undefined;
+  usesDerivationFrames: boolean; animated: boolean; stepCanvas: SyntaxNode | null | undefined;
   activeForest: readonly SyntaxNode[] | undefined; committedCanonicalCanvas: SyntaxNode | null;
   committedDerivationCanvas: SyntaxNode | null; data: SyntaxNode;
 }): SyntaxNode | null {

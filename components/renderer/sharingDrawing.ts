@@ -139,7 +139,7 @@ export function createSharingDrawing({
         domains.forEach((domain, domainIndex) => {
           if (domain.kind !== 'domain-mark') return;
           const combinedRect = exactScreenTreeLabelRectForNodeIdsNow([
-            domain.rootNodeId,
+            domain.rootNodeId!,
             sharedNodeId
           ]);
           if (!combinedRect) return;

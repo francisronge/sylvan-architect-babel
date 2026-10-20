@@ -42,7 +42,7 @@ export function useReplayPlaqueLayout<V extends { width: number; height: number 
     const fail = (error: Error) => {
       if (!active) return;
       active = false;
-      clearTimeout(timer); stopWorker?.(); measurements.return(undefined);
+      clearTimeout(timer); stopWorker?.(); measurements.return(undefined as never);
       setState({ input, attempt, error: error.message });
     };
     let job: PlaqueLayoutJob | undefined;
@@ -93,7 +93,7 @@ export function useReplayPlaqueLayout<V extends { width: number; height: number 
       } catch (error) { fail(error instanceof Error ? error : new Error(String(error))); }
     };
     if (active) timer = setTimeout(measure, 0);
-    return () => { active = false; clearTimeout(timer); stopWorker?.(); measurements.return(undefined); };
+    return () => { active = false; clearTimeout(timer); stopWorker?.(); measurements.return(undefined as never); };
   }, [input, attempt]);
   const current = state?.input === input && state.attempt === attempt ? state : undefined;
   const cameraGroup = content?.layoutGroups?.find(group => group.includes(stageIndex)) ?? [stageIndex];
