@@ -4,7 +4,9 @@
  * finding fails, so does one beyond its bound, and so does every listed frame
  * where the fault no longer occurs. Each frame list carries the bound of the
  * rule's measure at those frames: missing clearance, depth or row deviation in
- * CSS pixels, or a mark's distance as a ratio of its reach. */
+ * CSS pixels, or a mark's distance as a ratio of its reach. An entry a change adds or lets
+ * grow also takes the owner's approval as its last argument
+ * (scripts/checkExceptionGrowth.mjs). */
 
 const SPOKE_ATTACHED = 'Accepted since #76: keeping the gap would cut off the spoke\'s labelled end, so attachment wins '
   + 'and the spoke meets the plaque\'s edge.';
@@ -15,7 +17,7 @@ const LANE = 'Open: a neutral counter-lane connector runs its lane through tree 
 const SOURCE_POCKET = 'Accepted with the held movement slot: the complete source keeps its sister clearance until its '
   + 'movement, so the plaque pocket beside its anchor, clear for the plaque\'s whole lifetime, lies just beyond its reach.';
 
-const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
+const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 // The same findings, with the same measures, occur on origin/main for the saved
 // analyses these fixture cases copy (bughunt2 07-en-rnr, night3

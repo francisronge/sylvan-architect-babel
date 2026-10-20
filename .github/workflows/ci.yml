@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 # The required check is the aggregating "Provider-free verification" job. The
-# other jobs split `npm run verify:all`, `verify:visual-offline` and the release
-# checks across parallel runners; together they run exactly the same commands.
+# other jobs split `npm run verify:all`, the visual and camera audits and the
+# release checks across parallel runners; together they run the same commands.
 jobs:
   contract:
     name: Typecheck, contract and release build
@@ -43,7 +43,7 @@ jobs:
           node -e '
             const { scripts } = require("./package.json");
             const expected = {
-              "verify:all": "npm run typecheck && npm run verify:offline",
+              "verify:all": "npm run typecheck && npm run verify:exceptions && npm run verify:offline",
               "verify:offline": "npm test && npm run verify:parse-contract",
               test: "node --test --test-concurrency=2 tests/*.test.mjs",
             };
@@ -62,6 +62,18 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      # verify:exceptions compares tests/helpers/*Exceptions.mjs with the
+      # revision this change starts from (scripts/checkExceptionGrowth.mjs).
+      - name: Fetch the revision this change starts from
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+        run: |
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then git fetch --no-tags --depth=1 origin "$BASE"; fi
+          echo "BABEL_EXCEPTION_BASE=$BASE" >> "$GITHUB_ENV"
+
+      - name: Verify exceptions did not grow without approval
+        run: npm run verify:exceptions
 
       - name: Verify provider-free parse contract
         run: npm run verify:parse-contract
@@ -133,9 +145,33 @@ jobs:
       - name: Verify static Replay geometry offline
         run: npm run verify:visual-offline -- --jobs 4
 
+  camera-offline:
+    name: Replay camera
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      # Four workers, as for the visual audit; the report does not depend on them.
+      - name: Verify the Replay camera offline
+        run: npm run verify:camera-offline -- --jobs 4
+
   verify:
     name: Provider-free verification
-    needs: [contract, offline-tests, visual-offline]
+    needs: [contract, offline-tests, visual-offline, camera-offline]
     # GitHub treats a skipped required check as passing, so this job always
     # runs and fails unless every needed job succeeded.
     if: always()

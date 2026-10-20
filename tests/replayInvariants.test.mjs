@@ -11,6 +11,7 @@ import {
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 import { matchFindings } from './helpers/findings.mjs';
 import { checkContractWarnings } from './helpers/replayContractWarnings.mjs';
+import { EXCEPTIONS as RULE_EXCEPTIONS } from './helpers/replayInvariantExceptions.mjs';
 import { STEP_EXCEPTIONS } from './helpers/replayStepExceptions.mjs';
 import { checkMarkPersistence, checkStepSemantics } from './helpers/replayStepInvariants.mjs';
 
@@ -275,56 +276,9 @@ test('control: movement-landing-parent reports a movement moment that paints its
 });
 
 /* The sweep: every rule on every frame of every committed saved analysis.
- * Real defects stay listed below with the exact subject node of each violation;
- * a new violation fails, and so does a listed one that no longer occurs. */
-
-const FIRST_STAGE_REWRITE = 'Defect: a first-stage movement claim with no preceding stage to prove its source becomes a neutral rewrite; '
-  + 'its moment shows only the anchored root of the rewritten phrase, and the rest of that phrase appears later with an ordinary merge.';
-const CONTEXT_MERGE_AT_MOMENT = 'Defect (diagnosed RELATION_TIMING_CONFLICT): continued V-to-I is authored before the I-to-C movement '
-  + 'that builds its context, and each needs syntax the other introduces, so no Replay order satisfies both and authored order is '
-  + 'kept; its moment reveals the ordinary merge C′ instead of giving C′ its own step.';
-
-const UNPROVEN_SOURCE_LANDING = 'Open: movement recognition cannot prove the source in the preceding stage (a first-stage claim, '
-  + 'or a source the stage does not keep), so the claim stays neutral; its moment still introduces the authored landing, which no '
-  + 'construction step builds.';
-
-const KNOWN_DEFECTS = [
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'parent-after-children', 16, 'detP portraitBar'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'no-early-reveal', 17,
-    'detP portraitBar detBar nPortrait ofPP detWhich nPortrait::__leaf ofPbar detWhich::__leaf pOf npSelf pOf::__leaf selfBar nSelf nSelf::__leaf'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/2', 'parent-after-children', 19, 'argumentDbar'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/2', 'no-early-reveal', 23,
-    'argumentDbar demonstrativeD childrenNP demonstrativeD::__leaf childrenNbar childrenN childrenN::__leaf'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'parent-after-children', 37, 'sdh moh'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'no-early-reveal', 38,
-    'sdh moh donoh studenth moh::__leaf donoh::__leaf studenth::__leaf'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'parent-after-children', 37, 'sdh moh'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'no-early-reveal', 38,
-    'sdh moh donoh studenth moh::__leaf donoh::__leaf studenth::__leaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/independent-clause-and-realization.json#', 'parent-after-children', 20, 'operatorHighNbar'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/independent-clause-and-realization.json#', 'no-early-reveal', 21, 'operatorHighNbar operatorHighN'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/receiving-head-material.json#', 'parent-after-children', 20, 'booksDbar'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/receiving-head-material.json#', 'no-early-reveal', 21,
-    'booksDbar booksD booksNP booksNbarOuter booksNbarInner demP bookN demBar bookN::__leaf dem dem::__leaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 11, 'rVAtT rvAtTLeaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 12, 'rVAtT rvAtTLeaf rVAtT::__leaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 28, 'mVAtT mvAtTLeaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 29, 'mVAtT mvAtTLeaf mVAtT::__leaf'],
-  [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar'],
-  [UNPROVEN_SOURCE_LANDING, 'movement/clause-context.json#/cases/6', 'relation-construction', 4, 'was1'],
-  [UNPROVEN_SOURCE_LANDING, 'movement/holdout-transitions.json#/0', 'relation-construction', 16, 'wh'],
-  [UNPROVEN_SOURCE_LANDING, 'movement/holdout-transitions.json#/2', 'relation-construction', 19, 'matrixSubjectDP'],
-  [UNPROVEN_SOURCE_LANDING, 'movement/holdout-transitions.json#/2', 'relation-construction', 20, 'finiteV'],
-  [UNPROVEN_SOURCE_LANDING, 'movement/holdout-transitions.json#/3', 'relation-construction', 37, 'sqh'],
-  [UNPROVEN_SOURCE_LANDING, 'movement/holdout-transitions.json#/4', 'relation-construction', 37, 'sqh'],
-  [UNPROVEN_SOURCE_LANDING, 'movement/holdout-transitions.json#/6', 'relation-construction', 7, 'verb'],
-  [UNPROVEN_SOURCE_LANDING, 'replay-regressions/coordination-and-ellipsis.json#', 'relation-construction', 41, 'bruno2'],
-  [UNPROVEN_SOURCE_LANDING, 'replay-regressions/independent-clause-and-realization.json#', 'relation-construction', 14, 'readRaised'],
-  [UNPROVEN_SOURCE_LANDING, 'replay-regressions/independent-clause-and-realization.json#', 'relation-construction', 20, 'operatorHigh'],
-  [UNPROVEN_SOURCE_LANDING, 'replay-regressions/receiving-head-material.json#', 'relation-construction', 20, 'booksDP'],
-  [UNPROVEN_SOURCE_LANDING, 'replay-regressions/retained-root-growth.json#', 'relation-construction', 11, 'rvAtT'],
-  [UNPROVEN_SOURCE_LANDING, 'replay-regressions/retained-root-growth.json#', 'relation-construction', 28, 'mvAtT'],
-];
+ * Real defects stay listed in tests/helpers/replayInvariantExceptions.mjs with
+ * the exact subject node of each violation; a new violation fails, and so does
+ * a listed one that no longer occurs. */
 
 // A node revealed at a step that does not own it is one defect, reported by
 // no-early-reveal; that step's attachment of the same node is not reported again.
@@ -364,17 +318,16 @@ test('the sweep accounts for every committed analysis with derivationStages', ()
 });
 
 for (const rule of RULES) test(`sweep: ${rule} holds on every frame of every committed analysis, apart from listed defects`, () => {
-  const key = (id, frame, subject) => `${id} frame ${frame}: ${subject}`;
-  const expected = new Set(KNOWN_DEFECTS.filter(entry => entry[2] === rule)
-    .flatMap(([, id, , frame, subjects]) => subjects.split(' ').map(subject => key(id, frame, subject))));
   const reportedElsewhere = (violations, violation) => violations.some(other => other.rule === REPORTED_BY.get(rule)
     && other.frame === violation.frame && subjectOf(other) === subjectOf(violation));
-  const found = sweep.flatMap(entry => (entry.violations ?? [])
+  const findings = sweep.flatMap(entry => (entry.violations ?? [])
     .filter(violation => violation.rule === rule && !reportedElsewhere(entry.violations, violation))
-    .map(violation => ({ key: key(entry.id, violation.frame, subjectOf(violation)), text: `${entry.id} frame ${violation.frame}: ${violation.detail}` })));
-  assert.deepEqual(found.filter(violation => !expected.has(violation.key)).map(violation => violation.text), [], 'new violations');
-  const keys = new Set(found.map(violation => violation.key));
-  assert.deepEqual([...expected].filter(entry => !keys.has(entry)), [], 'listed defects that no longer occur; remove them from KNOWN_DEFECTS');
+    .map(violation => ({ rule, subtype: null, record: entry.id, subject: subjectOf(violation), frame: violation.frame, viewport: null,
+      measure: null, detail: violation.detail })));
+  const { unexpected, stale } = matchFindings(findings, RULE_EXCEPTIONS.filter(exception => exception.rule === rule));
+  assert.deepEqual(unexpected.map(found => `${found.record} frame ${found.frame}: ${found.detail}`), [], 'new violations');
+  assert.deepEqual(stale.map(({ exception, frame }) => `${exception.record} frame ${frame}: ${exception.subject}`), [],
+    'listed defects that no longer occur; remove them from replayInvariantExceptions.mjs');
 });
 
 // A step-semantics finding at the frame and subject where a construction rule
