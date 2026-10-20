@@ -1,0 +1,357 @@
+{
+  "description": "Stage 4 adjoins the clitic le to finite T (finiteHead), forming the new T cliticHead in its slot, and raises Marie to the specifier of TP. The model kept the id tp on the upper T and gave the new T′ below it, which exists only to attach the subject's landing above T's earlier daughters, the new id tinner. Replay recognized that inserted parent only when it held exactly the earlier daughters, and cliticHead had replaced finiteHead, so ordinary construction built tinner as External Merge T + Voice between the two movements, with tp hidden. The subject-movement moment now introduces tinner with the landing, the lower occurrence and the trajectory. Stages 3 and 4 of the analysis; stage 3 is the first stage here, so its three relations, whose head movement needs stage 2 as its source, are left out.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, commit 53a7c7f, 18 October 2026 (indexed-night-20261018, 17-fr-clitic-climbing-causative, analysis 1 of 3). Tokens are the request's tokenizer word list.",
+  "sentence": "Marie le fera lire à Paul.",
+  "framework": "minimalism",
+  "inputTokens": [
+    "Marie",
+    "le",
+    "fera",
+    "lire",
+    "à",
+    "Paul"
+  ],
+  "derivationStages": [
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "faireHigh",
+            "tense"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        }
+      ],
+      "relations": [],
+      "stageRecord": "Future T is merged above the existing Voice constituent. It agrees with the base-position subject Marie, valuing third-person singular agreement and licensing nominative. The previously established faire head then internally merges with T across the silent, nonintervening Voice head. The lower occurrence remains in its selection position but is unpronounced. The raised faire occurrence and future T are jointly realized as fera; this morphological association is established only after head movement and does not identify either contributor alone with that input token. The embedded lire remains infinitival.",
+      "statement": "Introduce finite future T and form the finite causative head.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "faireHigh",
+                  "label": "Cause",
+                  "lineageId": "FAIRE",
+                  "word": "faire"
+                },
+                {
+                  "children": [],
+                  "id": "tense",
+                  "label": "T[future,3SG,EPP]"
+                }
+              ],
+              "id": "finiteHead",
+              "label": "T"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "marieLow",
+                  "label": "D",
+                  "lineageId": "MARIE",
+                  "tokenIndex": 0,
+                  "word": "Marie"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "voice",
+                      "label": "Voice[causer]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "faireLow",
+                          "label": "Cause",
+                          "lineageId": "FAIRE",
+                          "silent": true,
+                          "word": "faire"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "v",
+                                  "label": "v[active]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "read",
+                                      "label": "V[infinitive]",
+                                      "tokenIndex": 3,
+                                      "word": "lire"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "obj",
+                                      "label": "D[clitic]",
+                                      "lineageId": "LE",
+                                      "tokenIndex": 1,
+                                      "word": "le"
+                                    }
+                                  ],
+                                  "id": "vp",
+                                  "label": "V"
+                                }
+                              ],
+                              "id": "vinner",
+                              "label": "v"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a",
+                                  "label": "K[dative]",
+                                  "tokenIndex": 4,
+                                  "word": "à"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "paul",
+                                  "label": "D",
+                                  "tokenIndex": 5,
+                                  "word": "Paul"
+                                }
+                              ],
+                              "id": "kp",
+                              "label": "K"
+                            }
+                          ],
+                          "id": "vproj",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "causeProj",
+                      "label": "Cause"
+                    }
+                  ],
+                  "id": "voiceInner",
+                  "label": "Voice"
+                }
+              ],
+              "id": "voiceProj",
+              "label": "Voice"
+            }
+          ],
+          "id": "tp",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "realizations": [
+        {
+          "nodeIds": [
+            "faireHigh",
+            "tense"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "higherOccurrence": "cliticHigh",
+            "host": "finiteHead",
+            "lowerOccurrence": "obj"
+          },
+          "priorAnchors": {
+            "source": "obj"
+          },
+          "relation": "clitic-movement",
+          "values": {
+            "dependency": "accusative theme clitic climbing from the infinitive",
+            "pronunciation": "higher occurrence pronounced; lower occurrence silent"
+          }
+        },
+        {
+          "anchors": {
+            "higherOccurrence": "marieHigh",
+            "licenser": "tense",
+            "lowerOccurrence": "marieLow"
+          },
+          "priorAnchors": {
+            "source": "marieLow"
+          },
+          "relation": "subject-movement",
+          "values": {
+            "pronunciation": "higher occurrence pronounced; lower occurrence silent",
+            "trigger": "finite T subject requirement"
+          }
+        }
+      ],
+      "stageRecord": "The object occurrence le already contained inside the reading predicate internally merges at the left edge of the finite head. Its minimal D structure permits clitic incorporation, and causative restructuring permits this dependency across the infinitive. The lower object occurrence is retained silently, preserving the theme interpretation. Marie then internally merges from the Voice edge to the outer T edge, satisfying the finite subject requirement; its lower occurrence becomes silent. These movements have independently accessible sources in the preceding workspace. Paul remains the overt postinfinitival dative causee. The resulting pronunciation is exactly Marie le fera lire à Paul, with fera still jointly realizing raised faire and future T.",
+      "statement": "Complete subject raising and object-clitic placement.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "marieHigh",
+              "label": "D",
+              "lineageId": "MARIE",
+              "tokenIndex": 0,
+              "word": "Marie"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "cliticHigh",
+                      "label": "D[clitic]",
+                      "lineageId": "LE",
+                      "tokenIndex": 1,
+                      "word": "le"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "faireHigh",
+                          "label": "Cause",
+                          "lineageId": "FAIRE",
+                          "word": "faire"
+                        },
+                        {
+                          "children": [],
+                          "id": "tense",
+                          "label": "T[future,3SG,EPP]"
+                        }
+                      ],
+                      "id": "finiteHead",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "cliticHead",
+                  "label": "T"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "marieLow",
+                      "label": "D",
+                      "lineageId": "MARIE",
+                      "silent": true,
+                      "word": "Marie"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "voice",
+                          "label": "Voice[causer]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "faireLow",
+                              "label": "Cause",
+                              "lineageId": "FAIRE",
+                              "silent": true,
+                              "word": "faire"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "v",
+                                      "label": "v[active]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "read",
+                                          "label": "V[infinitive]",
+                                          "tokenIndex": 3,
+                                          "word": "lire"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "obj",
+                                          "label": "D[clitic]",
+                                          "lineageId": "LE",
+                                          "silent": true,
+                                          "word": "le"
+                                        }
+                                      ],
+                                      "id": "vp",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "vinner",
+                                  "label": "v"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a",
+                                      "label": "K[dative]",
+                                      "tokenIndex": 4,
+                                      "word": "à"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "paul",
+                                      "label": "D",
+                                      "tokenIndex": 5,
+                                      "word": "Paul"
+                                    }
+                                  ],
+                                  "id": "kp",
+                                  "label": "K"
+                                }
+                              ],
+                              "id": "vproj",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "causeProj",
+                          "label": "Cause"
+                        }
+                      ],
+                      "id": "voiceInner",
+                      "label": "Voice"
+                    }
+                  ],
+                  "id": "voiceProj",
+                  "label": "Voice"
+                }
+              ],
+              "id": "tinner",
+              "label": "T"
+            }
+          ],
+          "id": "tp",
+          "label": "T"
+        }
+      ]
+    }
+  ]
+}
