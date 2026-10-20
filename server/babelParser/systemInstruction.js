@@ -5,7 +5,7 @@ const MINIMALISM_INSTRUCTION = "Analyze the exact input within the Minimalist Pr
 export const DERIVATION_STAGES_BASE_INSTRUCTION = `Response
 Return only a single valid JSON object.
 For one analysis, its only field is derivationStages, a nonempty array of stages.
-Return more than one analysis only for genuine structural ambiguity: distinct readings of the sentence. Do not add alternatives that differ only in analytical style or in interpretation without a structural difference. Then the only top-level field is analyses, a nonempty array of analysis objects, each containing only derivationStages.
+Return more than one analysis only for genuine structural ambiguity: readings of the sentence that need different structures. Then the only top-level field is analyses, a nonempty array of analysis objects, each containing only derivationStages.
 
 Stages
 Build the derivation forward. Each stage records the complete syntactic workspace after the operations described in stageRecord. The last stage contains the completed analysis of the input.
