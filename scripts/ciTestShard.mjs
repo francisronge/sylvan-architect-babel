@@ -7,7 +7,8 @@
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
-// Matches `npm test`; the CI workflow fails if that script changes.
+// Matches `npm test`, which CI runs with its compile cache; the CI workflow
+// fails if that script changes.
 const CONCURRENCY = 2;
 
 // Approximate standalone seconds of the slowest files; unlisted files weigh 1.

@@ -17,7 +17,7 @@ concurrency:
 
 # The required check is the aggregating "Provider-free verification" job. The
 # other jobs split `npm run verify:all`, the visual and camera audits and the
-# release checks across parallel runners; together they run the same commands.
+# release checks across parallel runners; together they run the same checks.
 jobs:
   contract:
     name: Typecheck, contract and release build
@@ -36,8 +36,9 @@ jobs:
           node-version: 24.x
           cache: npm
 
-      # The sharded jobs below run the parts of verify:all directly. Fail when
-      # its composition changes so a new part cannot silently skip CI.
+      # The jobs below run the parts of verify:all, and both offline audits in
+      # one pass, directly. Fail when these scripts change so a new part cannot
+      # silently skip CI.
       - name: Confirm CI covers every part of verify:all
         run: |
           node -e '
@@ -45,7 +46,10 @@ jobs:
             const expected = {
               "verify:all": "npm run typecheck && npm run verify:exceptions && npm run verify:offline",
               "verify:offline": "npm test && npm run verify:parse-contract",
-              test: "node --test --test-concurrency=2 tests/*.test.mjs",
+              test: "NODE_COMPILE_CACHE=\"$PWD/node_modules/.cache/node-compile\" node --test --test-concurrency=2 tests/*.test.mjs",
+              "verify:visual-offline": "node scripts/auditReplayVisuals.mjs --fixtures --viewports desktop,desktop-large --exceptions tests/helpers/visualExceptions.mjs",
+              "verify:camera-offline": "node scripts/auditReplayVisuals.mjs --audit camera --fixtures --viewports desktop,mobile --exceptions tests/helpers/cameraExceptions.mjs",
+              "verify:replay-offline": "node scripts/auditReplayVisuals.mjs --fixtures --audit visual --viewports desktop,desktop-large --exceptions tests/helpers/visualExceptions.mjs --audit camera --viewports desktop,mobile --exceptions tests/helpers/cameraExceptions.mjs",
             };
             const changed = Object.entries(expected).filter(([name, command]) => scripts[name] !== command);
             for (const [name, command] of changed) {
@@ -117,11 +121,14 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      # As `npm test` does, the shard's test processes share compiled modules.
       - name: Run offline test shard
+        env:
+          NODE_COMPILE_CACHE: ${{ github.workspace }}/node_modules/.cache/node-compile
         run: node scripts/ciTestShard.mjs ${{ matrix.shard }}/6 tests/*.test.mjs
 
-  visual-offline:
-    name: Static Replay geometry
+  replay-offline:
+    name: Static Replay geometry and camera
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -140,38 +147,16 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      # Four workers use the runner's four vCPUs; each analysis is audited
-      # independently, so the report does not depend on the worker count.
-      - name: Verify static Replay geometry offline
-        run: npm run verify:visual-offline -- --jobs 4
-
-  camera-offline:
-    name: Replay camera
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Set up Node.js 24
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version: 24.x
-          cache: npm
-
-      - name: Install locked dependencies
-        run: npm ci
-
-      # Four workers, as for the visual audit; the report does not depend on them.
-      - name: Verify the Replay camera offline
-        run: npm run verify:camera-offline -- --jobs 4
+      # verify:visual-offline and verify:camera-offline in one pass, with the
+      # same reports and exceptions. Four workers use the runner's four vCPUs;
+      # each analysis is audited independently, so the reports do not depend
+      # on the worker count.
+      - name: Verify static Replay geometry and camera offline
+        run: npm run verify:replay-offline -- --jobs 4
 
   verify:
     name: Provider-free verification
-    needs: [contract, offline-tests, visual-offline, camera-offline]
+    needs: [contract, offline-tests, replay-offline]
     # GitHub treats a skipped required check as passing, so this job always
     # runs and fails unless every needed job succeeded.
     if: always()
