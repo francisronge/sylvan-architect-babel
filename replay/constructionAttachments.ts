@@ -154,3 +154,42 @@ export function restoreRegroupedConstituents(
   };
   return currentForest.map(clone);
 }
+
+/** A preceding root the stage dissolves keeps each preceding child whose
+ * current parent is still waiting for its construction step (`pendingParentIds`),
+ * so that material stays where it was until the merge that takes it, and the
+ * root leaves with its last such child. A dissolved child holds its own
+ * material the same way. A held child brings its current material and leaves
+ * its waiting parent meanwhile; nothing else moves. Only roots in `shownIds`
+ * are held. */
+export function holdDissolvedRoots(
+  currentForest: readonly SyntaxNode[],
+  previousForest: readonly SyntaxNode[],
+  pendingParentIds: ReadonlySet<string>,
+  shownIds: ReadonlySet<string>
+): SyntaxNode[] {
+  const current = indexForest(currentForest);
+  const parentOf = new Map<string, string>();
+  current.forEach((node, id) => node.children?.forEach(child => { if (child.id) parentOf.set(child.id, id); }));
+  const isHeld = (id: string) => current.has(id) && pendingParentIds.has(parentOf.get(id) || '');
+  const holds = (old: SyntaxNode): boolean => (old.children || []).some(child => child.id
+    && (current.has(child.id) ? isHeld(child.id) : holds(child)));
+  const roots = previousForest.filter(root => root.id && !current.has(root.id) && shownIds.has(root.id) && holds(root));
+  if (!roots.length) return currentForest as SyntaxNode[];
+  const held = new Set<string>();
+  const collect = (old: SyntaxNode) => (old.children || []).forEach(child => {
+    if (!child.id) return;
+    if (!current.has(child.id)) collect(child);
+    else if (isHeld(child.id)) held.add(child.id);
+  });
+  roots.forEach(collect);
+  const release = (node: SyntaxNode): SyntaxNode => node.children
+    ? { ...node, children: node.children.filter(child => !held.has(child.id || '')).map(release) } : { ...node };
+  const hold = (old: SyntaxNode): SyntaxNode[] => {
+    const { children: _children, ...material } = old;
+    const children = (old.children || []).flatMap(child => !child.id ? []
+      : !current.has(child.id) ? hold(child) : held.has(child.id) ? [release(current.get(child.id)!)] : []);
+    return children.length ? [{ ...material, children }] : [];
+  };
+  return [...roots.flatMap(hold), ...currentForest.map(release)];
+}
