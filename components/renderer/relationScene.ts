@@ -53,12 +53,12 @@ interface RelationSceneContext {
   visibleNodes: d3.HierarchyPointNode<SyntaxNode>[];
   treeData: d3.HierarchyPointNode<SyntaxNode>;
   g: DrawingLayer;
-  measureGraphicsElementsInTreeSpace: (elements: SVGGraphicsElement[]) => { x: number; y: number; width: number; height: number; };
+  measureGraphicsElementsInTreeSpace: (elements: SVGGraphicsElement[]) => { x: number; y: number; width: number; height: number; } | null;
   getReplayRenderedTerminalText: (d: HierNode) => string;
   measureCategoryText: (text: string) => number;
   replayPlaqueLayout: ReturnType<typeof projectPlaqueLayout>;
   replayVisibleNodeIdSet: Set<string> | null;
-  playedRelationIndices: Set<number> | undefined;
+  playedRelationIndices: Set<number> | null;
   activeRelationMoment: { stageIndex: number; relationIndex: number } | null;
   svgRef: { current: SVGSVGElement | null };
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;

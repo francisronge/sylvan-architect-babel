@@ -10,15 +10,15 @@ import { liveViewportSize, type CameraSession } from './cameraState.ts';
 import type { DrawingLayer } from './drawingContext.ts';
 
 interface CameraFitGeometry {
-  stagePlaqueContainmentBounds: OverlayBounds;
+  stagePlaqueContainmentBounds: OverlayBounds | null;
   stageFitContainmentBounds: OverlayBounds | null;
   fitLeft: number;
   fitRight: number;
   fitTop: number;
   fitBottom: number;
-  completedReplayStep: number;
+  completedReplayStep: number | undefined;
   g: DrawingLayer;
-  fitFallbackOverlays: (fitZoom: number, fittedViewport: Rect) => void;
+  fitFallbackOverlays: ((fitZoom: number, fittedViewport: Rect) => void) | undefined;
   /** Authored stage being framed; a change marks a stage crossing. */
   stageIndex: number;
   paintedNodes: PaintedNodes;

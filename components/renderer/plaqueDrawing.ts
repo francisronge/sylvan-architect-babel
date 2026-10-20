@@ -199,7 +199,8 @@ export function createPlaqueDrawing({
       const marker = host.append('g')
         .attr('class', 'babel-local-judgment')
         .attr('data-judgment-anchor', primitive.nodeId)
-        .attr('data-judgment-outcome', primitive.outcome)
+        // Without an outcome, d3 leaves the attribute unset.
+        .attr('data-judgment-outcome', primitive.outcome as string)
         .attr('transform', `translate(${primitive.x},${primitive.y})`);
       if (primitive.outcome === 'blocked') {
         blockingCrossSegments({ x: 0, y: 0 }).forEach(({ x1, y1, x2, y2 }) => {
