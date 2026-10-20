@@ -1,0 +1,655 @@
+{
+  "description": "Stage 1 authors two nominative Case licensing claims (relations 3 and 5), one per conjunct. Tier 2 draws each as its own feature path, and their identical residual values (\"configuration\": \"Spec-IP licensed by finite I\", no anchors) coalesce into one relation-only fallback mark holding both claims. Replay shows that mark at relation 3’s moment, hides it, and shows it again at relation 5’s moment, as relation-only persistence requires. The mark-persistence rule counted the one mark as painting for both claims at each moment, so it reported both claims as painting again at relation 5’s moment.",
+  "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run with the character spell-out contract (v3), commit bcf1b56, 19 October 2026 (third night batch, 48-en-gapping, analysis 1 of 1). Tokens are the model’s own final words.",
+  "sentence": "John ate rice and Mary beans.",
+  "framework": "xbar",
+  "contract": "character-spellout-v3",
+  "inputTokens": [
+    "John",
+    "ate",
+    "rice",
+    "and",
+    "Mary",
+    "beans"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "externalArgument": "johnNP",
+            "internalArgument": "riceNP",
+            "predicate": "v1"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "externalRole": "Agent",
+            "internalRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "externalArgument": "maryNP",
+            "internalArgument": "beansNP",
+            "predicate": "v2"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "externalRole": "Agent",
+            "internalRole": "Theme"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "i1",
+            "subject": "johnNP"
+          },
+          "relation": "nominative Case licensing",
+          "values": {
+            "case": "nominative",
+            "configuration": "Spec-IP licensed by finite I"
+          }
+        },
+        {
+          "anchors": {
+            "complement": "riceNP",
+            "governor": "v1"
+          },
+          "relation": "government and accusative Case assignment",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "i2",
+            "subject": "maryNP"
+          },
+          "relation": "nominative Case licensing",
+          "values": {
+            "case": "nominative",
+            "configuration": "Spec-IP licensed by finite I"
+          }
+        },
+        {
+          "anchors": {
+            "complement": "beansNP",
+            "governor": "v2"
+          },
+          "relation": "government and accusative Case assignment",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "agreementControllers": [
+              "johnNP",
+              "maryNP"
+            ],
+            "finiteHeads": [
+              "i1",
+              "i2"
+            ],
+            "lexicallyInflectedVerbs": [
+              "v1",
+              "v2"
+            ]
+          },
+          "relation": "finite-feature matching",
+          "values": {
+            "agreement": "third-person singular",
+            "morphologicalCommitment": "Lexically inflected ate is licensed by unpronounced finite I; no inflectional movement is posited.",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "Build each clause as IP, with a subject NP in Spec-IP and an I′ consisting of finite I and VP. Within VP, V takes its object NP as the complement of V′. This uses the classical GB subject position rather than a VP-internal subject analysis, so no subject movement is posited. In the first clause, eat assigns its external Agent role to John and its internal Theme role to rice; in the second, it assigns those roles to Mary and beans. Finite I licenses nominative Case on each subject, and each transitive V governs and assigns accusative Case to its object. Adopt a lexicalist treatment of English inflection: the verbs enter as ate, while unpronounced I supplies matching past-tense and agreement features. Thus neither affix lowering nor V-to-I movement is required. The second ate is still pronounced at this stage: its later absence must be licensed by the coordination structure, not assumed in the initial representation. Bare rice and beans are NPs without overt determiners, respectively mass and plural. The conjunction remains a separate lexical object.",
+      "statement": "Construct two finite clauses with matching transitive predicates.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "johnN",
+                      "label": "N",
+                      "word": "John"
+                    }
+                  ],
+                  "id": "johnNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "johnNP",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "i1",
+                  "label": "I[+finite, past, 3sg]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v1",
+                          "label": "V",
+                          "word": "ate"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "riceN",
+                                  "label": "N[mass]",
+                                  "word": "rice"
+                                }
+                              ],
+                              "id": "riceNbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "riceNP",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "vbar1",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp1",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar1",
+              "label": "I′"
+            }
+          ],
+          "id": "ip1",
+          "label": "IP"
+        },
+        {
+          "children": [],
+          "id": "and",
+          "label": "Conj",
+          "word": "and"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "maryN",
+                      "label": "N",
+                      "word": "Mary"
+                    }
+                  ],
+                  "id": "maryNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "maryNP",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "i2",
+                  "label": "I[+finite, past, 3sg]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v2",
+                          "label": "V",
+                          "word": "ate"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "beansN",
+                                  "label": "N[plural]",
+                                  "word": "beans"
+                                }
+                              ],
+                              "id": "beansNbar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "beansNP",
+                          "label": "NP"
+                        }
+                      ],
+                      "id": "vbar2",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "vp2",
+                  "label": "VP"
+                }
+              ],
+              "id": "ibar2",
+              "label": "I′"
+            }
+          ],
+          "id": "ip2",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "coordinator": "and",
+            "firstConjunct": "ip1",
+            "secondConjunct": "ip2"
+          },
+          "relation": "clausal coordination",
+          "values": {
+            "interpretation": "conjunction of two propositions"
+          }
+        },
+        {
+          "anchors": {
+            "antecedentFiniteHead": "i1",
+            "antecedentPredicate": "v1",
+            "firstObject": "riceNP",
+            "firstSubject": "johnNP",
+            "matchingFiniteHead": "i2",
+            "matchingPredicate": "v2",
+            "secondObject": "beansNP",
+            "secondSubject": "maryNP"
+          },
+          "relation": "gapping-source parallelism",
+          "values": {
+            "objectCorrespondence": "rice contrasts with beans",
+            "predicateIdentity": "past-tense transitive eat",
+            "subjectCorrespondence": "John contrasts with Mary"
+          }
+        }
+      ],
+      "stageRecord": "Combine the two IPs under a binary X-bar coordination structure: the first IP occupies Spec-ConjP, and and heads Conj′ with the second IP as its complement. This structural implementation treats and as conjoining propositions, not as coordinating rice with Mary. Establish correspondence between the two identical finite predicates and their matching argument positions. John and Mary are the subject correlates; rice and beans are the object correlates. These two pairs provide the contrasting overt material required for the intended gapping construction. The second verb remains overt here, making the coordinated, parallel source structure explicit before deletion. No CP layer is needed because neither clause contains an overt complementizer or an operator dependency.",
+      "statement": "Coordinate the clauses and establish the parallelism needed for gapping.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "johnN",
+                          "label": "N",
+                          "word": "John"
+                        }
+                      ],
+                      "id": "johnNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "johnNP",
+                  "label": "NP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "i1",
+                      "label": "I[+finite, past, 3sg]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "v1",
+                              "label": "V",
+                              "word": "ate"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "riceN",
+                                      "label": "N[mass]",
+                                      "word": "rice"
+                                    }
+                                  ],
+                                  "id": "riceNbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "riceNP",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "vbar1",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "vp1",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "ibar1",
+                  "label": "I′"
+                }
+              ],
+              "id": "ip1",
+              "label": "IP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "and",
+                  "label": "Conj",
+                  "word": "and"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "maryN",
+                              "label": "N",
+                              "word": "Mary"
+                            }
+                          ],
+                          "id": "maryNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "maryNP",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "i2",
+                          "label": "I[+finite, past, 3sg]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "v2",
+                                  "label": "V",
+                                  "word": "ate"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "beansN",
+                                          "label": "N[plural]",
+                                          "word": "beans"
+                                        }
+                                      ],
+                                      "id": "beansNbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "beansNP",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "vbar2",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "vp2",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "ibar2",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "ip2",
+                  "label": "IP"
+                }
+              ],
+              "id": "conjbar",
+              "label": "Conj′"
+            }
+          ],
+          "id": "conjp",
+          "label": "ConjP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "antecedent": "v1",
+            "deletedPredicate": "v2",
+            "ellipsisClause": "ip2",
+            "licensingCoordinator": "and",
+            "objectCorrelate": "riceNP",
+            "objectRemnant": "beansNP",
+            "subjectCorrelate": "johnNP",
+            "subjectRemnant": "maryNP"
+          },
+          "priorAnchors": {
+            "previouslyPronouncedPredicate": "v2"
+          },
+          "relation": "gapping by PF deletion",
+          "values": {
+            "derivationalCommitment": "In-situ remnants and predicate deletion; no movement chain.",
+            "interpretation": "John ate rice and Mary ate beans.",
+            "operation": "Suppress pronunciation of the second ate while retaining its syntactic and interpretive content.",
+            "recoveredPredicate": "ate"
+          }
+        }
+      ],
+      "stageRecord": "Apply a PF-deletion treatment of gapping to the second conjunct's finite lexical verb, whose overt occurrence was present in the preceding workspace. Its pronunciation is suppressed under identity with the first conjunct's ate. The finite I was already unpronounced and undergoes no new deletion. In this minimal example, the omitted overt predicate consists only of V; the object beans must remain outside the deletion domain. Mary and beans stay in their original subject and object positions: this analysis does not posit remnant movement, movement traces, a null pro-verb, or deletion of the whole VP. The unpronounced verb retains its syntactic content, theta-role assignments, government, and accusative Case assignment, so the second conjunct is interpreted as Mary ate beans rather than as an independently licensed verbless clause. The antecedent and deleted verb are distinct lexical occurrences related by ellipsis identity, not copies in a movement chain. The resulting pronounced terminals yield exactly John ate rice and Mary beans.",
+      "statement": "Apply gapping to obtain the completed sentence.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "johnN",
+                          "label": "N",
+                          "word": "John"
+                        }
+                      ],
+                      "id": "johnNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "johnNP",
+                  "label": "NP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "i1",
+                      "label": "I[+finite, past, 3sg]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "v1",
+                              "label": "V",
+                              "word": "ate"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "riceN",
+                                      "label": "N[mass]",
+                                      "word": "rice"
+                                    }
+                                  ],
+                                  "id": "riceNbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "riceNP",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "vbar1",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "vp1",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "ibar1",
+                  "label": "I′"
+                }
+              ],
+              "id": "ip1",
+              "label": "IP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "and",
+                  "label": "Conj",
+                  "word": "and"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "maryN",
+                              "label": "N",
+                              "word": "Mary"
+                            }
+                          ],
+                          "id": "maryNbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "maryNP",
+                      "label": "NP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "i2",
+                          "label": "I[+finite, past, 3sg]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "v2",
+                                  "label": "V",
+                                  "silent": true,
+                                  "word": "ate"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "beansN",
+                                          "label": "N[plural]",
+                                          "word": "beans"
+                                        }
+                                      ],
+                                      "id": "beansNbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "beansNP",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "vbar2",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "vp2",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "ibar2",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "ip2",
+                  "label": "IP"
+                }
+              ],
+              "id": "conjbar",
+              "label": "Conj′"
+            }
+          ],
+          "id": "conjp",
+          "label": "ConjP"
+        }
+      ]
+    }
+  ]
+}
