@@ -9,11 +9,102 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request supersedes its unfinished run. Other runs never
+# share a group, so main and manual runs always finish.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+# The required check is the aggregating "Provider-free verification" job. The
+# other jobs split `npm run verify:all`, the visual and camera audits and the
+# release checks across parallel runners; together they run the same checks.
 jobs:
-  verify:
-    name: Provider-free verification
+  contract:
+    name: Typecheck, contract and release build
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+          cache: npm
+
+      # The jobs below run the parts of verify:all, and both offline audits in
+      # one pass, directly. Fail when these scripts change so a new part cannot
+      # silently skip CI.
+      - name: Confirm CI covers every part of verify:all
+        run: |
+          node -e '
+            const { scripts } = require("./package.json");
+            const expected = {
+              "verify:all": "npm run typecheck && npm run verify:exceptions && npm run verify:offline",
+              "verify:offline": "npm test && npm run verify:parse-contract",
+              test: "NODE_COMPILE_CACHE=\"$PWD/node_modules/.cache/node-compile\" node --test --test-concurrency=2 tests/*.test.mjs",
+              "verify:visual-offline": "node scripts/auditReplayVisuals.mjs --fixtures --viewports desktop,desktop-large --exceptions tests/helpers/visualExceptions.mjs",
+              "verify:camera-offline": "node scripts/auditReplayVisuals.mjs --audit camera --fixtures --viewports desktop,mobile --exceptions tests/helpers/cameraExceptions.mjs",
+              "verify:replay-offline": "node scripts/auditReplayVisuals.mjs --fixtures --audit visual --viewports desktop,desktop-large --exceptions tests/helpers/visualExceptions.mjs --audit camera --viewports desktop,mobile --exceptions tests/helpers/cameraExceptions.mjs",
+            };
+            const changed = Object.entries(expected).filter(([name, command]) => scripts[name] !== command);
+            for (const [name, command] of changed) {
+              console.error(`::error::package.json "${name}" is ${JSON.stringify(scripts[name])}; .github/workflows/ci.yml runs ${JSON.stringify(command)}. Update the workflow to match.`);
+            }
+            process.exit(changed.length ? 1 : 0);
+          '
+
+      - name: Confirm the offline test shards partition npm test
+        run: node scripts/ciTestShard.mjs --check 6 tests/*.test.mjs
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # verify:exceptions compares tests/helpers/*Exceptions.mjs with the
+      # revision this change starts from (scripts/checkExceptionGrowth.mjs).
+      - name: Fetch the revision this change starts from
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+        run: |
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then git fetch --no-tags --depth=1 origin "$BASE"; fi
+          echo "BABEL_EXCEPTION_BASE=$BASE" >> "$GITHUB_ENV"
+
+      - name: Verify exceptions did not grow without approval
+        run: npm run verify:exceptions
+
+      - name: Verify provider-free parse contract
+        run: npm run verify:parse-contract
+
+      - name: Build production frontend
+        run: npm run build
+
+      - name: Verify release assets and links
+        run: npm run release:verify-assets
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Report complete dependency audit
+        if: always()
+        continue-on-error: true
+        run: npm audit --audit-level=low
+
+  offline-tests:
+    name: Offline tests (${{ matrix.shard }}/6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep this list, the job name and the shard check at six shards.
+        shard: [1, 2, 3, 4, 5, 6]
 
     steps:
       - name: Check out repository
@@ -30,34 +121,55 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      # verify:all compares tests/helpers/*Exceptions.mjs with the revision this
-      # change starts from (scripts/checkExceptionGrowth.mjs).
-      - name: Fetch the revision this change starts from
+      # As `npm test` does, the shard's test processes share compiled modules.
+      - name: Run offline test shard
         env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+          NODE_COMPILE_CACHE: ${{ github.workspace }}/node_modules/.cache/node-compile
+        run: node scripts/ciTestShard.mjs ${{ matrix.shard }}/6 tests/*.test.mjs
+
+  replay-offline:
+    name: Static Replay geometry and camera
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      # verify:visual-offline and verify:camera-offline in one pass, with the
+      # same reports and exceptions. Four workers use the runner's four vCPUs;
+      # each analysis is audited independently, so the reports do not depend
+      # on the worker count.
+      - name: Verify static Replay geometry and camera offline
+        run: npm run verify:replay-offline -- --jobs 4
+
+  verify:
+    name: Provider-free verification
+    needs: [contract, offline-tests, replay-offline]
+    # GitHub treats a skipped required check as passing, so this job always
+    # runs and fails unless every needed job succeeded.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Require every verification job to succeed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
         run: |
-          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then git fetch --no-tags --depth=1 origin "$BASE"; fi
-          echo "BABEL_EXCEPTION_BASE=$BASE" >> "$GITHUB_ENV"
-
-      - name: Typecheck and verify provider-free contract
-        run: npm run verify:all
-
-      - name: Verify static Replay geometry offline
-        run: npm run verify:visual-offline
-
-      - name: Verify the Replay camera offline
-        run: npm run verify:camera-offline
-
-      - name: Build production frontend
-        run: npm run build
-
-      - name: Verify release assets and links
-        run: npm run release:verify-assets
-
-      - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
-
-      - name: Report complete dependency audit
-        if: always()
-        continue-on-error: true
-        run: npm audit --audit-level=low
+          node -e '
+            const results = Object.entries(JSON.parse(process.env.RESULTS));
+            for (const [job, { result }] of results) console.log(`${job}: ${result}`);
+            process.exit(results.length > 0 && results.every(([, { result }]) => result === "success") ? 0 : 1);
+          '

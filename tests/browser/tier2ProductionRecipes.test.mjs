@@ -6,12 +6,8 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { normalizeParseBundle } from '../../server/babelParser/parseNormalization.js';
-import { prepareReplay } from '../../replay/prepareReplay.ts';
-import { compileRelationRenderPlan } from '../../replay/relations/renderPlanCompiler.ts';
 import { TIER2_FACET_RECIPES } from '../../replay/relations/tier2FacetRecipes.ts';
-import { buildPublicFacetFixture } from '../helpers/tier2PublicFixtures.mjs';
-import { productionDomChecks } from '../helpers/tier2ProductionExpectations.mjs';
+import { buildSpecimens, selectPaintedSpecimens, specimenFile } from '../helpers/tier2ProductionSpecimens.mjs';
 import { startBrowserTestServer } from '../helpers/browserTestServer.mjs';
 import { verifyRuntimeFreshness } from '../../scripts/reviewRuntimeProvenance.mjs';
 
@@ -33,30 +29,10 @@ async function sourceManifest() {
   };
   for (const directory of ['components', 'replay', 'contractQualification', 'server/babelParser']) await visit(directory);
   files.push('tests/helpers/browserTestServer.mjs', 'tests/helpers/tier2PublicFixtures.mjs', 'tests/helpers/tier2ProductionExpectations.mjs',
+    'tests/helpers/tier2ProductionSpecimens.mjs',
     'tests/helpers/tier2ProductionEntry.tsx', 'tests/browser/tier2ProductionRecipes.test.mjs');
   const sources = await Promise.all(files.sort().map(async file => ({ file, sha256: sha(await fs.readFile(path.join(repo, file))) })));
   return { sha256: sha(JSON.stringify(sources)), sources };
-}
-
-function buildSpecimens() {
-  const movement = TIER2_FACET_RECIPES.find(recipe => recipe.id === 'movement.path');
-  const examples = [...TIER2_FACET_RECIPES.map(recipe => ({ recipe, options: {}, variant: 'default' })),
-    { recipe: movement, options: { movementRoute: 'orthogonal' }, variant: 'orthogonal' },
-    { recipe: movement, options: { crossWorkspace: true }, variant: 'cross-workspace' }];
-  return ['xbar', 'minimalism'].flatMap(framework => examples.map(({ recipe, options, variant }) => {
-    const { sentence, derivationStages, relationStageIndex } = buildPublicFacetFixture(recipe, options);
-    const bundle = normalizeParseBundle({ derivationStages }, framework, sentence, 'grok', true);
-    const analysis = bundle.analyses[0], activeLens = recipe.id === 'presentation.lens';
-    const replay = prepareReplay({ sentence, inputTokens: bundle.inputTokens, derivationStages: analysis.derivationStages, includePlayback: true });
-    const plan = activeLens ? compileRelationRenderPlan(analysis.derivationStages, { activeLens: true }) : replay.relationRenderPlan;
-    const ownedItems = plan.frames[relationStageIndex].items.flatMap((item, index) => item.tier2FacetId === recipe.id ? [{ index, item }] : []);
-    const frameIndex = replay.playbackSteps.findIndex(step => step.replayRelationIdentity?.stageIndex === relationStageIndex && step.replayRelationIdentity.relationIndex === 0);
-    assert(frameIndex >= 0, `${recipe.id}: missing owning moment`);
-    return { id: `recipe-${framework}-${recipe.id.replaceAll('.', '-')}${variant === 'default' ? '' : `-${variant}`}`,
-      recipe: recipe.id, framework, variant, sentence, bundle, relationStageIndex, relationIndex: 0, frameIndex,
-      activeLens, expectedPrimitives: [...new Set(ownedItems.flatMap(({ item }) => item.tier2OutputPieces || []))],
-      productionDomChecks: productionDomChecks(recipe.id, variant, ownedItems) };
-  }));
 }
 
 // Existence is insufficient: check paintable geometry, ancestor visibility, text,
@@ -147,7 +123,7 @@ test('public Tier 2 recipes paint their intended pieces in the production render
   const output = process.env.BABEL_TIER2_PRODUCTION_EVIDENCE || await fs.mkdtemp(path.join(os.tmpdir(), 'babel-tier2-production-'));
   await fs.mkdir(output, { recursive: true });
   const source = await sourceManifest();
-  let server, browser, base, specimens, runtimeProvenance, compiledSources = [], runtimeAsset = null;
+  let server, browser, base, specimens, painted, coveredByXbar, runtimeProvenance, compiledSources = [], runtimeAsset = null;
   const results = [], failures = [], errors = [], blockedProviderRequests = [];
   try {
     const provided = process.env.BABEL_TIER2_ATLAS_URL;
@@ -182,7 +158,7 @@ test('public Tier 2 recipes paint their intended pieces in the production render
         });
       } }] });
       base = new URL(server.url);
-      for (const specimen of specimens) specimen.file = `__tier2_fixture__?id=${encodeURIComponent(specimen.id)}`;
+      for (const specimen of specimens) specimen.file = specimenFile(specimen);
       runtimeProvenance = { kind: 'production-tree-visualizer-vite', source };
     }
     const expectedCases = 2 * (TIER2_FACET_RECIPES.length + 2);
@@ -191,11 +167,13 @@ test('public Tier 2 recipes paint their intended pieces in the production render
     for (const framework of ['xbar', 'minimalism']) for (const recipe of TIER2_FACET_RECIPES) {
       assert(specimens.some(specimen => specimen.framework === framework && specimen.recipe === recipe.id && specimen.variant === 'default'), `Missing ${framework} ${recipe.id}`);
     }
+    ({ painted, coveredByXbar } = selectPaintedSpecimens(specimens));
+    assert.equal(painted.filter(specimen => specimen.framework === 'xbar').length, TIER2_FACET_RECIPES.length + 2, 'Paint every X-bar specimen.');
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1 });
     page.on('pageerror', error => errors.push({ url: page.url(), message: String(error) }));
     await page.route('**/api/**', route => { blockedProviderRequests.push(route.request().url()); return route.abort(); });
-    for (const specimen of specimens) {
+    for (const specimen of painted) {
       const result = { id: specimen.id, recipe: specimen.recipe, framework: specimen.framework, variant: specimen.variant,
         frameIndex: specimen.frameIndex, relationStageIndex: specimen.relationStageIndex, relationIndex: specimen.relationIndex,
         activeLens: specimen.activeLens, expectedPrimitives: specimen.expectedPrimitives,
@@ -254,7 +232,8 @@ test('public Tier 2 recipes paint their intended pieces in the production render
     finally { await server?.close(); }
     const finalSource = await sourceManifest();
     const report = { started, finished: new Date().toISOString(), providerCallsMade: 0,
-      expectedCases: specimens?.length ?? null, attemptedCases: results.length,
+      expectedCases: specimens?.length ?? null, paintedCases: painted?.length ?? null, coveredByXbar: coveredByXbar ?? null,
+      attemptedCases: results.length,
       domPassedCases: results.filter(result => result.domPassed).length,
       manualChecks: results.flatMap(result => result.manual.map(check => ({ id: result.id, ...check }))),
       source, sourceUnchangedDuringRun: finalSource.sha256 === source.sha256, runtimeProvenance, compiledSources, runtimeAsset,

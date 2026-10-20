@@ -71,3 +71,28 @@ export function verticalObstacleIndex<T extends VerticalRect>(obstacles: readonl
 export function boundedObstacleIndex<T extends Rect>(obstacles: readonly T[]): (box: Rect, visit: (obstacle: T) => boolean, admits: Admits) => boolean {
   return index(obstacles, true);
 }
+
+export type ObstacleExtent = { left: number; right: number; top: number; bottom: number };
+const extents = new WeakMap<readonly Rect[], ObstacleExtent>();
+/** The least `x`/`y` and greatest `x + width`/`y + height` of an immutable box
+ * list, computed with the same sums pair checks use. Any NaN makes the extent
+ * NaN. Rounding is monotone, so no pair of boxes from two lists overlaps more
+ * than `extentOverlap` of their extents; a caller may skip the pairs only with
+ * a comparison that NaN fails. */
+export function obstacleExtent(boxes: readonly Rect[]): ObstacleExtent {
+  let extent = extents.get(boxes);
+  if (!extent) {
+    let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+    for (const box of boxes) {
+      left = Math.min(left, box.x); right = Math.max(right, box.x + box.width);
+      top = Math.min(top, box.y); bottom = Math.max(bottom, box.y + box.height);
+    }
+    extents.set(boxes, extent = { left, right, top, bottom });
+  }
+  return extent;
+}
+/** `min(right) - max(left)` and the same vertically, as pair checks compute them. */
+export const extentOverlap = (a: ObstacleExtent, b: ObstacleExtent) => ({
+  x: Math.min(a.right, b.right) - Math.max(a.left, b.left),
+  y: Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)
+});
