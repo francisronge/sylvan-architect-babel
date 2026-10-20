@@ -14,6 +14,7 @@ import { createRawOutputArtifact } from '../../server/babelParser/validationErro
 import { waitForCanopyPaint, waitForReplayPaint, waitForNotesPaint } from '../../scripts/captureReadiness.mjs';
 import { startBrowserTestServer } from '../helpers/browserTestServer.mjs';
 import { readTreeBankSnapshot } from '../helpers/browserTreeBank.mjs';
+import { recordVideo } from '../helpers/browserVideo.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const saved = JSON.parse(await readFile(new URL('../../fixtures/normalized/mia-laughed.xbar.json', import.meta.url), 'utf8'));
@@ -121,7 +122,7 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
         for (const width of [1440, 390]) await t.test(`${engine} ${width}px`, async () => {
           const context = await browser.newContext({ viewport: { width, height: 1000 },
             ...(process.env.BABEL_WORKFLOW_EVIDENCE && engine === 'chromium' && width === 1440
-              ? { recordVideo: { dir: output, size: { width, height: 1000 } } } : {}) });
+              ? recordVideo(output, { width, height: 1000 }) : {}) });
           const page = await context.newPage(), errors = [];
           let response = 'complete', requests = 0;
           page.on('pageerror', error => errors.push(String(error)));
@@ -335,7 +336,7 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
     if (evidence) await mkdir(evidence, { recursive: true });
     for (const width of [1440, 390]) {
       const context = await browser.newContext({ viewport: { width, height: 1000 }, permissions: ['clipboard-read', 'clipboard-write'],
-        ...(evidence ? { recordVideo: { dir: evidence, size: { width, height: 1000 } } } : {}) });
+        ...recordVideo(evidence, { width, height: 1000 }) });
       let page;
       const errors = [], consoleMessages = [], pendingRequests = new Set();
       try {
