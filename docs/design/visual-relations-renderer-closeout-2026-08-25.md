@@ -30,9 +30,11 @@ The production Orchard loads
 `npm run orchard:build` builds it from the production renderer and copies the
 identical artifact to the research site's `relation-orchard.bundle.js`.
 
-Drawing paint is shared in
-[`relation-visuals.css`](../research/relation-orchard/relation-visuals.css). The app
-imports it, both Orchard pages link it, and the Tier-2 review build includes it.
+Drawing paint is owned by the renderer in
+[`relation-visuals.css`](../../components/renderer/relation-visuals.css). The app
+imports it and the Tier-2 review build includes it. Both Orchard pages link the
+research site's exact copy, which `npm run orchard:build` refreshes and
+`tests/relationVisualStyles.test.mjs` compares byte for byte.
 Keep page layout and lens visibility outside that stylesheet. Hover uses the
 shared ink/halo class without replacing relation-moment opacity.
 
@@ -383,8 +385,10 @@ a spoke from a node to itself.
 
 The existing Replay rows identify previous-stage references with
 `role (previous stage): participant`. No triangle or extra panel section is
-needed. Plain camelCase names receive conservative display spacing; punctuation,
-notation and authored record strings remain unchanged. Unavailable references
+needed. Plain camelCase names receive conservative display spacing. The Replay
+panel also spaces snake_case relation and role names; Tier-3 tree labels keep
+their underscores. Other punctuation, single-letter notation such as `x_i`,
+non-Latin names and authored record strings remain unchanged. Unavailable references
 and empty collections have distinct readable descriptions.
 
 Source/Landing descriptions use “specifier” and “complement” only when matching
