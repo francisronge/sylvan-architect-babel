@@ -112,11 +112,16 @@ export const COMPACT_VIEWPORT_WIDTH = 500;
 export const isCompactViewport = (width: number) => width < COMPACT_VIEWPORT_WIDTH;
 
 /**
- * Automatic fits never go below `minimumFitScale`. User wheel and pinch zoom are
- * limited to `userZoomExtent`, whose lower end is above the compact fit floor:
- * a compact fit below 0.05 snaps to 0.05 at the first wheel-out.
+ * A fresh fit never goes below `minimumFitScale`; containment may shrink a
+ * retained fit further. Wheel and pinch zoom keep to `userZoomExtent`, widened
+ * by `userZoomExtentAt` to include the scale the camera actually applied.
  */
 export const CAMERA_ZOOM = {
   minimumFitScale: { compact: 0.02, regular: 0.06 },
   userZoomExtent: [0.05, 10]
 } as const;
+
+/** d3 clamps every wheel and pinch step to the zoom extent, so an applied scale
+ * outside it would jump to the boundary on the first gesture. */
+export const userZoomExtentAt = (scale: number): [number, number] =>
+  [Math.min(CAMERA_ZOOM.userZoomExtent[0], scale), Math.max(CAMERA_ZOOM.userZoomExtent[1], scale)];
