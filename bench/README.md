@@ -1,5 +1,8 @@
 # Provider-free benchmark plumbing
 
+“BM §n” refers to sections of the archived benchmark architecture,
+`docs/history/architecture/fable-zero-unknowns-2026-07-17/babel-provider-grade-benchmark-architecture.md`.
+
 Parked until the future benchmark (Program 7) is built. Nothing in the product
 imports it, and its tests are left out of `npm test`; run them with
 `npm run test:bench`.
@@ -25,7 +28,7 @@ admission-probe receipts are externally produced evidence that this package
 compares mechanically. The tooling never discovers candidates, launches a
 probe, chooses a tier scope, or treats a development fixture as release
 authorization. Actual selections, probes, launch authorization, and scored
-runs remain W14/Francis-gated.
+runs remain Francis-gated (ROADMAP Program 7).
 
 The W13 runner-planning boundary binds externally supplied carrier, framework,
 host, tier, request-parameter, service-metadata, and partition identities to a
@@ -89,8 +92,7 @@ are copied without recoding and hash-bound; the receipt preserves the supplied
 replication order and reports an explicit insufficient-unit outcome. This
 boundary supplies no category ontology, adjudication policy, missingness rule,
 resampling generator, confidence convention, coefficient-ranking rule, or
-adoption default. Ordinal coefficients and error-propagation analysis remain
-separate method-gated work.
+adoption default. Ordinal coefficients remain separate method-gated work.
 
 The W13 rater-effect propagation boundary consumes separately hash-bound score
 draws and signed rater-effect draws from an external method, pairs them by exact
@@ -125,8 +127,7 @@ local open-weight execution records custody evidence but creates no provider
 exposure state. The externally supplied complete chronological order determines
 first exposure; the ledger retains every later exposure event without call
 budgets, provider rosters, risk scores, rotation rules, or non-exposure claims
-beyond the ledger evidence. Twin-gap and memorization-probe analysis remain
-separate dependent packages.
+beyond the ledger evidence.
 
 The W13 twin-gap boundary consumes externally matched exposed-anchor and
 unexposed-twin records for externally named providers, per-window conditions,
@@ -190,8 +191,8 @@ attestation to the same release and frozen-manifest hash, reconstructs the
 frozen manifest and W13 star-schema receipt, and verifies their release tuple
 and selected-model set agree. The resulting immutable receipt is an integrity
 and completeness record only: it does not verify the truth or authority of an
-external attestation, publish artifacts, authorize a release, or implement the
-separate D0/W16 release workflow. Evidence authenticity remains the
+external attestation, publish artifacts, authorize a release, or implement a
+release workflow. Evidence authenticity remains the
 responsibility of each referenced authority/archive join.
 
 The W14a draft-item boundary records externally authored BM §5 content axes,
@@ -268,5 +269,5 @@ The receipt performs no audit, score computation, republication, release, or
 publication action and makes no claim that an external authority or archive is
 truthful.
 
-Provider transports, benchmark items, review workflows, statistical models,
+Provider transports, authored benchmark item content, review workflows, statistical models,
 publication tooling, and product/database integration remain separately gated.
