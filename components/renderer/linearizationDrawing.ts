@@ -11,7 +11,8 @@ import type { ClaimDrawing, DrawingLayer, RelationEmphasis, TreeMeasurements } f
 
 import { nativeLinearizationPlateHeight } from '../../replay/relations/nativeDrawingContent.ts';
 import {
-  planAnchorSetLayout
+  planAnchorSetLayout,
+  type AnchorSetLayout
 } from '../../replay/relations/overlayGeometry.ts';
 
 interface LinearizationDrawingContext extends Pick<ClaimDrawing, 'relationLayerKey' | 'acceptedRelationDrawingKey' | 'queueAcceptedRelationDraw'>, Pick<TreeMeasurements, 'exactScreenTreeLabelRectNow' | 'exactScreenDirectTreeLabelRectNow'> {
@@ -74,7 +75,7 @@ export function createLinearizationDrawing({
           getNodeId(treeData as unknown as HierNode),
           true
         );
-        const anchorPlan = anchorSetItem?.kind === 'anchor-set' ? planAnchorSetLayout(
+        const anchorPlan: Pick<AnchorSetLayout, 'badges' | 'rails'> = anchorSetItem?.kind === 'anchor-set' ? planAnchorSetLayout(
           [anchorSetItem.set],
           (nodeId) => exactScreenDirectTreeLabelRectNow(nodeId)
             || exactScreenTreeLabelRectNow(nodeId, true),
