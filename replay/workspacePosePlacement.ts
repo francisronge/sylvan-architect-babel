@@ -3,7 +3,7 @@ import type { WorkspacePoseGraph } from './workspacePoseGraph.ts';
 import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
 import type { LifetimeContour, Point } from './workspaceLifetimeContours.ts';
 import { cubicIntersectsRect } from './relations/curveClearance.ts';
-import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
+import { obstacleExtent, verticalObstacleIndex } from './verticalObstacleIndex.ts';
 type ReferenceFrame = {
   nodes: readonly ({
     id: string;
@@ -56,6 +56,14 @@ const collision = (a: PlaqueRect, b: PlaqueRect) => Math.min(a.x + a.width, b.x 
   && Math.min(a.y + a.height, b.y + b.height) > Math.max(a.y, b.y) + 1e-6
   && (!a.curve || cubicIntersectsRect(a.curve, b, a.curvePadding))
   && (!b.curve || cubicIntersectsRect(b.curve, a, b.curvePadding));
+/** Whether some pair of the two box lists can satisfy `collision`: it requires
+ * `min(right) > max(left) + 1e-6` on both axes, which no pair meets when the
+ * lists' extents fail it. NaN extents never rule a pair out. */
+const mayCollide = (a: readonly PlaqueRect[], b: readonly PlaqueRect[]) => {
+  const left = obstacleExtent(a), right = obstacleExtent(b);
+  return !(Math.min(left.right, right.right) <= Math.max(left.left, right.left) + 1e-6
+    || Math.min(left.bottom, right.bottom) <= Math.max(left.top, right.top) + 1e-6);
+};
 const median = (values: readonly number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 // Contour obstacle lists are immutable; a serial names each one in exact keys.
 const serials = new WeakMap<readonly PlaqueRect[], number>();
@@ -141,6 +149,7 @@ function preferredStationaryPoses(graph: WorkspacePoseGraph, baseline: readonly 
         return clearPairs(pairKey(left.shape.obstacles, x, right.shape.obstacles, y), () => {
           const own = left.shape.obstacles.map(rect => translated(rect, x.x, x.y));
           const other = right.shape.obstacles.map(rect => translated(rect, y.x, y.y));
+          if (!mayCollide(own, other)) return true;
           const query = verticalObstacleIndex(other, { overlapOnly: true });
           for (let i = 0; i < own.length; i++) {
             if (query(own[i], obstacle => collision(own[i], obstacle))) return false;
@@ -193,8 +202,9 @@ export function placeRigidGroups(graph: WorkspacePoseGraph, baseline: readonly R
         const pairs = groupPairs(pairKey(a.shape.obstacles, a.offset, b.shape.obstacles, b.offset), () => {
           const left = a.shape.obstacles.map(box => translated(box, a.offset.x, a.offset.y));
           const right = b.shape.obstacles.map(box => translated(box, b.offset.x, b.offset.y));
-          const query = verticalObstacleIndex(right, { overlapOnly: true });
           const found: ClearanceConflict['pairs'] = [];
+          if (!mayCollide(left, right)) return found;
+          const query = verticalObstacleIndex(right, { overlapOnly: true });
           for (const x of left)
             query(x, y => {
               if (collision(x, y))
