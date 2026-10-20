@@ -104,6 +104,8 @@ export type RelationClaimDispatch = ClaimDispatchBase & {
   /** Internal role lookup; original spelling remains in primaryRelation. */
   boundPrimaryRelation: DerivationStageRelation;
   residualRelation?: DerivationStageRelation;
+  /** Structure-only rules that earned this relation's claims; see structuralRecognition.ts. */
+  structuralRules?: import('./structuralRecognition.ts').StructuralRuleId[];
 };
 
 export type ExclusiveRelationDispatchInput = {
@@ -119,6 +121,8 @@ export type ExclusiveRelationDispatchInput = {
   controlContext?: ControlContext;
   registry?: typeof productionRelationRegistry;
   synonymIndex?: Tier2SynonymIndex;
+  /** Structure-only rules for an unregistered envelope that earned no claim; see structuralRecognition.ts. */
+  structuralRules?: ReadonlySet<import('./structuralRecognition.ts').StructuralRuleId>;
 };
 
 export type RelationClaimDispatchEntry = {

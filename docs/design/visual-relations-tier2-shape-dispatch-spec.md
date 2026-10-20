@@ -265,6 +265,66 @@ A leaf trace may represent that whole complex. The verified whole-head occurrenc
 pair and exact carried-member identity do not require the trace to repeat the
 complex's internal children. A member alone cannot establish the whole movement.
 
+## Structure-only recognition of neutral relations
+
+An unregistered envelope that earns no Tier-1 or Tier-2 claim is offered to
+`replay/relations/structuralRecognition.ts` before it falls back to Tier 3. A
+registered relation, an envelope that already earned a claim, and a relation
+with a contract failure are never offered, so structure cannot repair a
+malformed exact Tier-1 claim or add to a recovered one. The rules read the
+relation's structural signature (`structuralSignature.ts`): its anchored nodes
+and their positions, what changed since the previous stage, and the contract's
+pairing of a values entry with the anchor entry of the same name. They never
+read what a relation name, role name or value literal means. Two rules apply,
+each through an existing Tier-2 recipe that still checks cardinality, nodes and
+structure, so a recovered claim is a Tier-2 claim drawn with the shared
+primitives:
+
+- `identity.shared-lineage` (`identity.occurrences`): two or more anchored
+  occurrences share one lineage, none contains another, and none is created in
+  this stage. Where the stage creates an occurrence, the configuration may be
+  movement and stays neutral.
+- `plaque.single-host` (`plaque.structured`): a relation anchoring one node
+  carries its values as plaque rows on that node. A lone symbolic value of up
+  to three characters on a whole workspace, which could be a verdict, stays
+  neutral. The plaque yields when another relation of the derivation anchors
+  the same host and draws anything, since two plaques on one node crowd each
+  other out of reach; that relation keeps its drawing and this one stays
+  neutral. Two structure-only plaques on one host therefore both yield, and
+  neither draws.
+
+Structure reads no meaning into names, with two exceptions that only withhold a
+drawing. A relation title earns nothing when one of its label clauses matches
+the participant-property reader's denial patterns (`participantProperties.ts`:
+a clause that opens with a denying, failing, requiring or supposing word, ends
+with one, or contains *if*, *unless* or *whether*). The relation also earns
+nothing when a value under an outcome key does not resolve to a positive
+outcome. Denials outside those patterns are not detected, such as a title like
+*Illicit adjunction* or a value like `licensed: no`. An anchor list that
+repeats an ID, an unresolved anchor and a repeated tree ID also earn nothing. A
+configuration that reads more than one way earns no picture and reports the
+configuration it found.
+
+`fork.two-segment` (`pair-merge`) reads an explicit two-segment adjunction: the
+relation anchors the two daughters of one parent, or that parent and both
+daughters, one daughter a lower segment of the parent's category at the same
+marked level and the other no projection of it. It stays off. A scope claim
+can anchor exactly that configuration, such as a negation adverb and the
+verb phrase it scopes over, and drawing it as a fork drops the claim's role
+labels and scope rail while showing only what the branches already show;
+structure cannot tell scope from modification. The further measured rules
+(`fork.two-segment-in-context`,
+`plaque.paired-entry`, `plaque.annotation-owner`, `ellipsis.silenced-site`,
+`verdict.symbol-on-root`) recognise only part of their envelopes and stay off;
+they are available by name for evaluation.
+
+`STRUCTURAL_RECOGNITION` in `structuralRecognition.ts` lists the rules that
+apply in every runtime and is the off-switch: an empty list leaves dispatch,
+render plans and Replay those of worded recognition. In Node,
+`BABEL_STRUCTURAL_RECOGNITION` overrides it for comparison runs: `0` enables
+nothing, `1` the two rules above, `all` every measured rule, and a
+comma-separated list names rules exactly.
+
 ## Public records and shared occurrences
 
 Every recipe must work on records accepted by the public derivation contract.

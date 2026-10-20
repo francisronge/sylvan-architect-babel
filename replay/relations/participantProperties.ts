@@ -58,15 +58,29 @@ export function recoverNamedArgumentProperties(evidence: Tier2FacetEvidence) {
   });
 }
 
+const DENIED_PREFIX = /^(?:no|not|never|without|absence of|lack of|denied|rejected|failed|blocked|unlicensed|pending|unresolved|unestablished|required|requested|expected|possible|potential|hypothetical|whether(?: there is)?|if|unless) (.+)$/u;
+const DENIED_SUFFIX = /^(.+?) (?:(?:is|was|has been) )?(?:denied|rejected|failed|blocked|unlicensed|pending|unresolved|unestablished|required|requested|expected|possible|hypothetical|absent|requirement|not(?: yet)? established|never established)$/u;
+
+/** The subject of one normalized label clause that denies, fails, requires or
+ * only supposes it, as `no inflection` or `verb form requirement`. */
+const deniedClauseSubject = (clause: string): string | undefined =>
+  DENIED_PREFIX.exec(clause)?.[1] ?? DENIED_SUFFIX.exec(clause)?.[1];
+
+const CONDITIONAL = /\b(?:if|unless|whether)\b/u;
+
+/** Whether any clause of a relation label leaves its claim unasserted:
+ * denied, failed, required, supposed or conditional. */
+export const labelLeavesClaimUnasserted = (relationName: string | undefined): boolean =>
+  relationLabelClauses(relationName).some(clause => deniedClauseSubject(clause) !== undefined || CONDITIONAL.test(clause));
+
 /** A form field supplies a property only when its own label clause asserts it.
  * A denied sibling claim does not change an independently authored form. */
 function assertsFormProperty(evidence: Tier2FacetEvidence) {
   if (!establishesAssignment(evidence)) return false;
   const subject = /\b(?:form|realization|realisation|inflection)\b/u;
   return !relationLabelClauses(evidence.relationName).some(clause => {
-    const prefix = /^(?:no|not|never|without|absence of|lack of|denied|rejected|failed|blocked|unlicensed|pending|unresolved|unestablished|required|requested|expected|possible|potential|hypothetical|whether(?: there is)?|if|unless) (.+)$/u.exec(clause);
-    const suffix = /^(.+?) (?:(?:is|was|has been) )?(?:denied|rejected|failed|blocked|unlicensed|pending|unresolved|unestablished|required|requested|expected|possible|hypothetical|absent|requirement|not(?: yet)? established|never established)$/u.exec(clause);
-    return [prefix?.[1], suffix?.[1]].some(value => value && subject.test(value));
+    const denied = deniedClauseSubject(clause);
+    return Boolean(denied && subject.test(denied));
   });
 }
 
@@ -80,10 +94,9 @@ function assertsParticipantProperty(evidence: Tier2FacetEvidence, property: stri
   const clauses = relationLabelClauses(evidence.relationName);
   if (clauses.length <= 1 && !establishesAssignment(evidence)) return false;
   return !clauses.some(clause => {
-    const prefix = /^(?:no|not|never|without|absence of|lack of|denied|rejected|failed|blocked|unlicensed|pending|unresolved|unestablished|required|requested|expected|possible|potential|hypothetical|whether(?: there is)?|if|unless) (.+)$/u.exec(clause);
-    const suffix = /^(.+?) (?:(?:is|was|has been) )?(?:denied|rejected|failed|blocked|unlicensed|pending|unresolved|unestablished|required|requested|expected|possible|hypothetical|absent|requirement|not(?: yet)? established|never established)$/u.exec(clause);
-    return [prefix?.[1], suffix?.[1]].some(value => value && subject.test(value))
-      || subject.test(clause) && /\b(?:if|unless|whether)\b/u.test(clause)
+    const denied = deniedClauseSubject(clause);
+    return Boolean(denied && subject.test(denied))
+      || subject.test(clause) && CONDITIONAL.test(clause)
       || subject.test(clause) && !establishesAssignment(evidence);
   });
 }
