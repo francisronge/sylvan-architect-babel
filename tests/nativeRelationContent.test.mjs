@@ -608,14 +608,14 @@ test('the exact displayed wordless landing binds its category shell until PF rea
 });
 
 test('production shares the Orchard FProjection paint and typography', () => {
-  const styles = readFileSync(new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../components/renderer/relation-visuals.css', import.meta.url), 'utf8');
   assert.match(styles, /\.babel-f-projection-path\s*\{[^}]*fill: none;[^}]*stroke:[^}]*stroke-width: 3px;/u);
   assert.match(styles, /\.babel-f-projection-feature\s*\{[^}]*font: 900 34px/u);
   assert.doesNotMatch(styles.match(/\.babel-f-projection-path\s*\{[^}]*\}/u)[0], /filter:/u);
 });
 
 test('native cyclic columns and their anchor rail ship the approved readable ink', () => {
-  const styles = readFileSync(new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../components/renderer/relation-visuals.css', import.meta.url), 'utf8');
   const sheet = postcss.parse(styles);
   const rule = name => {
     const properties = new Map();
