@@ -1,8 +1,8 @@
 # Visual Relations Renderer Closeout
 
-Date: 2026-08-25
-
-Status: historical closeout, corrected by the September 16 fidelity audit below.
+Status: renderer behavior contract. It states rules only; open renderer work is
+listed in [`ROADMAP.md`](../../ROADMAP.md) and earlier review evidence is in
+[`docs/history/renderer/`](../history/renderer/README.md).
 
 ## Scope
 
@@ -11,14 +11,16 @@ Status: historical closeout, corrected by the September 16 fidelity audit below.
 - The audited Tier-2 inventory contains 69 distinct primitives across 70 output
   assignments owned by 52 executable recipes. `Branch overlay` is shared by
   Pair Merge and Blocked Extraction with different authored branch sets.
+- The 69-piece raster comparison compares isolated specimens. It is not
+  production-tree parity evidence.
 - Illicit-analysis verdicts bind the glyph and optional open label to one exact
   analysis anchor and keep that compound together through camera zoom.
 - Archived construction examples remain ordinary primitive compositions; they
   do not restore retired renderer identities.
 - Relation hover uses the shared emerald ink with a `6px`, alpha `0.50` halo.
   It changes no stroke width, geometry, opacity, or layout.
-- Movement paths keep their original stroke behavior; the screen-sized stroke
-  experiment remains rejected.
+- Movement paths keep their original stroke behavior; they do not use
+  screen-sized strokes.
 - Pair Merge follows both native branches of its shared-parent fork. Blocked
   Extraction reuses the same branch overlay for its adjunct branch only; Phase
   remains a separate solid domain cap.
@@ -73,9 +75,8 @@ therefore starts in that reserved space without exposing future nodes or extendi
 early branches. The reservation ends when the component disappears or its current
 parent/child attachments become incompatible. Ambiguous witnesses do not qualify.
 
-The attempted analysis-wide coordinate and sibling-rank reservation remains
-rejected. The bounded workspace placement in `replay/workspacePlacement.ts` does
-not lock moved occurrences to their final landing positions or import future
+Do not use an analysis-wide coordinate and sibling-rank reservation. The
+bounded workspace placement in `replay/workspacePlacement.ts` does not lock moved occurrences to their final landing positions or import future
 branch heights. A source's reserved place transfers to its exact lower witness;
 the real landing still appears at the authored movement moment. Ordinary camera
 fitting continues to frame each stage, and manual zoom remains under user control.
@@ -310,27 +311,20 @@ captures that contour's immutable members and children, so later accepted or
 rejected trials cannot change its geometry. Candidate scoring can discard an
 unused contour without allocating its complete obstacle array.
 
-The September 21 local production capture reduced German coordination opening
-from 27.8 seconds to 2.7 seconds at 1600×1100. Tested frame changes across German,
-Turkish, English, Japanese and Arabic completed in 20–46ms after font preloading.
-That performance-only repair retained the earlier placements. The subsequent
-clearance repair measures short category labels with the same text layout as
-wrapped labels, instead of reserving a minimum 150-unit width. Connector checks
-subdivide the actual cubic against nearby ink; empty corners of coarse sample
-rectangles no longer reject clear pockets. Stroke margins remain reserved, and
-the rendered Orchard paths do not change.
+Short category labels are measured with the same text layout as wrapped labels;
+clearance does not reserve a minimum 150-unit label width. Connector checks
+subdivide the actual cubic against nearby ink, so empty corners of coarse sample
+rectangles cannot reject clear pockets. Stroke margins remain reserved, and these
+measurements do not change the rendered Orchard paths.
 
-These general corrections let the German nominative plaque sit beside I and the
-accusative plaque beneath the verb, with the same offsets throughout Replay.
 Near-aligned Case side attachments use both horizontal and vertical separation
 to size their approach, capped at the existing 76-unit handle. They retain a
 curved turn into the Case row instead of collapsing into a straight stem with a
 tiny hook. Ordinary wide side approaches and vertical attachments retain their
 accepted geometry; placement checks use the same curve as the painter.
-Case rows beside the source label now use its facing side as the origin. The
-Japanese nominative arrow previously left the bottom of T's word inside the
-wrapped V label below it. The source identity and separate Case plaques remain
-unchanged; tree layout is not adjusted.
+Case rows beside the source label use its facing side as the origin, so the
+arrow does not leave through a wrapped label below it. The source identity and
+separate Case plaques remain unchanged; tree layout is not adjusted.
 
 Dotted collectors sharing one exact source may leave the plaque's bottom or top
 when that source is mostly below or above it. If the nearest attachment point is
@@ -350,52 +344,30 @@ timing remain shared with the existing drawing. Case plaques also reserve at lea
 two category-line heights between the arrow's source and target; collision
 clearance alone must not reduce the shaft to an almost invisible fragment.
 
-Allocation now runs in a worker after chunked browser text measurement. In the
-local bundled German review, full readiness took about 1.4 seconds, compared with
-1.1 seconds before this change; the longest main-thread task fell from 902ms to
-55ms. The improvement is responsiveness while calculating, not reduced CPU work.
-Across 1,432 saved Replay frames, 95% of completed frame changes took under 29ms.
-All 61 Orchard final views also rendered without browser errors. These bounded
-checks support a candidate for user review, not a claim of universal correctness.
+Allocation runs in a worker after chunked browser text measurement.
 
 Reserved connector obstacles carry their precise cubic and stroke margin through
 future-stage translations. A new plaque tests that same curve rather than the
-empty corners of its bounding rectangle. This makes clearance independent of
-which claim was allocated first and prevents an established Japanese theta grid
-from moving when a later Case arrow appears.
+empty corners of its bounding rectangle. Clearance is therefore independent of
+which claim was allocated first, and an established plaque such as a theta grid
+does not move when a later Case arrow appears.
 
 Stability can require a more distant initial pocket in a dense changing tree. It
 does not guarantee every connector remains short. Different overlapping claims
 (for example an earlier Theme grid and a later Agent-plus-Theme grid) are not exact
 duplicates; consolidating those inventories requires preserving ownership per row.
 
-## September 16 fidelity correction
-
-The previous complete-integration claim was wrong for Tier 3. Its Orchard cards
-disabled the production overlay and painted a separate implementation. Production
-put larger circles below labels and ran scalar stems through syntax. The card
-verification accepted the substitute painter. The 69-piece raster comparison
-also compares isolated specimens, so it is not production-tree parity evidence.
-
-Production now uses the accepted measured side placement, small rounded boxes and
-circles, centered numbers, backward triangles, trimmed fan spokes and links below
-the participating subtrees. Allocation reserves every mark before the stage's
-relation moments reveal them. The complete groups retain their automatic Fit size
-and enlarge with manual zoom. Hover and emphasis still use shared production ink.
-The duplicate Orchard painter is removed; its cards supply records only.
-
-The 55 specialized cards retain their geometry and styles through this change.
-One additional reproduced defect, Fission text outside its bundle, is repaired
-with the existing measured text wrapper. Literal values are preserved. All 61
-cards render; 283 saved Replay frames pass badge-to-label clearance and finite
-geometry checks. These checks do not establish universal layout correctness.
-The user-approved literal-role annotation redesign remains separate backlog work.
-
 ## Accepted Tier-3 role labels
 
-The subsequent user-approved text trial supersedes the circle/box locators and
-backward triangles described in the preceding restoration history. Current
-witnesses carry their authored role names. List positions appear as `[1]`, `[2]`,
+Orchard cards paint Tier 3 with the production overlay; they supply records only
+and have no separate painter. Allocation reserves every Tier-3 mark before the
+stage's relation moments reveal it. The complete groups retain their automatic
+Fit size and enlarge with manual zoom. Hover and emphasis use shared production
+ink. Fission text stays inside its bundle through the existing measured text
+wrapper, and literal values are preserved.
+
+Tier-3 witnesses carry their authored role names as text, not circle or box
+locators or backward triangles. List positions appear as `[1]`, `[2]`,
 and so on; equal positions across paired lists retain their correspondence.
 Two scalar witnesses have the accepted connector
 below their subtrees, a scalar plus an array has a fan, and unpaired witnesses
@@ -424,8 +396,7 @@ Complete role labels share the tree scale during manual zoom, preserving their
 fitted size and stage-wide placement. The production painter and topology are
 shared with every Orchard fallback card.
 
-On September 17, Francis approved showing Tier-3 annotations only during their
-owning Replay relation moment. Earlier neutral claims remain available by
+Tier-3 annotations appear only during their owning Replay relation moment. Earlier neutral claims remain available by
 returning to their frame; they do not accumulate on later relation frames or the
 Stage Record. Complete-stage inspection retains all claims. The plan still
 reserves their geometry before reveal, so this visibility rule does not change
@@ -472,8 +443,7 @@ large plaques retain their below-subtree placement. A carried plaque keeps its
 offset unless new stage geometry occupies it. Neutral lower connectors retain straight stems and separate lanes. Plaques
 yield to their reserved stems; the lower lanes clear plaque bottoms. Role text
 yields to the connector routes. These allocations precede relation reveal, so revealing a plaque
-does not move existing syntax or annotations. The straight-connector revision was visually accepted on September 17; its
-bounded verification and remaining work are recorded in the roadmap.
+does not move existing syntax or annotations.
 
 Role grids are horizontal tables: adding a longer role or another column must
 not send an otherwise compact grid beneath its entire argument subtree. Grids
@@ -542,9 +512,7 @@ size, which changes before a held frame is redrawn. Before the first painted
 frame, sizes apply at once.
 Replay and Canopy layout read no window size. Every canvas lays out at one
 1600×948 reference canvas, so an analysis draws the same tree in every window and
-on every device, and a resize reuses the prepared coordinates and plaques. Stage
-layout sizes once followed the window width, and workspace placement combined
-stages sized differently at different widths. If a layout key ever changes with
+on every device, and a resize reuses the prepared coordinates and plaques. If a layout key ever changes with
 the viewport, the earlier frame stays on screen with its own viewport until the
 new layout is ready, and the swap is one redraw. The offline visual audit reports
 `layout-width` when any audited viewport lays out a Replay frame or the Canopy
@@ -575,9 +543,8 @@ stage cursor advances afterwards. Canvas projection, movement transitions,
 layout, visibility and presentation have independent owners. Workspace placement
 separates attachment proposals and search from rendered-plan validation.
 
-Relation moments follow authored order with one exception. In October Francis
-decided that Babel must not limit how a model orders the claims of one stage. A
-relation needing syntax that a later relation of its stage introduces plays right
+Relation moments follow authored order with one exception, because Babel must
+not limit how a model orders the claims of one stage. A relation needing syntax that a later relation of its stage introduces plays right
 after that relation's moment, or after the last such moment when it needs
 several. Its needs are its current anchors (for a movement, its source and
 landing) and, for a relation that builds structure, the material its new
@@ -943,20 +910,13 @@ On the reference bundled runtime at a 1600px desktop viewport, a usable Replay
 should open within 2 seconds, and ordinary rendered frame changes should stay
 below 100 ms at the 95th percentile.
 
-The September 22 CPU controls preserve all 1,432 saved Replay frames exactly.
-For a 96-stage left- or right-nested derivation, preparation fell from about
-3.3–3.4 seconds to 2.1–2.2 seconds. That extreme control still exceeds the
-2-second full-view target before browser allocation and drawing are included.
-The worker keeps the interface available while this work completes.
+An extreme 96-stage left- or right-nested derivation still exceeds the 2-second
+target in preparation alone, before browser allocation and drawing. The worker
+keeps the interface available while this work completes.
 
 Plaque allocation also reuses a request's sorted obstacle intervals and a future
 scene's row-visibility answers. Curve sampling and candidate expansion preserve
 their arithmetic and first-occurrence order while avoiding temporary arrays.
-The exact browser job and all 153 stage placement maps across the 32 saved
-analyses remain identical. In the local production app, the dense relative-clause
-Replay opens in 1.83 seconds instead of 3.3 seconds, with no recorded main-thread
-long task. This is a local measurement, not a slower-device or remote-loading
-promise.
 
 Replay preparation shares one ordered relation resolver between its final links,
 movement-chain catalogue and playback construction. The resolver belongs to one
@@ -1025,38 +985,7 @@ to a later movement. The Japanese stem/allomorph and
 orthographic-association regression exercises competing direct coverage without
 changing the authored structure or pronunciation.
 
-## Review
-
-Fable reviewed the broad renderer closeout and returned **GREEN**, with no
-P0-P2 findings. Its residual notes concerned extreme-length verdict labels,
-the general support-line condition used to suppress duplicate raw relation
-detail, a documentation ambiguity around carrier/enclosure ownership, and the
-set-based archived-ACD guard. A post-hover no-tools follow-up was attempted but
-could not run because the Claude account had exhausted its usage credits; no
-model was substituted.
-
-Ox Alpha reviewed the final live state in the existing Babel OpenCode session,
-including the stronger hover. It returned **GREEN** apart from one P2
-documentation ambiguity: the movement section appeared to assign both Carrier
-arrow and Gradient enclosure to `movement.carrier`. The specification now
-states their separate owners: `movement.carrier` and `constituent.region`.
-
-Neither reviewer changed repository files.
-
-## Verification
-
-- Live Chrome: active verdict computed to
-  `drop-shadow(rgba(52, 211, 153, 0.5) 0px 0px 6px)`; its bounding box was
-  identical before and after hover.
-- `node --test tests/treeVisualizerReplayDomState.test.mjs`: 30/30 passed.
-- `node --test tests/tier2PrimitiveRecipes.test.mjs`: 27/27 passed.
-- `npm run verify:all`: typecheck passed, 1016/1016 tests passed, and both
-  normalized parse-contract fixtures passed.
-
-No provider parse, model parse, fixture regeneration, commit, push, or deploy
-was performed. The pre-closeout Tier-2 specification backup is at
-`/private/tmp/visual-relations-tier2-shape-dispatch-spec.pre-closeout-20260825.md`.
-
+## Movement witnesses, construction and marks
 
 Head adjunction keeps its original terminal attachment in its first movement
 instance. The enclosing head complex identifies its landing position without
