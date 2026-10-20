@@ -35,21 +35,25 @@ type Render = (scene: WorkspacePlacementScene, coordinates: TreeCoordinateReserv
 
 const parent = (node: Node, nodes: ReadonlyMap<string, Node>) =>
   node.parent && nodes.has(getNodeId(node.parent)) ? getNodeId(node.parent) : undefined;
-const material = (node: Node, nodes: ReadonlyMap<string, Node>): unknown[] => {
-  const owner = node.parent && nodes.has(getNodeId(node.parent)) ? node.parent.data : undefined;
-  const word = authoredDisplayWord(node.data, owner);
-  return [word ?? node.data.label, word ?? node.data.word, node.data.silent,
-    (node.children ?? []).filter(child => nodes.has(getNodeId(child)))
-      .map(child => [getNodeId(child), material(child, nodes)])];
-};
 // Painted scene maps are never modified once built, so a node's signature in
-// one map is computed once.
+// one map is computed once. A signature is the JSON text of
+// [label, word, silent, [[childId, childMaterial], ...]], written from the
+// children's own signatures so a subtree is serialized once, not once per ancestor.
 const signatures = new WeakMap<ReadonlyMap<string, Node>, Map<Node, string>>();
+const arrayItem = (value: unknown) => JSON.stringify(value) ?? 'null';
 const signature = (node: Node, nodes: ReadonlyMap<string, Node>): string => {
   let byNode = signatures.get(nodes);
   if (!byNode) signatures.set(nodes, byNode = new Map());
   let value = byNode.get(node);
-  if (value === undefined) byNode.set(node, value = JSON.stringify(material(node, nodes)));
+  if (value === undefined) {
+    const owner = node.parent && nodes.has(getNodeId(node.parent)) ? node.parent.data : undefined;
+    const word = authoredDisplayWord(node.data, owner);
+    let children = '';
+    for (const child of node.children ?? []) if (nodes.has(getNodeId(child)))
+      children += `${children ? ',' : ''}[${arrayItem(getNodeId(child))},${signature(child, nodes)}]`;
+    value = `[${arrayItem(word ?? node.data.label)},${arrayItem(word ?? node.data.word)},${arrayItem(node.data.silent)},[${children}]]`;
+    byNode.set(node, value);
+  }
   return value;
 };
 
