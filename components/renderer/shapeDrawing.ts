@@ -105,7 +105,8 @@ export function createShapeDrawing({
         const phase = component.componentLabel === 'Phase';
         const path = fongComponentArcPath(headRect);
         const label = fongComponentLabelPoint(headRect);
-        const beforeEdgeLabel = phase ? '.babel-transfer-edge-label' : null;
+        // A null position appends, as insert(type) does.
+        const beforeEdgeLabel = (phase ? '.babel-transfer-edge-label' : null) as string | undefined;
         foreground.insert('path', beforeEdgeLabel)
           .attr('class', phase
             ? 'babel-transfer-phase-arc-shadow'
@@ -339,8 +340,8 @@ export function createShapeDrawing({
               .style('font-size', '18px')
               .text(pathItem.secondaryLabel);
             if (cycle !== '1' && previousCyclicPath?.parentNode === layer.node()) {
-              layer.node()?.insertBefore(directed.node(), previousCyclicPath);
-              layer.node()?.insertBefore(badge.node(), previousCyclicPath);
+              layer.node()?.insertBefore(directed.node()!, previousCyclicPath);
+              layer.node()?.insertBefore(badge.node()!, previousCyclicPath);
             }
           }
         }
@@ -654,7 +655,8 @@ export function createShapeDrawing({
         .attr('class', 'babel-blocked-extraction-path')
         .attr('data-extraction-source', pathItem?.fromNodeId || '')
         .attr('data-extraction-target', pathItem?.toNodeId || '')
-        .attr('data-extraction-domain', domainItem?.kind === 'domain-mark' ? domainItem.rootNodeId : '')
+        // A domain without a root leaves the attribute unset.
+        .attr('data-extraction-domain', (domainItem?.kind === 'domain-mark' ? domainItem.rootNodeId : '') as string)
         .attr('d', primitive.d)
         .attr('marker-start', `url(#${markerId})`)
         .attr('marker-end', `url(#${markerId})`);

@@ -155,7 +155,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     applyRelationEmphasisRef,
     collectionRevealRef
   } = lifecycle;
-  const svg = d3.select(svgRef.current);
+  // TreeVisualizer draws only once the SVG is mounted.
+  const svg = d3.select(svgRef.current!);
   svg.selectAll('*').remove();
   svg.attr('data-babel-rendered-step', null);
 
