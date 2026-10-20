@@ -47,6 +47,8 @@ import type {
   Tier3RecoveredClaim
 } from './relationClaims.ts';
 import { buildTier2FacetEvidence } from './relationEvidence.ts';
+import type { RecoveredMovement } from './movementEvidence.ts';
+import { readStructuralMovementForStages } from './structuralMovement.ts';
 import { PRODUCTION_RENDER_FAMILIES } from './renderFamilies.ts';
 import { typedInterpretiveRoles, typedThematicAssignment } from './thematicAssignment.ts';
 import { indexTier2Forests, type Tier2ForestIndexes } from './tier2EvidenceQueries.ts';
@@ -345,7 +347,8 @@ export const dispatchRelationClaims = (
     priorForest,
     activeLens,
     registry = productionRelationRegistry,
-    synonymIndex = DEFAULT_SYNONYM_INDEX
+    synonymIndex = DEFAULT_SYNONYM_INDEX,
+    structuralMovement
   } = input;
   const authoredTier1Dispatch = dispatchRelation({
     registry,
@@ -353,7 +356,8 @@ export const dispatchRelationClaims = (
     stageIndex,
     relationIndex,
     currentForest,
-    priorForest
+    priorForest,
+    ...(structuralMovement ? { structuralMovement } : {})
   });
   const registryEntry = findRelationRegistryEntry(registry, relation.relation);
   const evidence = buildTier2FacetEvidence({
@@ -363,7 +367,8 @@ export const dispatchRelationClaims = (
     ...(priorRealizations ? { priorRealizations } : {}),
     priorForest,
     activeLens,
-    synonymIndex
+    synonymIndex,
+    ...(structuralMovement ? { structuralMovement } : {})
   });
   const declaredPrimaryAnchorKeys = new Set<string>(registryEntry
     ? [
@@ -859,19 +864,35 @@ export const dispatchRelationClaimBatch = (
   }));
 };
 
+/** The structural movements Replay draws, by stage and relation: those of
+ * claims that wording leaves wholly neutral (see dispatchStageRelations), or
+ * undefined when the derivation has none. */
+export function structuralMovementUpgrades(stages: Parameters<typeof dispatchStageRelations>[0]): Map<number, RecoveredMovement>[] | undefined {
+  if (!readStructuralMovementForStages(stages)?.some(stage => stage.movements.size)) return undefined;
+  return dispatchStageRelations(stages).map(stage => new Map(stage.flatMap((dispatch, relationIndex) =>
+    dispatch.structuralMovement ? [[relationIndex, dispatch.structuralMovement] as const] : [])));
+}
+
 /** Earlier claims can clarify later restatements; later relations never justify earlier ones. */
 export function dispatchStageRelations(stages: readonly { workspaceForest: SyntaxNode[]; relations: DerivationStageRelation[]; realizations?: SurfaceRealization[] }[],
   options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens'> = {}): RelationClaimDispatch[][] {
   const assignmentContext = createAssignmentContext();
   const controlContext = createControlContext();
+  const structural = readStructuralMovementForStages(stages);
   return stages.map((stage, stageIndex) => {
     beginControlStage(controlContext, stage.workspaceForest);
     return stage.relations.map((relation, relationIndex) => {
-      const dispatch = dispatchRelationClaims({
+      const input = {
         ...options, relation, stageIndex, relationIndex, assignmentContext, controlContext,
         currentForest: stage.workspaceForest, currentRealizations: stage.realizations,
         priorRealizations: stages[stageIndex - 1]?.realizations, priorForest: stages[stageIndex - 1]?.workspaceForest
-      });
+      };
+      // Structure upgrades only a claim that wording leaves wholly neutral; a
+      // claim that draws anything today keeps exactly that drawing.
+      const worded = dispatchRelationClaims(input);
+      const structuralMovement = structural?.[stageIndex].movements.get(relationIndex);
+      const dispatch: RelationClaimDispatch = structuralMovement && worded.claims.every(claim => claim.tier === 3)
+        ? { ...dispatchRelationClaims({ ...input, structuralMovement }), structuralMovement } : worded;
       recoveredClaimMovements(dispatch).forEach(movement => {
         rememberAssignmentMovement(assignmentContext, movement);
         rememberControlMovement(controlContext, stageIndex, movement);

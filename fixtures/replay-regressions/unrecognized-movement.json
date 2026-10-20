@@ -1,8 +1,8 @@
 {
-  "description": "Saved analyses whose stages contain a displacement or rewrite that Replay does not recognize as movement. Each claim's moment now introduces the occurrences it relates to an earlier occurrence of the same object, with the new parents that attach them; the earlier occurrence keeps its form until then, and all other construction keeps its own steps. Frames are the 1-based Replay frames on origin/main 5c00a19.",
+  "description": "Saved analyses whose stages contain a displacement or rewrite whose wording Replay does not recognize as movement. Movement is now read from the stage difference first, so cases 0, 1, 2 and 5 draw the arrows noted in their descriptions; the others remain neutral. Each claim's moment now introduces the occurrences it relates to an earlier occurrence of the same object, with the new parents that attach them; the earlier occurrence keeps its form until then, and all other construction keeps its own steps. Frames are the 1-based Replay frames on origin/main 5c00a19.",
   "cases": [
     {
-      "description": "Stage 3 raises 我 to Spec-TP with a claim whose name and fields are Chinese (主语内部合并: 低位, 目标头, 高位), so Replay does not recognize it as movement. The new occurrence rSubjectHigh shares lineage with rSubjectBase, which the claim also anchors; lineage continuity showed it as a separate root from the stage's first step (Select T, frame 21), and an ordinary merge attached it. The claim's moment now introduces rSubjectHigh with the new TP that attaches it above T′, and silences rSubjectBase, which keeps its word until then.",
+      "description": "Stage 3 raises 我 to Spec-TP with a claim whose name and fields are Chinese (主语内部合并: 低位, 目标头, 高位), so Replay does not recognize it as movement. The new occurrence rSubjectHigh shares lineage with rSubjectBase, which the claim also anchors; lineage continuity showed it as a separate root from the stage's first step (Select T, frame 21), and an ordinary merge attached it. The claim's moment now introduces rSubjectHigh with the new TP that attaches it above T′, and silences rSubjectBase, which keeps its word until then. Read from structure, the claims draw rSubjectBase → rSubjectHigh (stage 3), opBase → opEdge (stage 2), opEdge → opHigh (stage 4) and mainSubjectBase → mainSubjectHigh (stage 6).",
       "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (v1), commit 53a7c7f, 18 October 2026 (spell-out night batch, 47-zh-relative, analysis 1 of 2).",
       "sentence": "我昨天看见的那个人走了。",
       "framework": "minimalism",
@@ -1213,7 +1213,7 @@
       ]
     },
     {
-      "description": "Stage 9 moves the complex head mTHead to C. The claim names its contained heads in lists, so movement recovery stops at MOVEMENT_ENDPOINTS_UNRESOLVED and the claim is neutral. The new complex mTHeadAtC appeared whole at the unrelated Select C step (frame 49). The claim's moment now introduces it with the new C head complex and the CP that attaches it above TP.",
+      "description": "Stage 9 moves the complex head mTHead to C. The claim names its contained heads in lists, so movement recovery stops at MOVEMENT_ENDPOINTS_UNRESOLVED and the claim is neutral. The new complex mTHeadAtC appeared whole at the unrelated Select C step (frame 49). The claim's moment now introduces it with the new C head complex and the CP that attaches it above TP. Read from structure, the claim draws the head movement mTHead → mTHeadAtC.",
       "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, commit 53a7c7f, 18 October 2026 (indexed-token night batch, 27-sv-embedded-negation, analysis 1 of 1).",
       "sentence": "Jag vet att han inte kom.",
       "framework": "minimalism",
@@ -2855,7 +2855,7 @@
       ]
     },
     {
-      "description": "Stages 4 and 8 pied-pipe the PP. Both claims name a landing and a contained operator, so recovery finds two landings and the claims are neutral. In stage 4 the new copy pp1 appeared at the ordinary merge of vEdge (frame 29); in stage 8 pp2 was projected over 'to' at its own Project step (frame 43). Each claim's moment now introduces its copy with the new parent that attaches it. In stage 8 the recognized operator-variable claim still owns wh2 and introduces it at its own later moment, as diagnosed by RELATION_TIMING_CONFLICT.",
+      "description": "Stages 4 and 8 pied-pipe the PP. Both claims name a landing and a contained operator, so recovery finds two landings and the claims are neutral. In stage 4 the new copy pp1 appeared at the ordinary merge of vEdge (frame 29); in stage 8 pp2 was projected over 'to' at its own Project step (frame 43). Each claim's moment now introduces its copy with the new parent that attaches it. In stage 8 the recognized operator-variable claim still owns wh2 and introduces it at its own later moment, as diagnosed by RELATION_TIMING_CONFLICT. Read from structure, the stage 4 claim draws pp0 → pp1; the stage 8 displacement holds wh2, the landing of that worded movement, so its claim stays neutral.",
       "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (v1), commit 53a7c7f, 18 October 2026 (spell-out night batch, 11-en-relative-pied-piping, analysis 1 of 1).",
       "sentence": "This is the man to whom I gave the book.",
       "framework": "minimalism",
@@ -8003,7 +8003,7 @@
       ]
     },
     {
-      "description": "Stage 2 moves the object bObject, which keeps its id, to Spec-VP and leaves the new trace bObjectTrace in its slot. The rewrite also owned the preceding root bVP's merge into Ba′, so its moment moved bVP with its old contents and bObject attached to bVP only at the Stage Record (frame 24). A preceding root that gains a parent is now ordinary construction, and the moment moves bObject to its landing.",
+      "description": "Stage 2 moves the object bObject, which keeps its id, to Spec-VP and leaves the new trace bObjectTrace in its slot. The rewrite also owned the preceding root bVP's merge into Ba′, so its moment moved bVP with its old contents and bObject attached to bVP only at the Stage Record (frame 24). A preceding root that gains a parent is now ordinary construction, and the moment moves bObject to its landing. Read from structure, the claims draw bObjectTrace → bObject (stage 2) and bSubjectTrace → bSubject (stage 3).",
       "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run with the character spell-out contract (v2), commit 3f4b663, 18 October 2026 (spell-out v2 check batch, zh-ba-name.b, analysis 2 of 2).",
       "sentence": "张伟把苹果吃完了。",
       "framework": "xbar",

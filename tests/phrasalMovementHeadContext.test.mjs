@@ -244,10 +244,12 @@ for (const [name, mutate] of [
     input.relation.priorAnchors.movingPhrase = ['foot', 'older'];
   }]
 ]) test(`open source wording still needs unambiguous movement proof: ${name}`, () => {
+  // Without a landing word, wording reads no direction; the stage difference
+  // does, so structure draws foot -> upper for that wholly neutral claim.
   const input = example();
   input.relation = { relation: 'An independently named dependency',
     anchors: { landing: 'upper', departureTrace: 'foot' }, priorAnchors: { movingPhrase: 'foot' } };
   mutate(input);
   assert.equal(recover(input).movement, undefined);
-  assert.equal(hasTrajectory(input), false);
+  assert.equal(hasTrajectory(input), name === 'no authored landing direction');
 });

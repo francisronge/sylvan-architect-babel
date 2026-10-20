@@ -164,12 +164,14 @@ test('qualified wording never chooses among ambiguous exact endpoints or conflic
     input => { input.relation.anchors.raisedSubject = ['high', 'high']; },
     input => { find(input.currentForest, 'high').lineageId = 'different'; },
     input => { input.relation.priorAnchors = { sourceOccurrence: 'other' }; input.priorForest.push({ id: 'other', label: 'DP', lineageId: 'other' }); },
-    input => { input.relation.anchors = { controller: 'low', target: 'high' }; delete input.relation.priorAnchors; }
+    input => { input.relation.anchors = { controller: 'low', target: 'high' }; delete input.relation.priorAnchors; return true; }
   ]) {
     const input = qualifiedPhrase(true);
-    mutate(input);
+    // Control wording names no movement, but the claim anchors both ends of the
+    // displacement the stages show, so structure draws low -> high.
+    const structural = mutate(input) === true;
     assert.equal(recover(input).movement, undefined);
-    assert.equal(pathFor(input), undefined);
+    assert.deepEqual(pathFor(input) && [pathFor(input).sourceNodeId, pathFor(input).targetNodeId], structural ? ['low', 'high'] : undefined);
   }
 });
 

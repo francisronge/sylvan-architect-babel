@@ -36,11 +36,6 @@ syntactic rules. Desktop remains the primary experience.
      Icelandic raising chain's verb-trace role lacks its anchor at its moment
      (waiting would cost the subject landing its reserved slot and shift the
      matrix IP about 120 px).
-   - Movements still drawn as copies without an arrow: the Hungarian verbal
-     particle's topicalization (night3 14-hu-verbal-particle), and hop 8:0 of
-     the long tough relative (night4 09-en-tough-relative-long), whose claim
-     names only the landing and the new trace. Both belong with recognition
-     (item 4).
    - After a failed parse in Derivation Replay, the sentence input stays
      visible: the failure panel has no dismiss control.
    - Stage coordinate preparation keeps an ink cache that raises peak memory
@@ -60,9 +55,11 @@ syntactic rules. Desktop remains the primary experience.
    - Check right-to-left once, as a mirror of left-to-right across the saved
      parses, then run continuity checks once per width.
 4. Recognition:
-   - Run an offline, geometry-first recognition experiment over every saved
-     parse: measure the wrong-picture rate where Babel already draws, and build
-     a review page for relations Babel does not yet draw.
+   - Movement is read from structure for claims wording leaves neutral (see the
+     [dispatch spec](docs/design/visual-relations-tier2-shape-dispatch-spec.md#structural-movement-recognition)).
+     Run the same geometry-first experiment for the other relations: measure the
+     wrong-picture rate where Babel already draws, and build a review page for
+     relations Babel does not yet draw.
    - Later, consider Jev as a fallback.
 5. Remove the legacy server model-route picker (Gemini default, stale model names,
    legacy environment variables) and the `.artifacts` harnesses that depend on it.
