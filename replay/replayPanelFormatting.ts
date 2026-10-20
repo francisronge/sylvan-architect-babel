@@ -1,4 +1,5 @@
 import type { DerivationOperation, DerivationStageRelation, ReplayDetailBlock } from '../types.ts';
+import { spaceAuthoredName } from './displayText.ts';
 import type { PlaybackStep, ReplaySupportLine } from './types.ts';
 
 /** Pure panel text and detail-block formatting; relation ownership stays in the compiler. */
@@ -16,7 +17,7 @@ export const formatOperationLabel = (operation?: DerivationOperation): string =>
 };
 
 export const formatPlaybackOperationTitle = (step?: PlaybackStep | null): string => {
-  if (step?.replayKind === 'relation') return String(step.operation || '');
+  if (step?.replayKind === 'relation') return spaceAuthoredName(String(step.operation || ''), { snakeCase: true });
   const operation = formatOperationLabel(step?.operation);
   const target = String(step?.targetLabel || '').trim();
   return target && (step?.operation === 'LexicalSelect' || step?.operation === 'Project')
