@@ -1257,6 +1257,11 @@ The vocabularies are separate:
   closed and emits a diagnostic.
 - No fuzzy matching, edit distance, embeddings, language model, prompt
   vocabulary, or prose interpretation is permitted.
+- The recognition word list is frozen. Synonym groups, name Sets and arrays,
+  regex alternatives and name equality checks in `replay/relations/` may lose
+  entries but not gain them; new claims are recognised from structure.
+  `tests/recognitionVocabularyFrozen.test.mjs` enforces this against
+  `tests/helpers/recognitionVocabulary.frozen.json`.
 
 An exact primitive word or registered relation identity therefore cannot select
 a Tier-2 facet. Tier-2 recognition is earned by authored roles, values, anchors,
