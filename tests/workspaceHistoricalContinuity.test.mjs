@@ -10,9 +10,13 @@ import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCame
 import { visibleComponentNodes } from '../replay/visibleComponent.ts';
 import { prepareTreeInkSubtrees } from '../replay/treeInkGeometry.ts';
 import { currentForkBranchesClear } from '../replay/workspaceForkClearance.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const { cases } = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/workspace-historical-continuity.json', import.meta.url)));
+// Right to left this runs only for a record whose layout is not the reflection of
+// its left-to-right layout (tests/helpers/rtlMirror.mjs).
 for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction of ['ltr', 'rtl']) for (const record of cases) {
+  if (!directionsFor(`replay-regressions/workspace-historical-continuity.json#/cases/${cases.indexOf(record)}`).includes(direction)) continue;
   test(`${width}px ${direction}: ${record.key} keeps its complete workspace fixed through unrelated selection or Agree`, () => {
     const original = JSON.stringify(record), replay = prepareReplay({ ...record, includePlayback: true }), steps = replay.playbackSteps;
     const groups = buildStageLayoutGroups(steps, replay.replayDerivationFrames), sizeFor = stage => stageTreeLayoutSize(steps, stage, width, height, groups);

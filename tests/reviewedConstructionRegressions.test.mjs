@@ -7,6 +7,7 @@ import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { stageTreeLayoutSize, buildStageLayoutGroups } from '../replay/stageCamera.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const cases = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/reviewed-construction.json', import.meta.url))).cases;
 const compiled = new Map();
@@ -74,8 +75,12 @@ test('entry 21: CP attachment beneath the retained V prime precedes adjunct merg
   }
 });
 
+// Right to left these run only for a record whose layout is not the reflection of
+// its left-to-right layout (tests/helpers/rtlMirror.mjs).
+const runs = (number, direction) => directionsFor(
+  `replay-regressions/reviewed-construction.json#/cases/${cases.findIndex(entry => entry.reviewNumber === number)}`).includes(direction);
 for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
-  test(`entry 25, ${width}px ${direction}: the infinitival fork is not stretched before its subject arrives`, () => {
+  if (runs(25, direction)) test(`entry 25, ${width}px ${direction}: the infinitival fork is not stretched before its subject arrives`, () => {
     const before = positions(25, 22, width, height, direction);
     const after = positions(25, 23, width, height, direction);
     assert(!before.has('tBarInf'));
@@ -89,6 +94,7 @@ for (const [width, height] of [[1596, 1016], [390, 844]]) for (const direction o
       assert.equal(node.x, next.x);
     }
   });
+  // Right to left as well: no controlled right-to-left change has yet been shown to fail it while the mirror check reports its record.
   test(`entry 21, ${width}px ${direction}: frame 37 does not reserve an unbuilt V prime rank`, () => {
     const before = positions(21, 37, width, height, direction);
     const after = positions(21, 38, width, height, direction);

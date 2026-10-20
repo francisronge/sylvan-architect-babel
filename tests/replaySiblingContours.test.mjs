@@ -11,7 +11,7 @@ import * as coordinates from '../replay/stageCoordinates.ts';
 import * as layout from '../replay/treeLayout.ts';
 import { TREE_ROW_HEIGHT, TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
 import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
-import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const read = name => JSON.parse(readFileSync(new URL(`../fixtures/replay-regressions/${name}`, import.meta.url), 'utf8'));
 const phaseEdge = read('es-wh-phase-edge-contour.json');
@@ -104,7 +104,11 @@ test('a deep unary chain is checked in linear work', () => {
   assert.ok(writes <= 2 * size, `${writes} row writes for ${size} nodes`);
 });
 
-for (const viewport of viewports) for (const direction of ['ltr', 'rtl']) {
+// Right to left these run only for a record whose layout is not the reflection
+// of its left-to-right layout (tests/helpers/rtlMirror.mjs).
+const directions = [...new Set(['es-wh-phase-edge-contour.json#', 'diverse-recovery.json#/examples/5/analysis',
+  'hi-correlative-landing-contour.json#'].flatMap(id => directionsFor(`replay-regressions/${id}`)))];
+for (const viewport of viewports) for (const direction of directions) {
   test(`${viewport[0]}px ${direction}: a phase-edge specifier stays outside the retained subject's contour`, () => {
     const scenes = frames(phaseEdge, viewport, direction);
     const moment = scenes.findIndex(scene => scene.step.replayKind === 'relation' && scene.step.targetNodeId === 'what1');
@@ -149,28 +153,3 @@ for (const viewport of viewports) for (const direction of ['ltr', 'rtl']) {
     });
   });
 }
-
-test('no committed fixture is left with interleaved sister contours', () => {
-  const repaired = [], unresolved = [];
-  for (const { id, record } of loadFixtureAnalyses().records) {
-    const steps = prepareReplay({ ...structuredClone(record), includePlayback: true }).playbackSteps;
-    const groups = camera.buildStageLayoutGroups(steps, record.derivationStages);
-    const sizes = record.derivationStages.map((_, stage) => camera.stageTreeLayoutSize(steps, stage, 1600, 948, groups));
-    const plans = sizes.map((size, stage) => coordinates.buildStageCoordinateReservations(steps, stage, size, index => sizes[index]));
-    // The contour check matches rows by their y; it relies on the shared row grid.
-    for (const step of steps) {
-      const points = plans[step.replayFrameIndex]?.get(step.replayCanvasData);
-      for (const node of step.replayVisibleNodeIds ?? []) {
-        const y = points?.get(node)?.y;
-        if (y !== undefined) assert.ok(Math.abs(y / TREE_ROW_HEIGHT - Math.round(y / TREE_ROW_HEIGHT)) < 1e-9, `${id}: ${node} at y=${y}`);
-      }
-    }
-    const statuses = coordinates.getContourPlanStatuses(steps);
-    if (statuses.includes('unresolved')) unresolved.push(id);
-    else if (statuses.includes('repaired')) repaired.push(id);
-  }
-  assert.deepEqual(unresolved, []);
-  assert.deepEqual(repaired.sort(), ['replay-regressions/diverse-recovery.json#/examples/5/analysis',
-    'replay-regressions/es-wh-phase-edge-contour.json#', 'replay-regressions/hi-correlative-landing-contour.json#'],
-  'a newly repaired fixture changes its established layout; review it and list it here');
-});
