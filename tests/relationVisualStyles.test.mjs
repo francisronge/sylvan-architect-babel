@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import postcss from 'postcss';
 
-const sharedUrl = new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url);
+const sharedUrl = new URL('../components/renderer/relation-visuals.css', import.meta.url);
+const publishedUrl = new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url);
 const css = await readFile(sharedUrl, 'utf8');
 const sheet = postcss.parse(css);
 const properties = selector => {
@@ -12,14 +13,17 @@ const properties = selector => {
   return result;
 };
 
-test('the application and both Orchard pages load one drawing stylesheet', async () => {
+test('the application owns the drawing stylesheet and both Orchard pages load its published copy', async () => {
   const app = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
-  assert.match(app, /@import '\.\/docs\/research\/relation-orchard\/relation-visuals.css';/);
+  assert.match(app, /@import '\.\/components\/renderer\/relation-visuals.css';/);
+  assert.doesNotMatch(app, /@import '[^']*docs\//, 'the application stylesheet cannot depend on documentation');
+  assert.equal(await readFile(publishedUrl, 'utf8'), css,
+    'the research copy differs from components/renderer/relation-visuals.css; run npm run orchard:build');
   for (const location of ['../docs/design/babel-visual-relations-research.production-only-audit.html',
     '../docs/research/relation-orchard/orchard.html']) {
     const url = new URL(location, import.meta.url), html = await readFile(url, 'utf8');
     const href = html.match(/<link rel="stylesheet" href="([^"]*relation-visuals.css)"/)[1];
-    assert.equal(new URL(href, url).href, sharedUrl.href);
+    assert.equal(new URL(href, url).href, publishedUrl.href);
     const inline = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)].map(m => m[1]).join('\n');
     assert.doesNotMatch(inline, /\.babel-agree-cycle-badge circle|\.babel-control-domain\s*\{/);
   }
