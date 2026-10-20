@@ -9,6 +9,7 @@ import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import { stageTreeLayoutSize, buildStageLayoutGroups } from '../replay/stageCamera.ts';
 import { plaqueTreeObstacles } from '../replay/relations/plaquePlacement.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/review-workspace-boundaries.json', import.meta.url))).cases;
 const framingRecords = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/review-final-framing.json', import.meta.url))).cases;
@@ -36,8 +37,14 @@ function setup(key, width, height, direction) {
   return { record, steps, frame, unchanged };
 }
 
+// Right to left this runs only for a record whose layout is not the reflection of
+// its left-to-right layout (tests/helpers/rtlMirror.mjs).
+const runs = (key, direction) => {
+  const [file, list] = records.some(record => record.key === key) ? ['review-workspace-boundaries', records] : ['review-final-framing', framingRecords];
+  return directionsFor(`replay-regressions/${file}.json#/cases/${list.findIndex(record => record.key === key)}`).includes(direction);
+};
 for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
-  test(`${width}px ${direction}: Mandarin's earlier T fork keeps its shape until subject movement`, () => {
+  if (runs('holdout/mandarin-negative-relative/0', direction)) test(`${width}px ${direction}: Mandarin's earlier T fork keeps its shape until subject movement`, () => {
     const { frame, unchanged } = setup('holdout/mandarin-negative-relative/0', width, height, direction);
     const before = frame(15), movement = frame(19);
     assert(!before.nodes.has('rcTProjection'));
@@ -61,7 +68,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     ['fresh/korean-particles/0', 54, 55],
     ['fresh/mandarin-topic/1', 30, 31],
     ['fresh/mandarin-topic/3', 33, 34]
-  ]) test(`${width}px ${direction}: ${key} reserves every existing node across ${before} → ${after}`, () => {
+  ]) if (runs(key, direction)) test(`${width}px ${direction}: ${key} reserves every existing node across ${before} → ${after}`, () => {
     const { frame, unchanged } = setup(key, width, height, direction);
     const previous = frame(before), next = frame(after);
     assert.equal(next.step.replayKind, 'micro', 'ordinary construction, not authored movement');
@@ -71,7 +78,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     }
     unchanged();
   });
-  test(`${width}px ${direction}: Portuguese loose heads keep their attachment positions across construction stages`, () => {
+  if (runs('fresh/portuguese-relative/0', direction)) test(`${width}px ${direction}: Portuguese loose heads keep their attachment positions across construction stages`, () => {
     const { frame, steps, unchanged } = setup('fresh/portuguese-relative/0', width, height, direction);
     const before = frame(28);
     for (const number of [29, 30, 31, 32, 33, 34, 35, 36, 37, 35, 29, 28]) {
@@ -84,7 +91,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     unchanged();
   });
 
-  test(`${width}px ${direction}: Portuguese reservation does not move the jump to the preceding subject movement`, () => {
+  if (runs('fresh/portuguese-relative/0', direction)) test(`${width}px ${direction}: Portuguese reservation does not move the jump to the preceding subject movement`, () => {
     const { frame } = setup('fresh/portuguese-relative/0', width, height, direction);
     const before = frame(34), after = frame(35);
     for (const id of ['rT', 'rvHeadAtT', 'rVAtT', 'qEdge', 'rV', 'qBase']) {
@@ -93,7 +100,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     assert.notDeepEqual(point(before.nodes.get('anaArticle')), point(after.nodes.get('anaArticle')), 'the authored subject movement still happens');
   });
 
-  test(`${width}px ${direction}: Turkish independent inflection never overlaps the growing verb phrase`, () => {
+  if (runs('holdout/turkish-relative-subject/0', direction)) test(`${width}px ${direction}: Turkish independent inflection never overlaps the growing verb phrase`, () => {
     const { frame, steps, unchanged } = setup('holdout/turkish-relative-subject/0', width, height, direction);
     for (let number = 1; number <= steps.length; number++) {
       const { nodes } = frame(number), visible = new Set(nodes.values());

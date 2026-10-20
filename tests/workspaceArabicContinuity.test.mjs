@@ -8,9 +8,12 @@ import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCamera.ts';
 import { visibleComponentNodes } from '../replay/visibleComponent.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const cases = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/workspace-arabic-continuity.json', import.meta.url))).cases;
 const cache = new Map();
+// Right to left a record runs only where its layout is not the reflection of left to right.
+const directions = record => directionsFor(`replay-regressions/workspace-arabic-continuity.json#/cases/${cases.indexOf(record)}`);
 const parent = (node, nodes) => node.parent && nodes.has(getNodeId(node.parent)) ? getNodeId(node.parent) : null;
 const material = (node, nodes) => [getNodeId(node), node.data.label, node.data.word, node.data.silent,
   (node.children ?? []).filter(child => nodes.has(getNodeId(child))).map(child => material(child, nodes))];
@@ -44,8 +47,8 @@ function setup(record, width, height, direction) {
   cache.set(key, result); return result;
 }
 
-for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
-  for (const record of cases.filter(record => adjunctAttachments[record.key])) {
+for (const [width, height] of [[1600, 1100], [390, 844]]) {
+  for (const record of cases.filter(record => adjunctAttachments[record.key])) for (const direction of directions(record)) {
     test(`${width}px ${direction}: ${record.key} attaches an adjunct without deforming its unchanged clause`, () => {
       const run = setup(record, width, height, direction);
       const [a, b, id] = adjunctAttachments[record.key];
@@ -63,7 +66,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     });
   }
 
-  for (const record of cases) test(`${width}px ${direction}: ${record.key} keeps every unchanged complete workspace stationary`, () => {
+  for (const record of cases) for (const direction of directions(record)) test(`${width}px ${direction}: ${record.key} keeps every unchanged complete workspace stationary`, () => {
     const run = setup(record, width, height, direction);
     let checked = 0;
     for (let index = 1; index < run.frames.length; index++) {
@@ -84,7 +87,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
     run.immutable();
   });
 
-  for (const record of cases) test(`${width}px ${direction}: ${record.key} keeps the current nominal unary branch at one rank`, () => {
+  for (const record of cases) for (const direction of directions(record)) test(`${width}px ${direction}: ${record.key} keeps the current nominal unary branch at one rank`, () => {
     const run = setup(record, width, height, direction);
     let checked = 0;
     for (const { nodes } of run.frames) {
