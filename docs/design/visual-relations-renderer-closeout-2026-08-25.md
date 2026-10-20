@@ -386,8 +386,8 @@ a spoke from a node to itself.
 The existing Replay rows identify previous-stage references with
 `role (previous stage): participant`. No triangle or extra panel section is
 needed. Plain camelCase names receive conservative display spacing. The Replay
-panel also spaces snake_case relation and role names; Tier-3 tree labels keep
-their underscores. Other punctuation, single-letter notation such as `x_i`,
+panel also spaces snake_case relation and role names, and Tier-3 tree role
+labels space them the same way. Other punctuation, single-letter notation such as `x_i`,
 non-Latin names and authored record strings remain unchanged. Unavailable references
 and empty collections have distinct readable descriptions.
 

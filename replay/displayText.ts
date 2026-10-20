@@ -1,7 +1,8 @@
 /**
  * Display plain camel-case names without interpreting notation or changing authored letters.
  * With `snakeCase`, single underscores between Latin words also become spaces; the Replay
- * panel opts in for relation and role names. Other names, including non-Latin ones, are unchanged.
+ * panel's relation and role names and the Tier-3 tree role labels opt in. Other names,
+ * including non-Latin ones, are unchanged.
  */
 export const spaceAuthoredName = (name: string, { snakeCase = false } = {}): string => {
   if (!(snakeCase ? /^[A-Za-z]+(?:_[A-Za-z]+)*$/ : /^[A-Za-z]+$/).test(name)) return name;
