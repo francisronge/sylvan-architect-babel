@@ -86,7 +86,7 @@ export function refineRelationGeometry({
       treeMatrix,
       svg
     });
-    const { refineFeaturePlaques, refineSplitAntecedenceComposition, renderPfRealizationPlate, layoutAnalysisVerdicts } = createPlaqueRefinements({
+    const { refineSplitAntecedenceComposition, renderPfRealizationPlate, layoutAnalysisVerdicts } = createPlaqueRefinements({
       g,
       measuredTerminalSubtreesRect,
       playedRelationIndices,
@@ -134,9 +134,6 @@ export function refineRelationGeometry({
 
     g.selectAll<SVGGElement, unknown>('.babel-predication-relation-layer')
       .each(refinePredicationRelation);
-
-    refineFeaturePlaques();
-    deferredAcceptedRelationDraws.push(refineFeaturePlaques);
 
     refineSplitAntecedenceComposition();
     deferredAcceptedRelationDraws.push(refineSplitAntecedenceComposition);

@@ -43,45 +43,6 @@ export function createPlaqueRefinements({
   measuredTreeLabelsRect,
   measuredSubtreeRect
 }: PlaqueRefinementsContext) {
-  const refineFeaturePlaques = () => {
-    g.selectAll<SVGGElement, unknown>('.babel-feature-plaque').each(function refineFeaturePlaque() {
-      const plaque = d3.select(this);
-      if (
-        plaque.attr('data-feature-placement') === 'accepted'
-      ) return;
-      const anchorId = plaque.attr('data-feature-anchor');
-      const anchorRect = measuredTerminalSubtreesRect([anchorId]);
-      const shell = plaque.select<SVGRectElement>('.babel-feature-plaque-shell');
-      if (!anchorRect || shell.empty()) return;
-      const previousX = Number(shell.attr('x'));
-      const previousY = Number(shell.attr('y'));
-      const nextX = anchorRect.x + anchorRect.width / 2 - 180 - 18;
-      const nextY = anchorRect.y + anchorRect.height + 30;
-      const deltaX = nextX - previousX;
-      const deltaY = nextY - previousY;
-      shell
-        .attr('x', nextX.toFixed(1))
-        .attr('y', nextY.toFixed(1));
-      plaque.select<SVGTextElement>('.babel-feature-plaque-title')
-        .attr('x', function shiftTitleX() {
-          return (Number(this.getAttribute('x')) + deltaX).toFixed(1);
-        })
-        .attr('y', function shiftTitleY() {
-          return (Number(this.getAttribute('y')) + deltaY).toFixed(1);
-        });
-      plaque.selectAll<SVGTextElement, unknown>('.babel-feature-text')
-        .attr('x', function shiftFeatureTextX() {
-          return (Number(this.getAttribute('x')) + deltaX).toFixed(1);
-        })
-        .attr('y', function shiftFeatureTextY() {
-          return (Number(this.getAttribute('y')) + deltaY).toFixed(1);
-        });
-      plaque.selectAll<SVGTSpanElement, unknown>('.babel-feature-text tspan')
-        .attr('x', function shiftFeatureTspanX() {
-          return (Number(this.getAttribute('x')) + deltaX).toFixed(1);
-        });
-    });
-  };
   const refineSplitAntecedenceComposition = () => {
     const matrix = g.node()?.getScreenCTM();
     if (!matrix) return;
@@ -246,5 +207,5 @@ export function createPlaqueRefinements({
       );
     });
   };
-  return { refineFeaturePlaques, refineSplitAntecedenceComposition, renderPfRealizationPlate, layoutAnalysisVerdicts };
+  return { refineSplitAntecedenceComposition, renderPfRealizationPlate, layoutAnalysisVerdicts };
 }
