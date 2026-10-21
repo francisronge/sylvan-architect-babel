@@ -286,3 +286,14 @@ export function plaqueColumnContains(intervals: readonly (readonly number[])[], 
   }
   return low > 0 && y < intervals[low - 1][1];
 }
+
+/** Whether one interval contains every height from `low` to `high`. */
+export function plaqueColumnCovers(intervals: readonly (readonly number[])[], low: number, high: number): boolean {
+  let first = 0, last = intervals.length;
+  while (first < last) {
+    const middle = (first + last) >>> 1;
+    if (intervals[middle][0] < low) first = middle + 1;
+    else last = middle;
+  }
+  return first > 0 && high < intervals[first - 1][1];
+}
