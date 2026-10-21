@@ -1,4 +1,6 @@
 {
+  "description": "An abandoned grid pocket cannot push persistent Case below its subtree (plaqueGeometrySchedule).",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run sol-generalization-20261011/french-clitic-topic, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/sol-generalization-20261011/runs/french-clitic-topic (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/sol-generalization-20261011/runs/french-clitic-topic).",
   "sentence": "Ces lettres, Léa les a envoyées à Paul.",
   "inputTokens": [
     "Ces",
@@ -60,8 +62,8 @@
           }
         }
       ],
-      "stageRecord": "",
-      "statement": "Current syntax and relations.",
+      "stageRecord": "Build the demonstrative DP Ces lettres, the proper-name DPs Léa and Paul, the pronominal DP les, and the verbal projection. Proper names occupy nominal projections with silent determiners; les is a saturated pronominal D. The participial V initially has no surface word because its agreement has not yet been established. The auxiliary a is introduced separately as finite I. Within V′, envoyer selects the direct-object DP as Theme and the à-PP as Goal. This analysis permits the two ordered complements within one V′; the PP is a verbal complement, not a modifier of lettres. The preposition à governs the DP Paul and licenses its oblique Case. The verb licenses accusative Case on its object DP. Finally, Ces agrees with lettres in feminine plural features. The clitic's underlying feminine plural features are compatible with the intended antecedent, although les itself does not overtly distinguish gender. The topic DP is still separate and has not yet acquired a resumptive dependency.",
+      "statement": "Construct the lexical projections for a clitic-left-dislocation analysis.",
       "workspaceForest": [
         {
           "children": [
@@ -255,8 +257,8 @@
           }
         }
       ],
-      "stageRecord": "",
-      "statement": "Current syntax and relations.",
+      "stageRecord": "Combine finite I with VP under I′ and place Léa in Spec-IP. This adopts the GB option in which the external argument is generated in Spec-IP, rather than introducing a VP-internal subject and an additional raising step. The verbal predicate assigns its external Agent role to Léa through the subject-predicate relation. Finite I licenses nominative Case on Léa and agrees with this singular third-person subject. The auxiliary selects a participial VP, establishing the passé composé construction. Ces lettres remains outside the clause, awaiting the left-dislocation structure.",
+      "statement": "Establish the finite clause and its subject.",
       "workspaceForest": [
         {
           "children": [
@@ -463,8 +465,8 @@
           }
         }
       ],
-      "stageRecord": "",
-      "statement": "Current syntax and relations.",
+      "stageRecord": "Move the pronominal D les from the previously established object DP and left-adjoin it to finite I. The original object DP remains in the verb's complement position with a silent D trace. The pronounced D and its trace form one clitic chain: the lower position supplies the Theme role and accusative licensing, while the upper occurrence supplies the preverbal pronunciation les a. This is object-clitic head movement, not movement of Ces lettres. Once this chain is established, the preceding accusative clitic controls feminine plural agreement on the avoir participle. Value the participle's agreement features and realize it as envoyées. This analysis treats the agreement dependency as mediated by the object chain and does not introduce an additional Agr projection or an unrecorded movement step.",
+      "statement": "Move the object clitic to finite I and realize participial agreement.",
       "workspaceForest": [
         {
           "children": [
@@ -677,8 +679,8 @@
           }
         }
       ],
-      "stageRecord": "",
-      "statement": "Current syntax and relations.",
+      "stageRecord": "Project a declarative CP with a silent C and place the separately constructed DP Ces lettres in Spec-CP. Coindex this left-dislocated DP with the object-clitic chain. Spec-CP c-commands the resumptive clitic and its lower trace, establishing the local A′ topic-resumption dependency. Ces lettres is base-generated in the left periphery: it does not move from the object position, and it is not an additional verbal argument. The Theme role remains on the clitic chain. Because the topic is outside IP, its relation to the pronominal clitic does not violate the local freedom requirement associated with Principle B; the lower head-movement trace is licensed within the clitic chain. The completed interpretation is that, as for these letters, Léa sent them to Paul. The comma marks the left-dislocation boundary and the period marks the declarative boundary; neither punctuation mark is a supplied word token.",
+      "statement": "Complete the clause-internal clitic-left-dislocation structure.",
       "workspaceForest": [
         {
           "children": [

@@ -4,12 +4,12 @@ import type { DrawingLayer } from './drawingContext.ts';
 
 export const withPlaqueTextMeasure = <T,>(
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-  useMeasure: (measure: PlaqueTextMeasure) => T
+  measureWith: (measure: PlaqueTextMeasure) => T
 ): T => {
   const text = svg.append('text').attr('visibility', 'hidden')
     .attr('aria-hidden', 'true').attr('x', 0).attr('y', 0).style('white-space', 'pre');
   try {
-    return useMeasure((value, style) => {
+    return measureWith((value, style) => {
       text.style('font-family', style.fontFamily).style('font-size', `${style.fontSize}px`)
         .style('font-weight', style.fontWeight).style('letter-spacing', `${style.letterSpacing}px`).text(value);
       const element = text.node()!;

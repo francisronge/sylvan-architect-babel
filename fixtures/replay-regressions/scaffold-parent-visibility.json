@@ -1,4 +1,6 @@
 {
+  "description": "A merged scene cannot expose its later parent at the stage boundary (plaqueGeometrySchedule).",
+  "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run exhaustive-renderer-20260922/holdout1-arabic-recovered-run, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/exhaustive-renderer-20260922/holdout1-arabic-recovered-run (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/exhaustive-renderer-20260922/holdout1-arabic-recovered-run).",
   "sentence": "لم يكتب الطالب الرسالة.",
   "framework": "minimalism",
   "inputTokens": [

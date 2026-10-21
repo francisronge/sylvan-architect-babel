@@ -1,4 +1,6 @@
 {
+  "description": "Duplicate stage IDs remain inspectable and replayable without repair (diagnosticStageInspection, failedOutputInspection).",
+  "source": "Saved model output with duplicate occurrence IDs, kept unrepaired; its raw-output SHA-256 is recorded in rawOutputSha256. The model and run are not recorded and no archived file has that hash.",
   "sentence": "मीरा ने अपने भाई को चिट्ठी भेजी।",
   "inputTokens": [
     "मीरा",

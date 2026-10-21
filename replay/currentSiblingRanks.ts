@@ -8,8 +8,28 @@ type Scene = {
   nodes: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>;
   visible: ReadonlySet<string>;
 };
-const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => node.ancestors().slice(1).find(ancestor =>
-  !ancestor.data.replayLayoutOnly && ancestor.data.replayOrigin?.kind !== 'workspace');
+const isSyntax = (node: d3.HierarchyPointNode<SyntaxNode>) =>
+  !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace';
+const syntaxParent = (node: d3.HierarchyPointNode<SyntaxNode>) => {
+  let ancestor = node.parent;
+  while (ancestor && !isSyntax(ancestor)) ancestor = ancestor.parent;
+  return ancestor ?? undefined;
+};
+/** Whether a future node's nearest syntax ancestors, below `parentId`, are all
+ * unseen and at least one exists: `parentId` is a strict, non-immediate syntax
+ * ancestor of `node` with no current ancestor between them. Walks only as far
+ * as the answer requires. */
+const awaitsUnseenWrapper = (node: d3.HierarchyPointNode<SyntaxNode>, parentId: string, visible: ReadonlySet<string>) => {
+  let between = 0;
+  for (let ancestor = node.parent; ancestor; ancestor = ancestor.parent) {
+    if (!isSyntax(ancestor)) continue;
+    const id = getNodeId(ancestor);
+    if (id === parentId) return between > 0;
+    if (visible.has(id)) return false;
+    between++;
+  }
+  return false;
+};
 
 /** An unbuilt wrapper cannot deepen just one current daughter. Retain the
  * unaffected sister's rank and translate the wrapped subtree as a unit. Both
@@ -33,11 +53,7 @@ export function retainCurrentSiblingRanks(current: Scene & { coordinates: TreeCo
     for (const child of children) {
       const other = future.nodes.get(getNodeId(child));
       if (!other || relocated.has(getNodeId(child))) continue;
-      const ancestry = other.ancestors().slice(1).filter(ancestor =>
-        !ancestor.data.replayLayoutOnly && ancestor.data.replayOrigin?.kind !== 'workspace');
-      const parentIndex = ancestry.findIndex(ancestor => getNodeId(ancestor) === getNodeId(parent));
-      if (parentIndex < 1 || ancestry.slice(0, parentIndex).some(ancestor =>
-        current.visible.has(getNodeId(ancestor)))) continue;
+      if (!awaitsUnseenWrapper(other, getNodeId(parent), current.visible)) continue;
       const delta = rank - coordinates.get(getNodeId(child))!.y;
       for (const descendant of visibleComponentNodes(child, visibleNodes)) {
         const id = getNodeId(descendant), point = coordinates.get(id);
@@ -64,10 +80,7 @@ const unaryEdgesAwaitingInsertion = (current: Scene, future: Scene): Array<{ par
     if (children.length !== 1) return;
     const child = children[0], other = future.nodes.get(getNodeId(child));
     if (!other) return;
-    const ancestry = other.ancestors().slice(1).filter(ancestor =>
-      !ancestor.data.replayLayoutOnly && ancestor.data.replayOrigin?.kind !== 'workspace');
-    const parentIndex = ancestry.findIndex(ancestor => getNodeId(ancestor) === getNodeId(parent));
-    if (parentIndex < 1 || ancestry.slice(0, parentIndex).some(ancestor => current.visible.has(getNodeId(ancestor)))) return;
+    if (!awaitsUnseenWrapper(other, getNodeId(parent), current.visible)) return;
     edges.push({ parent, child });
   });
   return edges;

@@ -1,9 +1,250 @@
 {
+  "description": "An exact phrase pair distinguishes an open landing field from a retained head; malformed exact Tier-1 stays neutral; ordinary projection is not movement (openMovementLandingContext).",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run balanced-16-20261012/czech-concord, analysis 2. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/balanced-16-20261012/runs/czech-concord (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/balanced-16-20261012/runs/czech-concord).",
   "sentence": "Jana čte nový časopis.",
   "derivationStages": [
     {
-      "statement": "The object occupies its preceding position.",
-      "stageRecord": "",
+      "statement": "Construct the nominals for the morphologically possible object–verb–subject reading.",
+      "stageRecord": "Jana also has an independently available Czech analysis as the masculine animate accusative singular of the name Jan. On that reading, nový časopis can be nominative singular and serve as the subject. The resulting interpretation is that a new magazine reads Jan, requiring a context such as personification and possibly an author-for-work interpretation of Jan. Its semantic unusualness does not eliminate the case-supported structural reading. Both nominals are represented as articleless NPs. Nový projects an AP adjoined to the magazine's N′ and modifies the magazine. Čte remains an intact lexical terminal, with a separate abstract, unpronounced finite I head.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "a2-Jan",
+                  "label": "N°",
+                  "tokenIndex": 0,
+                  "word": "Jana"
+                }
+              ],
+              "id": "a2-object-nbar",
+              "label": "N′"
+            }
+          ],
+          "id": "a2-object-low",
+          "label": "NP",
+          "lineageId": "a2-Jan-NP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a2-adjective",
+                          "label": "A°",
+                          "tokenIndex": 2,
+                          "word": "nový"
+                        }
+                      ],
+                      "id": "a2-abar",
+                      "label": "A′"
+                    }
+                  ],
+                  "id": "a2-ap",
+                  "label": "AP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a2-magazine",
+                      "label": "N°",
+                      "tokenIndex": 3,
+                      "word": "časopis"
+                    }
+                  ],
+                  "id": "a2-subject-inner",
+                  "label": "N′"
+                }
+              ],
+              "id": "a2-subject-outer",
+              "label": "N′"
+            }
+          ],
+          "id": "a2-subject",
+          "label": "NP"
+        },
+        {
+          "children": [],
+          "id": "a2-verb-low",
+          "label": "V°",
+          "lineageId": "a2-read-V",
+          "tokenIndex": 1,
+          "word": "čte"
+        },
+        {
+          "children": [],
+          "id": "a2-inflection",
+          "label": "I° [present, indicative, third-person singular]",
+          "silent": true
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "modifiedNominal": "a2-subject-inner",
+            "modifier": "a2-ap"
+          },
+          "relation": "Attributive modification",
+          "values": {
+            "interpretation": "a magazine that is new"
+          }
+        },
+        {
+          "anchors": {
+            "personalName": "a2-Jan"
+          },
+          "relation": "Lexical morphological interpretation",
+          "values": {
+            "availableCaseForm": "accusative",
+            "lemma": "Jan",
+            "nominalFeatures": "masculine, animate, singular",
+            "surfaceForm": "Jana"
+          }
+        }
+      ]
+    },
+    {
+      "statement": "Assign the magazine the external role and Jan the internal role.",
+      "stageRecord": "The verb selects the Jan NP as its V′ complement, while nový časopis occupies Spec-VP. The verb assigns the reader role to the magazine and the read-target role to Jan. V governs the personal-name complement and assigns accusative Case, licensing the surface form Jana as an inflection of Jan. This stage establishes the thematic and Case distinctions that separate this analysis from the ordinary reading; it does not yet establish the sentence's surface order.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a2-adjective",
+                              "label": "A°",
+                              "tokenIndex": 2,
+                              "word": "nový"
+                            }
+                          ],
+                          "id": "a2-abar",
+                          "label": "A′"
+                        }
+                      ],
+                      "id": "a2-ap",
+                      "label": "AP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a2-magazine",
+                          "label": "N°",
+                          "tokenIndex": 3,
+                          "word": "časopis"
+                        }
+                      ],
+                      "id": "a2-subject-inner",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "a2-subject-outer",
+                  "label": "N′"
+                }
+              ],
+              "id": "a2-subject",
+              "label": "NP"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "a2-verb-low",
+                  "label": "V°",
+                  "lineageId": "a2-read-V",
+                  "tokenIndex": 1,
+                  "word": "čte"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a2-Jan",
+                          "label": "N°",
+                          "tokenIndex": 0,
+                          "word": "Jana"
+                        }
+                      ],
+                      "id": "a2-object-nbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "a2-object-low",
+                  "label": "NP",
+                  "lineageId": "a2-Jan-NP"
+                }
+              ],
+              "id": "a2-vbar",
+              "label": "V′"
+            }
+          ],
+          "id": "a2-vp",
+          "label": "VP"
+        },
+        {
+          "children": [],
+          "id": "a2-inflection",
+          "label": "I° [present, indicative, third-person singular]",
+          "silent": true
+        }
+      ],
+      "relations": [
+        {
+          "anchors": {
+            "complement": "a2-object-low",
+            "selector": "a2-verb-low"
+          },
+          "relation": "Verbal complement selection",
+          "values": {
+            "selection": "transitive nominal complement"
+          }
+        },
+        {
+          "anchors": {
+            "predicate": "a2-verb-low",
+            "readTarget": "a2-object-low",
+            "reader": "a2-subject"
+          },
+          "relation": "Theta-role assignment",
+          "values": {
+            "interpretiveRequirement": "the magazine is construed as a reader; Jan may denote the person or metonymically his writing",
+            "readTargetRole": "internal argument",
+            "readerRole": "external argument"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "a2-object-low",
+            "governor": "a2-verb-low"
+          },
+          "relation": "Government and accusative Case",
+          "values": {
+            "case": "accusative"
+          }
+        }
+      ]
+    },
+    {
+      "statement": "Establish the finite verb before a low nominative subject.",
+      "stageRecord": "I projects over the VP, and čte raises from the previously established V position to I, leaving a silent head trace. The raised head locally governs and identifies that trace. For this Czech inversion analysis, the lexical subject remains in Spec-VP: finite I licenses nominative under government in its selected VP domain, without requiring an overt subject in Spec-IP. This adopts a low-subject implementation of Czech's flexible word order, rather than treating Czech as obligatorily verb-second or adding an unsupported expletive. I agrees with the magazine NP in third-person singular features. The adjective receives the subject nominal's masculine inanimate singular nominative features by concord. At this stage the pronounced order is verb–subject–object; object fronting has not occurred.",
       "workspaceForest": [
         {
           "children": [
@@ -121,11 +362,75 @@
           "label": "IP"
         }
       ],
-      "relations": []
+      "relations": [
+        {
+          "anchors": {
+            "clause": "a2-ip",
+            "finiteHead": "a2-inflection",
+            "predicate": "a2-vp"
+          },
+          "relation": "Finite clausal licensing",
+          "values": {
+            "clausalFeatures": "present, indicative, third-person singular",
+            "subjectPositionPolicy": "Czech permits a licensed lexical subject to remain in Spec-VP"
+          }
+        },
+        {
+          "anchors": {
+            "complexHead": "a2-complex-i",
+            "host": "a2-inflection",
+            "lowerTrace": "a2-verb-low",
+            "raisedVerb": "a2-verb-high"
+          },
+          "priorAnchors": {
+            "movementSource": "a2-verb-low"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "chainInterpretation": "one lexical predicate with an unpronounced lower head trace",
+            "locality": "no intervening head; the raised head governs and identifies its trace",
+            "operation": "head adjunction to I"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "a2-subject",
+            "licensor": "a2-inflection",
+            "selectedDomain": "a2-vp"
+          },
+          "relation": "Low-subject nominative licensing",
+          "values": {
+            "case": "nominative",
+            "configuration": "finite I governs the lexical subject in its selected VP domain"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "a2-inflection",
+            "finiteVerb": "a2-verb-high",
+            "subject": "a2-subject"
+          },
+          "relation": "Subject–finite-head agreement",
+          "values": {
+            "agreementFeatures": "third person, singular"
+          }
+        },
+        {
+          "anchors": {
+            "adjective": "a2-adjective",
+            "caseDomain": "a2-subject",
+            "nominalHead": "a2-magazine"
+          },
+          "relation": "Attributive concord",
+          "values": {
+            "agreementFeatures": "masculine, inanimate, singular, nominative"
+          }
+        }
+      ]
     },
     {
-      "statement": "Front the object.",
-      "stageRecord": "",
+      "statement": "Front the accusative object and complete the OVS reading.",
+      "stageRecord": "A declarative CP is projected over the finite IP, with an unpronounced C head. The Jan NP moves from the complement position shown in the preceding stage to Spec-CP, leaving a silent object trace. This is A′-fronting of the object, compatible with a topic or contrastive interpretation; it does not make Jana the grammatical subject. The fronted NP retains accusative Case and its internal theta-role through its chain. Its antecedent c-commands the trace, which is also properly governed in the verbal complement position by the verbal chain. The verb remains in I, so the completed pronounced order is Jana čte nový časopis without V-to-C movement. The distinct personal-name and magazine NPs are not coindexed, satisfying Principle C.",
       "workspaceForest": [
         {
           "children": [
@@ -287,6 +592,18 @@
             "retainedCase": "accusative",
             "retainedThetaRole": "internal read-target argument",
             "traceLicensing": "antecedent c-command and proper government by the verbal chain"
+          }
+        },
+        {
+          "anchors": {
+            "referentialExpressions": [
+              "a2-object-high",
+              "a2-subject"
+            ]
+          },
+          "relation": "Binding Principle C satisfaction",
+          "values": {
+            "bindingStatus": "the distinct lexical NPs are not coindexed; neither R-expression is bound"
           }
         }
       ]

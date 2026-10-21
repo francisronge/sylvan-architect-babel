@@ -1,4 +1,5 @@
 {
+  "description": "Both saved Spanish QR analyses assign Case at the declared governing occurrence (governingPositionCase).",
   "provenance": {
     "model": "openai:gpt-6-astra",
     "harness": "qualification:codex",

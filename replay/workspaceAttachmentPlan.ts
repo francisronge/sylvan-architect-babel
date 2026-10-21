@@ -26,6 +26,12 @@ export type WorkspaceAttachmentPolicy = {
   preserveSourceClearance?: boolean;
 };
 
+/** `node.ancestors().some(ancestor => getNodeId(ancestor) === id)`, without the array. */
+function hasAncestor(node: Node, id: string): boolean {
+  for (let ancestor: Node | null = node; ancestor; ancestor = ancestor.parent) if (getNodeId(ancestor) === id) return true;
+  return false;
+}
+
 function lowerWitnesses(step: PlaybackStep): Map<string, string> | null {
   const witnesses = new Map<string, string>();
   for (const link of step.replayRelationLinks ?? []) {
@@ -99,6 +105,12 @@ export function reserveAttachmentLifetimes({
       const applyLifetime = (start: number, increment: number, useWitnesses: boolean) => {
         const currentIds = new Map(members.map(node => [getNodeId(node), useWitnesses ? mapped(getNodeId(node)) : getNodeId(node)]));
         let lifetimePositions = new Map(positions), referenceNodes = after.nodes;
+        // Both follow currentIds, which only witness renaming changes.
+        const rootParent = ordinary && useWitnesses ? visibleParentId(attached, after.nodes) : undefined;
+        const currentMembers = () => ({ memberIds: new Set(currentIds.values()),
+          expectedParents: new Map(members.map(node => [currentIds.get(getNodeId(node))!,
+            node === root ? rootParent : currentIds.get(getNodeId(node.parent!))])) });
+        let { memberIds, expectedParents } = currentMembers();
         for (let index = start; index >= 0 && index < scenes.length; index += increment) {
           const scene = scenes[index];
           if (ordinary && useWitnesses && scene.step.replayFrameIndex !== after.step.replayFrameIndex) break;
@@ -106,10 +118,8 @@ export function reserveAttachmentLifetimes({
             const nextWitnesses = lowerWitnesses(scene.step);
             if (!nextWitnesses) break;
             currentIds.forEach((id, original) => { const witness = nextWitnesses.get(id); if (witness) currentIds.set(original, witness); });
+            ({ memberIds, expectedParents } = currentMembers());
           }
-          const memberIds = new Set(currentIds.values());
-          const expectedParents = new Map(members.map(node => [currentIds.get(getNodeId(node))!,
-            node === root ? (ordinary && useWitnesses ? visibleParentId(attached, after.nodes) : undefined) : currentIds.get(getNodeId(node.parent!))]));
           const present = [...memberIds].filter(id => scene.nodes.has(id));
           if (!present.length) break;
           const compatible = present.every(id => {
@@ -126,7 +136,7 @@ export function reserveAttachmentLifetimes({
           const relocated = new Set<string>();
           if (progressive && ordinary && !useWitnesses) for (const id of present) {
             const node = scene.nodes.get(id)!, future = referenceNodes.get(id), parent = visibleParentId(node, scene.nodes);
-            if (parent && future && !future.ancestors().some(ancestor => getNodeId(ancestor) === parent)) {
+            if (parent && future && !hasAncestor(future, parent)) {
               node.each(descendant => relocated.add(getNodeId(descendant)));
             }
           }
