@@ -31,7 +31,8 @@ export const EXCEPTIONS = [
     'plaque(7:2 theta theme)@find', { desktop: { '96-98': 1.19, '104-106': 1.16 }, 'desktop-large': { '96-98': 1.19, '104-106': 1.16 } },
     { by: 'Francis Ronge', on: '2026-10-20', expires: '2027-01-20', note: 'Accepted on the side-by-side review of '
       + 'T′ arriving at the subject movement: stage 9 loses its T′ merge step, so the tree nearer find takes main\'s '
-      + 'pocket and the theme plaque sits up to 1.19 of its reach in frames 96-98 and 104-106.' }),
+      + 'pocket and the theme plaque sits up to 1.19 of its reach in frames 96-98 and 104-106.',
+      accepts: { desktop: { '96-98': 1.19, '104-106': 1.16 }, 'desktop-large': { '96-98': 1.19, '104-106': 1.16 } } }),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
     'plaque(1:3 theta Experiencer/Proposition)@vWant', { desktop: { '31-34': 1.3 }, 'desktop-large': { '31-34': 1.3 } }),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
