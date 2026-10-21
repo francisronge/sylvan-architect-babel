@@ -2,6 +2,8 @@
   "sentence": "What did Mia see?",
   "framework": "xbar",
   "modelRoute": "gemini",
+  "description": "Parser-contract baseline for a wh question: wh movement, a silent lower occurrence, auxiliary movement and exact surface order.",
+  "source": "Hand-authored model-shaped payload (commit 86f79ab, 10 July 2026; revised in d296b42, 9 August 2026); not a model answer. modelRoute \"gemini\" is the parser's default route label, not the model that wrote it.",
   "payload": {
     "derivationStages": [
       {

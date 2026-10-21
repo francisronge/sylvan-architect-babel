@@ -479,9 +479,40 @@ export function recoverMovementEvidence(
       });
     });
   }
-  const priorSources = explicitPriorSources.length ? explicitPriorSources : structuralPriorSources;
+  // A moved occurrence can keep its ID without a prior anchor. When a claimed
+  // landing has left its preceding slot and one anchored same-lineage
+  // occurrence new in this stage holds that slot, the landing's own preceding
+  // occurrence is the prior source. Only a claim that already names a source
+  // or witness qualifies; earlier unchanged copies cannot compete as landings.
+  const retainedLandingSources = !explicitPriorSources.length && !structuralPriorSources.length && sources.length
+    ? targets.filter(id => {
+      const pair = sourceOccurrencePair(current, prior, id, anchored);
+      return pair?.landing.id === id && !prior.nodes.has(pair.source.id);
+    }) : [];
+  const priorSources = explicitPriorSources.length ? explicitPriorSources
+    : structuralPriorSources.length ? structuralPriorSources : retainedLandingSources;
   const priorSource = priorSources.length === 1 ? priorSources[0] : undefined;
+  // In a successive step, only the anchored occurrence occupying this source's
+  // preceding slot is its new lower witness. Older copies stay separate evidence.
+  const isEarlierChainOccurrence = (id: string): boolean => Boolean(priorSource && id !== priorSource
+    && !current.duplicates.has(id) && !prior.duplicates.has(id)
+    && current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource)?.lineageId
+    && sameAuthoredValue(current.nodes.get(id), prior.nodes.get(id)) && samePriorSlot(id, id));
+  // Several trace fields may cite unchanged earlier copies beside the step's
+  // new lower witness. Those copies do not compete with it. Only a lineage the
+  // preceding source already declares identifies them: at a first copy every
+  // other trace remains a competing witness.
+  const priorSourceLineage = priorSource ? prior.nodes.get(priorSource)?.lineageId : undefined;
+  const stepWitnesses = priorSourceLineage ? witnesses.filter(id => !isEarlierChainOccurrence(id)) : witnesses;
+  if (witnesses.length > 1 && stepWitnesses.length === 1) {
+    if (sources === witnesses) sources = stepWitnesses;
+    witnesses = stepWitnesses;
+  }
   const sourcePair = priorSource ? sourceOccurrencePair(current, prior, priorSource, anchored) : undefined;
+  // The landing kept its ID and one new occurrence holds its preceding slot:
+  // the step is structurally proved whatever the lower field is called.
+  const retainedLandingHop = Boolean(sourcePair && sourcePair.landing.id === priorSource
+    && targets.includes(sourcePair.landing.id) && !prior.nodes.has(sourcePair.source.id));
   const sourceContainers = anchored.filter(id => entries.filter(entry => entry.ids.includes(id)
     && hasRole(entry.key, 'movement.source')).every(entry => sourceContainerRole(entry.key)));
   const sourceAnchors = sourcePair && priorSource
@@ -519,14 +550,9 @@ export function recoverMovementEvidence(
       structurallyBound = true;
     }
   }
-  // In a successive step, only the anchored occurrence occupying this source's
-  // preceding slot is its new lower witness. Older copies stay separate evidence.
-  const isEarlierChainOccurrence = (id: string): boolean => Boolean(priorSource && id !== priorSource
-    && !current.duplicates.has(id) && !prior.duplicates.has(id)
-    && current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource)?.lineageId
-    && sameAuthoredValue(current.nodes.get(id), prior.nodes.get(id)) && samePriorSlot(id, id));
   const onlyEarlierChainSources = sources.length > 0 && sources.every(isEarlierChainOccurrence);
-  if ((!sources.length || onlyEarlierChainSources) && priorSource && canBindStructuralEndpoints) {
+  if (priorSource && (!sources.length ? canBindStructuralEndpoints
+    : onlyEarlierChainSources && (canBindStructuralEndpoints || retainedLandingHop))) {
     const lower = anchored.filter(id => current.nodes.get(id)?.lineageId
       && current.nodes.get(id)?.lineageId === prior.nodes.get(priorSource)?.lineageId && samePriorSlot(id, priorSource));
     if (lower.length === 1) {
@@ -573,7 +599,14 @@ export function recoverMovementEvidence(
     };
     // A phrase's target head may remain in place or project beside the landing.
     // Leave that field unclaimed after proving the phrase's lineage and exact
-    // preceding slot; it establishes no additional movement endpoint.
+    // preceding slot; it establishes no additional movement endpoint. A branching
+    // head qualifies only as a complex that earlier head movement built, such as
+    // T after verb raising: an adjoined member whose lineage also occurs outside
+    // it, beside the retained host. Bare labels alone may spell a phrase.
+    const isMovedHeadComplex = (complex: SyntaxNode): boolean => (complex.children ?? []).some(member =>
+      Boolean(member.lineageId) && !current.duplicates.has(member.id)
+      && [...current.nodes.values()].some(node => node.lineageId === member.lineageId && !contains(complex, node.id))
+      && isHeadComplex(complex, member.id, previous));
     const isHeadParticipantRole = (key: string): boolean => key === 'target' || key === 'head'
       || /^(?:movement )?(?:target|landing|higher|upper|raised|moved) (?:[a-z]+ )*head$/.test(key);
     // The exact preceding root pair can identify an openly named landing even
@@ -607,7 +640,8 @@ export function recoverMovementEvidence(
         && before?.lineageId && before.lineageId === lineage && !prior.duplicates.has(before.id)
         && precedingId && samePriorSlot(sources[0], precedingId)
         && landingKind(target, current.parents.get(occurrence), previous, { node: before, parent: prior.parents.get(precedingId ?? '') }, { current, prior }) === 'phrasal'
-        && readCategoryLabel(head.label)?.kind === 'head' && !head.children?.length
+        && readCategoryLabel(head.label)?.kind === 'head'
+        && (!head.children?.length || isMovedHeadComplex(head) && !contains(head, sources[0]) && !contains(head, occurrence))
         && head.lineageId !== lineage
         && landingParent && contains(landingParent, id)
         && (!precedingHead || sameAuthoredValue(precedingHead, head))

@@ -11,7 +11,7 @@ import { labelBelongsToNode, measureScreenGraphics, shellLabelElement, terminalL
 interface RelationMeasurementsContext {
   treeData: d3.HierarchyPointNode<SyntaxNode>;
   g: DrawingLayer;
-  measureGraphicsElementsInTreeSpace: (elements: SVGGraphicsElement[]) => { x: number; y: number; width: number; height: number; };
+  measureGraphicsElementsInTreeSpace: (elements: SVGGraphicsElement[]) => { x: number; y: number; width: number; height: number; } | null;
 }
 export function createRelationMeasurements({ treeData, g, measureGraphicsElementsInTreeSpace }: RelationMeasurementsContext) {
   const postFitNodeById = indexHierarchyNodesByIdAndAliases(

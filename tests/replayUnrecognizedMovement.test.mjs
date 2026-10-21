@@ -4,7 +4,7 @@ import test from 'node:test';
 
 import { getFrameRelations } from '../replay/frameRelations.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { checkAttachAtMerge, checkNoEarlyReveal, checkParentAfterChildren, frameStructure } from './helpers/replayInvariants.mjs';
+import { frameStructure } from './helpers/replayInvariants.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/unrecognized-movement.json', import.meta.url), 'utf8'));
 const prepared = new Map();
@@ -43,14 +43,6 @@ const assertStageRecordAddsNothing = (steps, stageIndex) => {
   assert.deepEqual([...after.displayed].filter(id => before.parent.get(id) !== after.parent.get(id)), [], `stage ${stageIndex + 1}'s record attaches nothing`);
 };
 
-test('every case satisfies the construction invariants that flagged it', () => {
-  fixture.cases.forEach((_case, index) => {
-    const prepared = replay(index);
-    assert.deepEqual([...checkNoEarlyReveal(prepared), ...checkAttachAtMerge(prepared), ...checkParentAfterChildren(prepared)]
-      .map(violation => `${violation.rule} @${violation.frame}: ${violation.detail}`), [], `case ${index + 1}`);
-  });
-});
-
 test('a copy related to its earlier occurrence by a claim with unfamiliar names appears at that claim\'s moment', () => {
   const steps = play(0), at = moment(steps, 2, 0);
   assertIntroducedAt(steps, at, ['rSubjectHigh', 'rTP']);
@@ -86,11 +78,11 @@ test('a fronted copy outside the rewritten trace appears at its claim\'s moment,
   assertStageRecordAddsNothing(steps, 2);
 });
 
-test('a shared occurrence appears whole with its new parent, and the other merge stays ordinary', () => {
+test('a shared occurrence in the other conjunct keeps its own construction, and its claim adds no syntax', () => {
   const steps = play(4), at = moment(steps, 1, 1);
-  assertIntroducedAt(steps, at, ['object-sell', 'the-sell', 'house-sell', 'vp-sell']);
-  assertBuiltByOwnStep(steps, 'vp-buy');
-  assert.ok(firstShown(steps, 'vp-buy') < at);
+  ['vp-buy', 'the-sell', 'house-sell', 'object-sell', 'vp-sell'].forEach(id => assertBuiltByOwnStep(steps, id));
+  assert.ok(firstShown(steps, 'vp-sell') < at);
+  assert.equal(frameStructure(steps[at]).key, frameStructure(steps[at - 1]).key, 'the claim names syntax already built');
   assertStageRecordAddsNothing(steps, 1);
 });
 

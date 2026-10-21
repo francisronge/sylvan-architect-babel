@@ -42,7 +42,7 @@ import {
 
 type AppTab = 'tree' | 'derivation' | 'notes';
 
-const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number }>; label: string }> = [
+const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number; className?: string }>; label: string }> = [
   { id: 'tree', icon: Layers, label: 'Canopy' },
   { id: 'derivation', icon: FlameKindling, label: 'Derivation Replay' },
   { id: 'notes', icon: FileText, label: 'Notes' },
@@ -109,10 +109,10 @@ interface AppProps {
 const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const MODEL_OPTIONS = useMemo(() => modelIds.map(id => getResearchModel(id)!), [modelIds]);
   const DEFAULT_MODEL_ID = modelIds[0];
-  const coerceModelRoute = (value?: string): ModelMode =>
-    modelIds.includes(value || '') ? value! : DEFAULT_MODEL_ID;
-  const inferModelRouteFromModel = (modelUsed?: string): ModelMode =>
-    MODEL_OPTIONS.find(model => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID;
+  const coerceModelRoute = useCallback((value?: string): ModelMode =>
+    modelIds.includes(value || '') ? value! : DEFAULT_MODEL_ID, [modelIds, DEFAULT_MODEL_ID]);
+  const inferModelRouteFromModel = useCallback((modelUsed?: string): ModelMode =>
+    MODEL_OPTIONS.find(model => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID, [MODEL_OPTIONS, DEFAULT_MODEL_ID]);
   const appContainerRef = useRef<HTMLDivElement>(null);
   const copyStatusTimeoutRef = useRef<number | null>(null);
   const copyAttemptRef = useRef(0);
@@ -183,6 +183,10 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const reasoningControlLabel = selectedModel.controls[0].label;
   const isTreeBankView = workspaceView === 'treeBank';
   const hideShowcaseInput = showcaseMode && Boolean(activeParse);
+  // Replay gives the input bar's space to the tree and its panel; a new sentence
+  // is entered from Canopy or Notes. A running generation or a failure keeps the
+  // bar, because it carries their progress and diagnostics.
+  const hideInputForReplay = activeTab === 'derivation' && Boolean(activeParse) && !loading && !error;
   const milesNotation = useMemo(() => {
     if (!activeParse) return '';
     return buildMilesNotation(activeFinalForest);
@@ -215,7 +219,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     setIsInputExpanded(true);
     setWorkspaceView('arboretum');
     resetGeneration();
-  }, [modelRoute, reasoningEffort]);
+  }, [modelRoute, reasoningEffort, coerceModelRoute, resetGeneration]);
 
   const acceptSavedPreview = useCallback((preview: SavedPreview) => {
     const { bundle, sentence, framework: nextFramework, tab, captureMode } = preview;
@@ -235,7 +239,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     resetGeneration();
     setIsInputVisible(!(showcaseMode || captureMode));
     setIsInputExpanded(!(showcaseMode || captureMode));
-  }, [showcaseMode, reasoningEffort]);
+  }, [showcaseMode, reasoningEffort, coerceModelRoute, inferModelRouteFromModel, resetGeneration]);
 
   const devCaptureMode = useDevPreview({
     analysisBundle,
@@ -666,7 +670,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               ))}
             </div>
 
-            {!hideShowcaseInput && !devCaptureMode && (
+            {!hideShowcaseInput && !hideInputForReplay && !devCaptureMode && (
               <>
                 {/* Input UI */}
                 <div

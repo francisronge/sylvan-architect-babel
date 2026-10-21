@@ -4,7 +4,9 @@
  * finding fails, so does one beyond its bound, and so does every listed frame
  * where the fault no longer occurs. Each frame list carries the bound of the
  * rule's measure at those frames: missing clearance, depth or row deviation in
- * CSS pixels, or a mark's distance as a ratio of its reach. */
+ * CSS pixels, or a mark's distance as a ratio of its reach. An entry a change adds or lets
+ * grow also takes the owner's approval as its last argument
+ * (scripts/checkExceptionGrowth.mjs). */
 
 const SPOKE_ATTACHED = 'Accepted since #76: keeping the gap would cut off the spoke\'s labelled end, so attachment wins '
   + 'and the spoke meets the plaque\'s edge.';
@@ -12,25 +14,24 @@ const PLAQUE_CROWDED = 'Open (catalog #3): no nearby pocket stays clear for the 
   + 'the nearest clear pocket beyond its nearby candidates. #74 and #84 relocate plaques whose anchor moves, not these.';
 const LANE = 'Open: a neutral counter-lane connector runs its lane through tree text. Only its stems are clipped around '
   + 'labels, and the lane sits just below the participants, above deeper unrelated syntax.';
-const ROLE_CROWDED = 'Open: every preferred spot beside the witness label is taken, so the role placer steps outward until '
-  + 'free and the label lands beside other syntax.';
+const SOURCE_POCKET = 'Accepted with the held movement slot: the complete source keeps its sister clearance until its '
+  + 'movement, so the plaque pocket beside its anchor, clear for the plaque\'s whole lifetime, lies just beyond its reach.';
 
-const x = (reason, record, rule, subtype, subject, at) => ({ reason, record, rule, subtype, subject, at });
+const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
-// The same findings, with the same measures, occur on origin/main for the saved
-// analyses these fixture cases copy (indexed-night 27-sv-embedded-negation,
-// bughunt2 07-en-rnr); only their frame numbers moved.
 export const EXCEPTIONS = [
-  x(ROLE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/1', 'mark-distance', 'role',
-    'role(8:1 higher Contained Heads[4])@mTAtC', { desktop: { '51': 2.82 } }),
-  x(ROLE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/1', 'mark-distance', 'role',
-    'role(8:1 lower Contained Heads[4])@mT', { desktop: { '51': 2.8 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/unrecognized-movement.json#/cases/4', 'mark-distance', 'plaque',
-    'plaque(2:0 theta Agent)@v-buy', { desktop: { '29-54': 1.12 }, 'desktop-large': { '29-54': 1.12 } }),
   x(SPOKE_ATTACHED, 'performance/german-embedded.json#', 'line-clearance', 'connector-plaque',
     'connector(0:4)reportNP→reportN plaque(0:1 directed-path case-assignment)@read', { desktop: { '57': 1.44 } }),
-  x(PLAQUE_CROWDED, 'movement/clause-context.json#/cases/7', 'mark-distance', 'plaque',
-    'plaque(0:0 theta Agent/Theme)@ev', { desktop: { '22-26': 1.16 }, 'desktop-large': { '22-26': 1.16 } }),
+  // The long-sentence preparation cases, as on their saved night4 analyses.
+  x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
+    'plaque(0:0 theta theme)@read', { desktop: { '19-22': 1.15 }, 'desktop-large': { '19-22': 1.15 } }),
+  x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
+    'plaque(0:1 theta agent)@embeddedVoice', { desktop: { '20-106': 1.12 }, 'desktop-large': { '20-106': 1.12 } }),
+  x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
+    'plaque(7:2 theta theme)@find', { desktop: { '96-98': 1.19, '104-106': 1.16 }, 'desktop-large': { '96-98': 1.19, '104-106': 1.16 } },
+    { by: 'Francis Ronge', on: '2026-10-20', expires: '2027-01-20', note: 'Accepted on the side-by-side review of '
+      + 'T′ arriving at the subject movement: stage 9 loses its T′ merge step, so the tree nearer find takes main\'s '
+      + 'pocket and the theme plaque sits up to 1.19 of its reach in frames 96-98 and 104-106.' }),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
     'plaque(1:3 theta Experiencer/Proposition)@vWant', { desktop: { '31-34': 1.3 }, 'desktop-large': { '31-34': 1.3 } }),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
@@ -39,10 +40,6 @@ export const EXCEPTIONS = [
     'plaque(1:3/2:3/3:3 theta Experiencer/Proposition)@vWant', { desktop: { '56-69': 1.3 }, 'desktop-large': { '56-69': 1.3 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/case-source-transfer.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta Experiencer/Theme)@v1', { desktop: { '15-18': 1.13 }, 'desktop-large': { '15-18': 1.13 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/case-source-transfer.json#', 'mark-distance', 'plaque',
-    'plaque(2:0 theta Experiencer/Theme)@v3', { desktop: { '29-36': 1.22 }, 'desktop-large': { '29-36': 1.22 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/clitic-displacement.json#/fixtures/1/analysis', 'mark-distance', 'plaque',
-    'plaque(0:0 theta Agent/Theme)@readV', { desktop: { '14-25': 1.21 }, 'desktop-large': { '14-25': 1.21 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/compact-current-root.json#/cases/1', 'mark-distance', 'plaque',
     'plaque(0:0 theta Agent/Theme)@v', { desktop: { '27-38': 1.19 }, 'desktop-large': { '27-38': 1.19 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/diverse-recovery.json#/examples/2/analysis', 'mark-distance', 'plaque',
@@ -52,7 +49,7 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/diverse-recovery.json#/examples/7/analysis', 'mark-distance', 'plaque',
     'plaque(0:0 theta Theme)@verbBase', { desktop: { '24-44': 1.35 }, 'desktop-large': { '24-44': 1.35 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/diverse-recovery.json#/examples/7/analysis', 'mark-distance', 'plaque',
-    'plaque(1:1 finiteness: finite)@tense', { desktop: { '32-39': 1.32, '40-50': 1.25 }, 'desktop-large': { '32-39': 1.32, '40-50': 1.25 } }),
+    'plaque(1:1 finiteness: finite)@tense', { desktop: { '32-39': 1.32 }, 'desktop-large': { '32-39': 1.32 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/diverse-recovery.json#/examples/7/analysis', 'mark-distance', 'plaque',
     'plaque(2:1 tense: past)@verbAtT', { desktop: { '33-39': 1.18 }, 'desktop-large': { '33-39': 1.18 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/head-movement-ordinary-wrapper.json#', 'mark-distance', 'plaque',
@@ -61,12 +58,18 @@ export const EXCEPTIONS = [
     'plaque(0:3 agreement: first-person singular; tense: past)@ri', { desktop: { '25-46': 1.68 }, 'desktop-large': { '25-46': 1.68 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/inserted-adjunction-segment.json#', 'mark-distance', 'plaque',
     'plaque(1:7 agreement: third-person masculine singular; tens)@mi', { desktop: { '45-50': 1.29 }, 'desktop-large': { '45-50': 1.29 } }),
+  x(SOURCE_POCKET, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'mark-distance', 'plaque',
+    'plaque(0:0 theta Addressee/Agent)@d_v', { desktop: { '17-36': 1.13 }, 'desktop-large': { '17-36': 1.13 } }),
+  x(SOURCE_POCKET, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'mark-distance', 'plaque',
+    'plaque(0:2 tense: past)@d_v', { desktop: { '19-36': 1.12 }, 'desktop-large': { '19-36': 1.12 } }),
+  x(SOURCE_POCKET, 'replay-regressions/later-occupant-source-before-movement.json#', 'mark-distance', 'plaque',
+    'plaque(0:0 theta Addressee/Agent)@d_v', { desktop: { '17-36': 1.13 }, 'desktop-large': { '17-36': 1.13 } }),
+  x(SOURCE_POCKET, 'replay-regressions/later-occupant-source-before-movement.json#', 'mark-distance', 'plaque',
+    'plaque(0:2 tense: past)@d_v', { desktop: { '19-36': 1.12 }, 'desktop-large': { '19-36': 1.12 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/native-plaque-footprints.json#', 'mark-distance', 'plaque',
     'plaque(1:0 theta Theme)@v', { desktop: { '22-29': 1.15 }, 'desktop-large': { '22-29': 1.15 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/native-plaque-footprints.json#', 'mark-distance', 'plaque',
     'plaque(1:2 theta Agent)@v', { desktop: { '24-29': 1.19 }, 'desktop-large': { '24-29': 1.19 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/ordinary-receiving-width-control.json#', 'mark-distance', 'plaque',
-    'plaque(0:0/0:1/1:2 theta theme)@p_v', { desktop: { '36-41': 1.14 }, 'desktop-large': { '36-41': 1.14 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/receiving-slot-width-control.json#', 'mark-distance', 'plaque',
     'plaque(3:1 clauseType: declarative personal infinitive)@infinitivalC', { desktop: { '33-48': 1.2 }, 'desktop-large': { '33-48': 1.2 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/relocated-plaque-anchor.json#', 'mark-distance', 'plaque',
@@ -91,10 +94,6 @@ export const EXCEPTIONS = [
     'plaque(0:0 theta Agent/Theme)@v', { desktop: { '27-38': 1.19 }, 'desktop-large': { '27-38': 1.19 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/1/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:0 theta Experiencer/Theme)@v', { desktop: { '21-24': 1.53 }, 'desktop-large': { '21-24': 1.53 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/3/analyses/0', 'mark-distance', 'plaque',
-    'plaque(0:1 theta Theme)@stolen', { desktop: { '17-20': 1.24 }, 'desktop-large': { '17-20': 1.31 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/es-wh-phase-edge-contour.json#', 'mark-distance', 'plaque',
-    'plaque(5:0 clauseType: direct constituent question)@question', { desktop: { '27-30': 1.25 }, 'desktop-large': { '27-30': 1.25 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-arabic-continuity.json#/cases/9', 'mark-distance', 'plaque',
     'plaque(0:2 theta Speaker)@rv', { desktop: { '36-50': 1.15 }, 'desktop-large': { '36-50': 1.15 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-distance', 'plaque',
@@ -151,46 +150,26 @@ export const EXCEPTIONS = [
     'connector(2:1)book→ropHigh rc:category', { 'desktop-large': { '38': 2.17 } }),
   x(LANE, 'replay-regressions/diverse-recovery.json#/examples/3/analysis', 'line-clearance', 'connector-text',
     'connector(2:1)book→ropHigh rtp:category', { 'desktop-large': { '38': 2.03 } }),
+  x(LANE, 'replay-regressions/later-occupant-intermediate-landing.json#', 'line-clearance', 'connector-text',
+    'connector(8:1)called→matrixT car:category', { 'desktop-large': { '57': 2.03 } }),
+  x(LANE, 'replay-regressions/later-occupant-intermediate-landing.json#', 'line-clearance', 'connector-text',
+    'connector(8:1)called→matrixT relativeC:category', { 'desktop-large': { '57': 4.65 } }),
+  x(LANE, 'replay-regressions/later-occupant-intermediate-landing.json#', 'line-clearance', 'connector-text',
+    'connector(8:1)called→matrixT relativeTP:category', { 'desktop-large': { '57': 2.03 } }),
+  x(LANE, 'replay-regressions/later-occupant-intermediate-landing.json#', 'line-clearance', 'connector-text',
+    'connector(8:1)called→matrixT whose:category', { 'desktop-large': { '57': 4.79 } }),
   x(LANE, 'replay-regressions/shared-landing-source.json#', 'line-clearance', 'connector-text',
     'connector(2:1)whMatrix→edgeTrace sayV::__leaf:word', { 'desktop-large': { '46': 1.23 } }),
   x(LANE, 'replay-regressions/sol-spanish-qr.json#/analyses/1', 'line-clearance', 'connector-text',
     'connector(1:1)i→vh sd:category', { 'desktop-large': { '31': 2.58 } }),
   x(LANE, 'replay-regressions/workspace-reservation.json#/cases/0', 'line-clearance', 'connector-text',
     'connector(7:1)negative-copula→matrix-predication v-complement:category', { 'desktop-large': { '52': 1.9 } }),
-  x(ROLE_CROWDED, 'movement/displayed-endpoints.json#/1', 'mark-distance', 'role',
-    'role(1:1 associate)@mary', { desktop: { '25': 3.09 } }),
-  x(ROLE_CROWDED, 'movement/displayed-endpoints.json#/1', 'mark-distance', 'role',
-    'role(4:0 full Associate)@mary', { desktop: { '40': 2.81 } }),
-  x(ROLE_CROWDED, 'replay-regressions/adjunct-attachment-continuity.json#', 'mark-distance', 'role',
-    'role(3:0 realized Finite Head)@iB', { desktop: { '50': 3.09 } }),
-  x(ROLE_CROWDED, 'replay-regressions/complex-head-chain-restatement.json#', 'mark-distance', 'role',
-    'role(2:0 raised Inflection)@i2', { desktop: { '58': 4.36 } }),
-  x(ROLE_CROWDED, 'replay-regressions/workspace-reservation.json#/cases/1', 'mark-distance', 'role',
-    'role(7:0 raised Subject)@matrix-pro', { desktop: { '50': 1.84 } }),
-  x(ROLE_CROWDED, 'replay-regressions/workspace-reservation.json#/cases/1', 'mark-distance', 'role',
-    'role(7:1 pronominal Subject)@matrix-pro', { desktop: { '56': 2.01 } }),
-  x(ROLE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/0', 'mark-distance', 'role',
-    'role(7:0 contained Verb)@glaubeV', { desktop: { '60': 3.62 } }),
-  x(ROLE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/2', 'mark-distance', 'role',
-    'role(3:0 inflectional Features)@iFeatures', { desktop: { '45': 2.06 } }),
-  x(ROLE_CROWDED, 'replay-regressions/workspace-source-continuity.json#/cases/2', 'mark-distance', 'role',
-    'role(3:1 lexical Governor)@v', { desktop: { '46': 3 } }),
-  x(ROLE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'role',
-    'role(2:0 complex Head)@vComplex', { desktop: { '34': 3.72 } }),
-  x(ROLE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'role',
-    'role(2:2 governor)@vComplex', { desktop: { '36': 3.89 } }),
-  x(ROLE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'role',
-    'role(3:0 complex Head)@vComplex', { desktop: { '40': 3.72 } }),
-  x(ROLE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'role',
-    'role(3:2 governor)@vComplex', { desktop: { '42': 3.89 } }),
-  x(ROLE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'role',
-    'role(4:0 complex Head)@vComplex', { desktop: { '52': 2.87 } }),
-  x(ROLE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'role',
-    'role(4:2 governor)@vComplex', { desktop: { '54': 3.23 } }),
-  x(ROLE_CROWDED, 'replay-regressions/unrendered-head-movement.json#', 'mark-distance', 'role',
-    'role(3:0 lower head trace)@honorificTrace', { desktop: { '45': 4.63 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/waiting-root-continuity.json#', 'mark-distance', 'plaque',
-    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } })
+    'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
+  // The same finding, with the same measure, occurs on origin/main for the saved
+  // analysis this fixture case copies (night3 33-grc-article.r2); only its frame numbers moved.
+  x(PLAQUE_CROWDED, 'replay-regressions/compound-movement-roles.json#/cases/1', 'mark-distance', 'plaque',
+    'plaque(1:0 theta Theme)@V0', { desktop: { '22-38': 1.13 }, 'desktop-large': { '22-38': 1.13 } }),
 ];

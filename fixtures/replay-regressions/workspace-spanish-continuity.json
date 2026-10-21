@@ -1,4 +1,6 @@
 {
+  "description": "Spanish movement preserves the preceding full source and sister ranks (workspaceSpanishContinuity).",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/spanish-subjunctive, analysis 2. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/spanish-subjunctive (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/spanish-subjunctive).",
   "key": "spanish-subjunctive/1",
   "sentence": "Quiero que Ana venga mañana.",
   "inputTokens": [

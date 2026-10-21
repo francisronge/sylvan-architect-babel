@@ -1,4 +1,5 @@
 {
+  "description": "A later embedded realization does not discard matrix clause construction (replayCoordinationConstruction; corpus manifest separate-pronunciation).",
   "sentence": "花子が読んだ本を太郎が買った。",
   "inputTokens": [
     "花子",

@@ -77,5 +77,5 @@ for (const entry of missing) console.error(`incomplete: ${entry}`);
 for (const finding of warnings) console.warn(`warning (did not reproduce on re-run) ${finding.rule}/${finding.subtype} ${finding.record} @${finding.viewport} ${finding.frame}: ${finding.detail}`);
 console.log(`Browser visual check ${receipt.ok ? 'passed' : 'FAILED'}: ${report.findings.length} findings, ${unexpected.length} unexpected, `
   + `${exceeded.length} beyond bound, ${stale.length} stale, ${missing.length} incomplete, ${warnings.length} unreproduced warning(s). Evidence: ${evidence}`
-  + (unexpected.length ? `\nReview ${path.join(auditOut, 'index.html')}; candidate exceptions (each needs a reason): ${path.join(evidence, 'proposed-exceptions.json')}` : ''));
+  + (unexpected.length ? `\nReview ${path.join(auditOut, 'index.html')}; fix them; candidate exceptions for the owner's review (each needs a reason and his approval): ${path.join(evidence, 'proposed-exceptions.json')}` : ''));
 process.exitCode = receipt.ok ? 0 : 1;

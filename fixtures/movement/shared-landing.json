@@ -1,4 +1,6 @@
 {
+  "description": "Right-node raising: shared movement validates sources and a converging source keeps its state until its own moment (sharedMovement).",
+  "source": "Saved normalized model answer, added in commit 7651307 (22 September 2026), whose message says its new qualification records used GPT-6 Astra through Codex OAuth. The first stage begins after the conjuncts are built, so earlier stages were trimmed. The exact model and run are not recorded and no saved source run is archived.",
   "sentence": "Nora bought, and Eli read, the same book.",
   "inputTokens": [
     "Nora",

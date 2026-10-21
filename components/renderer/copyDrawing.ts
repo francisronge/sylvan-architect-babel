@@ -18,7 +18,7 @@ interface CopyDrawingsContext extends Pick<ClaimDrawing, 'decorateRelationElemen
   acceptedPartialCopyStrikeRequests: { nodeId: string; emphasis: RelationEmphasis; item: RelationPlanItem; }[];
   acceptedDeletionTerminalStrikeRequests: { domainNodeId: string; emphasis: RelationEmphasis; item: RelationPlanItem; }[];
   resolveOverlayAnchor: (nodeId: string) => d3.HierarchyPointNode<SyntaxNode> | undefined;
-  measureGraphicsElementsInTreeSpace: (elements: SVGGraphicsElement[]) => { x: number; y: number; width: number; height: number; };
+  measureGraphicsElementsInTreeSpace: (elements: SVGGraphicsElement[]) => { x: number; y: number; width: number; height: number; } | null;
   acceptedParasiticGapCopyRequests: { contentNodeId: string; ordinaryGapNodeId: string; parasiticGapNodeIds: string[]; emphasis: RelationEmphasis; item: RelationPlanItem; }[];
 }
 export function queueCopyDrawings({
@@ -350,7 +350,8 @@ export function paintGhostLenses(g: DrawingLayer, ghostLensRequests: Array<{
       labels
         .attr('data-vr-ghost-emphasis', ghostEmphasis ?? 'none')
         .attr('opacity', presentation.opacity)
-        .style('filter', presentation.filter);
+        // A null filter removes the style.
+        .style('filter', presentation.filter as string);
     }
   });
 }

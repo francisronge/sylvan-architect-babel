@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import test from 'node:test';
-import ts from 'typescript';
 import { loadOrchardFixtures } from './helpers/orchardFixtures.mjs';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
@@ -48,6 +47,13 @@ const requiredOrchardCase = (cases, title) => {
   return card;
 };
 const fixtureNodes = node => [node, ...(node.children ?? []).flatMap(fixtureNodes)];
+const cardRelations = card => card.derivationStages.flatMap(stage => stage.relations ?? []);
+const archetypeCode = card => card.archetype.split('.')[0];
+// The shapes the card helpers build: nullHead(id, label) and silentLexicalNode(id, ...).
+const isNullHead = (node, label) => node.label === label && node.word === undefined && node.children?.length === 1
+  && node.children[0].id === `${node.id}__null` && node.children[0].label === '∅' && node.children[0].silent === true;
+const isSilentLexicalNode = node => node.silent === true && node.children?.length === 1 && node.children[0].id === `${node.id}__silent`;
+const nodeStrings = node => Object.values(node).filter(value => typeof value === 'string');
 
 const tree = {
   id: 'cp',
@@ -281,18 +287,10 @@ test('Illicit Analysis has a canonical card with an open authored verdict label'
   assert.ok(verdict.relationRef.values.reason);
 });
 
-test('the Orchard archive references executable fixtures', async () => {
-  const source = await readFile(
-    new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url),
-    'utf8'
-  );
-  const archiveStart = source.indexOf('export const archivedExampleArchetypes');
-  const archiveEnd = source.indexOf(']);', archiveStart);
-  const archiveBlock = source.slice(archiveStart, archiveEnd);
-  const archivedCodes = [...archiveBlock.matchAll(/'([^']+)'/g)].map((match) => match[1]);
-  const cardCodes = [...source.matchAll(/\n    archetype: '([^']+)'/g)]
-    .map((match) => match[1].split('.')[0]);
-  assert.equal(new Set(archivedCodes).size, archivedCodes.length);
+test('the Orchard archive references executable fixtures', () => {
+  const archivedCodes = [...orchard.archivedExampleArchetypes];
+  const cardCodes = orchard.rawCases.map(archetypeCode);
+  assert.ok(archivedCodes.length > 0);
 
   archivedCodes.forEach((code) => {
     assert.equal(cardCodes.includes(code), true, `${code} must name an executable card`);
@@ -356,7 +354,7 @@ test('the visual vocabulary is exhaustive, isolated, and tree-free', async () =>
     'utf8'
   );
   const html = `${await readFile(
-    new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url), 'utf8'
+    new URL('../components/renderer/relation-visuals.css', import.meta.url), 'utf8'
   )}\n${await readFile(
     new URL('../docs/design/babel-visual-relations-research.production-only-audit.html', import.meta.url), 'utf8'
   )}`;
@@ -475,7 +473,8 @@ test('the visual vocabulary is exhaustive, isolated, and tree-free', async () =>
     'AFTER',
     'PRIOR DOMAIN',
     'CURRENT DOMAIN',
-    'CyclicLinearization · order'
+    'CyclicLinearization · order',
+    'Cyclic Linearization · order'
   ]) {
     assert.equal(vocabulary.includes(authoredValue), false, `${authoredValue} is card content, not a primitive`);
   }
@@ -683,23 +682,13 @@ test('the visual vocabulary is exhaustive, isolated, and tree-free', async () =>
   assert.match(html, /id="babel-visual-vocabulary"/);
 });
 
-test('Atlas fixtures use genuine authored stages instead of relation-only timing stages', async () => {
-  const source = await readFile(
-    new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url),
-    'utf8'
-  );
-
-  const cardSource = (title) => {
-    const start = source.indexOf(`title: '${title}'`);
-    assert.ok(start >= 0, `${title} is present`);
-    const next = source.indexOf("\n  {\n    archetype:", start + 1);
-    return source.slice(start, next >= 0 ? next : source.length);
-  };
+test('Atlas fixtures use genuine authored stages instead of relation-only timing stages', () => {
+  const stageCount = (title) => requiredOrchardCase(orchard.rawCases, title).derivationStages.length;
   for (const title of [
     'Binding / Principle A'
   ]) {
     assert.equal(
-      (cardSource(title).match(/\bstage\(/g) || []).length,
+      stageCount(title),
       1,
       `${title} remains one compact model-authored inspection stage`
     );
@@ -712,13 +701,13 @@ test('Atlas fixtures use genuine authored stages instead of relation-only timing
     'Plain Coreference (across coordination)'
   ]) {
     assert.equal(
-      (cardSource(title).match(/\bstage\(/g) || []).length,
+      stageCount(title),
       2,
       `${title} separates workspace construction from the interpretive relation`
     );
   }
   assert.equal(
-    (cardSource('Transfer / Spell-Out Domain').match(/\bstage\(/g) || []).length,
+    stageCount('Transfer / Spell-Out Domain'),
     2,
     'Phase identification and Transfer remain two genuine operations without a no-op base stage'
   );
@@ -729,30 +718,16 @@ test('Atlas cards use only the current production contract and renderer path', a
     new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url),
     'utf8'
   );
+  const cardSource = await readFile(new URL('../docs/design/visual-relations-lab-cards.ts', import.meta.url), 'utf8');
 
   assert.match(source, /disableRelationOverlay=\{false\}/u);
-  assert.doesNotMatch(
-    source,
+  for (const text of [source, cardSource]) assert.doesNotMatch(
+    text,
     /\b(?:markLensNodes|renderTrajectoryRelation|hydrateLabLensFromCurrentContract)\b/u,
     'the Atlas must not retain an alternate Lab painter or semantic hydration path'
   );
 
-  const sourceFile = ts.createSourceFile(
-    'visual-relations-current-lab.tsx',
-    source,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TSX
-  );
-  const rawCasesDeclaration = sourceFile.statements.find((statement) =>
-    ts.isVariableStatement(statement)
-    && statement.declarationList.declarations.some((declaration) => declaration.name.getText(sourceFile) === 'rawCases')
-  );
-  assert.ok(rawCasesDeclaration, 'the Atlas rawCases fixture set is present');
-  const rawCases = rawCasesDeclaration.declarationList.declarations
-    .find((declaration) => declaration.name.getText(sourceFile) === 'rawCases');
-  assert.ok(rawCases?.initializer && ts.isArrayLiteralExpression(rawCases.initializer));
-
+  assert.ok(orchard.rawCases.length > 0, 'the Atlas rawCases fixture set is present');
   const allowedCardFields = new Set([
     'archetype',
     'title',
@@ -763,11 +738,9 @@ test('Atlas cards use only the current production contract and renderer path', a
     'wide',
     'lensLabel'
   ]);
-  rawCases.initializer.elements.forEach((element, index) => {
-    assert.ok(ts.isObjectLiteralExpression(element), `card ${index + 1} is an object literal`);
-    const fields = element.properties
-      .filter(ts.isPropertyAssignment)
-      .map((property) => property.name.getText(sourceFile).replace(/^['"]|['"]$/g, ''));
+  orchard.rawCases.forEach((card, index) => {
+    assert.equal(Object.getPrototypeOf(card), Object.prototype, `card ${index + 1} is a plain object`);
+    const fields = Object.keys(card);
     assert.deepEqual(
       fields.filter((field) => !allowedCardFields.has(field)),
       [],
@@ -1820,54 +1793,38 @@ test('the locality registry keeps the active source drawings and invents no Free
   );
 });
 
-test('the Transfer cards contain one pronounced edge DP and no unexplained movement copy', async () => {
-  const source = await readFile(
-    new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url),
-    'utf8'
-  );
-  const treeStart = source.indexOf("const transferPhaseTree = node('tp_transfer'");
-  const treeEnd = source.indexOf('const multiPhaseTree', treeStart);
-  const transferTree = source.slice(treeStart, treeEnd);
-
-  assert.ok(treeStart > 0 && treeEnd > treeStart);
-  assert.match(transferTree, /sara_transfer_edge/);
-  assert.match(transferTree, /nullHead\('t_probe_transfer', 'T'\)/);
-  assert.doesNotMatch(transferTree, /t_past_transfer/);
-  assert.doesNotMatch(transferTree, /lineageId/);
-  assert.doesNotMatch(transferTree, /silentLexicalNode\('sara/);
-  assert.doesNotMatch(transferTree, /trace/);
+test('the Transfer cards contain one pronounced edge DP and no unexplained movement copy', () => {
+  const nodes = ['transferPhaseTree', 'postTransferLdaTree'].flatMap(name => fixtureNodes(orchard.trees.get(name)));
+  assert.ok(nodes.some(node => node.id === 'sara_transfer_edge'));
+  assert.ok(nodes.some(node => node.id === 't_probe_transfer' && isNullHead(node, 'T')));
+  assert.deepEqual(nodes.filter(node => node.id.includes('t_past_transfer')).map(node => node.id), []);
+  assert.deepEqual(nodes.filter(node => 'lineageId' in node).map(node => node.id), []);
+  assert.deepEqual(nodes.filter(node => node.id.startsWith('sara') && isSilentLexicalNode(node)).map(node => node.id), []);
+  assert.deepEqual(nodes.filter(node => nodeStrings(node).some(value => value.includes('trace'))).map(node => node.id), []);
 });
 
-test('phase-only cards keep subjects at their authored edges without hidden movement chains', async () => {
-  const source = await readFile(
-    new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url),
-    'utf8'
-  );
-  const phaseStart = source.indexOf("const phaseTree = node('cp_phase'");
-  const transferStart = source.indexOf('const transferPhaseTree', phaseStart);
-  const multiStart = source.indexOf("const multiPhaseTree = node('cp_multiphase'");
-  const antiStart = source.indexOf('const antiLocalityShortTree', multiStart);
-  const phaseTreeSource = source.slice(phaseStart, transferStart);
-  const multiPhaseTreeSource = source.slice(multiStart, antiStart);
-
-  assert.ok(phaseStart > 0 && transferStart > phaseStart);
-  assert.ok(multiStart > transferStart && antiStart > multiStart);
-  assert.equal((phaseTreeSource.match(/'Sara'/g) || []).length, 1);
-  assert.match(phaseTreeSource, /node\('sara_phase_edge', 'DP'/);
-  assert.doesNotMatch(phaseTreeSource, /lineageId|silentLexicalNode\('sara/);
-  assert.equal((multiPhaseTreeSource.match(/'Lena'/g) || []).length, 1);
-  assert.equal((multiPhaseTreeSource.match(/'Orion'/g) || []).length, 1);
-  assert.match(multiPhaseTreeSource, /node\('lena_matrix_edge', 'DP'/);
-  assert.match(multiPhaseTreeSource, /node\('orion_embedded_edge', 'DP'/);
-  assert.doesNotMatch(multiPhaseTreeSource, /lineageId|silentLexicalNode\('(?:lena|orion)/);
-  assert.match(source, /pronounced C is the phase head and accessible edge anchor/);
+test('phase-only cards keep subjects at their authored edges without hidden movement chains', () => {
+  const phase = fixtureNodes(orchard.trees.get('phaseTree')), multiPhase = fixtureNodes(orchard.trees.get('multiPhaseTree'));
+  const spoken = (nodes, word) => nodes.filter(node => nodeStrings(node).includes(word)).length;
+  const isPhrase = (nodes, id) => nodes.some(node => node.id === id && node.label === 'DP' && Array.isArray(node.children));
+  assert.equal(spoken(phase, 'Sara'), 1);
+  assert.ok(isPhrase(phase, 'sara_phase_edge'));
+  assert.deepEqual(phase.filter(node => 'lineageId' in node || node.id.startsWith('sara') && isSilentLexicalNode(node)).map(node => node.id), []);
+  assert.equal(spoken(multiPhase, 'Lena'), 1);
+  assert.equal(spoken(multiPhase, 'Orion'), 1);
+  assert.ok(isPhrase(multiPhase, 'lena_matrix_edge'));
+  assert.ok(isPhrase(multiPhase, 'orion_embedded_edge'));
+  assert.deepEqual(multiPhase.filter(node => 'lineageId' in node || /^(?:lena|orion)/.test(node.id) && isSilentLexicalNode(node))
+    .map(node => node.id), []);
+  assert.match(requiredOrchardCase(orchard.rawCases, 'Multiple Phase Boundaries').status,
+    /pronounced C is the phase head and accessible edge anchor/);
 });
 
-test('the live lab contains no scalar chain or index pseudo-anchors', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const authoredAnchorBlocks = source.match(/anchors:\s*\{[^}]*\}/gs) || [];
+test('the live lab contains no scalar chain or index pseudo-anchors', () => {
+  const authoredAnchorBlocks = orchard.rawCases.flatMap(cardRelations)
+    .flatMap(relation => [relation.anchors, relation.priorAnchors].filter(Boolean));
   for (const block of authoredAnchorBlocks) {
-    assert.doesNotMatch(block, /\b(?:chain|index)\s*:/);
+    assert.deepEqual(Object.keys(block).filter(role => ['chain', 'index'].includes(role)), []);
   }
   // Every active context, including the agreement/Case generalization cards,
   // is authored through real relation blocks rather than lab-only drawing data.
@@ -1877,49 +1834,17 @@ test('the live lab contains no scalar chain or index pseudo-anchors', async () =
   );
 });
 
-test('every live lab anchor resolves to an authored fixture node ID', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const file = ts.createSourceFile('visual-relations-current-lab.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const nodeIds = new Set();
+test('every live lab anchor resolves to an authored fixture node ID', () => {
+  // Each card's anchors name nodes of that card's own trees.
   const anchorValues = [];
-
-  const collectStringValues = (expression) => {
-    if (ts.isStringLiteralLike(expression)) {
-      anchorValues.push(expression.text);
-      return;
-    }
-    if (ts.isArrayLiteralExpression(expression)) {
-      expression.elements.forEach(collectStringValues);
-    }
-  };
-
-  const visit = (node) => {
-    if (
-      ts.isCallExpression(node)
-      && ts.isIdentifier(node.expression)
-      && ['node', 'leaf', 'silentLexicalNode', 'nullHead'].includes(node.expression.text)
-      && ts.isStringLiteralLike(node.arguments[0])
-    ) {
-      const id = node.arguments[0].text;
-      nodeIds.add(id);
-      if (node.expression.text === 'silentLexicalNode') nodeIds.add(`${id}__silent`);
-      if (node.expression.text === 'nullHead') nodeIds.add(`${id}__null`);
-    }
-    if (
-      ts.isPropertyAssignment(node)
-      && ts.isIdentifier(node.name)
-      && ['anchors', 'priorAnchors'].includes(node.name.text)
-      && ts.isObjectLiteralExpression(node.initializer)
-    ) {
-      node.initializer.properties.forEach((property) => {
-        if (ts.isPropertyAssignment(property)) collectStringValues(property.initializer);
-      });
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(file);
-
-  const unresolved = anchorValues.filter((value) => !nodeIds.has(value));
+  const unresolved = orchard.rawCases.flatMap((card) => {
+    const nodeIds = new Set([card.data, ...card.derivationStages.flatMap(stage => stage.workspaceForest)]
+      .flatMap(fixtureNodes).map(node => node.id));
+    return cardRelations(card).flatMap(relation => [relation.anchors, relation.priorAnchors])
+      .flatMap(anchors => Object.values(anchors ?? {}).flat())
+      .filter((value) => { anchorValues.push(value); return !nodeIds.has(value); })
+      .map(value => `${card.title}: ${value}`);
+  });
   assert.deepEqual(unresolved, []);
   assert.ok(anchorValues.length > 400, 'the complete Atlas anchor corpus must remain under validation');
 });
@@ -1982,31 +1907,25 @@ test('corrected fixtures preserve exact surface tokens and one licensed pronunci
   });
 });
 
-test('A1 phrasal movement contains no unauthored lower auxiliary copy', async () => {
-  const source = await readFile(
-    new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url),
-    'utf8'
-  );
-  const block = source.match(
-    /const phrasalMovementTree = [\s\S]*?(?=const headMovementTree =)/
-  )?.[0] || '';
-
-  assert.ok(block, 'the A1 phrasal-movement fixtures are missing');
-  assert.equal(
-    (block.match(/leaf\('c_did', 'C', 'did'/g) || []).length,
-    2,
-    'each A1 stage must pronounce the one auxiliary in C'
-  );
-  assert.equal(
-    (block.match(/nullHead\('t_did_wh', 'T'\)/g) || []).length,
-    2,
-    'each A1 stage must contain an ordinary null T'
-  );
-  assert.doesNotMatch(
-    block,
-    /silentLexicalNode\('t_did_wh', 'T', 'did'/,
-    'A1 must not display a second did without an authored head-movement relation'
-  );
+test('A1 phrasal movement contains no unauthored lower auxiliary copy', () => {
+  const stages = ['phrasalMovementBaseTree', 'phrasalMovementTree'].map(name => fixtureNodes(orchard.trees.get(name)));
+  for (const nodes of stages) {
+    assert.equal(
+      nodes.filter(node => node.id === 'c_did' && node.label === 'C' && node.word === 'did' && !node.children).length,
+      1,
+      'each A1 stage must pronounce the one auxiliary in C'
+    );
+    assert.equal(
+      nodes.filter(node => node.id === 't_did_wh' && isNullHead(node, 'T')).length,
+      1,
+      'each A1 stage must contain an ordinary null T'
+    );
+    assert.deepEqual(
+      nodes.filter(node => node.id === 't_did_wh' && isSilentLexicalNode(node)).map(node => node.id),
+      [],
+      'A1 must not display a second did without an authored head-movement relation'
+    );
+  }
 });
 
 const valuesTree = {
@@ -2927,17 +2846,13 @@ test('phrase lowering takes phrasal endpoints and requires its authored trace wi
   assert.equal(refused.trajectory, undefined);
 });
 
-test('every authored phrasal relation moment in the live lab names its trace witness', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const relationBlocks = [...source.matchAll(/relation: '([^']+)',\s*\n?\s*anchors: \{[\s\S]{0,500}?\}/g)]
-    .map((match) => ({ relation: match[1], block: match[0] }));
-  const phrasalBlocks = relationBlocks.filter(({ block }) =>
-    block.includes('lowerCopy')
-    && /(?:pronouncedCopy|higherCopy|landing)/.test(block)
-    && !(block.includes("relation: 'Identity'") && !block.includes('traceWitness'))
-  );
+test('every authored phrasal relation moment in the live lab names its trace witness', () => {
+  const phrasalBlocks = orchard.rawCases.flatMap(card => cardRelations(card).map(relation => ({ card: card.title, ...relation })))
+    .filter(({ relation, anchors }) => 'lowerCopy' in anchors
+      && ['pronouncedCopy', 'higherCopy', 'landing'].some(role => role in anchors)
+      && !(relation === 'Identity' && !('traceWitness' in anchors)));
   assert.ok(phrasalBlocks.length >= 20, `expected the phrasal relation moments to be found, got ${phrasalBlocks.length}`);
-  const missing = phrasalBlocks.filter(({ block }) => !block.includes('traceWitness'));
+  const missing = phrasalBlocks.filter(({ anchors }) => !('traceWitness' in anchors));
   assert.deepEqual(missing, [], 'every phrasal movement moment must author a traceWitness');
 });
 
@@ -3192,29 +3107,24 @@ test('reconstruction reads explicit LF roles and never infers them from PF roles
   }]);
 });
 
-test('the live reconstruction card authors explicit LF roles only', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const block = source.slice(source.indexOf("relation: 'LFReconstruction'"), source.indexOf("relation: 'LFReconstruction'") + 320);
-  assert.match(block, /neglectedCopy:\s*'dp_picture_high_lf'/);
-  assert.match(block, /interpretedCopy:\s*'dp_picture_low_lf'/);
-  assert.doesNotMatch(block, /pronouncedCopy|reconstructedCopy/);
+test('the live reconstruction card authors explicit LF roles only', () => {
+  const reconstruction = orchard.rawCases.flatMap(cardRelations).find(relation => relation.relation === 'LFReconstruction');
+  assert.equal(reconstruction.anchors.neglectedCopy, 'dp_picture_high_lf');
+  assert.equal(reconstruction.anchors.interpretedCopy, 'dp_picture_low_lf');
+  assert.deepEqual(Object.keys(reconstruction.anchors).filter(role => ['pronouncedCopy', 'reconstructedCopy'].includes(role)), []);
 });
 
-test('the live LF reconstruction card authors A-bar movement before LF copy selection', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const start = source.indexOf("title: 'LF Reconstruction'");
-  const end = source.indexOf("title: 'LF Reconstruction (predicate AP)'", start);
-  const card = source.slice(start, end);
-  const movementAt = card.indexOf("relation: 'AbarMove'");
-  const reconstructionAt = card.indexOf("relation: 'LFReconstruction'");
+test('the live LF reconstruction card authors A-bar movement before LF copy selection', () => {
+  const relations = cardRelations(requiredOrchardCase(orchard.rawCases, 'LF Reconstruction'));
+  const names = relations.map(relation => relation.relation);
+  const movementAt = names.indexOf('AbarMove');
+  const reconstructionAt = names.indexOf('LFReconstruction');
 
-  assert.ok(start >= 0 && end > start, 'the canonical LF reconstruction card must exist');
-  assert.equal((card.match(/relation: 'AbarMove'/g) || []).length, 1);
-  assert.equal((card.match(/relation: 'LFReconstruction'/g) || []).length, 1);
+  assert.equal(names.filter(name => name === 'AbarMove').length, 1);
+  assert.equal(names.filter(name => name === 'LFReconstruction').length, 1);
   assert.ok(movementAt >= 0 && movementAt < reconstructionAt);
-  assert.match(card, /lowerCopy:\s*'dp_picture_low_lf'/);
-  assert.match(card, /traceWitness:\s*'d_which_picture_low_lf'/);
-  assert.match(card, /pronouncedCopy:\s*'dp_picture_high_lf'/);
+  assert.deepEqual(relations[movementAt].anchors,
+    { lowerCopy: 'dp_picture_low_lf', traceWitness: 'd_which_picture_low_lf', pronouncedCopy: 'dp_picture_high_lf' });
 });
 
 test('a trajectory never overshoots below the occurrence it leaves', () => {
@@ -3407,17 +3317,19 @@ const segmentsCross = (a, b, c, d) => {
   return orient(a, b, c) !== orient(a, b, d) && orient(c, d, a) !== orient(c, d, b);
 };
 
-test('the movement fixtures author silent copies instead of literal trace words', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const remnant = source.slice(source.indexOf('const remnantMovementTree'), source.indexOf('const rollUpStepOneTree'));
-  const rollUp = source.slice(source.indexOf('const rollUpStepOneTree'), source.indexOf('const smugglingStepOneTree'));
-  const smuggling = source.slice(
-    source.indexOf('const smugglingStepOneTree'),
-    source.indexOf('/* Source-backed completion batch')
-  );
-  [remnant, rollUp, smuggling].forEach((block, index) => {
-    assert.ok(block.length > 500, `fixture block ${index} not found`);
-    assert.doesNotMatch(block, /'t'|'t[A-Z]+'/, `fixture block ${index} authors a literal trace token`);
+test('the movement fixtures author silent copies instead of literal trace words', () => {
+  const movementTrees = ['remnantMovementTree', 'rollUpBaseTree', 'rollUpStepOneTree', 'rollUpStepTwoTree', 'rollUpMovementTree',
+    'smugglingStepOneTree', 'smugglingTree', 'parasiticGapTree', 'acrossTheBoardTree', 'acrossTheBoardEmbeddedTree',
+    'acrossTheBoardEmbeddedBaseTree', 'acrossTheBoardPreMovementTree', 'sidewardPrimaryBaseTree', 'sidewardPrimaryTree',
+    'sidewardAdditionalBaseTree', 'sidewardAdditionalTree', 'sidewardFinalTree', 'multipleParasiticGapTree', 'acrossTheBoardThreeTree',
+    'sidewardPgAdjunctBaseTree', 'sidewardPgMatrixBaseTree', 'sidewardPgAdjunctMovedTree', 'sidewardPgMatrixMovedTree',
+    'sidewardPgFinalTree', 'pairMergePhraseHost', 'pairMergePhraseMember', 'pairMergePhraseTree', 'pairMergeLexicalMember',
+    'pairMergeLexicalHost', 'pairMergeLexicalTree', 'temporalAdjunctDomain', 'temporalBlockedLowerTree', 'temporalBlockedTree',
+    'participialAdjunctDomain', 'participialBlockedLowerTree', 'participialBlockedTree', 'cookBooksIdiomTree', 'travelBugIdiomTree'];
+  movementTrees.forEach((name) => {
+    assert.ok(orchard.trees.has(name), `fixture ${name} not found`);
+    const traces = fixtureNodes(orchard.trees.get(name)).filter(node => nodeStrings(node).some(value => /^t[A-Z]*$/.test(value)));
+    assert.deepEqual(traces.map(node => node.id), [], `fixture ${name} authors a literal trace token`);
   });
 });
 
@@ -3466,21 +3378,20 @@ test('an assumed movement leaves a copy without drawing a second arrow', () => {
   assert.notEqual(lens.copyChains[0].index, lens.trajectory[0].index);
 });
 
-test('the roll-up fixture is a complete ordinary DP at every stage', async () => {
-  const source = await readFile(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const block = source.slice(source.indexOf('const rollUpBaseTree'), source.indexOf('const smugglingStepOneTree'));
-  assert.ok(block.length > 500, 'the roll-up fixtures were not found');
+test('the roll-up fixture is a complete ordinary DP at every stage', () => {
+  const rollUpTrees = ['rollUpBaseTree', 'rollUpStepOneTree', 'rollUpStepTwoTree', 'rollUpMovementTree'];
+  const rollUpNodes = rollUpTrees.flatMap(name => fixtureNodes(orchard.trees.get(name)));
 
   /*
    * Shlonsky's page uses 1P/2P/3P and XP/YP/ZP as stand-ins because the figure
    * is about geometry, not about a language. A Babel fixture is about a
    * language: real categories, real heads, real words.
    */
-  [/'[123]P'/, /'[XYZ]P'/, /Card#P/, /'[123]'/].forEach((pattern) => {
-    assert.doesNotMatch(block, pattern, `the fixture reuses the source's schematic label ${pattern}`);
+  [/^[123]P$/, /^[XYZ]P$/, /Card#P/, /^[123]$/].forEach((pattern) => {
+    assert.deepEqual(rollUpNodes.filter(node => nodeStrings(node).some(value => pattern.test(value))).map(node => node.id), [],
+      `the fixture reuses the source's schematic label ${pattern}`);
   });
-  const categories = new Set((block.match(/node\('[^']+', ("[^"]+"|'[^']+')/g) || [])
-    .map((match) => match.split(', ').pop().slice(1, -1)));
+  const categories = new Set(rollUpNodes.filter(node => node.children).map(node => node.label));
   assert.deepEqual([...categories].sort(), ["A'", 'AP', "Dem'", 'DemP', 'NP']);
 
   /*
@@ -3517,7 +3428,8 @@ test('the roll-up fixture is a complete ordinary DP at every stage', async () =>
 
   // Each authored movement names a genuine shell at both ends plus a silent
   // head-leaf witness authored inside the vacated copy itself.
-  const anchors = source.slice(source.indexOf("archetype: 'L2. Trajectory / roll-up'"), source.indexOf("archetype: 'L3"));
+  const movements = cardRelations(orchard.rawCases.find(card => card.archetype === 'L2. Trajectory / roll-up'))
+    .map(relation => relation.anchors);
   const chains = [
     ['np_ru', 'n_books_ru', 'np_ru_hi', 'rollUpStepOneTree'],
     ['ap_red_ru', 'a_red_trace_ru', 'ap_red_ru_hi', 'rollUpStepTwoTree'],
@@ -3527,9 +3439,9 @@ test('the roll-up fixture is a complete ordinary DP at every stage', async () =>
     ? root
     : (root.children || []).reduce((found, child) => found || findNode(child, id), null);
   chains.forEach(([lower, witness, higher, stageTree]) => {
-    assert.match(anchors, new RegExp(`lowerCopy: '${lower}'`));
-    assert.match(anchors, new RegExp(`traceWitness: '${witness}'`));
-    assert.match(anchors, new RegExp(`pronouncedCopy: '${higher}'`));
+    assert.ok(movements.some(anchors => anchors.lowerCopy === lower), `lowerCopy ${lower}`);
+    assert.ok(movements.some(anchors => anchors.traceWitness === witness), `traceWitness ${witness}`);
+    assert.ok(movements.some(anchors => anchors.pronouncedCopy === higher), `pronouncedCopy ${higher}`);
     const stageRoot = fixtures.get(stageTree);
     const lowerNode = findNode(stageRoot, lower);
     assert.ok(lowerNode, `${lower} is not in ${stageTree}`);

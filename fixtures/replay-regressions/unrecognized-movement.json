@@ -5561,7 +5561,7 @@
       ]
     },
     {
-      "description": "Stage 3 fronts the object wh-phrase. The neutral rewrite owned only the trace left in the object position, not the new copy frontedObject, which therefore appeared only at the Stage Record (frame 35). The claim relates frontedObject to the preceding occurrence object, so its moment now introduces the copy with the trace.",
+      "description": "Stage 3 fronts the object wh-phrase. The neutral rewrite owned only the trace left in the object position, not the new copy frontedObject, which therefore appeared only at the Stage Record (frame 35). The claim relates frontedObject to the preceding occurrence object, so its moment now introduces the copy with the trace. Movement recognition still cannot resolve the fronting's endpoints, so it is drawn without an arrow (MOVEMENT_ENDPOINTS_UNRESOLVED, frame 30).",
       "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run, commit ee11d20, 18 October 2026 (second bug-hunt batch, 26-bg-multiple-wh, analysis 1 of 1).",
       "sentence": "Кой какво е купил?",
       "framework": "xbar",
@@ -6103,7 +6103,7 @@
       ]
     },
     {
-      "description": "Stage 2 merges one shared object in both verb phrases: the claim relates the new occurrence object-sell to the preceding object-buy. The rewrite owned only object-buy, so its moment showed object-sell without its words (frame 20) and vp-sell and object-sell's words appeared only at the Stage Record (frame 21). vp-buy is now an ordinary merge, and the claim's moment introduces the complete object-sell with vp-sell.",
+      "description": "Stage 2 merges one shared object in both verb phrases: the claim relates the new occurrence object-sell to the preceding object-buy. The rewrite owned only object-buy, so its moment showed object-sell without its words (frame 20) and vp-sell and object-sell's words appeared only at the Stage Record (frame 21). vp-buy is now an ordinary merge. object-sell repeats object-buy in the other conjunct and the stage displaces neither, so it is selected and merged by its own steps, with vp-sell, and the claim adds no syntax.",
       "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, commit ee11d20, 18 October 2026 (second bug-hunt batch, 07-en-rnr, analysis 1 of 1).",
       "sentence": "Mary bought, and John sold, the house.",
       "framework": "minimalism",

@@ -38,7 +38,7 @@ interface BindingDrawingContext extends Pick<RelationLayers,
   overlay: DrawingLayer;
   operatorVariableScopeRankByItem: Map<number, number>;
   operatorVariableScopeItems: { item: Extract<RelationPlanItem, { kind: "operator-variable-binding"; }>; itemIndex: number; }[];
-  focusedRelationMoment: { stageIndex: number; relationIndex: number; };
+  focusedRelationMoment: { stageIndex: number; relationIndex: number; } | null;
   relationEmphasisForItem: (item: RelationPlanItem) => RelationEmphasis;
   overlayNodeById: Map<string, d3.HierarchyPointNode<SyntaxNode>>;
   frameItems: RelationPlanItem[];
