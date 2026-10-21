@@ -5,7 +5,7 @@ import {
   canonicalFrame, compareSnapshots, describeComparison, frameRanges, readSnapshot
 } from './helpers/layoutSnapshot.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
-import { prepareVisualRecord, snapshotVisualRecord } from './helpers/visualFrames.mjs';
+import { layoutVisualFrames, prepareVisualRecord, snapshotVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
 
 const SNAPSHOT = readSnapshot(fileURLToPath(new URL('../fixtures/replay-snapshots/fixture-layout.json', import.meta.url)));
 const SAMPLE = ['normalized/what-did-mia-see.xbar.json#/analyses/0', 'replay-regressions/visual-human-catalog.json#/cases/5/analyses/0'];
@@ -41,6 +41,18 @@ test('rounding noise and painting order do not count; a hundredth of a unit does
   assert.notEqual(canonicalFrame(frame), canonicalFrame(shifted(0.01)));
   assert.notEqual(canonicalFrame(frame), canonicalFrame({ ...frame, zoom: 0.51 }));
   assert.notEqual(canonicalFrame(frame, { heading: 'Merge' }), canonicalFrame(frame, { heading: 'Move' }));
+  // Layout works in eighths, so a hundredth boundary is common: one floating-point
+  // step either side of it must round alike.
+  const at = x => canonicalFrame({ ...frame, zoom: x });
+  assert.equal(at(2653.125), at(2653.1249999999995));
+  assert.equal(at(2653.125), at(2653.1250000000005));
+  assert.notEqual(canonicalFrame(frame), canonicalFrame({ ...frame, marks: [{ id: 'trajectory-path(0:0)#1', d: 'M 0 0 L 1 1' }] }));
+});
+
+test('movement arrows and other relation marks are part of a frame', () => {
+  const visual = prepareVisualRecord(RECORDS.get(SAMPLE[0]));
+  const frames = layoutVisualFrames(visual, VIEWPORTS.filter(({ name }) => name === 'desktop'));
+  assert.ok(frames.some(frame => frame.marks.some(mark => mark.type === 'trajectory-path')), 'the movement arrow is recorded');
 });
 
 test('a comparison names changed frames, tiers and analyses', () => {

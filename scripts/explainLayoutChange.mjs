@@ -40,7 +40,16 @@ async function checkout(root) {
 
 const r2 = value => Math.round(value * 100) / 100 + 0;
 const same = (a, b) => JSON.stringify(a, (_, v) => typeof v === 'number' ? r2(v) : v) === JSON.stringify(b, (_, v) => typeof v === 'number' ? r2(v) : v);
-const origin = item => item.rect ?? item.boxes?.[0] ?? item.paths?.[0]?.[0];
+const origin = item => item.rect ?? item.boxes?.[0] ?? item.paths?.[0]?.[0] ?? item.start ?? (Number.isFinite(item.x) ? item : undefined);
+/** Items keyed by id; a repeated id gets its occurrence number, so duplicates still pair up. */
+const keyed = items => {
+  const seen = new Map();
+  return new Map(items.map(item => {
+    const n = (seen.get(item.id) ?? 0) + 1;
+    seen.set(item.id, n);
+    return [n > 1 ? `${item.id} #${n}` : item.id, item];
+  }));
+};
 const move = (a, b) => {
   const p = origin(a), q = origin(b);
   return p && q ? { dx: r2(q.x - p.x), dy: r2(q.y - p.y) } : { dx: 0, dy: 0 };
@@ -48,7 +57,7 @@ const move = (a, b) => {
 
 /** Differences of one kind of item (texts, plaques or lines), matched by id. */
 function itemChanges(kind, before, after) {
-  const was = new Map(before.map(item => [item.id, item])), now = new Map(after.map(item => [item.id, item]));
+  const was = keyed(before), now = keyed(after);
   const lines = [];
   for (const [id, item] of now) {
     const old = was.get(id);
@@ -70,7 +79,7 @@ function frameChanges(before, after, panels) {
   }
   if (panels && JSON.stringify(panels[0]) !== JSON.stringify(panels[1])) lines.push(`~ panel text: ${JSON.stringify(panels[0]?.heading)} → ${JSON.stringify(panels[1]?.heading)}`);
   return [...lines, ...itemChanges('text', before.texts, after.texts), ...itemChanges('plaque', before.plaques, after.plaques),
-    ...itemChanges('line', before.lines, after.lines)];
+    ...itemChanges('line', before.lines, after.lines), ...itemChanges('mark', before.marks ?? [], after.marks ?? [])];
 }
 
 const { loadFixtureAnalyses } = await import(pathToFileURL(path.join(path.resolve(values['candidate-root']), 'tests/helpers/replayInvariantCorpus.mjs')).href);
@@ -80,12 +89,15 @@ let differing = 0;
 for (const { id, record } of records) {
   const a = baseline(record), b = candidate(record), out = [];
   const changed = [];
-  for (let index = 0; index < Math.max(a.frames.length, b.frames.length); index++) {
-    const frame = index + 1, before = a.frames[index], after = b.frames[index];
+  // Frames pair by their Replay frame number; a step without a painted frame has none.
+  const byFrame = side => new Map(side.frames.map(item => [item.frame, item]));
+  const was = byFrame(a), now = byFrame(b);
+  for (const frame of [...new Set([...was.keys(), ...now.keys()])].sort((x, y) => x - y)) {
+    const before = was.get(frame), after = now.get(frame), panels = [a.panels[frame - 1], b.panels[frame - 1]];
     if (wanted && !wanted.has(frame)) continue;
     if (!before || !after) { changed.push({ frame, lines: [before ? '- whole frame' : '+ whole frame'] }); continue; }
-    if (canonicalFrame(before, a.panels[index]) === canonicalFrame(after, b.panels[index])) continue;
-    changed.push({ frame, lines: frameChanges(before, after, [a.panels[index], b.panels[index]]) });
+    if (canonicalFrame(before, panels[0]) === canonicalFrame(after, panels[1])) continue;
+    changed.push({ frame, lines: frameChanges(before, after, panels) });
   }
   const canopy = a.canopy && b.canopy ? canonicalFrame(a.canopy) !== canonicalFrame(b.canopy) && frameChanges(a.canopy, b.canopy)
     : Boolean(a.canopy) !== Boolean(b.canopy) && ['Canopy added or removed'];

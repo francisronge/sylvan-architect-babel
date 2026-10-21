@@ -1,8 +1,9 @@
 /** "Nothing changed" fingerprints of what Replay shows for one analysis.
  *
  * Each painted Replay frame at the desktop viewport, laid out offline by
- * visualFrames.mjs (measured fonts, plaques, role labels, connectors and the
- * camera Fit), and its Replay panel text become one short digest, as does the
+ * visualFrames.mjs (measured fonts, plaques, role labels, connectors, every
+ * other bound relation mark and the camera Fit), and its Replay panel text
+ * become one short digest, as does the
  * Canopy. `tiers` lists every relation plan item with the tier its claim won.
  * Positions are rounded to 0.01 tree units and every list is sorted by its
  * ids, so arithmetic noise and painting order do not count as a change.
@@ -17,7 +18,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 export const SNAPSHOT_VIEWPORT = 'desktop';
 
-const round = (_key, value) => typeof value === 'number' ? Math.round(value * 100) / 100 + 0 : value;
+// Round to a millionth first, so a value one floating-point step from a
+// hundredth boundary rounds the same way on both sides.
+const round = (_key, value) => typeof value === 'number' ? Math.round(Math.round(value * 1e6) / 1e4) / 100 + 0 : value;
 const byId = list => [...list].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 const digest = text => createHash('sha256').update(text).digest('base64url').slice(0, 8);
 
@@ -35,7 +38,7 @@ export function panelText({ buildReplayPanelContent, buildReplayDisplayDetailBlo
 /** One normalized frame (visualRules' model) and its panel, in a stable form. */
 export function canonicalFrame(frame, panel = null) {
   return JSON.stringify({ zoom: frame.zoom, chrome: frame.chrome, texts: byId(frame.texts), plaques: byId(frame.plaques),
-    lines: byId(frame.lines), panel }, round);
+    lines: byId(frame.lines), marks: byId(frame.marks ?? []), panel }, round);
 }
 
 /** Every plan item: `stage:relation T<tier> kind family facet`, sorted. */
