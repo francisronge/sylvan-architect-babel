@@ -424,8 +424,8 @@ function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep
     const before = scenes[index - 1], target = scene.step.targetNodeId, parent = target && scene.nodes.get(target);
     if (!before || scene.step.replayKind !== 'micro' || !['ExternalMerge', 'Project'].includes(scene.step.operation)
       || !parent || before.nodes.has(target)) return;
-    // At an insertion the host and any piece waiting beside it descend under the
-    // new parent together; only their horizontal motion counts.
+    // At an insertion the host descends under the new parent; only its
+    // horizontal motion counts.
     const priorParent = (id: string) => { const old = before.nodes.get(id)?.parent; return old && before.nodes.has(getNodeId(old)) ? getNodeId(old) : null; };
     const grand = parent.parent && scene.nodes.has(getNodeId(parent.parent)) ? getNodeId(parent.parent) : null;
     const insertion = Boolean(grand) && (parent.children ?? []).some(child => priorParent(getNodeId(child)) === grand);

@@ -23,7 +23,8 @@ type Node = d3.HierarchyPointNode<SyntaxNode>;
  * positions of its component in that frame. Every earlier frame in which those
  * members are painted only as detached pieces of that component, each painted
  * member under the parent it attaches with and no other syntax inside it, takes
- * those positions (raised by the row an inserted parent will add, see below); a later attachment of the same pieces
+ * those positions, including the row it takes under a parent inserted above an
+ * existing host, so only the host descends at the insertion; a later attachment of the same pieces
  * takes precedence. The rest of each frame is unchanged, so the coordinates must
  * share one origin across stages (see the stage alignment in stageCoordinates.ts).
  * A component keeps its planned frames when its slot would invalidate a branch or
@@ -140,13 +141,6 @@ export function reserveWaitingSlots({ steps, sizes, coordinates, direction, meas
         pending.push(...(now.get(member)!.children ?? []).map(getNodeId).filter(child => now.has(child)));
       }
       const slot = output.get(scenes[attach].canvas)!;
-      // A piece that attaches through a parent inserted above an existing host
-      // waits at its final x beside that host's current row, and the insertion
-      // lowers both together; branches keep one row until then.
-      const parentId = parentOf(now, id)!, grand = parentOf(now, parentId);
-      const host = before.has(parentId) || !grand ? undefined : [...now].find(([sister]) => sister !== id
-        && parentOf(now, sister) === parentId && before.has(sister) && parentOf(before, sister) === grand)?.[1];
-      const lift = host ? Math.min(0, before.get(getNodeId(host))!.y - host.y) : 0;
       const changes: { scene: typeof scenes[number]; ids: string[] }[] = [];
       for (let index = attach - 1; index >= 0; index--) {
         if (withinStage && scenes[index].step.replayFrameIndex !== scenes[attach].step.replayFrameIndex) break;
@@ -167,7 +161,7 @@ export function reserveWaitingSlots({ steps, sizes, coordinates, direction, meas
         const points = new Map(output.get(scene.canvas)!);
         // Right-to-left frames reflect x around their own stage width.
         const shift = direction === 'rtl' ? scene.size[0] - scenes[attach].size[0] : 0;
-        for (const member of ids) points.set(member, { ...slot.get(member)!, x: slot.get(member)!.x + shift, y: slot.get(member)!.y + lift });
+        for (const member of ids) points.set(member, { ...slot.get(member)!, x: slot.get(member)!.x + shift });
         output.set(scene.canvas, points);
         const placed = paint(scene);
         return valid(placed) && keepsOverlaps(scene, original, placed);
