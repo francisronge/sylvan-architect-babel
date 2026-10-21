@@ -38,8 +38,6 @@ export const ViewFailure: React.FC<{
 
 /** Keep this below analysis ownership so retry remounts the view, never the parse. */
 class ViewErrorBoundary extends Component<ViewErrorBoundaryProps, ViewErrorBoundaryState> {
-  declare readonly props: Readonly<ViewErrorBoundaryProps>;
-  declare setState: (state: Partial<ViewErrorBoundaryState>) => void;
   state: ViewErrorBoundaryState;
 
   constructor(props: ViewErrorBoundaryProps) {

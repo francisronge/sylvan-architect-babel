@@ -126,6 +126,15 @@ const releasedToConstruction = (steps) => {
 };
 const keepsRewrite = (steps, ids = ['wrapped', 'prop']) => builtByConstruction(steps, ['wrapped']).length === 0
   && ownsRewrite(steps[scopeMoment(steps)], ids);
+/** The same stages with the witness, and then its wrapper, in one slot of an
+ * earlier parent. The witness leaves that parent for the wrapper, so the
+ * stage displaces it and only the wrapper release can make the wrapper construction. */
+const underEarlierParent = record => {
+  const nest = (forest, id) => forest.map(root => root.id === id ? branch('top', root, leaf('zt', 'zt')) : root);
+  const [before, after] = record.derivationStages;
+  return { ...record, derivationStages: [{ ...before, workspaceForest: nest(before.workspaceForest, 'prop') },
+    { ...after, workspaceForest: nest(after.workspaceForest, 'wrapped') }] };
+};
 
 test('an earlier workspace that joins the wrapper changed, so the relation keeps the rewrite and the change waits for its moment', () => {
   const variants = {
@@ -157,10 +166,14 @@ test('only the wrapper may be new around the witness, which it wraps directly in
     'a new sister': stagePair([proposition()], [branch('wrapped', leaf('adv', 'now'), proposition())], [scope]),
     'a new parent between': stagePair(earlier, [branch('wrapped', leaf('adv', 'now'), branch('mid', proposition()))], [scope]),
     'an earlier lineage': stagePair([proposition(leaf('p', 'p', { lineageId: 'P' })), leaf('adv', 'now')],
-      [{ ...branch('wrapped', leaf('adv', 'now'), proposition(leaf('p', 'p', { lineageId: 'P' }))), lineageId: 'P' }], [scope]),
-    'another parent order': stagePair([branch('top', proposition(), leaf('z', 'z')), leaf('adv', 'now')],
-      [branch('top', leaf('z', 'z'), branch('wrapped', leaf('adv', 'now'), proposition()))], [scope])
-  })) assert.ok(keepsRewrite(play(record)), name);
+      [{ ...branch('wrapped', leaf('adv', 'now'), proposition(leaf('p', 'p', { lineageId: 'P' }))), lineageId: 'P' }], [scope])
+  })) {
+    // A root witness merged unchanged is displaced by nothing, so construction builds the new material and the wrapper.
+    assert.ok(releasedToConstruction(play(record)), `${name} at the root`);
+    assert.ok(keepsRewrite(play(underEarlierParent(record))), `${name} under an earlier parent`);
+  }
+  assert.ok(keepsRewrite(play(stagePair([branch('top', proposition(), leaf('z', 'z')), leaf('adv', 'now')],
+    [branch('top', leaf('z', 'z'), branch('wrapped', leaf('adv', 'now'), proposition()))], [scope]))), 'another parent order');
   assert.ok(releasedToConstruction(play(stagePair([branch('top', proposition(), leaf('z', 'z')), leaf('adv', 'now')],
     [branch('top', branch('wrapped', leaf('adv', 'now'), proposition()), leaf('z', 'z'))], [scope]))), 'in place under an earlier parent');
 });
@@ -171,9 +184,12 @@ test('another claim that can own a change in the wrapped material, before or aft
   const insertion = { relation: 'VocabularyInsertion', anchors: { terminal: 'p' }, values: { input: 'p', output: 'changed' } };
   const wrappedNow = (p = leaf('p', 'p'), q = leaf('q', 'q')) => [branch('wrapped', leaf('adv', 'now'), proposition(p, q))];
   const earlier = [proposition(), leaf('adv', 'now')];
+  const sameWord = stagePair(earlier, wrappedNow(), [scope, { ...insertion, values: { input: 'p', output: 'p' } }]);
+  // At the root nothing the claims cover changes, so the merge is construction.
+  assert.ok(releasedToConstruction(play(sameWord)), 'a later insertion of the same word at the root');
   for (const [name, record] of Object.entries({
     'a later insertion of a changed word': stagePair(earlier, wrappedNow(leaf('p', 'changed')), [scope, insertion]),
-    'a later insertion of the same word': stagePair(earlier, wrappedNow(), [scope, { ...insertion, values: { input: 'p', output: 'p' } }]),
+    'a later insertion of the same word under an earlier parent': underEarlierParent(sameWord),
     'an earlier rewrite of a word': stagePair(earlier, wrappedNow(undefined, leaf('q', 'Q')),
       [{ relation: 'q update', anchors: { updated: 'q' }, priorAnchors: { updated: 'q' } }, scope]),
     'a rewrite of an ancestor': stagePair([branch('top', proposition(), leaf('z', 'z')), leaf('adv', 'now')],
@@ -193,7 +209,8 @@ test('the claim\'s other anchors must be earlier material unchanged in place, or
   for (const [name, record, other] of [
     ['a changed word', stagePair(earlier, wrapped(leaf('z', 'Z!', { lineageId: 'Z' })), [scopeWith({ other: 'z' })]), 'z'],
     ['a new silence', stagePair(earlier, wrapped(leaf('z', 'z', { lineageId: 'Z', silent: true })), [scopeWith({ other: 'z' })]), 'z'],
-    ['a new root', stagePair(earlier.slice(0, 2), wrapped(leaf('zNew', 'new')), [scopeWith({ other: 'zNew' })]), 'zNew'],
+    ['a new root under an earlier parent', underEarlierParent(stagePair(earlier.slice(0, 2), wrapped(leaf('zNew', 'new')),
+      [scopeWith({ other: 'zNew' })])), 'zNew'],
     ['a new copy of an earlier object', stagePair(earlier, wrapped(branch('zr', leaf('zc', 'z', { lineageId: 'Z' }),
       leaf('z', undefined, { lineageId: 'Z', silent: true }))), [scopeWith({ other: 'zc' })]), 'zc']
   ]) {
@@ -206,6 +223,9 @@ test('the claim\'s other anchors must be earlier material unchanged in place, or
   assert.equal(wordOf(prior(changed), 'z'), 'z', 'the earlier word stays until the moment');
   assert.ok(releasedToConstruction(play(stagePair(earlier, wrapped(leaf('z', 'z', { lineageId: 'Z' })), [scopeWith({ other: 'z' })]))),
     'an unchanged anchor is context the claim observes');
+  const newRoot = play(stagePair(earlier.slice(0, 2), wrapped(leaf('zNew', 'new')), [scopeWith({ other: 'zNew' })]));
+  assert.ok(releasedToConstruction(newRoot) && builtByConstruction(newRoot, ['zNew']).length === 1,
+    'with nothing displaced, a new root the claim names is selected by construction');
 });
 
 test('material a movement leaves outside both its occurrences is not the movement\'s, so a change there keeps the rewrite', () => {

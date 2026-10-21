@@ -6,6 +6,11 @@ import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompile
 import { anchorSetRailPaths, fitFallbackGeometry } from '../replay/relations/fallbackGeometry.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
+import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
+import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
+import { buildReplayPanelContent } from '../replay/replayPanel.ts';
+import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
+import { FALLBACK_ROLE_STYLE } from '../replay/relations/fallbackGeometry.ts';
 const node = id => ({ id, label: id });
 const stage = relations => ({ statement: 'Test', stageRecord: 'Test', relations, workspaceForest: [node('a'), node('b'), node('c')] });
 const plan = compileRelationRenderPlan([stage([{ relation: 'Open claim', anchors: { first: 'a', second: 'b' } }])]);
@@ -398,4 +403,27 @@ test('future labels and plaques reserve space without cutting holes in current c
   assert.equal(shown.d.split('M ').length - 1, 3);
   assert.deepEqual(hidden.from, shown.from);
   assert.deepEqual(hidden.to, shown.to);
+});
+
+test('Tier-3 tree role labels measure and draw the Replay panel spacing; the authored roles stay unchanged', () => {
+  const relation = Object.freeze({ relation: 'open_claim',
+    anchors: Object.freeze({ selecting_head: 'a', escape_domain: 'b', x_i: 'c' }) });
+  const stages = [stage([relation])];
+  const measured = [];
+  const bound = bindRelationPlanFrame(compileRelationRenderPlan(stages), 0, id => ({ x: id.charCodeAt(0) * 150, y: 100 }), {
+    plaqueTextLayout: { measureText: (text, style) => {
+      measured.push([text, style]);
+      return { width: text.length * 10, ascent: 8, descent: 2 };
+    } }
+  });
+  const marks = bound.primitives.filter(p => p.type === 'fallback-mark');
+  assert.deepEqual(marks.map(mark => [mark.role, mark.text, mark.textWidth]), [
+    ['selecting_head', 'selecting head', 140], ['escape_domain', 'escape domain', 130], ['x_i', 'x_i', 30]
+  ], 'snake_case roles are spaced; single-letter notation keeps its underscore');
+  assert.deepEqual(measured, marks.map(mark => [mark.text, FALLBACK_ROLE_STYLE]), 'measurement reads the displayed text');
+  const steps = buildPlaybackStepsFromDerivationFrames({ frames: adaptDerivationStagesForReplay(stages),
+    replayPlan: buildDerivationReplayPlan({ derivationStages: stages }) });
+  const panel = buildReplayPanelContent(steps.find(step => step.replayKind === 'relation'), stages);
+  assert.deepEqual(marks.map(mark => mark.text), panel.supportLines.map(line => line.label), 'the tree matches the panel');
+  assert.deepEqual(Object.keys(stages[0].relations[0].anchors), ['selecting_head', 'escape_domain', 'x_i']);
 });

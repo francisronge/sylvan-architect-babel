@@ -4,7 +4,9 @@
  * a new finding fails, and so does every listed frame where it no longer
  * occurs. These rules have no measure, so every bound is null. Contract
  * warnings are facts about authored data at 'record'; the movement warning is
- * placed at its relation's moment. */
+ * placed at its relation's moment. An entry a change adds or lets
+ * grow also takes the owner's approval as its last argument
+ * (scripts/checkExceptionGrowth.mjs). */
 
 const UNRESOLVED_ENDPOINTS = 'Open: movement recognition finds no single source and landing (list-valued or competing landing '
   + 'fields), so the claim stays neutral and draws no path; its own moment still introduces the copy.';
@@ -20,11 +22,24 @@ const OBJECT_LANGUAGE = 'Authored data: the analysis names relations, roles and 
 const PRIOR_SOURCE = 'Open: movement recognition cannot prove the source in the preceding stage (a first-stage claim, or a source the '
   + 'stage does not keep), so the movement draws no path.';
 const CHAIN_ROLES = 'Open: a chain or licensing relation with movement-shaped roles; recognition finds no single source and landing.';
+const OPEN_ROLES = 'Open: no field of the claim names a movement direction or occurrence role (subject, thetaPosition, topic, '
+  + 'edgeOccurrence, sourceBeforeMovement), and the Tier 2 contract infers no movement from geometry, so the displacement '
+  + 'stays a neutral copy at its moment without an arrow.';
+const INTERMEDIATE_TRACE = 'Open: the claim calls its lower occurrence intermediateTrace, which cannot select the endpoint because '
+  + 'operator-variable chain claims use that name for a middle copy of the chain, and no other field names a movement role, so '
+  + 'the copy stays neutral at its moment without an arrow.';
+const UNNAMED_LANDING = 'Open: the claim names its lower occurrence as source but calls the moved occurrence clitic and its new '
+  + 'complex result; no field names a landing, and the Tier 2 contract infers no movement from geometry, so the copy stays '
+  + 'neutral at its moment without an arrow.';
+const OBJECT_LANGUAGE_ROLES = 'Authored data: the claim and its fields are named in Chinese, so no movement role is read and the '
+  + 'displacement stays a neutral copy at its moment without an arrow.';
+const RETAINED_HOST_SOURCE = 'Open: the prior fields name the moving negative and its receiving head, which keeps its slot and '
+  + 'lineage as it becomes the complex, so recognition finds two preceding sources and draws no head path.';
 
-const x = (reason, record, rule, subtype, subject, frames) => ({ reason, record, rule, subtype, subject, at: { '-': { [frames]: null } } });
+const x = (reason, record, rule, subtype, subject, frames, approval) => ({ reason, record, rule, subtype, subject, at: { '-': { [frames]: null } },
+  ...(approval && { approval }) });
 
 export const STEP_EXCEPTIONS = [
-  x(UNRESOLVED_ENDPOINTS, 'replay-regressions/landing-at-stage-record.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:0", '30'),
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/1', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "8:1", '51'),
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/2', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '29'),
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/2', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "7:0", '42'),
@@ -70,4 +85,20 @@ export const STEP_EXCEPTIONS = [
   x(CHAIN_ROLES, 'replay-regressions/independent-clause-and-realization.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "0:2", '22'),
   x(CHAIN_ROLES, 'replay-regressions/obsolete-plaque-pockets.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '49'),
   x(CHAIN_ROLES, 'replay-regressions/renamed-head-anchors.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:1", '27'),
+  x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'step-semantics', 'trajectory-off-moment', "2:1", '29'),
+  x(OPEN_ROLES, 'replay-regressions/kept-id-landing.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '36'),
+  x(OPEN_ROLES, 'replay-regressions/kept-id-landing.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "4:0", '46'),
+  x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '40'),
+  x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:1", '41'),
+  x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/object-language-metalanguage.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '21'),
+  x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/object-language-metalanguage.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "5:0", '56'),
+  x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/0', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '21'),
+  x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/0', 'movement-unrendered', 'COPY_WITHOUT_PATH', "5:0", '56'),
+  x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/5', 'movement-unrendered', 'COPY_WITHOUT_PATH', "1:1", '24'),
+  x(OBJECT_LANGUAGE_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/5', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '29'),
+  x(RETAINED_HOST_SOURCE, 'replay-regressions/retained-head-attachment.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '46'),
+  x(INTERMEDIATE_TRACE, 'replay-regressions/rewrite-stage-new-head.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '57'),
+  x(INTERMEDIATE_TRACE, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '33'),
+  x(INTERMEDIATE_TRACE, 'replay-regressions/later-occupant-source-before-movement.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '33'),
+  x(UNNAMED_LANDING, 'performance/french-relative.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "9:0", '104'),
 ];

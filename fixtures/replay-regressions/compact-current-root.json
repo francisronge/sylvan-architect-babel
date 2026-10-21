@@ -1,4 +1,5 @@
 {
+  "description": "Nonmovement moments and stale drawings cannot request compact construction geometry (currentRootCompaction).",
   "cases": [
     {
       "key": "compact-movement/astra-english",

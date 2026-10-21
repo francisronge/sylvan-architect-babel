@@ -1,4 +1,5 @@
 {
+  "description": "Single-participant grammatical properties stay literal (literalPropertyCompletion).",
   "provenance": {
     "source": "/tmp/babel-ten-model-comparison-20261006/astra-spanish-scope/attempts/parse/bundle.json",
     "model": "openai:gpt-6-astra",

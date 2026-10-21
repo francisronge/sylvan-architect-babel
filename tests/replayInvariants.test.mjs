@@ -4,12 +4,14 @@ import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
   checkAttachAtMerge, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkNoEarlyReveal,
-  checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationMoments, checkStableConstruction,
+  checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationConstruction, checkRelationMoments,
+  checkStableConstruction,
   checkStageCompletion, checkVisibleInCanvas, frameStructure
 } from './helpers/replayInvariants.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 import { matchFindings } from './helpers/findings.mjs';
 import { checkContractWarnings } from './helpers/replayContractWarnings.mjs';
+import { EXCEPTIONS as RULE_EXCEPTIONS } from './helpers/replayInvariantExceptions.mjs';
 import { STEP_EXCEPTIONS } from './helpers/replayStepExceptions.mjs';
 import { checkMarkPersistence, checkStepSemantics } from './helpers/replayStepInvariants.mjs';
 
@@ -133,6 +135,43 @@ test('control: no-early-reveal reports syntax first shown by a micro-step, a rel
   assert(reported(checkNoEarlyReveal(unbuilt), 'no-early-reveal', completion + 1, `${id} appears at macro StageRecord`));
 });
 
+test('control: relation-construction reports a claim showing a phrase its stage only merges, and accepts a displaced copy', () => {
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/merged-material-construction.json#/cases/1').record;
+  const merged = prepare(record), at = relationIndex => merged.playbackSteps.findIndex(step => step.replayKind === 'relation'
+    && step.replayRelationIdentity.stageIndex === 1 && step.replayRelationIdentity.relationIndex === relationIndex);
+  assert.deepEqual(checkRelationConstruction(merged, record), []);
+  const merge = merged.playbackSteps.findIndex(step => step.replayKind === 'micro' && step.targetNodeId === 'song-dp');
+  assert(merge >= 0 && merge < at(1), 'song-dp has its own merge before the realization claim');
+  // The shape the defect showed: the merged phrase first painted at the claim.
+  const claimed = { ...merged, playbackSteps: structuredClone(merged.playbackSteps) };
+  claimed.playbackSteps.slice(merge, at(1)).forEach(step => {
+    step.replayVisibleNodeIds = step.replayVisibleNodeIds.filter(id => id !== 'song-dp');
+  });
+  assert(reported(checkRelationConstruction(claimed, record), 'relation-construction', at(1) + 1, 'song-dp appears at relation'));
+  const copy = corpus.records.find(entry => entry.id === 'replay-regressions/unrecognized-movement.json#/cases/0').record;
+  const copied = prepare(copy), steps = copied.playbackSteps;
+  const moment = steps.findIndex(step => step.replayKind === 'relation' && step.replayRelationIdentity.stageIndex === 2
+    && step.replayRelationIdentity.relationIndex === 0);
+  assert(!frameStructure(steps[moment - 1]).displayed.has('rSubjectHigh') && frameStructure(steps[moment]).displayed.has('rSubjectHigh'),
+    'the neutral claim introduces the copy of the subject its stage silences');
+  assert.deepEqual(checkRelationConstruction(copied, copy), []);
+});
+
+test('control: relation-construction reports an identity claim building a conjunct that only shares a root with its occurrence', () => {
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/merged-material-construction.json#/cases/2').record;
+  const joined = prepare(record), at = joined.playbackSteps.findIndex(step => step.replayKind === 'relation'
+    && step.replayRelationIdentity.stageIndex === 1 && step.replayRelationIdentity.relationIndex === 0);
+  assert.deepEqual(checkRelationConstruction(joined, record), []);
+  // The shape the defect showed: the second conjunct and the coordination
+  // that joins it first painted at the identity claim.
+  const built = new Set(['vpCoordination', 'vpCoordinationLower', 'sellVP', 'whatSellObject', 'whatSellObject::__leaf']);
+  const claimed = { ...joined, playbackSteps: structuredClone(joined.playbackSteps) };
+  claimed.playbackSteps.slice(0, at).forEach(step => {
+    step.replayVisibleNodeIds = step.replayVisibleNodeIds.filter(id => !built.has(id));
+  });
+  assert(reported(checkRelationConstruction(claimed, record), 'relation-construction', at + 1, 'whatSellObject appears at relation'));
+});
+
 test('control: parent-after-children reports a new parent without its child and a retained parent that loses one', () => {
   assert.deepEqual(checkParentAfterChildren(replay), []);
   const merge = steps.findIndex(step => step.replayKind === 'micro' && step.operation === 'ExternalMerge');
@@ -236,40 +275,28 @@ test('control: movement-landing-parent reports a movement moment that paints its
     'matrixTProjection is not painted beside landing subjectHigher under matrixTP'));
 });
 
+test('control: movement-landing-parent reports a new parent below the kept landing parent painted before its movement moment', () => {
+  // GPT-6.1 Sol analysis 1 of Marie le fera lire à Paul.: TP keeps its id, and
+  // the new T′ (tinner) holds the clitic complex in finite T's slot.
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/inserted-landing-parent-below-kept-host.json#').record;
+  const prepared = prepare(record), moment = prepared.playbackSteps.findIndex(step => step.operation === 'subject-movement');
+  assert.deepEqual(checkMovementLandingParent(prepared, record), []);
+  const early = { ...prepared, playbackSteps: structuredClone(prepared.playbackSteps) };
+  const [before, at] = early.playbackSteps.slice(moment - 1, moment + 1);
+  before.replayCanvasData = at.replayCanvasData;
+  before.replayVisibleNodeIds = at.replayVisibleNodeIds.filter(id => !id.startsWith('marieHigh'));
+  assert(reported(checkMovementLandingParent(early, record), 'movement-landing-parent', moment,
+    `tinner is painted at relation clitic-movement before the movement moment (frame ${moment + 1})`));
+  const withheld = { ...prepared, playbackSteps: structuredClone(prepared.playbackSteps) };
+  withheld.playbackSteps[moment].replayVisibleNodeIds = withheld.playbackSteps[moment].replayVisibleNodeIds.filter(id => id !== 'tinner');
+  assert(reported(checkMovementLandingParent(withheld, record), 'movement-landing-parent', moment + 1,
+    'tinner is not painted beside landing marieHigh under tp'));
+});
+
 /* The sweep: every rule on every frame of every committed saved analysis.
- * Real defects stay listed below with the exact subject node of each violation;
- * a new violation fails, and so does a listed one that no longer occurs. */
-
-const FIRST_STAGE_REWRITE = 'Defect: a first-stage movement claim with no preceding stage to prove its source becomes a neutral rewrite; '
-  + 'its moment shows only the anchored root of the rewritten phrase, and the rest of that phrase appears later with an ordinary merge.';
-const CONTEXT_MERGE_AT_MOMENT = 'Defect (diagnosed RELATION_TIMING_CONFLICT): continued V-to-I is authored before the I-to-C movement '
-  + 'that builds its context, and each needs syntax the other introduces, so no Replay order satisfies both and authored order is '
-  + 'kept; its moment reveals the ordinary merge C′ instead of giving C′ its own step.';
-
-const KNOWN_DEFECTS = [
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'parent-after-children', 16, 'detP portraitBar'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/0', 'no-early-reveal', 17,
-    'detP portraitBar detBar nPortrait ofPP detWhich nPortrait::__leaf ofPbar detWhich::__leaf pOf npSelf pOf::__leaf selfBar nSelf nSelf::__leaf'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/2', 'parent-after-children', 19, 'argumentDbar'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/2', 'no-early-reveal', 23,
-    'argumentDbar demonstrativeD childrenNP demonstrativeD::__leaf childrenNbar childrenN childrenN::__leaf'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'parent-after-children', 37, 'sdh moh'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/3', 'no-early-reveal', 38,
-    'sdh moh donoh studenth moh::__leaf donoh::__leaf studenth::__leaf'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'parent-after-children', 37, 'sdh moh'],
-  [FIRST_STAGE_REWRITE, 'movement/holdout-transitions.json#/4', 'no-early-reveal', 38,
-    'sdh moh donoh studenth moh::__leaf donoh::__leaf studenth::__leaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/independent-clause-and-realization.json#', 'parent-after-children', 20, 'operatorHighNbar'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/independent-clause-and-realization.json#', 'no-early-reveal', 21, 'operatorHighNbar operatorHighN'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/receiving-head-material.json#', 'parent-after-children', 20, 'booksDbar'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/receiving-head-material.json#', 'no-early-reveal', 21,
-    'booksDbar booksD booksNP booksNbarOuter booksNbarInner demP bookN demBar bookN::__leaf dem dem::__leaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 11, 'rVAtT rvAtTLeaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 12, 'rVAtT rvAtTLeaf rVAtT::__leaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'parent-after-children', 28, 'mVAtT mvAtTLeaf'],
-  [FIRST_STAGE_REWRITE, 'replay-regressions/retained-root-growth.json#', 'no-early-reveal', 29, 'mVAtT mvAtTLeaf mVAtT::__leaf'],
-  [CONTEXT_MERGE_AT_MOMENT, 'replay-regressions/case-source-transfer.json#', 'no-early-reveal', 28, 'cbar'],
-];
+ * Real defects stay listed in tests/helpers/replayInvariantExceptions.mjs with
+ * the exact subject node of each violation; a new violation fails, and so does
+ * a listed one that no longer occurs. */
 
 // A node revealed at a step that does not own it is one defect, reported by
 // no-early-reveal; that step's attachment of the same node is not reported again.
@@ -277,7 +304,8 @@ const REPORTED_BY = new Map([['attach-at-merge', 'no-early-reveal']]);
 const subjectOf = violation => violation.detail.split(' ')[0];
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments', 'landing-attached',
-  'no-early-reveal', 'parent-after-children', 'stable-construction', 'attach-at-merge', 'movement-landing-parent', 'visible-in-canvas',
+  'no-early-reveal', 'relation-construction', 'parent-after-children', 'stable-construction', 'attach-at-merge', 'movement-landing-parent',
+  'visible-in-canvas',
   'marks-at-owning-moment', 'one-letter-per-label'];
 let sweep;
 before(() => {
@@ -288,8 +316,8 @@ before(() => {
       return { id, frames: prepared.playbackSteps.length, violations: [
         ...checkInputUnchanged(snapshot, authored), ...checkNoVisibleScaffolding(prepared), ...checkStageCompletion(prepared, authored),
         ...checkRelationMoments(prepared, authored), ...checkLandingAttached(prepared), ...checkNoEarlyReveal(prepared),
-        ...checkParentAfterChildren(prepared), ...checkStableConstruction(prepared), ...checkAttachAtMerge(prepared),
-        ...checkMovementLandingParent(prepared, authored), ...checkVisibleInCanvas(prepared),
+        ...checkRelationConstruction(prepared, authored), ...checkParentAfterChildren(prepared), ...checkStableConstruction(prepared),
+        ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),
         ...checkContractWarnings(prepared, authored, { contract })] };
@@ -308,17 +336,16 @@ test('the sweep accounts for every committed analysis with derivationStages', ()
 });
 
 for (const rule of RULES) test(`sweep: ${rule} holds on every frame of every committed analysis, apart from listed defects`, () => {
-  const key = (id, frame, subject) => `${id} frame ${frame}: ${subject}`;
-  const expected = new Set(KNOWN_DEFECTS.filter(entry => entry[2] === rule)
-    .flatMap(([, id, , frame, subjects]) => subjects.split(' ').map(subject => key(id, frame, subject))));
   const reportedElsewhere = (violations, violation) => violations.some(other => other.rule === REPORTED_BY.get(rule)
     && other.frame === violation.frame && subjectOf(other) === subjectOf(violation));
-  const found = sweep.flatMap(entry => (entry.violations ?? [])
+  const findings = sweep.flatMap(entry => (entry.violations ?? [])
     .filter(violation => violation.rule === rule && !reportedElsewhere(entry.violations, violation))
-    .map(violation => ({ key: key(entry.id, violation.frame, subjectOf(violation)), text: `${entry.id} frame ${violation.frame}: ${violation.detail}` })));
-  assert.deepEqual(found.filter(violation => !expected.has(violation.key)).map(violation => violation.text), [], 'new violations');
-  const keys = new Set(found.map(violation => violation.key));
-  assert.deepEqual([...expected].filter(entry => !keys.has(entry)), [], 'listed defects that no longer occur; remove them from KNOWN_DEFECTS');
+    .map(violation => ({ rule, subtype: null, record: entry.id, subject: subjectOf(violation), frame: violation.frame, viewport: null,
+      measure: null, detail: violation.detail })));
+  const { unexpected, stale } = matchFindings(findings, RULE_EXCEPTIONS.filter(exception => exception.rule === rule));
+  assert.deepEqual(unexpected.map(found => `${found.record} frame ${found.frame}: ${found.detail}`), [], 'new violations');
+  assert.deepEqual(stale.map(({ exception, frame }) => `${exception.record} frame ${frame}: ${exception.subject}`), [],
+    'listed defects that no longer occur; remove them from replayInvariantExceptions.mjs');
 });
 
 // A step-semantics finding at the frame and subject where a construction rule

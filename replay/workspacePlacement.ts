@@ -13,13 +13,14 @@ import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
-import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
+import { extentOverlap, obstacleExtent, verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { visibleChildIds, visibleComponentNodes, visibleParentId } from './visibleComponent.ts';
 import { reserveAttachmentLifetimes, type WorkspaceAttachmentPolicy, type WorkspaceAttachmentScene } from './workspaceAttachmentPlan.ts';
 import { planCoherentWorkspace, type CoherentWorkspaceDiagnostic } from './workspaceCoherentPlan.ts';
 import {
   prepareComponentLifetimeReservations,
   retainUnchangedComponentLifetime,
+  sceneTreeInk,
   workspaceComponentIsStationary,
   workspaceComponentLifetimeSeeds,
   type ComponentLifetimeOptions
@@ -207,42 +208,86 @@ export function reserveWorkspaceAttachments({
     baseline: Reservations;
     mode: 'attachment' | 'lifetime';
   };
+  // Exemptions from the motion guard that depend only on the two scenes'
+  // current topology and material, never on a plan's coordinates.
+  type Exemption = { topology: boolean; mergeParticipant: boolean; regrown: boolean };
+  const exemptions = new WeakMap<Scene, Map<string, Exemption>>();
+  const exemption = (before: Scene, scene: Scene, id: string): Exemption => {
+    let byId = exemptions.get(scene);
+    if (!byId) exemptions.set(scene, byId = new Map());
+    let value = byId.get(id);
+    if (value) return value;
+    const original = scene.nodes.get(id)!, prior = before.nodes.get(id);
+    let currentAncestors: Set<string> | undefined;
+    const topology = !prior || visibleParentId(original, scene.nodes) !== visibleParentId(prior, before.nodes)
+      || JSON.stringify(visibleChildIds(original, scene.nodes)) !== JSON.stringify(visibleChildIds(prior, before.nodes))
+      || scene.step.replayKind === 'relation' && visibleAncestors(prior, before.nodes).some(ancestor =>
+        before.nodes.has(getNodeId(ancestor)) && ancestor.data.replayOrigin?.kind !== 'workspace'
+        && !(currentAncestors ??= new Set(visibleAncestors(original, scene.nodes).map(getNodeId))).has(getNodeId(ancestor)));
+    // The merge participants can translate when they join. Unrelated
+    // components and relation-only scenes still obey the motion guard.
+    const mergeParticipant = scene.step.replayKind === 'micro' && scene.step.operation === 'ExternalMerge'
+      && visibleAncestors(original, scene.nodes).some(ancestor => getNodeId(ancestor) === scene.step.targetNodeId);
+    // A branch centers over its actual daughters after internal growth.
+    // Its unchanged descendants remain independently constrained below.
+    const regrown = !topology && visibleChildIds(original, scene.nodes).length > 0 && grownBelow(before, scene, original);
+    byId.set(id, value = { topology, mergeParticipant, regrown });
+    return value;
+  };
+  // Whether any member of a node's visible component, itself included, is new or
+  // changed its material or visible children since the preceding scene.
+  const grown = new WeakMap<Scene, Map<Node, boolean>>();
+  const grownBelow = (before: Scene, scene: Scene, node: Node): boolean => {
+    let byNode = grown.get(scene);
+    if (!byNode) grown.set(scene, byNode = new Map());
+    let value = byNode.get(node);
+    if (value === undefined) {
+      const old = before.nodes.get(getNodeId(node));
+      value = !old || node.data.label !== old.data.label || node.data.word !== old.data.word
+        || node.data.silent !== old.data.silent || JSON.stringify(visibleChildIds(node, scene.nodes)) !== JSON.stringify(visibleChildIds(old, before.nodes))
+        || (node.children ?? []).some(child => scene.nodes.has(getNodeId(child)) && grownBelow(before, scene, child));
+      byNode.set(node, value);
+    }
+    return value;
+  };
+  // Painted maps and their attachment changes, once per rendered reservation.
+  const paintedMaps = new WeakMap<Node[], Map<string, Node>>();
+  const painted = (scene: Scene, reservation: TreeCoordinateReservation) => {
+    const nodes = rendered(scene, reservation);
+    let map = paintedMaps.get(nodes);
+    if (!map) paintedMaps.set(nodes, map = new Map(nodes.map(node => [getNodeId(node), node] as const)));
+    return map;
+  };
+  const shapeChanges = new WeakMap<ReadonlyMap<string, Node>, WeakMap<ReadonlyMap<string, Node>, Map<string, number>>>();
+  const attachmentChanges = (before: ReadonlyMap<string, Node>, after: ReadonlyMap<string, Node>) => {
+    let byAfter = shapeChanges.get(before);
+    if (!byAfter) shapeChanges.set(before, byAfter = new WeakMap());
+    let changes = byAfter.get(after);
+    if (!changes) byAfter.set(after, changes = attachmentShapeChanges(before, after));
+    return changes;
+  };
   const stableMotion = ({ candidate, baseline, mode }: PlanCheck, includeRelationReflow = false) => scenes.every((scene, index) => {
     if (!index) return true;
     const before = scenes[index - 1];
-    const previous = new Map(rendered(before, candidate.get(before.canvas)!).map(node => [getNodeId(node), node] as const));
-    const baselineBefore = new Map(rendered(before, baseline.get(before.canvas)!).map(node => [getNodeId(node), node] as const));
-    const baselineAfter = new Map(rendered(scene, baseline.get(scene.canvas)!).map(node => [getNodeId(node), node] as const));
-    const currentPositions = new Map(rendered(scene, candidate.get(scene.canvas)!).map(node => [getNodeId(node), node]));
-    const priorAttachments = attachmentShapeChanges(baselineBefore, baselineAfter);
-    const currentAttachments = attachmentShapeChanges(previous, currentPositions);
+    const previous = painted(before, candidate.get(before.canvas)!);
+    const baselineBefore = painted(before, baseline.get(before.canvas)!);
+    const baselineAfter = painted(scene, baseline.get(scene.canvas)!);
+    const currentPositions = painted(scene, candidate.get(scene.canvas)!);
+    const priorAttachments = attachmentChanges(baselineBefore, baselineAfter);
+    const currentAttachments = attachmentChanges(previous, currentPositions);
     if ([...currentAttachments].some(([pair, change]) => change > (priorAttachments.get(pair) ?? 0) + 1e-6)) return false;
     const lowerWitnesses = movementParticipants(before, scene);
     const joiningHosts = mode === 'lifetime' ? rigidMovementHosts(scene.step, before.nodes, scene.nodes, previous, currentPositions) : new Set<string>();
     return [...currentPositions.values()].every(node => {
-      const id = getNodeId(node), original = scene.nodes.get(id)!, prior = before.nodes.get(id), moved = previous.get(id);
-      if (!prior || !moved || visibleParentId(original, scene.nodes) !== visibleParentId(prior, before.nodes)
-        || JSON.stringify(visibleChildIds(original, scene.nodes)) !== JSON.stringify(visibleChildIds(prior, before.nodes))) return true;
-      if (scene.step.replayKind === 'relation' && visibleAncestors(prior, before.nodes).some(ancestor =>
-        before.nodes.has(getNodeId(ancestor)) && ancestor.data.replayOrigin?.kind !== 'workspace'
-        && !visibleAncestors(original, scene.nodes).some(current => getNodeId(current) === getNodeId(ancestor)))) return true;
+      const id = getNodeId(node), moved = previous.get(id);
+      if (!moved) return true;
+      const { topology, mergeParticipant, regrown } = exemption(before, scene, id);
+      if (topology) return true;
       if (mode === 'lifetime') {
         // The exact lower occurrence participates in its movement moment even
         // when it remains pronounced. Earlier trajectories grant no exception.
-        if (lowerWitnesses.has(id) || joiningHosts.has(id)) return true;
-        // The merge participants can translate when they join. Unrelated
-        // components and relation-only scenes still obey the motion guard.
-        if (scene.step.replayKind === 'micro' && scene.step.operation === 'ExternalMerge'
-          && visibleAncestors(original, scene.nodes).some(ancestor => getNodeId(ancestor) === scene.step.targetNodeId)) return true;
-        // A branch centers over its actual daughters after internal growth.
-        // Its unchanged descendants remain independently constrained below.
-        const changedSubtree = visibleComponentNodes(original, scene.nodes).some(child => {
-          const old = before.nodes.get(getNodeId(child));
-          return !old || child.data.label !== old.data.label || child.data.word !== old.data.word
-            || child.data.silent !== old.data.silent || JSON.stringify(visibleChildIds(child, scene.nodes)) !== JSON.stringify(visibleChildIds(old, before.nodes));
-        });
-        if (visibleChildIds(original, scene.nodes).length && changedSubtree
-          && Math.abs(node.y - moved.y) < 1e-6) return true;
+        if (lowerWitnesses.has(id) || joiningHosts.has(id) || mergeParticipant) return true;
+        if (regrown && Math.abs(node.y - moved.y) < 1e-6) return true;
       }
       const priorMotion = Math.hypot(baselineAfter.get(id)!.x - baselineBefore.get(id)!.x,
         baselineAfter.get(id)!.y - baselineBefore.get(id)!.y);
@@ -277,13 +322,13 @@ export function reserveWorkspaceAttachments({
     const rects = (node: Node) => {
       const id = getNodeId(node);
       let cached = rectangles.get(id);
-      if (!cached) rectangles.set(id, cached = treeInkObstacles(visibleComponentNodes(node, visibleNodes), measureCategoryText, measureTreeInk, includeSiblings, scene.treeLabelRuns, scene.measureTreeLabel));
+      if (!cached) rectangles.set(id, cached = sceneTreeInk(scene).obstacles(visibleComponentNodes(node, visibleNodes), includeSiblings));
       return cached;
     };
     const indexes = new Map<Node, ReturnType<typeof verticalObstacleIndex<ReturnType<typeof treeInkObstacles>[number]>>>();
     const indexFor = (node: Node) => {
       let index = indexes.get(node);
-      if (!index) indexes.set(node, index = verticalObstacleIndex(rects(node)));
+      if (!index) indexes.set(node, index = verticalObstacleIndex(rects(node), { overlapOnly: true }));
       return index;
     };
     const groups = [nodes.filter(node => !included.has(node.parent!))];
@@ -293,6 +338,9 @@ export function reserveWorkspaceAttachments({
     }
     const overlaps = new Map<string, number>();
     for (const components of groups) for (let i = 0; i < components.length; i++) for (let j = i + 1; j < components.length; j++) {
+      // Only pairs overlapping on both axes add area.
+      const extent = extentOverlap(obstacleExtent(rects(components[i])), obstacleExtent(rects(components[j])));
+      if (extent.x <= 0 || extent.y <= 0) continue;
       let area = 0;
       const query = indexFor(components[j]);
       for (const a of rects(components[i])) query(a, b => {

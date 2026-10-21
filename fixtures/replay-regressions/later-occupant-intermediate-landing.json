@@ -1,0 +1,1405 @@
+{
+  "description": "Stage 4 raises whose car to Spec-TP of the relative clause and stage 5 moves it on to Spec-CP, leaving carSubjectTrace in Spec-TP. Stage 6 attaches the relative clause to woman, and that attachment carries the later layout back over stages 4 and 5. Its Spec-TP slot was sized for the trace, so while whose car stood there (frames 22 to 26) car sat on was, N overlapped T[past, finite] and the branch from whose car to car ran into it. Truncated to stages 1 to 5 the record was clear. The slot is now sized for both occupants from the landing on: whose car and T′ each move half the clearance apart, and the trace keeps the wider slot.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract, 19 October 2026 (night3 batch, 67-en-relative-whose, analysis 1 of 1), commit bcf1b56. Tokens are the spell-out word list of that run.",
+  "sentence": "The woman whose car was stolen called the police.",
+  "framework": "minimalism",
+  "inputTokens": [
+    "The",
+    "woman",
+    "whose",
+    "car",
+    "was",
+    "stolen",
+    "called",
+    "the",
+    "police"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "possessedNominal": "car",
+            "possessiveDeterminer": "whose",
+            "possessivePhrase": "carDP"
+          },
+          "relation": "possessive interpretation",
+          "values": {
+            "determinerFeatures": [
+              "relative",
+              "genitive"
+            ],
+            "possessor": "relative variable"
+          }
+        }
+      ],
+      "stageRecord": "Externally merge the relative genitive determiner whose with the nominal head car. The resulting object is labeled D by its selecting head, without introducing an independent phrase-structure template. In this analysis, whose is a possessive relative determiner containing a possessor variable; it is not a separate possessor phrase. Its genitive interpretation makes that variable the possessor of the car. The relative feature will subsequently require an operator dependency.",
+      "statement": "Construct the possessive relative phrase whose car.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "whose",
+              "label": "D[relative, genitive]",
+              "word": "whose"
+            },
+            {
+              "children": [],
+              "id": "car",
+              "label": "N",
+              "word": "car"
+            }
+          ],
+          "id": "carDP",
+          "label": "D",
+          "lineageId": "carArgument"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "predicate": "stolen",
+            "theme": "carDP"
+          },
+          "relation": "internal thematic interpretation",
+          "values": {
+            "thetaRole": "theme"
+          }
+        },
+        {
+          "anchors": {
+            "internalArgument": "carDP",
+            "predicate": "stolen",
+            "voice": "passiveVoice"
+          },
+          "relation": "passive voice licensing",
+          "values": {
+            "externalArgument": "implicit agent; no overt external argument merged",
+            "structuralAccusative": "unavailable",
+            "verbalForm": "passive participle",
+            "voiceType": "passive"
+          }
+        }
+      ],
+      "stageRecord": "Merge stolen with the previously constructed possessive phrase as its internal argument, establishing the car phrase as the theme of stealing. Then merge an unpronounced passive Voice head above that verbal object. Passive Voice prevents an ordinary external argument from being merged and leaves the understood thief implicit. Stolen is the participial lexical form selected in this passive environment; the analysis does not posit an additional pronounced passive morpheme.",
+      "statement": "Construct the passive predicate stolen whose car.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "passiveVoice",
+              "label": "Voice[passive]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "stolen",
+                  "label": "V[participle]",
+                  "word": "stolen"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "whose",
+                      "label": "D[relative, genitive]",
+                      "word": "whose"
+                    },
+                    {
+                      "children": [],
+                      "id": "car",
+                      "label": "N",
+                      "word": "car"
+                    }
+                  ],
+                  "id": "carDP",
+                  "label": "D",
+                  "lineageId": "carArgument"
+                }
+              ],
+              "id": "stolenVP",
+              "label": "V"
+            }
+          ],
+          "id": "passiveProjection",
+          "label": "Voice"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "auxiliary": "was",
+            "passiveComplement": "passiveProjection"
+          },
+          "relation": "finite passive auxiliary selection",
+          "values": {
+            "auxiliaryFunction": "finite passive auxiliary",
+            "tense": "past"
+          }
+        },
+        {
+          "anchors": {
+            "goal": "carDP",
+            "numberSource": "car",
+            "probe": "was"
+          },
+          "relation": "agreement and nominative licensing",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative on the complete car phrase"
+          }
+        }
+      ],
+      "stageRecord": "Merge finite T, pronounced was, with the passive predicate. Was is treated as the finite passive auxiliary in T, rather than as a lexical verb that must subsequently raise. T probes the accessible car phrase inside the passive predicate. Agree supplies singular agreement and licenses nominative Case on that phrase; the genitive contribution of whose remains internal to it. The car phrase is still in its thematic position at this stage.",
+      "statement": "Introduce finite was and establish agreement with the passive theme.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "was",
+              "label": "T[past, finite]",
+              "word": "was"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "passiveVoice",
+                  "label": "Voice[passive]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "stolen",
+                      "label": "V[participle]",
+                      "word": "stolen"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "whose",
+                          "label": "D[relative, genitive]",
+                          "word": "whose"
+                        },
+                        {
+                          "children": [],
+                          "id": "car",
+                          "label": "N",
+                          "word": "car"
+                        }
+                      ],
+                      "id": "carDP",
+                      "label": "D",
+                      "lineageId": "carArgument"
+                    }
+                  ],
+                  "id": "stolenVP",
+                  "label": "V"
+                }
+              ],
+              "id": "passiveProjection",
+              "label": "Voice"
+            }
+          ],
+          "id": "relativeTProjection",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "attractingHead": "was",
+            "landing": "carDP",
+            "sourceTrace": "carThemeTrace"
+          },
+          "priorAnchors": {
+            "movedPhrase": "carDP",
+            "sourcePredicate": "stolenVP"
+          },
+          "relation": "passive subject A-movement",
+          "values": {
+            "movementType": "A-movement",
+            "representation": "trace at the thematic source",
+            "trigger": "finite T subject-position requirement"
+          }
+        }
+      ],
+      "stageRecord": "Internally merge the car phrase from the previously displayed complement of stolen into the subject position of finite T. This satisfies T's subject-position requirement while preserving the theme interpretation established below. Movement is represented with a silent trace at the source, not with a fully articulated lower copy. The overt phrase retains its identity and lexical subtree; the trace shares its lineage. Bare Phrase Structure therefore supplies another T-labeled object whose children are the raised subject and the existing T projection.",
+      "statement": "Raise whose car to the relative clause's subject position.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "whose",
+                  "label": "D[relative, genitive]",
+                  "word": "whose"
+                },
+                {
+                  "children": [],
+                  "id": "car",
+                  "label": "N",
+                  "word": "car"
+                }
+              ],
+              "id": "carDP",
+              "label": "D",
+              "lineageId": "carArgument"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "was",
+                  "label": "T[past, finite]",
+                  "word": "was"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "passiveVoice",
+                      "label": "Voice[passive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "stolen",
+                          "label": "V[participle]",
+                          "word": "stolen"
+                        },
+                        {
+                          "children": [],
+                          "id": "carThemeTrace",
+                          "label": "D[trace]",
+                          "lineageId": "carArgument",
+                          "silent": true
+                        }
+                      ],
+                      "id": "stolenVP",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "passiveProjection",
+                  "label": "Voice"
+                }
+              ],
+              "id": "relativeTProjection",
+              "label": "T"
+            }
+          ],
+          "id": "relativeTP",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "relativeDeterminer": "whose",
+            "relativeHead": "relativeC"
+          },
+          "relation": "relative operator licensing",
+          "values": {
+            "dependency": "possessive relative operator"
+          }
+        },
+        {
+          "anchors": {
+            "attractingHead": "relativeC",
+            "landing": "carDP",
+            "relativeElement": "whose",
+            "subjectSourceTrace": "carSubjectTrace",
+            "thematicTrace": "carThemeTrace"
+          },
+          "priorAnchors": {
+            "movedSubject": "carDP",
+            "sourceClause": "relativeTP"
+          },
+          "relation": "relative A-bar movement with pied-piping",
+          "values": {
+            "interpretiveChain": "relative edge, finite subject position, internal theme position",
+            "movementType": "A-bar movement",
+            "piedPipedMaterial": "the nominal car together with its relative determiner"
+          }
+        }
+      ],
+      "stageRecord": "Merge an unpronounced relative C with the completed finite clause. Its relative probe establishes a dependency with the relative feature on whose. Then internally merge the entire phrase whose car from the subject position shown in the preceding stage to the edge of C. This is pied-piping of the nominal containing whose, not extraction of whose alone. A new silent trace marks the subject source, while the earlier thematic trace remains. The resulting chain distinguishes the passive A-movement step from the subsequent relative A-bar step. No overt complementizer is introduced.",
+      "statement": "Form the relative clause by moving the possessive phrase to its left edge.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "whose",
+                  "label": "D[relative, genitive]",
+                  "word": "whose"
+                },
+                {
+                  "children": [],
+                  "id": "car",
+                  "label": "N",
+                  "word": "car"
+                }
+              ],
+              "id": "carDP",
+              "label": "D",
+              "lineageId": "carArgument"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "relativeC",
+                  "label": "C[relative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "carSubjectTrace",
+                      "label": "D[trace]",
+                      "lineageId": "carArgument",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "was",
+                          "label": "T[past, finite]",
+                          "word": "was"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "passiveVoice",
+                              "label": "Voice[passive]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "stolen",
+                                  "label": "V[participle]",
+                                  "word": "stolen"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "carThemeTrace",
+                                  "label": "D[trace]",
+                                  "lineageId": "carArgument",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "stolenVP",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "passiveProjection",
+                          "label": "Voice"
+                        }
+                      ],
+                      "id": "relativeTProjection",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "relativeTP",
+                  "label": "T"
+                }
+              ],
+              "id": "relativeCProjection",
+              "label": "C"
+            }
+          ],
+          "id": "relativeCP",
+          "label": "C"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "modifiedNominal": "modifiedWoman",
+            "modifier": "relativeCP",
+            "nominalHost": "woman"
+          },
+          "relation": "restrictive relative modification",
+          "values": {
+            "attachment": "nominal-internal right adjunction",
+            "interpretation": "restrict the women to those whose car was stolen"
+          }
+        },
+        {
+          "anchors": {
+            "antecedent": "woman",
+            "possessiveRelativeDeterminer": "whose",
+            "relativeClause": "relativeCP"
+          },
+          "relation": "relative antecedent binding",
+          "values": {
+            "antecedentRole": "possessor, not theme of stealing",
+            "boundVariable": "the possessor of the car"
+          }
+        }
+      ],
+      "stageRecord": "Introduce woman and right-adjoin the completed relative clause to its nominal projection, using asymmetric adjunction with the nominal as host. The resulting object retains the nominal label. This is a restrictive relative inside the description selected by The, not an independent supplementary clause. Interpret the relative possessor variable in whose as bound by the woman antecedent: the car belongs to the woman, rather than the woman being the stolen theme. Finally merge The with the modified nominal to construct the definite matrix subject.",
+      "statement": "Attach the restrictive relative to woman and construct the matrix subject.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "subjectThe",
+              "label": "D[definite]",
+              "word": "The"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "woman",
+                  "label": "N",
+                  "word": "woman"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "whose",
+                          "label": "D[relative, genitive]",
+                          "word": "whose"
+                        },
+                        {
+                          "children": [],
+                          "id": "car",
+                          "label": "N",
+                          "word": "car"
+                        }
+                      ],
+                      "id": "carDP",
+                      "label": "D",
+                      "lineageId": "carArgument"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "relativeC",
+                          "label": "C[relative]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "carSubjectTrace",
+                              "label": "D[trace]",
+                              "lineageId": "carArgument",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "was",
+                                  "label": "T[past, finite]",
+                                  "word": "was"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "passiveVoice",
+                                      "label": "Voice[passive]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "stolen",
+                                          "label": "V[participle]",
+                                          "word": "stolen"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "carThemeTrace",
+                                          "label": "D[trace]",
+                                          "lineageId": "carArgument",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "stolenVP",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "passiveProjection",
+                                  "label": "Voice"
+                                }
+                              ],
+                              "id": "relativeTProjection",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "relativeTP",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "relativeCProjection",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "relativeCP",
+                  "label": "C"
+                }
+              ],
+              "id": "modifiedWoman",
+              "label": "N"
+            }
+          ],
+          "id": "womanDP",
+          "label": "D",
+          "lineageId": "womanArgument"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "internalArgument": "policeDP",
+            "predicate": "called"
+          },
+          "relation": "matrix internal thematic interpretation",
+          "values": {
+            "thetaRole": "contacted party"
+          }
+        }
+      ],
+      "stageRecord": "Introduce the definite object the police and merge it as the complement of called. The object denotes the party contacted by calling. Called is entered with its overt past-tense form; a later finite T will license that form without changing its lexical spelling. The completed matrix subject remains a separate workspace object until the external-argument position is built.",
+      "statement": "Construct the transitive matrix predicate called the police.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "subjectThe",
+              "label": "D[definite]",
+              "word": "The"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "woman",
+                  "label": "N",
+                  "word": "woman"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "whose",
+                          "label": "D[relative, genitive]",
+                          "word": "whose"
+                        },
+                        {
+                          "children": [],
+                          "id": "car",
+                          "label": "N",
+                          "word": "car"
+                        }
+                      ],
+                      "id": "carDP",
+                      "label": "D",
+                      "lineageId": "carArgument"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "relativeC",
+                          "label": "C[relative]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "carSubjectTrace",
+                              "label": "D[trace]",
+                              "lineageId": "carArgument",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "was",
+                                  "label": "T[past, finite]",
+                                  "word": "was"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "passiveVoice",
+                                      "label": "Voice[passive]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "stolen",
+                                          "label": "V[participle]",
+                                          "word": "stolen"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "carThemeTrace",
+                                          "label": "D[trace]",
+                                          "lineageId": "carArgument",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "stolenVP",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "passiveProjection",
+                                  "label": "Voice"
+                                }
+                              ],
+                              "id": "relativeTProjection",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "relativeTP",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "relativeCProjection",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "relativeCP",
+                  "label": "C"
+                }
+              ],
+              "id": "modifiedWoman",
+              "label": "N"
+            }
+          ],
+          "id": "womanDP",
+          "label": "D",
+          "lineageId": "womanArgument"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "called",
+              "label": "V[past form]",
+              "word": "called"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "objectThe",
+                  "label": "D[definite]",
+                  "word": "the"
+                },
+                {
+                  "children": [],
+                  "id": "police",
+                  "label": "N",
+                  "word": "police"
+                }
+              ],
+              "id": "policeDP",
+              "label": "D"
+            }
+          ],
+          "id": "calledVP",
+          "label": "V"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "licensingHead": "activeV",
+            "object": "policeDP"
+          },
+          "relation": "structural accusative licensing",
+          "values": {
+            "case": "accusative",
+            "voice": "active transitive"
+          }
+        },
+        {
+          "anchors": {
+            "externalArgument": "womanDP",
+            "introducingHead": "activeV",
+            "predicate": "called"
+          },
+          "relation": "external thematic interpretation",
+          "values": {
+            "thetaRole": "agent or caller"
+          }
+        }
+      ],
+      "stageRecord": "Merge an unpronounced active transitive v with the calling predicate. This head licenses structural accusative on the police phrase. Then externally merge the previously constructed woman phrase at the edge of v, assigning it the external role of caller. The relative clause remains contained within this argument and does not modify the calling event.",
+      "statement": "Introduce active v and merge the woman phrase as the caller.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "subjectThe",
+                  "label": "D[definite]",
+                  "word": "The"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "woman",
+                      "label": "N",
+                      "word": "woman"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "whose",
+                              "label": "D[relative, genitive]",
+                              "word": "whose"
+                            },
+                            {
+                              "children": [],
+                              "id": "car",
+                              "label": "N",
+                              "word": "car"
+                            }
+                          ],
+                          "id": "carDP",
+                          "label": "D",
+                          "lineageId": "carArgument"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "relativeC",
+                              "label": "C[relative]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "carSubjectTrace",
+                                  "label": "D[trace]",
+                                  "lineageId": "carArgument",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "was",
+                                      "label": "T[past, finite]",
+                                      "word": "was"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "passiveVoice",
+                                          "label": "Voice[passive]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "stolen",
+                                              "label": "V[participle]",
+                                              "word": "stolen"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "carThemeTrace",
+                                              "label": "D[trace]",
+                                              "lineageId": "carArgument",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "stolenVP",
+                                          "label": "V"
+                                        }
+                                      ],
+                                      "id": "passiveProjection",
+                                      "label": "Voice"
+                                    }
+                                  ],
+                                  "id": "relativeTProjection",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "relativeTP",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "relativeCProjection",
+                          "label": "C"
+                        }
+                      ],
+                      "id": "relativeCP",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "modifiedWoman",
+                  "label": "N"
+                }
+              ],
+              "id": "womanDP",
+              "label": "D",
+              "lineageId": "womanArgument"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "activeV",
+                  "label": "v[active, transitive]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "called",
+                      "label": "V[past form]",
+                      "word": "called"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "objectThe",
+                          "label": "D[definite]",
+                          "word": "the"
+                        },
+                        {
+                          "children": [],
+                          "id": "police",
+                          "label": "N",
+                          "word": "police"
+                        }
+                      ],
+                      "id": "policeDP",
+                      "label": "D"
+                    }
+                  ],
+                  "id": "calledVP",
+                  "label": "V"
+                }
+              ],
+              "id": "matrixVProjection",
+              "label": "v"
+            }
+          ],
+          "id": "matrixVP",
+          "label": "v"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "goal": "womanDP",
+            "numberSource": "woman",
+            "probe": "matrixT"
+          },
+          "relation": "matrix agreement and nominative licensing",
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative"
+          }
+        },
+        {
+          "anchors": {
+            "inflectedPredicate": "called",
+            "tenseHead": "matrixT"
+          },
+          "relation": "finite past-form licensing",
+          "values": {
+            "implementation": "lexically inflected V licensed by silent finite T; no overt V-to-T movement",
+            "surfaceForm": "called",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "Merge an unpronounced past finite T above the active v projection. T agrees with the woman phrase in its external-argument position and licenses its nominative Case. Separately, T licenses the already selected past form called. This analysis treats the regular past form as an inflected lexical item licensed by finite T; it does not posit overt verb raising or an additional pronounced tense terminal. Consequently no special input-realization association is needed.",
+      "statement": "Introduce matrix finite T and license the past-tense predicate.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "matrixT",
+              "label": "T[past, finite]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subjectThe",
+                      "label": "D[definite]",
+                      "word": "The"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "woman",
+                          "label": "N",
+                          "word": "woman"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "whose",
+                                  "label": "D[relative, genitive]",
+                                  "word": "whose"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "car",
+                                  "label": "N",
+                                  "word": "car"
+                                }
+                              ],
+                              "id": "carDP",
+                              "label": "D",
+                              "lineageId": "carArgument"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "relativeC",
+                                  "label": "C[relative]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "carSubjectTrace",
+                                      "label": "D[trace]",
+                                      "lineageId": "carArgument",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "was",
+                                          "label": "T[past, finite]",
+                                          "word": "was"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "passiveVoice",
+                                              "label": "Voice[passive]",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "stolen",
+                                                  "label": "V[participle]",
+                                                  "word": "stolen"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "carThemeTrace",
+                                                  "label": "D[trace]",
+                                                  "lineageId": "carArgument",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "stolenVP",
+                                              "label": "V"
+                                            }
+                                          ],
+                                          "id": "passiveProjection",
+                                          "label": "Voice"
+                                        }
+                                      ],
+                                      "id": "relativeTProjection",
+                                      "label": "T"
+                                    }
+                                  ],
+                                  "id": "relativeTP",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "relativeCProjection",
+                              "label": "C"
+                            }
+                          ],
+                          "id": "relativeCP",
+                          "label": "C"
+                        }
+                      ],
+                      "id": "modifiedWoman",
+                      "label": "N"
+                    }
+                  ],
+                  "id": "womanDP",
+                  "label": "D",
+                  "lineageId": "womanArgument"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "activeV",
+                      "label": "v[active, transitive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "called",
+                          "label": "V[past form]",
+                          "word": "called"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "objectThe",
+                              "label": "D[definite]",
+                              "word": "the"
+                            },
+                            {
+                              "children": [],
+                              "id": "police",
+                              "label": "N",
+                              "word": "police"
+                            }
+                          ],
+                          "id": "policeDP",
+                          "label": "D"
+                        }
+                      ],
+                      "id": "calledVP",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "matrixVProjection",
+                  "label": "v"
+                }
+              ],
+              "id": "matrixVP",
+              "label": "v"
+            }
+          ],
+          "id": "matrixTProjection",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "attractingHead": "matrixT",
+            "landing": "womanDP",
+            "sourceTrace": "womanTrace"
+          },
+          "priorAnchors": {
+            "movedPhrase": "womanDP",
+            "sourceProjection": "matrixVP"
+          },
+          "relation": "matrix subject A-movement",
+          "values": {
+            "movedDomain": "the complete definite phrase, including its restrictive relative",
+            "movementType": "A-movement",
+            "trigger": "finite T subject-position requirement"
+          }
+        },
+        {
+          "anchors": {
+            "clauseTypingHead": "declarativeC",
+            "finiteClause": "matrixTP"
+          },
+          "relation": "declarative clause typing",
+          "values": {
+            "clauseType": "matrix declarative"
+          }
+        }
+      ],
+      "stageRecord": "Internally merge the entire woman phrase from the external-argument position displayed in the preceding stage into the matrix subject position. Its relative clause moves with it as part of the same argument. Leave a silent trace at the v edge, preserving the caller interpretation there. This movement satisfies the matrix T subject-position requirement. Finally merge an unpronounced declarative C with the completed finite clause. The pronounced terminals now yield exactly The woman whose car was stolen called the police; the three traces, both complementizers, passive Voice, active v, and matrix T are unpronounced.",
+      "statement": "Complete the matrix subject dependency and the declarative sentence.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "declarativeC",
+              "label": "C[declarative]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subjectThe",
+                      "label": "D[definite]",
+                      "word": "The"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "woman",
+                          "label": "N",
+                          "word": "woman"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "whose",
+                                  "label": "D[relative, genitive]",
+                                  "word": "whose"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "car",
+                                  "label": "N",
+                                  "word": "car"
+                                }
+                              ],
+                              "id": "carDP",
+                              "label": "D",
+                              "lineageId": "carArgument"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "relativeC",
+                                  "label": "C[relative]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "carSubjectTrace",
+                                      "label": "D[trace]",
+                                      "lineageId": "carArgument",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "was",
+                                          "label": "T[past, finite]",
+                                          "word": "was"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "passiveVoice",
+                                              "label": "Voice[passive]",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "stolen",
+                                                  "label": "V[participle]",
+                                                  "word": "stolen"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "carThemeTrace",
+                                                  "label": "D[trace]",
+                                                  "lineageId": "carArgument",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "stolenVP",
+                                              "label": "V"
+                                            }
+                                          ],
+                                          "id": "passiveProjection",
+                                          "label": "Voice"
+                                        }
+                                      ],
+                                      "id": "relativeTProjection",
+                                      "label": "T"
+                                    }
+                                  ],
+                                  "id": "relativeTP",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "relativeCProjection",
+                              "label": "C"
+                            }
+                          ],
+                          "id": "relativeCP",
+                          "label": "C"
+                        }
+                      ],
+                      "id": "modifiedWoman",
+                      "label": "N"
+                    }
+                  ],
+                  "id": "womanDP",
+                  "label": "D",
+                  "lineageId": "womanArgument"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "matrixT",
+                      "label": "T[past, finite]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "womanTrace",
+                          "label": "D[trace]",
+                          "lineageId": "womanArgument",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "activeV",
+                              "label": "v[active, transitive]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "called",
+                                  "label": "V[past form]",
+                                  "word": "called"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "objectThe",
+                                      "label": "D[definite]",
+                                      "word": "the"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "police",
+                                      "label": "N",
+                                      "word": "police"
+                                    }
+                                  ],
+                                  "id": "policeDP",
+                                  "label": "D"
+                                }
+                              ],
+                              "id": "calledVP",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "matrixVProjection",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "matrixVP",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "matrixTProjection",
+                  "label": "T"
+                }
+              ],
+              "id": "matrixTP",
+              "label": "T"
+            }
+          ],
+          "id": "matrixCP",
+          "label": "C"
+        }
+      ]
+    }
+  ]
+}

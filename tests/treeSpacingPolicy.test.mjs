@@ -10,6 +10,7 @@ import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts'
 import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCamera.ts';
 import { getNodeId } from '../replay/displayIdentity.ts';
 import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const leaf = (id, word) => ({ id, label: 'N', word, children: [] });
 const nominal = () => ({ id: 'nominal', label: 'N', children: [
@@ -115,7 +116,9 @@ test('full Replay keeps local proportions across different outer structures and 
 });
 
 const waitingRelative = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/relative-clause-waiting-clearance.json', import.meta.url)));
-for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
+// Right to left this runs only for a record whose layout is not the reflection of
+// its left-to-right layout (tests/helpers/rtlMirror.mjs).
+for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of directionsFor('replay-regressions/relative-clause-waiting-clearance.json#')) {
   test(`${width}px ${direction}: a waiting relative clause clears existing words without losing continuity`, () => {
     const authored = JSON.stringify(waitingRelative);
     const steps = prepareReplay({ ...waitingRelative, includePlayback: true }).playbackSteps;

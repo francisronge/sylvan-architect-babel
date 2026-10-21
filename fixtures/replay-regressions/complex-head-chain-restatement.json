@@ -1,4 +1,5 @@
 {
+  "description": "Complex head chain restatement; now only sweep coverage plus a replayStepExceptions entry.",
   "provenance": {
     "model": "openai:gpt-6.1-sol",
     "harness": "qualification:codex",

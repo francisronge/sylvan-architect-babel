@@ -112,8 +112,7 @@ test('persistent marks do not transfer to a same-lineage substitute without a un
   const input = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/projected-head-landing.json', import.meta.url)));
   for (const mutate of [
     stages => { stages[2].relations.splice(5, 1); },
-    stages => { stages[2].relations[5].priorAnchors.sourceOccurrence = 'unresolved'; },
-    stages => { stages[2].relations.push(structuredClone(stages[2].relations[5])); }
+    stages => { stages[2].relations[5].priorAnchors.sourceOccurrence = 'unresolved'; }
   ]) {
     const stages = structuredClone(input.analyses[0].derivationStages); mutate(stages);
     const plan = compileRelationRenderPlan(stages);
@@ -124,5 +123,14 @@ test('persistent marks do not transfer to a same-lineage substitute without a un
       assert.deepEqual([item.supersededAt?.stageIndex, item.supersededAt?.relation], [2, 'subject fronting']);
     }
     assert(plan.diagnostics.some(d => d.kind === 'anchor-vanished' && /bookSubject/.test(d.detail)));
+  }
+  // A restated movement is the same transition: the mark transfers once, at its first claim.
+  const restated = structuredClone(input.analyses[0].derivationStages);
+  restated[2].relations.push(structuredClone(restated[2].relations[5]));
+  const earlier = compileRelationRenderPlan(restated).frames[2].items.filter(item => item.kind === 'trajectory' && item.relationRef.stageIndex === 1);
+  assert.ok(earlier.length);
+  for (const item of earlier) {
+    assert.equal(item.targetNodeId, 'bookSubjectTrace');
+    assert.deepEqual(item.occurrenceTransfers, [{ fromNodeId: 'bookSubject', toNodeId: 'bookSubjectTrace', stageIndex: 2, relationIndex: 5 }]);
   }
 });

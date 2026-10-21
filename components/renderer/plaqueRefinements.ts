@@ -25,7 +25,7 @@ interface PlaqueRefinementsContext extends Pick<RelationMeasurements,
   | 'measuredSubtreeRect'
 > {
   g: DrawingLayer;
-  playedRelationIndices: Set<number> | undefined;
+  playedRelationIndices: Set<number> | null;
   activeDerivationFrameIndex: number;
   replayPlaqueLayout: Map<number, PlaquePlacement>;
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;

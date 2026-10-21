@@ -5,11 +5,11 @@ import { getNodeId } from './displayIdentity.ts';
 import { authoredDisplayWord } from './displayWordMaterial.ts';
 import { cubicIntersectsRect } from './relations/curveClearance.ts';
 import { plaqueBranchObstacles, plaqueTreeObstacles } from './relations/plaquePlacement.ts';
-import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
+import { createTreeInkCache, treeInkObstacles, type TreeInkCache, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 import type { TreeCoordinateReservation, TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
-import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
+import { boundedObstacleIndex, verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { visibleComponentNodes } from './visibleComponent.ts';
 import { addsOwnedDisplayTerminal } from './workspaceDisplayTerminal.ts';
 import { constructionReceivingAttachments, type CurrentWorkspaceTopology } from './workspaceReceivingHost.ts';
@@ -35,14 +35,27 @@ type Render = (scene: WorkspacePlacementScene, coordinates: TreeCoordinateReserv
 
 const parent = (node: Node, nodes: ReadonlyMap<string, Node>) =>
   node.parent && nodes.has(getNodeId(node.parent)) ? getNodeId(node.parent) : undefined;
-const material = (node: Node, nodes: ReadonlyMap<string, Node>): unknown[] => {
-  const owner = node.parent && nodes.has(getNodeId(node.parent)) ? node.parent.data : undefined;
-  const word = authoredDisplayWord(node.data, owner);
-  return [word ?? node.data.label, word ?? node.data.word, node.data.silent,
-    (node.children ?? []).filter(child => nodes.has(getNodeId(child)))
-      .map(child => [getNodeId(child), material(child, nodes)])];
+// Painted scene maps are never modified once built, so a node's signature in
+// one map is computed once. A signature is the JSON text of
+// [label, word, silent, [[childId, childMaterial], ...]], written from the
+// children's own signatures so a subtree is serialized once, not once per ancestor.
+const signatures = new WeakMap<ReadonlyMap<string, Node>, Map<Node, string>>();
+const arrayItem = (value: unknown) => JSON.stringify(value) ?? 'null';
+const signature = (node: Node, nodes: ReadonlyMap<string, Node>): string => {
+  let byNode = signatures.get(nodes);
+  if (!byNode) signatures.set(nodes, byNode = new Map());
+  let value = byNode.get(node);
+  if (value === undefined) {
+    const owner = node.parent && nodes.has(getNodeId(node.parent)) ? node.parent.data : undefined;
+    const word = authoredDisplayWord(node.data, owner);
+    let children = '';
+    for (const child of node.children ?? []) if (nodes.has(getNodeId(child)))
+      children += `${children ? ',' : ''}[${arrayItem(getNodeId(child))},${signature(child, nodes)}]`;
+    value = `[${arrayItem(word ?? node.data.label)},${arrayItem(word ?? node.data.word)},${arrayItem(node.data.silent)},[${children}]]`;
+    byNode.set(node, value);
+  }
+  return value;
 };
-const signature = (node: Node, nodes: ReadonlyMap<string, Node>): string => JSON.stringify(material(node, nodes));
 
 function positioned(scene: WorkspacePlacementScene, coordinates: WorkspaceReservations, render: Render): Map<string, Node> {
   return new Map(render(scene, coordinates.get(scene.canvas)!).map(node => [getNodeId(node), node]));
@@ -56,6 +69,43 @@ function appendForbiddenShifts(intervals: HorizontalInterval[], own: readonly Ob
       intervals.push({ low: b.x - a.x - a.width, high: b.x + b.width - a.x });
     return false;
   });
+}
+
+/** Whether `appendForbiddenShifts(intervals, own, other)` would append an
+ * interval containing or touching zero, found without appending any. Within a
+ * range of `other`, rounding is monotone in its least `x` and greatest
+ * `x + width`, so a range whose bounds give `low > 0` or `high < 0` holds none. */
+function touchesZero(own: readonly Obstacle[], other: readonly Obstacle[]) {
+  const query = boundedObstacleIndex(other);
+  for (const a of own) if (query(a, b => !(Math.min(a.y + a.height, b.y + b.height) <= Math.max(a.y, b.y))
+    && b.x - a.x - a.width <= 0 && b.x + b.width - a.x >= 0,
+  (left, right) => !(left - a.x - a.width > 0 || right - a.x < 0))) return true;
+  return false;
+}
+
+/** Forbidden shifts of each `own` ink against its `other` ink, collected lazily.
+ * `minimum()` is `minimumClearanceShift` over every interval appendForbiddenShifts
+ * would append, in the same order. Most collections hold no interval containing
+ * or touching zero, which leaves no shift; those are recognized without building
+ * their intervals. */
+export class ForbiddenShifts {
+  private readonly pairs: (readonly [readonly Obstacle[], readonly Obstacle[]])[] = [];
+  private result?: { shift: number | undefined };
+  add(own: readonly Obstacle[], other: readonly Obstacle[]) {
+    this.pairs.push([own, other]);
+    this.result = undefined;
+  }
+  minimum(): number | undefined {
+    if (this.result) return this.result.shift;
+    let shift: number | undefined;
+    if (this.pairs.some(([own, other]) => touchesZero(own, other))) {
+      const intervals: HorizontalInterval[] = [];
+      for (const [own, other] of this.pairs) appendForbiddenShifts(intervals, own, other);
+      shift = minimumClearanceShift(intervals);
+    }
+    this.result = { shift };
+    return shift;
+  }
 }
 
 export function minimumClearanceShift(intervals: HorizontalInterval[]): number | undefined {
@@ -100,7 +150,7 @@ function clearReservedSourceHistory(
   scenes: readonly WorkspacePlacementScene[], output: Map<SyntaxNode, TreeCoordinateReservation>,
   direction: TreeDirection, render: Render, sourceMembers: ReservedSourceMembers
 ) {
-  const intervals: HorizontalInterval[] = [];
+  const shifts = new ForbiddenShifts();
   for (const scene of scenes) {
     const owned = sourceMembers.get(scene.canvas);
     if (!owned) continue;
@@ -108,11 +158,9 @@ function clearReservedSourceHistory(
     const own = [...current.values()].filter(node => owned.has(getNodeId(node)));
     const other = [...current.values()].filter(node => !owned.has(getNodeId(node)));
     if (!own.length || !other.length) continue;
-    appendForbiddenShifts(intervals,
-      treeInkObstacles(own, scene.measureCategoryText, scene.measureTreeInk, false, scene.treeLabelRuns, scene.measureTreeLabel),
-      treeInkObstacles(other, scene.measureCategoryText, scene.measureTreeInk, false, scene.treeLabelRuns, scene.measureTreeLabel));
+    shifts.add(sceneTreeInk(scene).obstacles(own), sceneTreeInk(scene).obstacles(other));
   }
-  const clearance = minimumClearanceShift(intervals);
+  const clearance = shifts.minimum();
   if (clearance === undefined) return;
   for (const [canvas, owned] of sourceMembers) translateReservation(output, canvas, owned, clearance, direction);
 }
@@ -260,49 +308,79 @@ function precedingSourcePositions(
 type InkMetrics = Pick<WorkspacePlacementScene, 'measureTreeInk' | 'treeLabelRuns' | 'measureTreeLabel'>;
 const placementInk = (nodes: Node[], measure?: CategoryTextMeasure, metrics: InkMetrics = {}) =>
   treeInkObstacles(nodes, measure, metrics.measureTreeInk, false, metrics.treeLabelRuns, metrics.measureTreeLabel);
+type InkScene = Pick<WorkspacePlacementScene, 'measureCategoryText' | 'measureTreeInk' | 'treeLabelRuns' | 'measureTreeLabel'>;
+const sceneInks = new WeakMap<InkScene, ReturnType<typeof createTreeInkCache>>();
+/** The scene's tree ink, measured once per node position across its paintings. */
+export function sceneTreeInk(scene: InkScene) {
+  let ink = sceneInks.get(scene);
+  if (!ink) sceneInks.set(scene, ink = createTreeInkCache(scene.measureCategoryText, scene.measureTreeInk, scene.treeLabelRuns, scene.measureTreeLabel));
+  return ink;
+}
 
-function ownedInk(nodes: Node[], measure?: CategoryTextMeasure, metrics: InkMetrics = {}): Map<string, Obstacle[]> {
-  const result = new Map(nodes.map(node => [getNodeId(node), placementInk([node], measure, metrics)]));
+/** Whether a painted node owns the native branch from its painted parent. */
+const ownsBranch = (node: Node, painted: (parent: Node) => boolean) => Boolean(node.parent) && painted(node.parent!)
+  && node.data.replayOrigin?.kind !== 'workspace' && node.parent!.data.replayOrigin?.kind !== 'workspace';
+
+/** One painted node's ink as `collisionAreas` measures it: its own label and
+ * word, then the branch from its painted parent. It depends only on the node and
+ * on that parent's position. */
+export function paintedNodeInk(node: Node, painted: (parent: Node) => boolean, measure?: CategoryTextMeasure, metrics: InkMetrics = {}): Obstacle[] {
+  const ink = placementInk([node], measure, metrics);
+  // A branch belongs to its child, so moving a different branch cannot cancel
+  // a newly introduced overlap with this one.
+  if (ownsBranch(node, painted)) ink.push(...plaqueBranchObstacles(node.parent!, node, true));
+  return ink;
+}
+
+function ownedInk(nodes: Node[], measure?: CategoryTextMeasure, metrics: InkMetrics = {}, cache?: TreeInkCache): Map<string, Obstacle[]> {
+  const result = new Map(nodes.map(node => [getNodeId(node), cache ? [...cache.own(node)] : placementInk([node], measure, metrics)]));
   const included = new Set(nodes);
   for (const node of nodes) {
-    if (!node.parent || !included.has(node.parent) || node.data.replayOrigin?.kind === 'workspace'
-      || node.parent.data.replayOrigin?.kind === 'workspace') continue;
-    // A branch belongs to its child, so moving a different branch cannot cancel
-    // a newly introduced overlap with this one.
-    result.get(getNodeId(node))!.push(...plaqueBranchObstacles(node.parent, node, true));
+    if (!ownsBranch(node, parent => included.has(parent))) continue;
+    result.get(getNodeId(node))!.push(...(cache ? cache.branch(node.parent!, node, true) : plaqueBranchObstacles(node.parent!, node, true)));
   }
   return result;
 }
 
-/** Compare the same source/obstacle pair before requesting source clearance. */
-export function collisionAreas(own: Node[], other: Node[], measure?: CategoryTextMeasure, metrics: InkMetrics = {}): Map<string, number> {
+export type InkBounds = { left: number; right: number; top: number; bottom: number };
+export function inkBounds(rects: readonly Obstacle[]): InkBounds {
+  let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+  for (const rect of rects) {
+    left = Math.min(left, rect.x); right = Math.max(right, rect.x + rect.width);
+    top = Math.min(top, rect.y); bottom = Math.max(bottom, rect.y + rect.height);
+  }
+  return { left, right, top, bottom };
+}
+
+/** The ink overlap area of one ordered owner pair, summed in `as` then `bs`
+ * order; zero when their bounds are disjoint. */
+export function inkOverlapArea(as: readonly Obstacle[], aBox: InkBounds, bs: readonly Obstacle[], bBox: InkBounds): number {
+  if (aBox.right <= bBox.left || bBox.right <= aBox.left || aBox.bottom <= bBox.top || bBox.bottom <= aBox.top) return 0;
+  let area = 0;
+  for (const a of as) for (const b of bs) {
+    const width = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+    const height = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+    if (width > 0 && height > 0
+      && (!a.curve || cubicIntersectsRect(a.curve, b, a.curvePadding!))
+      && (!b.curve || cubicIntersectsRect(b.curve, a, b.curvePadding!))) area += width * height;
+  }
+  return area;
+}
+
+/** Compare the same source/obstacle pair before requesting source clearance.
+ * A scene's `cache` must measure with the same `measure` and `metrics`. */
+export function collisionAreas(own: Node[], other: Node[], measure?: CategoryTextMeasure, metrics: InkMetrics = {}, cache?: TreeInkCache): Map<string, number> {
   const result = new Map<string, number>();
   if (!own.length || !other.length) return result;
-  const bounds = (rects: readonly Obstacle[]) => {
-    let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
-    for (const rect of rects) {
-      left = Math.min(left, rect.x); right = Math.max(right, rect.x + rect.width);
-      top = Math.min(top, rect.y); bottom = Math.max(bottom, rect.y + rect.height);
-    }
-    return { left, right, top, bottom };
-  };
   // The measured ink is immutable for this comparison. Reject disjoint owners
   // before visiting their individual labels and sampled branch rectangles.
-  const sources = ownedInk(own, measure, metrics);
+  const sources = ownedInk(own, measure, metrics, cache);
   if (!sources.size) return result;
-  const opponents = [...ownedInk(other, measure, metrics)].map(([id, ink]) => ({ id, ink, box: bounds(ink) }));
+  const opponents = [...ownedInk(other, measure, metrics, cache)].map(([id, ink]) => ({ id, ink, box: inkBounds(ink) }));
   for (const [aId, as] of sources) {
-    const aBox = bounds(as);
+    const aBox = inkBounds(as);
     for (const { id: bId, ink: bs, box: bBox } of opponents) {
-      if (aBox.right <= bBox.left || bBox.right <= aBox.left || aBox.bottom <= bBox.top || bBox.bottom <= aBox.top) continue;
-      let area = 0;
-      for (const a of as) for (const b of bs) {
-        const width = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
-        const height = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
-        if (width > 0 && height > 0
-          && (!a.curve || cubicIntersectsRect(a.curve, b, a.curvePadding!))
-          && (!b.curve || cubicIntersectsRect(b.curve, a, b.curvePadding!))) area += width * height;
-      }
+      const area = inkOverlapArea(as, aBox, bs, bBox);
       if (area) result.set(JSON.stringify([aId, bId]), area);
     }
   }
@@ -328,11 +406,11 @@ function clearNewSources(
       const members = visibleComponentNodes(root, nodes);
       if (members.some(node => previous.has(getNodeId(node)))) continue;
       const lifetime: { scene: WorkspacePlacementScene; members: Node[]; peers?: Node[] }[] = [];
-      const intervals: HorizontalInterval[] = [];
+      const shifts = new ForbiddenShifts();
       let introducedCollision = false;
-      if (!reserveProjections) appendForbiddenShifts(intervals, placementInk(members, scene.measureCategoryText, scene),
-        placementInk([...nodes.values()].filter(node => !members.includes(node)), scene.measureCategoryText, scene));
-      if (!reserveProjections && minimumClearanceShift(intervals) === undefined) continue;
+      if (!reserveProjections) shifts.add(sceneTreeInk(scene).obstacles(members),
+        sceneTreeInk(scene).obstacles([...nodes.values()].filter(node => !members.includes(node))));
+      if (!reserveProjections && shifts.minimum() === undefined) continue;
       for (let next = index; next < scenes.length; next++) {
         const current = scenes[next], at = current.nodes.get(getNodeId(root));
         if (!at || signature(at, current.nodes) !== signature(root, nodes)) break;
@@ -402,8 +480,8 @@ function clearNewSources(
         if (!introducedCollision && peers.length) {
           const original = positioned(current, base, render);
           const beforeInk = collisionAreas([...original.values()].filter(node => ids.has(getNodeId(node))),
-            [...original.values()].filter(node => !ids.has(getNodeId(node))), current.measureCategoryText, current);
-          const afterInk = collisionAreas(ownMembers, peers, current.measureCategoryText, current);
+            [...original.values()].filter(node => !ids.has(getNodeId(node))), current.measureCategoryText, current, sceneTreeInk(current));
+          const afterInk = collisionAreas(ownMembers, peers, current.measureCategoryText, current, sceneTreeInk(current));
           introducedCollision = [...afterInk].some(([pair, area]) => area > (beforeInk.get(pair) ?? 0) + 1e-6);
         }
       }
@@ -411,9 +489,9 @@ function clearNewSources(
       // needed, all lifetime intervals still constrain the chosen rigid shift.
       if (reserveProjections && !introducedCollision) continue;
       if (reserveProjections) for (const { scene: current, members: own, peers } of lifetime)
-        if (own.length && peers!.length) appendForbiddenShifts(intervals, placementInk(own, current.measureCategoryText, current),
-          placementInk(peers!, current.measureCategoryText, current));
-      const dx = minimumClearanceShift(intervals);
+        if (own.length && peers!.length) shifts.add(sceneTreeInk(current).obstacles(own),
+          sceneTreeInk(current).obstacles(peers!));
+      const dx = shifts.minimum();
       if (dx === undefined) continue;
       const applied = new Set<SyntaxNode>();
       for (const {scene:current,members:currentMembers} of lifetime) {
@@ -434,7 +512,7 @@ function clearReservedLifetime(
 ) {
   const ids = new Set(visibleComponentNodes(scenes[last].nodes.get(rootId)!, scenes[last].nodes).map(getNodeId));
   const shiftedMembers = new Map<SyntaxNode, Set<string>>();
-  const intervals: HorizontalInterval[] = [];
+  const shifts = new ForbiddenShifts();
   for (let index = first; index < scenes.length; index++) {
     const scene = scenes[index];
     if (shiftedMembers.has(scene.canvas)) continue;
@@ -451,11 +529,9 @@ function clearReservedLifetime(
     const ownNodes = [...nodes].filter(([id]) => affected.has(id)).map(([, node]) => node);
     const otherNodes = [...nodes].filter(([id]) => !affected.has(id)).map(([, node]) => node);
     if (!ownNodes.length || !otherNodes.length) continue;
-    const own = placementInk(ownNodes, scene.measureCategoryText, scene);
-    const other = placementInk(otherNodes, scene.measureCategoryText, scene);
-    appendForbiddenShifts(intervals, own, other);
+    shifts.add(sceneTreeInk(scene).obstacles(ownNodes), sceneTreeInk(scene).obstacles(otherNodes));
   }
-  const dx = minimumClearanceShift(intervals) ?? 0;
+  const dx = shifts.minimum() ?? 0;
   for (const [canvas, affected] of shiftedMembers) translateReservation(output, canvas, affected, dx, direction);
 }
 

@@ -3,15 +3,12 @@ import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { orchardSourceCitations } from '../docs/research/relation-orchard/source-citations.ts';
 import { orchardResearchImages, orchardSourcePreviewPath } from '../docs/research/relation-orchard/source-research-images.ts';
+import { archivedExampleArchetypes, rawCases } from '../docs/design/visual-relations-lab-cards.ts';
 
 test('every public Orchard card has an explicit, classified provenance entry', () => {
-  const lab = readFileSync(new URL('../docs/design/visual-relations-current-lab.tsx', import.meta.url), 'utf8');
-  const archivedBody = lab.match(/export const archivedExampleArchetypes = new Set\(\[([\s\S]*?)\]\);/)?.[1];
-  assert.ok(archivedBody, 'archived archetype list must remain discoverable');
-  const archived = new Set([...archivedBody.matchAll(/'([^']+)'/g)].map((match) => match[1]));
-  const publicCodes = [...lab.matchAll(/archetype:\s*'([^'.]+)\./g)]
-    .map((match) => match[1])
-    .filter((code) => !archived.has(code));
+  assert.ok(archivedExampleArchetypes.size > 0, 'archived archetype list must remain discoverable');
+  const publicCodes = rawCases.map((card) => card.archetype.split('.')[0])
+    .filter((code) => !archivedExampleArchetypes.has(code));
   assert.equal(new Set(publicCodes).size, publicCodes.length, 'public card codes must be unique');
   assert.deepEqual(Object.keys(orchardSourceCitations).sort(), publicCodes.sort());
 

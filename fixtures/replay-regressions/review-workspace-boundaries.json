@@ -1,4 +1,5 @@
 {
+  "description": "Accepted final node positions for reviews #35/#37/#63 (reviewWorkspaceBoundaries, reviewBindingBoundary).",
   "provenance": {
     "model": "GPT-6.1 Sol",
     "harness": "Codex OAuth qualification",
@@ -4751,8 +4752,8 @@
         }
       ],
       "expectedFinalGeometry": {
-        "1600x1100": "e4cdfd343bbe7914d9b6e1b031e301dcbe7132de819d732f6b8b34c56111f41a",
-        "390x844": "e4cdfd343bbe7914d9b6e1b031e301dcbe7132de819d732f6b8b34c56111f41a"
+        "1600x1100": "7579236710d8d4bf75aea597633d85c5b051d219b8659e3e0f2d54a3204e7924",
+        "390x844": "7579236710d8d4bf75aea597633d85c5b051d219b8659e3e0f2d54a3204e7924"
       }
     }
   ]

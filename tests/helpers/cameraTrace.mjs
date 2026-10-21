@@ -97,9 +97,11 @@ export function traceCamera(visual, viewport, { reversals = true } = {}) {
   } finally { restore(); }
 }
 
-/** One record's camera findings at each viewport, in the shape of tests/helpers/findings.mjs. */
-export function auditCameraRecord(id, record, { viewports = CAMERA_VIEWPORTS, thresholds = CAMERA_THRESHOLDS, reversals = true } = {}) {
-  const visual = prepareVisualRecord(record);
+/** One record's camera findings at each viewport, in the shape of tests/helpers/findings.mjs.
+ * `visual` may be the record's prepareVisualRecord result shared with another
+ * audit; this audit only reads it. */
+export function auditCameraRecord(id, record, { viewports = CAMERA_VIEWPORTS, thresholds = CAMERA_THRESHOLDS, reversals = true,
+  visual = prepareVisualRecord(record) } = {}) {
   let frames = 0;
   const findings = viewports.flatMap(viewport => {
     const trace = traceCamera(visual, viewport, { reversals });
