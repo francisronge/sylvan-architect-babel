@@ -1,6 +1,8 @@
 {
+  "description": "Selected words wait at their projection/merge slot; a future wrapper cannot deepen a VP daughter (constructionSlotContinuity, corpus manifest multiple-roots).",
   "cases": [
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run construction-contract-20261008/sol-irish-vso, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-irish-vso (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-irish-vso).",
       "key": "sol-irish-vso",
       "sentence": "Cheannaigh Máire an leabhar inné.",
       "inputTokens": [
@@ -651,6 +653,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run construction-contract-20261008/sol-indonesian-applicative, analysis 2. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-indonesian-applicative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-indonesian-applicative).",
       "key": "sol-indonesian-applicative",
       "sentence": "Rina membacakan adiknya sebuah cerita.",
       "inputTokens": [

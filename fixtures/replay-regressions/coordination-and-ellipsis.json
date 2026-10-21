@@ -1,4 +1,5 @@
 {
+  "description": "A retained relation-owned occurrence does not enter its new parent through an ordinary merge (replayCoordinationConstruction, browserVisualAudit).",
   "sentence": "Ada ordered tea, and Bruno coffee.",
   "derivationStages": [
     {

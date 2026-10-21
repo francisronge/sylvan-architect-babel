@@ -41,7 +41,7 @@ function WorkspaceInspection({ records }: { records: Inspection[] }) {
     title: `${title} / Analysis ${analysis.analysisIndex + 1}`, record, analysis
   }))), [records]);
   const selected = choices[selection];
-  const stages = selected?.analysis.stages ?? [];
+  const stages = useMemo(() => selected?.analysis.stages ?? [], [selected]);
   const stage = stages[stageIndex];
   const display = useMemo(() => inspectionStageDisplay(stage?.workspaceForest), [stage]);
   const tree = useMemo(() => buildDerivationCanvasData(display.forest), [display]);

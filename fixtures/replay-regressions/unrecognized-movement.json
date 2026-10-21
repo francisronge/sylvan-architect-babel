@@ -5561,7 +5561,7 @@
       ]
     },
     {
-      "description": "Stage 3 fronts the object wh-phrase. The neutral rewrite owned only the trace left in the object position, not the new copy frontedObject, which therefore appeared only at the Stage Record (frame 35). The claim relates frontedObject to the preceding occurrence object, so its moment now introduces the copy with the trace.",
+      "description": "Stage 3 fronts the object wh-phrase. The neutral rewrite owned only the trace left in the object position, not the new copy frontedObject, which therefore appeared only at the Stage Record (frame 35). The claim relates frontedObject to the preceding occurrence object, so its moment now introduces the copy with the trace. Movement recognition still cannot resolve the fronting's endpoints, so it is drawn without an arrow (MOVEMENT_ENDPOINTS_UNRESOLVED, frame 30).",
       "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run, commit ee11d20, 18 October 2026 (second bug-hunt batch, 26-bg-multiple-wh, analysis 1 of 1).",
       "sentence": "Кой какво е купил?",
       "framework": "xbar",
