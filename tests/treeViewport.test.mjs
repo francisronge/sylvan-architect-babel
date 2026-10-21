@@ -80,6 +80,25 @@ test('a same-scale Replay advance retains framing and only pans for actual overf
   assert(overflow.k < previous.k, 'new content still earns the scale reduction needed to remain visible');
 });
 
+test('entering a new stage centres an axis that clearance has to pan; within a stage the least pan remains', () => {
+  const previous = { x: 294, y: 72, k: 0.128 };
+  const view = { left: 16, right: 1264, top: 60, bottom: 430 };
+  // The new stage grows leftward: at the retained scale it overflows the left edge.
+  const grown = { minX: -2400, maxX: 5000, minY: 0, maxY: 2100 };
+  const fitted = { x: 0, y: 0, k: 0.2 };
+  const within = advanceFittedCamera(previous, fitted, grown, view);
+  assert.equal(within.x + grown.minX * within.k, view.left, 'within a stage the envelope is clamped flush to the edge it overflowed');
+  const entered = advanceFittedCamera(previous, fitted, grown, view, { crossing: true });
+  assert.equal(entered.k, previous.k, 'the retained zoom is kept');
+  assert.equal(entered.y, previous.y, 'an axis that needs no pan keeps its place');
+  const left = entered.x + grown.minX * entered.k - view.left, right = view.right - (entered.x + grown.maxX * entered.k);
+  assert(Math.abs(left - right) < 1e-6 && left > 0, 'the panned axis is centred on the envelope');
+  const bounds = { minX: 0, maxX: 5000, minY: 0, maxY: 2100 };
+  assert.equal(advanceFittedCamera(previous, fitted, bounds, view, { crossing: true }), previous, 'a pose that contains the stage is kept');
+  const smaller = { ...fitted, k: 0.1 };
+  assert.equal(advanceFittedCamera(previous, smaller, grown, view, { crossing: true }), smaller, 'a smaller fit is taken as it is');
+});
+
 function settlerHarness() {
   const timers = new Map(), applied = [];
   let now = 0, id = 0, painted = false;
