@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { withStructuralRecognition } from './helpers/structuralRecognitionSwitch.mjs';
+// Pin structure-only recognition to its default rules, whatever the shell sets;
+// assertions that need it off or named say so.
+process.env.BABEL_STRUCTURAL_RECOGNITION = '1';
 
 const leaf = (id, label, word) => ({ id, label, word, children: [] });
 const forest = [leaf('particle', 'I[future]', 'θα'), leaf('verb', 'V[perfective, nonpast]', 'διαβάσει')];
@@ -61,7 +65,11 @@ test('a form requirement or denied form does not become a current property', () 
   for (const qualifier of ['requiredVerb', 'requestedVerb', 'expectedVerb', 'selectedVerb', 'previousVerb']) {
     const record = { relation: 'A form description', anchors: { [qualifier]: 'verb' },
       values: { [`${qualifier}Form`]: 'past participle' } };
-    assert.equal(rowPlaques(record, forest, `${qualifier}Form`).length, 0, qualifier);
+    // Wording reads a qualified form as no current property. Structure gives
+    // the single anchor its values as a generic plaque, the qualified label included.
+    assert.equal(withStructuralRecognition('0', () => rowPlaques(record, forest, `${qualifier}Form`).length), 0, qualifier);
+    assert.deepEqual(rowPlaques(record, forest, `${qualifier}Form`).map(plaque => [plaque.plaqueStyle, plaque.rows]),
+      [['feature', [{ label: `${qualifier}Form`, value: 'past participle' }]]], qualifier);
   }
   assert.equal(rowPlaques({ ...relation, values: { ...relation.values, status: 'unestablished' } }, forest, 'verbForm').length, 0);
   for (const name of ['failed Case licensing; current verb form', 'current verb form without agreement']) {
@@ -103,8 +111,12 @@ test('a lexical realization plate retains the separately authored inflection row
 });
 
 test('inflection rows require an asserted realization and a uniquely identified lexical host', () => {
+  // An open title asserts no realization, so no realization plate; structure
+  // still gives the sole anchor its values as a generic plaque.
+  const described = { ...realization, relation: 'A description' }, nodes = [...lexicalForest, leaf('other', 'V', 'borrowed')];
+  assert.equal(withStructuralRecognition('0', () => rowPlaques(described, nodes, 'inflection').length), 0);
+  assert.deepEqual(rowPlaques(described, nodes, 'inflection').map(plaque => plaque.plaqueStyle), ['feature']);
   for (const record of [
-    { ...realization, relation: 'A description' },
     { ...realization, relation: 'Required lexical realization' },
     { ...realization, relation: 'Possible lexical realization' },
     { ...realization, relation: 'Failed lexical realization' },
@@ -141,7 +153,14 @@ test('auxiliary form recovery requires affirmative support and one matching expl
   for (const values of [{ form: 'do' }, { form: '' }, { form: ['does', 'do'] },
     { requiredForm: 'does' }, { form: 'does', status: 'pending' }])
     assert.equal(hasForm({ ...auxiliarySupport, values }), false);
-  for (const anchors of [{ lexicalPredicate: 'predicate' }, { head: 'auxiliary' },
+  // A single open anchor asserts no auxiliary support. Structure gives a sole
+  // anchor that earned nothing else its values as a generic plaque, never the
+  // PF property plate; a head that already earned its tense row gets nothing more.
+  const predicateOnly = { ...auxiliarySupport, anchors: { lexicalPredicate: 'predicate' } };
+  assert.equal(withStructuralRecognition('0', () => hasForm(predicateOnly)), false);
+  assert.deepEqual(rowPlaques(predicateOnly, auxiliaryForest, 'form').map(plaque => [plaque.plaqueStyle, plaque.anchorNodeIds]),
+    [['feature', ['predicate']]]);
+  for (const anchors of [{ head: 'auxiliary' },
     { ...auxiliarySupport.anchors, auxiliary: 'other' },
     { ...auxiliarySupport.anchors, finiteHead: ['auxiliary', 'other'] },
     { ...auxiliarySupport.anchors, finiteHead: 'missing' }])

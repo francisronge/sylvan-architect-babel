@@ -4,6 +4,10 @@ import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompile
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { buildTier2FacetEvidence } from '../replay/relations/relationEvidence.ts';
 import { TIER2_VALUE_SYNONYMS } from '../replay/relations/tier2Synonyms.ts';
+import { withStructuralRecognition } from './helpers/structuralRecognitionSwitch.mjs';
+// Pin structure-only recognition to its default rules, whatever the shell sets;
+// assertions that need it off or named say so.
+process.env.BABEL_STRUCTURAL_RECOGNITION = '1';
 
 const leaf = id => ({ id, label: 'X', word: id });
 const forest = [{ id: 'root', label: 'XP', children: ['a', 'b', 'c'].map(leaf) }];
@@ -36,10 +40,19 @@ test('feature records do not guess recipients, rescue exact claims or duplicate 
     { relation: 'Open record', anchors: { head: ['a', 'a'] }, values: { features: ['+Q'] } },
     { relation: 'Open record', anchors: { head: 'missing' }, values: { features: ['+Q'] } },
     { relation: 'Open record', anchors: {}, priorAnchors: { head: 'a' }, values: { features: ['+Q'] } },
-    { relation: 'Open record', anchors: { head: 'a' }, values: { features: ['+Q'], featureValues: ['-Q'] } },
-    { relation: 'Open record', anchors: { head: 'a' }, values: { note: 'All features checked' } },
     { relation: 'Agree', anchors: { probe: 'a' }, values: { features: ['+Q'] } }
   ]) assert.ok(!plan(relation).frames[0].items.some(item => item.kind === 'node-plaque'), JSON.stringify(relation));
+  // Wording reads no feature record in competing feature fields or a note.
+  // Structure gives the sole anchor its authored rows as a generic plaque.
+  for (const [values, rows] of [
+    [{ features: ['+Q'], featureValues: ['-Q'] }, [['features', '+Q'], ['featureValues', '-Q']]],
+    [{ note: 'All features checked' }, [['note', 'All features checked']]]
+  ]) {
+    const relation = { relation: 'Open record', anchors: { head: 'a' }, values };
+    assert.ok(!withStructuralRecognition('0', () => plan(relation)).frames[0].items.some(item => item.kind === 'node-plaque'));
+    assert.deepEqual(plan(relation).frames[0].items.filter(item => item.kind === 'node-plaque')
+      .map(item => [item.anchorNodeIds, item.rows.map(row => [row.label, row.value])]), [[['a'], rows]]);
+  }
   const items = plan({ relation: 'Open dependency', anchors: { source: 'a', target: 'b' }, values: { features: ['+Q'] } }).frames[0].items;
   assert.equal(items.filter(item => item.kind === 'node-plaque').length, 1, 'one value plaque belongs to the recovered dependency');
   assert.equal(items.filter(item => item.pathStyle === 'case-agree').length, 1, 'one collection connector');

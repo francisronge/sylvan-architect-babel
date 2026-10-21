@@ -102,9 +102,12 @@ try {
         legacySchedule: sample.complete.legacySchedule ?? false };
     } finally { await context.close(); }
   };
-  // Warm the browser process once per revision, but never reuse a document or
-  // in-memory layout cache. Alternate order to reduce systematic thermal drift.
-  await measure('base'); await measure('candidate');
+  // Warm the browser process per revision and discard those rounds, but never
+  // reuse a document or in-memory layout cache. Alternate order to reduce
+  // systematic thermal drift.
+  for (let round = 0; round < policy.warmupRounds; round++) {
+    for (const name of round % 2 ? ['candidate', 'base'] : ['base', 'candidate']) await measure(name);
+  }
   for (let round = 0; round < policy.samples; round++) {
     for (const name of round % 2 ? ['candidate', 'base'] : ['base', 'candidate']) {
       const sample = await measure(name); report.samples[name].push(sample);
