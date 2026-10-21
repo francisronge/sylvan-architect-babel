@@ -437,7 +437,14 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         await page.waitForFunction(() => document.querySelector('svg[data-babel-rendered-step]')?.getAttribute('data-babel-rendered-step') === '1');
         await page.getByRole('button', { name: 'Notes', exact: true }).click();
         await page.getByRole('button', { name: 'Copy Canopy', exact: true }).click();
+        await page.getByRole('button', { name: 'Copied to Soil', exact: true }).waitFor();
         assert.match(await page.evaluate(() => navigator.clipboard.readText()), /Mia/);
+        assert.equal(await page.getByText('Movement Indexed', { exact: false }).count(), 0, 'Notes offers one final-tree bracketing');
+        await page.evaluate(() => { navigator.clipboard.writeText = () => Promise.reject(new DOMException('Denied', 'NotAllowedError')); });
+        // The confirmed label reverts after two seconds; either label is the same button.
+        await page.getByRole('button', { name: /^(Copy Canopy|Copied to Soil)$/ }).click();
+        await page.getByRole('alert').filter({ hasText: 'The browser blocked clipboard access' }).waitFor();
+        await page.getByRole('button', { name: 'Copy Canopy', exact: true }).waitFor();
         await page.getByTitle('Open Tree Bank', { exact: true }).click();
         await page.getByRole('button', { name: 'Delete', exact: true }).click();
         await page.evaluate(() => { window.abortTreeBankOperation = { method: 'delete', store: 'savedWorks' }; });
