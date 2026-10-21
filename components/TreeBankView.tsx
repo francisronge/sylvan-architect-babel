@@ -15,6 +15,7 @@ const formatTreeBankDate = (iso: string): string => {
 
 interface TreeBankViewProps {
   entries: TreeBankEntrySummary[];
+  /** True only until the first listing; later refreshes keep the cards mounted. */
   loading: boolean;
   error: string | null;
   opening: boolean;
