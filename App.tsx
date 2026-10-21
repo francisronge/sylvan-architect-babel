@@ -665,10 +665,12 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
 
             {!hideShowcaseInput && !hideInputForReplay && !devCaptureMode && (
               <>
-                {/* Input UI */}
+                {/* Input UI. A hidden panel or collapsed body stays mounted for its
+                    transition, so inert keeps its controls out of focus order. */}
                 <div
                   data-babel-tree-controls="bottom"
                   aria-hidden={!isInputVisible}
+                  inert={!isInputVisible}
                   className={`absolute left-1/2 -translate-x-1/2 z-30 w-full max-w-3xl px-4 md:px-8 transition-[opacity,transform] duration-700 ${isInputVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-10 pointer-events-none'}`}
                   style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
                 >
@@ -696,7 +698,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                       </div>
                     </div>
 
-                    <div className={`transition-[max-height,opacity,padding] duration-700 ease-in-out ${isInputExpanded ? 'max-h-[350px] opacity-100 p-4 md:p-6 pt-3 md:pt-4' : 'max-h-0 opacity-0'}`}>
+                    <div inert={!isInputExpanded} className={`transition-[max-height,opacity,padding] duration-700 ease-in-out ${isInputExpanded ? 'max-h-[350px] opacity-100 p-4 md:p-6 pt-3 md:pt-4' : 'max-h-0 opacity-0'}`}>
                       {error && (
                         <FailurePanel
                           message={error.message}

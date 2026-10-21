@@ -386,6 +386,24 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         const emptyBank = { records: [], savedWorks: [], previews: [], treeBank: [] };
         const ready = () => page.locator('svg[data-babel-tree="true"]').waitFor();
         await page.goto(server.url);
+        // A collapsed or hidden sentence panel stays mounted for its transition,
+        // but its controls cannot receive focus.
+        const sentenceFocusable = () => page.evaluate(() => {
+          const box = document.querySelector('textarea[aria-label="Sentence to analyze"]');
+          box.focus();
+          const focused = document.activeElement === box;
+          box.blur();
+          return focused;
+        });
+        assert.equal(await sentenceFocusable(), true);
+        await page.getByTitle('Collapse', { exact: true }).click();
+        assert.equal(await sentenceFocusable(), false, 'the collapsed panel body is out of the focus order');
+        await page.getByRole('button', { name: 'Expand sentence input', exact: true }).click();
+        assert.equal(await sentenceFocusable(), true);
+        await page.getByTitle('Hide Control Panel', { exact: true }).click();
+        assert.equal(await sentenceFocusable(), false, 'the hidden panel is out of the focus order');
+        await page.getByTitle('Restore Arboretum Link', { exact: true }).click();
+        assert.equal(await sentenceFocusable(), true);
         await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill(bundle.sentence);
         // Enter that confirms an input-method candidate does not submit.
         await page.getByRole('textbox', { name: 'Sentence to analyze' }).evaluate(box => {
