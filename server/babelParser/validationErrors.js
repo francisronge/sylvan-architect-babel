@@ -87,6 +87,7 @@ const inferFailureClass = (code, details = {}) => {
     || code === 'API_KEY_INVALID'
     || code === 'GEMINI_QUOTA'
     || code === 'PROVIDER_QUOTA'
+    || code === 'PROVIDER_TIMEOUT'
     || code === 'MODEL_UNAVAILABLE'
     || code === 'PROVIDER_UNAVAILABLE'
     || code === 'GEMINI_UNAVAILABLE'
