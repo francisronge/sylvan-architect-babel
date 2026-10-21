@@ -58,12 +58,6 @@ export interface TreeVisualizerProps {
   abstractionMode?: boolean;
   sentence?: string;
   inputTokens?: string[];
-  /**
-   * Production draws the compiled visual-relations overlay by default. A
-   * research surface that layers its own demonstration overlay (the Lab) may
-   * disable it to avoid double-drawing; nothing else should.
-   */
-  disableRelationOverlay?: boolean;
 }
 
 type RelationMoment = {
@@ -82,7 +76,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   abstractionMode = false,
   sentence = '',
   inputTokens,
-  disableRelationOverlay = false,
   preparedReplay,
   manualCameraState
 }) => {
@@ -163,9 +156,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const treeLabelRuns = useMemo(() => settledFontText === fontText ? prepareTreeLabelRuns({
     replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
     movementChainIndexCatalogue, playbackSteps
-  }, measureCategoryText, { includeRelationIndices: !disableRelationOverlay }) : undefined,
+  }, measureCategoryText) : undefined,
     [playbackSteps, replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
-      movementChainIndexCatalogue, measureCategoryText, disableRelationOverlay, settledFontText, fontText]);
+      movementChainIndexCatalogue, measureCategoryText, settledFontText, fontText]);
   const initialStepIndex = initialReplayStepIndex(playbackSteps, initialReplayMoment, initialReplayStep);
   const [activeStepIndex, setActiveStepIndex] = useState(initialStepIndex);
   const openingSelectionRef = useRef<{ steps: typeof playbackSteps; startedAt: number } | null>(null);
@@ -283,10 +276,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       ? { stageIndex, relationIndex }
       : null;
   })();
-  // Hover emphasis is applied directly to the mounted relation elements.
-  // Keeping it out of the D3 render effect preserves the user's exact zoom
-  // and pan transform while the pointer moves between relations.
-  const focusedRelationMoment = activeRelationMoment;
   const playedRelationIndices = animated
     ? playbackSteps.reduce((played, step, stepIndex) => {
       if (stepIndex > currentStepIndex || step.replayKind !== 'relation') return played;
@@ -396,10 +385,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     [playbackSteps, replayDerivationFrames]);
   const layoutContent = useMemo(() => committedDerivationCanvasData && settledFontText === fontText ? {
     steps: playbackSteps, stageIndex: 0, completedCanvas: committedDerivationCanvasData,
-    plan: disableRelationOverlay ? null : relationRenderPlan, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
+    plan: relationRenderPlan, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
     layoutGroups: stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
   } : null, [committedDerivationCanvasData, playbackSteps, relationRenderPlan, abstractionMode, movementProtectedNodeIds,
-    disableRelationOverlay, stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeDirection,
+    stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeDirection,
     settledFontText, fontText, treeLabelRuns, measureTreeLabel]);
   const viewport = useMemo(() => ({ ...dimensions, bounds: uiBounds }), [dimensions, uiBounds]);
   // The frame is drawn for the displayed viewport, which stays the earlier one
@@ -428,11 +417,11 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       stepIndex: completedReplayStep,
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
       plan: relationRenderPlan, width: frameViewport.width, height: frameViewport.height, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
-      disableRelationOverlay, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups,
+      plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups,
       measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
     });
   }, [layoutReady, animated, usesDerivationFrames, activeDerivationFrame, activeDerivationFrameIndex, completedReplayStep,
-    playbackSteps, relationRenderPlan, frameViewport, abstractionMode, movementProtectedNodeIds, disableRelationOverlay,
+    playbackSteps, relationRenderPlan, frameViewport, abstractionMode, movementProtectedNodeIds,
     replayPlaqueSchedule, replayCoordinates, stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns,
     measureTreeLabel, treeDirection]);
   const stageCameraBounds = stageCameraFit?.bounds ?? null;
@@ -660,12 +649,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         hasDerivationFrames,
         completedReplayStep
       }, relations: {
-        disableRelationOverlay,
         relationRenderPlan,
         playedRelationIndices,
         activeRelationMoment,
-        acceptedCompositionIsTreeFirst,
-        focusedRelationMoment
+        acceptedCompositionIsTreeFirst
       }, camera: { zoomBehavior, cameraAnimationRef, manualCameraRef, data, derivationStagesSignature, autoCameraRef, fitRevision }, lifecycle: {
         svgRef,
         containerRef,
@@ -710,9 +697,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     animated,
     abstractionMode,
     derivationFramesSignature,
-    disableRelationOverlay,
-    focusedRelationMoment?.stageIndex,
-    focusedRelationMoment?.relationIndex,
+    activeRelationMoment?.stageIndex,
+    activeRelationMoment?.relationIndex,
     movementProtectedNodeIds,
     replayVisibleNodeIdSet,
     traceDisplayFrame,
@@ -723,6 +709,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     relationRenderPlan
   ]);
 
+  // Hover emphasis is applied directly to the mounted relation elements.
+  // Keeping it out of the D3 render effect preserves the user's exact zoom
+  // and pan transform while the pointer moves between relations.
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;

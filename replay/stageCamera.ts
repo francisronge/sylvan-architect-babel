@@ -775,7 +775,6 @@ export type StageCameraFitInput = Omit<StageCameraInput, 'includeOverlays' | 'in
   /** The active stage's renderable workspace; null for an empty workspace. */
   completedCanvas: SyntaxNode | null;
   plaqueSchedule: ReplayPlaqueSchedule;
-  disableRelationOverlay?: boolean;
 };
 
 export type StageCameraFit = { bounds: OverlayBounds | null; containment: OverlayBounds | null };
@@ -785,14 +784,14 @@ export type StageCameraFit = { bounds: OverlayBounds | null; containment: Overla
  * camera audit both call this, so the audit checks the camera the app fits.
  * Normalization accepts an empty workspace before the final stage; it has no
  * syntax to frame, so it contributes no bounds and the ordinary fit applies. */
-export function buildStageCameraFit({ disableRelationOverlay = false, completedCanvas, ...rest }: StageCameraFitInput): StageCameraFit {
+export function buildStageCameraFit({ completedCanvas, ...rest }: StageCameraFitInput): StageCameraFit {
   if (!completedCanvas) return { bounds: null, containment: null };
   const input = { ...rest, completedCanvas };
   const items = input.plan?.frames[input.stageIndex]?.items ?? [];
   const treeFirst = isTreeFirstComposition(items);
   const common = { ...input, plaqueLayout: selectReplayPlaqueLayout(input.plaqueSchedule, input.stageIndex) };
-  const bounds = buildStageCameraBounds({ ...common, includeOverlays: !disableRelationOverlay && !treeFirst });
-  const containment = bounds && !disableRelationOverlay && (treeFirst || items.some(item => item.kind === 'binding-domain'))
+  const bounds = buildStageCameraBounds({ ...common, includeOverlays: !treeFirst });
+  const containment = bounds && (treeFirst || items.some(item => item.kind === 'binding-domain'))
     ? buildStageCameraBounds({ ...common, includeOverlays: false, includePlaques: true, includeBindingDomains: true })
     : null;
   return { bounds, containment };
