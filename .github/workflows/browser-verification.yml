@@ -19,8 +19,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Decide whether browsers can be affected
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      markdown-only: ${{ steps.files.outputs.markdown-only }}
+    steps:
+      # No browser spec, browser helper or the browser runner reads a Markdown
+      # file, so a pull request that changes only Markdown skips the browser
+      # jobs. The "Provider-free browser behavior" job still reports.
+      - name: List the files the pull request changes
+        id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            echo "markdown-only=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          gh api --paginate "repos/$REPOSITORY/pulls/$NUMBER/files" --jq '.[].filename' > "$RUNNER_TEMP/files.txt"
+          total=$(wc -l < "$RUNNER_TEMP/files.txt")
+          other=$(grep -vc '\.md$' "$RUNNER_TEMP/files.txt" || true)
+          echo "$total changed files, $other not Markdown"
+          # The files API lists at most 3,000 files; a list that long is not trusted.
+          if [ "$total" -gt 0 ] && [ "$total" -lt 3000 ] && [ "$other" -eq 0 ]; then
+            echo "markdown-only=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "markdown-only=false" >> "$GITHUB_OUTPUT"
+          fi
+
   browser-shard:
     name: Browser behavior (${{ matrix.shard }})
+    needs: changes
+    if: needs.changes.outputs.markdown-only != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
@@ -70,35 +105,44 @@ jobs:
 
   browser-verification:
     name: Provider-free browser behavior
-    needs: browser-shard
-    # Passes only when both shards passed and their receipts ran every required
-    # spec exactly once.
+    needs: [changes, browser-shard]
+    # Always reports, so this check is never left pending: it passes for a
+    # Markdown-only pull request whose shards were skipped, and otherwise only
+    # when both shards passed and their receipts ran every required spec once.
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Require both shards to succeed
+      - name: Require the shards to succeed, or to be skipped for Markdown only
         env:
+          CHANGES: ${{ needs.changes.result }}
+          MARKDOWN_ONLY: ${{ needs.changes.outputs.markdown-only }}
           SHARDS: ${{ needs.browser-shard.result }}
         run: |
-          echo "shards: $SHARDS"
+          echo "changes: $CHANGES; markdown only: $MARKDOWN_ONLY; shards: $SHARDS"
+          if [ "$CHANGES" != success ]; then exit 1; fi
+          if [ "$MARKDOWN_ONLY" = true ]; then [ "$SHARDS" = skipped ]; exit $?; fi
           [ "$SHARDS" = success ]
 
       - name: Check out candidate
+        if: needs.changes.outputs.markdown-only != 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js 24
+        if: needs.changes.outputs.markdown-only != 'true'
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24.x
 
       - name: Download the shard receipts
+        if: needs.changes.outputs.markdown-only != 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: browser-receipt-*
           path: ${{ runner.temp }}/browser-receipts
 
       - name: Confirm the shards ran every required browser spec exactly once
+        if: needs.changes.outputs.markdown-only != 'true'
         run: node scripts/checkBrowserShardReceipts.mjs "$RUNNER_TEMP/browser-receipts"
