@@ -14,14 +14,15 @@ import {
   buildRenderableDerivationCanvasData
 } from '../replay/replayCanvas.ts';
 import {
+  buildStageCameraFit,
   buildStageLayoutGroups,
+  isTreeFirstComposition,
   selectReplayPlaqueLayout,
   stageTreeLayoutSize
 } from '../replay/stageCamera.ts';
 import { buildMovementProtectedNodeIds } from '../replay/triangulation.ts';
 import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 import { type DerivationStage, type SyntaxNode } from '../types';
-import { activeStageCameraBounds } from './activeStageCameraBounds.ts';
 import { selectReplayCanvas } from './replayStepCanvas.ts';
 import { withPlaqueTextMeasure } from './renderer/plaqueText.ts';
 import { applyRelationEmphasis } from './renderer/relationInteraction.ts';
@@ -390,24 +391,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     if (!Array.isArray(nodeIds) || nodeIds.length === 0) return null;
     return new Set(nodeIds.map((id) => String(id || '')).filter(Boolean));
   }, [activeDerivationReplayStep, usesDerivationFrames]);
-  const acceptedCompositionIsTreeFirst = (relationRenderPlan?.frames[activeDerivationFrameIndex]?.items ?? []).some((item) =>
-    item.familyId === 'copy.multiple-pronunciation'
-    || item.familyId === 'copy.partial-deletion'
-    || item.familyId === 'multidominance.shared-node'
-    || item.familyId === 'argument-sharing.domains'
-    || item.familyId === 'pf.phrasal-spellout'
-    || item.familyId === 'pf.correspondence'
-    || item.familyId === 'pf.fission'
-    || item.familyId === 'pf.impoverishment'
-    || item.familyId === 'pf.local-dislocation'
-    || item.familyId === 'pf.cyclic-linearization'
-    || item.familyId === 'cooper-storage.ledger'
-    || item.familyId === 'scope.operator-variable'
-    || item.familyId === 'accord.link'
-    || item.familyId === 'accord.strong-npi'
-    || item.familyId === 'focus.prominence'
-    || item.familyId === 'focus.f-projection'
-    || item.familyId === 'theta.grid');
+  const acceptedCompositionIsTreeFirst = isTreeFirstComposition(relationRenderPlan?.frames[activeDerivationFrameIndex]?.items ?? []);
   const stageLayoutGroups = useMemo(() => buildStageLayoutGroups(playbackSteps, replayDerivationFrames),
     [playbackSteps, replayDerivationFrames]);
   const layoutContent = useMemo(() => committedDerivationCanvasData && settledFontText === fontText ? {
@@ -437,32 +421,22 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     currentStepIndex >= 0 ? currentStepIndex : undefined), [replayPlaqueSchedule, activeDerivationFrameIndex, currentStepIndex]);
   const completedReplayStep = currentStepIndex === playbackSteps.length - 1
     && playbackSteps[currentStepIndex]?.replayKind === 'macro' ? currentStepIndex : undefined;
-  const stageCameraBounds = useMemo(() => {
+  const stageCameraFit = useMemo(() => {
     if (!layoutReady || !animated || !usesDerivationFrames || !activeDerivationFrame || !frameViewport?.width) return null;
-    return activeStageCameraBounds(activeDerivationFrame.workspaceForest || [], {
+    return buildStageCameraFit({
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       stepIndex: completedReplayStep,
+      completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
       plan: relationRenderPlan, width: frameViewport.width, height: frameViewport.height, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
-      includeOverlays: !disableRelationOverlay && !acceptedCompositionIsTreeFirst,
-      plaqueLayout: stagePlaqueLayout, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
+      disableRelationOverlay, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups,
+      measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
     });
   }, [layoutReady, animated, usesDerivationFrames, activeDerivationFrame, activeDerivationFrameIndex, completedReplayStep,
-    playbackSteps, relationRenderPlan, frameViewport, abstractionMode,
-    movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout, replayPlaqueSchedule, replayCoordinates, stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, treeDirection]);
-  const stagePlaqueContainmentBounds = useMemo(() => {
-    const hasBindingDomain = relationRenderPlan?.frames[activeDerivationFrameIndex]?.items.some(item => item.kind === 'binding-domain');
-    if (!stageCameraBounds || !activeDerivationFrame || !frameViewport || disableRelationOverlay
-      || (!acceptedCompositionIsTreeFirst && !hasBindingDomain)) return null;
-    return activeStageCameraBounds(activeDerivationFrame.workspaceForest || [], {
-      steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
-      stepIndex: completedReplayStep,
-      plan: relationRenderPlan, width: frameViewport.width, height: frameViewport.height, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
-      includeOverlays: false, includePlaques: true, includeBindingDomains: true,
-      plaqueLayout: stagePlaqueLayout, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
-    });
-  }, [stageCameraBounds, activeDerivationFrame, disableRelationOverlay, acceptedCompositionIsTreeFirst, completedReplayStep,
-    playbackSteps, activeDerivationFrameIndex, relationRenderPlan, frameViewport, abstractionMode,
-    movementProtectedNodeIds, stagePlaqueLayout, replayPlaqueSchedule, replayCoordinates, stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, treeDirection]);
+    playbackSteps, relationRenderPlan, frameViewport, abstractionMode, movementProtectedNodeIds, disableRelationOverlay,
+    replayPlaqueSchedule, replayCoordinates, stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns,
+    measureTreeLabel, treeDirection]);
+  const stageCameraBounds = stageCameraFit?.bounds ?? null;
+  const stagePlaqueContainmentBounds = stageCameraFit?.containment ?? null;
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
