@@ -1,6 +1,9 @@
 import * as d3 from 'd3';
 import { type PlanPositionProvider } from '../../replay/relations/boundGeometry.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
+import {
+  isCompactViewport, markerScaleAtZoom, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TRAJECTORY_ROUTES
+} from '../../replay/rendererMetrics.ts';
 import { boundOverlayBounds, type OverlayBounds } from '../../replay/relations/geometryBounds.ts';
 import {
   type Rect
@@ -215,8 +218,8 @@ export function paintRelationScene({
     const zoomK = svgRef.current ? (d3.zoomTransform(svgRef.current).k || 1) : 1;
     // Screen-stable marker sizing, capped so far-out zoom never lets the
     // markers dwarf the tree they annotate.
-    const markerScale = Math.min(1 / zoomK, 3);
-    const badgeGap = 46;
+    const markerScale = markerScaleAtZoom(zoomK);
+    const badgeGap = RELATION_BINDING_METRICS.badgeGap;
     const frameMaxNodeY = d3.max([...frameLayoutById.values()], (frameNode) => frameNode.y) ?? 0;
     // Share the exact displayed-notation decision between slot allocation and painting.
     const hasExistingGapNotation = (nodeId: string, text: string) => hasTreeGapNotation(g, nodeId, text);
@@ -225,23 +228,20 @@ export function paintRelationScene({
       activeDerivationFrameIndex,
       framePositionFor,
       {
-        labelWidth: 150,
-        labelHeight: 70,
-        badgeGap,
-        laneGap: 60,
+        ...RELATION_BINDING_METRICS,
         markerScale,
         hasExistingGapNotation,
         plaqueTextLayout: { measureText: measurePlaqueText },
         fallbackMeasurements,
         separateFallbackMoments: animated && usesDerivationFrames,
         isItemRevealed: itemIndex => revealedItemIndices.has(itemIndex),
-        trajectoryCeilingY: measuredTreeTextTopY() - 90,
-        trajectoryFloorY: frameMaxNodeY + 180,
+        trajectoryCeilingY: measuredTreeTextTopY() - TRAJECTORY_ROUTES.ceilingAboveTextTop,
+        trajectoryFloorY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
         // Frame-stable measured baselines: connector lanes just below the
         // complete frame's terminal row; rails placed by the binder's one
         // vertical allocation law beneath the deepest allocated lane.
-        connectorBaselineY: frameMaxNodeY + 130,
-        railBaseY: frameMaxNodeY + 240
+        connectorBaselineY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,
+        railBaseY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase
       }
     ));
     const fallbackPlacement = createFallbackPlacement({ fallbackMeasurements, boundFrame, markerScale, badgeGap, frameMaxNodeY, animated, usesDerivationFrames, g });
@@ -306,8 +306,8 @@ export function paintRelationScene({
       }, { markerScale: 1 });
     if (!acceptedCompositionIsTreeFirst) replayPlaqueLayout.forEach(rect => {
       const bounds = {
-        minX: rect.x - 24, minY: rect.y - 24,
-        maxX: rect.x + rect.width + 24, maxY: rect.y + rect.height + 24
+        minX: rect.x - PLAQUE_FIT_MARGIN, minY: rect.y - PLAQUE_FIT_MARGIN,
+        maxX: rect.x + rect.width + PLAQUE_FIT_MARGIN, maxY: rect.y + rect.height + PLAQUE_FIT_MARGIN
       };
       overlayFitBounds = overlayFitBounds ? {
         minX: Math.min(overlayFitBounds.minX, bounds.minX), minY: Math.min(overlayFitBounds.minY, bounds.minY),
@@ -316,7 +316,7 @@ export function paintRelationScene({
     });
 
     const fitDeferredOverlayToCompactViewport = (layer: SVGGElement, inset = 12) => {
-      if (containerWidth >= 500) return;
+      if (!isCompactViewport(containerWidth)) return;
       const svgNode = svg.node();
       const parent = layer.parentElement;
       const parentMatrix = parent instanceof SVGGraphicsElement ? parent.getScreenCTM() : null;

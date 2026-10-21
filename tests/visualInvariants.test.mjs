@@ -4,7 +4,7 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { placeStagePlaques, plaqueTreeObstacles } from '../replay/relations/plaquePlacement.ts';
-import { TREE_FIRST_FAMILIES } from '../scripts/replayFrameLayout.mjs';
+import { TREE_FIRST_FAMILIES } from '../replay/stageCamera.ts';
 import { formatFrames, frameList, matchFindings, proposeExceptions } from './helpers/findings.mjs';
 import { measurePlaqueText, measureRun } from './helpers/visualFontMetrics.mjs';
 import {
@@ -245,10 +245,11 @@ test('control: layout-width compares every viewport with the first, in Replay an
   assert(found.every(finding => RULES.includes(finding.rule)), 'the discovery summary lists every reported rule');
 });
 
-test('the frame layout keeps TreeVisualizer\'s tree-first families', () => {
+test('TreeVisualizer classifies tree-first families through the shared list the frame layout fits with', () => {
   const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
-  const block = /acceptedCompositionIsTreeFirst = [\s\S]*?\);/.exec(source)[0];
-  assert.deepEqual([...block.matchAll(/familyId === '([^']+)'/g)].map(match => match[1]).sort(), [...TREE_FIRST_FAMILIES].sort());
+  assert.match(source, /acceptedCompositionIsTreeFirst = isTreeFirstComposition\(/u);
+  assert(TREE_FIRST_FAMILIES.size > 0);
+  for (const family of TREE_FIRST_FAMILIES) assert(!source.includes(`'${family}'`), `${family} has one owner, replay/stageCamera.ts`);
 });
 
 /* Historical defects Francis caught by eye (catalog of 18 October 2026), laid

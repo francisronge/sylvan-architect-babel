@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { activeStageCameraBounds } from '../components/activeStageCameraBounds.ts';
 import { selectReplayCanvas } from '../components/replayStepCanvas.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildRenderableCommittedCanvasData, buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
-import { buildStageCameraBounds } from '../replay/stageCamera.ts';
+import { buildStageCameraBounds, buildStageCameraFit } from '../replay/stageCamera.ts';
 import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
 
 const fixture = JSON.parse(fs.readFileSync(new URL('../fixtures/raw/mia-laughed.xbar.json', import.meta.url), 'utf8'));
@@ -22,8 +21,14 @@ const replayWithEmptyFirstStage = () => {
     inputTokens: bundle.inputTokens, includePlayback: true }) };
 };
 
+const schedule = () => ({ stages: [], steps: new Map() });
 const cameraInput = (replay, stageIndex) => ({ steps: replay.playbackSteps, stageIndex, stepIndex: undefined,
-  plan: replay.relationRenderPlan, width: 1200, height: 800, includeOverlays: true });
+  plan: replay.relationRenderPlan, width: 1200, height: 800, includeOverlays: true, plaqueSchedule: schedule(), plaqueLayout: new Map() });
+// The app's call: the shared stage camera fit, with every measure key present.
+const fit = (replay, stageIndex, forest) => buildStageCameraFit({ steps: replay.playbackSteps, stageIndex, stepIndex: undefined,
+  completedCanvas: buildRenderableDerivationCanvasData(forest), plan: replay.relationRenderPlan, width: 1200, height: 800,
+  plaqueSchedule: schedule(), measurePlaqueText: undefined, measureCategoryText: undefined, measureTreeInk: undefined,
+  treeLabelRuns: undefined, measureTreeLabel: undefined });
 
 test('normalization accepts an empty workspace before the final stage, and Replay plays it', () => {
   const { stages, replay } = replayWithEmptyFirstStage();
@@ -37,7 +42,7 @@ test('an empty active stage contributes no stage camera bounds instead of throwi
   // The historical call framed a null canvas.
   assert.throws(() => buildStageCameraBounds({ ...cameraInput(replay, 0),
     completedCanvas: buildRenderableDerivationCanvasData(forest) }), TypeError);
-  assert.equal(activeStageCameraBounds(forest, cameraInput(replay, 0)), null);
+  assert.deepEqual(fit(replay, 0, forest), { bounds: null, containment: null });
 });
 
 test('a stage with syntax keeps its existing camera bounds', () => {
@@ -46,7 +51,7 @@ test('a stage with syntax keeps its existing camera bounds', () => {
   const expected = buildStageCameraBounds({ ...cameraInput(replay, 1),
     completedCanvas: buildRenderableDerivationCanvasData(forest) });
   assert.ok(expected);
-  assert.deepEqual(activeStageCameraBounds(forest, cameraInput(replay, 1)), expected);
+  assert.deepEqual(fit(replay, 1, forest).bounds, expected);
 });
 
 const canvasFor = (replay, step, data) => selectReplayCanvas({ usesDerivationFrames: true, animated: true,

@@ -1,6 +1,7 @@
 import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
-import { CATEGORY_LINE_HEIGHT, categoryTextLayout, type CategoryTextMeasure } from '../categoryTextLayout.ts';
+import { categoryTextLayout, type CategoryTextMeasure } from '../categoryTextLayout.ts';
+import { CATEGORY_FALLBACK_GLYPH_WIDTH, CATEGORY_LINE_HEIGHT, nominalLabelWidth, TERMINAL_ATTACHMENT_Y } from '../rendererMetrics.ts';
 import { isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf } from '../replaySurfaceNotation.ts';
 import { cubicIntersectsRect } from './curveClearance.ts';
 import {
@@ -86,7 +87,7 @@ const isPlaqueShell = (obstacle: PlaqueRect) => Boolean(obstacle.plaqueShell
   || obstacle.blocksConnectors && obstacle.connectorAttachment === undefined && !obstacle.curve);
 /** Distances are measured from a word-bearing leaf's word, else from the anchor's label. */
 export function plaqueAnchorPoint(anchor: Pick<Node, 'x' | 'y' | 'data' | 'children'>) {
-  return { x: anchor.x, y: anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0) };
+  return { x: anchor.x, y: anchor.y + (!anchor.children?.length && anchor.data.word ? TERMINAL_ATTACHMENT_Y : 0) };
 }
 /** Distance from the anchor point to the centre of the farthest nearby pocket. A
  * plaque beyond it is remote; one too large for the local search has no reach. */
@@ -221,14 +222,14 @@ export function plaqueTreeObstacles(nodes: Node[], measureCategoryText?: Categor
       ...(label.lines.length === 1 ? { connectorInk: { x: node.x + label.x, y: node.y + label.y,
         width: label.width, height: label.height } } : {}) });
     if (hasCategory && label.lines.length > 1) label.lines.forEach((line, index) => {
-      const lineWidth = measureCategoryText?.(line) ?? [...line].length * 25;
+      const lineWidth = measureCategoryText?.(line) ?? [...line].length * CATEGORY_FALLBACK_GLYPH_WIDTH;
       rectangles.push({ x: node.x - lineWidth / 2 - 4, y: node.y + label.y + index * CATEGORY_LINE_HEIGHT - 4,
         width: lineWidth + 8, height: 60, blocksConnectors: true, connectorAttachment: `${idOf(node)}:category` });
     });
     // The painter also draws notation stored in label, such as t or ∅.
     // Use its terminal predicate so those glyphs and their stems reserve space.
     if (!node.children?.length && !isWordlessCategoryLeaf(node.data)) {
-      const wordWidth = Math.max(150, String(node.data.word || resolveLeafSurface(node)).length * 40);
+      const wordWidth = nominalLabelWidth(String(node.data.word || resolveLeafSurface(node)));
       rectangles.push({ x: node.x - wordWidth / 2, y: node.y + 65, width: wordWidth, height: 110,
         blocksConnectors: true, connectorAttachment: `${idOf(node)}:terminal` });
       rectangles.push({ x: node.x - 6, y: node.y, width: 12, height: 130, terminalStemNodeId: idOf(node) });
@@ -947,8 +948,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     // Role grids grow horizontally with their columns; width alone must not detach them from the predicate.
     const local = fitsLocalPocket(request) || (request.thetaGrid && height <= localPlaqueSize);
     const terminal = request.caseAssignment ? anchor.descendants().filter(node => !node.children?.length && node.data.word) : [];
-    const anchorY = terminal.length === 1 ? terminal[0].y + 140
-      : anchor.y + (!anchor.children?.length && anchor.data.word ? 140 : 0);
+    const anchorY = terminal.length === 1 ? terminal[0].y + TERMINAL_ATTACHMENT_Y
+      : anchor.y + (!anchor.children?.length && anchor.data.word ? TERMINAL_ATTACHMENT_Y : 0);
     const placementDistance = (box: PlaqueRect) => {
       if (!sourceRect) return (box.x + width / 2 - anchor.x) ** 2 + (box.y + height / 2 - anchorY) ** 2;
       const curve = caseAssignmentPlaqueCurve(sourceRect,

@@ -1,0 +1,39 @@
+import type { ParseBundle, ParseResult, SyntaxNode } from '../types.ts';
+import { displayTreeForAnalysis, finalForestForAnalysis } from '../replay/finalForest.ts';
+import { recoverLegacyInputTokens } from './legacyInputTokens.ts';
+import { buildMilesNotation } from './milesNotation.ts';
+import { collectDerivationStageRecords } from '../derivationNotes.js';
+
+export interface AnalysisDisplay {
+  displayTree: SyntaxNode | null;
+  inputTokens: string[] | undefined;
+  notation: string;
+  stageRecords: string[];
+}
+
+/**
+ * Everything App derives from the selected analysis while it renders. These
+ * values are computed outside every view boundary, so a throw here unmounts the
+ * whole workspace.
+ */
+export const deriveAnalysisDisplay = (bundle: ParseBundle, analysis: ParseResult, sentence: string): AnalysisDisplay => ({
+  displayTree: displayTreeForAnalysis(analysis),
+  inputTokens: bundle.inputTokens ?? recoverLegacyInputTokens(analysis, sentence),
+  notation: buildMilesNotation(finalForestForAnalysis(analysis)),
+  stageRecords: collectDerivationStageRecords(analysis.derivationStages)
+});
+
+/**
+ * A stored workspace is offered to App only when every analysis it can select
+ * yields its display values, so a damaged saved record fails its open request
+ * instead of App's render.
+ */
+export const assertBundleDisplayable = (bundle: ParseBundle, sentence: string): void => {
+  bundle.analyses.forEach((analysis, index) => {
+    try {
+      deriveAnalysisDisplay(bundle, analysis, sentence);
+    } catch (error) {
+      throw new Error(`Saved analysis ${index + 1} cannot be displayed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  });
+};

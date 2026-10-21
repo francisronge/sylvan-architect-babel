@@ -1,9 +1,8 @@
-import { CATEGORY_FONT } from '../replay/categoryTextLayout.ts';
+import {
+  CATEGORY_FONT, CATEGORY_INDEX_FONT, INDEX_LABEL, TERMINAL_FONT, TERMINAL_INDEX_FONT
+} from '../replay/rendererMetrics.ts';
 import type { TreeInkTextMeasure, TreeInkTextMetrics, TreeInkTextStyle } from '../replay/treeInkGeometry.ts';
 
-export const TERMINAL_FONT = 'italic 900 56px Quicksand, sans-serif';
-export const TERMINAL_INDEX_FONT = "italic 900 30px 'Crimson Pro', Georgia, serif";
-export const CATEGORY_INDEX_FONT = "italic 900 22px 'Crimson Pro', Georgia, serif";
 const svgNamespace = 'http://www.w3.org/2000/svg';
 
 /** SVG owns the font's subscript baseline. Measure the two painted index forms
@@ -25,7 +24,7 @@ function measureIndex(doc: Document, text: string, terminal: boolean): TreeInkTe
     index.setAttribute('baseline-shift', 'sub');
     const identity = index.getBBox();
     index.removeAttribute('baseline-shift');
-    index.setAttribute('dy', terminal ? '14' : '9');
+    index.setAttribute('dy', String(INDEX_LABEL[terminal ? 'terminal' : 'category'].thetaDy));
     const theta = index.getBBox();
     if ([identity, theta].some(box => ![box.x, box.y, box.width, box.height].every(Number.isFinite)
       || box.width <= 0 || box.height <= 0)) return;
