@@ -4,17 +4,12 @@ import path from 'node:path';
 import process from 'node:process';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { stripVolatileProvenance, volatileProvenanceFields } from './volatileProvenance.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptPath), '..');
 const guardPath = path.join(repoRoot, 'scripts', 'providerFreeNetworkGuard.cjs');
 const minimumNodeMajor = 24;
-const volatileProvenanceFields = Object.freeze([
-  'timestamp',
-  'promptVersion',
-  'parserVersion',
-  'uiVersion'
-]);
 const authoredStageFields = Object.freeze([
   'statement',
   'stageRecord',
@@ -179,16 +174,6 @@ async function loadBaselineModules() {
     parseModelJson: jsonModule.parseModelJson
   };
 }
-
-const stripVolatileProvenance = (bundle) => {
-  for (const analysis of bundle.analyses || []) {
-    if (!analysis.provenance || typeof analysis.provenance !== 'object') continue;
-    for (const field of volatileProvenanceFields) {
-      delete analysis.provenance[field];
-    }
-  }
-  return bundle;
-};
 
 const describeFailure = (run) => {
   try {
