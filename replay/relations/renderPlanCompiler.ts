@@ -1,4 +1,5 @@
 import type { DerivationStage } from '../../types.ts';
+import { dispatchRelationStages, projectRelationStages, type DispatchedRelationStages } from '../relationStages.ts';
 import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
 import { findRelationRegistryEntry } from '../relationDispatch/relationRegistry.js';
 import { isWordlessCategoryLeaf } from '../replaySurfaceNotation.ts';
@@ -40,7 +41,7 @@ import {
   type RelationRenderPlan
 } from './renderPlan.ts';
 import { structuralPlan } from './structuralPlan.ts';
-import { dispatchStageRelations, recoveredClaimMovements } from './tier2RelationDispatch.ts';
+import { recoveredClaimMovements } from './tier2RelationDispatch.ts';
 import { compileTier2RelationOutputs } from './tier2RenderPlanCompiler.ts';
 import { normalizeTier2Synonym } from './tier2Synonyms.ts';
 import { headTrajectoryAttachment } from './trajectoryAttachment.ts';
@@ -50,6 +51,8 @@ import { headTrajectoryAttachment } from './trajectoryAttachment.ts';
  * and structurally recovered Tier-2 claims share drawing families; unsupported
  * claims keep neutral drawings. Current and prior anchors resolve only in their
  * own authored stages. Missing evidence never earns a substitute endpoint.
+ * Stages are read as Replay reads them (relationStages.ts), so the plan and the
+ * Replay moments interpret every claim from the same dispatches.
  *
  * Composition can share pixels, but retains every contributing claim and its
  * relation moment. Ownership, attachment and lifetime rules live in renderPlan;
@@ -87,9 +90,18 @@ export const compileRelationRenderPlan = (
   options: CompilePlanOptions = {}
 ): RelationRenderPlan => {
   const registry = options.registry ?? productionRelationRegistry;
+  return compileDispatchedRelationRenderPlan(
+    dispatchRelationStages(projectRelationStages(stages), { registry, activeLens: options.activeLens }), options);
+};
+
+/** Compiles stages already dispatched with the same registry, as Replay
+ * preparation does so that its frame relations reuse those dispatches. */
+export const compileDispatchedRelationRenderPlan = (
+  { stages: stageList, dispatches: stageDispatches }: DispatchedRelationStages,
+  options: Omit<CompilePlanOptions, 'activeLens'> = {}
+): RelationRenderPlan => {
+  const registry = options.registry ?? productionRelationRegistry;
   const families = options.families ?? PRODUCTION_RENDER_FAMILIES;
-  const stageList = Array.isArray(stages) ? stages : [];
-  const stageDispatches = dispatchStageRelations(stageList, { registry, activeLens: options.activeLens });
   const companionAnchors = (stageIndex: number, relationIndex: number) => {
     const dispatch = stageDispatches[stageIndex][relationIndex];
     return dispatch.primaryClaim?.tier === 1 ? dispatch.boundPrimaryRelation.anchors : {};

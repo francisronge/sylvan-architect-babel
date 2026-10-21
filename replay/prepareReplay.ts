@@ -1,9 +1,10 @@
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import type { DerivationStage } from '../types.ts';
-import { compileRelationRenderPlan } from './relations/renderPlanCompiler.ts';
+import { compileDispatchedRelationRenderPlan } from './relations/renderPlanCompiler.ts';
 import { adaptDerivationStagesForReplay } from './authoredFrames.ts';
 import { applyPreFrontingSentenceInitialCasing } from './replayCasing.ts';
 import { buildAuthoredRelationLinksForFrames, buildMovementChainIndexCatalogueForFrames, createFrameRelationResolver } from './frameRelations.ts';
+import { dispatchRelationStages, relationStagesFromFrames } from './relationStages.ts';
 import { buildPlaybackStepsFromDerivationFrames } from './replayCompiler.ts';
 import { buildResolvedLinkTraceIndexMap } from './movementIndices.ts';
 import { decoratePlaybackStepsWithTraceIndices } from './movementPresentation.ts';
@@ -25,10 +26,12 @@ export const prepareReplay = ({ derivationStages, sentence, inputTokens, include
   const hasStages = Array.isArray(derivationStages) && derivationStages.length > 0;
   const derivationReplayPlan = hasStages
     ? buildDerivationReplayPlan({ derivationStages }) as DerivationReplayPlan : null;
-  const relationRenderPlan = hasStages ? compileRelationRenderPlan(derivationStages) : null;
+  // The plan's drawings and Replay's relation moments share one dispatch of every claim.
+  const relationClaims = dispatchRelationStages(relationStagesFromFrames(replayDerivationFrames, derivationReplayPlan));
+  const relationRenderPlan = hasStages ? compileDispatchedRelationRenderPlan(relationClaims) : null;
   const finalIndex = replayDerivationFrames.length - 1;
   const finalFrame = replayDerivationFrames[finalIndex];
-  const frameRelations = createFrameRelationResolver(replayDerivationFrames, derivationReplayPlan);
+  const frameRelations = createFrameRelationResolver(replayDerivationFrames, derivationReplayPlan, relationClaims);
   const committedDerivationVisualLinks = finalFrame
     ? buildAuthoredRelationLinksForFrames({
       frames: replayDerivationFrames,

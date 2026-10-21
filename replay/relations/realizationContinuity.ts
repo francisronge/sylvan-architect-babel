@@ -1,11 +1,11 @@
-import type { DerivationStage } from '../../types.ts';
+import type { RelationStage } from '../relationStages.ts';
 import { exactRealizationGroup, sameRealizationMembers } from '../realizationGroups.ts';
 import type { NodePlaquePlanItem, RelationPlanItem } from './renderPlan.ts';
 
 /** Link explicit group transfers to their still-live PF claims, including across unaltered stages. */
 export function realizationPlatePredecessors(
   items: readonly RelationPlanItem[],
-  stages: readonly DerivationStage[]
+  stages: readonly RelationStage[]
 ): Map<RelationPlanItem, string | undefined> {
   const plates = items.filter((item): item is NodePlaquePlanItem => item.kind === 'node-plaque'
     && item.tier2FacetId === 'pf.structured' && item.plaqueStyle === 'realization');

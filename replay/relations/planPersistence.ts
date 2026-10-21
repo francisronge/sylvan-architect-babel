@@ -1,4 +1,5 @@
-import type { DerivationStage, SyntaxNode } from '../../types.ts';
+import type { SyntaxNode } from '../../types.ts';
+import type { RelationStage } from '../relationStages.ts';
 import { collectAuthoredSilentSubtreeIds } from './authoredSilence.ts';
 import { featureCollectionSupersessions } from './featureCollectionContinuity.ts';
 import { movementContextFailure } from './movementEvidence.ts';
@@ -28,7 +29,7 @@ const distinctTransitions = <T extends { relationIndex: number }>(candidates: T[
 
 export function materializePlanFrames(
   items: RelationPlanItem[],
-  stageList: DerivationStage[],
+  stageList: RelationStage[],
   stageDispatches: RelationClaimDispatch[][],
   stageNodeMaps: Map<string, SyntaxNode>[],
   organizationCompanions: Map<RelationPlanItem, AnchorSetPlanItem[]>,
