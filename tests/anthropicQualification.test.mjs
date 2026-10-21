@@ -136,6 +136,23 @@ test('incomplete, refused and failed streams retain evidence without retrying or
   }
 });
 
+test('an unterminated final message_stop is discarded at EOF, as SSE requires', async () => {
+  const complete = streamFor('{"statement":"x"}');
+  for (const cut of ['\n', '\n\n']) {
+    const bytes = Buffer.from(complete.slice(0, -cut.length));
+    const leftover = sse('message_stop', {}).slice(0, -cut.length);
+    const captured = [], lifecycle = [];
+    const result = await requestAnthropicQualification({ body: request().body, apiKey,
+      onBytes: chunk => captured.push(chunk), onLifecycle: entry => lifecycle.push(entry),
+      fetchImpl: async () => chunkedResponse(bytes) });
+    assert.equal(result.status, 'interrupted');
+    assert.equal(result.failure.reason, 'eof_without_terminal');
+    assert.equal(result.terminalEvent, null);
+    assert.equal(lifecycle.find(entry => entry.type === 'stream-eof').bufferedBytes, Buffer.byteLength(leftover));
+    assert.deepEqual(Buffer.concat(captured), bytes);
+  }
+});
+
 test('completed API text uses the existing Babel normalization, Replay and review artifact pipeline', async t => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-anthropic-test-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
