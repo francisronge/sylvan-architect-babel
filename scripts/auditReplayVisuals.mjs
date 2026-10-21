@@ -12,6 +12,11 @@
 // `npm run verify:camera-offline` matches the fixtures to tests/helpers/cameraExceptions.mjs.
 // `npm run verify:replay-offline` runs both of those audits in one pass, which
 // prepares each record once and lays out the viewport they share once.
+// `--snapshot FILE` also compares each analysis's desktop frames, Canopy, Replay
+// panel text and relation tiers with the committed fingerprints
+// (tests/helpers/layoutSnapshot.mjs) and fails on any difference;
+// `--update-snapshot` rewrites the file from this run instead.
+// verify:visual-offline and verify:replay-offline check fixtures/replay-snapshots/fixture-layout.json.
 import { mkdtempSync, readdirSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { availableParallelism, tmpdir } from 'node:os';
 import path from 'node:path';
@@ -21,6 +26,7 @@ import { Worker, isMainThread, parentPort, workerData } from 'node:worker_thread
 import { matchFindings, proposeExceptions } from '../tests/helpers/findings.mjs';
 import { RULES, THRESHOLDS } from '../tests/helpers/visualRules.mjs';
 import { CAMERA_RULES, CAMERA_THRESHOLDS } from '../tests/helpers/cameraInvariants.mjs';
+import { compareSnapshots, describeComparison, readSnapshot, writeSnapshot } from '../tests/helpers/layoutSnapshot.mjs';
 
 async function main() {
   const { values } = parseArgs({ allowNegative: true, options: {
@@ -28,7 +34,8 @@ async function main() {
     batches: { type: 'string', multiple: true, default: [] }, 'archive-manifest': { type: 'string', multiple: true, default: [] },
     only: { type: 'string' }, every: { type: 'string', default: '1' }, viewports: { type: 'string', multiple: true, default: [] },
     canopy: { type: 'boolean', default: true }, jobs: { type: 'string', default: '2' }, out: { type: 'string', multiple: true, default: [] },
-    exceptions: { type: 'string', multiple: true, default: [] }, audit: { type: 'string', multiple: true, default: [] }
+    exceptions: { type: 'string', multiple: true, default: [] }, audit: { type: 'string', multiple: true, default: [] },
+    snapshot: { type: 'string' }, 'update-snapshot': { type: 'boolean', default: false }
   } });
   const audits = auditsOf(values);
   if (!(values.fixtures || values.runs.length || values.batches.length || values['archive-manifest'].length))
@@ -37,7 +44,9 @@ async function main() {
   const records = (await loadRecords(values)).filter((record, index) => index % every === 0 && (!values.only || record.id.includes(values.only)));
   const jobs = Math.max(1, Math.min(Number(values.jobs) || 1, availableParallelism()));
   const started = performance.now();
-  const results = await runWorkers(records, jobs, { audits: audits.map(({ audit, viewports, canopy }) => ({ audit, viewports, canopy })) });
+  const snapshotAudit = snapshotAuditOf(values, audits);
+  const results = await runWorkers(records, jobs, { audits: audits.map(({ audit, viewports, canopy }, index) =>
+    ({ audit, viewports, canopy, snapshot: index === snapshotAudit })) });
   const durationMs = Math.round(performance.now() - started);
   for (const [index, { audit, viewports, canopy, out, exceptions }] of audits.entries()) {
     const camera = audit === 'camera', own = results.map(({ id, error, audits: each }) => error ? { id, error } : { id, ...each[index] });
@@ -65,11 +74,49 @@ async function main() {
     if (report.errors.length || unexpected.length || exceeded.length || stale.length) process.exitCode = 1;
     else console.log(`All ${report.findings.length} findings are listed exceptions within their bounds.`);
   }
+  if (snapshotAudit >= 0) {
+    console.log('');
+    checkSnapshot(values, results.map(({ id, error, audits: each }) => error ? { id, error } : { id, ...each[snapshotAudit] }),
+      every === 1 && !values.only);
+  }
 }
 
 const USAGE = 'Usage: node scripts/auditReplayVisuals.mjs (--out report.json | --exceptions module.mjs) [--fixtures] [--runs DIR/runs ...] '
   + '[--batches CODEX_QUALIFICATION_ROOT ...] [--archive-manifest FILE ...] [--only TEXT] [--every N] [--jobs N] [--viewports a,b] [--no-canopy] '
-  + '[--audit visual|camera]; repeat --audit, each with its own --viewports and --exceptions or --out in the same order, to run several audits in one pass';
+  + '[--audit visual|camera] [--snapshot FILE [--update-snapshot]]; repeat --audit, each with its own --viewports and --exceptions or --out '
+  + 'in the same order, to run several audits in one pass';
+
+/** The index of the visual audit that fingerprints frames, or -1. It needs the
+ * desktop viewport and the Canopy. */
+function snapshotAuditOf(values, audits) {
+  if (!values.snapshot) { if (values['update-snapshot']) throw Error('--update-snapshot needs --snapshot FILE'); return -1; }
+  const index = audits.findIndex(({ audit }) => audit === 'visual');
+  if (index < 0 || !audits[index].viewports.includes('desktop') || !audits[index].canopy)
+    throw Error('--snapshot needs the visual audit with the desktop viewport and the Canopy');
+  return index;
+}
+
+/** Compares this run's fingerprints with the committed ones, or rewrites them.
+ * A partial run (--only, --every) leaves analyses it did not audit untouched. */
+function checkSnapshot(values, results, complete) {
+  const file = path.resolve(values.snapshot);
+  const actual = Object.fromEntries(results.filter(result => result.snapshot).map(({ id, snapshot }) => [id, snapshot]));
+  const expected = existsSync(file) ? readSnapshot(file) : {};
+  if (values['update-snapshot']) {
+    const kept = complete ? {} : expected;
+    for (const { id } of results.filter(result => result.error)) if (expected[id]) kept[id] = expected[id];
+    writeSnapshot(file, { ...kept, ...actual });
+    console.log(`Wrote fingerprints of ${Object.keys(actual).length} analyses to ${values.snapshot}; review its diff.`);
+    return;
+  }
+  const comparison = compareSnapshots(expected, actual, { complete });
+  const count = comparison.changed.length + comparison.added.length + comparison.removed.length;
+  if (!count) { console.log(`Snapshot: ${Object.keys(actual).length} analyses unchanged (frames, Canopy, panel text, tiers).`); return; }
+  console.log(`\nSnapshot: ${count} analyses differ from ${values.snapshot}. A difference is a behavior change: `
+    + 'see what moved with scripts/explainLayoutChange.mjs --baseline-root BASE, then review and rerun with --update-snapshot.');
+  console.log(describeComparison(comparison).join('\n'));
+  process.exitCode = 1;
+}
 const DEFAULT_VIEWPORTS = 'desktop,desktop-large,mobile';
 
 /** The audits to run. One `--audit` (default visual) takes at most one each of
@@ -156,10 +203,10 @@ function runWorkers(records, jobs, data) {
 if (!isMainThread) {
   const { auditVisualRecord, prepareVisualRecord, VIEWPORTS } = await import('../tests/helpers/visualFrames.mjs');
   const { auditCameraRecord, CAMERA_VIEWPORTS } = await import('../tests/helpers/cameraTrace.mjs');
-  const audits = workerData.audits.map(({ audit, viewports: names, canopy }) => {
+  const audits = workerData.audits.map(({ audit, viewports: names, canopy, snapshot }) => {
     const viewports = (audit === 'camera' ? CAMERA_VIEWPORTS : VIEWPORTS).filter(viewport => names.includes(viewport.name));
     if (viewports.length !== names.length) throw Error(`Unknown viewport in ${names.join(', ')}`);
-    return { audit, viewports, canopy };
+    return { audit, viewports, canopy, snapshot };
   });
   const failure = error => ({ error: String(error?.stack ?? error).split('\n').slice(0, 3).join(' | ') });
   const attempt = run => { try { return run(); } catch (error) { return failure(error); } };
@@ -168,7 +215,7 @@ if (!isMainThread) {
     // layout on it, so audits that share a viewport lay it out once.
     let visual;
     try { visual = prepareVisualRecord(input); } catch (error) { parentPort.postMessage({ index, id, ...failure(error) }); return; }
-    parentPort.postMessage({ index, id, audits: audits.map(({ audit, viewports, canopy }) => attempt(() => audit === 'camera'
-      ? auditCameraRecord(id, input, { viewports, visual }) : auditVisualRecord(id, input, { viewports, canopy, visual }))) });
+    parentPort.postMessage({ index, id, audits: audits.map(({ audit, viewports, canopy, snapshot }) => attempt(() => audit === 'camera'
+      ? auditCameraRecord(id, input, { viewports, visual }) : auditVisualRecord(id, input, { viewports, canopy, visual, snapshot }))) });
   });
 } else await main();
