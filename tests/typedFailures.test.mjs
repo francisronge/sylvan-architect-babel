@@ -19,6 +19,7 @@ import {
 } from '../server/parseApi.js';
 import {
   createRawOutputArtifact,
+  retainArtifactPrefix,
   FAILURE_CLASSES,
   MAX_RAW_OUTPUT_BODY_BYTES,
   MAX_RAW_OUTPUT_BYTES,
@@ -704,4 +705,48 @@ test('API errors expose typed failure while raw output is capped and hash-bound'
   assert.ok(
     Buffer.byteLength(JSON.stringify(formatted.body), 'utf8') <= MAX_RAW_OUTPUT_BODY_BYTES
   );
+});
+
+test('one budget covers a failure body whose output and provider envelope both exceed the artifact cap', () => {
+  const rawText = 'a'.repeat(MAX_RAW_OUTPUT_BYTES + 99);
+  const envelope = JSON.stringify({ output: rawText });
+  const failed = (offendingValue) => formatApiError(attachGenerationFailureEvidence({
+    error: new ParseApiError('BAD_MODEL_RESPONSE', 'Invalid JSON.', 422, withFailureDetails({}, {
+      failureClass: 'transport_serialization', ruleId: 'TRANSPORT_JSON_OBJECT', fieldPath: '$', offendingValue
+    })),
+    ParseApiError,
+    generationRecord: { schemaVersion: 2, provider: 'gpt', rawProviderResponse: createRawOutputArtifact(envelope),
+      outcome: { finishReason: 'COMPLETED', attempts: [] } },
+    rawText
+  })).body;
+  const assertHonestPrefix = (artifact, source) => {
+    const bytes = Buffer.from(source);
+    const kept = Buffer.from(artifact.data, 'base64');
+    assert.equal(artifact.truncated, true);
+    assert.equal(artifact.byteLength, bytes.byteLength);
+    assert.equal(artifact.sha256, createRawOutputArtifact(source).sha256);
+    assert.equal(kept.byteLength, artifact.retainedByteLength);
+    assert.deepEqual(kept, bytes.subarray(0, kept.byteLength));
+  };
+
+  // The envelope gives up its bytes before the extracted output does.
+  const body = failed(null);
+  assert.ok(Buffer.byteLength(JSON.stringify(body), 'utf8') <= MAX_RAW_OUTPUT_BODY_BYTES);
+  assertHonestPrefix(body.error.rawOutput, rawText);
+  assertHonestPrefix(body.error.generationRecord.rawProviderResponse, envelope);
+  assert.equal(body.error.rawOutput.retainedByteLength, MAX_RAW_OUTPUT_BYTES);
+  assert.ok(body.error.generationRecord.rawProviderResponse.retainedByteLength < MAX_RAW_OUTPUT_BYTES);
+
+  // An inline value that escapes to several times its size leaves no room for
+  // the envelope, so the extracted output shortens as well.
+  const crowded = failed('\u0001'.repeat(60 * 1024));
+  assert.ok(Buffer.byteLength(JSON.stringify(crowded), 'utf8') <= MAX_RAW_OUTPUT_BODY_BYTES);
+  assertHonestPrefix(crowded.error.rawOutput, rawText);
+  assertHonestPrefix(crowded.error.generationRecord.rawProviderResponse, envelope);
+  assert.equal(crowded.error.generationRecord.rawProviderResponse.retainedByteLength, 0);
+  assert.ok(crowded.error.rawOutput.retainedByteLength < MAX_RAW_OUTPUT_BYTES);
+
+  const shortened = retainArtifactPrefix(createRawOutputArtifact('Mia laughed.'), 3);
+  assert.deepEqual([Buffer.from(shortened.data, 'base64').toString(), shortened.retainedByteLength, shortened.truncated,
+    shortened.byteLength], ['Mia', 3, true, 12]);
 });
