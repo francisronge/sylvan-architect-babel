@@ -50,7 +50,6 @@ export type GenerationAction =
   | { type: 'accepted' }
   | { type: 'failed'; cause: unknown; request?: GenerationError['request'] }
   | { type: 'finished' }
-  | { type: 'clear-error' }
   | { type: 'clear-failure' }
   | { type: 'reset' }
   | { type: 'report-error'; error: GenerationError };
@@ -66,7 +65,6 @@ export const generationReducer = (state: GenerationState, action: GenerationActi
         : null };
     }
     case 'finished': return { ...state, loading: false };
-    case 'clear-error': return { ...state, error: null };
     case 'clear-failure': return { ...state, error: null, needsKey: false };
     case 'reset': return initialGenerationState;
     case 'report-error': return { ...state, error: action.error };

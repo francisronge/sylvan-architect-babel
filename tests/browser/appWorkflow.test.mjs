@@ -265,6 +265,16 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
               assert.equal(await sentenceInput(page).inputValue(), failedDraft);
               assert.equal(await page.getByRole('alert').count(), 1, 'failure remains visible and announced');
               if (kind === 'malformed-model-output') {
+                // Choosing the next request's model or effort keeps this failure and its downloads.
+                const [model, effort] = [0, 1].map(index => page.getByRole('banner').locator('select').nth(index));
+                const selectAnother = async select => select.selectOption(await select.locator('option').evaluateAll(
+                  (options, current) => options.map(option => option.value).find(value => value !== current), await select.inputValue()));
+                const selectedModel = await model.inputValue();
+                await selectAnother(model);
+                await selectAnother(effort);
+                await model.selectOption(selectedModel);
+                assert.equal(await page.getByRole('alert').count(), 1, 'changing the model or effort keeps the failure');
+                assert.equal(await page.getByRole('button', { name: /^Download raw output/ }).count(), 1);
                 const rawDownload = page.waitForEvent('download');
                 await page.getByRole('button', { name: /^Download raw output/ }).click();
                 assert.equal(await readFile(await (await rawDownload).path(), 'utf8'), malformedText);

@@ -132,7 +132,9 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   );
   const sporeLayerRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState('The farmer eats the pig');
-  const { loading, error, needsKey, generate, clearError, clearFailure, resetGeneration, reportError } = useGeneration();
+  // A failure and its downloads stay until the next generation starts, also
+  // while the model or effort for that next request is being chosen.
+  const { loading, error, needsKey, generate, clearFailure, resetGeneration, reportError } = useGeneration();
   useSporeDrift(sporeLayerRef, spores, loading);
   const [analysisBundle, setAnalysisBundle] = useState<ParseBundle | null>(null);
   const [activeParseIndex, setActiveParseIndex] = useState(0);
@@ -514,7 +516,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                           onChange={(event) => {
                             setModelRoute(event.target.value);
                             setReasoningEffort('high');
-                            clearFailure();
                           }}
                           className="w-40 xl:grow bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
                         >
@@ -533,7 +534,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                           disabled={loading}
                           onChange={(event) => {
                             setReasoningEffort(event.target.value as ReasoningEffort);
-                            clearError();
                           }}
                           className="w-24 xl:grow bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
                         >

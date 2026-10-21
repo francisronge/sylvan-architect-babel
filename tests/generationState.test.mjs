@@ -101,10 +101,8 @@ test('an acceptance error still releases the loading state', async () => {
   assert.deepEqual(observed.actions, ['started', 'failed', 'finished']);
 });
 
-test('dismissal, provider selection and external restoration retain their distinct reset behavior', () => {
+test('opening saved work and external restoration retain their distinct reset behavior', () => {
   const failed = { loading: true, error: { message: 'key missing' }, needsKey: true };
-  const dismissed = generationReducer(failed, { type: 'clear-error' });
-  assert.deepEqual(dismissed, { loading: true, error: null, needsKey: true });
   assert.deepEqual(generationReducer(failed, { type: 'clear-failure' }), { loading: true, error: null, needsKey: false });
   assert.deepEqual(generationReducer(failed, { type: 'reset' }), initialGenerationState);
   const previewError = { message: 'Unable to load preview bundle: HTTP 404' };
