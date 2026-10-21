@@ -79,13 +79,13 @@ test('crossing entry and contact limits preserves outputs and previously returne
   const make = y => [{ x: 0, y, width: 10, height: 10 }];
   const first = compare(prepare, make(0), make(0));
   const snapshot = structuredClone(first);
-  for (let i = 1; i <= 64; i++) prepare(make(i), make(i));
+  for (let i = 1; i <= 256; i++) prepare(make(i), make(i));
   compare(prepare, make(0), make(0));
   assert.deepEqual(first, snapshot);
-  const large = (y, count = 200) => Array.from({ length: count }, () => ({ x: 0, y, width: 10, height: 10 }));
+  const large = (y, count = 400) => Array.from({ length: count }, () => ({ x: 0, y, width: 10, height: 10 }));
   compare(prepare, large(100), large(100));
   prepare(large(200), large(200));
   compare(prepare, large(100), large(100));
-  const oversized = compare(prepare, large(300, 257), large(300, 256));
-  assert.equal(oversized.separation, prepareWorkspaceContourPair(large(300, 257), large(300, 256)).separation);
+  const oversized = compare(prepare, large(300, 513), large(300, 512));
+  assert.equal(oversized.separation, prepareWorkspaceContourPair(large(300, 513), large(300, 512)).separation);
 });

@@ -88,7 +88,7 @@ export function createWorkspaceContourPairPreparer() {
     contacts: Uint32Array; hash: number };
   const buckets = new Map<number, Entry[]>(), recent = new Map<Entry, true>();
   const bits = new Float64Array(1), words = new Uint32Array(bits.buffer);
-  const maxEntries = 64, maxContacts = 65536, maxSnapshotValues = 131072;
+  const maxEntries = 256, maxContacts = 262144, maxSnapshotValues = 524288;
   let contactCount = 0, snapshotValues = 0;
   const fingerprint = (left: WorkspaceObstacleBuffer, right: WorkspaceObstacleBuffer) => {
     let hash = 2166136261;
