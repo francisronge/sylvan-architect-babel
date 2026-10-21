@@ -1,5 +1,4 @@
 const EDGE_PUNCTUATION_OR_SYMBOL_RE = /[\p{P}\p{S}]/u;
-export const SURFACE_TOKENIZATION_VERSION = 'unicode-word-v2';
 const EDGE_PUNCTUATION_RE = /\p{P}/u;
 const WORDLIKE_CONTENT_RE = /[\p{L}\p{N}]/u;
 const SYMBOL_CONTENT_RE = /[\p{S}\p{Co}\p{Extended_Pictographic}\u20E3]/u;

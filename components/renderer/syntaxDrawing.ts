@@ -67,7 +67,6 @@ export interface SyntaxDrawingContext {
   firstSentenceReplayDisplayToken: string;
   terminalMorphRef: { current: Map<string, { preText: string; postText: string; step: number; hideBefore: boolean }> };
   g: DrawingLayer;
-  disableRelationOverlay: boolean;
   relationRenderPlan: RelationRenderPlan | null;
   measureCategoryText: (text: string) => number;
   currentReplayStep: PlaybackStep | null;
@@ -92,7 +91,6 @@ export function paintSyntaxTree({
   firstSentenceReplayDisplayToken,
   terminalMorphRef,
   g,
-  disableRelationOverlay,
   relationRenderPlan,
   measureCategoryText,
   currentReplayStep,
@@ -332,11 +330,10 @@ export function paintSyntaxTree({
     .style('transition', 'opacity 280ms ease')
     .attr('d', d3.linkVertical<d3.HierarchyPointLink<SyntaxNode>, d3.HierarchyPointNode<SyntaxNode>>().x(d => d.x).y(d => d.y));
 
-  // The Lab can disable the compiled overlay. Resolved movement arrows draw
-  // here only when that overlay is not already drawing authored trajectories.
-  const planOwnsTrajectories = !disableRelationOverlay
-    && Boolean(relationRenderPlan?.frames.some((planFrame) =>
-      planFrame.items.some((planItem) => planItem.kind === 'trajectory')));
+  // Resolved movement arrows draw here only when the compiled overlay is not
+  // already drawing authored trajectories.
+  const planOwnsTrajectories = Boolean(relationRenderPlan?.frames.some((planFrame) =>
+    planFrame.items.some((planItem) => planItem.kind === 'trajectory')));
   if (movementArrows.length > 0 && !planOwnsTrajectories) {
     const defs = g.append('defs');
     defs.append('marker')

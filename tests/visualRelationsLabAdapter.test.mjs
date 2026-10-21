@@ -720,7 +720,7 @@ test('Atlas cards use only the current production contract and renderer path', a
   );
   const cardSource = await readFile(new URL('../docs/design/visual-relations-lab-cards.ts', import.meta.url), 'utf8');
 
-  assert.match(source, /disableRelationOverlay=\{false\}/u);
+  assert.match(source, /<TreeVisualizer\b/u, 'the Atlas renders through the production TreeVisualizer');
   for (const text of [source, cardSource]) assert.doesNotMatch(
     text,
     /\b(?:markLensNodes|renderTrajectoryRelation|hydrateLabLensFromCurrentContract)\b/u,

@@ -49,7 +49,6 @@ import { createTreeMeasurements, labelBelongsToNode } from './treeMeasurements.t
 import { appendOverlayMarker, hasTreeGapNotation } from './treeNotation.ts';
 
 interface RelationSceneContext {
-  disableRelationOverlay: boolean;
   relationRenderPlan: RelationRenderPlan | null;
   usesDerivationFrames: boolean;
   activeDerivationFrameIndex: number;
@@ -68,14 +67,12 @@ interface RelationSceneContext {
   animated: boolean;
   acceptedCompositionIsTreeFirst: boolean;
   containerWidth: number;
-  focusedRelationMoment: { stageIndex: number; relationIndex: number } | null;
   cameraRuntime: { applying: boolean; cancel: (() => void) | undefined; deferred: d3.ZoomTransform | null };
   uiBounds: { top: number; right: number; bottom: number; headerBottom: number; panelTop: number };
   containerRef: { current: HTMLDivElement | null };
   TARGET_EMERALD: string;
 }
 export function paintRelationScene({
-  disableRelationOverlay,
   relationRenderPlan,
   usesDerivationFrames,
   activeDerivationFrameIndex,
@@ -94,7 +91,6 @@ export function paintRelationScene({
   animated,
   acceptedCompositionIsTreeFirst,
   containerWidth,
-  focusedRelationMoment,
   cameraRuntime,
   uiBounds,
   containerRef,
@@ -112,8 +108,7 @@ export function paintRelationScene({
   }> = [];
   const identityTerminalOwners = new Map<SVGElement, RelationPlanItem>();
   if (
-    !disableRelationOverlay
-    && relationRenderPlan
+    relationRenderPlan
     && usesDerivationFrames
     && Number.isInteger(activeDerivationFrameIndex)
     && activeDerivationFrameIndex >= 0
@@ -390,11 +385,11 @@ export function paintRelationScene({
 
     const relationEmphasisForItem = (
       item: RelationPlanItem
-    ): RelationEmphasis => focusedRelationMoment
+    ): RelationEmphasis => activeRelationMoment
         ? (planItemOwnsRelationMoment(
           item,
-          focusedRelationMoment.stageIndex,
-          focusedRelationMoment.relationIndex
+          activeRelationMoment.stageIndex,
+          activeRelationMoment.relationIndex
         ) ? 'active' : 'quiet')
         : null;
     const {
@@ -648,7 +643,7 @@ export function paintRelationScene({
       acceptedRootLayerBeforeNodes,
       operatorVariableBindingLayers,
       operatorVariableScopeItems,
-      focusedRelationMoment,
+      activeRelationMoment,
       operatorVariableSharedPathLayers,
       relationEmphasisForItem,
       measuredTreeLabelRectNow,

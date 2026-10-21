@@ -22,7 +22,7 @@ function render(label, x = 400) {
     traceDisplayRelationLinks: [], traceDisplayFrameIndex: 0, usesDerivationFrames: false,
     activeDerivationArrowLinks: [], terminalMorphRef: { current: new Map() },
     firstSentenceReplayToken: '', firstSentenceReplayDisplayToken: '',
-    disableRelationOverlay: false, relationRenderPlan: null,
+    relationRenderPlan: null,
     measureCategoryText: text => [...text].length * 25, currentReplayStep: null,
     pendingPhraseFrontingSourceNodeIds: new Set(), getReplayTokenIndex: () => undefined,
     hasDerivationFrames: false

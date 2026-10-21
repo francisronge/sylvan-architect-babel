@@ -120,8 +120,6 @@ export const splitAntecedenceLinkPath = (
   ].join(' ');
 };
 
-export const ELBOW_ENDPOINT_RADIUS = 9;
-
 /** Keep the index beside its label unless the binding path uses that side.
  * The cubic's y coordinates stay between its endpoints, so the upper index
  * clears above that interval and the lower index clears below. Glyph bounds

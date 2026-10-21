@@ -124,15 +124,6 @@ const drawSavedPlaque = (primitive, item, items, layout, nodes, played, stageInd
   };
   createPlaqueDrawing(dependencies).drawPlaque(primitive, item, host, null);
   queued.forEach(draw => draw());
-  if (primitive.plaqueStyle === 'feature') {
-    const before = svgSnapshot(root);
-    const { refineFeaturePlaques: refine } = createPlaqueRefinements({
-      g: host,
-      measuredTerminalSubtreesRect: () => { throw Error('Accepted plaque must not be repositioned from screen measurements'); }
-    });
-    refine();
-    assert.deepEqual(svgSnapshot(root), before, 'deferred refinement must not move an accepted plaque');
-  }
   if (primitive.plaqueStyle === 'realization') {
     const { renderPfRealizationPlate: painter } = createPlaqueRefinements({
       svg: select(new Element('svg')),

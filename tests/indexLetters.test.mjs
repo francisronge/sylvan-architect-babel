@@ -109,7 +109,7 @@ function paint({ items, primitives, letterPlan }, emphasis = () => null) {
   };
   const drawing = createBindingDrawing({
     activeDerivationFrameIndex: 0, overlay: select(root), frameItems: items, g: select(root),
-    operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], focusedRelationMoment: null,
+    operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], activeRelationMoment: null,
     operatorVariableBindingLayers: new Map(), operatorVariableSharedPathLayers: new Map(), coindexRelationLayers: new Map(),
     acceptedRootLayerBeforeNodes: layer, acceptedRootLayerAfterNodes: layer, relationLayerKey: item => JSON.stringify(refs(item)),
     relationEmphasisForItem: emphasis, decorateRelationElement: (element, item) => decorations.set(element, item), TARGET_EMERALD: '#34d399',
@@ -220,7 +220,7 @@ test('shared letters dim once: active ones paint at 1 and quiet ones at the shar
   const root = new Element('g'), g = select(root), overlay = g.append('g');
   const layers = createRelationLayers({ activeDerivationFrameIndex: 2, relationLayerKey, g, decorateRelationElement, overlay });
   const drawing = createBindingDrawing({ ...layers, activeDerivationFrameIndex: 2, overlay, frameItems: items, g,
-    operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], focusedRelationMoment: { stageIndex: 2, relationIndex: 0 },
+    operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], activeRelationMoment: { stageIndex: 2, relationIndex: 0 },
     relationEmphasisForItem: emphasis, decorateRelationElement, relationLayerKey, resolveOverlayAnchor: () => undefined,
     terminalAmbiguities: new Map(), identityTerminalOwners: new Map(), identityForestLightFamilies: [], markIdentityLensOccurrences() {},
     TARGET_EMERALD: '#34d399', indexLetterPlan: letterPlan });
@@ -271,7 +271,7 @@ function paintMoment(replay, stageIndex, relationIndex) {
   const overlay = g.append('g');
   const drawing = createBindingDrawing({ ...createRelationLayers({ activeDerivationFrameIndex: stageIndex, relationLayerKey, g,
     decorateRelationElement, overlay }), activeDerivationFrameIndex: stageIndex, overlay, frameItems: items, g,
-  operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], focusedRelationMoment: { stageIndex, relationIndex },
+  operatorVariableScopeRankByItem: new Map(), operatorVariableScopeItems: [], activeRelationMoment: { stageIndex, relationIndex },
   relationEmphasisForItem: emphasis, decorateRelationElement, relationLayerKey, resolveOverlayAnchor: resolve, terminalAmbiguities: new Map(),
   identityTerminalOwners: new Map(), identityForestLightFamilies: [], markIdentityLensOccurrences() {}, TARGET_EMERALD: '#34d399',
   indexLetterPlan: planIndexLetters(primitives, items, { ...indexLetterLabels(g, resolve), emphasisRank: item => emphasis(item) === 'active' ? 2 : 0 }) });

@@ -5,6 +5,7 @@ import { parseArgs } from 'node:util';
 import { createHash } from 'node:crypto';
 import { openCaptureSession } from './browserSession.mjs';
 import { waitForDecodedImages } from './captureReadiness.mjs';
+import { escapeHtml } from './escapeHtml.mjs';
 
 const { values } = parseArgs({ options: {
   'render-dir': { type: 'string' }, out: { type: 'string' }, browser: { type: 'string' },
@@ -31,13 +32,6 @@ const inputs = Array.from({ length: replayCount }, (_, index) => {
   const file = path.join(renderDir, `replay-${String(index).padStart(2, '0')}.png`);
   return { file, sha256: createHash('sha256').update(fs.readFileSync(file)).digest('hex') };
 });
-
-const escapeHtml = (value) =>
-  String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 
 const pad = (value) => String(value).padStart(2, '0');
 const fileUrl = (filePath) => pathToFileURL(filePath).href;

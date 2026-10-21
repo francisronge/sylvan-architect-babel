@@ -235,7 +235,6 @@ function RendererCard({ item }: { item: LabCaseView }) {
           animated
           derivationStages={item.rendererStages}
           sentence={item.sentence}
-          disableRelationOverlay={false}
         />
       </div>
     </article>
