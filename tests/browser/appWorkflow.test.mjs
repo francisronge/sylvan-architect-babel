@@ -483,6 +483,18 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         await page.getByRole('button', { name: 'Copy Canopy', exact: true }).waitFor();
         await page.getByTitle('Open Tree Bank', { exact: true }).click();
         await page.getByRole('button', { name: 'Delete', exact: true }).click();
+        // The confirmation is modal: focus starts on Cancel, Escape cancels, and
+        // focus returns to the Delete control that opened it.
+        const confirmation = page.getByRole('dialog', { name: 'Delete saved tree?' });
+        await confirmation.waitFor();
+        const focusedText = () => page.evaluate(() => document.activeElement?.textContent?.trim());
+        assert.equal(await focusedText(), 'Cancel');
+        await page.keyboard.press('Escape');
+        await confirmation.waitFor({ state: 'detached' });
+        assert.equal(await focusedText(), 'Delete');
+        assert.deepEqual(await snapshot(), stored, 'cancelling deletes nothing');
+        await page.getByRole('button', { name: 'Delete', exact: true }).click();
+        await confirmation.waitFor();
         await page.evaluate(() => { window.abortTreeBankOperation = { method: 'delete', store: 'savedWorks' }; });
         await page.getByRole('button', { name: 'Delete Tree', exact: true }).click();
         await page.getByText('Unable to delete this saved tree.', { exact: false }).waitFor();
