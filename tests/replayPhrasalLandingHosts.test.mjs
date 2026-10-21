@@ -1,17 +1,11 @@
 import assert from 'node:assert/strict';
-import { rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
-import { build } from 'esbuild';
 
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
 import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
 import { registeredTrajectoryDisplayKind } from '../replay/relations/movementIdentities.ts';
-
-const repo = fileURLToPath(new URL('..', import.meta.url));
+import { rawCases } from '../docs/design/visual-relations-lab-cards.ts';
 
 const collectNodes = (node, nodes = []) => {
   if (!node) return nodes;
@@ -39,27 +33,7 @@ const findParentNodeId = (forest, nodeId) => {
   return '';
 };
 
-const loadAtlasCases = async (t) => {
-  const outfile = join(
-    tmpdir(),
-    `babel-visual-relations-replay-corpus-${process.pid}-${Date.now()}.mjs`
-  );
-  t.after(() => rm(outfile, { force: true }));
-  await build({
-    entryPoints: [`${repo}/docs/design/visual-relations-current-lab.tsx`],
-    outfile,
-    bundle: true,
-    format: 'esm',
-    platform: 'node',
-    jsx: 'automatic',
-    define: { 'process.env.NODE_ENV': '"production"' },
-    logLevel: 'silent'
-  });
-  return (await import(`${pathToFileURL(outfile).href}?v=${Date.now()}`)).rawCases;
-};
-
-test('every Orchard phrasal movement creates a new landing host only in its relation moment', async (t) => {
-  const rawCases = await loadAtlasCases(t);
+test('every Orchard phrasal movement creates a new landing host only in its relation moment', () => {
   const findings = [];
   let checkedRelationMoments = 0;
 

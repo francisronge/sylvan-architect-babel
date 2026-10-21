@@ -1,6 +1,8 @@
 {
+  "description": "Theta-grid and pair-merge recovery from exact participants (qualifiedAssignmentContext).",
   "cases": [
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run construction-contract-20261008/sol-irish-vso, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-irish-vso (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-irish-vso).",
       "id": "sol-irish-vso-0-0-0",
       "stage": {
         "relations": [
@@ -127,6 +129,7 @@
       "expectedFamily": "theta-grid"
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run construction-contract-20261008/sol-irish-vso, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-irish-vso (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-irish-vso).",
       "id": "sol-irish-vso-0-1-0",
       "stage": {
         "relations": [
@@ -278,6 +281,7 @@
       "expectedFamily": "theta-grid"
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run construction-contract-20261008/sol-portuguese-inflected-infinitive, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-portuguese-inflected-infinitive (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-portuguese-inflected-infinitive).",
       "id": "sol-portuguese-inflected-infinitive-0-1-1",
       "stage": {
         "relations": [
@@ -437,6 +441,7 @@
       "expectedFamily": "pair-merge"
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run construction-contract-20261008/sol-irish-vso, analysis 2. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-irish-vso (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-irish-vso).",
       "id": "sol-irish-vso-1-2-1",
       "stage": {
         "relations": [
@@ -601,6 +606,7 @@
       "expectedFamily": "pair-merge"
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run construction-contract-20261008/sol-indonesian-applicative, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-indonesian-applicative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-indonesian-applicative).",
       "id": "sol-indonesian-applicative-0-4-0",
       "expectedFamily": "theta-grid",
       "stage": {
@@ -828,6 +834,7 @@
       "relationIndex": 1
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run construction-contract-20261008/sol-indonesian-applicative, analysis 2. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-indonesian-applicative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/construction-contract-20261008/sol-indonesian-applicative).",
       "id": "sol-indonesian-applicative-1-4-0",
       "expectedFamily": "theta-grid",
       "stage": {

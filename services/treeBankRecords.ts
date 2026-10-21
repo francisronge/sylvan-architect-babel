@@ -51,7 +51,7 @@ export interface TreeBankSaveInput {
   treeSnapshotDataUrl?: string;
 }
 
-const fail = (message: string): never => { throw new TypeError(message); };
+const fail: (message: string) => never = (message) => { throw new TypeError(message); };
 // JSON arrays must be dense; the shared copier intentionally preserves array shape.
 const copySnapshot = (value: unknown): any => {
   const copy = copyJsonData(value);

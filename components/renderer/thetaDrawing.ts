@@ -122,7 +122,7 @@ export function createThetaDrawing({
         });
         if (roleEntries.length === 0) return;
         const gridLayout = withPlaqueTextMeasure(svg, measureText =>
-          prepareThetaGridTextLayout(thetaGridPredicateLabel(predicateAnchor), grid.thetaRoles, { measureText }));
+          prepareThetaGridTextLayout(thetaGridPredicateLabel(predicateAnchor), grid.thetaRoles!, { measureText }));
         const layer = g.append('g')
           .attr('class', 'babel-theta-relation-layer')
           .attr('data-vr-stage-index', item.relationRef.stageIndex);

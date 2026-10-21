@@ -33,7 +33,7 @@ export const neutralGeometry = {
       // The neutral role belongs outside the existing label's edge outline.
       // Reserve that outline without moving the syntax or enlarging the box.
       const labelRect = outlinedLabels.has(mark.witness) ? fongEdgeOutlineRect(measuredLabel) : measuredLabel;
-      const text = spaceAuthoredName(mark.role) + (mark.position === null ? '' : `[${mark.position}]`);
+      const text = spaceAuthoredName(mark.role, { snakeCase: true }) + (mark.position === null ? '' : `[${mark.position}]`);
       const measure = options.plaqueTextLayout?.measureText ?? fallbackPlaqueTextMeasure;
       const metrics = measure(text, FALLBACK_ROLE_STYLE);
       const textHeight = options.plaqueTextLayout?.measureText

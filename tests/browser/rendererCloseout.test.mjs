@@ -9,6 +9,7 @@ import { prepareReplay } from '../../replay/prepareReplay.ts';
 import { closeoutPayload, closeoutSentence } from '../helpers/rendererCloseoutFixture.mjs';
 import { startBrowserTestServer } from '../helpers/browserTestServer.mjs';
 import { readTreeBankSnapshot } from '../helpers/browserTreeBank.mjs';
+import { recordVideo } from '../helpers/browserVideo.mjs';
 
 test('the app preserves multiple roots, revised plaques and malformed relation evidence through save/reopen', async () => {
   const bundle = normalizeParseBundle(closeoutPayload(), 'xbar', closeoutSentence, 'gpt', true);
@@ -25,7 +26,7 @@ test('the app preserves multiple roots, revised plaques and malformed relation e
     const report = [];
     for (const width of [1600, 390]) {
       const context = await browser.newContext({ viewport: { width, height: 1000 },
-        ...(evidence && width === 1600 ? { recordVideo: { dir: evidence, size: { width, height: 1000 } } } : {}) });
+        ...(width === 1600 ? recordVideo(evidence, { width, height: 1000 }) : {}) });
       try {
         const page = await context.newPage(), errors = [];
         page.on('pageerror', e => errors.push(String(e)));

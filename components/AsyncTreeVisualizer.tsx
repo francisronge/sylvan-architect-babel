@@ -36,6 +36,7 @@ const PreparedTreeVisualizer: React.FC<AsyncTreeVisualizerProps> = (props) => {
 };
 
 const AsyncTreeVisualizer: React.FC<AsyncTreeVisualizerProps> = (props) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- each new input makes a new key, which resets the boundary.
   const resetKey = useMemo(() => ({}), [props.data, props.derivationStages, props.sentence, props.inputTokens, props.animated]);
   return <ViewErrorBoundary resetKey={resetKey}><PreparedTreeVisualizer {...props} /></ViewErrorBoundary>;
 };

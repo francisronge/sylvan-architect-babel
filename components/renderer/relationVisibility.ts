@@ -1,8 +1,9 @@
-import type { BoundPrimitive, PlanPositionProvider } from '../../replay/relations/boundGeometry.ts';
+import type { BoundPrimitive } from '../../replay/relations/boundGeometry.ts';
 import { planItemDependencyNodeIds, type RelationPlanItem } from '../../replay/relations/renderPlan.ts';
 
 /** Specialized marks require all witnesses; neutral fallback participation is independent. */
-export function createPrimitiveVisibility(frameItems: readonly RelationPlanItem[], resolveOverlayAnchor: PlanPositionProvider) {
+export function createPrimitiveVisibility(frameItems: readonly RelationPlanItem[],
+  resolveOverlayAnchor: (nodeId: string) => object | null | undefined) {
   const witnessVisibilityCache = new Map<number, boolean>();
   const itemWitnessesVisible = (planItemIndex: number): boolean => {
     const cached = witnessVisibilityCache.get(planItemIndex);

@@ -1,5 +1,6 @@
 [
   {
+    "description": "Recovered movement draws a real SVG arrow from the authored lower occurrence to the landing; endpoints stay attached through later movement, seeking, zoom and Fit (movementEndpointDrawing, browser movementEndpointAttachment, reviewCompatibility).",
     "id": "sol-indonesian-applicative/0",
     "source": {
       "attempt": "sol-indonesian-applicative",
@@ -996,6 +997,7 @@
     ]
   },
   {
+    "description": "Recovered movement draws a real SVG arrow from the authored lower occurrence to the landing; endpoints stay attached through later movement, seeking, zoom and Fit (movementEndpointDrawing, browser movementEndpointAttachment, reviewCompatibility).",
     "id": "astra-romanian-dative/0",
     "source": {
       "attempt": "astra-romanian-dative",
@@ -1920,6 +1922,7 @@
     ]
   },
   {
+    "description": "Recovered movement draws a real SVG arrow from the authored lower occurrence to the landing; endpoints stay attached through later movement, seeking, zoom and Fit (movementEndpointDrawing, browser movementEndpointAttachment, reviewCompatibility).",
     "id": "astra-swedish-passive/0",
     "source": {
       "attempt": "holdout2-swedish-recovered-run",

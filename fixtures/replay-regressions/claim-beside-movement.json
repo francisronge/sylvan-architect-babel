@@ -1,0 +1,851 @@
+{
+  "description": "The analysis’s stages 4 and 5; stages 1–3 are trimmed, and the second stage here still shows the defect. That stage raises the committee from the embedded Spec-IP to the matrix Spec-IP: the moved phrase keeps the id aCommittee, its lower occurrence is the new aCommitteeTrace, and the subject movement is recognized. A finite subject licensing claim names aCommittee in both its prior and current anchors, with aFiniteI and aMatrixIP. Replay took the movement’s displacement of aCommittee for that claim’s rewrite, so the claim owned the matrix clause it names: seems, finite I, I′ and the root CP lost their construction steps and appeared together at its moment, the movement landed under a matrix IP whose I′ was still hidden, and the raising-selection claim, authored first, played before seems existed. A claim’s displacement is now judged outside the stage’s movements, so this claim owns nothing: construction builds the matrix clause, and the movement lands beside its I′.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (v3), commit bcf1b56, 19 October 2026 (fourth night batch, 04-en-raising-control-mix, analysis 1 of 2; analysis 2 repeats the shape in its stage 6). Tokens are the model’s own final words.",
+  "sentence": "The committee seems to have persuaded the director to try to appear to be satisfied with the proposal.",
+  "framework": "xbar",
+  "contract": "character-spellout-v3",
+  "inputTokens": [
+    "The",
+    "committee",
+    "seems",
+    "to",
+    "have",
+    "persuaded",
+    "the",
+    "director",
+    "to",
+    "try",
+    "to",
+    "appear",
+    "to",
+    "be",
+    "satisfied",
+    "with",
+    "the",
+    "proposal"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complement": "aTryCP",
+            "object": "aDirector",
+            "predicate": "aPersuaded",
+            "subject": "aCommittee"
+          },
+          "relation": "Persuade argument licensing",
+          "values": {
+            "complementCategory": "CP",
+            "complementRole": "propositional content",
+            "objectRole": "persuadee",
+            "subjectRole": "Agent"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "aPersuaded",
+            "object": "aDirector"
+          },
+          "relation": "Object government and Case",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "controlPredicate": "aPersuaded",
+            "controlledPro": "aProTry",
+            "controller": "aDirector"
+          },
+          "relation": "Obligatory object control",
+          "values": {
+            "dependency": "control, not movement"
+          }
+        },
+        {
+          "anchors": {
+            "auxiliary": "aHave",
+            "complement": "aPersuadeVP",
+            "participle": "aPersuaded"
+          },
+          "relation": "Perfect auxiliary selection",
+          "values": {
+            "aspect": "perfect",
+            "selectedForm": "past participle"
+          }
+        },
+        {
+          "anchors": {
+            "infinitivalInflection": "aPerfectTo",
+            "subject": "aCommittee"
+          },
+          "relation": "Unvalued subject Case",
+          "values": {
+            "case": "not assigned in this infinitival clause"
+          }
+        }
+      ],
+      "stageRecord": "Persuade projects its nominal object and infinitival CP as two lexically licensed complements of V′. It assigns the committee its external Agent role in Spec-IP, the director its object role, and the try CP its propositional role. Persuade governs the director and assigns it accusative Case. The director, rather than the committee, obligatorily controls the subject PRO of try; together with the existing subject-control dependency, this makes the director the understood trier and the understood subject of apparent satisfaction. Perfect have selects the participial VP headed by persuaded, and infinitival to heads the containing IP. The committee has its theta-role here but cannot receive nominative from this infinitival I; its Case requirement remains pending.",
+      "statement": "Build the perfect persuasion clause and establish object control.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "aCommitteeD",
+                  "label": "D",
+                  "word": "The"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "aCommitteeN",
+                      "label": "N",
+                      "word": "committee"
+                    }
+                  ],
+                  "id": "aCommitteeNbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "aCommittee",
+              "label": "NP",
+              "lineageId": "aCommitteeChain"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "aPerfectTo",
+                  "label": "I (infinitival)",
+                  "word": "to"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "aHave",
+                          "label": "V (perfect auxiliary)",
+                          "word": "have"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "aPersuaded",
+                                  "label": "V (past participle)",
+                                  "word": "persuaded"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "aDirectorD",
+                                      "label": "D",
+                                      "word": "the"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "aDirectorN",
+                                          "label": "N",
+                                          "word": "director"
+                                        }
+                                      ],
+                                      "id": "aDirectorNbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "aDirector",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "aTryC",
+                                      "label": "C (null)",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "aProTry",
+                                          "label": "NP (PRO)",
+                                          "lineageId": "aTryingSubject",
+                                          "silent": true,
+                                          "word": "PRO"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "aTryTo",
+                                              "label": "I (infinitival)",
+                                              "word": "to"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "aTry",
+                                                      "label": "V (subject control)",
+                                                      "word": "try"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "aAppearC",
+                                                          "label": "C (null)",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "aProAppear",
+                                                              "label": "NP (PRO)",
+                                                              "lineageId": "aSatisfactionSubject",
+                                                              "silent": true,
+                                                              "word": "PRO"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "aAppearTo",
+                                                                  "label": "I (infinitival)",
+                                                                  "word": "to"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "aAppear",
+                                                                          "label": "V (raising)",
+                                                                          "word": "appear"
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "aBeTrace",
+                                                                              "label": "NP (A-trace)",
+                                                                              "lineageId": "aSatisfactionSubject",
+                                                                              "silent": true
+                                                                            },
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "aBeTo",
+                                                                                  "label": "I (infinitival)",
+                                                                                  "word": "to"
+                                                                                },
+                                                                                {
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "children": [],
+                                                                                          "id": "aBe",
+                                                                                          "label": "V (copula)",
+                                                                                          "word": "be"
+                                                                                        },
+                                                                                        {
+                                                                                          "children": [
+                                                                                            {
+                                                                                              "children": [
+                                                                                                {
+                                                                                                  "children": [],
+                                                                                                  "id": "aSatisfied",
+                                                                                                  "label": "A",
+                                                                                                  "word": "satisfied"
+                                                                                                },
+                                                                                                {
+                                                                                                  "children": [
+                                                                                                    {
+                                                                                                      "children": [
+                                                                                                        {
+                                                                                                          "children": [],
+                                                                                                          "id": "aWith",
+                                                                                                          "label": "P",
+                                                                                                          "word": "with"
+                                                                                                        },
+                                                                                                        {
+                                                                                                          "children": [
+                                                                                                            {
+                                                                                                              "children": [],
+                                                                                                              "id": "aProposalD",
+                                                                                                              "label": "D",
+                                                                                                              "word": "the"
+                                                                                                            },
+                                                                                                            {
+                                                                                                              "children": [
+                                                                                                                {
+                                                                                                                  "children": [],
+                                                                                                                  "id": "aProposalN",
+                                                                                                                  "label": "N",
+                                                                                                                  "word": "proposal"
+                                                                                                                }
+                                                                                                              ],
+                                                                                                              "id": "aProposalNbar",
+                                                                                                              "label": "N′"
+                                                                                                            }
+                                                                                                          ],
+                                                                                                          "id": "aProposal",
+                                                                                                          "label": "NP"
+                                                                                                        }
+                                                                                                      ],
+                                                                                                      "id": "aPbar",
+                                                                                                      "label": "P′"
+                                                                                                    }
+                                                                                                  ],
+                                                                                                  "id": "aPP",
+                                                                                                  "label": "PP"
+                                                                                                }
+                                                                                              ],
+                                                                                              "id": "aAbar",
+                                                                                              "label": "A′"
+                                                                                            }
+                                                                                          ],
+                                                                                          "id": "aAP",
+                                                                                          "label": "AP"
+                                                                                        }
+                                                                                      ],
+                                                                                      "id": "aBeVbar",
+                                                                                      "label": "V′"
+                                                                                    }
+                                                                                  ],
+                                                                                  "id": "aBeVP",
+                                                                                  "label": "VP"
+                                                                                }
+                                                                              ],
+                                                                              "id": "aBeIbar",
+                                                                              "label": "I′"
+                                                                            }
+                                                                          ],
+                                                                          "id": "aBeIP",
+                                                                          "label": "IP"
+                                                                        }
+                                                                      ],
+                                                                      "id": "aAppearVbar",
+                                                                      "label": "V′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "aAppearVP",
+                                                                  "label": "VP"
+                                                                }
+                                                              ],
+                                                              "id": "aAppearIbar",
+                                                              "label": "I′"
+                                                            }
+                                                          ],
+                                                          "id": "aAppearIP",
+                                                          "label": "IP"
+                                                        }
+                                                      ],
+                                                      "id": "aAppearCP",
+                                                      "label": "CP"
+                                                    }
+                                                  ],
+                                                  "id": "aTryVbar",
+                                                  "label": "V′"
+                                                }
+                                              ],
+                                              "id": "aTryVP",
+                                              "label": "VP"
+                                            }
+                                          ],
+                                          "id": "aTryIbar",
+                                          "label": "I′"
+                                        }
+                                      ],
+                                      "id": "aTryIP",
+                                      "label": "IP"
+                                    }
+                                  ],
+                                  "id": "aTryCP",
+                                  "label": "CP"
+                                }
+                              ],
+                              "id": "aPersuadeVbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "aPersuadeVP",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "aHaveVbar",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "aHaveVP",
+                  "label": "VP"
+                }
+              ],
+              "id": "aPerfectIbar",
+              "label": "I′"
+            }
+          ],
+          "id": "aPerfectIP",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complement": "aPerfectIP",
+            "predicate": "aSeems"
+          },
+          "relation": "Raising predicate selection",
+          "values": {
+            "complementCategory": "IP",
+            "externalThetaRole": "none"
+          }
+        },
+        {
+          "anchors": {
+            "head": "aCommittee",
+            "raisingPredicate": "aSeems",
+            "sourceTrace": "aCommitteeTrace",
+            "thetaPredicate": "aPersuaded"
+          },
+          "priorAnchors": {
+            "source": "aCommittee",
+            "sourceClause": "aPerfectIP"
+          },
+          "relation": "Subject A-movement",
+          "values": {
+            "chainThetaRole": "Agent of persuade",
+            "movement": "embedded Spec-IP to matrix Spec-IP"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "aFiniteI",
+            "subject": "aCommittee",
+            "subjectPosition": "aMatrixIP"
+          },
+          "priorAnchors": {
+            "nonCaseAssigningInflection": "aPerfectTo",
+            "previouslyCaselessSubject": "aCommittee"
+          },
+          "relation": "Finite subject licensing",
+          "values": {
+            "case": "nominative",
+            "subjectRequirement": "satisfied"
+          }
+        },
+        {
+          "anchors": {
+            "inflection": "aFiniteI",
+            "subject": "aCommittee",
+            "verb": "aSeems"
+          },
+          "relation": "Finite agreement and lexical inflection",
+          "values": {
+            "agreement": "third-person singular",
+            "tense": "present",
+            "verbalForm": "seems"
+          }
+        }
+      ],
+      "stageRecord": "Seem selects the previously constructed infinitival IP directly and assigns no external theta-role. The committee moves from that IP's subject position to matrix Spec-IP, leaving an A-trace. The resulting chain receives its sole theta-role from persuade at the lower position. Finite matrix I assigns nominative to the raised NP, resolving the previously pending Case requirement and satisfying the matrix subject requirement. Matrix agreement is third-person singular, matching committee and the lexical finite form seems. This analysis uses abstract finite I with inflection already realized on the lexical verb; it does not posit V-to-I movement. A null declarative C completes the root CP. The two raising dependencies are thus distinct from the two control dependencies: the committee raises across seem, while the PRO interpreted as the director raises across appear.",
+      "statement": "Complete the sentence by raising the committee to the finite matrix subject position.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "aRootC",
+              "label": "C (declarative, null)",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "aCommitteeD",
+                      "label": "D",
+                      "word": "The"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "aCommitteeN",
+                          "label": "N",
+                          "word": "committee"
+                        }
+                      ],
+                      "id": "aCommitteeNbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "aCommittee",
+                  "label": "NP",
+                  "lineageId": "aCommitteeChain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "aFiniteI",
+                      "label": "I (finite, present, third-person singular)",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "aSeems",
+                              "label": "V (raising, finite)",
+                              "word": "seems"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "aCommitteeTrace",
+                                  "label": "NP (A-trace)",
+                                  "lineageId": "aCommitteeChain",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "aPerfectTo",
+                                      "label": "I (infinitival)",
+                                      "word": "to"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "aHave",
+                                              "label": "V (perfect auxiliary)",
+                                              "word": "have"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "aPersuaded",
+                                                      "label": "V (past participle)",
+                                                      "word": "persuaded"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "aDirectorD",
+                                                          "label": "D",
+                                                          "word": "the"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "aDirectorN",
+                                                              "label": "N",
+                                                              "word": "director"
+                                                            }
+                                                          ],
+                                                          "id": "aDirectorNbar",
+                                                          "label": "N′"
+                                                        }
+                                                      ],
+                                                      "id": "aDirector",
+                                                      "label": "NP"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "aTryC",
+                                                          "label": "C (null)",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "aProTry",
+                                                              "label": "NP (PRO)",
+                                                              "lineageId": "aTryingSubject",
+                                                              "silent": true,
+                                                              "word": "PRO"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "aTryTo",
+                                                                  "label": "I (infinitival)",
+                                                                  "word": "to"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "aTry",
+                                                                          "label": "V (subject control)",
+                                                                          "word": "try"
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "aAppearC",
+                                                                              "label": "C (null)",
+                                                                              "silent": true
+                                                                            },
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "aProAppear",
+                                                                                  "label": "NP (PRO)",
+                                                                                  "lineageId": "aSatisfactionSubject",
+                                                                                  "silent": true,
+                                                                                  "word": "PRO"
+                                                                                },
+                                                                                {
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "children": [],
+                                                                                      "id": "aAppearTo",
+                                                                                      "label": "I (infinitival)",
+                                                                                      "word": "to"
+                                                                                    },
+                                                                                    {
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "children": [
+                                                                                            {
+                                                                                              "children": [],
+                                                                                              "id": "aAppear",
+                                                                                              "label": "V (raising)",
+                                                                                              "word": "appear"
+                                                                                            },
+                                                                                            {
+                                                                                              "children": [
+                                                                                                {
+                                                                                                  "children": [],
+                                                                                                  "id": "aBeTrace",
+                                                                                                  "label": "NP (A-trace)",
+                                                                                                  "lineageId": "aSatisfactionSubject",
+                                                                                                  "silent": true
+                                                                                                },
+                                                                                                {
+                                                                                                  "children": [
+                                                                                                    {
+                                                                                                      "children": [],
+                                                                                                      "id": "aBeTo",
+                                                                                                      "label": "I (infinitival)",
+                                                                                                      "word": "to"
+                                                                                                    },
+                                                                                                    {
+                                                                                                      "children": [
+                                                                                                        {
+                                                                                                          "children": [
+                                                                                                            {
+                                                                                                              "children": [],
+                                                                                                              "id": "aBe",
+                                                                                                              "label": "V (copula)",
+                                                                                                              "word": "be"
+                                                                                                            },
+                                                                                                            {
+                                                                                                              "children": [
+                                                                                                                {
+                                                                                                                  "children": [
+                                                                                                                    {
+                                                                                                                      "children": [],
+                                                                                                                      "id": "aSatisfied",
+                                                                                                                      "label": "A",
+                                                                                                                      "word": "satisfied"
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                      "children": [
+                                                                                                                        {
+                                                                                                                          "children": [
+                                                                                                                            {
+                                                                                                                              "children": [],
+                                                                                                                              "id": "aWith",
+                                                                                                                              "label": "P",
+                                                                                                                              "word": "with"
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                              "children": [
+                                                                                                                                {
+                                                                                                                                  "children": [],
+                                                                                                                                  "id": "aProposalD",
+                                                                                                                                  "label": "D",
+                                                                                                                                  "word": "the"
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                  "children": [
+                                                                                                                                    {
+                                                                                                                                      "children": [],
+                                                                                                                                      "id": "aProposalN",
+                                                                                                                                      "label": "N",
+                                                                                                                                      "word": "proposal"
+                                                                                                                                    }
+                                                                                                                                  ],
+                                                                                                                                  "id": "aProposalNbar",
+                                                                                                                                  "label": "N′"
+                                                                                                                                }
+                                                                                                                              ],
+                                                                                                                              "id": "aProposal",
+                                                                                                                              "label": "NP"
+                                                                                                                            }
+                                                                                                                          ],
+                                                                                                                          "id": "aPbar",
+                                                                                                                          "label": "P′"
+                                                                                                                        }
+                                                                                                                      ],
+                                                                                                                      "id": "aPP",
+                                                                                                                      "label": "PP"
+                                                                                                                    }
+                                                                                                                  ],
+                                                                                                                  "id": "aAbar",
+                                                                                                                  "label": "A′"
+                                                                                                                }
+                                                                                                              ],
+                                                                                                              "id": "aAP",
+                                                                                                              "label": "AP"
+                                                                                                            }
+                                                                                                          ],
+                                                                                                          "id": "aBeVbar",
+                                                                                                          "label": "V′"
+                                                                                                        }
+                                                                                                      ],
+                                                                                                      "id": "aBeVP",
+                                                                                                      "label": "VP"
+                                                                                                    }
+                                                                                                  ],
+                                                                                                  "id": "aBeIbar",
+                                                                                                  "label": "I′"
+                                                                                                }
+                                                                                              ],
+                                                                                              "id": "aBeIP",
+                                                                                              "label": "IP"
+                                                                                            }
+                                                                                          ],
+                                                                                          "id": "aAppearVbar",
+                                                                                          "label": "V′"
+                                                                                        }
+                                                                                      ],
+                                                                                      "id": "aAppearVP",
+                                                                                      "label": "VP"
+                                                                                    }
+                                                                                  ],
+                                                                                  "id": "aAppearIbar",
+                                                                                  "label": "I′"
+                                                                                }
+                                                                              ],
+                                                                              "id": "aAppearIP",
+                                                                              "label": "IP"
+                                                                            }
+                                                                          ],
+                                                                          "id": "aAppearCP",
+                                                                          "label": "CP"
+                                                                        }
+                                                                      ],
+                                                                      "id": "aTryVbar",
+                                                                      "label": "V′"
+                                                                    }
+                                                                  ],
+                                                                  "id": "aTryVP",
+                                                                  "label": "VP"
+                                                                }
+                                                              ],
+                                                              "id": "aTryIbar",
+                                                              "label": "I′"
+                                                            }
+                                                          ],
+                                                          "id": "aTryIP",
+                                                          "label": "IP"
+                                                        }
+                                                      ],
+                                                      "id": "aTryCP",
+                                                      "label": "CP"
+                                                    }
+                                                  ],
+                                                  "id": "aPersuadeVbar",
+                                                  "label": "V′"
+                                                }
+                                              ],
+                                              "id": "aPersuadeVP",
+                                              "label": "VP"
+                                            }
+                                          ],
+                                          "id": "aHaveVbar",
+                                          "label": "V′"
+                                        }
+                                      ],
+                                      "id": "aHaveVP",
+                                      "label": "VP"
+                                    }
+                                  ],
+                                  "id": "aPerfectIbar",
+                                  "label": "I′"
+                                }
+                              ],
+                              "id": "aPerfectIP",
+                              "label": "IP"
+                            }
+                          ],
+                          "id": "aSeemsVbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "aSeemsVP",
+                      "label": "VP"
+                    }
+                  ],
+                  "id": "aMatrixIbar",
+                  "label": "I′"
+                }
+              ],
+              "id": "aMatrixIP",
+              "label": "IP"
+            }
+          ],
+          "id": "aRootCP",
+          "label": "CP"
+        }
+      ]
+    }
+  ]
+}

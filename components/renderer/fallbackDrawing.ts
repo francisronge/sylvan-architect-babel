@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 import { CATEGORY_LINE_HEIGHT, categoryTextLayout } from '../../replay/categoryTextLayout.ts';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import type { BoundFallbackMark, BoundFrame, FallbackMeasurements } from '../../replay/relations/boundGeometry.ts';
-import { type BoundAnchorSetRail, type BoundPrimitive, type BoundSegment, type PlanPositionProvider } from '../../replay/relations/boundGeometry.ts';
+import { type BoundAnchorSetRail, type BoundPrimitive, type BoundSegment } from '../../replay/relations/boundGeometry.ts';
 import { anchorSetRailPaths, FALLBACK_ROLE_STYLE, FALLBACK_STROKE_WIDTHS, fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations/fallbackGeometry.ts';
 import {
   type Rect
@@ -48,9 +48,9 @@ interface FallbackLabelsContext {
   measureCategoryText: (text: string) => number;
   replayPlaqueLayout: Map<number, PlaquePlacement>;
   replayVisibleNodeIdSet: Set<string> | null;
-  playedRelationIndices: Set<number> | undefined;
+  playedRelationIndices: Set<number> | null;
   activeRelationMoment: { stageIndex: number; relationIndex: number; } | null;
-  resolveOverlayAnchor: PlanPositionProvider;
+  resolveOverlayAnchor: (nodeId: string) => object | null | undefined;
 }
 export function measureFallbackLabels({
   relationRenderPlan,

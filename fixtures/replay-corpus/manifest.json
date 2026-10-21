@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "requiredMechanisms": ["movement-wrapper", "ordinary-wrapper", "later-movement", "separate-pronunciation", "multiple-roots", "nonmovement", "tier2-persistence", "malformed-exact-claim"],
+  "requiredMechanisms": ["movement-wrapper", "ordinary-wrapper", "later-movement", "separate-pronunciation", "multiple-roots", "nonmovement", "tier2-persistence", "malformed-exact-claim", "showcase"],
   "records": [
     {
       "id": "spanish-head-and-ordinary-wrapper",
@@ -58,7 +58,8 @@
       "source": "../replay-regressions/construction-slot-continuity.json",
       "selector": "/cases/1",
       "mechanisms": ["multiple-roots", "nonmovement"],
-      "expect": {"minWorkspaceRoots": 2, "minMerges": 1}
+      "expect": {"minWorkspaceRoots": 2, "minMerges": 1},
+      "allow": {"finalCoordinates": true, "completedWidthGrowth": true, "reason": "A movement slot is sized for every occupant it paints: the source keeps its sister clearance until it moves, and its lower occurrence keeps that wider slot through the final tree. The unmeasured layout estimates the subject's ink beside its verb phrase."}
     },
     {
       "id": "retained-root-growth",
@@ -100,6 +101,280 @@
       "selector": "/cases/1",
       "mechanisms": ["malformed-exact-claim"],
       "expect": {"facets": [{"stage": 0, "facet": "judgment.verdict", "present": true}], "fallbacks": [{"stage": 0, "relationIndex": 0}]}
+    },
+    {
+      "id": "showcase-31-ar-vso-agreement",
+      "source": "../showcase/agreement-and-case.json",
+      "selector": "/cases/0",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-09-hi-light-verb",
+      "source": "../showcase/agreement-and-case.json",
+      "selector": "/cases/1",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-21-sw-object-marker",
+      "source": "../showcase/agreement-and-case.json",
+      "selector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-31-ha-focus",
+      "source": "../showcase/agreement-and-case.json",
+      "selector": "/cases/3",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-56-ka-split-ergative",
+      "source": "../showcase/agreement-and-case.json",
+      "selector": "/cases/4",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-22-zu-noun-class.r2",
+      "source": "../showcase/agreement-and-case.json",
+      "selector": "/cases/5",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-68-en-there-expletive",
+      "source": "../showcase/agreement-and-case.json",
+      "selector": "/cases/6",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-54-en-double-object",
+      "source": "../showcase/agreement-and-case.json",
+      "selector": "/cases/7",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-79-de-v2-wh",
+      "source": "../showcase/movement.json",
+      "selector": "/cases/0",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-01-en-passive-raising",
+      "source": "../showcase/movement.json",
+      "selector": "/cases/1",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-18-sv-long-v2",
+      "source": "../showcase/movement.json",
+      "selector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-18-ga-vso",
+      "source": "../showcase/movement.json",
+      "selector": "/cases/3",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-01-ja-scrambling",
+      "source": "../showcase/movement.json",
+      "selector": "/cases/4",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-38-de-scrambling.r2",
+      "source": "../showcase/movement.json",
+      "selector": "/cases/5",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-53-en-object-control",
+      "source": "../showcase/movement.json",
+      "selector": "/cases/6",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-13-en-negative-inversion",
+      "source": "../showcase/movement.json",
+      "selector": "/cases/7",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-66-en-subject-aux-inversion",
+      "source": "../showcase/movement.json",
+      "selector": "/cases/8",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-52-en-ecm",
+      "source": "../showcase/movement.json",
+      "selector": "/cases/9",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-71-ja-relative",
+      "source": "../showcase/relatives-and-clitics.json",
+      "selector": "/cases/0",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-78-sw-relative",
+      "source": "../showcase/relatives-and-clitics.json",
+      "selector": "/cases/1",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-17-el-clitic-doubling",
+      "source": "../showcase/relatives-and-clitics.json",
+      "selector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-39-fr-clitic-climbing",
+      "source": "../showcase/relatives-and-clitics.json",
+      "selector": "/cases/3",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-04-yue-sfp",
+      "source": "../showcase/relatives-and-clitics.json",
+      "selector": "/cases/4",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-76-tr-relative",
+      "source": "../showcase/relatives-and-clitics.json",
+      "selector": "/cases/5",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-60-en-scope-a1",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/0/analyses/0",
+      "contextSelector": "/cases/0",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-60-en-scope-a2",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/0/analyses/1",
+      "contextSelector": "/cases/0",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-64-en-unlike-coordination",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/1",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a1",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/0",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a2",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/1",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a3",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/2",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a4",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/3",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a5",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/4",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a6",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/5",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a7",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/6",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a8",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/7",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a9",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/8",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a10",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/9",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a11",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/10",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a12",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/11",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a13",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/12",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-37-en-ambiguous-pp-a14",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/2/analyses/13",
+      "contextSelector": "/cases/2",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-62-en-vp-ellipsis",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/3",
+      "mechanisms": ["showcase"]
+    },
+    {
+      "id": "showcase-58-en-it-cleft",
+      "source": "../showcase/scope-ellipsis-coordination.json",
+      "selector": "/cases/4",
+      "mechanisms": ["showcase"]
     }
   ]
 }

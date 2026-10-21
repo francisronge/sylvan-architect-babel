@@ -4,7 +4,7 @@ import test from 'node:test';
 import { spaceAuthoredName } from '../replay/displayText.ts';
 import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
 import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
-import { buildReplayPanelContent, buildReplaySupportLines } from '../replay/replayPanel.ts';
+import { buildRelationReplayBlocks, buildReplayPanelContent, buildReplaySupportLines } from '../replay/replayPanel.ts';
 import {
   formatOperationLabel,
   formatPlaybackOperationTitle,
@@ -159,13 +159,14 @@ test('structural operation headings do not disappear behind a differing recipe',
 });
 
 test('authored relation names preserve punctuation, casing, scripts, and whitespace', () => {
+  const spaced = { WH_percolation: 'WH percolation', HeadMove: 'Head Move' };
   for (const name of ['WH_percolation', "A'-chain / I-to-C", 'HeadMove', 'Pol:\u2212 / x_i', '\u03b8_\u1d62 \u4e3b\u8a9e', '  Wh: x_i  ', 'long relation '.repeat(30)]) {
     const record = { relation: name, anchors: { target: 'context' }, values: {} };
     const current = step({ replayKind: 'relation', operation: 'IncompleteDisplayName', replayRelationIdentity: { stageIndex: 0, relationIndex: 0 } });
     const content = buildReplayPanelContent(current, [stage([record])]);
-    assert.equal(content.heading, name === 'HeadMove' ? 'Head Move' : name);
+    assert.equal(content.heading, spaced[name] ?? name);
     assert.strictEqual(content.authoredRelation, record);
-    assert.equal(formatPlaybackOperationTitle({ ...current, operation: name }), name);
+    assert.equal(formatPlaybackOperationTitle({ ...current, operation: name }), spaced[name] ?? name);
   }
   assert.equal(formatOperationLabel('unknown_x_i'), 'unknown_x_i');
 });
@@ -259,7 +260,7 @@ test('the original record remains complete even when no rendering link exists', 
   assert.strictEqual(content.authoredRelation, record);
   assert.deepEqual(unkey(content.supportLines), [
     { label: 'missing Role', value: 'participant unavailable' }, { label: 'missing Role', value: 'participant unavailable' },
-    { label: 'earlier (previous stage)', value: 'participant unavailable' }, { label: 'literal_key', value: record.values.literal_key },
+    { label: 'earlier (previous stage)', value: 'participant unavailable' }, { label: 'literal key', value: record.values.literal_key },
     ...record.values.slots.map(value => ({ label: 'slots', value: value === '' ? '""' : value }))
   ]);
 });
@@ -320,8 +321,8 @@ for (const record of saved) {
       const original = stages[identity.stageIndex].relations[identity.relationIndex];
       const content = buildReplayPanelContent(current, stages);
       assert.strictEqual(content.authoredRelation, original);
-      assert.equal(content.heading, spaceAuthoredName(original.relation));
-      const expected = Object.entries(original.values ?? {}).flatMap(([key, value]) => { const label = spaceAuthoredName(key); return Array.isArray(value)
+      assert.equal(content.heading, spaceAuthoredName(original.relation, { snakeCase: true }));
+      const expected = Object.entries(original.values ?? {}).flatMap(([key, value]) => { const label = spaceAuthoredName(key, { snakeCase: true }); return Array.isArray(value)
         ? value.length ? value.map(item => ({ label, value: item })) : [{ label, value: 'empty list' }] : [{ label, value }]; });
       if (expected.length) assert.deepEqual(unkey(content.supportLines.slice(-expected.length)), expected);
       assert.equal(new Set(content.supportLines.map(row => row.key)).size, content.supportLines.length);
@@ -349,6 +350,39 @@ for (const record of saved) {
     assert.equal(JSON.stringify(steps), before);
   });
 }
+
+test('Replay panel spaces snake_case relation and role names like camelCase ones', () => {
+  const record = { relation: 'selection_and_internal_theta_assignment',
+    anchors: { selecting_head: 'context', thetaRecipient: 'high' }, values: { theta_role: 'Theme' } };
+  const stages = freeze([stage([record])]);
+  const current = freeze(step({ replayKind: 'relation', operation: record.relation,
+    replayRelationIdentity: { stageIndex: 0, relationIndex: 0 } }));
+  const content = buildReplayPanelContent(current, stages);
+  assert.equal(content.heading, 'selection and internal theta assignment');
+  assert.deepEqual(unkey(content.supportLines), [
+    { label: 'selecting head', value: 'x_i' },
+    { label: 'theta Recipient', value: 'Which' },
+    { label: 'theta role', value: 'Theme' }
+  ]);
+  // Display only: the authored record keeps its names.
+  assert.strictEqual(content.authoredRelation, record);
+  assert.equal(record.relation, 'selection_and_internal_theta_assignment');
+  assert.deepEqual(Object.keys(record.anchors), ['selecting_head', 'thetaRecipient']);
+  // Without an authored record the operation title and the Relations detail row space the name too.
+  assert.equal(buildReplayPanelContent({ ...current, replayRelationIdentity: undefined }).heading,
+    'selection and internal theta assignment');
+  const [block] = buildRelationReplayBlocks([{ relation: record.relation, anchors: { selecting_head: 'context' } }], canvas);
+  assert.equal(block.lines[0], 'selection and internal theta assignment: Selecting Head: x_i');
+  for (const [input, expected] of [
+    ['theta_assignment', 'theta assignment'], ['LF_occurrences', 'LF occurrences'],
+    ['embedded_thetaAssignment', 'embedded theta Assignment'],
+    ...['x_i', 'T_to_C', 'unknown_x_i', '_leading', 'trailing_', 'double__gap', 'case-marked',
+      '\u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u0435_\u0447\u0438\u0441\u043b\u0430',
+      '\u4e3b\u8a9e_\u4e00\u81f4', '\u03b8_role', 'Agree / WH'].map(x => [x, x])
+  ]) assert.equal(spaceAuthoredName(input, { snakeCase: true }), expected);
+  // Tier-3 tree labels keep the default, which leaves underscores alone.
+  assert.equal(spaceAuthoredName('theta_assignment'), 'theta_assignment');
+});
 
 test('name spacing preserves notation, original letters and ambiguous short parts', () => {
   for (const [input, expected] of [

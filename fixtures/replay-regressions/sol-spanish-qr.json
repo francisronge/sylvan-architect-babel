@@ -1,4 +1,5 @@
 {
+  "description": "Saved Sol QR analyses: sweep coverage, camera and visual exceptions.",
   "provenance": {
     "model": "openai:gpt-6.1-sol",
     "harness": "qualification:codex",
