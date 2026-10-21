@@ -22,9 +22,13 @@ type TreeLayoutMeasurements = {
 export function layoutSyntaxTree(root: d3.HierarchyNode<SyntaxNode>, size: [number, number], direction: TreeDirection = 'ltr',
   reservation?: ReadonlyMap<string, { x: number; y: number }>, visibleIds?: ReadonlySet<string>, measurements: TreeLayoutMeasurements = {}) {
   applyVizIds(root);
-  const tree = d3.tree<SyntaxNode>().nodeSize([TREE_SIBLING_GAP / 2.5, TREE_ROW_HEIGHT])
-    .separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
-  tree.each(node => { node.x += size[0] / 2; });
+  // D3's tree layout writes only x and y, and a reservation then replaces both
+  // for every node it names; when it names every node the layout is unused.
+  let reserved = Boolean(reservation);
+  if (reservation) root.each(node => { if (reserved && !reservation.get(getNodeId(node))) reserved = false; });
+  const tree = reserved ? root as d3.HierarchyPointNode<SyntaxNode> : d3.tree<SyntaxNode>()
+    .nodeSize([TREE_SIBLING_GAP / 2.5, TREE_ROW_HEIGHT]).separation((a, b) => a.parent === b.parent ? 2.5 : 3.5)(root);
+  if (!reserved) tree.each(node => { node.x += size[0] / 2; });
   if (!reservation && (measurements.measureCategoryText || measurements.measureTreeInk
     || measurements.treeLabelRuns || measurements.measureTreeLabel)) {
     // A single current scene uses the same ink-aware contour packing as Replay.

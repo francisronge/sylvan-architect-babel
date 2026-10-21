@@ -1,6 +1,8 @@
 {
+  "description": "Current components stop at invisible parents; rigid clearance (workspaceComponentLifetime, sidewardPhraseClassification).",
   "cases": [
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/english-late-adjunct, analysis 2. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/english-late-adjunct (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/english-late-adjunct).",
       "key": "english-late-adjunct/1",
       "sentence": "The editor said that the reviewer would revise the chapter after lunch.",
       "inputTokens": [
@@ -657,6 +659,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/dutch-auxiliary, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/dutch-auxiliary (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/dutch-auxiliary).",
       "key": "dutch-auxiliary/0",
       "sentence": "Ik denk dat Noor het boek zal lezen.",
       "inputTokens": [
@@ -2473,6 +2476,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/turkish-relative, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/turkish-relative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/turkish-relative).",
       "key": "turkish-relative/0",
       "sentence": "Ayşe’nin dün yazdığı mektubu Mehmet bugün okudu.",
       "inputTokens": [
@@ -3928,6 +3932,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/hungarian-dative, analysis 2. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/hungarian-dative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/hungarian-dative).",
       "key": "hungarian-dative/1",
       "sentence": "A tanár a diákoknak adta a könyveket.",
       "inputTokens": [

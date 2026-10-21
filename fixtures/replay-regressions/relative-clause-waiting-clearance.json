@@ -1,4 +1,6 @@
 {
+  "description": "A waiting relative clause clears existing words without losing continuity (treeSpacingPolicy; corpus manifest).",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/turkish-relative, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/turkish-relative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/turkish-relative).",
   "sentence": "Ayşe’nin dün yazdığı mektubu Mehmet bugün okudu.",
   "inputTokens": [
     "Ayşe’nin",
