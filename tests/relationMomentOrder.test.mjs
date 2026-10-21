@@ -120,21 +120,37 @@ test('Replay: relations needing each other\'s syntax keep authored order with th
   assert.deepEqual(record, original);
 });
 
-test('saved relative pied-piping: no movement moment reveals its landing before the parent it joins', () => {
+test('saved relative pied-piping: the movement introduces the phrase it pied-pipes, so the Internal Merge follows it', () => {
   // "This is the man to whom I gave the book." Stage 8: the neutral relative
-  // Internal Merge builds pp2 and cpRel and names wh2; the recognized
-  // operator-variable movement introduces wh2, whose parent is pp2. Each needs
-  // the other's syntax, so authored order is kept and wh2 lands inside pp2.
+  // Internal Merge names wh2, which the recognized operator-variable movement
+  // introduces. wh2 lands in pp2, whose other daughter p2 is also new, so pp2
+  // is the pied-piped phrase: the movement introduces it whole, with cpRel,
+  // and the Internal Merge plays after it with every anchor present.
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/unrecognized-movement.json', import.meta.url))).cases[2];
   const original = structuredClone(record);
   const prepared = prepareReplay({ ...structuredClone(record), includePlayback: true }), steps = prepared.playbackSteps;
   assert.deepEqual(checkLandingAttached(prepared), []);
-  const [merge, dependency] = relationMoments(steps, 7);
-  assert.deepEqual([merge, dependency].map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
-  assert.ok(visible(merge, 'pp2') && visible(merge, 'cpRel'));
-  assert.ok(!visible(merge, 'wh2'), 'wh2 is not introduced early');
-  assert.ok(visible(dependency, 'wh2') && visible(dependency, 'pp2'));
-  assert.match(merge.movementDiagnostics.join('\n'),
-    /RELATION_TIMING_CONFLICT: Stage 8, relation 1 \(relative Internal Merge\) requires wh2 before relation 2/);
+  const [dependency, merge] = relationMoments(steps, 7);
+  assert.deepEqual([dependency, merge].map(step => step.replayRelationIdentity.relationIndex), [1, 0]);
+  const before = steps[steps.indexOf(dependency) - 1];
+  for (const id of ['pp2', 'p2', 'wh2', 'cpRel']) {
+    assert.ok(!visible(before, id), `${id} is not introduced early`);
+    assert.ok(visible(dependency, id), `${id} appears with the landing`);
+  }
+  for (const id of ['pp2', 'cRel', 'wh2', 'pp1']) assert.ok(visible(merge, id), `the Internal Merge's ${id} is present at its moment`);
+  assert.deepEqual(timingConflicts(steps.filter(step => step.replayFrameIndex === 7)), []);
   assert.deepEqual(record, original);
+});
+
+test('sideward movement into a new workspace pied-pipes nothing: its receiving verb keeps its own selection', () => {
+  // "Which report did Nora file without reading?" Stage 2: the copy a_fdp
+  // merges with a_file in the new root a_fvp, which joins no preceding
+  // structure, so a_file is independently selected material, not a phrase
+  // that moves with the landing.
+  const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/workspace-historical-continuity.json', import.meta.url))).cases[2];
+  const steps = prepareReplay({ ...structuredClone(record), includePlayback: true }).playbackSteps;
+  const [sideward] = relationMoments(steps, 1), at = steps.indexOf(sideward);
+  const selection = steps.findIndex(step => step.replayFrameIndex === 1 && step.replayKind === 'micro' && step.targetNodeId === 'a_file');
+  assert.ok(selection >= 0 && selection < at, 'a_file is projected by its own step before the sideward moment');
+  assert.ok(visible(sideward, 'a_fvp') && visible(sideward, 'a_fdp'));
 });

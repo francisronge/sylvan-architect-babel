@@ -28,6 +28,7 @@ import {
 import {
   landingAttachmentPath,
   movementLandingWrapper,
+  piedPipedPhrase,
   relationOwnedPhrasalSourceRoles,
   relationOwnedPhrasalTargetRoles,
   relationOwnsPhrasalTreeTransition
@@ -157,14 +158,23 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     return landingAttachmentPath(workspaceRoots, previousFrameWorkspaceRoots, authoredTargetNodeId, priorSourceIds, (parentNodeId, branchNodeId, hostIds) => {
       const structuralParent = findNodeByIdInForest(structuralWorkspaceRoots, parentNodeId);
       // Keep the attachment atomic by default. An earlier authored claim
-      // can require this independently buildable receiving context first.
+      // can require this independently buildable receiving context first;
+      // a pied-piped phrase is not such context, since it moves with the landing.
       return (trajectoryDisplayKind === 'head' && hostIds.length > 0 || trajectoryDisplayKind === 'phrasal') && Boolean(structuralParent)
         && !(structuralParent!.children || []).some(child => child.id === branchNodeId)
+        && !(trajectoryDisplayKind === 'phrasal' && piedPipedPhrase(workspaceRoots, previousFrameWorkspaceRoots, authoredTargetNodeId).hostIds.includes(parentNodeId))
         && earlierRelationNeedsContext(parentNodeId);
     });
   };
   const getMovementCreatedLandingHostPaths = (placement: RelationPlacement) => placement.authoredTargetNodeIds.map(id => landingHostPath(placement, id)).filter(path => path.length);
   const getMovementCreatedLandingHostNodeIds = (placement: RelationPlacement): string[] => [...new Set(getMovementCreatedLandingHostPaths(placement).flat())];
+  // The phrase each phrasal landing pied-pipes (`piedPipedPhrase`) appears
+  // with it at the movement moment.
+  const getMovementPiedPipedNodeIds = (placement: RelationPlacement): string[] => !placement.renderableTrajectory && !placement.ownsPhrasalTreeTransition
+    ? [] : [...new Set(placement.authoredTargetNodeIds.flatMap((targetNodeId) => {
+      const trajectoryKind = (placement.relation.recoveredMovements?.find(movement => movement.targetNodeId === targetNodeId) ?? placement.relation.recoveredMovement)?.trajectoryKind || registeredTrajectoryDisplayKind(placement.relationLabel, placement.relation.resolvedAnchors);
+      return trajectoryKind === 'phrasal' ? piedPipedPhrase(workspaceRoots, previousFrameWorkspaceRoots, targetNodeId).nodeIds : [];
+    }))];
   const singleRelationLinksByIndex = new Map<number, ResolvedRelationLink[]>();
   frameRelationSteps.forEach((relation, relationIndex) => {
     const authoredRelationIndex = Number.isInteger(relation.authoredRelationIndex)
@@ -228,6 +238,7 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
         ...(trajectoryKind === 'head' && isHeadShellLabel(targetParent?.label) ? collectSyntaxSubtreeNodeIds(targetParent) : [])
       ]),
       ...getMovementCreatedLandingHostNodeIds(placement),
+      ...getMovementPiedPipedNodeIds(placement),
       ...targetSyntheticLeafNodeIds,
       ...sourceSubtreeNodeIds,
       ...sourceContainerNodeIds,
@@ -249,6 +260,7 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     relationLayoutNodeIds,
     frameHasTreeTransition,
     getMovementCreatedLandingHostPaths,
+    getMovementPiedPipedNodeIds,
     transitionHostNodeIds
   };
 };

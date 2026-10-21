@@ -936,6 +936,35 @@ export const newReceivingHeadNodeIds = (
     .filter(id => !findExactNodeByIdInForest(previousForest, id));
 };
 
+/**
+ * The phrase a phrasal landing pied-pipes. Walking up from the landing, each
+ * new parent whose other daughters are all wholly new in this stage is part of
+ * the moved phrase rather than receiving context built before it; the walk
+ * stops at the first parent that is not. The phrase counts only when that
+ * parent exists and so attaches it to preceding structure: a landing in a
+ * wholly new workspace, as in sideward movement, merges with independently
+ * selected material. `hostIds` are the pied-piped parents, lowest first, and
+ * `nodeIds` the subtrees of their other daughters; the movement moment
+ * introduces both with the landing.
+ */
+export const piedPipedPhrase = (
+  currentForest: SyntaxNode[],
+  previousForest: SyntaxNode[],
+  landingNodeId: string
+): { hostIds: string[]; nodeIds: string[] } => {
+  const hostIds: string[] = [], nodeIds: string[] = [];
+  const isNew = (id: string) => !findExactNodeByIdInForest(previousForest, id);
+  let branchNodeId = landingNodeId, parentNodeId = findParentNodeIdInForest(currentForest, landingNodeId);
+  for (; parentNodeId; branchNodeId = parentNodeId, parentNodeId = findParentNodeIdInForest(currentForest, parentNodeId)) {
+    const others = (findExactNodeByIdInForest(currentForest, parentNodeId)?.children || []).filter(child => child.id !== branchNodeId);
+    if (!isNew(parentNodeId) || !others.length || !others.every(child => collectSyntaxSubtreeNodeIds(child).every(isNew)))
+      break;
+    hostIds.push(parentNodeId);
+    others.forEach(child => nodeIds.push(...collectSyntaxSubtreeNodeIds(child)));
+  }
+  return parentNodeId ? { hostIds, nodeIds } : { hostIds: [], nodeIds: [] };
+};
+
 export const receivingHeadMaterialNodeId = (
   movement: RecoveredMovement | undefined,
   previousForest: SyntaxNode[],
@@ -987,7 +1016,8 @@ export const buildAnchoredTreeTransitionForest = ({
       if (movement?.transition) {
         return {
           currentNodeIds: new Set((relation.recoveredMovements ?? [movement]).flatMap(item => [item.sourceNodeId, item.targetNodeId,
-          ...newReceivingHeadNodeIds(item, previousForest, currentForest)]).flatMap(id => {
+          ...newReceivingHeadNodeIds(item, previousForest, currentForest),
+          ...item.transition && item.trajectoryKind === 'phrasal' ? piedPipedPhrase(currentForest, previousForest, item.targetNodeId).nodeIds : []]).flatMap(id => {
             const node = findExactNodeByIdInForest(currentForest, id);
             return node ? [...collectExactSubtreeNodeIds(node)] : [];
           })),
