@@ -44,7 +44,7 @@ import { type HierNode, type MovementArrow, type VisibleLink } from '../../repla
 import { caseSurfaceInitial } from '../../server/babelParser/surfaceTokens.js';
 import { type SyntaxNode } from '../../types.ts';
 import type { DrawingLayer } from './drawingContext.ts';
-import { getReplayTokenIndex } from './syntaxReveal.ts';
+import { sentenceInitialLeafCapitalizer } from './syntaxReveal.ts';
 import { createTreeGraphicsMeasure } from './treeMeasurements.ts';
 
 type TriangulatedNode = HierNode & {isTriangulated?: boolean; triangulatedWords?: string};
@@ -452,32 +452,15 @@ export function paintSyntaxTree({
   // 4. TERMINAL WORDS (Leaf Nodes) - ABSOLUTE EMERALD
   const leafNodes = nodeGroups.filter(d => (!d.children || d.children.length === 0)
     && !isWordlessCategoryLeaf(d.data));
-  const visibleOvertLeafIds = collectPronouncedLeafNodeIdsInOrder(clonedCanvasData);
-  const maybeCapitalizeSurfacedSentenceInitialLeaf = (node: HierNode, value: string): string => {
-    const trimmed = String(value || '').trim();
-    if (usesDerivationFrames && animated && currentReplayStep?.replayCanvasData) return trimmed;
-    if (!trimmed || isTraceLike(trimmed) || isNullLike(trimmed)) return trimmed;
-    if (normalizeToken(trimmed) !== normalizeToken(firstSentenceReplayToken)) return trimmed;
-    const firstVisibleOvertLeafId = String(visibleOvertLeafIds[0] || '');
-    if (!firstVisibleOvertLeafId || getNodeId(node) !== firstVisibleOvertLeafId) return trimmed;
-    const nodeAncestorIds = new Set<string>();
-    let currentAncestor: HierNode | null = node;
-    while (currentAncestor) {
-      const ancestorId = getNodeId(currentAncestor);
-      if (ancestorId) nodeAncestorIds.add(ancestorId);
-      currentAncestor = currentAncestor.parent;
-    }
-    const surfacedByFrontingMovement = activeDerivationArrowLinks.some((link) => {
-      const targetNodeId = String(link?.targetNodeId || '');
-      return Boolean(targetNodeId) && nodeAncestorIds.has(targetNodeId);
-    });
-    const awaitsPhraseFronting = Array.from(nodeAncestorIds).some((nodeId) => (
-      pendingPhraseFrontingSourceNodeIds.has(nodeId)
-    ));
-    if (getReplayTokenIndex(node) !== 0 && !surfacedByFrontingMovement) return trimmed;
-    if (!surfacedByFrontingMovement && awaitsPhraseFronting) return trimmed;
-    return firstSentenceReplayDisplayToken || caseSurfaceInitial(trimmed, 'upper');
-  };
+  const maybeCapitalizeSurfacedSentenceInitialLeaf = sentenceInitialLeafCapitalizer({
+    animated,
+    usesDerivationFrames,
+    currentReplayStep,
+    firstSentenceReplayToken,
+    firstSentenceReplayDisplayToken,
+    activeDerivationArrowLinks,
+    pendingPhraseFrontingSourceNodeIds
+  }, String(collectPronouncedLeafNodeIdsInOrder(clonedCanvasData)[0] || ''));
   const getReplayTerminalSurface = resolveLeafSurface;
   function isReplaySilentTerminalLeaf(node: HierNode): boolean {
     if (isPronouncedHierLeaf(node)) return false;

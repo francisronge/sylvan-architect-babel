@@ -298,6 +298,9 @@ export const literalThetaRoles = (evidence: Tier2FacetEvidence): Array<{ nodeId:
   return arguments_.map((nodeId, index) => ({ nodeId, label: labels[index] }));
 };
 
+// Capitalises the first UTF-16 code unit, not the first code point as caseSurfaceInitial does.
+const anchorNameRoleLabel = (key: string): string => key.charAt(0).toUpperCase() + key.slice(1);
+
 /** The exact ThetaAssignment contract also permits its open anchor names as role labels. */
 export function nativeThetaRoles(evidence: Tier2FacetEvidence): { roles: Array<{ nodeId: string; label: string }>; error?: never } | { roles?: never; error: string } {
   const explicitArguments = evidence.currentAnchors['theta.arguments'];
@@ -305,7 +308,7 @@ export function nativeThetaRoles(evidence: Tier2FacetEvidence): { roles: Array<{
     if (!namedThetaInventory(evidence)) return role;
     const entry = evidence.authoredCurrentAnchors?.find(entry =>
       entry.concepts.includes('theta.arguments') && entry.items[0] === role.nodeId);
-    return entry ? { ...role, label: entry.key.charAt(0).toUpperCase() + entry.key.slice(1) } : role;
+    return entry ? { ...role, label: anchorNameRoleLabel(entry.key) } : role;
   }) : undefined;
   if (explicitArguments?.length && !explicitRoles) return { error: 'Theta arguments require exactly one authored role label per argument' };
   const roles = [...(explicitRoles ?? [])];
@@ -318,7 +321,7 @@ export function nativeThetaRoles(evidence: Tier2FacetEvidence): { roles: Array<{
     }
     entry.items.forEach((nodeId, index) => roles.push({
       nodeId,
-      label: matches[0]?.items[index] ?? entry.key.charAt(0).toUpperCase() + entry.key.slice(1)
+      label: matches[0]?.items[index] ?? anchorNameRoleLabel(entry.key)
     }));
   }
   return roles.length ? { roles } : { error: 'A theta grid requires at least one authored role association' };

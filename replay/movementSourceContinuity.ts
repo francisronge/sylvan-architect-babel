@@ -3,7 +3,7 @@ import type { SyntaxNode } from '../types.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
-import { cubicIntersectsRect } from './relations/curveClearance.ts';
+import { inkBoxesCollide } from './relations/rectGeometry.ts';
 import { prepareTreeInkSubtrees, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
@@ -75,11 +75,7 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
       if (extent.x <= epsilon || extent.y <= epsilon) continue;
       let query = indexes.get(group[j]);
       if (!query) indexes.set(group[j], query = verticalObstacleIndex(ink(group[j]), { overlapOnly: true }));
-      for (const a of ink(group[i])) if (query(a, b =>
-        Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) > epsilon
-        && Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) > epsilon
-        && (!a.curve || cubicIntersectsRect(a.curve, b, a.curvePadding))
-        && (!b.curve || cubicIntersectsRect(b.curve, a, b.curvePadding)))) return false;
+      for (const a of ink(group[i])) if (query(a, b => inkBoxesCollide(a, b, epsilon))) return false;
     }
     return true;
   };

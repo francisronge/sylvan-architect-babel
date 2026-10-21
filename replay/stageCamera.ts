@@ -38,6 +38,7 @@ import {
   type PlaqueRect
 } from './relations/plaquePlacement.ts';
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
+import { boundingRect } from './relations/rectGeometry.ts';
 import {
   planItemRelationRefs,
   resolveDisplayedTrajectoryAttachments,
@@ -877,9 +878,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
           const width = nominalLabelWidth(String(word || child.data.label || ''));
           return { x: child.x - width / 2, y: child.y + (word ? 85 : -42), width, height: word ? 90 : 84 };
         });
-        const x = Math.min(...rects.map(rect => rect.x)), y = Math.min(...rects.map(rect => rect.y));
-        return { x, y, width: Math.max(...rects.map(rect => rect.x + rect.width)) - x,
-          height: Math.max(...rects.map(rect => rect.y + rect.height)) - y };
+        return boundingRect(rects);
       };
       nativeRelationPlaqueRects(plan.frames[stageIndex]?.items ?? [], rectFor, measurePlaqueText).forEach(rect => include({
         minX: rect.x - PLAQUE_FIT_MARGIN, maxX: rect.x + rect.width + PLAQUE_FIT_MARGIN,

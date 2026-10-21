@@ -6,6 +6,7 @@
  */
 
 import { dottedCollectionControls } from './markGeometry.ts';
+import { rectsIntersect } from './rectGeometry.ts';
 
 export type Point = { x: number; y: number };
 export type Rect = { x: number; y: number; width: number; height: number };
@@ -170,12 +171,7 @@ export const placeRectBelowCollisions = (
 ): Rect => {
   let placed = { ...preferred };
   for (let attempt = 0; attempt < occupied.length + 1; attempt += 1) {
-    const blockers = occupied.filter((rect) => !(
-      placed.x + placed.width + collisionGap <= rect.x
-      || rect.x + rect.width + collisionGap <= placed.x
-      || placed.y + placed.height + collisionGap <= rect.y
-      || rect.y + rect.height + collisionGap <= placed.y
-    ));
+    const blockers = occupied.filter((rect) => rectsIntersect(placed, rect, collisionGap));
     if (blockers.length === 0) break;
     placed = {
       ...placed,
