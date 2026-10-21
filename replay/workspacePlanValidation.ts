@@ -2,7 +2,7 @@ import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { getNodeId } from './displayIdentity.ts';
-import { cubicIntersectsRect } from './relations/curveClearance.ts';
+import { inkBoxesCollide } from './relations/rectGeometry.ts';
 import { prepareTreeInkSubtrees, treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import type { TreeCoordinateReservation, TreeDirection } from './treeLayout.ts';
@@ -99,10 +99,7 @@ export function validateWorkspacePlacement({ scenes, baseline, direction, placem
           let query = indexes.get(roots[j]);
           if (!query) indexes.set(roots[j], query = verticalObstacleIndex(footprints(roots[j]), { overlapOnly: true }));
           for (const a of footprints(roots[i])) {
-            if (query(a, b => Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) > 1e-6
-              && Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) > 1e-6
-              && (!a.curve || cubicIntersectsRect(a.curve, b, a.curvePadding))
-              && (!b.curve || cubicIntersectsRect(b.curve, a, b.curvePadding)))) {
+            if (query(a, b => inkBoxesCollide(a, b, 1e-6))) {
               return failed('render-validation', `Current ink overlap at frame ${index + 1}.`);
             }
           }

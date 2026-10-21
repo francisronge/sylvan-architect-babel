@@ -34,6 +34,52 @@ export const getReplayTokenIndex = (node: HierNode): number | undefined => {
   return undefined;
 };
 
+type SentenceInitialCasingContext = Pick<SyntaxDrawingContext,
+  | 'animated'
+  | 'usesDerivationFrames'
+  | 'currentReplayStep'
+  | 'firstSentenceReplayToken'
+  | 'firstSentenceReplayDisplayToken'
+  | 'activeDerivationArrowLinks'
+  | 'pendingPhraseFrontingSourceNodeIds'
+>;
+
+/** Trims a leaf's word and capitalises it when the leaf is the first visible
+ * pronounced leaf and either starts the sentence or was fronted there. Staged
+ * Replay owns the displayed word and its casing at each moment. */
+export const sentenceInitialLeafCapitalizer = ({
+  animated,
+  usesDerivationFrames,
+  currentReplayStep,
+  firstSentenceReplayToken,
+  firstSentenceReplayDisplayToken,
+  activeDerivationArrowLinks,
+  pendingPhraseFrontingSourceNodeIds
+}: SentenceInitialCasingContext, firstVisibleOvertLeafId: string) => (node: HierNode, value: string): string => {
+  const trimmed = String(value || '').trim();
+  if (usesDerivationFrames && animated && currentReplayStep?.replayCanvasData) return trimmed;
+  if (!trimmed || isTraceLike(trimmed) || isNullLike(trimmed)) return trimmed;
+  if (normalizeToken(trimmed) !== normalizeToken(firstSentenceReplayToken)) return trimmed;
+  if (!firstVisibleOvertLeafId || getNodeId(node) !== firstVisibleOvertLeafId) return trimmed;
+  const nodeAncestorIds = new Set<string>();
+  let currentAncestor: HierNode | null = node;
+  while (currentAncestor) {
+    const ancestorId = getNodeId(currentAncestor);
+    if (ancestorId) nodeAncestorIds.add(ancestorId);
+    currentAncestor = currentAncestor.parent;
+  }
+  const surfacedByFrontingMovement = activeDerivationArrowLinks.some((link) => {
+    const targetNodeId = String(link?.targetNodeId || '');
+    return Boolean(targetNodeId) && nodeAncestorIds.has(targetNodeId);
+  });
+  const awaitsPhraseFronting = Array.from(nodeAncestorIds).some((nodeId) => (
+    pendingPhraseFrontingSourceNodeIds.has(nodeId)
+  ));
+  if (getReplayTokenIndex(node) !== 0 && !surfacedByFrontingMovement) return trimmed;
+  if (!surfacedByFrontingMovement && awaitsPhraseFronting) return trimmed;
+  return firstSentenceReplayDisplayToken || caseSurfaceInitial(trimmed, 'upper');
+};
+
 interface SyntaxRevealContext extends Pick<SyntaxDrawingContext,
 
   | 'animated'
@@ -95,31 +141,15 @@ export function updateSyntaxReveal({
   const layoutVisibleOvertLeafIds = collectPronouncedLeafNodeIdsInOrder(canvasData)
     .filter((nodeId) => !replayVisibleNodeIdSet || replayVisibleNodeIdSet.has(nodeId));
   const layoutFirstVisibleOvertLeafId = String(layoutVisibleOvertLeafIds[0] || '');
-  const maybeCapitalizeLayoutSentenceInitialLeaf = (node: HierNode, value: string): string => {
-    const trimmed = String(value || '').trim();
-    // Staged Replay owns the displayed word and its casing at each moment.
-    if (usesDerivationFrames && animated && currentReplayStep?.replayCanvasData) return trimmed;
-    if (!trimmed || isTraceLike(trimmed) || isNullLike(trimmed)) return trimmed;
-    if (normalizeToken(trimmed) !== normalizeToken(firstSentenceReplayToken)) return trimmed;
-    if (!layoutFirstVisibleOvertLeafId || getNodeId(node) !== layoutFirstVisibleOvertLeafId) return trimmed;
-    const nodeAncestorIds = new Set<string>();
-    let currentAncestor: HierNode | null = node;
-    while (currentAncestor) {
-      const ancestorId = getNodeId(currentAncestor);
-      if (ancestorId) nodeAncestorIds.add(ancestorId);
-      currentAncestor = currentAncestor.parent;
-    }
-    const surfacedByFrontingMovement = activeDerivationArrowLinks.some((link) => {
-      const targetNodeId = String(link?.targetNodeId || '');
-      return Boolean(targetNodeId) && nodeAncestorIds.has(targetNodeId);
-    });
-    const awaitsPhraseFronting = Array.from(nodeAncestorIds).some((nodeId) => (
-      pendingPhraseFrontingSourceNodeIds.has(nodeId)
-    ));
-    if (getReplayTokenIndex(node) !== 0 && !surfacedByFrontingMovement) return trimmed;
-    if (!surfacedByFrontingMovement && awaitsPhraseFronting) return trimmed;
-    return firstSentenceReplayDisplayToken || caseSurfaceInitial(trimmed, 'upper');
-  };
+  const maybeCapitalizeLayoutSentenceInitialLeaf = sentenceInitialLeafCapitalizer({
+    animated,
+    usesDerivationFrames,
+    currentReplayStep,
+    firstSentenceReplayToken,
+    firstSentenceReplayDisplayToken,
+    activeDerivationArrowLinks,
+    pendingPhraseFrontingSourceNodeIds
+  }, layoutFirstVisibleOvertLeafId);
 
   svg.selectAll<SVGPathElement, unknown>('.branch')
     .style('opacity', function () {

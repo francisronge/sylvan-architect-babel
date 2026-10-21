@@ -11,6 +11,7 @@ import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
 import type { PlaquePlacement } from '../../replay/relations/plaquePlacement.ts';
+import { boundingRect } from '../../replay/relations/rectGeometry.ts';
 import type { RelationRenderPlan } from '../../replay/relations/renderPlan.ts';
 import {
   isPlanItemRevealed,
@@ -122,13 +123,7 @@ export function measureFallbackLabels({
       const rect = fallbackLabelRects.get(getNodeId(node as unknown as HierNode));
       return rect ? [rect] : [];
     });
-    if (!rects.length) return null;
-    const x = Math.min(...rects.map(rect => rect.x));
-    const y = Math.min(...rects.map(rect => rect.y));
-    return {
-      x, y, width: Math.max(...rects.map(rect => rect.x + rect.width)) - x,
-      height: Math.max(...rects.map(rect => rect.y + rect.height)) - y
-    };
+    return rects.length ? boundingRect(rects) : null;
   };
   const fallbackMeasurements = {
     labels: [...fallbackLabelRects.values()],

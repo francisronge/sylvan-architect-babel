@@ -7,6 +7,7 @@ import type {
 } from './boundGeometry.ts';
 import type { UnroutedFallbackSegment } from './fallbackGeometry.ts';
 import type { Point, Rect } from './overlayGeometry.ts';
+import { rectsIntersect } from './rectGeometry.ts';
 import type { RelationPlanItem, RelationRenderPlan } from './renderPlan.ts';
 
 type RoutableCurve = {
@@ -108,12 +109,6 @@ export const createGeometryContext = (frame: RelationRenderPlan['frames'][number
   };
   /** World-space plate rectangles, including the marker counter-scale. */
   const plaqueRects: Rect[] = [];
-  const intersects = (left: Rect, right: Rect, gap = 0): boolean => !(
-    left.x + left.width + gap <= right.x
-    || right.x + right.width + gap <= left.x
-    || left.y + left.height + gap <= right.y
-    || right.y + right.height + gap <= left.y
-  );
 
   const pendingSegments: UnroutedFallbackSegment[] = [];
   const fallbackAllocationOrder = 0;
@@ -177,7 +172,7 @@ export const createGeometryContext = (frame: RelationRenderPlan['frames'][number
     routableCurves,
     registerRoutedCurve,
     plaqueRects,
-    intersects,
+    intersects: rectsIntersect,
     pendingSegments,
     fallbackAllocationOrder,
     fallbackOccupied

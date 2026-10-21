@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import { type BoundPrimitive } from '../../replay/relations/boundGeometry.ts';
+import { boundingRect } from '../../replay/relations/rectGeometry.ts';
 import {
   type DirectedPathPlanItem,
   type RelationPlanItem
@@ -200,21 +201,12 @@ export function createLocalityDrawing({ g, activeDerivationFrameIndex, relationL
         if (!candidatePaths.length) return;
         const sourceNodeId = candidatePaths[0].sourceOccurrenceNodeId || candidatePaths[0].fromNodeId;
         if (candidatePaths.some((path) => (path.sourceOccurrenceNodeId || path.fromNodeId) !== sourceNodeId)) return;
-        const unionRects = (
-          rects: Array<{ x: number; y: number; width: number; height: number }>
-        ) => {
-          if (rects.length === 0) return null;
-          const left = Math.min(...rects.map((rect) => rect.x));
-          const top = Math.min(...rects.map((rect) => rect.y));
-          const right = Math.max(...rects.map((rect) => rect.x + rect.width));
-          const bottom = Math.max(...rects.map((rect) => rect.y + rect.height));
-          return { x: left, y: top, width: right - left, height: bottom - top };
-        };
-        const region = domainItem?.kind === 'domain-mark' ? unionRects(
-          domainItem.memberNodeIds
+        const memberRects = domainItem?.kind === 'domain-mark'
+          ? domainItem.memberNodeIds
             .map((nodeId) => measuredTreeLabelRectNow(nodeId, true))
             .filter((rect): rect is { x: number; y: number; width: number; height: number } => Boolean(rect))
-        ) : null;
+          : [];
+        const region = memberRects.length ? boundingRect(memberRects) : null;
         const source = measuredTreeLabelRectNow(sourceNodeId, false)
           || measuredTreeLabelRectNow(sourceNodeId, true);
         if (!source) return;

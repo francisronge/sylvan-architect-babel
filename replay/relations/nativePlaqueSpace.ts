@@ -9,6 +9,7 @@ import type { TreeLabelBounds, TreeLabelMeasure, TreeLabelRuns } from '../treeLa
 import { dependentCaseStatePlaques } from './markGeometry.ts';
 import { nativeRelationPlaqueRects, type PlaqueRect } from './plaquePlacement.ts';
 import type { PlaqueTextMeasure } from './plaqueTextLayout.ts';
+import { boundingRect } from './rectGeometry.ts';
 import type { RelationPlanItem } from './renderPlan.ts';
 
 type Node = HierarchyPointNode<SyntaxNode>;
@@ -84,10 +85,8 @@ export function nativePlaqueObstacles(items: RelationPlanItem[], nodes: Node[], 
     }
     return (alternatives[0] ?? []).map((box, index) => {
       const boxes = alternatives.map(rects => rects[index] ?? box);
-      const x = Math.min(...boxes.map(box => box.x)), y = Math.min(...boxes.map(box => box.y));
-      return { x: x - 6, y: y - 6,
-        width: Math.max(...boxes.map(box => box.x + box.width)) - x + 12,
-        height: Math.max(...boxes.map(box => box.y + box.height)) - y + 12, plaqueShell: true };
+      const bounds = boundingRect(boxes);
+      return { x: bounds.x - 6, y: bounds.y - 6, width: bounds.width + 12, height: bounds.height + 12, plaqueShell: true };
     });
   });
 }

@@ -4,6 +4,7 @@ import { categoryTextLayout, type CategoryTextMeasure } from '../categoryTextLay
 import { CATEGORY_LABEL, TERMINAL_LABEL } from '../rendererMetrics.ts';
 import { isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf } from '../replaySurfaceNotation.ts';
 import type { Rect } from './overlayGeometry.ts';
+import { boundingRect } from './rectGeometry.ts';
 import type { RelationPlanItem } from './renderPlan.ts';
 
 /** Keep the accepted ellipse unless it includes syntax outside its authored domain.
@@ -102,8 +103,5 @@ export function bindingDomainTreeRect(nodes: readonly HierarchyPointNode<SyntaxN
       rectangles.push({ x: node.x - width / 2, y: node.y + 55, width, height: 100 });
     }
   }
-  if (!rectangles.length) return null;
-  const x = Math.min(...rectangles.map(rect => rect.x)), y = Math.min(...rectangles.map(rect => rect.y));
-  return { x, y, width: Math.max(...rectangles.map(rect => rect.x + rect.width)) - x,
-    height: Math.max(...rectangles.map(rect => rect.y + rect.height)) - y };
+  return rectangles.length ? boundingRect(rectangles) : null;
 }

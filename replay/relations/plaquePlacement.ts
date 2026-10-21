@@ -33,6 +33,7 @@ import {
   prepareThetaGridTextLayout,
   type PlaqueTextMeasure
 } from './plaqueTextLayout.ts';
+import { boundingRect } from './rectGeometry.ts';
 import { planItemRelationRefs, type RelationPlanItem } from './renderPlan.ts';
 export { plaquesOverlap } from './plaqueObstacleIndex.ts';
 
@@ -104,12 +105,6 @@ export function thetaGridPredicateLabel(anchor: Pick<Node, 'data' | 'children'>)
   while (!String(node.data.word || '').trim() && node.children?.length === 1) node = node.children[0];
   return String(node.data.word || anchor.data.label || 'predicate');
 }
-const union = (rects: PlaqueRect[]): PlaqueRect => {
-  const x = Math.min(...rects.map(rect => rect.x));
-  const y = Math.min(...rects.map(rect => rect.y));
-  return { x, y, width: Math.max(...rects.map(rect => rect.x + rect.width)) - x,
-    height: Math.max(...rects.map(rect => rect.y + rect.height)) - y };
-};
 /** Placement-only union; connector queries keep their separate attachment and ink metadata. */
 export function uniquePlaqueObstacles(obstacles: readonly PlaqueRect[]): PlaqueRect[] {
   const unique = prepareUniquePlaqueObstacles();
@@ -252,7 +247,7 @@ export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[
     const anchor = byId.get(id);
     if (!anchor) return [];
     const subtree = anchor.descendants().filter(node => included.has(node));
-    const bounds = union(plaqueTreeObstacles(subtree));
+    const bounds = boundingRect(plaqueTreeObstacles(subtree));
     // Allow a label-height of clearance for the estimated text centre. The
     // browser attaches to measured ink; neither attachment nor path is moved.
     const x = bounds.x + bounds.width / 2, y = Math.max(...subtree.map(node => node.y)) - 42;
@@ -574,7 +569,7 @@ export function collectionPlaqueSpace(scene: ConnectorScene, added: readonly Pla
     const samples = sampleCubic(original.source, original.control1, original.control2, original.target, 64);
     // Moving a vertical port changes the first two cubic points together.
     // Solve that weight at each ink crossing, then validate the exact curve.
-    const possibleBounds = union([curveBounds(route(24), 8), curveBounds(route(lastPort(box)), 8)]);
+    const possibleBounds = boundingRect([curveBounds(route(24), 8), curveBounds(route(lastPort(box)), 8)]);
     inkIndex(attachment).some(possibleBounds, ink => {
       let first = -1, last = -1;
       samples.forEach((point, index) => {
@@ -943,7 +938,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     let domain = ancestors.find(candidate => visible(candidate) && anchors.every(node => node.ancestors().includes(candidate))) || anchor;
     if (anchors.length === 1 && !domain.children?.length && domain.parent && visible(domain.parent)) domain = domain.parent;
     const availableNodes = new Set(nodes);
-    const domainBounds = union(plaqueTreeObstacles(domain.descendants().filter(node => availableNodes.has(node))));
+    const domainBounds = boundingRect(plaqueTreeObstacles(domain.descendants().filter(node => availableNodes.has(node))));
     const { width, height } = request;
     // Role grids grow horizontally with their columns; width alone must not detach them from the predicate.
     const local = fitsLocalPocket(request) || (request.thetaGrid && height <= localPlaqueSize);
