@@ -824,6 +824,9 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
 export type PlaqueSpace = {
   obstacles: PlaqueRect[];
   acceptsConnector: (box: PlaqueRect) => boolean;
+  /** A partial check of the Case arrow alone: true only when `acceptsConnector`
+   * rejects the arrow, in at least one scene, whatever ports the box has. */
+  blocksArrow?: (box: PlaqueRect) => boolean;
   /** Search hints in first-occurrence order. The search reads each distinct value
    * once, so a space may omit a repeat of an earlier hint. */
   connectorCandidateXs?: (box: PlaqueRect) => number[];
@@ -919,12 +922,18 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     };
     const caseClears = request.caseAssignment && !space ? prepareCasePlaqueSpace(anchor, occupied) : undefined;
     const sourceRect = request.caseAssignment ? caseSourceRect(anchor) : undefined;
+    const accepts = (box: PlaqueRect) => space ? space.acceptsConnector(box)
+        : (!caseClears || caseClears(box))
+          && collectionPlaqueClears(box, nodes, occupied);
     const clear = (candidate: PlaqueRect) => {
       if (overlaps(candidate)) return undefined;
+      // Ports never move a Case arrow: every attachment tried below draws the
+      // same one. A pocket whose arrow is blocked is rejected before choosing them.
+      if (request.caseAssignment) {
+        const arrow = { ...candidate, caseRowY: request.caseRowY, drawnWidth: request.drawnWidth, drawnHeight: request.drawnHeight };
+        if (space ? space.blocksArrow?.(arrow) : caseClears && !caseClears(arrow)) return undefined;
+      }
       const box = attach(candidate, request);
-      const accepts = (box: PlaqueRect) => space ? space.acceptsConnector(box)
-          : (!caseClears || caseClears(box))
-            && collectionPlaqueClears(box, nodes, occupied);
       if (accepts(box)) return box;
       // Try another port before accepting a clear side fallback. Restrict this
       // search to otherwise valid pockets, not every rejected allocation candidate.
