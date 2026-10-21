@@ -18,7 +18,8 @@
  * compiler binds each entry to its owning recovered or neutral claim and
  * inherits that claim's persistence; organization has no independent lifetime.
  */
-import type { DerivationStage, SyntaxNode } from '../../types.ts';
+import type { SyntaxNode } from '../../types.ts';
+import type { RelationStage } from '../relationStages.ts';
 
 export const LARGE_ANCHOR_ARRAY_THRESHOLD = 5;
 
@@ -68,7 +69,7 @@ const collectForestNodeIds = (forest: SyntaxNode[] | undefined): Set<string> => 
 };
 
 export const compileLargeAnchorSets = (
-  stages: DerivationStage[],
+  stages: RelationStage[],
   isFullArrayOwned: FullArrayOwnershipPredicate = () => false
 ): { sets: LargeAnchorSet[]; diagnostics: string[] } => {
   const sets: LargeAnchorSet[] = [];

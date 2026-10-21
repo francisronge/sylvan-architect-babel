@@ -1,4 +1,5 @@
-import type { DerivationStage, SyntaxNode } from '../../types.ts';
+import type { SyntaxNode } from '../../types.ts';
+import type { RelationStage } from '../relationStages.ts';
 import type { NodePlaquePlanItem, PlanRelationRef, RelationPlanItem } from './renderPlan.ts';
 
 type Collection = {
@@ -54,7 +55,7 @@ function collections(items: readonly RelationPlanItem[]): Collection[] {
  * remains subject to the normal complete-witness check. */
 export function featureCollectionSupersessions(
   items: readonly RelationPlanItem[],
-  stages: readonly DerivationStage[]
+  stages: readonly RelationStage[]
 ): Map<RelationPlanItem, PlanRelationRef> {
   const candidates = collections(items);
   const occurrences = stages.map(stage => uniqueOccurrences(stage.workspaceForest));
