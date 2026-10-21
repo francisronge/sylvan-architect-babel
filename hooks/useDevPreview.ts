@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { useEffect, useMemo, useState } from 'react';
 import type { ParseBundle } from '../types.ts';
 import { collectPronouncedTerminalSequence } from '../replay/pronouncedTerminals.ts';
@@ -44,7 +45,7 @@ const unwrapBundle = (value: unknown): ParseBundle | null => {
 };
 
 /** Keep preview loading and its browser bridge separate from the live workspace. */
-export function useDevPreview({
+function useDevPreviewBridge({
   analysisBundle,
   onAnalysis,
   onPreview,
@@ -166,3 +167,13 @@ export function useDevPreview({
 
   return captureMode;
 }
+
+/**
+ * The `devBundle` query and `window.__BABEL_DEV_*__` setters load an analysis
+ * without parser or record validation, so they exist only under the Vite dev
+ * server that local capture and review tools run. Vite fixes this flag at build
+ * time; production bundles omit the bridge and report no capture mode.
+ */
+export const useDevPreview: typeof useDevPreviewBridge = import.meta.env?.DEV === true
+  ? useDevPreviewBridge
+  : () => false;
