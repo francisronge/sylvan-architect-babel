@@ -83,8 +83,8 @@ const nearbyPocketGap = 110;
 export const MIN_RELOCATION_GAIN = 0.75;
 /** Plaques keep this gap from every obstacle. */
 export const PLAQUE_GAP = 24;
-/** The gap a remote plaque's second look keeps from syntax, trajectories and
- * connectors. It keeps the full gap from other plaques. */
+/** The gap a remote plaque's second look keeps from syntax and connectors. It
+ * keeps the full gap from trajectories and other plaques. */
 export const DETACHED_PLAQUE_GAP = PLAQUE_GAP / 2;
 /** Allocated plaques and fixed native plaques; everything else is syntax or a connector. */
 const isPlaqueShell = (obstacle: PlaqueRect) => Boolean(obstacle.plaqueShell
