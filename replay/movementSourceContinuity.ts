@@ -9,7 +9,7 @@ import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
 import { extentOverlap, obstacleExtent, verticalObstacleIndex } from './verticalObstacleIndex.ts';
-import { currentForkBranchesClear } from './workspaceForkClearance.ts';
+import { currentForkBranchesClear, relativeChildInk } from './workspaceForkClearance.ts';
 import { constructionReceivingAttachments, movementReceivingAttachments, type CurrentWorkspaceTopology } from './workspaceReceivingHost.ts';
 import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
 
@@ -65,7 +65,7 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
         && (direction === 'rtl' ? child.x >= daughters[i - 1].x : child.x <= daughters[i - 1].x)))) return false;
       if (daughters.length < 2) continue;
       if (!currentForkBranchesClear(node, daughters.map(child => ({ point: child,
-        obstacles: ink(child).map(box => ({ ...box, x: box.x - child.x, y: box.y - child.y })) })))) return false;
+        obstacles: relativeChildInk(child, ink(child)) })))) return false;
       groups.push(daughters);
     }
     const indexes = new Map<Node, ReturnType<typeof verticalObstacleIndex<ReturnType<typeof ink>[number]>>>();
