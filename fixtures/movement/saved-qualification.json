@@ -1,5 +1,6 @@
 [
   {
+    "description": "Four saved Astra/Fable analyses of one wh question used across plaque, badge, fallback geometry and recovered-movement tests; 'saved analyses keep their drawings, tiers and Replay frames' (25b92bf).",
     "name": "astra-minimalism",
     "rawSha256": "96d523e6216cc43b447b183281145a6c2a980cd4d944443600a844eaa1c1fc33",
     "inspectionCorrections": "None",
@@ -1317,6 +1318,7 @@
     ]
   },
   {
+    "description": "Four saved Astra/Fable analyses of one wh question used across plaque, badge, fallback geometry and recovered-movement tests; 'saved analyses keep their drawings, tiers and Replay frames' (25b92bf).",
     "name": "astra-xbar",
     "rawSha256": "f2dfe8b850e0c710d8d04a58d33e7dbec5c4bca097d45a23d528b9477d2eddb1",
     "inspectionCorrections": "None",
@@ -2339,6 +2341,7 @@
     ]
   },
   {
+    "description": "Four saved Astra/Fable analyses of one wh question used across plaque, badge, fallback geometry and recovered-movement tests; 'saved analyses keep their drawings, tiers and Replay frames' (25b92bf).",
     "name": "fable-minimalism",
     "rawSha256": "8d060f88233e685680e4749fbfbe61845fbf32a30bfd76a00693aa76bc519375",
     "inspectionCorrections": "Inspection copy: malformed values lists wrapped as notation; Minimalism also had final ]} appended. Authored trees and relation order unchanged.",
@@ -2861,6 +2864,7 @@
     ]
   },
   {
+    "description": "Four saved Astra/Fable analyses of one wh question used across plaque, badge, fallback geometry and recovered-movement tests; 'saved analyses keep their drawings, tiers and Replay frames' (25b92bf).",
     "name": "fable-xbar",
     "rawSha256": "5a4ae864756a0c7ca9a08b0477acf848c9b800790d771090539fb3bcbe0b0490",
     "inspectionCorrections": "Inspection copy: malformed values lists wrapped as notation; Minimalism also had final ]} appended. Authored trees and relation order unchanged.",

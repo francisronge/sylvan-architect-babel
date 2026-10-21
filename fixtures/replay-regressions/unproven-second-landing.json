@@ -1,4 +1,5 @@
 {
+  "description": "A supported second hop keeps its recovered movement; a semantic relation does not own new syntax by mentioning it (replayUnprovenLandingOwnership).",
   "sentence": "Which violinist did no critic praise?",
   "framework": "minimalism",
   "model": "openai:gpt-6.1-sol",

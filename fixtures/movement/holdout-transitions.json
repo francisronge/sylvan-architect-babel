@@ -1,5 +1,7 @@
 [
   {
+    "description": "Frozen-holdout stage pairs (successive trace, Icelandic raising, Japanese covert object scope, Arabic head traces): movement diagnostics are owned by the right stage and an unchanged chain is not re-moved (holdoutMovementOwnership, movementDiagnosticOwnership).",
+    "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run frozen-holdout-20260928/fresh/english-reflexive-question, analysis 1, stages 2–3 of 4. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/english-reflexive-question (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/english-reflexive-question).",
     "id": "successive-trace",
     "sentence": "Which portrait of herself does Naila think Farah will display?",
     "inputTokens": [
@@ -885,6 +887,8 @@
     }
   },
   {
+    "description": "Frozen-holdout stage pairs (successive trace, Icelandic raising, Japanese covert object scope, Arabic head traces): movement diagnostics are owned by the right stage and an unchanged chain is not re-moved (holdoutMovementOwnership, movementDiagnosticOwnership).",
+    "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run frozen-holdout-20260928/fresh/icelandic-raising-passive, analysis 1, stages 3–4 of 5. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/icelandic-raising-passive (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/icelandic-raising-passive).",
     "id": "raising-hop",
     "sentence": "Þessum börnum virðist hafa verið hjálpað.",
     "inputTokens": [
@@ -1301,6 +1305,8 @@
     ]
   },
   {
+    "description": "Frozen-holdout stage pairs (successive trace, Icelandic raising, Japanese covert object scope, Arabic head traces): movement diagnostics are owned by the right stage and an unchanged chain is not re-moved (holdoutMovementOwnership, movementDiagnosticOwnership).",
+    "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run frozen-holdout-20260928/fresh/icelandic-raising-passive, analysis 1, stages 4–5 of 5. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/icelandic-raising-passive (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/icelandic-raising-passive).",
     "id": "raising-completion",
     "sentence": "Þessum börnum virðist hafa verið hjálpað.",
     "inputTokens": [
@@ -1800,6 +1806,8 @@
     ]
   },
   {
+    "description": "Frozen-holdout stage pairs (successive trace, Icelandic raising, Japanese covert object scope, Arabic head traces): movement diagnostics are owned by the right stage and an unchanged chain is not re-moved (holdoutMovementOwnership, movementDiagnosticOwnership).",
+    "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run frozen-holdout-20260928/fresh/japanese-scope-negation, analysis 2, stages 3–4 of 4. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/japanese-scope-negation (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/japanese-scope-negation).",
     "id": "covert-object-low",
     "sentence": "どの学生も二冊の本を読まなかった。",
     "inputTokens": [
@@ -2468,6 +2476,8 @@
     ]
   },
   {
+    "description": "Frozen-holdout stage pairs (successive trace, Icelandic raising, Japanese covert object scope, Arabic head traces): movement diagnostics are owned by the right stage and an unchanged chain is not re-moved (holdoutMovementOwnership, movementDiagnosticOwnership).",
+    "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run frozen-holdout-20260928/fresh/japanese-scope-negation, analysis 3, stages 3–4 of 4. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/japanese-scope-negation (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/japanese-scope-negation).",
     "id": "covert-object-high",
     "sentence": "どの学生も二冊の本を読まなかった。",
     "inputTokens": [
@@ -3136,6 +3146,8 @@
     ]
   },
   {
+    "description": "Frozen-holdout stage pairs (successive trace, Icelandic raising, Japanese covert object scope, Arabic head traces): movement diagnostics are owned by the right stage and an unchanged chain is not re-moved (holdoutMovementOwnership, movementDiagnosticOwnership).",
+    "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run frozen-holdout-20260928/fresh/arabic-relative-predicate, analysis 1, stages 2–3 of 8. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/arabic-relative-predicate (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/arabic-relative-predicate).",
     "id": "head-trace",
     "sentence": "الكتب التي اشتراها سامر ليست هنا.",
     "inputTokens": [
@@ -3329,6 +3341,8 @@
     ]
   },
   {
+    "description": "Frozen-holdout stage pairs (successive trace, Icelandic raising, Japanese covert object scope, Arabic head traces): movement diagnostics are owned by the right stage and an unchanged chain is not re-moved (holdoutMovementOwnership, movementDiagnosticOwnership).",
+    "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run frozen-holdout-20260928/fresh/arabic-relative-predicate, analysis 1, stages 3–4 of 8. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/arabic-relative-predicate (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/frozen-holdout-20260928/fresh/arabic-relative-predicate).",
     "id": "complex-head-trace",
     "sentence": "الكتب التي اشتراها سامر ليست هنا.",
     "inputTokens": [
