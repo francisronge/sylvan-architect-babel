@@ -4,9 +4,10 @@ import * as d3 from 'd3';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { completePlaqueLayoutResult, measurePlaqueLayoutJob, runPlaqueLayoutJob } from '../replay/plaqueLayoutJob.ts';
-import { nearbyPlaqueReach, plaqueAnchorPoint, plaqueIdentity, plaquesOverlap } from '../replay/relations/plaquePlacement.ts';
+import { nearbyPlaqueReach, PLAQUE_GAP, plaqueAnchorPoint, plaqueIdentity, plaquesOverlap, projectPlaqueLayout } from '../replay/relations/plaquePlacement.ts';
 import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
-import { buildReplayPlaqueSchedule, buildStageLayoutGroups } from '../replay/stageCamera.ts';
+import { buildReplayPlaqueSchedule, buildStageLayoutGroups, measureStagePlaqueSpace } from '../replay/stageCamera.ts';
+import { indexHierarchyNodesByIdAndAliases } from '../replay/replayCanvas.ts';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 import { prepareVisualRecord, TEXT_METRICS, VIEWPORTS } from './helpers/visualFrames.mjs';
 
@@ -88,4 +89,30 @@ test('no stage or step delivered early changes when later remote runs are decide
   assert(deliveries.length > 1, 'stages are delivered one by one');
   for (const { stage, steps: early } of deliveries) for (const [index, value] of early)
     assert.equal(key(schedule.steps.get(index)), value, `frame ${index + 1}, delivered with stage ${stage}, keeps its plaques`);
+});
+
+// Half the gap from a movement arrow is under a pixel when a phone fits this
+// Mandarin relative (zoom 0.07): its theme grid, brought near its verb, touched
+// the arrow from 我 that passes above it.
+test('a plaque brought near keeps the full gap from every movement trajectory', () => {
+  const record = fixtures.get('replay-regressions/visual-human-catalog.json#/cases/6/analyses/0');
+  const { prepared, direction, protectedNodeIds, treeLabelRuns } = prepareVisualRecord(record);
+  const steps = prepared.playbackSteps, stages = prepared.replayDerivationFrames;
+  const input = { plan: prepared.relationRenderPlan, protectedNodeIds, treeLabelRuns, ...TEXT_METRICS, steps, stageIndex: 0,
+    completedCanvas: buildRenderableDerivationCanvasData(stages.at(-1).workspaceForest), width: VIEWPORTS[0].width,
+    height: VIEWPORTS[0].height, direction, layoutGroups: buildStageLayoutGroups(steps, stages) };
+  const schedule = buildReplayPlaqueSchedule(input);
+  let checked = 0;
+  stages.forEach((_, stageIndex) => {
+    for (const scene of measureStagePlaqueSpace({ ...input, stageIndex }).scenes) {
+      const trajectories = scene.obstacles.filter(obstacle => obstacle.trajectory);
+      const byId = indexHierarchyNodesByIdAndAliases(scene.nodes);
+      for (const stepIndex of scene.stepIndices) for (const [index, box] of projectPlaqueLayout(schedule.steps.get(stepIndex) ?? new Map(), id => byId.get(id) ?? null)) {
+        checked += trajectories.length ? 1 : 0;
+        for (const sample of trajectories) assert(!plaquesOverlap(box, sample, PLAQUE_GAP),
+          `frame ${stepIndex + 1}: plaque ${index} keeps ${PLAQUE_GAP} units from the trajectory sample at ${sample.x.toFixed(0)}, ${sample.y.toFixed(0)}`);
+      }
+    }
+  });
+  assert(checked > 20, 'plaques are checked against trajectories');
 });

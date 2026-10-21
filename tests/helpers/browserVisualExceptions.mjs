@@ -32,7 +32,10 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, CATALOGUE(6), 'mark-distance', 'plaque', 'plaque(0:1 θ GRID; v; experiencer; j)@relativeSubject',
     { desktop: { '14-43': 1.19 }, mobile: { '14-43': 1.19 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'first-paint-continuity', 'jump:stage-coordinates', 'stage 4',
-    { desktop: { '43>44': 76.31 }, mobile: { '43>44': 38.15 } }),
+    { desktop: { '43>44': 77.67 }, mobile: { '43>44': 38.15 } },
+    { by: 'Francis Ronge', on: '2026-10-21', expires: '2027-01-21', note: 'Accepted on the plaque-gap side-by-side review '
+      + '("The movement jump is fine too."): the browser measure of the +1.16 px plaque-reach jump (#150) he accepted offline.',
+      accepts: { desktop: { '43>44': 77.67 }, mobile: { '43>44': 38.15 } } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'rapid-motion', 'node-jump', '@view',
     { desktop: { 'rapid:42>48': 274.7 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'step-motion', 'node-jump', '@view',

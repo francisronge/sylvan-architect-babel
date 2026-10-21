@@ -539,8 +539,8 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     return node ? Math.hypot(before.x - before.attachmentX + node.x - after.x, before.y - before.attachmentY + node.y - after.y) : 0;
   };
   /** Move a remote run to the nearest pocket that, in every scene of the run, keeps
-   * DETACHED_PLAQUE_GAP from syntax and connectors and the full gap from every other
-   * plaque's allocated pocket, when that pocket is nearby and a quarter nearer. */
+   * DETACHED_PLAQUE_GAP from syntax and connectors and the full gap from trajectories
+   * and every other plaque's allocated pocket, when that pocket is nearby and a quarter nearer. */
   const bringNear = (run: Run) => {
     const first = run.phases[0], placement = placementAt(run, 0);
     const anchor = sceneNodes(phases[first]).get(placement.attachmentNodeId), request = requestsByIndex(first).get(run.indices[0]);
@@ -649,7 +649,7 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
         labels.set(id, [...(labels.get(id) ?? []), ...variants]);
       }
     }
-    const obstacles = [...plaqueTreeObstacles(currentNodes, input.measureCategoryText), ...plaqueConnectorObstacles(items, currentNodes),
+    const obstacles: PlaqueRect[] = [...plaqueTreeObstacles(currentNodes, input.measureCategoryText), ...plaqueConnectorObstacles(items, currentNodes),
       ...predicationPlaqueObstacles(items, currentNodes, {
         measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk,
         labels,
@@ -678,7 +678,7 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
           : sampleQuadratic(path.start, path.control, path.end, 32);
       points.slice(1).forEach((point, i) => obstacles.push({
         x: Math.min(points[i].x, point.x) - 5, y: Math.min(points[i].y, point.y) - 5,
-        width: Math.abs(point.x - points[i].x) + 10, height: Math.abs(point.y - points[i].y) + 10
+        width: Math.abs(point.x - points[i].x) + 10, height: Math.abs(point.y - points[i].y) + 10, trajectory: true
       }));
     }
     return { nodes: currentNodes, obstacles, playedRelations: scene.playedRelations, ...timing };

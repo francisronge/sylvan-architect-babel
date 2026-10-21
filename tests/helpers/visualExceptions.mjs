@@ -71,6 +71,12 @@ export const EXCEPTIONS = [
     'plaque(1:0 theta Theme)@v', { desktop: { '22-29': 1.15 }, 'desktop-large': { '22-29': 1.15 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/native-plaque-footprints.json#', 'mark-distance', 'plaque',
     'plaque(1:2 theta Agent)@v', { desktop: { '24-29': 1.19 }, 'desktop-large': { '24-29': 1.19 } }),
+  x(PLAQUE_CROWDED, 'replay-regressions/ordinary-receiving-width-control.json#', 'mark-distance', 'plaque',
+    'plaque(0:0/0:1/1:2 theta theme)@p_v', { desktop: { '36-41': 1.14 }, 'desktop-large': { '36-41': 1.14 } },
+    { by: 'Francis Ronge', on: '2026-10-21', expires: '2027-01-21', note: 'Accepted on the plaque-gap side-by-side review '
+      + '("The plaque changes are fine."): a plaque brought near keeps the full gap from movement arrows, so this theme grid '
+      + 'has no nearer pocket and returns to its spot from before #150.',
+      accepts: { desktop: { '36-41': 1.14 }, 'desktop-large': { '36-41': 1.14 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/receiving-slot-width-control.json#', 'mark-distance', 'plaque',
     'plaque(3:1 clauseType: declarative personal infinitive)@infinitivalC', { desktop: { '33-48': 1.2 }, 'desktop-large': { '33-48': 1.2 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/relocated-plaque-anchor.json#', 'mark-distance', 'plaque',
