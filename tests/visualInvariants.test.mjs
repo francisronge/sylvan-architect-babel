@@ -11,7 +11,7 @@ import {
   auditVisualRecord, branchPoints, layoutVisualFrames, layoutWidthFindings, pathPolylines, plaqueRecord, prepareVisualRecord, TEXT_METRICS, VIEWPORTS
 } from './helpers/visualFrames.mjs';
 import {
-  checkBranchGeometry, checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance, RULES
+  checkBranchGeometry, checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance, checkParentCentring, RULES
 } from './helpers/visualRules.mjs';
 import { EXCEPTIONS } from './helpers/visualExceptions.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
@@ -189,6 +189,25 @@ test('control: clipped reports text under the Replay panel or past the canvas, w
   assert.deepEqual(checkClipped(frame).map(finding => [finding.subtype, finding.subject]),
     [['under-panel', 'b:word'], ['off-canvas', 'b:word']]);
   assert.deepEqual(checkClipped({ ...frame, chrome: undefined }), []);
+});
+
+test('control: parent-centring reports a parent off the midpoint of its outermost daughters', () => {
+  const branch = (parent, child, from, to) => ({ id: `${parent}->${child}`, kind: 'branch', paths: [branchPoints(from, to)],
+    halfWidth: 2, nodes: [parent, child], claims: [] });
+  // The shape Francis rejected in a construction-kernel layout experiment (d56a1e0): in there-insertion
+  // (spellout-v3 03, analysis 1) at frame 18, Num pinned at its grown position over "three" and "cats"
+  // before N and P merge into the wider N.
+  const num = { x: 5430.9, y: 1540 }, three = { x: 4938.8, y: 1760 }, cats = { x: 5463.8, y: 1760 };
+  const pinned = { ...blank(0.1), lines: [branch('restrictedNum', 'three', num, three), branch('restrictedNum', 'cats', num, cats)] };
+  assert.deepEqual(checkParentCentring(pinned).map(found => [found.subtype, found.subject, found.measure]), [['offset', 'restrictedNum', 22.96]]);
+  const centred = { ...blank(0.1), lines: [branch('restrictedNum', 'three', { x: 5201.3, y: 1540 }, three),
+    branch('restrictedNum', 'cats', { x: 5201.3, y: 1540 }, cats)] };
+  assert.deepEqual(checkParentCentring(centred), []);
+  const single = { ...blank(1), lines: [branch('p', 'a', { x: 10, y: 0 }, { x: 10, y: 220 }),
+    { id: 'a:stem', kind: 'stem', paths: [[{ x: 10, y: 240 }, { x: 10, y: 285 }]], halfWidth: 1.5, nodes: ['a'], claims: [] }] };
+  assert.deepEqual(checkParentCentring(single), [], 'one visible daughter: the parent stands over it; stems are not daughters');
+  assert.deepEqual(checkParentCentring({ ...single, lines: [branch('p', 'a', { x: 11.5, y: 0 }, { x: 10, y: 220 })] })
+    .map(found => found.measure), [1.5]);
 });
 
 test('control: branch-geometry reports a branch stretched over two rows and sisters on different rows', () => {

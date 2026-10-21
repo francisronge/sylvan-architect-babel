@@ -77,9 +77,11 @@ test('#9: a branch through another node\'s hanging word is flagged by the shared
   const que = label('t0', 'word', 'Qué', 'queDP', screenBox(-390, 370, 180, 60));
   const branch = target => ({ kind: 'branch', source: 'cbar', target, points: [screen(-100, 300), screen(-450, 600)], strokePx: 2, opacity: 0.6 });
   const flagged = checkFrame(modelOf(snapshotOf({ texts: [que], branches: [branch('juanDP')] })));
-  assert.deepEqual(rules(flagged), ['line-clearance/branch-text']);
+  // The synthetic C′ stands 350 units right of its only daughter, which parent-centring reports too.
+  assert.deepEqual(rules(flagged), ['line-clearance/branch-text', 'parent-centring/offset']);
   assert.equal(flagged[0].subject, 'cbar->juanDP queDP:word');
-  assert.deepEqual(checkFrame(modelOf(snapshotOf({ texts: [que], branches: [branch('queDP')] }))), [], 'its own branch ends at it');
+  assert.deepEqual(rules(checkFrame(modelOf(snapshotOf({ texts: [que], branches: [branch('queDP')] })))), ['parent-centring/offset'],
+    'its own branch ends at it; only the off-centre synthetic parent remains');
 });
 
 test('#4: a fan spoke cut at another claim\'s plaque touches it; a few pixels of clearance do not', () => {
