@@ -37,6 +37,7 @@ import {
   collectReplayContinuitySubtreeSignatures,
   collectSubtreeNodeIds,
   collectUniqueReplayContinuitySubtrees,
+  indexExactForestNodeLocations,
   isLexicalLeaf,
   isNotationLeaf,
   resolveNodeLabel,
@@ -218,12 +219,24 @@ export const buildStructuralDerivationPlaybackSteps = ({
     // Lineage continuity is lineage-to-lineage: an occurrence continues a
     // previously visible object when some previously visible occurrence
     // carried the same authored lineageId. Node ids are a different concept.
-    const previousVisibleLineageShapes = new Map<string, Set<string>>();
+    // An earlier occurrence that stays unchanged where it was (a root may gain
+    // a parent) continues as itself; another occurrence of its material beside
+    // it is a second occurrence, which its own construction builds unless a
+    // claim or movement introduces it.
     const previousShapes = collectReplayContinuitySubtreeSignatures(previousFrameForest, 0);
+    const rawShapes = collectReplayContinuitySubtreeSignatures(forest, 0);
+    const previousLocations = indexExactForestNodeLocations(previousFrameForest);
+    const currentLocations = indexExactForestNodeLocations(forest);
+    const staysInPlace = (previousNode: SyntaxNode, nodeId: string): boolean => {
+      const before = previousLocations.get(nodeId), after = currentLocations.get(nodeId);
+      return Boolean(before && after) && (!before!.parentId || before!.parentId === after!.parentId)
+        && previousShapes.get(previousNode) === rawShapes.get(after!.node);
+    };
+    const previousVisibleLineageShapes = new Map<string, Set<string>>();
     const currentShapes = collectReplayContinuitySubtreeSignatures([cloned], 0);
     collectForestNodesById(previousFrameForest).forEach((previousNode, previousNodeId) => {
       const previousLineageId = String(previousNode?.lineageId || '');
-      if (previousLineageId && previousVisibleNodeIds.has(previousNodeId)) {
+      if (previousLineageId && previousVisibleNodeIds.has(previousNodeId) && !staysInPlace(previousNode, previousNodeId)) {
         const shapes = previousVisibleLineageShapes.get(previousLineageId) || new Set<string>();
         shapes.add(previousShapes.get(previousNode) || '');
         previousVisibleLineageShapes.set(previousLineageId, shapes);

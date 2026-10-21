@@ -293,6 +293,47 @@ test('native cyclic comparison and height use prepared columns for canonical and
   }
 });
 
+test('the Ordering rail caption spaces its relation and role names as the Replay panel does', () => {
+  const ids = ['one', 'two', 'three', 'four', 'five'];
+  const forest = [{ id: 'root', label: 'TP', children: ids.map((id) => ({ id, label: 'D', word: id, children: [] })) }];
+  for (const [relationName, role, caption] of [
+    ['CyclicLinearization', 'order', 'Cyclic Linearization · order'],
+    ['CyclicLinearization', 'precedence_order', 'Cyclic Linearization · precedence order'],
+    ['cyclic_linearization', 'precedence_order', 'cyclic linearization · precedence order']
+  ]) {
+    const relation = { relation: relationName, anchors: { [role]: ids }, priorAnchors: { [role]: ids } };
+    const original = structuredClone(relation);
+    const plan = compileRelationRenderPlan([stage([], forest), stage([relation], forest)]);
+    assert.deepEqual(plan.diagnostics, []);
+    const svg = drawNative('scheduleAcceptedCyclicLinearization', plan.frames[1].items, forest);
+    assert.deepEqual(svg('babel-anchor-set-rail-label').map((node) => node.textContent), [caption]);
+    assert.deepEqual(svg('babel-anchor-set-badge').map((node) => node.attrs['data-anchor-set-role']), ids.map(() => role),
+      'badges keep the authored role');
+    assert.deepEqual(relation, original);
+  }
+});
+
+test('a Tier-2 Ordering draws its own large-array rail as the Tier-1 Ordering does', () => {
+  const ids = ['one', 'two', 'three', 'four', 'five'];
+  const forest = [{ id: 'root', label: 'TP', children: ids.map((id) => ({ id, label: 'D', word: id, children: [] })) }];
+  const drawn = {};
+  for (const relationName of ['CyclicLinearization', 'cyclic_linearization']) {
+    const plan = compileRelationRenderPlan([stage([], forest),
+      stage([{ relation: relationName, anchors: { order: ids }, priorAnchors: { order: ids } }], forest)]);
+    const items = plan.frames[1].items;
+    assert.deepEqual(items.map((item) => [item.kind, item.claimTier]),
+      [['node-plaque', relationName === 'CyclicLinearization' ? 1 : 2], ['anchor-set', relationName === 'CyclicLinearization' ? 1 : 2]]);
+    // The plaque and the rail each claim the native drawing, so the rail is never also painted generically.
+    drawn[relationName] = items.map((item) => {
+      const svg = drawNative('scheduleAcceptedCyclicLinearization', items, forest, [item]);
+      return ['babel-anchor-set-badge', 'babel-anchor-set-rail', 'babel-anchor-set-stub', 'babel-linearization-row']
+        .map((className) => svg(className).length);
+    });
+  }
+  assert.deepEqual(drawn.cyclic_linearization, drawn.CyclicLinearization);
+  assert.deepEqual(drawn.CyclicLinearization, [[5, 1, 5, 8], [5, 1, 5, 8]]);
+});
+
 test('native cyclic comparison does not depend on a large-array rail', () => {
   const relation = { relation: 'CyclicLinearization', anchors: { sequence: ['a', 'mid'] },
     priorAnchors: { order: ['mid', 'a'] } };
@@ -608,14 +649,14 @@ test('the exact displayed wordless landing binds its category shell until PF rea
 });
 
 test('production shares the Orchard FProjection paint and typography', () => {
-  const styles = readFileSync(new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../components/renderer/relation-visuals.css', import.meta.url), 'utf8');
   assert.match(styles, /\.babel-f-projection-path\s*\{[^}]*fill: none;[^}]*stroke:[^}]*stroke-width: 3px;/u);
   assert.match(styles, /\.babel-f-projection-feature\s*\{[^}]*font: 900 34px/u);
   assert.doesNotMatch(styles.match(/\.babel-f-projection-path\s*\{[^}]*\}/u)[0], /filter:/u);
 });
 
 test('native cyclic columns and their anchor rail ship the approved readable ink', () => {
-  const styles = readFileSync(new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url), 'utf8');
+  const styles = readFileSync(new URL('../components/renderer/relation-visuals.css', import.meta.url), 'utf8');
   const sheet = postcss.parse(styles);
   const rule = name => {
     const properties = new Map();

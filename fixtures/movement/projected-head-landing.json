@@ -1,4 +1,6 @@
 {
+  "description": "A moved head can occupy its projection's head position without an invented adjunction host; context survives renamed/opaque IDs (headMovementLanding, movementContext).",
+  "source": "Saved normalized model answer, added in commit 7651307 (22 September 2026), whose message says its new qualification records used GPT-6 Astra through Codex OAuth. The exact model and run are not recorded and no saved source run is archived.",
   "sentence": "Boken blev läst av Sara.",
   "inputTokens": [
     "Boken",

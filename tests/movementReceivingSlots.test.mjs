@@ -9,6 +9,7 @@ import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
 import { constructionReceivingAttachments, movementReceivingAttachments, movementReceivingHosts } from '../replay/workspaceReceivingHost.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/receiving-head-slot.json', import.meta.url)));
 const close = (a,b,message) => assert(Math.abs(a-b)<1e-6,`${message}: ${a} vs ${b}`);
@@ -22,7 +23,9 @@ function setup(input,width,height,direction) {
   assert.deepEqual(workspaceContinuityReflows(scenes,points,(s,p)=>render(s.step,p)),[]);
   return {steps,scenes};
 }
-for(const [width,height]of [[1600,948],[390,844]])for(const direction of ['ltr','rtl'])test(`${width}px ${direction}: successive movement wrappers retain the same outer attachment slot`,()=>{
+// Right to left this runs only for a record whose layout is not the reflection of
+// its left-to-right layout (tests/helpers/rtlMirror.mjs).
+for(const [width,height]of [[1600,948],[390,844]])for(const direction of directionsFor('replay-regressions/receiving-head-slot.json#'))test(`${width}px ${direction}: successive movement wrappers retain the same outer attachment slot`,()=>{
   const original=JSON.stringify(record),{steps,scenes}=setup(record,width,height,direction);
   const before=scenes[29].nodes,after=scenes[30].nodes;
   assert.equal(steps[30].replayKind,'relation');
@@ -50,7 +53,9 @@ test('opaque occurrence IDs retain the same receiving-slot geometry',()=>{
 });
 
 const ordinaryWrapper = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/head-movement-ordinary-wrapper.json', import.meta.url)));
-for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
+// Right to left this runs only for a record whose layout is not the reflection of
+// its left-to-right layout (tests/helpers/rtlMirror.mjs).
+for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of directionsFor('replay-regressions/head-movement-ordinary-wrapper.json#')) {
   test(`${width}px ${direction}: movement followed by an ordinary wrapper uses one outer receiving slot`, () => {
     const original = JSON.stringify(ordinaryWrapper), { steps, scenes } = setup(ordinaryWrapper, width, height, direction);
     const before = scenes[26].nodes, movement = scenes[27].nodes, merge = scenes[28].nodes;
@@ -90,7 +95,9 @@ test('the combined receiving lifetime does not depend on occurrence-ID spelling'
   } });
 });
 
-for (const direction of ['ltr', 'rtl']) test(`${direction}: ordinary wrappers preserve an already compact movement receiver`, () => {
+// Right to left this runs only for a record whose layout is not the reflection of
+// its left-to-right layout (tests/helpers/rtlMirror.mjs).
+for (const direction of directionsFor('replay-regressions/ordinary-receiving-width-control.json#')) test(`${direction}: ordinary wrappers preserve an already compact movement receiver`, () => {
   const control = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/ordinary-receiving-width-control.json', import.meta.url)));
   const { scenes } = setup(control, 1600, 948, direction), before = scenes[26].nodes;
   const receivingTree = before.get('p_ip').descendants().filter(node => before.has(getNodeId(node)));

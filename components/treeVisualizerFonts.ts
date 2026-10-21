@@ -11,11 +11,11 @@ import { CATEGORY_INDEX_FONT, TERMINAL_FONT, TERMINAL_INDEX_FONT, type MeasuredR
  * layout could see invalidates it. Its cost is one measurement per cached run.
  */
 export function createMeasuredRuns() {
-  const measures: Array<{ create: () => MeasuredRunSource<never[]> & ((...args: never[]) => unknown); measure: MeasuredRunSource<unknown[]> }> = [];
+  const measures: Array<{ create: () => MeasuredRunSource<unknown[]> & ((...args: never[]) => unknown); measure: MeasuredRunSource<unknown[]> }> = [];
   return {
-    track<M extends MeasuredRunSource<never[]> & ((...args: never[]) => unknown)>(create: () => M): M {
+    track<M extends MeasuredRunSource<unknown[]> & ((...args: never[]) => unknown)>(create: () => M): M {
       const measure = create();
-      measures.push({ create, measure: measure as unknown as MeasuredRunSource<unknown[]> });
+      measures.push({ create, measure });
       return measure;
     },
     changed() {

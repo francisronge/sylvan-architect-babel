@@ -1,0 +1,523 @@
+{
+  "description": "Stage 2 raises the subject Péter from Spec-VP to Spec-IP, leaving its A-trace in Spec-VP. Stage 3 attaches NegP below the topic, and that attachment carries the later layout back over stage 2. The Spec-VP slot was sized for the trace, so at frame 24, the last frame before the subject moves, N′ overlapped V⁰ (head trace) and the branch from NP to N′ ran into it. Truncated to stages 1 and 2 the record was clear. The slot is now sized for the complete subject from its construction on, and its A-trace stays where the subject stood.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract, 19 October 2026 (night3 batch, 14-hu-verbal-particle, analysis 1 of 2), commit bcf1b56. Tokens are the spell-out word list of that run.",
+  "sentence": "Péter meg nem hívta Marit.",
+  "framework": "xbar",
+  "inputTokens": [
+    "Péter",
+    "meg",
+    "nem",
+    "hívta",
+    "Marit"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "addressee": "d_m",
+            "agent": "d_p",
+            "predicate": "d_v"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "agentRole": "Agent",
+            "internalRole": "Addressee"
+          }
+        },
+        {
+          "anchors": {
+            "caseBearer": "d_m",
+            "governor": "d_v"
+          },
+          "relation": "government and accusative Case",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "definiteObject": "d_m",
+            "verb": "d_v"
+          },
+          "relation": "lexical inflection",
+          "values": {
+            "objectAgreement": "definite",
+            "subjectAgreement": "third-person singular",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "On this reading, meg means roughly ‘in turn’ or ‘on the other hand’; it is not the verbal particle of meghív. Construct a VP with Péter in its internal subject position and Marit as the complement of hívta. The verb assigns the external Agent role to Péter and the internal addressee role to Marit, and governs the object's accusative Case. Marit is represented as an inflected proper-name terminal rather than artificially separating its accusative suffix. Hívta is likewise a lexically inflected verb bearing past-tense, third-person singular and definite-object agreement features; its finite syntactic licensing will be established when it reaches I. The separate AdvP meg remains available for later attachment at the topic–comment boundary. The possible meanings ‘called’ and ‘invited’ for the unprefixed verb do not require different constituent structures.",
+      "statement": "Construct the lexical predicate and introduce discourse-connective meg.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "d_pn",
+                      "label": "N⁰",
+                      "word": "Péter"
+                    }
+                  ],
+                  "id": "d_pbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "d_p",
+              "label": "NP",
+              "lineageId": "d_peter"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "d_v",
+                  "label": "V⁰",
+                  "lineageId": "d_verb",
+                  "word": "hívta"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "d_mn",
+                          "label": "N⁰",
+                          "word": "Marit"
+                        }
+                      ],
+                      "id": "d_mbar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "d_m",
+                  "label": "NP"
+                }
+              ],
+              "id": "d_vbar",
+              "label": "V′"
+            }
+          ],
+          "id": "d_vp",
+          "label": "VP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "d_meg",
+                  "label": "Adv⁰",
+                  "word": "meg"
+                }
+              ],
+              "id": "d_advbar",
+              "label": "Adv′"
+            }
+          ],
+          "id": "d_advp",
+          "label": "AdvP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landing": "d_vfin",
+            "sourceTrace": "d_v",
+            "target": "d_i0"
+          },
+          "priorAnchors": {
+            "movingHead": "d_v"
+          },
+          "relation": "verb-to-I head movement",
+          "values": {
+            "featureLicensing": "past; third-person singular; definite-object agreement",
+            "traceLicensing": "head government"
+          }
+        },
+        {
+          "anchors": {
+            "finiteHead": "d_i0",
+            "landing": "d_pi",
+            "sourceTrace": "d_p"
+          },
+          "priorAnchors": {
+            "movingNP": "d_p"
+          },
+          "relation": "subject A-movement",
+          "values": {
+            "case": "nominative",
+            "subjectRequirement": "satisfied in Spec-IP",
+            "traceLicensing": "local antecedent government"
+          }
+        },
+        {
+          "anchors": {
+            "negator": "d_neg",
+            "scope": "d_ip"
+          },
+          "relation": "sentential negation",
+          "values": {
+            "interpretation": "negation of the finite proposition"
+          }
+        }
+      ],
+      "stageRecord": "Project I above the existing VP and NegP above IP, with nem as Neg⁰. First raise the already present verb to I by head adjunction, leaving a silent verbal trace in its original position. There is no intervening head on this analysis. The inflectional head licenses the verb's lexical past-tense and agreement features. Then raise Péter from the previously established VP-internal position to Spec-IP, where finite I licenses nominative Case and the subject requirement. Its original position becomes a silent NP trace. Both movements preserve the previously assigned theta roles rather than assigning new ones. The verbal trace is head-governed, and the subject trace is locally antecedent-governed by its A-position antecedent. Nem takes the finite proposition as its complement and negates the calling or inviting event; discourse meg remains unattached.",
+      "statement": "Establish finite negation, verb raising and nominative subject licensing.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "d_neg",
+                  "label": "Neg⁰",
+                  "word": "nem"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "d_pn",
+                              "label": "N⁰",
+                              "word": "Péter"
+                            }
+                          ],
+                          "id": "d_pbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "d_pi",
+                      "label": "NP",
+                      "lineageId": "d_peter"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "d_vfin",
+                              "label": "V⁰",
+                              "lineageId": "d_verb",
+                              "word": "hívta"
+                            },
+                            {
+                              "children": [],
+                              "id": "d_i0",
+                              "label": "I⁰",
+                              "silent": true
+                            }
+                          ],
+                          "id": "d_ifin",
+                          "label": "I⁰"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "d_p",
+                              "label": "NP (A-trace)",
+                              "lineageId": "d_peter",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "d_v",
+                                  "label": "V⁰ (head trace)",
+                                  "lineageId": "d_verb",
+                                  "silent": true,
+                                  "word": "hívta"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "d_mn",
+                                          "label": "N⁰",
+                                          "word": "Marit"
+                                        }
+                                      ],
+                                      "id": "d_mbar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "d_m",
+                                  "label": "NP"
+                                }
+                              ],
+                              "id": "d_vbar",
+                              "label": "V′"
+                            }
+                          ],
+                          "id": "d_vp",
+                          "label": "VP"
+                        }
+                      ],
+                      "id": "d_ibar",
+                      "label": "I′"
+                    }
+                  ],
+                  "id": "d_ip",
+                  "label": "IP"
+                }
+              ],
+              "id": "d_negbar",
+              "label": "Neg′"
+            }
+          ],
+          "id": "d_negp",
+          "label": "NegP"
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "d_meg",
+                  "label": "Adv⁰",
+                  "word": "meg"
+                }
+              ],
+              "id": "d_advbar",
+              "label": "Adv′"
+            }
+          ],
+          "id": "d_advp",
+          "label": "AdvP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "comment": "d_negp",
+            "intermediateTrace": "d_pi",
+            "thetaPositionTrace": "d_p",
+            "topic": "d_ptop"
+          },
+          "priorAnchors": {
+            "movingNP": "d_pi"
+          },
+          "relation": "subject topicalization",
+          "values": {
+            "chain": "A-bar topic followed by the nominative A-position and the theta position",
+            "landingPosition": "Spec-TopP",
+            "traceLicensing": "antecedent government"
+          }
+        },
+        {
+          "anchors": {
+            "associatedTopic": "d_ptop",
+            "attachment": "d_topbar",
+            "comment": "d_negp",
+            "connective": "d_advp"
+          },
+          "relation": "discourse-connective attachment",
+          "values": {
+            "interpretation": "Péter, in turn or on the other hand, did not call or invite Mari",
+            "statusOfMeg": "discourse connective, not a verbal particle"
+          }
+        },
+        {
+          "anchors": {
+            "referentialExpressions": [
+              "d_ptop",
+              "d_m"
+            ]
+          },
+          "relation": "Binding Principle C",
+          "values": {
+            "condition": "both proper-name expressions are free"
+          }
+        }
+      ],
+      "stageRecord": "Project TopP above NegP and move Péter from its existing nominative position to Spec-TopP, leaving an A-bar trace in Spec-IP. This movement creates an aboutness topic, potentially contrasted with a discourse alternative; it does not assign another theta role or another Case. The topic antecedent-governs the intermediate trace, while the lower A-link continues to license the VP-internal trace. Then adjoin the previously separate AdvP meg to Top′, between the pronounced topic and the negative comment. This attachment expresses a discourse contrast involving Péter and the following proposition, without positing an unexpressed syntactic coordinate clause. The resulting order is Péter–meg–nem–hívta–Marit. Both proper names are referential expressions and are free, satisfying Binding Principle C; the movement traces are dependencies of Péter, not binders of either name.",
+      "statement": "Complete the discourse-connective reading: Péter, in turn, did not call or invite Mari.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "d_pn",
+                      "label": "N⁰",
+                      "word": "Péter"
+                    }
+                  ],
+                  "id": "d_pbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "d_ptop",
+              "label": "NP",
+              "lineageId": "d_peter"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "d_meg",
+                          "label": "Adv⁰",
+                          "word": "meg"
+                        }
+                      ],
+                      "id": "d_advbar",
+                      "label": "Adv′"
+                    }
+                  ],
+                  "id": "d_advp",
+                  "label": "AdvP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "d_top0",
+                      "label": "Top⁰",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "d_neg",
+                              "label": "Neg⁰",
+                              "word": "nem"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "d_pi",
+                                  "label": "NP (A-bar trace)",
+                                  "lineageId": "d_peter",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "d_vfin",
+                                          "label": "V⁰",
+                                          "lineageId": "d_verb",
+                                          "word": "hívta"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "d_i0",
+                                          "label": "I⁰",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "d_ifin",
+                                      "label": "I⁰"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "d_p",
+                                          "label": "NP (A-trace)",
+                                          "lineageId": "d_peter",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "d_v",
+                                              "label": "V⁰ (head trace)",
+                                              "lineageId": "d_verb",
+                                              "silent": true,
+                                              "word": "hívta"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "d_mn",
+                                                      "label": "N⁰",
+                                                      "word": "Marit"
+                                                    }
+                                                  ],
+                                                  "id": "d_mbar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "d_m",
+                                              "label": "NP"
+                                            }
+                                          ],
+                                          "id": "d_vbar",
+                                          "label": "V′"
+                                        }
+                                      ],
+                                      "id": "d_vp",
+                                      "label": "VP"
+                                    }
+                                  ],
+                                  "id": "d_ibar",
+                                  "label": "I′"
+                                }
+                              ],
+                              "id": "d_ip",
+                              "label": "IP"
+                            }
+                          ],
+                          "id": "d_negbar",
+                          "label": "Neg′"
+                        }
+                      ],
+                      "id": "d_negp",
+                      "label": "NegP"
+                    }
+                  ],
+                  "id": "d_topbarinner",
+                  "label": "Top′"
+                }
+              ],
+              "id": "d_topbar",
+              "label": "Top′"
+            }
+          ],
+          "id": "d_topp",
+          "label": "TopP"
+        }
+      ]
+    }
+  ]
+}

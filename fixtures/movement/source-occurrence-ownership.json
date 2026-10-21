@@ -1,5 +1,7 @@
 [
   {
+    "description": "A lower root and its contained trace are one movement witness; nested witness branches stay unresolved (movementSourceOwnership, movementEndpointDrawing).",
+    "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run panout-20261008/fresh/sol-danish-active, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/panout-20261008/fresh/sol-danish-active (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/panout-20261008/fresh/sol-danish-active).",
     "id": "sol-danish-active/0",
     "sentence": "Børnene dansede rundt i ring.",
     "inputTokens": [
@@ -762,6 +764,8 @@
     ]
   },
   {
+    "description": "A lower root and its contained trace are one movement witness; nested witness branches stay unresolved (movementSourceOwnership, movementEndpointDrawing).",
+    "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run panout-20261008/fresh/astra-danish-impersonal, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/panout-20261008/fresh/astra-danish-impersonal (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/panout-20261008/fresh/astra-danish-impersonal).",
     "id": "astra-danish-impersonal/0",
     "sentence": "Der blev danset rundt i ring.",
     "inputTokens": [
@@ -1340,6 +1344,8 @@
     ]
   },
   {
+    "description": "A lower root and its contained trace are one movement witness; nested witness branches stay unresolved (movementSourceOwnership, movementEndpointDrawing).",
+    "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run panout-20261008/fresh/astra-danish-impersonal, analysis 3. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/panout-20261008/fresh/astra-danish-impersonal (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/closeout-20260926/review/panout-20261008/fresh/astra-danish-impersonal).",
     "id": "astra-danish-impersonal/2",
     "sentence": "Der blev danset rundt i ring.",
     "inputTokens": [

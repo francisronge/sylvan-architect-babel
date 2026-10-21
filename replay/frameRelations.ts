@@ -365,11 +365,12 @@ export const getFrameRelations = (
   // A neutral claim's copy is its displacement only outside every recovered
   // movement of the stage, which owns both of its occurrences, and outside
   // what an earlier claim already establishes.
-  const claimedNodeIds = new Set(recovered.flatMap(step => (step.recoveredMovements ?? [step.recoveredMovement]))
+  const movementOccurrenceNodeIds = [...new Set(recovered.flatMap(step => (step.recoveredMovements ?? [step.recoveredMovement]))
     .filter(movement => movement?.transition).flatMap(movement => [
       ...[movement!.sourceNodeId, movement!.targetNodeId].flatMap(id => collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(currentForest, id))),
       ...collectSyntaxSubtreeNodeIds(findExactNodeByIdInForest(previousForest, movement!.priorSourceNodeId))
-    ]));
+    ]))];
+  const claimedNodeIds = new Set(movementOccurrenceNodeIds);
   // What the stage's recovered movements own at their moments: their current
   // landing and lower-occurrence subtrees, the earlier material of a moved
   // phrase that no longer exists (the moment replaces it), and the new parent a
@@ -391,7 +392,12 @@ export const getFrameRelations = (
     // when nothing else there changes outside the stage's movements.
     const witnessWrapperNodeIds = anchoredCopy ? [] : priorWitnessWrapperNodeIds(step,
       recovered.filter((_other, otherIndex) => otherIndex !== relationIndex), previousForest, currentForest, movementOwnedIds);
-    const wrapping = witnessWrapperNodeIds.length ? { ...step, witnessWrapperNodeIds } : step;
+    const wrapping = {
+      ...step,
+      ...(witnessWrapperNodeIds.length ? { witnessWrapperNodeIds } : {}),
+      ...(movementOccurrenceNodeIds.length && !(step.recoveredMovements ?? [step.recoveredMovement]).some(movement => movement?.transition)
+        ? { movementOccurrenceNodeIds } : {})
+    };
     const displaced = anchoredCopy ? { ...wrapping, anchoredCopyDisplacement: anchoredCopy, ...(ambiguous.length ? { movementDiagnostics: [
       ...(step.movementDiagnostics ?? []),
       `COPY_SOURCE_AMBIGUOUS: Stage ${(plannedStage?.stageIndex ?? 0) + 1}, relation ${(step.authoredRelationIndex ?? relationIndex) + 1} (${step.relation}) relates ${ambiguous.join(', ')} to more than one earlier occurrence of the same object, and no single one is displaced. No earlier form stands in for a later pronunciation.`

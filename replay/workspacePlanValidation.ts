@@ -7,7 +7,7 @@ import { prepareTreeInkSubtrees, treeInkObstacles, type TreeInkTextMeasure } fro
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import type { TreeCoordinateReservation, TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
-import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
+import { extentOverlap, obstacleExtent, verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { currentForkBranchesClear } from './workspaceForkClearance.ts';
 
 type Node = d3.HierarchyPointNode<SyntaxNode>;
@@ -93,8 +93,11 @@ export function validateWorkspacePlacement({ scenes, baseline, direction, placem
     for (const roots of groups) {
       for (let i = 0; i < roots.length; i++) {
         for (let j = i + 1; j < roots.length; j++) {
+          // A pair that cannot overlap by more than 1e-6 on an axis cannot collide.
+          const extent = extentOverlap(obstacleExtent(footprints(roots[i])), obstacleExtent(footprints(roots[j])));
+          if (extent.x <= 1e-6 || extent.y <= 1e-6) continue;
           let query = indexes.get(roots[j]);
-          if (!query) indexes.set(roots[j], query = verticalObstacleIndex(footprints(roots[j])));
+          if (!query) indexes.set(roots[j], query = verticalObstacleIndex(footprints(roots[j]), { overlapOnly: true }));
           for (const a of footprints(roots[i])) {
             if (query(a, b => Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) > 1e-6
               && Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) > 1e-6

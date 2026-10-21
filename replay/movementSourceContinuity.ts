@@ -8,7 +8,7 @@ import { prepareTreeInkSubtrees, type TreeInkTextMeasure } from './treeInkGeomet
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
-import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
+import { extentOverlap, obstacleExtent, verticalObstacleIndex } from './verticalObstacleIndex.ts';
 import { currentForkBranchesClear } from './workspaceForkClearance.ts';
 import { constructionReceivingAttachments, movementReceivingAttachments, type CurrentWorkspaceTopology } from './workspaceReceivingHost.ts';
 import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
@@ -68,8 +68,13 @@ export function retainMovementSourceSlots(steps: readonly PlaybackStep[], sizes:
         obstacles: ink(child).map(box => ({ ...box, x: box.x - child.x, y: box.y - child.y })) })))) return false;
       groups.push(daughters);
     }
+    const indexes = new Map<Node, ReturnType<typeof verticalObstacleIndex<ReturnType<typeof ink>[number]>>>();
     for (const group of groups) for (let i = 0; i < group.length; i++) for (let j = i + 1; j < group.length; j++) {
-      const query = verticalObstacleIndex(ink(group[j]));
+      // A pair that cannot overlap by more than epsilon on an axis cannot collide.
+      const extent = extentOverlap(obstacleExtent(ink(group[i])), obstacleExtent(ink(group[j])));
+      if (extent.x <= epsilon || extent.y <= epsilon) continue;
+      let query = indexes.get(group[j]);
+      if (!query) indexes.set(group[j], query = verticalObstacleIndex(ink(group[j]), { overlapOnly: true }));
       for (const a of ink(group[i])) if (query(a, b =>
         Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x) > epsilon
         && Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) > epsilon

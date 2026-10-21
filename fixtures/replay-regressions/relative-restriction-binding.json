@@ -1,4 +1,5 @@
 {
+  "description": "Turkish relative restriction earns variable binding from exact operator evidence (relativeRestrictionBinding).",
   "provenance": {
     "model": "openai:gpt-6.1-sol",
     "harness": "qualification:codex",

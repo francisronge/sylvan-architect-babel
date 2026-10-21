@@ -1,6 +1,8 @@
 {
+  "description": "Ten Arabic analyses: adjunct attachment without deforming the clause; head movement keeps pronunciation (workspaceArabicContinuity).",
   "cases": [
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/arabic-relative, analysis 1. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative).",
       "key": "arabic-relative/0",
       "sentence": "وصلت الطالبة التي تحدثت معها أمس.",
       "inputTokens": [
@@ -498,6 +500,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/arabic-relative, analysis 2. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative).",
       "key": "arabic-relative/1",
       "sentence": "وصلت الطالبة التي تحدثت معها أمس.",
       "inputTokens": [
@@ -995,6 +998,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/arabic-relative, analysis 3. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative).",
       "key": "arabic-relative/2",
       "sentence": "وصلت الطالبة التي تحدثت معها أمس.",
       "inputTokens": [
@@ -1492,6 +1496,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/arabic-relative, analysis 4. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative).",
       "key": "arabic-relative/3",
       "sentence": "وصلت الطالبة التي تحدثت معها أمس.",
       "inputTokens": [
@@ -1989,6 +1994,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/arabic-relative, analysis 5. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative).",
       "key": "arabic-relative/4",
       "sentence": "وصلت الطالبة التي تحدثت معها أمس.",
       "inputTokens": [
@@ -2496,6 +2502,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/arabic-relative, analysis 6. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative).",
       "key": "arabic-relative/5",
       "sentence": "وصلت الطالبة التي تحدثت معها أمس.",
       "inputTokens": [
@@ -3027,6 +3034,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/arabic-relative, analysis 7. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative).",
       "key": "arabic-relative/6",
       "sentence": "وصلت الطالبة التي تحدثت معها أمس.",
       "inputTokens": [
@@ -3558,6 +3566,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/arabic-relative, analysis 8. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative).",
       "key": "arabic-relative/7",
       "sentence": "وصلت الطالبة التي تحدثت معها أمس.",
       "inputTokens": [
@@ -4089,6 +4098,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/arabic-relative, analysis 9. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative).",
       "key": "arabic-relative/8",
       "sentence": "وصلت الطالبة التي تحدثت معها أمس.",
       "inputTokens": [
@@ -4620,6 +4630,7 @@
       ]
     },
     {
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run saved-analyses/qualification-20261003/initial-24-requests/arabic-relative, analysis 10. Exact copy. Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/saved-analyses/qualification-20261003/initial-24-requests/arabic-relative).",
       "key": "arabic-relative/9",
       "sentence": "وصلت الطالبة التي تحدثت معها أمس.",
       "inputTokens": [

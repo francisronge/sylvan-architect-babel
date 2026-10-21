@@ -243,3 +243,30 @@ test('a proved head landing with several terminals attaches at its shell whateve
   assert.deepEqual(result.requested, [['verbTrace', 'shell-bottom'], ['raised', 'shell-bottom']]);
   assert.equal(result.path?.['marker-end'], 'url(#arrow)');
 });
+
+const compoundRoles = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/compound-movement-roles.json', import.meta.url))).cases;
+for (const [caseIndex, identity, tier, kind, sourceId, targetId, site] of [
+  [0, { stageIndex: 5, relationIndex: 0 }, 1, 'head', 'a_vtrace', 'a_v', 'a_thead'],
+  [1, { stageIndex: 4, relationIndex: 1 }, 1, 'head', 'hv', 'hv1', 'ht'],
+  [1, { stageIndex: 5, relationIndex: 0 }, 2, 'phrasal', 'dpO1', 'dpO2', undefined]
+]) test(`compound movement roles beside a host, complex or carried head draw ${sourceId} → ${targetId} from their moment`, () => {
+  const record = compoundRoles[caseIndex], original = structuredClone(record);
+  const prepared = prepareReplay({ ...structuredClone(record), includePlayback: true });
+  const item = prepared.relationRenderPlan.frames[identity.stageIndex].items.find(i => i.kind === 'trajectory'
+    && i.relationRef.stageIndex === identity.stageIndex && i.relationRef.relationIndex === identity.relationIndex);
+  assert(item, 'the claim keeps its arrow');
+  assert.equal(item.claimTier, tier);
+  assert.deepEqual([item.trajectoryKind, item.sourceNodeId, item.targetNodeId, item.headLandingSite?.nodeId],
+    [kind, sourceId, targetId, site]);
+  const start = momentIndex(prepared, identity);
+  assert(start > 0);
+  assert.equal(prepared.playbackSteps[start].movementDiagnostics, undefined);
+  assert.equal(drawReplayRelation(prepared, start - 1, identity), null, 'no early arrow');
+  const result = drawReplayRelation(prepared, start, identity);
+  assert.deepEqual(result.bound.failed, []);
+  assert.equal(result.bound.primitives.length, 1);
+  assert.equal(result.path?.['marker-end'], 'url(#arrow)');
+  assert.doesNotMatch(result.path.d, /NaN|Infinity/);
+  assert.deepEqual(result.requested.map(([id]) => id), [sourceId, targetId]);
+  assert.deepEqual(record, original, 'authored records are unchanged');
+});
