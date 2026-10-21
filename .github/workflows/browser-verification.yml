@@ -1,9 +1,14 @@
 name: Functional browser verification
 
+# Pull requests and a nightly run on main. A merge to main needs no run of its
+# own: branch protection requires every pull request to be up to date with
+# main, so the merged tree is the tree its pull request already verified. The
+# nightly run covers what changes without a commit (runner images, browser
+# downloads) and keeps main's dependency and browser caches warm.
 on:
   pull_request:
-  push:
-    branches: [main]
+  schedule:
+    - cron: '23 3 * * *'
   workflow_dispatch:
 
 permissions:
@@ -14,10 +19,51 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  browser-verification:
-    name: Provider-free browser behavior
+  changes:
+    name: Decide whether browsers can be affected
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      markdown-only: ${{ steps.files.outputs.markdown-only }}
+    steps:
+      # No browser spec, browser helper or the browser runner reads a Markdown
+      # file, so a pull request that changes only Markdown skips the browser
+      # jobs. The "Provider-free browser behavior" job still reports.
+      - name: List the files the pull request changes
+        id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            echo "markdown-only=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          gh api --paginate "repos/$REPOSITORY/pulls/$NUMBER/files" --jq '.[].filename' > "$RUNNER_TEMP/files.txt"
+          total=$(wc -l < "$RUNNER_TEMP/files.txt")
+          other=$(grep -vc '\.md$' "$RUNNER_TEMP/files.txt" || true)
+          echo "$total changed files, $other not Markdown"
+          # The files API lists at most 3,000 files; a list that long is not trusted.
+          if [ "$total" -gt 0 ] && [ "$total" -lt 3000 ] && [ "$other" -eq 0 ]; then
+            echo "markdown-only=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "markdown-only=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  browser-shard:
+    name: Browser behavior (${{ matrix.shard }})
+    needs: changes
+    if: needs.changes.outputs.markdown-only != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # The shards of BROWSER_CI_SHARDS in scripts/browserSuites.mjs; the
+        # final job fails unless their receipts cover the full gate.
+        shard: [renderer, application]
     steps:
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,17 +79,83 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Read the locked Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
+
+      # The browser builds belong to the locked Playwright version. The install
+      # step below skips builds already present and still installs the system
+      # dependencies, which are not cached.
+      - name: Restore pinned browser downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-ubuntu-24.04-${{ steps.playwright.outputs.version }}-chromium-webkit
+
       - name: Install pinned browser runtimes
         run: npx --no-install playwright install --with-deps chromium webkit
 
-      - name: Verify all required browser suites
-        run: npm run verify:browser -- --evidence "$RUNNER_TEMP/browser-evidence"
+      - name: Verify this shard's required browser suites
+        run: npm run verify:browser -- --suite "ci:${{ matrix.shard }}" --evidence "$RUNNER_TEMP/browser-evidence"
 
       - name: Retain browser diagnostics and captures
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: browser-verification-${{ github.run_attempt }}
+          name: browser-verification-${{ matrix.shard }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/browser-evidence
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Retain the shard receipt for the coverage check
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: browser-receipt-${{ matrix.shard }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/browser-evidence/receipt.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  browser-verification:
+    name: Provider-free browser behavior
+    needs: [changes, browser-shard]
+    # Always reports, so this check is never left pending: it passes for a
+    # Markdown-only pull request whose shards were skipped, and otherwise only
+    # when both shards passed and their receipts ran every required spec once.
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require the shards to succeed, or to be skipped for Markdown only
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          MARKDOWN_ONLY: ${{ needs.changes.outputs.markdown-only }}
+          SHARDS: ${{ needs.browser-shard.result }}
+        run: |
+          echo "changes: $CHANGES; markdown only: $MARKDOWN_ONLY; shards: $SHARDS"
+          if [ "$CHANGES" != success ]; then exit 1; fi
+          if [ "$MARKDOWN_ONLY" = true ]; then [ "$SHARDS" = skipped ]; exit $?; fi
+          [ "$SHARDS" = success ]
+
+      - name: Check out candidate
+        if: needs.changes.outputs.markdown-only != 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 24
+        if: needs.changes.outputs.markdown-only != 'true'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+
+      - name: Download the shard receipts
+        if: needs.changes.outputs.markdown-only != 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: browser-receipt-*
+          path: ${{ runner.temp }}/browser-receipts
+
+      - name: Confirm the shards ran every required browser spec exactly once
+        if: needs.changes.outputs.markdown-only != 'true'
+        run: node scripts/checkBrowserShardReceipts.mjs "$RUNNER_TEMP/browser-receipts"

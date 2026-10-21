@@ -1,16 +1,21 @@
 name: CI
 
+# Pull requests and a nightly run on main. A merge to main needs no run of its
+# own: branch protection requires every pull request to be up to date with
+# main, so the merged tree is the tree its pull request already verified. The
+# nightly run covers what changes without a commit (new dependency advisories,
+# runner images) and keeps main's dependency cache warm.
 on:
   pull_request:
-  push:
-    branches: [main]
+  schedule:
+    - cron: '7 3 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 # A new push to a pull request supersedes its unfinished run. Other runs never
-# share a group, so main and manual runs always finish.
+# share a group, so nightly and manual runs always finish.
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
