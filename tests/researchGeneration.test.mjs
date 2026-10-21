@@ -11,7 +11,7 @@ import { buildReplaySnapshotProjection } from '../replay/replaySnapshot.ts';
 import { buildQualificationAnalysisEvidence } from '../contractQualification/review.js';
 import { createTreeBankBundleSnapshot, loadTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
 import { parseSentence, ParseServiceError } from '../services/parseService.ts';
-import { MAX_RAW_OUTPUT_BYTES } from '../server/babelParser/validationErrors.js';
+import { MAX_RAW_OUTPUT_BODY_BYTES, MAX_RAW_OUTPUT_BYTES } from '../server/babelParser/validationErrors.js';
 import { createHash } from 'node:crypto';
 import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 
@@ -229,6 +229,38 @@ test('repair diagnostics and original bytes survive the new generation path', as
   assert.equal(bundle.analyses[0].provenance.payloadRepairDiagnostics[0].kind, 'append_closers_at_end_of_output');
   assert.deepEqual(bundle.generationRecord.processing.json.repairDiagnostics, bundle.analyses[0].provenance.payloadRepairDiagnostics);
   assert.equal(bundle.generationRecord.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damagedOutput));
+});
+
+test('a large malformed answer keeps the whole failure body within its bound on every route', async t => {
+  isolate(t);
+  const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+  // Unclosed JSON whose envelope alone nearly fills the body budget.
+  const raw = `{"derivationStages": [{"statement": "${'λ'.repeat(700 * 1024)}"`;
+  for (const modelId of GENERATION_MODEL_IDS) {
+    const response = JSON.stringify(envelopeFor(getResearchModel(modelId), raw));
+    const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(response));
+    await assert.rejects(() => parseFromBody({ sentence: fixture.sentence, modelId }), error => {
+      const { body } = formatApiError(error);
+      assert.ok(Buffer.byteLength(JSON.stringify(body), 'utf8') <= MAX_RAW_OUTPUT_BODY_BYTES, modelId);
+      // The extracted output stays complete, so the failure can still be inspected.
+      const output = body.error.rawOutput;
+      assert.equal(output.truncated, false, modelId);
+      assert.equal(decode(output), raw, modelId);
+      assert.equal(output.sha256, sha256(raw), modelId);
+      // The provider envelope keeps an honest prefix of every byte received.
+      const envelope = body.error.generationRecord.rawProviderResponse;
+      const received = Buffer.from(response);
+      assert.equal(envelope.truncated, true, modelId);
+      assert.equal(envelope.byteLength, received.byteLength, modelId);
+      assert.equal(envelope.sha256, sha256(received), modelId);
+      const kept = Buffer.from(envelope.data, 'base64');
+      assert.equal(kept.byteLength, envelope.retainedByteLength, modelId);
+      assert.deepEqual(kept, received.subarray(0, kept.byteLength), modelId);
+      return true;
+    });
+    assert.equal(fetch.mock.callCount(), 1);
+    fetch.mock.restore();
+  }
 });
 
 test('all active routes reject an authored token address and retain the original bytes', async t => {
