@@ -49,6 +49,7 @@ import type {
 import { buildTier2FacetEvidence } from './relationEvidence.ts';
 import { PRODUCTION_RENDER_FAMILIES } from './renderFamilies.ts';
 import { typedInterpretiveRoles, typedThematicAssignment } from './thematicAssignment.ts';
+import { structuralClaimScopes, structuralRecognitionRules, type StructuralRuleId } from './structuralRecognition.ts';
 import { indexTier2Forests, type Tier2ForestIndexes } from './tier2EvidenceQueries.ts';
 import { evaluateTier2FacetRecipe } from './tier2FacetEvaluation.ts';
 import { buildTier2FacetIdentity, buildTier2FacetOutputIdentities } from './tier2FacetIdentity.ts';
@@ -614,8 +615,21 @@ export const dispatchRelationClaims = (
     const evaluation = evaluateTier2FacetRecipe(recipe, scope.evidence, indexes);
     if (evaluation.complete) continued.push({ recipe, evaluation, evidence: scope.evidence, origins: scope.origins });
   }
-  const completedClaims = registryEntry ? [...selected, ...continued]
+  let completedClaims = registryEntry ? [...selected, ...continued]
     : ownFiniteTenseContext([...selected, ...continued], evidence, indexes);
+  // An unregistered envelope that earned no claim may still earn one from its
+  // structure alone; see structuralRecognitionRules.
+  const structuralRulesUsed: StructuralRuleId[] = [];
+  if (!registryEntry && !completedClaims.length && input.structuralRules?.size && !relation.relationContractFailure) {
+    completedClaims = structuralClaimScopes(evidence, {
+      relation, currentForest, priorForest, currentRealizations, priorRealizations
+    }, input.structuralRules).flatMap(scope => {
+      const recipe = TIER2_FACET_RECIPES.find(entry => entry.id === scope.kind)!;
+      const evaluation = evaluateTier2FacetRecipe(recipe, scope.evidence, indexes);
+      if (evaluation.complete) structuralRulesUsed.push(scope.rule);
+      return evaluation.complete ? [{ recipe, evaluation, evidence: scope.evidence, origins: scope.origins }] : [];
+    });
+  }
   const tier2ClaimFacets = [...new Map(attachFacetIdentities(completedClaims, evidence, stageIndex, indexes)
     .map(facet => [JSON.stringify([facet.facetIdentity, facet.evaluation.consumedEvidence]), facet])).values()];
   const companions = attachFacetIdentities(
@@ -819,7 +833,8 @@ export const dispatchRelationClaims = (
     primaryClaim,
     claims,
     evidenceCoverage,
-    ...(residualRelation ? { residualRelation } : {})
+    ...(residualRelation ? { residualRelation } : {}),
+    ...(structuralRulesUsed.length ? { structuralRules: structuralRulesUsed } : {})
   };
 };
 
@@ -861,14 +876,41 @@ export const dispatchRelationClaimBatch = (
 
 /** Earlier claims can clarify later restatements; later relations never justify earlier ones. */
 export function dispatchStageRelations(stages: readonly { workspaceForest: SyntaxNode[]; relations: DerivationStageRelation[]; realizations?: SurfaceRealization[] }[],
-  options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens'> = {}): RelationClaimDispatch[][] {
+  options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens' | 'structuralRules'> = {}): RelationClaimDispatch[][] {
+  const structuralRules = options.structuralRules ?? structuralRecognitionRules();
+  const dispatches = dispatchStagesInOrder(stages, structuralRules.size ? { ...options, structuralRules } : options);
+  if (!structuralRules.has('plaque.single-host')) return dispatches;
+  // A structure-only plaque yields to any other relation that anchors its host
+  // and draws: two plaques on one node crowd each other out of reach.
+  const drawsAt = new Map<string, Set<string>>();
+  dispatches.forEach((stage, stageIndex) => stage.forEach((dispatch, relationIndex) => {
+    if (!dispatch.claims.some(claim => claim.tier !== 3)) return;
+    Object.values(stages[stageIndex].relations[relationIndex].anchors ?? {}).flat().forEach(id =>
+      drawsAt.set(String(id), new Set([...(drawsAt.get(String(id)) ?? []), `${stageIndex}:${relationIndex}`])));
+  }));
+  const yielding = new Set(dispatches.flatMap((stage, stageIndex) => stage.flatMap((dispatch, relationIndex) => {
+    const key = `${stageIndex}:${relationIndex}`;
+    const hosts = Object.values(stages[stageIndex].relations[relationIndex].anchors ?? {}).flat().map(String);
+    return dispatch.structuralRules?.includes('plaque.single-host')
+      && hosts.some(id => [...(drawsAt.get(id) ?? [])].some(other => other !== key)) ? [key] : [];
+  })));
+  return yielding.size ? dispatchStagesInOrder(stages, { ...options, structuralRules }, yielding) : dispatches;
+}
+
+/** One ordered pass over the stages. Earlier claims inform later ones through
+ * the assignment and control contexts; relations listed in `withoutStructure`
+ * are dispatched by wording alone. */
+function dispatchStagesInOrder(stages: Parameters<typeof dispatchStageRelations>[0],
+  options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens' | 'structuralRules'>,
+  withoutStructure: ReadonlySet<string> = new Set()): RelationClaimDispatch[][] {
   const assignmentContext = createAssignmentContext();
   const controlContext = createControlContext();
   return stages.map((stage, stageIndex) => {
     beginControlStage(controlContext, stage.workspaceForest);
     return stage.relations.map((relation, relationIndex) => {
       const dispatch = dispatchRelationClaims({
-        ...options, relation, stageIndex, relationIndex, assignmentContext, controlContext,
+        ...options, ...(withoutStructure.has(`${stageIndex}:${relationIndex}`) ? { structuralRules: new Set() } : {}),
+        relation, stageIndex, relationIndex, assignmentContext, controlContext,
         currentForest: stage.workspaceForest, currentRealizations: stage.realizations,
         priorRealizations: stages[stageIndex - 1]?.realizations, priorForest: stages[stageIndex - 1]?.workspaceForest
       });

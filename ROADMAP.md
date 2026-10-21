@@ -60,9 +60,13 @@ syntactic rules. Desktop remains the primary experience.
    - Check right-to-left once, as a mirror of left-to-right across the saved
      parses, then run continuity checks once per width.
 4. Recognition:
-   - Run an offline, geometry-first recognition experiment over every saved
-     parse: measure the wrong-picture rate where Babel already draws, and build
-     a review page for relations Babel does not yet draw.
+   - Neutral relations can earn a shared-lineage coindex or a single-host
+     plaque from structure alone; the adjunction fork stays off because
+     structure cannot tell scope from modification (see the
+     [dispatch spec](docs/design/visual-relations-tier2-shape-dispatch-spec.md#structure-only-recognition-of-neutral-relations)).
+     Run the same geometry-first experiment for movement and the other
+     relations: measure the wrong-picture rate where Babel already draws, and
+     decide whether each further measured rule can claim its whole envelope.
    - Later, consider Jev as a fallback.
 5. Remove the legacy server model-route picker (Gemini default, stale model names,
    legacy environment variables) and the `.artifacts` harnesses that depend on it.
