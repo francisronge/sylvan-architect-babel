@@ -1,3 +1,4 @@
+import { quadraticTrajectoryBellyY, TRAJECTORY_ROUTES } from '../rendererMetrics.ts';
 import type { BoundShapePath } from './boundGeometry.ts';
 import type { GeometryBinders } from './geometryContext.ts';
 import {
@@ -46,7 +47,7 @@ export const pathGeometry = {
     const fanOffset = ordinal * 20;
     if (item.trajectoryKind === 'sideward') {
       const crestY = options.trajectoryCeilingY
-        ?? Math.min(from.y - 70, to.y - 70);
+        ?? Math.min(from.y - TRAJECTORY_ROUTES.crestAboveEndpoint, to.y - TRAJECTORY_ROUTES.crestAboveEndpoint);
       const control = { x: from.x, y: crestY };
       const control2 = { x: to.x, y: crestY };
       primitives.push({
@@ -72,9 +73,9 @@ export const pathGeometry = {
       || item.trajectoryKind === 'smuggling'
     ) {
       const laneY = item.trajectoryKind === 'roll-up'
-        ? Math.max(from.y, to.y) + 46 + ordinal * 12
+        ? Math.max(from.y, to.y) + TRAJECTORY_ROUTES.rollUpLaneOffset + ordinal * TRAJECTORY_ROUTES.rollUpLaneStep
         : options.trajectoryFloorY
-        ?? Math.max(from.y, to.y) + 90 * (ordinal + 1);
+        ?? Math.max(from.y, to.y) + TRAJECTORY_ROUTES.orthogonalLaneSpacing * (ordinal + 1);
       const control = { x: from.x, y: laneY };
       primitives.push({
         type: 'trajectory-path',
@@ -93,12 +94,10 @@ export const pathGeometry = {
       return;
     }
     const direction = Math.sign(to.x - from.x) || 1;
-    const start = { x: from.x + 8 * direction, y: from.y + fanOffset };
-    const end = { x: to.x - 8 * direction, y: to.y + fanOffset };
-    const control = {
-      x: (start.x + end.x) / 2,
-      y: Math.max(start.y, end.y) + Math.max(42, Math.abs(end.x - start.x) * 0.2) + fanOffset
-    };
+    const inset = TRAJECTORY_ROUTES.quadraticEndpointInset;
+    const start = { x: from.x + inset * direction, y: from.y + fanOffset };
+    const end = { x: to.x - inset * direction, y: to.y + fanOffset };
+    const control = { x: (start.x + end.x) / 2, y: quadraticTrajectoryBellyY(start, end) + fanOffset };
     primitives.push({
       type: 'trajectory-path',
       trajectoryKind: item.trajectoryKind,

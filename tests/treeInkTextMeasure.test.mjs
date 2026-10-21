@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createTreeInkTextMeasure, TERMINAL_FONT, TERMINAL_INDEX_FONT } from '../components/treeInkTextMeasure.ts';
+import { createTreeInkTextMeasure } from '../components/treeInkTextMeasure.ts';
+import { TERMINAL_FONT, TERMINAL_INDEX_FONT } from '../replay/rendererMetrics.ts';
 
 function documentStub(fail = false) {
   const probes = [], nodes = [];

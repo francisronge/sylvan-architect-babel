@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import { getNodeId, isReplayDisplayChild } from '../../replay/displayIdentity.ts';
 import { resolveUniqueDisplayTerminal } from '../../replay/relations/trajectoryAttachment.ts';
+import { SHELL_ATTACHMENT_CLEARANCE, TERMINAL_ATTACHMENT_Y, TRAJECTORY_ROUTES } from '../../replay/rendererMetrics.ts';
 import { isDisplayTerminalNode } from '../../replay/replaySurfaceNotation.ts';
 import { type HierNode } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
@@ -97,10 +98,10 @@ export function createTreeMeasurements({ g, overlayNodeById, measureGraphicsElem
       if (rect.width || rect.height) {
         const point = new DOMPoint(rect.left + rect.width / 2, rect.bottom)
           .matrixTransform(matrix.inverse());
-        return { x: point.x, y: point.y + 6 };
+        return { x: point.x, y: point.y + SHELL_ATTACHMENT_CLEARANCE.bottom };
       }
     }
-    return { x: fallback.x, y: fallback.y + 6 };
+    return { x: fallback.x, y: fallback.y + SHELL_ATTACHMENT_CLEARANCE.bottom };
   };
   const measuredShellTop = (
     nodeId: string,
@@ -116,10 +117,10 @@ export function createTreeMeasurements({ g, overlayNodeById, measureGraphicsElem
       if (rect.width || rect.height) {
         const point = new DOMPoint(rect.left + rect.width / 2, rect.top)
           .matrixTransform(matrix.inverse());
-        return { x: point.x, y: point.y - 8 };
+        return { x: point.x, y: point.y - SHELL_ATTACHMENT_CLEARANCE.top };
       }
     }
-    return { x: fallback.x, y: fallback.y - 8 };
+    return { x: fallback.x, y: fallback.y - SHELL_ATTACHMENT_CLEARANCE.top };
   };
   const measuredTerminalBottom = (
     terminal: d3.HierarchyPointNode<SyntaxNode>
@@ -138,22 +139,22 @@ export function createTreeMeasurements({ g, overlayNodeById, measureGraphicsElem
       if (rect.width || rect.height) {
         const point = new DOMPoint(rect.left + rect.width / 2, rect.bottom)
           .matrixTransform(matrix.inverse());
-        return { x: point.x, y: point.y + 6 };
+        return { x: point.x, y: point.y + SHELL_ATTACHMENT_CLEARANCE.bottom };
       }
     }
-    return { x: terminal.x, y: terminal.y + 140 };
+    return { x: terminal.x, y: terminal.y + TERMINAL_ATTACHMENT_Y };
   };
   const measuredTreeTextTopY = (): number => {
     const space = g.node();
     const matrix = space?.getScreenCTM();
-    if (!matrix) return -90;
+    if (!matrix) return TRAJECTORY_ROUTES.textTopFallbackY;
     const inverse = matrix.inverse();
     const tops = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
       .nodes()
       .map((label) => label.getBoundingClientRect())
       .filter((rect) => rect.width || rect.height)
       .map((rect) => new DOMPoint(rect.left, rect.top).matrixTransform(inverse).y);
-    return d3.min(tops) ?? -90;
+    return d3.min(tops) ?? TRAJECTORY_ROUTES.textTopFallbackY;
   };
   const measuredTerminalSubtreeRectNow = (nodeId: string) => {
     const anchor = overlayNodeById.get(nodeId);

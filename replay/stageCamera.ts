@@ -47,10 +47,15 @@ import { cloneSyntaxTree } from './syntaxForest.ts';
 import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
 import { isUnderTriangulation, markTriangulatedNodes } from './triangulation.ts';
 import { isDisplayTerminalNode, resolveLeafSurface } from './replaySurfaceNotation.ts';
+import {
+  LEAF_INK_EXTENT_Y, nominalLabelWidth, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE,
+  SHELL_ATTACHMENT_CLEARANCE, TERMINAL_ATTACHMENT_Y, TRAJECTORY_ROUTES
+} from './rendererMetrics.ts';
 import { buildStageCoordinateReservations } from './stageCoordinates.ts';
 import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { TREE_ROW_HEIGHT } from './treeSpacing.ts';
 import { type PlaybackStep } from './types.ts';
 
 export type StageLayoutInput = {
@@ -82,9 +87,10 @@ function stagePositionProvider(byId: Map<string, d3.HierarchyPointNode<SyntaxNod
     if (attachment === 'terminal') {
       const { terminal } = resolveUniqueDisplayTerminal(node, n => n.children || [],
         n => isDisplayTerminalNode(n.data));
-      return terminal ? { x: terminal.x, y: terminal.y + 140 } : null;
+      return terminal ? { x: terminal.x, y: terminal.y + TERMINAL_ATTACHMENT_Y } : null;
     }
-    return { x: node.x, y: node.y + (attachment === 'shell-bottom' ? 6 : attachment === 'shell-top' ? -8 : 0) };
+    return { x: node.x, y: node.y + (attachment === 'shell-bottom' ? SHELL_ATTACHMENT_CLEARANCE.bottom
+      : attachment === 'shell-top' ? -SHELL_ATTACHMENT_CLEARANCE.top : 0) };
   };
 }
 
@@ -659,8 +665,8 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
     const plan = { ...input.plan, frames: input.plan.frames.map((frame, index) =>
       index === input.stageIndex ? { ...frame, items: trajectories } : frame) };
     const bound = bindRelationPlanFrame(plan, input.stageIndex, stagePositionProvider(byId), {
-      trajectoryCeilingY: (d3.min([...byId.values()], node => node.y) ?? 0) - 160,
-      trajectoryFloorY: (d3.max([...byId.values()], node => node.y) ?? 0) + 180
+      trajectoryCeilingY: (d3.min([...byId.values()], node => node.y) ?? 0) - TRAJECTORY_ROUTES.ceilingAboveTopNode,
+      trajectoryFloorY: (d3.max([...byId.values()], node => node.y) ?? 0) + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor
     });
     for (const path of bound.primitives) {
       if (path.type !== 'trajectory-path') continue;
@@ -686,7 +692,7 @@ export const LAYOUT_REFERENCE_CANVAS = { width: 1600, height: 948 } as const;
 
 export function treeLayoutSize(nodeCount: number, depth: number) {
   return [Math.max(LAYOUT_REFERENCE_CANVAS.width * 1.5, nodeCount * 180) - 600,
-    Math.max(LAYOUT_REFERENCE_CANVAS.height, (depth + 2) * 220) - 520] as [number, number];
+    Math.max(LAYOUT_REFERENCE_CANVAS.height, (depth + 2) * TREE_ROW_HEIGHT) - 520] as [number, number];
 }
 
 /** Compatible continuations retain the original stage's dimensions; new content still expands fit bounds.
@@ -749,6 +755,49 @@ export function buildStageCameraBounds(input: StageCameraInput): OverlayBounds |
   } : null;
 }
 
+/** Families whose accepted composition fits the tree first: their stage camera
+ * omits relation overlays and contains their plaques separately. */
+export const TREE_FIRST_FAMILIES: ReadonlySet<string> = new Set(['copy.multiple-pronunciation', 'copy.partial-deletion',
+  'multidominance.shared-node', 'argument-sharing.domains', 'pf.phrasal-spellout', 'pf.correspondence', 'pf.fission',
+  'pf.impoverishment', 'pf.local-dislocation', 'pf.cyclic-linearization', 'cooper-storage.ledger', 'scope.operator-variable',
+  'accord.link', 'accord.strong-npi', 'focus.prominence', 'focus.f-projection', 'theta.grid']);
+
+export const isTreeFirstComposition = (items: readonly { familyId?: string }[]) =>
+  items.some(item => TREE_FIRST_FAMILIES.has(item.familyId ?? ''));
+
+/** Every measure the painter reads must reach the camera. The keys are required,
+ * so a caller cannot fit a camera from estimates the painter does not draw. */
+type StageCameraMeasures = { [Key in 'measurePlaqueText' | 'measureCategoryText' | 'measureTreeInk' | 'treeLabelRuns' | 'measureTreeLabel']-?:
+  StageLayoutInput[Key] | undefined };
+
+export type StageCameraFitInput = Omit<StageCameraInput, 'includeOverlays' | 'includePlaques' | 'includeBindingDomains'
+  | 'plaqueLayout' | 'completedCanvas' | keyof StageCameraMeasures> & StageCameraMeasures & {
+  /** The active stage's renderable workspace; null for an empty workspace. */
+  completedCanvas: SyntaxNode | null;
+  plaqueSchedule: ReplayPlaqueSchedule;
+  disableRelationOverlay?: boolean;
+};
+
+export type StageCameraFit = { bounds: OverlayBounds | null; containment: OverlayBounds | null };
+
+/** The stage camera Replay fits: its bounds, plus the plaque containment that
+ * tree-first compositions and binding domains add. TreeVisualizer and the offline
+ * camera audit both call this, so the audit checks the camera the app fits.
+ * Normalization accepts an empty workspace before the final stage; it has no
+ * syntax to frame, so it contributes no bounds and the ordinary fit applies. */
+export function buildStageCameraFit({ disableRelationOverlay = false, completedCanvas, ...rest }: StageCameraFitInput): StageCameraFit {
+  if (!completedCanvas) return { bounds: null, containment: null };
+  const input = { ...rest, completedCanvas };
+  const items = input.plan?.frames[input.stageIndex]?.items ?? [];
+  const treeFirst = isTreeFirstComposition(items);
+  const common = { ...input, plaqueLayout: selectReplayPlaqueLayout(input.plaqueSchedule, input.stageIndex) };
+  const bounds = buildStageCameraBounds({ ...common, includeOverlays: !disableRelationOverlay && !treeFirst });
+  const containment = bounds && !disableRelationOverlay && (treeFirst || items.some(item => item.kind === 'binding-domain'))
+    ? buildStageCameraBounds({ ...common, includeOverlays: false, includePlaques: true, includeBindingDomains: true })
+    : null;
+  return { bounds, containment };
+}
+
 function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, width, height, layoutGroups, direction = 'ltr',
   abstractionMode = false, protectedNodeIds = new Set<string>(), includeOverlays = true,
   includePlaques = includeOverlays, includeBindingDomains = false,
@@ -780,12 +829,13 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
     // Later scenes reserve its real placement in the same stage-wide fit.
     const projectedPlaques = projectPlaqueLayout(placements, id => byId.get(id) ?? null);
     projectedPlaques.forEach(rect => include({
-      minX: rect.x - 24, maxX: rect.x + rect.width + 24, minY: rect.y - 24, maxY: rect.y + rect.height + 24
+      minX: rect.x - PLAQUE_FIT_MARGIN, maxX: rect.x + rect.width + PLAQUE_FIT_MARGIN,
+      minY: rect.y - PLAQUE_FIT_MARGIN, maxY: rect.y + rect.height + PLAQUE_FIT_MARGIN
     }));
     for (const node of fitNodes) {
       const label = categoryTextLayout(node.data.label || '', measureCategoryText);
       include({ minX: node.x, maxX: node.x, minY: node.y,
-        maxY: node.y + (node.children?.length ? 0 : 130) });
+        maxY: node.y + (node.children?.length ? 0 : LEAF_INK_EXTENT_Y) });
       if (label.lines.length > 1) include({ minX: node.x + label.x, maxX: node.x - label.x,
         minY: node.y + label.y, maxY: node.y });
     }
@@ -824,7 +874,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
           isDisplayTerminalNode(child.data)) : [];
         const rects = (leaves.length ? leaves : [node]).map(child => {
           const word = leaves.length ? resolveLeafSurface(child) : '';
-          const width = Math.max(150, String(word || child.data.label || '').length * 40);
+          const width = nominalLabelWidth(String(word || child.data.label || ''));
           return { x: child.x - width / 2, y: child.y + (word ? 85 : -42), width, height: word ? 90 : 84 };
         });
         const x = Math.min(...rects.map(rect => rect.x)), y = Math.min(...rects.map(rect => rect.y));
@@ -832,7 +882,8 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
           height: Math.max(...rects.map(rect => rect.y + rect.height)) - y };
       };
       nativeRelationPlaqueRects(plan.frames[stageIndex]?.items ?? [], rectFor, measurePlaqueText).forEach(rect => include({
-        minX: rect.x - 24, maxX: rect.x + rect.width + 24, minY: rect.y - 24, maxY: rect.y + rect.height + 24
+        minX: rect.x - PLAQUE_FIT_MARGIN, maxX: rect.x + rect.width + PLAQUE_FIT_MARGIN,
+        minY: rect.y - PLAQUE_FIT_MARGIN, maxY: rect.y + rect.height + PLAQUE_FIT_MARGIN
       }));
     }
     if (!includeOverlays || !plan) continue;
@@ -840,9 +891,11 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
     const maxY = d3.max(fitNodes, node => node.y) ?? 0;
     // Bounds reserve all stage marks at nominal scale, never reading the live DOM or camera.
     const bound = bindRelationPlanFrame(plan, stageIndex, positionFor, {
-      labelWidth: 150, labelHeight: 70, badgeGap: 46, laneGap: 60, markerScale: 1,
-      trajectoryCeilingY: (d3.min(fitNodes, node => node.y) ?? 0) - 160,
-      trajectoryFloorY: maxY + 180, connectorBaselineY: maxY + 130, railBaseY: maxY + 240,
+      ...RELATION_BINDING_METRICS, markerScale: 1,
+      trajectoryCeilingY: (d3.min(fitNodes, node => node.y) ?? 0) - TRAJECTORY_ROUTES.ceilingAboveTopNode,
+      trajectoryFloorY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
+      connectorBaselineY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,
+      railBaseY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase,
       hasExistingGapNotation: (id, text) => {
         const node = byId.get(id);
         return Boolean(node && (resolveLeafSurface(node) || node.data.label) === text);

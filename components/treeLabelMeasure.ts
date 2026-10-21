@@ -1,6 +1,6 @@
-import { CATEGORY_FONT, CATEGORY_LINE_HEIGHT } from '../replay/categoryTextLayout.ts';
+import { CATEGORY_FONT, CATEGORY_LABEL, categoryLineBaselineY, TERMINAL_FONT, TERMINAL_LABEL } from '../replay/rendererMetrics.ts';
 import { treeLabelRunKey, treeLabelIndexAttributes, type TreeLabelMeasure, type TreeLabelBounds } from '../replay/treeLabelRuns.ts';
-import { createTreeInkTextMeasure, TERMINAL_FONT, type MeasuredRunSource } from './treeInkTextMeasure.ts';
+import { createTreeInkTextMeasure, type MeasuredRunSource } from './treeInkTextMeasure.ts';
 import type { TreeInkTextMeasure } from '../replay/treeInkGeometry.ts';
 
 const namespace = 'http://www.w3.org/2000/svg';
@@ -25,13 +25,13 @@ export function createTreeLabelMeasure(doc: Document | undefined): TreeLabelMeas
       const terminal = runs.kind === 'terminal';
       label.style.font = terminal ? TERMINAL_FONT : CATEGORY_FONT;
       label.setAttribute('text-anchor', 'middle');
-      label.setAttribute('y', terminal ? '115' : '-10');
+      label.setAttribute('y', String((terminal ? TERMINAL_LABEL : CATEGORY_LABEL).baselineY));
       if (!terminal) label.setAttribute('xml:space', 'preserve');
       if (runs.lines) {
         runs.lines.forEach((line, index) => {
           const span = doc.createElementNS(namespace, 'tspan');
           span.setAttribute('x', '0');
-          span.setAttribute('y', String(-10 - (runs.lines!.length - 1 - index) * CATEGORY_LINE_HEIGHT));
+          span.setAttribute('y', String(categoryLineBaselineY(index, runs.lines!.length)));
           span.textContent = line;
           label.appendChild(span);
         });
@@ -48,7 +48,7 @@ export function createTreeLabelMeasure(doc: Document | undefined): TreeLabelMeas
       if ([box.x,box.y,box.width,box.height].every(Number.isFinite) && box.width > 0 && box.height > 0) {
         // Native getBBox excludes stroke. The painter's default miter limit is
         // 4, so a join may reach four half-widths beyond the glyph contour.
-        const strokeReach = (terminal ? 4 : 5) * 4;
+        const strokeReach = (terminal ? TERMINAL_LABEL : CATEGORY_LABEL).strokeWidth / 2 * 4;
         result = {x:box.x-strokeReach,y:box.y-strokeReach,width:box.width+2*strokeReach,height:box.height+2*strokeReach};
         // SVG text boxes include the whole font cell. For a single-font label,
         // Canvas supplies actual glyph bounds at each exact painted baseline.
@@ -57,7 +57,7 @@ export function createTreeLabelMeasure(doc: Document | undefined): TreeLabelMeas
           const lines = runs.lines ?? [runs.text];
           const glyphs = lines.map((text, index) => ({
             metrics: plainText!(text, runs.kind),
-            baseline: runs.lines ? -10 - (lines.length - 1 - index) * CATEGORY_LINE_HEIGHT : terminal ? 115 : -10
+            baseline: runs.lines ? categoryLineBaselineY(index, lines.length) : (terminal ? TERMINAL_LABEL : CATEGORY_LABEL).baselineY
           }));
           if (glyphs.length && glyphs.every(({metrics}) => metrics
             && [metrics.ascent, metrics.descent, metrics.ascent + metrics.descent].every(Number.isFinite) && metrics.ascent + metrics.descent > 0)) {

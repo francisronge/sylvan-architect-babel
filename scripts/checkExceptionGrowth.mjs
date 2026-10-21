@@ -52,8 +52,7 @@ const base = resolveBase(values.base), scratch = mkdtempSync(path.join(tmpdir(),
 try {
   const head = values.head ? await listsAt(values.head, scratch)
     : await exceptionLists(ROOT, exceptionFiles(readdirSync(path.join(ROOT, HELPERS))));
-  const problems = exceptionGrowth(await listsAt(base, scratch), head, {
-    baseDate: git('show', '-s', '--format=%cs', base), today: new Date().toISOString().slice(0, 10) });
+  const problems = exceptionGrowth(await listsAt(base, scratch), head, { today: new Date().toISOString().slice(0, 10) });
   const count = Object.values(head).reduce((total, list) => total + list.length, 0);
   if (!problems.length) {
     console.log(`${count} exceptions; none added or grown since ${base.slice(0, 7)} without the owner's approval.`);
@@ -62,7 +61,8 @@ try {
     for (const { name, grown, problem } of problems) console.error(`  ${name}${grown?.length ? ` (${grown.join('; ')})` : ''}: ${problem}`);
     console.error('Fix the finding instead: an exception never makes a failing check pass. Only the owner accepts a fault. '
       + 'When he does, put his decision on that entry as approval: { by: \'Francis Ronge\', on: \'YYYY-MM-DD\', '
-      + 'expires: \'YYYY-MM-DD\', note: \'where he approved it\' }. Never write an approval you did not receive.');
+      + 'expires: \'YYYY-MM-DD\', note: \'where he approved it\', accepts: <the entry\'s at, exactly as he accepted it> }. '
+      + 'Never write an approval you did not receive.');
     process.exitCode = 1;
   }
 } finally {

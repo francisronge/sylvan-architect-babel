@@ -1,7 +1,7 @@
-import { CATEGORY_FONT } from '../replay/categoryTextLayout.ts';
 import { FALLBACK_ROLE_STYLE } from '../replay/relations/fallbackGeometry.ts';
 import { REPLAY_GENERATED_TERMINAL_GLYPHS } from '../replay/replaySurfaceNotation.ts';
-import { CATEGORY_INDEX_FONT, TERMINAL_FONT, TERMINAL_INDEX_FONT, type MeasuredRunSource } from './treeInkTextMeasure.ts';
+import { CATEGORY_FONT, CATEGORY_INDEX_FONT, TERMINAL_FONT, TERMINAL_INDEX_FONT } from '../replay/rendererMetrics.ts';
+import type { MeasuredRunSource } from './treeInkTextMeasure.ts';
 
 /**
  * Keeps one font pass's layout measures. Each measure's own cache already holds

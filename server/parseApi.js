@@ -8,7 +8,9 @@
 import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './babelParser/researchModelCatalog.js';
 import { normalizeProviderReasoningEffort } from './babelParser/routeConfig.js';
 import {
+  MAX_RAW_OUTPUT_BODY_BYTES,
   createFailure,
+  retainArtifactPrefix,
   withFailureDetails
 } from './babelParser/validationErrors.js';
 
@@ -197,6 +199,35 @@ export const projectPublicGenerationRecord = (generationRecord) => {
   };
 };
 
+const serializedBytes = (value) => Buffer.byteLength(JSON.stringify(value), 'utf8');
+
+/**
+ * Bounds a whole failure body to MAX_RAW_OUTPUT_BODY_BYTES. The provider
+ * envelope, which repeats the extracted output, gives up retained bytes first;
+ * the extracted output, which diagnostic inspection needs complete, gives up
+ * bytes only when the envelope alone cannot make room.
+ */
+const fitFailureBody = (error) => {
+  const shrink = (artifact, current) => {
+    const overflow = serializedBytes({ error: current }) - MAX_RAW_OUTPUT_BODY_BYTES;
+    if (overflow <= 0 || typeof artifact?.data !== 'string') return artifact;
+    // Base64 spends four characters on every three bytes.
+    return retainArtifactPrefix(artifact, artifact.retainedByteLength - Math.ceil(overflow * 3 / 4) - 3);
+  };
+  let fitted = error;
+  if (fitted.generationRecord?.rawProviderResponse) {
+    fitted = {
+      ...fitted,
+      generationRecord: {
+        ...fitted.generationRecord,
+        rawProviderResponse: shrink(fitted.generationRecord.rawProviderResponse, fitted)
+      }
+    };
+  }
+  if (fitted.rawOutput) fitted = { ...fitted, rawOutput: shrink(fitted.rawOutput, fitted) };
+  return fitted;
+};
+
 export const formatApiError = (error) => {
   if (error instanceof ParseApiError) {
     const {
@@ -210,7 +241,7 @@ export const formatApiError = (error) => {
     return {
       status: error.status,
       body: {
-        error: {
+        error: fitFailureBody({
           code: error.code,
           message: error.message,
           failure: error.failure,
@@ -220,7 +251,7 @@ export const formatApiError = (error) => {
             ? { generationRecord: projectPublicGenerationRecord(generationRecord) }
             : {}),
           ...(isProduction ? {} : { details: safeDetails })
-        }
+        })
       }
     };
   }

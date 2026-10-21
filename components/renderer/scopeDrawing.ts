@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import { getNodeId } from '../../replay/displayIdentity.ts';
+import { isCompactViewport } from '../../replay/rendererMetrics.ts';
 import {
   type DirectedPathPlanItem,
   type RelationPlanItem
@@ -186,7 +187,7 @@ export function createScopeDrawing({
           const height = 12 + content.rows.length * 46;
           const preferredX = treeRect ? treeRect.x + treeRect.width + 54 : rect.x + rect.width + 54;
           const viewportRight = new DOMPoint(svgRect.right - 12, svgRect.top).matrixTransform(inverse).x;
-          const x = containerWidth < 500
+          const x = isCompactViewport(containerWidth)
             ? Math.min(preferredX, viewportRight - width)
             : preferredX;
           const y = rect.y + rect.height / 2 - height / 2;
