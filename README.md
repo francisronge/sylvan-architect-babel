@@ -107,7 +107,7 @@ Switching theory changes the analysis behavior, tree style, replay, and explanat
 
 Babel's local model menu selects an exact model:
 
-- GPT-6 Astra and GPT 5.6 Sol (OpenAI)
+- GPT-6 Astra and GPT-6 Sol (OpenAI)
 - Claude Opus 5 and Claude Fable 5.1 (Anthropic)
 - Kimi K3 (Moonshot)
 - Grok 4.6 (xAI)
@@ -234,6 +234,6 @@ It includes:
 Babel is being built as an open resource for linguistics and AI interpretability work.
 
 The current dependency order is maintained in [ROADMAP.md](./ROADMAP.md):
-contract qualification, durable Tree Bank integration, the new workbench,
-syntactician workspace features, benchmark releases, and a governed public
-derivational database.
+contract qualification, durable Tree Bank integration, the new web application,
+syntactician workspace features, operations and shipping, a generation archive
+and reviewed derivational corpus, and, last, benchmark releases.
