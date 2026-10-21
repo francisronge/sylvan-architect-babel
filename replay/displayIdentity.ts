@@ -14,9 +14,14 @@ export function createReplayIdentityContext(forests: readonly SyntaxNode[]) {
   };
   forests.forEach(visit);
   const allocated = new Map<string, string>();
+  const keyOf = (preferred: string, origin: ReplayNodeOrigin) => JSON.stringify([origin.kind, origin.ownerId, origin.authoredId, preferred]);
   return {
+    /** The id an earlier `allocate` gave this request, without allocating one. */
+    allocated(preferred: string, origin: ReplayNodeOrigin): string | undefined {
+      return allocated.get(keyOf(preferred, origin));
+    },
     allocate(preferred: string, origin: ReplayNodeOrigin) {
-      const key = JSON.stringify([origin.kind, origin.ownerId, origin.authoredId, preferred]);
+      const key = keyOf(preferred, origin);
       const existing = allocated.get(key);
       if (existing) return existing;
       let id = preferred;

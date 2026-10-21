@@ -12,7 +12,7 @@ import {
   regroupingParents,
   restoreRegroupedConstituents
 } from './constructionAttachments.ts';
-import { renameContinuedOccurrences } from './continuedOccurrences.ts';
+import { continuedLexicalLeafIds, renameContinuedOccurrences } from './continuedOccurrences.ts';
 import { applyVizIds, createReplayIdentityContext, getNodeId, type ReplayIdentityContext } from './displayIdentity.ts';
 import { buildResolvedLinkTraceIndexMap, resolveTraceIndexFromNodeContext } from './movementIndices.ts';
 import { buildStructuralReplayFallback } from './playbackFormatting.ts';
@@ -213,7 +213,9 @@ export const buildStructuralDerivationPlaybackSteps = ({
   // a renamed node is retained in place exactly as if its id had been kept.
   const previousConstructionForest = renameContinuedOccurrences(
     frameIndex > 0 ? derivationFrames?.[frameIndex - 1]?.workspaceForest || [] : [], continuedOccurrenceIds);
-  const previousVisibleConstructionIds = new Set(Array.from(previousVisibleNodeIds, id => continuedOccurrenceIds.get(id) ?? id));
+  const continuedLeafIds = continuedLexicalLeafIds(cloned, continuedOccurrenceIds, identity);
+  const previousVisibleConstructionIds = new Set(Array.from(previousVisibleNodeIds,
+    id => continuedOccurrenceIds.get(id) ?? continuedLeafIds.get(id) ?? id));
   const pendingAttachmentNodeIds = constructionAttachmentUpdates(previousConstructionForest, forest);
   const hasAttachmentUpdates = pendingAttachmentNodeIds.size > 0;
   const hasAttachmentContinuity = hasAttachmentUpdates

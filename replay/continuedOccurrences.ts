@@ -2,6 +2,7 @@
 import type { ResolvedRelationLink } from '../relationLinks.ts';
 import type { SyntaxNode } from '../types.ts';
 import { getMovementLandingNodeId } from './authoredFrames.ts';
+import type { ReplayIdentityContext } from './displayIdentity.ts';
 import { isMoveLikeOperation } from './movementLinks.ts';
 import {
   getRelationAllAnchorNodeIds,
@@ -10,6 +11,7 @@ import {
   relationAnchorNodeIds
 } from './relationAnchors.ts';
 import { isRegisteredTrajectoryRelation } from './relations/movementIdentities.ts';
+import { lexicalLeafIdUnderOwner } from './replayCanvas.ts';
 import {
   collectSyntaxSubtreeNodeIds,
   type ExactForestNodeLocation,
@@ -107,6 +109,28 @@ export function renameContinuedOccurrences(forest: readonly SyntaxNode[], contin
   return forest.map(rename);
 }
 
+/** Lexical display leaves of `canvas` whose owner continues a preceding
+ * occurrence, as `previous display id -> current display id`: the same word
+ * under the continued owner, so construction keeps it rather than selecting it
+ * again. */
+export function continuedLexicalLeafIds(
+  canvas: SyntaxNode | null | undefined,
+  continuations: ReadonlyMap<string, string>,
+  identity: ReplayIdentityContext
+): Map<string, string> {
+  const leaves = new Map<string, string>();
+  if (!canvas || !continuations.size) return leaves;
+  const continuedFrom = new Map(Array.from(continuations, ([from, to]) => [to, from]));
+  const visit = (node: SyntaxNode) => {
+    const from = node.replayOrigin?.kind === 'lexical' ? continuedFrom.get(node.replayOrigin.ownerId ?? '') : undefined;
+    const previous = from && node.id ? lexicalLeafIdUnderOwner(node, from, identity) : undefined;
+    if (previous && previous !== node.id) leaves.set(previous, node.id!);
+    node.children?.forEach(visit);
+  };
+  visit(canvas);
+  return leaves;
+}
+
 /** Material that a relation of the stage moves, copies or rewrites. Its own
  * rules place it, so no occurrence touching it continues a predecessor. */
 function relationOwnedNodeIds(
@@ -164,33 +188,54 @@ const linkNodeIds = (link: ResolvedRelationLink): string[] => [link.sourceNodeId
  * claims keep their authored anchors and reach it through that alias, as they
  * reach lexical display terminals. A stage keeps its authored ids where the
  * display id is already in use there, or where a trajectory or claimed tree
- * transition names the occurrence, whose identity stays exact.
+ * transition names the occurrence, whose identity stays exact. A lexical
+ * display leaf is named after its owner, so it is displayed under the id the
+ * same leaf has beneath the occurrence that continues its owner.
  */
 export function displayContinuedOccurrences(
   steps: PlaybackStep[],
   frames: readonly ReplayDerivationFrame[],
-  continuedInto: (index: number) => ReadonlyMap<string, string>
+  continuedInto: (index: number) => ReadonlyMap<string, string>,
+  identity: ReplayIdentityContext
 ): PlaybackStep[] {
   if (!frames.some((_, index) => continuedInto(index).size)) return steps;
   const byStage = new Map<number, PlaybackStep[]>();
   steps.forEach(step => byStage.set(step.replayFrameIndex ?? -1, [...(byStage.get(step.replayFrameIndex ?? -1) ?? []), step]));
   const displays: Map<string, string>[] = frames.map(() => new Map());
+  const painted = (stage: number) => {
+    const ids = new Set<string>(), lexical = new Map<string, SyntaxNode>();
+    const visit = (node: SyntaxNode) => {
+      if (node.id) ids.add(node.id);
+      if (node.id && node.replayOrigin?.kind === 'lexical' && node.replayOrigin.ownerId) lexical.set(node.id, node);
+      node.children?.forEach(visit);
+    };
+    (byStage.get(stage) ?? []).forEach(step => { if (step.replayCanvasData) visit(step.replayCanvasData); });
+    return { ids, lexical };
+  };
+  let following = painted(frames.length - 1);
   for (let stage = frames.length - 2; stage >= 0; stage--) {
     const here = indexExactForestNodeLocations(frames[stage].workspaceForest || []);
     const next = indexExactForestNodeLocations(frames[stage + 1].workspaceForest || []);
     const continued = continuedInto(stage + 1), stageSteps = byStage.get(stage) ?? [];
-    const used = new Set<string>(here.keys()), exact = new Set<string>();
-    const visit = (node: SyntaxNode) => { if (node.id) used.add(node.id); node.children?.forEach(visit); };
+    const current = painted(stage), used = new Set<string>([...here.keys(), ...current.ids]), exact = new Set<string>();
     for (const step of stageSteps) {
-      if (step.replayCanvasData) visit(step.replayCanvasData);
       (step.replayRelationLinks ?? []).filter(link => link.renderFamily === 'trajectory').flatMap(linkNodeIds).forEach(id => exact.add(id));
       [...(step.replayTreeTransition?.currentNodeIds ?? []), ...(step.replayTreeTransition?.priorNodeIds ?? [])].forEach(id => exact.add(id));
     }
-    for (const [id, location] of here) {
-      const successor = !location ? undefined : next.get(id) ? id : next.has(id) ? undefined : continued.get(id);
+    const successorOf = (id: string) => {
+      const location = here.get(id);
+      return !location ? undefined : next.get(id) ? id : next.has(id) ? undefined : continued.get(id);
+    };
+    const display = (id: string, successor: string | undefined) => {
       const shown = successor && (displays[stage + 1].get(successor) ?? successor);
       if (shown && shown !== id && !used.has(shown) && !exact.has(id)) displays[stage].set(id, shown);
+    };
+    for (const id of here.keys()) display(id, successorOf(id));
+    for (const [id, leaf] of current.lexical) {
+      const owner = successorOf(leaf.replayOrigin!.ownerId!), successor = owner && lexicalLeafIdUnderOwner(leaf, owner, identity);
+      if (!exact.has(leaf.replayOrigin!.authoredId ?? '')) display(id, successor && following.ids.has(successor) ? successor : undefined);
     }
+    following = current;
   }
   const renamed = (display: ReadonlyMap<string, string>) => (id: string) => display.get(id) ?? id;
   const renameNode = (display: ReadonlyMap<string, string>) => {
