@@ -32,10 +32,12 @@ syntactic rules. Desktop remains the primary experience.
      landing joins the pp2 the Internal Merge builds; in the Icelandic case
      transfer, continued V-to-I and I-to-C each own part of one moving head
      complex. Each needs a decision about which claim introduces the shared
-     syntax. A movement also does not wait for a contextual anchor, so the
-     Icelandic raising chain's verb-trace role lacks its anchor at its moment
-     (waiting would cost the subject landing its reserved slot and shift the
-     matrix IP about 120 px).
+     syntax. The pied-piping cycle is also the one invariant finding left in
+     the 986 saved analyses: the Internal Merge's neutral mark never paints,
+     because wh2 is absent at its moment. A movement also does not wait for a
+     contextual anchor, so the Icelandic raising chain's verb-trace role lacks
+     its anchor at its moment (waiting would cost the subject landing its
+     reserved slot and shift the matrix IP about 120 px).
    - Movements still drawn as copies without an arrow: the Hungarian verbal
      particle's topicalization (night3 14-hu-verbal-particle), and hop 8:0 of
      the long tough relative (night4 09-en-tough-relative-long), whose claim
@@ -45,10 +47,6 @@ syntactic rules. Desktop remains the primary experience.
      visible: the failure panel has no dismiss control.
    - A wrapped category line can start with the space that overflowed the
      line before (22 saved labels).
-   - Saved analyses that still fail a Replay invariant (3 findings in 2 of 986
-     analyses, all older than the pass): a mark that does not persist as
-     defined in the English relative pied-piping run, and unstable
-     construction in the second there-insertion analysis.
    - Mobile calibration and a desktop minimum-zoom clamp.
 3. Clean up the tests:
    - Retire hand-picked per-frame Replay checks that the invariant sweep
