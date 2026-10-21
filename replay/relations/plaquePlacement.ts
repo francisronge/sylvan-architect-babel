@@ -43,7 +43,9 @@ export type PlaqueRect = ObstacleRect & {
   blocksConnectors?: boolean; connectorAttachment?: string;
   connectorInk?: { x: number; y: number; width: number; height: number };
   /** A fixed native plaque's footprint: a plaque, not syntax or a connector. */
-  plaqueShell?: boolean };
+  plaqueShell?: boolean;
+  /** A sampled movement trajectory: like a plaque, it keeps the full gap when syntax gets a narrower one. */
+  trajectory?: boolean };
 type CollectionRow = { sourceNodeId: string; y: number; lane?: number; ownerKeys?: string[]; featureKey?: string; edge?: CollectionEdge; portX?: number };
 type Node = HierarchyPointNode<SyntaxNode>;
 const drawnPlaque = (box: PlaqueRect): PlaqueRect =>
@@ -899,9 +901,9 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const anchor = anchors[0];
     const space = lifetime?.spaceFor(request.index, anchor, result);
     const occupied = [...(space?.obstacles ?? obstacles), ...placed];
-    // At a narrower gap, plaques grow by the difference: they keep the full gap.
+    // At a narrower gap, plaques and trajectories grow by the difference: they keep the full gap.
     const gap = lifetime?.syntaxGap ?? PLAQUE_GAP, grow = PLAQUE_GAP - gap;
-    const searched = grow ? occupied.map(obstacle => isPlaqueShell(obstacle) ? { ...obstacle, x: obstacle.x - grow,
+    const searched = grow ? occupied.map(obstacle => isPlaqueShell(obstacle) || obstacle.trajectory ? { ...obstacle, x: obstacle.x - grow,
       y: obstacle.y - grow, width: obstacle.width + 2 * grow, height: obstacle.height + 2 * grow } : obstacle) : occupied;
     let obstacleIndex: ReturnType<typeof preparePlaqueOverlapIndex> | undefined;
     let queriedPocket = false;
