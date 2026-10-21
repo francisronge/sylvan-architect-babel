@@ -460,7 +460,9 @@ Plaque placement reserves syntax, movement trajectories and the straight stems
 of neutral links across the complete stage. Small plaques try measured nearby gaps when the usual pockets are blocked;
 large plaques retain their below-subtree placement. A carried plaque keeps its
 offset unless new stage geometry occupies it. Neutral lower connectors retain straight stems and separate lanes. Plaques
-yield to their reserved stems; the lower lanes clear plaque bottoms. Role text
+yield to their reserved stems; the lower lanes clear plaque bottoms. They also drop below tree text of
+the stage that their turns or runs would cross, to the nearest gap within one tree row; where unrelated text
+leaves no such gap, they keep their local floor rather than descend beneath it. Role text
 yields to the connector routes. These allocations precede relation reveal, so revealing a plaque
 does not move existing syntax or annotations.
 
