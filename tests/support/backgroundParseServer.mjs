@@ -60,7 +60,8 @@ if (process.env.BABEL_TEST_SERVERLESS_ENTRY === '1') {
   const { default: handler } = await import('../../api/parse.js');
   const app = express();
   app.use(express.json());
-  app.post('/api/parse', handler);
+  // The platform delivers every method to the function.
+  app.all('/api/parse', handler);
   app.listen(0, '127.0.0.1');
 } else {
   await import('../../server/index.js');
