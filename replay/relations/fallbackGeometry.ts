@@ -236,8 +236,9 @@ const ROLE_SEARCH_REACH = 2;
  * takes the nearest free spot on either side of its node or in the rows above
  * and below, searched in steps of its own height up to twice its farthest
  * preferred spot; it never drifts beyond that reach. With a viewport, a free
- * spot inside it comes first. When nothing within reach is free, the role takes
- * the spot there that overlaps least, inside the viewport first. */
+ * spot inside it comes first, then the free spot that leaves it least, unless
+ * the role is larger than the viewport. When nothing within reach is free, the
+ * role takes the spot there that overlaps least, inside the viewport first. */
 export const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidth' | 'textHeight'>,
   scale: number, occupied: Rect[], viewport?: Rect): Point => {
   const rect = mark.labelRect;
@@ -293,7 +294,19 @@ export const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 't
       const box = boxFor(point);
       return !nearby.some(other => meets(box, other));
     };
-    chosen = spots.find(point => contained(point) && free(point)) ?? spots.find(free);
+    // A role that could fit the viewport but finds no free spot inside takes the
+    // free spot that leaves it least; one wider or taller than the viewport keeps
+    // its nearest free spot, for panning.
+    const box = boxFor(center);
+    const protrusion = (point: Point) => {
+      const placed = boxFor(point);
+      return !viewport ? 0 : Math.max(0, viewport.x - placed.x, viewport.y - placed.y,
+        placed.x + placed.width - viewport.x - viewport.width, placed.y + placed.height - viewport.y - viewport.height);
+    };
+    const fits = viewport && box.width <= viewport.width && box.height <= viewport.height;
+    chosen = spots.find(point => contained(point) && free(point))
+      ?? (fits ? spots.filter(free).reduce<Point | undefined>((best, point) =>
+        !best || protrusion(point) < protrusion(best) ? point : best, undefined) : spots.find(free));
     if (!chosen) {
       const overlap = (point: Point) => {
         const box = boxFor(point);
