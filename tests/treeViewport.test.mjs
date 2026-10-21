@@ -148,3 +148,34 @@ test('a stage crossing carries the camera with unmoved shared syntax, not the re
   assert.deepEqual(carryCamera(pose, before, before), pose, 'unchanged coordinates leave the pose');
   assert.deepEqual(carryCamera(pose, before, new Map([['new', node(1, 1)]])), pose, 'nothing shared leaves the pose');
 });
+
+test('a stage crossing carries the camera with static syntax, not a larger subtree lowered under an inserted parent', () => {
+  const pose = { x: 474, y: 60, k: 0.2 };
+  const node = (x, y, parentId = null) => ({ x, y, parentId });
+  const before = new Map([['CP', node(1000, 200)], ['Topic', node(700, 400, 'CP')], ['TopicWord', node(700, 600, 'Topic')],
+    ['Cbar', node(1100, 400, 'CP')], ['C', node(900, 600, 'Cbar')], ['Cword', node(900, 800, 'C')],
+    ['TP', node(1300, 600, 'Cbar')], ['T', node(1200, 800, 'TP')], ['Tword', node(1200, 1000, 'T')],
+    ['VP', node(1400, 800, 'TP')], ['V', node(1400, 1000, 'VP')], ['Vword', node(1400, 1200, 'V')]]);
+  // Stage 2 shifts everything by (+3000, +1500) and inserts `mid` between Cbar
+  // and TP, which lowers TP's six nodes one row and moves them right; their
+  // shared ancestors (Cbar, CP) are unchanged, and they outnumber the static
+  // nodes. CP and Cbar recentre over them by half that shift.
+  const shifted = (id, dx = 0, dy = 0, parentId = before.get(id).parentId) =>
+    node(before.get(id).x + 3000 + dx, before.get(id).y + 1500 + dy, parentId);
+  const after = new Map([['CP', shifted('CP', 300)], ['Topic', shifted('Topic')], ['TopicWord', shifted('TopicWord')],
+    ['Cbar', shifted('Cbar', 300)], ['C', shifted('C')], ['Cword', shifted('Cword')],
+    ['mid', node(4300, 2100, 'Cbar')], ['TP', shifted('TP', 600, 200, 'mid')],
+    ...['T', 'Tword', 'VP', 'V', 'Vword'].map(id => [id, shifted(id, 600, 200)])]);
+  const carried = carryCamera(pose, before, after);
+  const screen = (camera, { x, y }) => [camera.x + x * camera.k, camera.y + y * camera.k];
+  for (const id of ['Topic', 'TopicWord', 'C', 'Cword']) {
+    assert.deepEqual(screen(carried, after.get(id)), screen(pose, before.get(id)), `${id} keeps its place on screen`);
+  }
+  assert.notDeepEqual(screen(carried, after.get('TP')), screen(pose, before.get('TP')), 'the lowered subtree is the syntax that visibly moves');
+  // With too little static syntax the shared-ancestor rule decides, as before.
+  const without = ['Topic', 'TopicWord'];
+  const small = new Map([...after].filter(([id]) => !without.includes(id)));
+  const smallBefore = new Map([...before].filter(([id]) => !without.includes(id)));
+  const loose = carryCamera(pose, smallBefore, small);
+  assert.deepEqual(screen(loose, small.get('T')), screen(pose, smallBefore.get('T')), 'the larger lowered subtree is the reference then');
+});
