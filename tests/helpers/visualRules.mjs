@@ -36,7 +36,7 @@
  * which compares one record's frames across viewports (visualFrames.mjs,
  * layoutWidthFindings). */
 export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-distance', 'label-typography', 'clipped', 'branch-geometry',
-  'layout-width']);
+  'parent-centring', 'layout-width']);
 
 /** CSS pixels at the frame's Fit unless noted. Glyph boxes may share a two-pixel
  * sliver of outline; a stroke must keep a pixel from a plaque shell and may not
@@ -44,7 +44,7 @@ export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-dis
  * (a ratio), a mark's text also by 20 pixels; a connector this close to a plaque
  * of its own claim is that plaque's leader. */
 export const THRESHOLDS = Object.freeze({ overlapPx: 2, clearancePx: 1, crossingPx: 1, reachMargin: 0.1, textReachPx: 20,
-  leaderPx: 6, clippedPx: 2, rowUnits: 1 });
+  leaderPx: 6, clippedPx: 2, rowUnits: 1, centringPx: 1 });
 
 const TREE_TEXT = new Set(['category', 'word']);
 const LOCAL_PLAQUE = 480;
@@ -326,8 +326,32 @@ export function checkBranchGeometry(frame, thresholds = THRESHOLDS) {
   return out;
 }
 
+/** parent-centring: a visible parent stands over the midpoint of its outermost
+ * visible daughters, as layoutSyntaxTree centres every current parent; a parent
+ * with one visible daughter stands over it. Daughters are read from painted
+ * branches, so hidden, layout-only and triangulated material does not count.
+ * The measure is the offset in CSS pixels. */
+export function checkParentCentring(frame, thresholds = THRESHOLDS) {
+  const parents = new Map();
+  for (const line of frame.lines) {
+    if (line.kind !== 'branch' || !line.paths[0]?.length) continue;
+    const [parent] = line.nodes, from = line.paths[0][0], to = line.paths[0].at(-1);
+    if (!parents.has(parent)) parents.set(parent, { x: from.x, daughters: [] });
+    parents.get(parent).daughters.push({ id: line.nodes[1], x: to.x });
+  }
+  const out = [];
+  for (const [parent, { x, daughters }] of parents) {
+    const xs = daughters.map(daughter => daughter.x), middle = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const offset = Math.abs(x - middle) * frame.zoom;
+    if (offset > thresholds.centringPx) out.push(finding('parent-centring', 'offset', frame, parent,
+      `${parent} stands ${Math.round(x - middle)} units off the midpoint of ${daughters.map(daughter => daughter.id).join(', ')}`, offset));
+  }
+  return out;
+}
+
 /** Every rule on one normalized frame. */
 export const checkFrame = (frame, thresholds = THRESHOLDS) => [
   ...checkGlyphOverlap(frame, thresholds), ...checkLineClearance(frame, thresholds), ...checkMarkDistance(frame, thresholds),
-  ...checkLabelTypography(frame), ...checkClipped(frame, thresholds), ...checkBranchGeometry(frame, thresholds)
+  ...checkLabelTypography(frame), ...checkClipped(frame, thresholds), ...checkBranchGeometry(frame, thresholds),
+  ...checkParentCentring(frame, thresholds)
 ];
