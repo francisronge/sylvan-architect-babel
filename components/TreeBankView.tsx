@@ -1,6 +1,11 @@
+import { useState } from 'react';
 import { Archive, Clock3, FolderOpen, RotateCcw, Trash2 } from 'lucide-react';
 import type { TreeBankEntrySummary } from '../services/treeBankStore.ts';
 import TreeBankPreview from './TreeBankPreview';
+
+// Each card is a blurred glass panel, so mounting a whole large library is
+// expensive, particularly on mobile. Cards render one page at a time.
+const TREE_BANK_PAGE_SIZE = 24;
 
 const formatTreeBankDate = (iso: string): string => {
   const parsed = new Date(iso);
@@ -18,6 +23,8 @@ interface TreeBankViewProps {
 }
 
 export function TreeBankView({ entries, loading, error, opening, onOpen, onDelete }: TreeBankViewProps) {
+  const [visibleCount, setVisibleCount] = useState(TREE_BANK_PAGE_SIZE);
+  const hiddenCount = Math.max(0, entries.length - visibleCount);
   return (
   <div className="absolute inset-0 z-20 overflow-y-auto px-4 py-6 md:px-12 md:py-12">
     <div className="max-w-7xl mx-auto space-y-8 pb-24">
@@ -59,7 +66,7 @@ export function TreeBankView({ entries, loading, error, opening, onOpen, onDelet
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {entries.map((entry) => {
+          {entries.slice(0, visibleCount).map((entry) => {
             const stageCount = entry.stageCount;
 
             return (
@@ -113,6 +120,20 @@ export function TreeBankView({ entries, loading, error, opening, onOpen, onDelet
               </div>
             );
           })}
+        </div>
+      )}
+
+      {!loading && hiddenCount > 0 && (
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500/60">
+            Showing {entries.length - hiddenCount} of {entries.length} Saved Trees
+          </p>
+          <button
+            onClick={() => setVisibleCount(count => count + TREE_BANK_PAGE_SIZE)}
+            className="px-5 py-2.5 rounded-xl border border-emerald-500/50 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20 transition-all text-[10px] font-black uppercase tracking-widest"
+          >
+            Show {Math.min(hiddenCount, TREE_BANK_PAGE_SIZE)} More
+          </button>
         </div>
       )}
     </div>
