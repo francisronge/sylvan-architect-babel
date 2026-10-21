@@ -377,6 +377,14 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         const ready = () => page.locator('svg[data-babel-tree="true"]').waitFor();
         await page.goto(server.url);
         await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill(bundle.sentence);
+        // Enter that confirms an input-method candidate does not submit.
+        await page.getByRole('textbox', { name: 'Sentence to analyze' }).evaluate(box => {
+          for (const init of [{ isComposing: true, keyCode: 13 }, { isComposing: false, keyCode: 229 }]) {
+            box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true, ...init }));
+          }
+        });
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        assert.equal(requests.length, 0, 'IME confirmation makes no request');
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
         await page.getByText('Fixture request interrupted.', { exact: true }).waitFor();
         assert.equal(await page.getByRole('textbox', { name: 'Sentence to analyze' }).inputValue(), bundle.sentence);

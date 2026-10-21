@@ -18,6 +18,7 @@ import TreeVisualizer from './components/AsyncTreeVisualizer';
 import RootLogo from './components/RootLogo';
 import LoadingMark from './components/LoadingMark';
 import FailurePanel from './components/FailurePanel';
+import { submitsSentence } from './components/sentenceSubmitKey';
 import { GENERATION_MODEL_IDS, getResearchModel } from './server/babelParser/researchModelCatalog.js';
 import { 
   RotateCcw, 
@@ -723,7 +724,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
+                              if (submitsSentence(e)) {
                                 e.preventDefault();
                                 void handleParse();
                               }
