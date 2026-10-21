@@ -48,14 +48,30 @@ export function createViewportSettler({ apply, painted, schedule, cancel, delay 
 export type { PaintedNodes };
 
 /** Playback does not zoom in merely because a later stage has more room.
- * Preserve the accepted pose until clearance needs a pan or smaller scale. */
+ * Preserve the accepted pose until clearance needs a pan or smaller scale.
+ * Entering a new stage (`crossing`), an axis that clearance has to pan is
+ * centred on the envelope instead of clamped to the edge it overflowed: the
+ * camera moves on that axis anyway, and the stage then keeps the pose for all
+ * its micro-steps. Within a stage the least pan remains. */
 export function advanceFittedCamera(
   previous: { x: number; y: number; k: number },
   fitted: { x: number; y: number; k: number },
   bounds: { minX: number; minY: number; maxX: number; maxY: number },
-  view: ViewportRect
+  view: ViewportRect,
+  { crossing = false }: { crossing?: boolean } = {}
 ) {
-  return previous.k <= fitted.k + 1e-7 ? containCamera(previous, bounds, view) : fitted;
+  if (previous.k > fitted.k + 1e-7) return fitted;
+  const contained = containCamera(previous, bounds, view);
+  if (!crossing || contained === previous) return contained;
+  const epsilon = 1e-6, { k } = contained;
+  // containCamera's position before clamping: scaled about the view centre.
+  const centerX = (view.left + view.right) / 2, centerY = (view.top + view.bottom) / 2;
+  const scaledX = centerX + (previous.x - centerX) * k / previous.k, scaledY = centerY + (previous.y - centerY) * k / previous.k;
+  return {
+    x: Math.abs(contained.x - scaledX) > epsilon ? centerX - (bounds.minX + bounds.maxX) / 2 * k : contained.x,
+    y: Math.abs(contained.y - scaledY) > epsilon ? centerY - (bounds.minY + bounds.maxY) / 2 * k : contained.y,
+    k
+  };
 }
 
 /** Each stage lays out its syntax in its own coordinates. Translate a pose by the
