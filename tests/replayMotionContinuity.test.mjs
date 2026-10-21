@@ -138,7 +138,8 @@ test('a word that shifts under a stationary phrase is reported, whoever owns the
 // and 昨天 across the clause (44), and D + Top pulled 我 across the tree (now 48). Each
 // waiting piece now stands where it attaches from its first frame; 昨天, which
 // attaches under the T its own External Merge inserts above matrixTP (frame 46),
-// waits beside that host and descends with it. At 44 the subject movement also
+// waits on the row it takes there, so only its host descends (Francis, 21 Oct).
+// At 44 the subject movement also
 // brings T′, which takes 了's clause up a row; 了 rides with it and still slides
 // sideways into the raised subject's gap, a stage-crossing slide Francis accepted.
 const waitingRoots = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/waiting-root-continuity.json', import.meta.url)));
@@ -154,8 +155,8 @@ for (const [width, height] of [[1440, 900], [390, 844]]) for (const direction of
     const faults = replayMotionFaults({ frames });
     const pieces = ['topic', 'topic::__leaf', 'yesterday', 'yesterday::__leaf'];
     assert.deepEqual(faults.filter(fault => pieces.includes(fault.node) || [16, 17, 48].includes(fault.frame)), []);
-    // The camera carry is the only motion a stage crossing may show for them; at
-    // its own merge under the inserted T, 昨天 descends with its host matrixTP.
+    // The camera carry is the only motion a stage crossing may show for them,
+    // and 昨天 stays put at its own merge under the inserted T.
     const painted = frame => new Map(frame.points.map(item => [item.id, { x: item.x, y: item.y, parentId: item.parent }]));
     for (let index = 1; index < frames.length; index++) {
       const crossing = frames[index].stage !== frames[index - 1].stage;
@@ -163,11 +164,9 @@ for (const [width, height] of [[1440, 900], [390, 844]]) for (const direction of
       for (const id of pieces) {
         const before = frames[index - 1].points.find(item => item.id === id), after = frames[index].points.find(item => item.id === id);
         if (!before || !after) continue;
-        const host = { before: frames[index - 1].points.find(item => item.id === 'matrixTP'), after: frames[index].points.find(item => item.id === 'matrixTP') };
         const own = frames[index].points.find(item => item.id === 'yesterday'), prior = frames[index - 1].points.find(item => item.id === 'yesterday');
         const joins = id.startsWith('yesterday') && Boolean(own?.parent && !prior?.parent);
-        const expected = joins ? { x: 0, y: host.after.y - host.before.y } : { x: 0, y: 0 };
-        assert(Math.hypot(after.x + carry.x - before.x - expected.x, after.y + carry.y - before.y - expected.y) < 1e-6, `${id} moves at frame ${index + 1}`);
+        assert(Math.hypot(after.x + carry.x - before.x, after.y + carry.y - before.y) < 1e-6, `${id} moves at frame ${index + 1}`);
         if (joins) assert.equal(own.parent, 'timedMatrixTP');
       }
     }

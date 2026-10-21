@@ -3457,7 +3457,7 @@
       ]
     },
     "replay-regressions/visual-human-catalog.json#/cases/6/analyses/0": {
-      "frames": "i_eO9YW_ V2dGjMA4 1h9CQUDD LGblX66u P6pB_4mO 2QdHVzO4 8LaUMXWn CH9b442V Vjl1bb_S Z6YykC0C 9ZuU8DU_ Xa1VhTPe eIMh62Lf kK0nua1T ftVJsg6G a03h9V80 hOUIvS5x L99a5BI5 NOsresZ3 rPk8R8wx 1TTB2hWu koZJPfXk cay_HTR0 IEOK2oiP wtYeVbPt lFs8xmBq FP8X8tub jAiyjD2m 0M_Cum3_ -7QT2dvx _naKQzN6 nStZYwTM YYk46IcQ N7aoKuG7 tOijPOie SNXSfHJZ wpPweu9X xu7Mi8xq hHLFJ3KB RW4380zy qDkOaMdb TlaZ-utt TKouH_xz qO0Of4ec BvZNrrFO xa0ttIiu LlpFd3jd BLwBWg57 GtO_mo-m A6oxvxtm lzmRvjsS L8Vh_Y09",
+      "frames": "i_eO9YW_ V2dGjMA4 uPVDpOcD KPgfjsy5 COEMOsBm j6CWhBT- Qtbs6e6a 2_pPMmTU Lv8AVm2k NJDAtYD1 GADrOhkn 9UqT2uGc wv_6MQKA YuS-bsFR bqEoV4e8 098WKlgh 70KOxEtr G8mdMiVO UOf2VCOn 8cbrju4D si_fPEjc BEUCQkyp v5S7uPz1 003bmrq5 FkZvcM6q NJB1hI6t M9ojcqCG o7inRtbX p5358iBq eMQBHNE3 0FI41A8S iijtTD-5 ulXeqVei -BkRbxfy scgqtjXb DzWGGoz_ FkUfi0vs VzZdpKkl yogbf0MA -DEWHhP8 T-HW2Wx2 NOqCqhNj WOSBb4X2 WDSrH1E9 4tY9KifQ xa0ttIiu LlpFd3jd BLwBWg57 GtO_mo-m A6oxvxtm lzmRvjsS L8Vh_Y09",
       "canopy": "A6VO-B-_",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -3482,7 +3482,7 @@
       ]
     },
     "replay-regressions/waiting-root-continuity.json#": {
-      "frames": "i_eO9YW_ V2dGjMA4 1h9CQUDD LGblX66u P6pB_4mO 2QdHVzO4 8LaUMXWn CH9b442V Vjl1bb_S Z6YykC0C 9ZuU8DU_ Xa1VhTPe eIMh62Lf kK0nua1T ftVJsg6G a03h9V80 hOUIvS5x L99a5BI5 NOsresZ3 rPk8R8wx 1TTB2hWu koZJPfXk cay_HTR0 IEOK2oiP wtYeVbPt lFs8xmBq FP8X8tub jAiyjD2m 0M_Cum3_ -7QT2dvx _naKQzN6 nStZYwTM YYk46IcQ N7aoKuG7 tOijPOie SNXSfHJZ wpPweu9X xu7Mi8xq hHLFJ3KB RW4380zy qDkOaMdb TlaZ-utt TKouH_xz qO0Of4ec BvZNrrFO xa0ttIiu LlpFd3jd BLwBWg57 GtO_mo-m A6oxvxtm lzmRvjsS L8Vh_Y09",
+      "frames": "i_eO9YW_ V2dGjMA4 uPVDpOcD KPgfjsy5 COEMOsBm j6CWhBT- Qtbs6e6a 2_pPMmTU Lv8AVm2k NJDAtYD1 GADrOhkn 9UqT2uGc wv_6MQKA YuS-bsFR bqEoV4e8 098WKlgh 70KOxEtr G8mdMiVO UOf2VCOn 8cbrju4D si_fPEjc BEUCQkyp v5S7uPz1 003bmrq5 FkZvcM6q NJB1hI6t M9ojcqCG o7inRtbX p5358iBq eMQBHNE3 0FI41A8S iijtTD-5 ulXeqVei -BkRbxfy scgqtjXb DzWGGoz_ FkUfi0vs VzZdpKkl yogbf0MA -DEWHhP8 T-HW2Wx2 NOqCqhNj WOSBb4X2 WDSrH1E9 4tY9KifQ xa0ttIiu LlpFd3jd BLwBWg57 GtO_mo-m A6oxvxtm lzmRvjsS L8Vh_Y09",
       "canopy": "A6VO-B-_",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
