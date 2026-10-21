@@ -23,6 +23,8 @@ test('qualification fingerprints include Replay inspection, regression inputs an
     ['deterministicIngress', 'server/babelParser/spellout.js'],
     ['requestBoundary', 'hooks/useGeneration.ts'],
     ['requestBoundary', 'services/generationState.ts'],
+    ['requestBoundary', 'server/parseHttpPolicy.js'],
+    ['requestBoundary', 'server/devParseMiddleware.js'],
     ['qualificationHarness', 'contractQualification/diagnosticReplay.ts'],
     ['qualificationHarness', 'contractQualification/workspaceInspection.css'],
     ['providerFreeFixtures', 'fixtures/replay-regressions/coordination-and-ellipsis.json'],

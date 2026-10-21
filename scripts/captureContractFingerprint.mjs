@@ -23,6 +23,8 @@ const explicitSections = {
     'services/generationState.ts',
     'api/parse.js',
     'server/parseApi.js',
+    'server/parseHttpPolicy.js',
+    'server/devParseMiddleware.js',
     'server/index.js',
     'services/parseService.ts',
     'types.ts',

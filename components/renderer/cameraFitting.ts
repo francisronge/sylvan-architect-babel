@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
 import { type OverlayBounds } from '../../replay/relations/geometryBounds.ts';
-import { markerScaleAtZoom } from '../../replay/rendererMetrics.ts';
+import { markerScaleAtZoom, userZoomExtentAt } from '../../replay/rendererMetrics.ts';
 import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
@@ -145,6 +145,8 @@ export function applyCameraTransform({ cameraRuntime, svg, zoom }: Pick<CameraSe
   // D3 can retain a wheel sourceEvent during a programmatic fit.
   cameraRuntime.applying = true;
   try {
+    // A gesture continues from this pose rather than snapping to the extent.
+    zoom.scaleExtent(userZoomExtentAt(transform.k));
     svg.call(zoom.transform, transform);
   } finally {
     cameraRuntime.applying = false;
