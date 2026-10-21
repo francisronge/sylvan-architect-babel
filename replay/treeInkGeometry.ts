@@ -113,27 +113,39 @@ export function treeInkObstacles(
   });
 }
 
+// Shortest round-trip decimals, with signed zero kept: equal keys are equal doubles.
+const exact = (value: number) => Object.is(value, -0) ? '-0' : String(value);
+
+/** `plaqueBranchObstacles(parent, node, precise)`, sampled once per exact pair
+ * of endpoints. Branch ink depends on no canvas, label or measure, so the
+ * canvases of one placement run share one store; consecutive paintings repeat
+ * most branches. Its arrays are shared and must not be modified. */
+export type TreeBranchInk = (parent: Node, node: Node, precise: boolean) => PlaqueRect[];
+export function createTreeBranchInk(): TreeBranchInk {
+  const branches = new Map<string, PlaqueRect[]>();
+  return (parent, node, precise) => {
+    const key = `${precise} ${exact(parent.x)} ${exact(parent.y)} ${exact(node.x)} ${exact(node.y)}`;
+    let result = branches.get(key);
+    if (!result) branches.set(key, result = plaqueBranchObstacles(parent, node, precise));
+    return result;
+  };
+}
+
 /** Tree ink for the repeated paintings of one canvas. A node's own label, word
  * and stem depend only on its position, and a branch only on its endpoints, so
- * each is measured once per exact position. `obstacles(nodes, precise)` equals
- * `treeInkObstacles(nodes, ..., precise, ...)` rectangle for rectangle, in the
- * same order. Its arrays are shared and must not be modified. */
+ * each is measured once per exact position; `branchInk` may be shared with other
+ * canvases. `obstacles(nodes, precise)` equals `treeInkObstacles(nodes, ...,
+ * precise, ...)` rectangle for rectangle, in the same order. Its arrays are
+ * shared and must not be modified. */
 export type TreeInkCache = ReturnType<typeof createTreeInkCache>;
 export function createTreeInkCache(measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
-  labelRuns?: ReadonlyMap<string, readonly TreeLabelRuns[]>, measureTreeLabel?: TreeLabelMeasure) {
-  const own = new Map<string, PlaqueRect[]>(), branches = new Map<string, PlaqueRect[]>();
-  // Shortest round-trip decimals, with signed zero kept: equal keys are equal doubles.
-  const exact = (value: number) => Object.is(value, -0) ? '-0' : String(value);
+  labelRuns?: ReadonlyMap<string, readonly TreeLabelRuns[]>, measureTreeLabel?: TreeLabelMeasure,
+  branchInk: TreeBranchInk = createTreeBranchInk()) {
+  const own = new Map<string, PlaqueRect[]>();
   const ownInk = (node: Node) => {
     const key = `${getNodeId(node)} ${exact(node.x)} ${exact(node.y)}`;
     let result = own.get(key);
     if (!result) own.set(key, result = treeInkObstacles([node], measureCategoryText, measureTreeInk, false, labelRuns, measureTreeLabel));
-    return result;
-  };
-  const branchInk = (parent: Node, node: Node, precise: boolean) => {
-    const key = `${precise} ${exact(parent.x)} ${exact(parent.y)} ${exact(node.x)} ${exact(node.y)}`;
-    let result = branches.get(key);
-    if (!result) branches.set(key, result = plaqueBranchObstacles(parent, node, precise));
     return result;
   };
   const workspace = (node: Node) => node.data.replayOrigin?.kind === 'workspace';

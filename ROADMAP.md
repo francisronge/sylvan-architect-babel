@@ -43,8 +43,6 @@ syntactic rules. Desktop remains the primary experience.
      (item 4).
    - After a failed parse in Derivation Replay, the sentence input stays
      visible: the failure panel has no dismiss control.
-   - Stage coordinate preparation keeps an ink cache that raises peak memory
-     by about 100 MiB on the largest saved analyses.
    - A wrapped category line can start with the space that overflowed the
      line before (22 saved labels).
    - Saved analyses that still fail a Replay invariant (3 findings in 2 of 986

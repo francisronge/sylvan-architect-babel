@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as d3 from 'd3';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
-import { collectTreeInkMeasurements, createTreeInkCache, treeInkObstacles, prepareTreeInkSubtrees } from '../replay/treeInkGeometry.ts';
+import { collectTreeInkMeasurements, createTreeBranchInk, createTreeInkCache, treeInkObstacles, prepareTreeInkSubtrees } from '../replay/treeInkGeometry.ts';
 import { visibleComponentNodes } from '../replay/visibleComponent.ts';
 import { plaqueTreeObstacles } from '../replay/relations/plaquePlacement.ts';
 import { REPLAY_GENERATED_TERMINAL_GLYPHS, formatIndexedSurfaceForDisplayValue } from '../replay/replaySurfaceNotation.ts';
@@ -77,6 +77,26 @@ test('cached tree ink equals direct measurement of any node list, and follows mo
       }
     }
   }
+});
+
+test('canvases sharing one branch store sample each branch once and keep their own label ink', () => {
+  const root = d3.hierarchy({ id: 'root', label: 'VP', children: [{ id: 'left', label: 'N', word: 'Mia' }, { id: 'right', label: 'V', word: 'saw' }] });
+  applyVizIds(root);
+  root.each((node, i) => { node.x = 100.5 + i * 140; node.y = node.depth * 210.75; });
+  const all = root.descendants(), [parent, child] = all;
+  // Two canvases of one placement: the same branches, differently styled labels.
+  const runs = width => new Map(all.map(node => [getNodeId(node), [{ kind: 'category', bounds: { x: -width / 2, y: -39, width, height: 46 } }]]));
+  const [narrow, wide] = [runs(40), runs(160)], styled = run => run.bounds, branches = createTreeBranchInk();
+  const first = createTreeInkCache(widths, metrics, narrow, styled, branches), second = createTreeInkCache(widths, metrics, wide, styled, branches);
+  for (const precise of [false, true]) {
+    assert.equal(first.branch(parent, child, precise), second.branch(parent, child, precise), 'one sampled array per exact branch');
+    assert.deepEqual(first.obstacles(all, precise), treeInkObstacles(all, widths, metrics, precise, narrow, styled));
+    assert.deepEqual(second.obstacles(all, precise), treeInkObstacles(all, widths, metrics, precise, wide, styled));
+  }
+  assert.notDeepEqual(first.own(parent), second.own(parent), 'label ink stays with its canvas');
+  const separate = createTreeInkCache(widths, metrics, narrow, styled);
+  assert.notEqual(separate.branch(parent, child, true), first.branch(parent, child, true));
+  assert.deepEqual(separate.branch(parent, child, true), first.branch(parent, child, true));
 });
 
 test('missing or nonfinite font metrics preserve the existing rectangles exactly', () => {
