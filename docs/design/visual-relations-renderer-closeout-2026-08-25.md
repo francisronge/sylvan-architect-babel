@@ -690,8 +690,8 @@ Syntax stands from its first frame where it will be once attached. A waiting
 workspace or a newly selected head appears at its attachment slot and keeps it
 until its own merge, which then moves nothing already on screen. A piece that
 attaches through a parent inserted above an existing host waits at its final x
-beside that host's current row: branches keep their one-row length, and the
-insertion lowers the host and the piece together. A slot holds only while every
+and on its final row, one row below that host's current row, so the insertion
+lowers only the host. A slot holds only while every
 painted member keeps the parent it attaches with, every frame stays valid and
 no ink collision is added. Placements that span stages use stage frames
 translated, as a whole, by the median shift of the unmoved syntax they share
