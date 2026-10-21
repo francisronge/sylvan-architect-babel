@@ -46,14 +46,21 @@ for (const rename of [false, true]) test(`successive movement retains the interm
 test('an earlier landing does not transfer without one unambiguous later movement', () => {
   for (const mutate of [
     s => { s[2].relations.shift(); },
-    s => { s[2].relations[0].priorAnchors.sourcePhrase = 'unresolved'; },
-    s => { s[2].relations.push(structuredClone(s[2].relations[0])); }
+    s => { s[2].relations[0].priorAnchors.sourcePhrase = 'unresolved'; }
   ]) {
     const input = stages(); mutate(input);
     const earlier = arrows(compileRelationRenderPlan(input), 2).find(i => i.relationRef.stageIndex === 1);
     assert.equal(earlier.targetNodeId, 'wh');
     assert.equal(earlier.occurrenceTransfers, undefined);
   }
+});
+
+test('a restated later movement is one transfer, owned by its first claim', () => {
+  const input = stages();
+  input[2].relations.push(structuredClone(input[2].relations[0]));
+  const earlier = arrows(compileRelationRenderPlan(input), 2).find(i => i.relationRef.stageIndex === 1);
+  assert.equal(earlier.targetNodeId, 'tEdge');
+  assert.deepEqual(earlier.occurrenceTransfers, [{ fromNodeId: 'wh', toNodeId: 'tEdge', stageIndex: 2, relationIndex: 0 }]);
 });
 
 test('a third hop keeps both preceding landings and does not move identity marks onto a trace', () => {
@@ -203,4 +210,18 @@ test('the earlier arrow transfers at the new hop even when that claim also cites
   assert.equal(at(null).targetNodeId, 'tEdge');
   assert.equal(at(new Set()).targetNodeId, 'wh', 'rewind restores the earlier landing');
   assert.deepEqual(input, original);
+});
+
+
+test('a cited older foot of the same lineage does not compete with the step\'s new lower trace', () => {
+  const input = successiveUnfamiliarRoles(), original = structuredClone(input);
+  input.relation.anchors = { landing: 'mover', sourceTrace: 'new-copy', lowerTrace: 'old-copy' };
+  input.relation.priorAnchors = { source: 'mover' };
+  const result = recoverMovementEvidence(input.relation, input.after, input.before);
+  assert.deepEqual([result.movement?.priorSourceNodeId, result.movement?.sourceNodeId, result.movement?.targetNodeId,
+    result.movement?.witnessNodeId], ['mover', 'new-copy', 'mover', 'new-copy']);
+  assert.deepEqual(input.before, original.before);
+  index(input.after).get('old-copy').lineageId = 'other-chain';
+  assert.equal(recoverMovementEvidence(input.relation, input.after, input.before).failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED',
+    'a trace of another lineage still competes');
 });

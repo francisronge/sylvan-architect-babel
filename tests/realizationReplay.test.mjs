@@ -354,8 +354,9 @@ test('missing relation moments and unavailable participants cannot introduce a r
 });
 
 test('a source domain waits for the later relation that introduces its descendant, then realizes at its own moment', () => {
+  // The later relation rewrites other as past, so past waits for its moment.
   const before = [node('domain', [node('root')]), node('other')];
-  const after = [node('domain', [node('root'), node('past')]), node('other')];
+  const after = [node('domain', [node('root'), node('past')])];
   const stages = [stage(undefined, [], before), stage([group(['domain'])], [
     relation(['domain']), relation(['past'], ['other'])
   ], after)];

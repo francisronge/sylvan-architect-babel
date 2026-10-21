@@ -1,5 +1,6 @@
 {
   "description": "Bounded positive and negative relation-lifetime controls using the same authored evidence as the Tier-2 tests.",
+  "source": "Hand-built controls with synthetic sentences (\"one two\", \"who gap\"); not model answers.",
   "cases": [
     {
       "sentence": "one two",

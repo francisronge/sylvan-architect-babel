@@ -18,6 +18,12 @@ await copyFile(
   new URL('../docs/design/visual-relations-current-lab.production-only-audit.r96.bundle.js', import.meta.url),
   new URL('../docs/research/relation-orchard/relation-orchard.bundle.js', import.meta.url)
 );
+// The published research site cannot reach components/, so it keeps an exact
+// copy of the app's drawing stylesheet; tests/relationVisualStyles.test.mjs checks it.
+await copyFile(
+  new URL('../components/renderer/relation-visuals.css', import.meta.url),
+  new URL('../docs/research/relation-orchard/relation-visuals.css', import.meta.url)
+);
 
 // A new published drawing must not reuse an older cached bundle or source layout.
 for (const page of [

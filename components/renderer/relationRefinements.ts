@@ -18,7 +18,7 @@ interface RelationGeometryContext {
   visibleNodes: d3.HierarchyPointNode<SyntaxNode>[];
   measureCategoryText: (text: string) => number;
   deferredAcceptedRelationDraws: (() => void)[];
-  playedRelationIndices: Set<number> | undefined;
+  playedRelationIndices: Set<number> | null;
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   updateScreenStableText: (screenScale: number) => void;
 }

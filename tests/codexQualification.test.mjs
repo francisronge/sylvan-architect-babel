@@ -317,11 +317,15 @@ test('socket diagnostics retain a wrapped peer-close cause without arbitrary mes
 });
 
 test('real HTTP stream termination distinguishes peer close, client timeout and completed response', async t => {
+  // A stream error discards data the client has received but not yet read, so
+  // the peer closes only after the client has read the first event, and the
+  // stalled body times out long after it has.
+  let firstEventRead;
   const server = createServer((req, res) => {
     req.resume();
     res.writeHead(200, { 'content-type': 'text/event-stream' });
     res.write(event({ type: 'response.created', response: { id: 'resp_local', status: 'in_progress' } }));
-    if (req.url === '/peer-close') res.socket.end(); // No final HTTP chunk or provider completion.
+    if (req.url === '/peer-close') firstEventRead.then(() => res.socket.end()); // No final HTTP chunk or provider completion.
     else if (req.url === '/completed') res.end(streamFor('complete'));
   });
   server.listen(0, '127.0.0.1');
@@ -329,15 +333,17 @@ test('real HTTP stream termination distinguishes peer close, client timeout and 
   t.after(() => { server.closeAllConnections(); server.close(); });
   const origin = `http://127.0.0.1:${server.address().port}`;
   for (const [route, bodyTimeout, expected] of [
-    ['/peer-close', 0, 'peer_closed'], ['/stalled', 15, 'body_timeout'], ['/completed', 0, null]
+    ['/peer-close', 0, 'peer_closed'], ['/stalled', 1000, 'body_timeout'], ['/completed', 0, null]
   ]) {
+    let read;
+    firstEventRead = new Promise(resolve => { read = resolve; });
     const dispatcher = new Agent({ headersTimeout: 0, bodyTimeout });
     const trace = createQualificationTelemetry();
     dispatcher.on('disconnect', (_origin, _targets, error) => trace.connection('disconnect', error));
     try {
       const result = await requestCodexQualification({ body: request().body, credentials, dispatcher,
         fetchImpl: (_url, options) => fetch(origin + route, options),
-        onBytes: chunk => trace.bytes(chunk), onEvent: item => trace.event(item)
+        onBytes: chunk => trace.bytes(chunk), onEvent: item => { trace.event(item); read(); }
       });
       assert.equal(result.responseId, route === '/completed' ? 'response-1' : 'resp_local');
       if (expected) {

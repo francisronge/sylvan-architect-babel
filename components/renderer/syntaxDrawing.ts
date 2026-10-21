@@ -327,7 +327,7 @@ export function paintSyntaxTree({
       return step <= effectiveRevealThreshold ? 0.6 : 0;
     })
     .style('transition', 'opacity 280ms ease')
-    .attr('d', d3.linkVertical().x((d: d3.HierarchyPointNode<SyntaxNode>) => d.x).y((d: d3.HierarchyPointNode<SyntaxNode>) => d.y));
+    .attr('d', d3.linkVertical<d3.HierarchyPointLink<SyntaxNode>, d3.HierarchyPointNode<SyntaxNode>>().x(d => d.x).y(d => d.y));
 
   // The Lab can disable the compiled overlay. Resolved movement arrows draw
   // here only when that overlay is not already drawing authored trajectories.
@@ -386,11 +386,12 @@ export function paintSyntaxTree({
       .attr('d', (arrow) => {
         const sourceOffset = getGroupedOffset(arrowsBySource.get(getNodeId(arrow.source)), arrow);
         const targetOffset = getGroupedOffset(arrowsByTarget.get(getNodeId(arrow.target)), arrow);
-        const direction = Math.sign(arrow.target.x - arrow.source.x) || 1;
-        const sx = arrow.source.x + 8 * direction + sourceOffset;
-        const sy = arrow.source.y + 24;
-        const tx = arrow.target.x - 8 * direction + targetOffset;
-        const ty = arrow.target.y + 24;
+        // Arrow endpoints are nodes of the laid-out tree.
+        const direction = Math.sign(arrow.target.x! - arrow.source.x!) || 1;
+        const sx = arrow.source.x! + 8 * direction + sourceOffset;
+        const sy = arrow.source.y! + 24;
+        const tx = arrow.target.x! - 8 * direction + targetOffset;
+        const ty = arrow.target.y! + 24;
         const controlX = (sx + tx) / 2;
         const controlY = Math.max(sy, ty) + Math.max(42, Math.abs(tx - sx) * 0.2);
         return `M ${sx} ${sy} Q ${controlX} ${controlY}, ${tx} ${ty}`;
@@ -414,7 +415,7 @@ export function paintSyntaxTree({
 
   // Wordless categories keep category geometry, even when authored silent.
   const categories = nodeGroups.filter((d) =>
-    (Boolean(d.children) && d.children.length > 0) || shouldExpandPreterminalLeaf(d.data)
+    (Boolean(d.children) && d.children!.length > 0) || shouldExpandPreterminalLeaf(d.data)
     || isWordlessCategoryLeaf(d.data)
   );
   const categoryInk = (d: HierNode) =>
@@ -614,11 +615,12 @@ export function paintSyntaxTree({
     .attr('stroke', BRANCH_COLOR).attr('stroke-width', 3).attr('stroke-dasharray', '8,8').attr('opacity', 0.6);
 
   // 5. ABSTRACTION MODE (Triangles)
-  const triangles = nodeGroups.filter((d: TriangulatedNode) => d.isTriangulated);
+  // Triangulation sets both fields on every triangulated node.
+  const triangles = nodeGroups.filter((d: TriangulatedNode) => d.isTriangulated!);
   triangles.selectAll('text').remove();
   triangles.append('path')
     .attr('d', d => {
-      const wordString = (d as TriangulatedNode).triangulatedWords;
+      const wordString = (d as TriangulatedNode).triangulatedWords!;
       const textWidth = wordString.length * 20;
       const half = Math.max(70, textWidth / 2 + 30);
       return `M 0,25 L ${-half},110 L ${half},110 Z`;
@@ -647,7 +649,7 @@ export function paintSyntaxTree({
     .attr('font-weight', '900')
     .attr('fill', TARGET_EMERALD)
     .attr('style', `fill: ${TARGET_EMERALD} !important; font-family: 'Quicksand', sans-serif; font-style: italic; paint-order: stroke; stroke: #020806; stroke-width: 8px;`)
-    .text((d: TriangulatedNode) => d.triangulatedWords);
+    .text((d: TriangulatedNode) => d.triangulatedWords!);
 
   return {
     visibleNodes,

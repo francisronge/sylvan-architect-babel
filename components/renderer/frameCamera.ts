@@ -23,9 +23,9 @@ interface FrameCameraLayout {
   stagePlaqueContainmentBounds: OverlayBounds | null;
   completedReplayStep: number | undefined;
   g: DrawingLayer;
-  fitFallbackOverlays: (fitZoom: number, fittedViewport: Rect) => void;
+  fitFallbackOverlays: ((fitZoom: number, fittedViewport: Rect) => void) | undefined;
   derivationFrameFitNodes: d3.HierarchyPointNode<SyntaxNode>[] | null;
-  overlayFitBounds: OverlayBounds;
+  overlayFitBounds: OverlayBounds | null;
   visibleNodes: d3.HierarchyPointNode<SyntaxNode>[];
 }
 export function fitTreeCamera({ session, layout }: { session: CameraSession; layout: FrameCameraLayout }) {

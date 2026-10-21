@@ -3,7 +3,7 @@ import type { WorkspacePoseGraph } from './workspacePoseGraph.ts';
 import { currentWorkspaceMovements } from './currentWorkspaceMovements.ts';
 import type { LifetimeContour, Point } from './workspaceLifetimeContours.ts';
 import { cubicIntersectsRect } from './relations/curveClearance.ts';
-import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
+import { obstacleExtent, verticalObstacleIndex } from './verticalObstacleIndex.ts';
 type ReferenceFrame = {
   nodes: readonly ({
     id: string;
@@ -56,7 +56,41 @@ const collision = (a: PlaqueRect, b: PlaqueRect) => Math.min(a.x + a.width, b.x 
   && Math.min(a.y + a.height, b.y + b.height) > Math.max(a.y, b.y) + 1e-6
   && (!a.curve || cubicIntersectsRect(a.curve, b, a.curvePadding))
   && (!b.curve || cubicIntersectsRect(b.curve, a, b.curvePadding));
+/** Whether some pair of the two box lists can satisfy `collision`: it requires
+ * `min(right) > max(left) + 1e-6` on both axes, which no pair meets when the
+ * lists' extents fail it. NaN extents never rule a pair out. */
+const mayCollide = (a: readonly PlaqueRect[], b: readonly PlaqueRect[]) => {
+  const left = obstacleExtent(a), right = obstacleExtent(b);
+  return !(Math.min(left.right, right.right) <= Math.max(left.left, right.left) + 1e-6
+    || Math.min(left.bottom, right.bottom) <= Math.max(left.top, right.top) + 1e-6);
+};
 const median = (values: readonly number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+// Contour obstacle lists are immutable; a serial names each one in exact keys.
+const serials = new WeakMap<readonly PlaqueRect[], number>();
+let nextSerial = 0;
+const serial = (obstacles: readonly PlaqueRect[]) => {
+  let value = serials.get(obstacles);
+  if (value === undefined) serials.set(obstacles, value = nextSerial++);
+  return value;
+};
+// Shortest round-trip decimals, with signed zero kept: equal keys are equal doubles.
+const exact = (value: number) => Object.is(value, -0) ? '-0' : String(value);
+const placementKey = (obstacles: readonly PlaqueRect[], offset: Point) => `${serial(obstacles)} ${exact(offset.x)} ${exact(offset.y)}`;
+/** The same shapes at the same exact offsets repeat across the frames of a rigid
+ * group. Their translated geometry, and so any test of it, is identical. */
+const pairKey = (own: readonly PlaqueRect[], ownOffset: Point, other: readonly PlaqueRect[], otherOffset: Point) =>
+  `${placementKey(own, ownOffset)}|${placementKey(other, otherOffset)}`;
+function memoized<T>() {
+  const results = new Map<string, T>();
+  return (key: string, compute: () => T): T => {
+    if (results.has(key)) return results.get(key)!;
+    const result = compute();
+    results.set(key, result);
+    return result;
+  };
+}
+type Bounds = { x: number; y: number; width: number; height: number };
+const translatedBounds = (rect: PlaqueRect, x: number, y: number): Bounds => ({ x: rect.x + x, y: rect.y + y, width: rect.width, height: rect.height });
 
 /** Prefer stable poses for unchanged material outside the actual movement,
  * and let independent merge inputs wait at their attachment positions. Required
@@ -73,6 +107,7 @@ function preferredStationaryPoses(graph: WorkspacePoseGraph, baseline: readonly 
     if (!entries) occurrences.set(group, entries = []);
     entries.push({ index, variable, shape });
   }
+  const clearPairs = memoized<boolean>();
   for (let index = 1; index < graph.frames.length; index++) {
     const current = graph.frames[index], before = graph.frames[index - 1], candidates = new Set<string>();
     // Independent inputs can wait at their attachment position before an
@@ -111,13 +146,16 @@ function preferredStationaryPoses(graph: WorkspacePoseGraph, baseline: readonly 
       const clear = earlier.every(left => later.every(right => {
         if (left.index !== right.index) return true;
         const x = trial.find(left.variable).offset, y = trial.find(right.variable).offset;
-        const own = left.shape.obstacles.map(rect => translated(rect, x.x, x.y));
-        const other = right.shape.obstacles.map(rect => translated(rect, y.x, y.y));
-        const query = verticalObstacleIndex(other);
-        for (let i = 0; i < own.length; i++) {
-          if (query(own[i], obstacle => collision(own[i], obstacle))) return false;
-        }
-        return true;
+        return clearPairs(pairKey(left.shape.obstacles, x, right.shape.obstacles, y), () => {
+          const own = left.shape.obstacles.map(rect => translated(rect, x.x, x.y));
+          const other = right.shape.obstacles.map(rect => translated(rect, y.x, y.y));
+          if (!mayCollide(own, other)) return true;
+          const query = verticalObstacleIndex(other, { overlapOnly: true });
+          for (let i = 0; i < own.length; i++) {
+            if (query(own[i], obstacle => collision(own[i], obstacle))) return false;
+          }
+          return true;
+        });
       }));
       if (!clear) continue;
       union = trial;
@@ -154,22 +192,27 @@ export function placeRigidGroups(graph: WorkspacePoseGraph, baseline: readonly R
     group.y = median(group.desiredY);
   }
   const conflicts: ClearanceConflict[] = [];
+  const groupPairs = memoized<ClearanceConflict['pairs']>();
   for (const [index, roots] of scenes.entries())
     for (let i = 0; i < roots.length; i++)
       for (let j = i + 1; j < roots.length; j++) {
         const a = roots[i], b = roots[j];
         if (a.group !== b.group)
           continue;
-        const left = a.shape.obstacles.map(box => translated(box, a.offset.x, a.offset.y));
-        const right = b.shape.obstacles.map(box => translated(box, b.offset.x, b.offset.y));
-        const query = verticalObstacleIndex(right);
-        const pairs: ClearanceConflict['pairs'] = [];
-        for (const x of left)
-          query(x, y => {
-            if (collision(x, y))
-              pairs.push({ a: x, b: y });
-            return false;
-          });
+        const pairs = groupPairs(pairKey(a.shape.obstacles, a.offset, b.shape.obstacles, b.offset), () => {
+          const left = a.shape.obstacles.map(box => translated(box, a.offset.x, a.offset.y));
+          const right = b.shape.obstacles.map(box => translated(box, b.offset.x, b.offset.y));
+          const found: ClearanceConflict['pairs'] = [];
+          if (!mayCollide(left, right)) return found;
+          const query = verticalObstacleIndex(right, { overlapOnly: true });
+          for (const x of left)
+            query(x, y => {
+              if (collision(x, y))
+                found.push({ a: x, b: y });
+              return false;
+            });
+          return found;
+        });
         if (pairs.length)
           conflicts.push({ frame: index + 1, roots: [a.shape.id, b.shape.id], pairs });
       }
@@ -211,6 +254,8 @@ export function placeRigidGroups(graph: WorkspacePoseGraph, baseline: readonly R
   };
   ordinaryOrder.forEach(schedule);
   const placed = new Set<number>();
+  // A placed peer's ink at one exact position serves every later group.
+  const peerInk = memoized<ReturnType<typeof verticalObstacleIndex<Bounds>>>();
   for (const group of ordered) {
     const preference = attachment.get(group.group);
     if (preference && placed.has(preference.target)) {
@@ -222,20 +267,32 @@ export function placeRigidGroups(graph: WorkspacePoseGraph, baseline: readonly R
       number,
       number
     ][] = [];
+    // An identical translated pair adds identical intervals, which the merged
+    // union below ignores; the remaining intervals keep their order.
+    const measured = new Set<string>();
     for (const occurrence of group.occurrences) {
       if (!scenes[occurrence.index].some(peer => placed.has(peer.group))) continue;
-      const own = occurrence.shape.obstacles.map(box => translated(box, occurrence.offset.x, occurrence.offset.y + group.y));
+      const ownOffset = { x: occurrence.offset.x, y: occurrence.offset.y + group.y };
+      let own: Bounds[] | undefined;
       for (const peer of scenes[occurrence.index]) {
         if (!placed.has(peer.group))
           continue;
         const other = groups.get(peer.group)!;
-        const boxes = peer.shape.obstacles.map(box => translated(box, peer.offset.x + other.x, peer.offset.y + other.y));
+        const peerOffset = { x: peer.offset.x + other.x, y: peer.offset.y + other.y };
+        const key = pairKey(occurrence.shape.obstacles, ownOffset, peer.shape.obstacles, peerOffset);
+        if (measured.has(key)) continue;
+        measured.add(key);
+        own ??= occurrence.shape.obstacles.map(box => translatedBounds(box, ownOffset.x, ownOffset.y));
+        // Only vertically overlapping boxes add an interval, visited in box order.
+        const boxes = peerInk(placementKey(peer.shape.obstacles, peerOffset), () =>
+          verticalObstacleIndex(peer.shape.obstacles.map(box => translatedBounds(box, peerOffset.x, peerOffset.y))));
         for (const a of own)
-          for (const b of boxes) {
+          boxes(a, b => {
             if (Math.min(a.y + a.height, b.y + b.height) > Math.max(a.y, b.y) + 1e-6) {
               intervals.push([b.x - a.x - a.width - 1, b.x + b.width - a.x + 1]);
             }
-          }
+            return false;
+          });
       }
     }
     intervals.sort((a, b) => a[0] - b[0]);

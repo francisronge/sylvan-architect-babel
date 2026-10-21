@@ -1,4 +1,5 @@
 {
+  "description": "Saved ordered surface tokens draw one PF plate owned by the complete group (independentPFRecovery, nativeAnchorSetOwnership).",
   "provenance": {
     "harness": "Codex OAuth qualification",
     "note": "Exact saved model-authored stages. No node, relation, or realization repair."

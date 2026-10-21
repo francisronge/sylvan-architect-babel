@@ -1,5 +1,7 @@
 [
   {
+    "description": "Bundled head labels, preserved head contents and containing landing clauses: exact source, landing and path appear atomically with authored labels (qualifiedMovementContext, movementReceivingSlots).",
+    "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run fresh-20-20261015/03-german-challenge: exact excerpt (a1 stages 3→4, relation 1). Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/fresh-20-20261015/runs/03-german-challenge (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/fresh-20-20261015/runs/03-german-challenge).",
     "name": "bundled-head",
     "sourceNodeId": "t",
     "targetNodeId": "tHigh",
@@ -289,6 +291,8 @@
     }
   },
   {
+    "description": "Bundled head labels, preserved head contents and containing landing clauses: exact source, landing and path appear atomically with authored labels (qualifiedMovementContext, movementReceivingSlots).",
+    "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run fresh-20-20261015/08-turkish-challenge: exact excerpt (a1 stages 1→2, relation 1). Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/fresh-20-20261015/runs/08-turkish-challenge (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/fresh-20-20261015/runs/08-turkish-challenge).",
     "name": "preserved-head-contents",
     "sourceNodeId": "rV",
     "targetNodeId": "rVHigh",
@@ -509,6 +513,8 @@
     }
   },
   {
+    "description": "Bundled head labels, preserved head contents and containing landing clauses: exact source, landing and path appear atomically with authored labels (qualifiedMovementContext, movementReceivingSlots).",
+    "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run fresh-20-20261015/08-turkish-challenge: exact excerpt (a1 stages 4→5, relation 1). Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/fresh-20-20261015/runs/08-turkish-challenge (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/fresh-20-20261015/runs/08-turkish-challenge).",
     "name": "preserved-progressive-contents",
     "sourceNodeId": "mV",
     "targetNodeId": "mVHigh",
@@ -997,6 +1003,8 @@
     }
   },
   {
+    "description": "Bundled head labels, preserved head contents and containing landing clauses: exact source, landing and path appear atomically with authored labels (qualifiedMovementContext, movementReceivingSlots).",
+    "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run fresh-20-20261015/15-mandarin-control: exact excerpt (a1 stages 4→5, relation 1). Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/fresh-20-20261015/runs/15-mandarin-control (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/fresh-20-20261015/runs/15-mandarin-control).",
     "name": "contextual-head",
     "sourceNodeId": "aDP",
     "targetNodeId": "aDPHigh",
@@ -1354,6 +1362,8 @@
     }
   },
   {
+    "description": "Bundled head labels, preserved head contents and containing landing clauses: exact source, landing and path appear atomically with authored labels (qualifiedMovementContext, movementReceivingSlots).",
+    "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run fresh-20-20261015/19-japanese-control: exact excerpt (a1 stages 3→4, relation 1). Saved in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/fresh-20-20261015/runs/19-japanese-control (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/fresh-20-20261015/runs/19-japanese-control).",
     "name": "containing-landing-clause",
     "sourceNodeId": "trace-subject",
     "targetNodeId": "np-hanako",

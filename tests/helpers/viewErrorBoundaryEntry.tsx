@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import ViewErrorBoundary, { useViewErrorHandler } from '../../components/ViewErrorBoundary';
 import { guardViewCallback } from '../../components/viewErrorHandling.ts';

@@ -1,0 +1,3034 @@
+{
+  "description": "A French object relative clause with an embedded clause inside it: 19 words, 10 stages, 107 Replay steps, 71 final nodes and 217 relation marks. Before 19 October 2026 its offline preparation took about 12 seconds, most of it in the plaque schedule.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract (character-spellout-v3), 19 October 2026 (night4 batch, 13-fr-long-relative, analysis 1), commit bcf1b56. Tokens are the shared word list of that run.",
+  "contract": "character-spellout-v3",
+  "sentence": "Le livre que Marie pensait que Jean avait déjà lu se trouvait encore sur la table de la cuisine.",
+  "framework": "minimalism",
+  "inputTokens": [
+    "Le",
+    "livre",
+    "que",
+    "Marie",
+    "pensait",
+    "que",
+    "Jean",
+    "avait",
+    "déjà",
+    "lu",
+    "se",
+    "trouvait",
+    "encore",
+    "sur",
+    "la",
+    "table",
+    "de",
+    "la",
+    "cuisine"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "predicate": "read",
+            "theme": "relative"
+          },
+          "relation": "thematic dependency",
+          "values": {
+            "role": "theme"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "jean",
+            "introducer": "embeddedVoice",
+            "predicate": "read"
+          },
+          "relation": "external argument licensing",
+          "values": {
+            "role": "agent"
+          }
+        },
+        {
+          "anchors": {
+            "adverb": "already",
+            "domain": "readPhrase"
+          },
+          "relation": "adverbial scope",
+          "values": {
+            "interpretation": "déjà modifies the reading event"
+          }
+        }
+      ],
+      "stageRecord": "External Merge combines lu with the relative pronoun que as its internal argument. Déjà adjoins to this verbal constituent, and transitive v introduces Jean as the external argument. The resulting predicate assigns the theme role to que and the agent role to Jean; déjà takes scope over the reading event. The auxiliary avait, imperfect T, and the declarative complementizer que remain separate workspace objects. Labels identify the projecting lexical items or features, rather than additional X-bar levels. Inflected verbal forms enter with their lexical spelling; their tense dependencies will be established syntactically without decomposing those spellings.",
+      "statement": "Construct the participial predicate and its initial argument structure.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "jean",
+              "label": "D",
+              "lineageId": "Jean-chain",
+              "word": "Jean"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "embeddedVoice",
+                  "label": "v[transitive]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "already",
+                      "label": "Adv",
+                      "word": "déjà"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "read",
+                          "label": "V[participle]",
+                          "word": "lu"
+                        },
+                        {
+                          "children": [],
+                          "id": "relative",
+                          "label": "D[relative, accusative]",
+                          "lineageId": "relative-chain",
+                          "word": "que"
+                        }
+                      ],
+                      "id": "readPhrase",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "alreadyPhrase",
+                  "label": "V"
+                }
+              ],
+              "id": "embeddedVoiceProjection",
+              "label": "v"
+            }
+          ],
+          "id": "embeddedVoicePhrase",
+          "label": "v"
+        },
+        {
+          "children": [],
+          "id": "auxiliary",
+          "label": "Aux[perfect]",
+          "lineageId": "auxiliary-chain",
+          "word": "avait"
+        },
+        {
+          "children": [],
+          "id": "embeddedT",
+          "label": "T[imperfect]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "embeddedC",
+          "label": "C[declarative]",
+          "word": "que"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landing": "relative",
+            "phaseHead": "embeddedVoice",
+            "source": "relativeObjectTrace"
+          },
+          "priorAnchors": {
+            "movingOccurrence": "relative"
+          },
+          "relation": "successive-cyclic relative movement",
+          "values": {
+            "step": "object to transitive-v edge"
+          }
+        },
+        {
+          "anchors": {
+            "auxiliary": "auxiliary",
+            "participle": "read",
+            "tense": "embeddedT"
+          },
+          "relation": "perfect temporal dependency",
+          "values": {
+            "interpretation": "the reading precedes an embedded past reference time"
+          }
+        },
+        {
+          "anchors": {
+            "goal": "jean",
+            "probe": "embeddedT"
+          },
+          "relation": "subject agreement and Case",
+          "values": {
+            "case": "nominative",
+            "number": "singular",
+            "person": "third"
+          }
+        },
+        {
+          "anchors": {
+            "landing": "jean",
+            "licensor": "embeddedT",
+            "source": "jeanTrace"
+          },
+          "priorAnchors": {
+            "movingOccurrence": "jean"
+          },
+          "relation": "subject movement"
+        }
+      ],
+      "stageRecord": "First, Internal Merge moves the relative pronoun from the object position to the edge of transitive v, leaving a silent trace. This preserves an escape position before the lower phase is completed. Aux then selects the participial domain, and imperfect T selects the auxiliary projection. T agrees with Jean, licensing nominative Case, and Jean moves from its previously represented external-argument position to the subject position of T. A silent trace records that source. The perfect auxiliary locates the reading anterior to the embedded past reference time; its overt head remains below T at this stage.",
+      "statement": "Establish the lower extraction edge, perfect structure, and embedded subject position.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "jean",
+              "label": "D",
+              "lineageId": "Jean-chain",
+              "word": "Jean"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "embeddedT",
+                  "label": "T[imperfect]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "auxiliary",
+                      "label": "Aux[perfect]",
+                      "lineageId": "auxiliary-chain",
+                      "word": "avait"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "relative",
+                          "label": "D[relative, accusative]",
+                          "lineageId": "relative-chain",
+                          "word": "que"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "jeanTrace",
+                              "label": "D[trace]",
+                              "lineageId": "Jean-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "embeddedVoice",
+                                  "label": "v[transitive]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "already",
+                                      "label": "Adv",
+                                      "word": "déjà"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "read",
+                                          "label": "V[participle]",
+                                          "word": "lu"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "relativeObjectTrace",
+                                          "label": "D[trace]",
+                                          "lineageId": "relative-chain",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "readPhrase",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "alreadyPhrase",
+                                  "label": "V"
+                                }
+                              ],
+                              "id": "embeddedVoiceProjection",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "embeddedVoicePhrase",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "embeddedEdge",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "auxiliaryPhrase",
+                  "label": "Aux"
+                }
+              ],
+              "id": "embeddedTProjection",
+              "label": "T"
+            }
+          ],
+          "id": "embeddedTP",
+          "label": "T"
+        },
+        {
+          "children": [],
+          "id": "embeddedC",
+          "label": "C[declarative]",
+          "word": "que"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complex": "embeddedFiniteHead",
+            "movedHead": "auxiliary",
+            "source": "auxiliaryTrace",
+            "target": "embeddedT"
+          },
+          "priorAnchors": {
+            "movingOccurrence": "auxiliary"
+          },
+          "relation": "auxiliary-to-T movement",
+          "values": {
+            "finiteForm": "avait"
+          }
+        },
+        {
+          "anchors": {
+            "landing": "relative",
+            "phaseHead": "embeddedC",
+            "source": "relativeEmbeddedEdgeTrace"
+          },
+          "priorAnchors": {
+            "movingOccurrence": "relative"
+          },
+          "relation": "successive-cyclic relative movement",
+          "values": {
+            "step": "transitive-v edge to embedded-C edge"
+          }
+        }
+      ],
+      "stageRecord": "The auxiliary moves from its established position to T, yielding the finite auxiliary before déjà and lu. The abstract imperfect head remains silent inside the resulting head complex. Declarative que then selects the embedded T projection. The relative pronoun moves from the previously established v-edge to the edge of this C projection, leaving another silent trace. The two instances of que are distinct: the moving object pronoun and the stationary declarative complementizer. Only the former participates in the relative chain.",
+      "statement": "Complete the embedded declarative clause and expose its relative-extraction edge.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "relative",
+              "label": "D[relative, accusative]",
+              "lineageId": "relative-chain",
+              "word": "que"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "embeddedC",
+                  "label": "C[declarative]",
+                  "word": "que"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "jean",
+                      "label": "D",
+                      "lineageId": "Jean-chain",
+                      "word": "Jean"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "auxiliary",
+                              "label": "Aux[perfect]",
+                              "lineageId": "auxiliary-chain",
+                              "word": "avait"
+                            },
+                            {
+                              "children": [],
+                              "id": "embeddedT",
+                              "label": "T[imperfect]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "embeddedFiniteHead",
+                          "label": "T"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "auxiliaryTrace",
+                              "label": "Aux[trace]",
+                              "lineageId": "auxiliary-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "relativeEmbeddedEdgeTrace",
+                                  "label": "D[trace]",
+                                  "lineageId": "relative-chain",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "jeanTrace",
+                                      "label": "D[trace]",
+                                      "lineageId": "Jean-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "embeddedVoice",
+                                          "label": "v[transitive]",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "already",
+                                              "label": "Adv",
+                                              "word": "déjà"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "read",
+                                                  "label": "V[participle]",
+                                                  "word": "lu"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "relativeObjectTrace",
+                                                  "label": "D[trace]",
+                                                  "lineageId": "relative-chain",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "readPhrase",
+                                              "label": "V"
+                                            }
+                                          ],
+                                          "id": "alreadyPhrase",
+                                          "label": "V"
+                                        }
+                                      ],
+                                      "id": "embeddedVoiceProjection",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "embeddedVoicePhrase",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "embeddedEdge",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "auxiliaryPhrase",
+                          "label": "Aux"
+                        }
+                      ],
+                      "id": "embeddedTProjection",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "embeddedTP",
+                  "label": "T"
+                }
+              ],
+              "id": "embeddedCProjection",
+              "label": "C"
+            }
+          ],
+          "id": "embeddedCP",
+          "label": "C"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complement": "embeddedCP",
+            "complementizer": "embeddedC",
+            "selector": "think"
+          },
+          "relation": "attitude complement selection",
+          "values": {
+            "complementType": "declarative proposition"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "marie",
+            "predicate": "think"
+          },
+          "relation": "external argument licensing",
+          "values": {
+            "role": "experiencer"
+          }
+        }
+      ],
+      "stageRecord": "The declarative clause becomes the propositional complement of pensait, and Marie is externally merged as the experiencer of that attitude predicate. Pensait is represented as a lexicalized v/V head: its lexical root and argument-introducing component are bundled, so the analysis does not posit a separate unrepresented V-to-v step. The embedded clause is a selected complement, not an adjunct island, and its relative pronoun remains accessible at the C-edge. A second imperfect T and a silent relative C are introduced as separate objects for the next operations.",
+      "statement": "Build the selecting predicate pensait with Marie as its external argument.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "marie",
+              "label": "D",
+              "lineageId": "Marie-chain",
+              "word": "Marie"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "think",
+                  "label": "v/V",
+                  "lineageId": "think-chain",
+                  "word": "pensait"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "relative",
+                      "label": "D[relative, accusative]",
+                      "lineageId": "relative-chain",
+                      "word": "que"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "embeddedC",
+                          "label": "C[declarative]",
+                          "word": "que"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "jean",
+                              "label": "D",
+                              "lineageId": "Jean-chain",
+                              "word": "Jean"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "auxiliary",
+                                      "label": "Aux[perfect]",
+                                      "lineageId": "auxiliary-chain",
+                                      "word": "avait"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "embeddedT",
+                                      "label": "T[imperfect]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "embeddedFiniteHead",
+                                  "label": "T"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "auxiliaryTrace",
+                                      "label": "Aux[trace]",
+                                      "lineageId": "auxiliary-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "relativeEmbeddedEdgeTrace",
+                                          "label": "D[trace]",
+                                          "lineageId": "relative-chain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "jeanTrace",
+                                              "label": "D[trace]",
+                                              "lineageId": "Jean-chain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "embeddedVoice",
+                                                  "label": "v[transitive]",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "already",
+                                                      "label": "Adv",
+                                                      "word": "déjà"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "read",
+                                                          "label": "V[participle]",
+                                                          "word": "lu"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "relativeObjectTrace",
+                                                          "label": "D[trace]",
+                                                          "lineageId": "relative-chain",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "readPhrase",
+                                                      "label": "V"
+                                                    }
+                                                  ],
+                                                  "id": "alreadyPhrase",
+                                                  "label": "V"
+                                                }
+                                              ],
+                                              "id": "embeddedVoiceProjection",
+                                              "label": "v"
+                                            }
+                                          ],
+                                          "id": "embeddedVoicePhrase",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "embeddedEdge",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "auxiliaryPhrase",
+                                  "label": "Aux"
+                                }
+                              ],
+                              "id": "embeddedTProjection",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "embeddedTP",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "embeddedCProjection",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "embeddedCP",
+                  "label": "C"
+                }
+              ],
+              "id": "matrixVoiceProjection",
+              "label": "v"
+            }
+          ],
+          "id": "matrixVoicePhrase",
+          "label": "v"
+        },
+        {
+          "children": [],
+          "id": "matrixT",
+          "label": "T[imperfect]",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "relativeC",
+          "label": "C[relative]",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landing": "relative",
+            "phaseHead": "think",
+            "source": "relativeEmbeddedCTrace"
+          },
+          "priorAnchors": {
+            "movingOccurrence": "relative"
+          },
+          "relation": "successive-cyclic relative movement",
+          "values": {
+            "step": "embedded-C edge to attitude-v edge"
+          }
+        },
+        {
+          "anchors": {
+            "goal": "marie",
+            "probe": "matrixT"
+          },
+          "relation": "subject agreement and Case",
+          "values": {
+            "case": "nominative",
+            "number": "singular",
+            "person": "third"
+          }
+        },
+        {
+          "anchors": {
+            "landing": "marie",
+            "licensor": "matrixT",
+            "source": "marieTrace"
+          },
+          "priorAnchors": {
+            "movingOccurrence": "marie"
+          },
+          "relation": "subject movement"
+        }
+      ],
+      "stageRecord": "The relative pronoun moves from the embedded C-edge to an outer edge of the v projection headed by pensait. Its former C-edge position becomes a silent trace, preserving the successive-cyclic path through the selected clause. Imperfect T merges above this domain, agrees with Marie, and attracts Marie from its earlier external-argument position to the subject position. Pensait itself remains in its base head position until the next stage.",
+      "statement": "Pass the relative dependency through the attitude predicate and raise Marie.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "marie",
+              "label": "D",
+              "lineageId": "Marie-chain",
+              "word": "Marie"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "matrixT",
+                  "label": "T[imperfect]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "relative",
+                      "label": "D[relative, accusative]",
+                      "lineageId": "relative-chain",
+                      "word": "que"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "marieTrace",
+                          "label": "D[trace]",
+                          "lineageId": "Marie-chain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "think",
+                              "label": "v/V",
+                              "lineageId": "think-chain",
+                              "word": "pensait"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "relativeEmbeddedCTrace",
+                                  "label": "D[trace]",
+                                  "lineageId": "relative-chain",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "embeddedC",
+                                      "label": "C[declarative]",
+                                      "word": "que"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "jean",
+                                          "label": "D",
+                                          "lineageId": "Jean-chain",
+                                          "word": "Jean"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "auxiliary",
+                                                  "label": "Aux[perfect]",
+                                                  "lineageId": "auxiliary-chain",
+                                                  "word": "avait"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "embeddedT",
+                                                  "label": "T[imperfect]",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "embeddedFiniteHead",
+                                              "label": "T"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "auxiliaryTrace",
+                                                  "label": "Aux[trace]",
+                                                  "lineageId": "auxiliary-chain",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "relativeEmbeddedEdgeTrace",
+                                                      "label": "D[trace]",
+                                                      "lineageId": "relative-chain",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "jeanTrace",
+                                                          "label": "D[trace]",
+                                                          "lineageId": "Jean-chain",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "embeddedVoice",
+                                                              "label": "v[transitive]",
+                                                              "silent": true
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "already",
+                                                                  "label": "Adv",
+                                                                  "word": "déjà"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "read",
+                                                                      "label": "V[participle]",
+                                                                      "word": "lu"
+                                                                    },
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "relativeObjectTrace",
+                                                                      "label": "D[trace]",
+                                                                      "lineageId": "relative-chain",
+                                                                      "silent": true
+                                                                    }
+                                                                  ],
+                                                                  "id": "readPhrase",
+                                                                  "label": "V"
+                                                                }
+                                                              ],
+                                                              "id": "alreadyPhrase",
+                                                              "label": "V"
+                                                            }
+                                                          ],
+                                                          "id": "embeddedVoiceProjection",
+                                                          "label": "v"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedVoicePhrase",
+                                                      "label": "v"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedEdge",
+                                                  "label": "v"
+                                                }
+                                              ],
+                                              "id": "auxiliaryPhrase",
+                                              "label": "Aux"
+                                            }
+                                          ],
+                                          "id": "embeddedTProjection",
+                                          "label": "T"
+                                        }
+                                      ],
+                                      "id": "embeddedTP",
+                                      "label": "T"
+                                    }
+                                  ],
+                                  "id": "embeddedCProjection",
+                                  "label": "C"
+                                }
+                              ],
+                              "id": "embeddedCP",
+                              "label": "C"
+                            }
+                          ],
+                          "id": "matrixVoiceProjection",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "matrixVoicePhrase",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "matrixEdge",
+                  "label": "v"
+                }
+              ],
+              "id": "matrixTProjection",
+              "label": "T"
+            }
+          ],
+          "id": "matrixTP",
+          "label": "T"
+        },
+        {
+          "children": [],
+          "id": "relativeC",
+          "label": "C[relative]",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "complex": "matrixFiniteHead",
+            "movedHead": "think",
+            "source": "thinkTrace",
+            "target": "matrixT"
+          },
+          "priorAnchors": {
+            "movingOccurrence": "think"
+          },
+          "relation": "finite verb movement",
+          "values": {
+            "finiteForm": "pensait",
+            "tense": "imperfect"
+          }
+        },
+        {
+          "anchors": {
+            "landing": "relative",
+            "phaseHead": "relativeC",
+            "source": "relativeMatrixEdgeTrace"
+          },
+          "priorAnchors": {
+            "movingOccurrence": "relative"
+          },
+          "relation": "successive-cyclic relative movement",
+          "values": {
+            "step": "attitude-v edge to relative-C edge"
+          }
+        },
+        {
+          "anchors": {
+            "intermediatePositions": [
+              "relativeMatrixEdgeTrace",
+              "relativeEmbeddedCTrace",
+              "relativeEmbeddedEdgeTrace"
+            ],
+            "operator": "relative",
+            "predicate": "read",
+            "thematicPosition": "relativeObjectTrace"
+          },
+          "relation": "completed relative dependency",
+          "values": {
+            "grammaticalFunction": "direct object of lu",
+            "pronunciation": "highest occurrence only"
+          }
+        }
+      ],
+      "stageRecord": "Pensait raises from its established lexicalized v/V position to imperfect T. Silent relative C selects that finite clause. The relative pronoun then moves from the attitude-v edge to the relative C-edge, leaving its final intermediate trace. The pronounced que is therefore the highest occurrence of an object dependency whose thematic source is the complement of lu, not an argument of pensait. The chain is represented with silent traces rather than fully articulated lower copies; only its highest occurrence is pronounced.",
+      "statement": "Complete the finite relative clause and its long-distance object chain.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "relative",
+              "label": "D[relative, accusative]",
+              "lineageId": "relative-chain",
+              "word": "que"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "relativeC",
+                  "label": "C[relative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "marie",
+                      "label": "D",
+                      "lineageId": "Marie-chain",
+                      "word": "Marie"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "think",
+                              "label": "v/V",
+                              "lineageId": "think-chain",
+                              "word": "pensait"
+                            },
+                            {
+                              "children": [],
+                              "id": "matrixT",
+                              "label": "T[imperfect]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "matrixFiniteHead",
+                          "label": "T"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "relativeMatrixEdgeTrace",
+                              "label": "D[trace]",
+                              "lineageId": "relative-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "marieTrace",
+                                  "label": "D[trace]",
+                                  "lineageId": "Marie-chain",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "thinkTrace",
+                                      "label": "v/V[trace]",
+                                      "lineageId": "think-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "relativeEmbeddedCTrace",
+                                          "label": "D[trace]",
+                                          "lineageId": "relative-chain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "embeddedC",
+                                              "label": "C[declarative]",
+                                              "word": "que"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "jean",
+                                                  "label": "D",
+                                                  "lineageId": "Jean-chain",
+                                                  "word": "Jean"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "auxiliary",
+                                                          "label": "Aux[perfect]",
+                                                          "lineageId": "auxiliary-chain",
+                                                          "word": "avait"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "embeddedT",
+                                                          "label": "T[imperfect]",
+                                                          "silent": true
+                                                        }
+                                                      ],
+                                                      "id": "embeddedFiniteHead",
+                                                      "label": "T"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "auxiliaryTrace",
+                                                          "label": "Aux[trace]",
+                                                          "lineageId": "auxiliary-chain",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "relativeEmbeddedEdgeTrace",
+                                                              "label": "D[trace]",
+                                                              "lineageId": "relative-chain",
+                                                              "silent": true
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "jeanTrace",
+                                                                  "label": "D[trace]",
+                                                                  "lineageId": "Jean-chain",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "embeddedVoice",
+                                                                      "label": "v[transitive]",
+                                                                      "silent": true
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "already",
+                                                                          "label": "Adv",
+                                                                          "word": "déjà"
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "read",
+                                                                              "label": "V[participle]",
+                                                                              "word": "lu"
+                                                                            },
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "relativeObjectTrace",
+                                                                              "label": "D[trace]",
+                                                                              "lineageId": "relative-chain",
+                                                                              "silent": true
+                                                                            }
+                                                                          ],
+                                                                          "id": "readPhrase",
+                                                                          "label": "V"
+                                                                        }
+                                                                      ],
+                                                                      "id": "alreadyPhrase",
+                                                                      "label": "V"
+                                                                    }
+                                                                  ],
+                                                                  "id": "embeddedVoiceProjection",
+                                                                  "label": "v"
+                                                                }
+                                                              ],
+                                                              "id": "embeddedVoicePhrase",
+                                                              "label": "v"
+                                                            }
+                                                          ],
+                                                          "id": "embeddedEdge",
+                                                          "label": "v"
+                                                        }
+                                                      ],
+                                                      "id": "auxiliaryPhrase",
+                                                      "label": "Aux"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedTProjection",
+                                                  "label": "T"
+                                                }
+                                              ],
+                                              "id": "embeddedTP",
+                                              "label": "T"
+                                            }
+                                          ],
+                                          "id": "embeddedCProjection",
+                                          "label": "C"
+                                        }
+                                      ],
+                                      "id": "embeddedCP",
+                                      "label": "C"
+                                    }
+                                  ],
+                                  "id": "matrixVoiceProjection",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "matrixVoicePhrase",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "matrixEdge",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "matrixTProjection",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "matrixTP",
+                  "label": "T"
+                }
+              ],
+              "id": "relativeCProjection",
+              "label": "C"
+            }
+          ],
+          "id": "relativeCP",
+          "label": "C"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "antecedent": "bookNoun",
+            "modifier": "relativeCP",
+            "nominalDomain": "modifiedBook",
+            "operator": "relative"
+          },
+          "relation": "restrictive relative modification",
+          "values": {
+            "analysis": "external nominal head with a matching relative operator",
+            "interpretation": "books that Marie thought Jean had already read"
+          }
+        },
+        {
+          "anchors": {
+            "dependent": "kitchenDP",
+            "host": "tableNoun",
+            "modifier": "kitchenPP"
+          },
+          "relation": "nominal PP attachment",
+          "values": {
+            "interpretation": "the table associated with the kitchen"
+          }
+        },
+        {
+          "anchors": {
+            "ground": "tableDP",
+            "preposition": "on"
+          },
+          "relation": "spatial ground",
+          "values": {
+            "spatialRelation": "sur"
+          }
+        }
+      ],
+      "stageRecord": "The relative clause adjoins to the nominal projection of livre, and Le closes the resulting definite description. The relative operator is interpreted with livre as its external antecedent; this is a matching-style external-head analysis, not movement of the pronounced noun out of the relative clause. Separately, de la cuisine attaches inside the nominal projection of table, identifying the kitchen-associated table. La closes that nominal, and sur takes the resulting DP as its ground. Thus de la cuisine modifies table, not livre or the attitude predicate.",
+      "statement": "Construct the definite antecedent and the internally modified locative phrase.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "bookDeterminer",
+              "label": "D",
+              "word": "Le"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "bookNoun",
+                  "label": "N",
+                  "word": "livre"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "relative",
+                      "label": "D[relative, accusative]",
+                      "lineageId": "relative-chain",
+                      "word": "que"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "relativeC",
+                          "label": "C[relative]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "marie",
+                              "label": "D",
+                              "lineageId": "Marie-chain",
+                              "word": "Marie"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "think",
+                                      "label": "v/V",
+                                      "lineageId": "think-chain",
+                                      "word": "pensait"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "matrixT",
+                                      "label": "T[imperfect]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "matrixFiniteHead",
+                                  "label": "T"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "relativeMatrixEdgeTrace",
+                                      "label": "D[trace]",
+                                      "lineageId": "relative-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "marieTrace",
+                                          "label": "D[trace]",
+                                          "lineageId": "Marie-chain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "thinkTrace",
+                                              "label": "v/V[trace]",
+                                              "lineageId": "think-chain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "relativeEmbeddedCTrace",
+                                                  "label": "D[trace]",
+                                                  "lineageId": "relative-chain",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "embeddedC",
+                                                      "label": "C[declarative]",
+                                                      "word": "que"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "jean",
+                                                          "label": "D",
+                                                          "lineageId": "Jean-chain",
+                                                          "word": "Jean"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "auxiliary",
+                                                                  "label": "Aux[perfect]",
+                                                                  "lineageId": "auxiliary-chain",
+                                                                  "word": "avait"
+                                                                },
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "embeddedT",
+                                                                  "label": "T[imperfect]",
+                                                                  "silent": true
+                                                                }
+                                                              ],
+                                                              "id": "embeddedFiniteHead",
+                                                              "label": "T"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "auxiliaryTrace",
+                                                                  "label": "Aux[trace]",
+                                                                  "lineageId": "auxiliary-chain",
+                                                                  "silent": true
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "relativeEmbeddedEdgeTrace",
+                                                                      "label": "D[trace]",
+                                                                      "lineageId": "relative-chain",
+                                                                      "silent": true
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "jeanTrace",
+                                                                          "label": "D[trace]",
+                                                                          "lineageId": "Jean-chain",
+                                                                          "silent": true
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "embeddedVoice",
+                                                                              "label": "v[transitive]",
+                                                                              "silent": true
+                                                                            },
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "already",
+                                                                                  "label": "Adv",
+                                                                                  "word": "déjà"
+                                                                                },
+                                                                                {
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "children": [],
+                                                                                      "id": "read",
+                                                                                      "label": "V[participle]",
+                                                                                      "word": "lu"
+                                                                                    },
+                                                                                    {
+                                                                                      "children": [],
+                                                                                      "id": "relativeObjectTrace",
+                                                                                      "label": "D[trace]",
+                                                                                      "lineageId": "relative-chain",
+                                                                                      "silent": true
+                                                                                    }
+                                                                                  ],
+                                                                                  "id": "readPhrase",
+                                                                                  "label": "V"
+                                                                                }
+                                                                              ],
+                                                                              "id": "alreadyPhrase",
+                                                                              "label": "V"
+                                                                            }
+                                                                          ],
+                                                                          "id": "embeddedVoiceProjection",
+                                                                          "label": "v"
+                                                                        }
+                                                                      ],
+                                                                      "id": "embeddedVoicePhrase",
+                                                                      "label": "v"
+                                                                    }
+                                                                  ],
+                                                                  "id": "embeddedEdge",
+                                                                  "label": "v"
+                                                                }
+                                                              ],
+                                                              "id": "auxiliaryPhrase",
+                                                              "label": "Aux"
+                                                            }
+                                                          ],
+                                                          "id": "embeddedTProjection",
+                                                          "label": "T"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedTP",
+                                                      "label": "T"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedCProjection",
+                                                  "label": "C"
+                                                }
+                                              ],
+                                              "id": "embeddedCP",
+                                              "label": "C"
+                                            }
+                                          ],
+                                          "id": "matrixVoiceProjection",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "matrixVoicePhrase",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "matrixEdge",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "matrixTProjection",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "matrixTP",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "relativeCProjection",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "relativeCP",
+                  "label": "C"
+                }
+              ],
+              "id": "modifiedBook",
+              "label": "N"
+            }
+          ],
+          "id": "bookDP",
+          "label": "D",
+          "lineageId": "book-subject-chain"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "on",
+              "label": "P",
+              "word": "sur"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "tableDeterminer",
+                  "label": "D",
+                  "word": "la"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tableNoun",
+                      "label": "N",
+                      "word": "table"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "of",
+                          "label": "P",
+                          "word": "de"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "kitchenDeterminer",
+                              "label": "D",
+                              "word": "la"
+                            },
+                            {
+                              "children": [],
+                              "id": "kitchenNoun",
+                              "label": "N",
+                              "word": "cuisine"
+                            }
+                          ],
+                          "id": "kitchenDP",
+                          "label": "D"
+                        }
+                      ],
+                      "id": "kitchenPP",
+                      "label": "P"
+                    }
+                  ],
+                  "id": "modifiedTable",
+                  "label": "N"
+                }
+              ],
+              "id": "tableDP",
+              "label": "D"
+            }
+          ],
+          "id": "locationPP",
+          "label": "P"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "location": "locationPP",
+            "predicate": "find",
+            "theme": "bookDP"
+          },
+          "relation": "locative predication",
+          "values": {
+            "interpretation": "the book is located on the table",
+            "subjectRole": "theme"
+          }
+        },
+        {
+          "anchors": {
+            "adverb": "still",
+            "domain": "mainLexicalProjection"
+          },
+          "relation": "adverbial scope",
+          "values": {
+            "interpretation": "encore applies to the locative state"
+          }
+        },
+        {
+          "anchors": {
+            "clitic": "se",
+            "predicate": "find",
+            "theme": "bookDP"
+          },
+          "relation": "pronominal voice dependency",
+          "values": {
+            "cliticStatus": "nonreferential pronominal voice marker",
+            "construction": "nonagentive locative se trouver"
+          }
+        }
+      ],
+      "stageRecord": "The locative PP combines with trouvait, represented as a lexicalized nonagentive v/V head. The book DP is merged as the sole thematic subject of this pronominal locative predicate. Encore adjoins to the locative verbal projection, taking scope over the state of the book's being on the table. Its continuative and possible repetitive interpretations do not require distinct attachment structures here. Se is introduced as the pronominal voice clitic of se trouver: it is not a second, referential object and does not assign the book a reflexive agent–patient interpretation. Main-clause imperfect T merges above the clitic projection. Both the subject and trouvait remain in their lower positions at this stage.",
+      "statement": "Build the pronominal locative predicate with its theme subject and encore.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "mainT",
+              "label": "T[imperfect]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "se",
+                  "label": "Cl[pronominal]",
+                  "lineageId": "se-chain",
+                  "word": "se"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bookDeterminer",
+                          "label": "D",
+                          "word": "Le"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "bookNoun",
+                              "label": "N",
+                              "word": "livre"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "relative",
+                                  "label": "D[relative, accusative]",
+                                  "lineageId": "relative-chain",
+                                  "word": "que"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "relativeC",
+                                      "label": "C[relative]",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "marie",
+                                          "label": "D",
+                                          "lineageId": "Marie-chain",
+                                          "word": "Marie"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "think",
+                                                  "label": "v/V",
+                                                  "lineageId": "think-chain",
+                                                  "word": "pensait"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "matrixT",
+                                                  "label": "T[imperfect]",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "matrixFiniteHead",
+                                              "label": "T"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "relativeMatrixEdgeTrace",
+                                                  "label": "D[trace]",
+                                                  "lineageId": "relative-chain",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "marieTrace",
+                                                      "label": "D[trace]",
+                                                      "lineageId": "Marie-chain",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "thinkTrace",
+                                                          "label": "v/V[trace]",
+                                                          "lineageId": "think-chain",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "relativeEmbeddedCTrace",
+                                                              "label": "D[trace]",
+                                                              "lineageId": "relative-chain",
+                                                              "silent": true
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "embeddedC",
+                                                                  "label": "C[declarative]",
+                                                                  "word": "que"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "jean",
+                                                                      "label": "D",
+                                                                      "lineageId": "Jean-chain",
+                                                                      "word": "Jean"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "auxiliary",
+                                                                              "label": "Aux[perfect]",
+                                                                              "lineageId": "auxiliary-chain",
+                                                                              "word": "avait"
+                                                                            },
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "embeddedT",
+                                                                              "label": "T[imperfect]",
+                                                                              "silent": true
+                                                                            }
+                                                                          ],
+                                                                          "id": "embeddedFiniteHead",
+                                                                          "label": "T"
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "auxiliaryTrace",
+                                                                              "label": "Aux[trace]",
+                                                                              "lineageId": "auxiliary-chain",
+                                                                              "silent": true
+                                                                            },
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "relativeEmbeddedEdgeTrace",
+                                                                                  "label": "D[trace]",
+                                                                                  "lineageId": "relative-chain",
+                                                                                  "silent": true
+                                                                                },
+                                                                                {
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "children": [],
+                                                                                      "id": "jeanTrace",
+                                                                                      "label": "D[trace]",
+                                                                                      "lineageId": "Jean-chain",
+                                                                                      "silent": true
+                                                                                    },
+                                                                                    {
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "children": [],
+                                                                                          "id": "embeddedVoice",
+                                                                                          "label": "v[transitive]",
+                                                                                          "silent": true
+                                                                                        },
+                                                                                        {
+                                                                                          "children": [
+                                                                                            {
+                                                                                              "children": [],
+                                                                                              "id": "already",
+                                                                                              "label": "Adv",
+                                                                                              "word": "déjà"
+                                                                                            },
+                                                                                            {
+                                                                                              "children": [
+                                                                                                {
+                                                                                                  "children": [],
+                                                                                                  "id": "read",
+                                                                                                  "label": "V[participle]",
+                                                                                                  "word": "lu"
+                                                                                                },
+                                                                                                {
+                                                                                                  "children": [],
+                                                                                                  "id": "relativeObjectTrace",
+                                                                                                  "label": "D[trace]",
+                                                                                                  "lineageId": "relative-chain",
+                                                                                                  "silent": true
+                                                                                                }
+                                                                                              ],
+                                                                                              "id": "readPhrase",
+                                                                                              "label": "V"
+                                                                                            }
+                                                                                          ],
+                                                                                          "id": "alreadyPhrase",
+                                                                                          "label": "V"
+                                                                                        }
+                                                                                      ],
+                                                                                      "id": "embeddedVoiceProjection",
+                                                                                      "label": "v"
+                                                                                    }
+                                                                                  ],
+                                                                                  "id": "embeddedVoicePhrase",
+                                                                                  "label": "v"
+                                                                                }
+                                                                              ],
+                                                                              "id": "embeddedEdge",
+                                                                              "label": "v"
+                                                                            }
+                                                                          ],
+                                                                          "id": "auxiliaryPhrase",
+                                                                          "label": "Aux"
+                                                                        }
+                                                                      ],
+                                                                      "id": "embeddedTProjection",
+                                                                      "label": "T"
+                                                                    }
+                                                                  ],
+                                                                  "id": "embeddedTP",
+                                                                  "label": "T"
+                                                                }
+                                                              ],
+                                                              "id": "embeddedCProjection",
+                                                              "label": "C"
+                                                            }
+                                                          ],
+                                                          "id": "embeddedCP",
+                                                          "label": "C"
+                                                        }
+                                                      ],
+                                                      "id": "matrixVoiceProjection",
+                                                      "label": "v"
+                                                    }
+                                                  ],
+                                                  "id": "matrixVoicePhrase",
+                                                  "label": "v"
+                                                }
+                                              ],
+                                              "id": "matrixEdge",
+                                              "label": "v"
+                                            }
+                                          ],
+                                          "id": "matrixTProjection",
+                                          "label": "T"
+                                        }
+                                      ],
+                                      "id": "matrixTP",
+                                      "label": "T"
+                                    }
+                                  ],
+                                  "id": "relativeCProjection",
+                                  "label": "C"
+                                }
+                              ],
+                              "id": "relativeCP",
+                              "label": "C"
+                            }
+                          ],
+                          "id": "modifiedBook",
+                          "label": "N"
+                        }
+                      ],
+                      "id": "bookDP",
+                      "label": "D",
+                      "lineageId": "book-subject-chain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "still",
+                          "label": "Adv",
+                          "word": "encore"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "find",
+                              "label": "v/V[locative]",
+                              "lineageId": "find-chain",
+                              "word": "trouvait"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "on",
+                                  "label": "P",
+                                  "word": "sur"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "tableDeterminer",
+                                      "label": "D",
+                                      "word": "la"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "tableNoun",
+                                          "label": "N",
+                                          "word": "table"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "of",
+                                              "label": "P",
+                                              "word": "de"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "kitchenDeterminer",
+                                                  "label": "D",
+                                                  "word": "la"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "kitchenNoun",
+                                                  "label": "N",
+                                                  "word": "cuisine"
+                                                }
+                                              ],
+                                              "id": "kitchenDP",
+                                              "label": "D"
+                                            }
+                                          ],
+                                          "id": "kitchenPP",
+                                          "label": "P"
+                                        }
+                                      ],
+                                      "id": "modifiedTable",
+                                      "label": "N"
+                                    }
+                                  ],
+                                  "id": "tableDP",
+                                  "label": "D"
+                                }
+                              ],
+                              "id": "locationPP",
+                              "label": "P"
+                            }
+                          ],
+                          "id": "mainLexicalProjection",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "mainAdverbialProjection",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "mainVoicePhrase",
+                  "label": "v"
+                }
+              ],
+              "id": "cliticPhrase",
+              "label": "Cl"
+            }
+          ],
+          "id": "mainTP",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "goal": "bookDP",
+            "probe": "mainT"
+          },
+          "relation": "subject agreement and Case",
+          "values": {
+            "case": "nominative",
+            "number": "singular",
+            "person": "third"
+          }
+        },
+        {
+          "anchors": {
+            "landing": "bookDP",
+            "licensor": "mainT",
+            "source": "bookTrace"
+          },
+          "priorAnchors": {
+            "movingOccurrence": "bookDP"
+          },
+          "relation": "subject movement",
+          "values": {
+            "piedPiping": "the restrictive relative remains inside the moving subject"
+          }
+        },
+        {
+          "anchors": {
+            "complex": "mainFiniteHead",
+            "movedHead": "find",
+            "source": "findTrace",
+            "target": "mainT"
+          },
+          "priorAnchors": {
+            "movingOccurrence": "find"
+          },
+          "relation": "finite verb movement",
+          "values": {
+            "finiteForm": "trouvait",
+            "tense": "imperfect"
+          }
+        }
+      ],
+      "stageRecord": "Main T agrees with the entire book DP and licenses its nominative Case. The DP moves from its previously represented thematic position to the subject position of T, carrying its restrictive relative clause with it; a silent DP trace remains below. Trouvait then raises from its lexicalized v/V position to T. Se is a deficient clitic head rather than an intervening verbal head, so this analysis does not require an additional verbal landing there. The verb now precedes encore, while se remains in its earlier clitic position pending attachment to the finite head.",
+      "statement": "Raise the main subject and establish the finite locative verb.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "bookDeterminer",
+                  "label": "D",
+                  "word": "Le"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bookNoun",
+                      "label": "N",
+                      "word": "livre"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "relative",
+                          "label": "D[relative, accusative]",
+                          "lineageId": "relative-chain",
+                          "word": "que"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "relativeC",
+                              "label": "C[relative]",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "marie",
+                                  "label": "D",
+                                  "lineageId": "Marie-chain",
+                                  "word": "Marie"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "think",
+                                          "label": "v/V",
+                                          "lineageId": "think-chain",
+                                          "word": "pensait"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "matrixT",
+                                          "label": "T[imperfect]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "matrixFiniteHead",
+                                      "label": "T"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "relativeMatrixEdgeTrace",
+                                          "label": "D[trace]",
+                                          "lineageId": "relative-chain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "marieTrace",
+                                              "label": "D[trace]",
+                                              "lineageId": "Marie-chain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "thinkTrace",
+                                                  "label": "v/V[trace]",
+                                                  "lineageId": "think-chain",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "relativeEmbeddedCTrace",
+                                                      "label": "D[trace]",
+                                                      "lineageId": "relative-chain",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "embeddedC",
+                                                          "label": "C[declarative]",
+                                                          "word": "que"
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "jean",
+                                                              "label": "D",
+                                                              "lineageId": "Jean-chain",
+                                                              "word": "Jean"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "auxiliary",
+                                                                      "label": "Aux[perfect]",
+                                                                      "lineageId": "auxiliary-chain",
+                                                                      "word": "avait"
+                                                                    },
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "embeddedT",
+                                                                      "label": "T[imperfect]",
+                                                                      "silent": true
+                                                                    }
+                                                                  ],
+                                                                  "id": "embeddedFiniteHead",
+                                                                  "label": "T"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [],
+                                                                      "id": "auxiliaryTrace",
+                                                                      "label": "Aux[trace]",
+                                                                      "lineageId": "auxiliary-chain",
+                                                                      "silent": true
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "relativeEmbeddedEdgeTrace",
+                                                                          "label": "D[trace]",
+                                                                          "lineageId": "relative-chain",
+                                                                          "silent": true
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "jeanTrace",
+                                                                              "label": "D[trace]",
+                                                                              "lineageId": "Jean-chain",
+                                                                              "silent": true
+                                                                            },
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "embeddedVoice",
+                                                                                  "label": "v[transitive]",
+                                                                                  "silent": true
+                                                                                },
+                                                                                {
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "children": [],
+                                                                                      "id": "already",
+                                                                                      "label": "Adv",
+                                                                                      "word": "déjà"
+                                                                                    },
+                                                                                    {
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "children": [],
+                                                                                          "id": "read",
+                                                                                          "label": "V[participle]",
+                                                                                          "word": "lu"
+                                                                                        },
+                                                                                        {
+                                                                                          "children": [],
+                                                                                          "id": "relativeObjectTrace",
+                                                                                          "label": "D[trace]",
+                                                                                          "lineageId": "relative-chain",
+                                                                                          "silent": true
+                                                                                        }
+                                                                                      ],
+                                                                                      "id": "readPhrase",
+                                                                                      "label": "V"
+                                                                                    }
+                                                                                  ],
+                                                                                  "id": "alreadyPhrase",
+                                                                                  "label": "V"
+                                                                                }
+                                                                              ],
+                                                                              "id": "embeddedVoiceProjection",
+                                                                              "label": "v"
+                                                                            }
+                                                                          ],
+                                                                          "id": "embeddedVoicePhrase",
+                                                                          "label": "v"
+                                                                        }
+                                                                      ],
+                                                                      "id": "embeddedEdge",
+                                                                      "label": "v"
+                                                                    }
+                                                                  ],
+                                                                  "id": "auxiliaryPhrase",
+                                                                  "label": "Aux"
+                                                                }
+                                                              ],
+                                                              "id": "embeddedTProjection",
+                                                              "label": "T"
+                                                            }
+                                                          ],
+                                                          "id": "embeddedTP",
+                                                          "label": "T"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedCProjection",
+                                                      "label": "C"
+                                                    }
+                                                  ],
+                                                  "id": "embeddedCP",
+                                                  "label": "C"
+                                                }
+                                              ],
+                                              "id": "matrixVoiceProjection",
+                                              "label": "v"
+                                            }
+                                          ],
+                                          "id": "matrixVoicePhrase",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "matrixEdge",
+                                      "label": "v"
+                                    }
+                                  ],
+                                  "id": "matrixTProjection",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "matrixTP",
+                              "label": "T"
+                            }
+                          ],
+                          "id": "relativeCProjection",
+                          "label": "C"
+                        }
+                      ],
+                      "id": "relativeCP",
+                      "label": "C"
+                    }
+                  ],
+                  "id": "modifiedBook",
+                  "label": "N"
+                }
+              ],
+              "id": "bookDP",
+              "label": "D",
+              "lineageId": "book-subject-chain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "find",
+                      "label": "v/V[locative]",
+                      "lineageId": "find-chain",
+                      "word": "trouvait"
+                    },
+                    {
+                      "children": [],
+                      "id": "mainT",
+                      "label": "T[imperfect]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "mainFiniteHead",
+                  "label": "T"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "se",
+                      "label": "Cl[pronominal]",
+                      "lineageId": "se-chain",
+                      "word": "se"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bookTrace",
+                          "label": "D[trace]",
+                          "lineageId": "book-subject-chain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "still",
+                              "label": "Adv",
+                              "word": "encore"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "findTrace",
+                                  "label": "v/V[trace]",
+                                  "lineageId": "find-chain",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "on",
+                                      "label": "P",
+                                      "word": "sur"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "tableDeterminer",
+                                          "label": "D",
+                                          "word": "la"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "tableNoun",
+                                              "label": "N",
+                                              "word": "table"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "of",
+                                                  "label": "P",
+                                                  "word": "de"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "kitchenDeterminer",
+                                                      "label": "D",
+                                                      "word": "la"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "kitchenNoun",
+                                                      "label": "N",
+                                                      "word": "cuisine"
+                                                    }
+                                                  ],
+                                                  "id": "kitchenDP",
+                                                  "label": "D"
+                                                }
+                                              ],
+                                              "id": "kitchenPP",
+                                              "label": "P"
+                                            }
+                                          ],
+                                          "id": "modifiedTable",
+                                          "label": "N"
+                                        }
+                                      ],
+                                      "id": "tableDP",
+                                      "label": "D"
+                                    }
+                                  ],
+                                  "id": "locationPP",
+                                  "label": "P"
+                                }
+                              ],
+                              "id": "mainLexicalProjection",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "mainAdverbialProjection",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "mainVoicePhrase",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "cliticPhrase",
+                  "label": "Cl"
+                }
+              ],
+              "id": "mainTProjection",
+              "label": "T"
+            }
+          ],
+          "id": "mainTP",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "clitic": "se",
+            "host": "mainFiniteHead",
+            "result": "mainCliticFiniteHead",
+            "source": "seTrace"
+          },
+          "priorAnchors": {
+            "host": "mainFiniteHead",
+            "movingOccurrence": "se"
+          },
+          "relation": "proclitic movement",
+          "values": {
+            "placement": "se precedes the finite verb trouvait"
+          }
+        },
+        {
+          "anchors": {
+            "clause": "mainTP",
+            "forceHead": "mainC"
+          },
+          "relation": "main clause force",
+          "values": {
+            "force": "declarative"
+          }
+        }
+      ],
+      "stageRecord": "Se moves from its previously represented clitic position and left-adjoins to the finite T complex containing trouvait. Its source becomes a silent clitic trace, giving the pronounced order se trouvait encore. A silent declarative C closes the main clause without triggering further movement. The completed tree pronounces the external nominal head and its relative clause in the subject, the highest relative pronoun before Marie, and the separate embedded complementizer before Jean. All movement traces and abstract functional heads remain silent. The pronounced terminals consequently yield exactly the input sentence; no special realization associations are needed.",
+      "statement": "Attach the proclitic and complete the declarative sentence.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "mainC",
+              "label": "C[declarative]",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "bookDeterminer",
+                      "label": "D",
+                      "word": "Le"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "bookNoun",
+                          "label": "N",
+                          "word": "livre"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "relative",
+                              "label": "D[relative, accusative]",
+                              "lineageId": "relative-chain",
+                              "word": "que"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "relativeC",
+                                  "label": "C[relative]",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "marie",
+                                      "label": "D",
+                                      "lineageId": "Marie-chain",
+                                      "word": "Marie"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "think",
+                                              "label": "v/V",
+                                              "lineageId": "think-chain",
+                                              "word": "pensait"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "matrixT",
+                                              "label": "T[imperfect]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "matrixFiniteHead",
+                                          "label": "T"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "relativeMatrixEdgeTrace",
+                                              "label": "D[trace]",
+                                              "lineageId": "relative-chain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "marieTrace",
+                                                  "label": "D[trace]",
+                                                  "lineageId": "Marie-chain",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "thinkTrace",
+                                                      "label": "v/V[trace]",
+                                                      "lineageId": "think-chain",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "relativeEmbeddedCTrace",
+                                                          "label": "D[trace]",
+                                                          "lineageId": "relative-chain",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "embeddedC",
+                                                              "label": "C[declarative]",
+                                                              "word": "que"
+                                                            },
+                                                            {
+                                                              "children": [
+                                                                {
+                                                                  "children": [],
+                                                                  "id": "jean",
+                                                                  "label": "D",
+                                                                  "lineageId": "Jean-chain",
+                                                                  "word": "Jean"
+                                                                },
+                                                                {
+                                                                  "children": [
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "auxiliary",
+                                                                          "label": "Aux[perfect]",
+                                                                          "lineageId": "auxiliary-chain",
+                                                                          "word": "avait"
+                                                                        },
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "embeddedT",
+                                                                          "label": "T[imperfect]",
+                                                                          "silent": true
+                                                                        }
+                                                                      ],
+                                                                      "id": "embeddedFiniteHead",
+                                                                      "label": "T"
+                                                                    },
+                                                                    {
+                                                                      "children": [
+                                                                        {
+                                                                          "children": [],
+                                                                          "id": "auxiliaryTrace",
+                                                                          "label": "Aux[trace]",
+                                                                          "lineageId": "auxiliary-chain",
+                                                                          "silent": true
+                                                                        },
+                                                                        {
+                                                                          "children": [
+                                                                            {
+                                                                              "children": [],
+                                                                              "id": "relativeEmbeddedEdgeTrace",
+                                                                              "label": "D[trace]",
+                                                                              "lineageId": "relative-chain",
+                                                                              "silent": true
+                                                                            },
+                                                                            {
+                                                                              "children": [
+                                                                                {
+                                                                                  "children": [],
+                                                                                  "id": "jeanTrace",
+                                                                                  "label": "D[trace]",
+                                                                                  "lineageId": "Jean-chain",
+                                                                                  "silent": true
+                                                                                },
+                                                                                {
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "children": [],
+                                                                                      "id": "embeddedVoice",
+                                                                                      "label": "v[transitive]",
+                                                                                      "silent": true
+                                                                                    },
+                                                                                    {
+                                                                                      "children": [
+                                                                                        {
+                                                                                          "children": [],
+                                                                                          "id": "already",
+                                                                                          "label": "Adv",
+                                                                                          "word": "déjà"
+                                                                                        },
+                                                                                        {
+                                                                                          "children": [
+                                                                                            {
+                                                                                              "children": [],
+                                                                                              "id": "read",
+                                                                                              "label": "V[participle]",
+                                                                                              "word": "lu"
+                                                                                            },
+                                                                                            {
+                                                                                              "children": [],
+                                                                                              "id": "relativeObjectTrace",
+                                                                                              "label": "D[trace]",
+                                                                                              "lineageId": "relative-chain",
+                                                                                              "silent": true
+                                                                                            }
+                                                                                          ],
+                                                                                          "id": "readPhrase",
+                                                                                          "label": "V"
+                                                                                        }
+                                                                                      ],
+                                                                                      "id": "alreadyPhrase",
+                                                                                      "label": "V"
+                                                                                    }
+                                                                                  ],
+                                                                                  "id": "embeddedVoiceProjection",
+                                                                                  "label": "v"
+                                                                                }
+                                                                              ],
+                                                                              "id": "embeddedVoicePhrase",
+                                                                              "label": "v"
+                                                                            }
+                                                                          ],
+                                                                          "id": "embeddedEdge",
+                                                                          "label": "v"
+                                                                        }
+                                                                      ],
+                                                                      "id": "auxiliaryPhrase",
+                                                                      "label": "Aux"
+                                                                    }
+                                                                  ],
+                                                                  "id": "embeddedTProjection",
+                                                                  "label": "T"
+                                                                }
+                                                              ],
+                                                              "id": "embeddedTP",
+                                                              "label": "T"
+                                                            }
+                                                          ],
+                                                          "id": "embeddedCProjection",
+                                                          "label": "C"
+                                                        }
+                                                      ],
+                                                      "id": "embeddedCP",
+                                                      "label": "C"
+                                                    }
+                                                  ],
+                                                  "id": "matrixVoiceProjection",
+                                                  "label": "v"
+                                                }
+                                              ],
+                                              "id": "matrixVoicePhrase",
+                                              "label": "v"
+                                            }
+                                          ],
+                                          "id": "matrixEdge",
+                                          "label": "v"
+                                        }
+                                      ],
+                                      "id": "matrixTProjection",
+                                      "label": "T"
+                                    }
+                                  ],
+                                  "id": "matrixTP",
+                                  "label": "T"
+                                }
+                              ],
+                              "id": "relativeCProjection",
+                              "label": "C"
+                            }
+                          ],
+                          "id": "relativeCP",
+                          "label": "C"
+                        }
+                      ],
+                      "id": "modifiedBook",
+                      "label": "N"
+                    }
+                  ],
+                  "id": "bookDP",
+                  "label": "D",
+                  "lineageId": "book-subject-chain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "se",
+                          "label": "Cl[pronominal]",
+                          "lineageId": "se-chain",
+                          "word": "se"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "find",
+                              "label": "v/V[locative]",
+                              "lineageId": "find-chain",
+                              "word": "trouvait"
+                            },
+                            {
+                              "children": [],
+                              "id": "mainT",
+                              "label": "T[imperfect]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "mainFiniteHead",
+                          "label": "T"
+                        }
+                      ],
+                      "id": "mainCliticFiniteHead",
+                      "label": "T"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "seTrace",
+                          "label": "Cl[trace]",
+                          "lineageId": "se-chain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "bookTrace",
+                              "label": "D[trace]",
+                              "lineageId": "book-subject-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "still",
+                                  "label": "Adv",
+                                  "word": "encore"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "findTrace",
+                                      "label": "v/V[trace]",
+                                      "lineageId": "find-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "on",
+                                          "label": "P",
+                                          "word": "sur"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "tableDeterminer",
+                                              "label": "D",
+                                              "word": "la"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "tableNoun",
+                                                  "label": "N",
+                                                  "word": "table"
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "of",
+                                                      "label": "P",
+                                                      "word": "de"
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "kitchenDeterminer",
+                                                          "label": "D",
+                                                          "word": "la"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "kitchenNoun",
+                                                          "label": "N",
+                                                          "word": "cuisine"
+                                                        }
+                                                      ],
+                                                      "id": "kitchenDP",
+                                                      "label": "D"
+                                                    }
+                                                  ],
+                                                  "id": "kitchenPP",
+                                                  "label": "P"
+                                                }
+                                              ],
+                                              "id": "modifiedTable",
+                                              "label": "N"
+                                            }
+                                          ],
+                                          "id": "tableDP",
+                                          "label": "D"
+                                        }
+                                      ],
+                                      "id": "locationPP",
+                                      "label": "P"
+                                    }
+                                  ],
+                                  "id": "mainLexicalProjection",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "mainAdverbialProjection",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "mainVoicePhrase",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "cliticPhrase",
+                      "label": "Cl"
+                    }
+                  ],
+                  "id": "mainTProjection",
+                  "label": "T"
+                }
+              ],
+              "id": "mainTP",
+              "label": "T"
+            }
+          ],
+          "id": "mainCP",
+          "label": "C"
+        }
+      ]
+    }
+  ]
+}

@@ -49,7 +49,8 @@ export function installCameraInteraction(session: Pick<CameraSession,
   } = session;
   const zoom = session.zoom
     .on('zoom', guardViewCallback((event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
-      g.attr('transform', event.transform);
+      // setAttribute stringifies the transform, as d3's zoom examples rely on.
+      g.attr('transform', event.transform as unknown as string);
       if (event.sourceEvent && !cameraRuntime.applying) {
         cameraRuntime.cancel?.();
         cameraAnimationRef.current = null;

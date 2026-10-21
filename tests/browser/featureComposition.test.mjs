@@ -9,6 +9,7 @@ import { buildQualificationReviewRuntime } from '../../scripts/buildContractQual
 import { prepareReplay } from '../../replay/prepareReplay.ts';
 import { persistentCaseMovement } from '../helpers/persistentCaseMovement.mjs';
 import { waitForReplayPaint } from '../../scripts/captureReadiness.mjs';
+import { recordVideo } from '../helpers/browserVideo.mjs';
 
 test('Case arrow and plaque persist through construction before head movement in both engines', { timeout: 180_000 }, async () => {
   const runtime = await buildQualificationReviewRuntime({ entrySource: `
@@ -107,7 +108,7 @@ test('standalone and Case-composed feature plaques keep row attachment through R
         loader: 'tsx', resolveDir: new URL('../../', import.meta.url).pathname },
         bundle: true, write: false, format: 'iife', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' } });
       const page = await browser.newPage({ viewport: { width: 1200, height: 900 },
-        ...(evidence && variant === 'bearer' ? { recordVideo: { dir: evidence } } : {}) });
+        ...(variant === 'bearer' ? recordVideo(evidence) : {}) });
       const errors = []; page.on('pageerror', error => errors.push(String(error)));
       await page.setContent(`<style>${runtime.css}</style><div id="root" style="height:900px"></div><script>${compiled.outputFiles[0].text}</script>`);
       await page.locator('svg[data-babel-rendered-step]').waitFor();

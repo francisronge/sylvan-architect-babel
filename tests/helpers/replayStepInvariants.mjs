@@ -110,10 +110,14 @@ function frameChange(previous, current, initialKey) {
  * - `movement-incomplete`: a movement moment without its displayed landing or
  *   lower occurrence, or whose landing was already displayed, unless an
  *   earlier moment of the stage introduced that shared landing.
+ * - `trajectory-off-moment`: a relation's movement path first appears at a
+ *   step other than that relation's own moment, so the moment draws nothing
+ *   or another claim's step draws it.
  * - `unknown-step`: a step of another kind.
  */
 export function checkStepSemantics(replay, record) {
   const steps = replay.playbackSteps, out = [], stages = authoredStages(record), introducedLandings = new Set();
+  const moments = new Map(), firstTrajectories = new Map();
   const pronunciation = pronunciationOwners(replay);
   const initialKey = String(resolveSavedInputTokens(record.sentence ?? '', record.inputTokens)[0] ?? '').trim().toLocaleLowerCase();
   let previous = EMPTY_FRAME;
@@ -128,6 +132,9 @@ export function checkStepSemantics(replay, record) {
     // An edge to a parent displayed at the preceding step is attach-at-merge's.
     const newEdgeElsewhere = id => !(current.parent.get(id) && previous.displayed.has(current.parent.get(id)));
     const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
+    if (identity && !moments.has(refKey(identity))) moments.set(refKey(identity), frame);
+    (step.replayRelationLinks ?? []).filter(link => link.renderFamily === 'trajectory' && Number(link.stepIndex) === stageIndex
+      && !firstTrajectories.has(link.authoredRelationKey)).forEach(link => firstTrajectories.set(link.authoredRelationKey, frame));
     // A word whose occurrence has a pronunciation owner belongs to that owner's moment alone.
     const separatelyVoiced = id => change.reworded.includes(id) && pronunciation(stageIndex, occurrenceOf(current, id)) !== undefined
       && !(identity?.stageIndex === stageIndex && voicesOccurrence(pronunciation, identity, occurrenceOf(current, id), false));
@@ -185,6 +192,11 @@ export function checkStepSemantics(replay, record) {
     } else report('unknown-step', target, 'unknown step kind');
     previous = current;
   });
+  for (const [key, frame] of firstTrajectories) {
+    const own = moments.get(key);
+    if (own !== undefined && own !== frame) out.push(finding('step-semantics', 'trajectory-off-moment', key, frame,
+      `the movement path of relation ${key} first appears at frame ${frame}, not at its own moment at frame ${own}`));
+  }
   return out;
 }
 
@@ -269,8 +281,11 @@ export function vanishedAnchors(plan) {
  *   later relation paints, allowed at that relation's moment
  *   (`composed-before-moment`); otherwise allowed only for a lifetime that ends
  *   or is replaced (`dropped`).
- * An ended mark does not paint again (`paints-again`). A piece revealed at its
- * relation's moment paints there (`late-start` when later, `never-paints`).
+ * An ended mark does not paint again (`paints-again`). A relation-only mark that
+ * coalesces identical claims of several relations paints at each of their
+ * moments as the mark of that moment's claim, so each claim paints once. A
+ * piece revealed at its relation's moment paints there (`late-start` when
+ * later, `never-paints`).
  * A composed theta grid replaces its contributors' badges: theta badges do not
  * paint beside a grid that composes their claim with another claim already
  * played, in this stage or an earlier one (`composed-still-paints`).
@@ -291,10 +306,13 @@ export function checkMarkPersistence(replay, record, { select = isPlanItemReveal
     if (identity?.stageIndex === stage) played.get(stage).add(identity.relationIndex);
     const resolver = anchorResolver(step), painted = new Map(), all = new Map();
     const report = (subtype, key, detail) => out.push(finding('mark-persistence', subtype, describeKey(key), frame, `${describeKey(key)} ${detail}`));
+    // A relation-only mark coalescing identical claims paints, at each moment, for the claim whose moment it is.
+    const momentKey = identity?.stageIndex === stage ? refKey(identity) : null;
+    const paintsFor = (mark, key) => mark.item.persistence !== 'relation-only' || refKey(keyRef(key)) === momentKey;
     for (const mark of stepMarks(plan, step, played.get(stage), { select, resolver })) for (const key of markKeys(mark.item)) {
       if (!all.has(key)) all.set(key, []);
       all.get(key).push(mark);
-      if (mark.painted && !painted.has(key)) painted.set(key, mark);
+      if (mark.painted && paintsFor(mark, key) && !painted.has(key)) painted.set(key, mark);
       if (mark.selected !== mark.revealed && !disagreed.has(`${frame} ${key}`)) {
         disagreed.add(`${frame} ${key}`);
         report('reveal-selector', key, `is ${mark.selected ? 'selected' : 'not selected'} where the authored moments ${mark.revealed ? 'reveal' : 'hide'} it`);
