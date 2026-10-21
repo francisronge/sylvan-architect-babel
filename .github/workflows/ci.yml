@@ -52,9 +52,9 @@ jobs:
               "verify:all": "npm run typecheck && npm run verify:exceptions && npm run verify:offline",
               "verify:offline": "npm test && npm run verify:parse-contract",
               test: "NODE_COMPILE_CACHE=\"$PWD/node_modules/.cache/node-compile\" node --test --test-concurrency=2 tests/*.test.mjs",
-              "verify:visual-offline": "node scripts/auditReplayVisuals.mjs --fixtures --viewports desktop,desktop-large --exceptions tests/helpers/visualExceptions.mjs",
+              "verify:visual-offline": "node scripts/auditReplayVisuals.mjs --fixtures --viewports desktop,desktop-large --exceptions tests/helpers/visualExceptions.mjs --snapshot fixtures/replay-snapshots/fixture-layout.json",
               "verify:camera-offline": "node scripts/auditReplayVisuals.mjs --audit camera --fixtures --viewports desktop,mobile --exceptions tests/helpers/cameraExceptions.mjs",
-              "verify:replay-offline": "node scripts/auditReplayVisuals.mjs --fixtures --audit visual --viewports desktop,desktop-large --exceptions tests/helpers/visualExceptions.mjs --audit camera --viewports desktop,mobile --exceptions tests/helpers/cameraExceptions.mjs",
+              "verify:replay-offline": "node scripts/auditReplayVisuals.mjs --fixtures --audit visual --viewports desktop,desktop-large --exceptions tests/helpers/visualExceptions.mjs --audit camera --viewports desktop,mobile --exceptions tests/helpers/cameraExceptions.mjs --snapshot fixtures/replay-snapshots/fixture-layout.json",
             };
             const changed = Object.entries(expected).filter(([name, command]) => scripts[name] !== command);
             for (const [name, command] of changed) {

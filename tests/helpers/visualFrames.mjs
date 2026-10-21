@@ -49,6 +49,9 @@ import { layoutReplayFrames } from '../../scripts/replayFrameLayout.mjs';
 import { createCameraHarness } from './cameraHarness.mjs';
 import { createSvgDom } from './svgDom.mjs';
 import { checkFrame, THRESHOLDS } from './visualRules.mjs';
+import { SNAPSHOT_VIEWPORT, snapshotRecord } from './layoutSnapshot.mjs';
+import { buildReplayPanelContent } from '../../replay/replayPanel.ts';
+import { buildReplayDisplayDetailBlocks } from '../../replay/replayPanelFormatting.ts';
 import { createMeasuringDocument, measureCategoryText, measurePlaqueText, measureRun, parseFont } from './visualFontMetrics.mjs';
 
 /** Browser windows the audit fits. The tree canvas sits below the app bar: a
@@ -444,12 +447,24 @@ export function layoutWidthFindings(visual, viewports, { canopy = true, metrics 
 
 /** One record's findings: every Replay frame at each viewport and the Canopy.
  * `visual` may be the record's prepareVisualRecord result shared with another
- * audit; this audit only reads it. */
+ * audit; this audit only reads it. With `snapshot`, the result also carries the
+ * record's layoutSnapshot.mjs fingerprint, which needs the desktop viewport. */
 export function auditVisualRecord(id, record, { viewports = VIEWPORTS, canopy = true, thresholds = THRESHOLDS,
-  visual = prepareVisualRecord(record) } = {}) {
+  visual = prepareVisualRecord(record), snapshot = false } = {}) {
   const frames = layoutVisualFrames(visual, viewports);
   if (canopy) frames.push(...viewports.map(viewport => layoutCanopyVisualFrame(visual, viewport)).filter(Boolean));
   return { steps: visual.prepared.playbackSteps.length, frames: frames.length,
     findings: [...frames.flatMap(frame => checkFrame(frame, thresholds)), ...layoutWidthFindings(visual, viewports, { canopy })]
-      .map(finding => ({ ...finding, record: id })) };
+      .map(finding => ({ ...finding, record: id })),
+    ...(snapshot ? { snapshot: snapshotVisualRecord(visual, frames.filter(frame => frame.viewport === SNAPSHOT_VIEWPORT)) } : {}) };
+}
+
+/** The layoutSnapshot.mjs fingerprint of a prepared record, from its desktop
+ * frames when the caller already laid them out. */
+export function snapshotVisualRecord(visual, desktopFrames = null) {
+  const viewport = VIEWPORTS.find(({ name }) => name === SNAPSHOT_VIEWPORT);
+  const frames = desktopFrames ?? [...layoutVisualFrames(visual, [viewport]), layoutCanopyVisualFrame(visual, viewport)].filter(Boolean);
+  if (!frames.length && visual.prepared.playbackSteps.length) throw Error(`The snapshot needs the ${SNAPSHOT_VIEWPORT} viewport`);
+  return snapshotRecord(visual, frames.filter(frame => frame.frame !== 'canopy'), frames.find(frame => frame.frame === 'canopy') ?? null,
+    { buildReplayPanelContent, buildReplayDisplayDetailBlocks });
 }
