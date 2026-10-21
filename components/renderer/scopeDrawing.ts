@@ -505,7 +505,7 @@ export function createScopeDrawing({
         const focusNodeId = item.focusNodeId || '';
         const focusAnchor = resolveOverlayAnchor(focusNodeId);
         const focusTerminals = focusAnchor?.descendants()
-          .filter((candidate) => isDisplayTerminalNode(candidate as unknown as HierNode)) || [];
+          .filter((candidate) => isDisplayTerminalNode(candidate)) || [];
         if (focusTerminals.length > 1) markSubtreeLensNodes(focusNodeId, 'focus-target');
       });
     }

@@ -274,7 +274,7 @@ const CASES = [
   [1, `${CATALOG}/0/analyses/0`, 'b-or:category ["Coord[alternative","]"]', [], 'fixed by #73'],
   [2, `${CATALOG}/1/analyses/0`, 'plaque(1:3 case: nominative)@subject', [], 'fixed by #74'],
   [2, `${CATALOG}/2/analyses/0`, 'plaque(3:2 case: Nominative)@mSubject', [], 'fixed by #74'],
-  [3, `${CATALOG}/3/analyses/0`, 'plaque(0:1 theta Theme)@stolen', [[20, 'desktop'], [20, 'desktop-large']], 'open'],
+  [3, `${CATALOG}/3/analyses/0`, 'plaque(0:1 theta Theme)@stolen', [], 'fixed by the second look for remote plaques'],
   [4, `${CATALOG}/4/analyses/0`, 'connector(3:3)root-cp→subject-np plaque(3:2 clauseType: declarative)@declarative-c', [], 'fixed by #76'],
   [9, RECORDS[1], 'juan->juan::__leaf what1::__leaf:word', [], 'fixed by #79'],
   [24, `${CATALOG}/6/analyses/0`, 'matrixClause->matrixTP', [], 'preview 3e4b4dc rejected, main keeps one row']

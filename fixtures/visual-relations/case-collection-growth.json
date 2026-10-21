@@ -1,4 +1,6 @@
 {
+  "description": "Collection clearance searched on both axes (plaquePlacement).",
+  "source": "GPT-6 Astra, high reasoning, qualification attempt turkish-xbar-astra, analysis 1. Exact copy of the normalized record $.attempts[64].normalizedRecord.response.analyses[0] in ~/Library/Application Support/Babel/fixture-sources/codex-workspace-01a0971f-0986-7370-904b-e4a1c4693d82/exhaustive-renderer-20260922/all-data.json (copied from ~/.codex/visualizations/2026/09/12/01a0971f-0986-7370-904b-e4a1c4693d82/exhaustive-renderer-20260922/all-data.json); the attempt's own bundle is not archived.",
   "sentence": "Ali kitabı okudu.",
   "derivationStages": [
     {

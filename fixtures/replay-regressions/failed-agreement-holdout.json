@@ -1,4 +1,5 @@
 {
+  "description": "Saved nominal and finite agreement conflicts draw failed comparisons (failedAgreementComparison, nativePlaqueRendering).",
   "sentence": "Those musician has been applauded.",
   "provenance": {
     "model": "gpt-6-astra",

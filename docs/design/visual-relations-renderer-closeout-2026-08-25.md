@@ -255,6 +255,19 @@ pocket unless a clear pocket is at least a quarter nearer, or nearby while its o
 is not. Between those movements it keeps one offset, and plaques placed later
 avoid its pocket as they avoid any other.
 
+A proximity plaque still beyond its nearby reach once every phase is allocated
+gets a second look for each run of consecutive phases in which it keeps one
+anchor-relative pocket. It may take the nearest pocket that, in every scene of the
+run, keeps half the margin (12 units) from syntax, trajectories and connectors,
+and the full margin from every other plaque's allocated pocket. The run moves
+there only when that pocket is nearby and at most three quarters of the old
+distance, and only if the change of pocket at either end of the run grows no
+longer. No other plaque is allocated again, so a plaque within reach never moves
+and none moves farther, and a plaque changes pocket only where the allocation
+already changes it. A stage enters the schedule, and early delivery, only after
+every remote run covering it has been decided; a requested stage that such a
+run covers can therefore wait for later phases.
+
 Reservations account for tree ink, trajectories, neutral connector stems and
 already allocated claims. The nearest clear pocket search has no arbitrary radius
 cutoff that sends an otherwise local plaque beneath the tree. Later spelling
@@ -386,10 +399,11 @@ a spoke from a node to itself.
 The existing Replay rows identify previous-stage references with
 `role (previous stage): participant`. No triangle or extra panel section is
 needed. Plain camelCase names receive conservative display spacing. The Replay
-panel also spaces snake_case relation and role names; Tier-3 tree labels keep
-their underscores. Other punctuation, single-letter notation such as `x_i`,
-non-Latin names and authored record strings remain unchanged. Unavailable references
-and empty collections have distinct readable descriptions.
+panel also spaces snake_case relation and role names, and Tier-3 tree role
+labels and the Ordering rail caption space them the same way. Other
+punctuation, single-letter notation such as `x_i`, non-Latin names and authored
+record strings remain unchanged. Unavailable references and empty collections
+have distinct readable descriptions.
 
 Source/Landing descriptions use “specifier” and “complement” only when matching
 authored X-bar levels establish them, independent of left/right branch order.
@@ -1081,6 +1095,17 @@ with its own External Merge before the claim's moment, which then adds only the
 claim's marks. Anything else keeps the claim's atomic rewrite. A movement's
 landing parent inside the phrase is then the movement's, and arrives at its
 moment.
+
+The model may give the new id to either node around a movement's new landing
+parent. When the landing's parent keeps its preceding id, the new node is the
+landing's only sister and holds that parent's earlier daughters in order. Each
+slot holds the earlier daughter itself or a node new in the stage that contains
+it, such as the complex another movement of the stage forms there. That sister
+gets no construction step. Until the movement, the kept parent shows its
+daughters as the stage has changed them so far, and the movement moment inserts
+the sister together with the landing, the lower occurrence and the trajectory.
+When the sister's daughters come from another relation's moment, the movement
+waits for that moment.
 
 A new occurrence replacing another chain member in the same retained parent
 slot is that member's lower witness. A later chain description must not use it

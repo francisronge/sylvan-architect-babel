@@ -1,4 +1,5 @@
 {
+  "description": "Syntax must not jump at steps that do not own it; waiting slots (replayMotionContinuity, waitingSlots).",
   "sentence": "我昨天看见的那个人走了。",
   "inputTokens": [
     "我",

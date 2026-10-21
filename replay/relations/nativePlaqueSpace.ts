@@ -87,7 +87,7 @@ export function nativePlaqueObstacles(items: RelationPlanItem[], nodes: Node[], 
       const x = Math.min(...boxes.map(box => box.x)), y = Math.min(...boxes.map(box => box.y));
       return { x: x - 6, y: y - 6,
         width: Math.max(...boxes.map(box => box.x + box.width)) - x + 12,
-        height: Math.max(...boxes.map(box => box.y + box.height)) - y + 12 };
+        height: Math.max(...boxes.map(box => box.y + box.height)) - y + 12, plaqueShell: true };
     });
   });
 }

@@ -28,8 +28,6 @@ const CATALOGUE = index => `replay-regressions/visual-human-catalog.json#/cases/
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 export const EXCEPTIONS = [
-  x(PLAQUE_CROWDED, CATALOGUE(3), 'mark-distance', 'plaque', 'plaque(0:1 θ GRID; stolen; Theme; i)@stolen',
-    { desktop: { '17-20': 1.24 }, mobile: { '17-20': 1.24 } }),
   x(MOBILE, CATALOGUE(2), 'first-paint-continuity', 'off-canvas:moved', 'stage 7', { mobile: { '61>62': 30.59 } }),
   x(PLAQUE_CROWDED, CATALOGUE(6), 'mark-distance', 'plaque', 'plaque(0:1 θ GRID; v; experiencer; j)@relativeSubject',
     { desktop: { '14-43': 1.19 }, mobile: { '14-43': 1.19 } }),
