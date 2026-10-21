@@ -1,4 +1,5 @@
 import { select } from 'd3';
+import { CAMERA_ZOOM } from '../../replay/rendererMetrics.ts';
 
 // Camera tests run the real fitting pipeline with synchronous reduced motion.
 // Only the final D3 transform application is captured instead of updating a browser.
@@ -10,12 +11,14 @@ export function createCameraHarness(Element, {
   auto = { current: null }, manual = { current: null }, reducedMotion = true
 }) {
   const svg = new Element('svg');
-  let painted;
+  let painted, extent = [...CAMERA_ZOOM.userZoomExtent];
   const paints = [];
   const session = {
     cameraRuntime: { applying: false, cancel: undefined, deferred: null },
     svg: select(svg), svgRef: { current: svg },
-    zoom: { transform: (_selection, transform) => { svg.__zoom = transform; painted = transform; paints.push(transform); } },
+    // d3.zoom's own extent accessor: TreeVisualizer's user extent until a pose widens it.
+    zoom: { transform: (_selection, transform) => { svg.__zoom = transform; painted = transform; paints.push(transform); },
+      scaleExtent(next) { if (!next) return extent; extent = [...next]; return this; } },
     autoCameraRef: auto, manualCameraRef: manual, animated, data,
     derivationStagesSignature: signature, fitRevision: 0,
     containerWidth: width, containerHeight: height, activeStepIndex: step,

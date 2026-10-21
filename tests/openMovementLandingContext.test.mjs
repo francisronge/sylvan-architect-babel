@@ -10,9 +10,9 @@ const nodes = node => [node, ...(node.children ?? []).flatMap(nodes)];
 const find = (forest, id) => forest.flatMap(nodes).find(node => node.id === id);
 const example = () => {
   const copy = structuredClone(record);
-  return { ...copy, priorForest: copy.derivationStages[0].workspaceForest,
-    currentForest: copy.derivationStages[1].workspaceForest,
-    relation: copy.derivationStages[1].relations[0], stageIndex: 1, relationIndex: 0 };
+  return { ...copy, priorForest: copy.derivationStages[2].workspaceForest,
+    currentForest: copy.derivationStages[3].workspaceForest,
+    relation: copy.derivationStages[3].relations[0], stageIndex: 3, relationIndex: 0 };
 };
 const recover = input => recoverMovementEvidence(input.relation, input.currentForest, input.priorForest);
 
@@ -55,12 +55,12 @@ test('the exact pair is independent of participant names, relation text and pron
 
 test('the source, lower replacement and attaching parent change only at the owning moment', () => {
   const input = example();
-  input.derivationStages[1].relations.unshift({ relation: 'Independent inspection', anchors: { participant: 'a2-verb-high' } });
+  input.derivationStages[3].relations.unshift({ relation: 'Independent inspection', anchors: { participant: 'a2-verb-high' } });
   const replay = prepareReplay({ ...input, includePlayback: true });
-  const index = replay.playbackSteps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1
+  const index = replay.playbackSteps.findIndex(step => step.replayRelationIdentity?.stageIndex === 3
     && step.replayRelationIdentity.relationIndex === 1);
   assert.ok(index > 0);
-  for (const step of replay.playbackSteps.slice(0, index).filter(step => step.replayFrameIndex === 1)) {
+  for (const step of replay.playbackSteps.slice(0, index).filter(step => step.replayFrameIndex === 3)) {
     assert.deepEqual(find([step.replayCanvasData], 'a2-object-low')?.children?.map(node => node.id), ['a2-object-nbar']);
     assert.ok(!step.replayVisibleNodeIds.includes('a2-object-high'));
     assert.ok(!step.replayVisibleNodeIds.includes('a2-cp'));
@@ -69,7 +69,7 @@ test('the source, lower replacement and attaching parent change only at the owni
   assert.ok(moment.replayVisibleNodeIds.includes('a2-object-high'));
   assert.ok(moment.replayVisibleNodeIds.includes('a2-cp'));
   assert.equal(find([moment.replayCanvasData], 'a2-object-low').silent, true);
-  assert.equal(moment.replayRelationLinks.filter(link => link.authoredRelationKey === '1:1'
+  assert.equal(moment.replayRelationLinks.filter(link => link.authoredRelationKey === '3:1'
     && link.sourceNodeId === 'a2-object-low' && link.targetNodeId === 'a2-object-high').length, 1);
 });
 

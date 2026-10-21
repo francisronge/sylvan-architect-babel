@@ -418,6 +418,32 @@ const displacedInStage = (
 };
 
 /**
+ * `displacedInStage`, apart from what the stage's recovered movements change.
+ * An occurrence they relate (`moved`) that keeps its subtree and only leaves its
+ * parent moves with them, an earlier one they replace is theirs, and a slot
+ * whose earlier and current children are both their occurrences holds the copy
+ * they exchanged. Any other change displaces the node.
+ */
+const displacedOutsideMovements = (
+  node: SyntaxNode,
+  previous: ForestLocations,
+  current: ForestLocations,
+  moved: ReadonlySet<string>
+): boolean => {
+  if (!moved.size)
+    return displacedInStage(node, previous, current);
+  const before = previous.get(String(node.id || '')), after = current.get(String(node.id || ''));
+  if (!after)
+    return !moved.has(String(node.id || ''));
+  const unchanged = (left: SyntaxNode, right: SyntaxNode): boolean => ownNodeContent(left) === ownNodeContent(right)
+    && (left.children || []).length === (right.children || []).length
+    && (left.children || []).every((child, index) => moved.has(String(child.id || '')) && moved.has(String(right.children![index].id || ''))
+      || unchanged(child, right.children![index]));
+  return !unchanged(node, after.node)
+    || Boolean(before?.parentId) && before!.parentId !== after.parentId && !moved.has(String(node.id || ''));
+};
+
+/**
  * True when a retained witness kept its own content and exact slot, and every
  * earlier descendant, in order and under its earlier parent, and gained only
  * new nodes or whole earlier workspaces. Ordinary construction builds that
@@ -678,16 +704,18 @@ const resolvePriorWitnessTreeTransitionOwnership = (
   // its current anchors, the earlier material inside them, and the earlier
   // occurrences of a new node's lineage there), that material is merged as it
   // was: the stage's construction builds what now contains it, and the claim
-  // owns only a copy it relates to its witnesses.
+  // owns only a copy it relates to its witnesses. What the stage's recovered
+  // movements change is theirs, not this claim's displacement.
   const coveredCurrentIds = currentAnchors.flatMap(([node]) => [...collectExactSubtreeNodeIds(node)]);
   const copiedLineages = new Set(coveredCurrentIds.filter(id => !previousLocations.has(id))
     .map(id => currentLocations.get(id)?.node.lineageId).filter(Boolean));
   const coveredEarlierIds = new Set([...priorAnchorIds, ...coveredCurrentIds, ...[...previousLocations]
     .filter(([, location]) => location?.node.lineageId && copiedLineages.has(location.node.lineageId)).map(([id]) => id)]
     .filter(id => previousLocations.has(id)));
+  const movementOccurrences = new Set(relation.movementOccurrenceNodeIds ?? []);
   const rewritesWitness = !retainedPriorAnchors || [...coveredEarlierIds].some(id => {
     const earlier = previousLocations.get(id);
-    return !earlier || displacedInStage(earlier.node, previousLocations, currentLocations);
+    return !earlier || displacedOutsideMovements(earlier.node, previousLocations, currentLocations, movementOccurrences);
   });
   // When the preceding witnesses still exist, they identify the material
   // being updated. Other current anchors can supply its newly built context
@@ -749,14 +777,14 @@ const sameMaterial = (left: SyntaxNode, right: SyntaxNode): boolean => {
  * occurrence of the same object. A new anchored node is a copy when the claim
  * also anchors a preceding occurrence of its lineage that is displaced in this
  * stage (removed, rewritten, re-pronounced or given another parent) or whose
- * complete material the new node repeats; a shared lineage alone, as for an
- * identity or coreference observation over different material, establishes
- * nothing. Each copy names its earlier occurrence when one candidate, or one
- * displaced candidate, identifies it. `earlierNodeIds` are the displaced
- * occurrences, which change with the copy and keep their preceding form until
- * its moment. `claimedNodeIds`, what the stage's recovered movements and
- * earlier claims already own, are excluded. Relation and field names play no
- * part.
+ * complete material the new node repeats where Internal Merge puts it; a
+ * shared lineage alone, as for an identity or coreference observation over
+ * different material, establishes nothing. Each copy names its earlier
+ * occurrence when one candidate, or one displaced candidate, identifies it.
+ * `earlierNodeIds` are the displaced occurrences, which change with the copy
+ * and keep their preceding form until its moment. `claimedNodeIds`, what the
+ * stage's recovered movements and earlier claims already own, are excluded.
+ * Relation and field names play no part.
  */
 export const anchoredCopyDisplacement = (
   relation: DerivationReplayPlanStep,
@@ -777,11 +805,15 @@ export const anchoredCopyDisplacement = (
   const earlier = [...new Set([...currentIds, ...relationAnchorNodeIds(relation.priorAnchors)])]
     .map(id => unique(previousForest, id))
     .filter((node): node is SyntaxNode => Boolean(node?.lineageId));
-  // A repeat is a copy only inside the syntactic object that holds the
-  // earlier occurrence, as Internal Merge makes it. A repeat in a separate
-  // workspace, such as an occurrence shared across conjuncts, is built there.
-  const repeatedInPlace = (occurrence: SyntaxNode, node: SyntaxNode): boolean => sameMaterial(occurrence, node)
-    && current.get(occurrence.id)?.rootIndex === current.get(node.id)?.rootIndex;
+  // A repeat is a copy only where Internal Merge puts it: merged beside an
+  // object that contains the earlier occurrence. A repeat merged elsewhere,
+  // such as an occurrence shared across conjuncts, is built there, even when
+  // the stage then joins the conjuncts beneath one root.
+  const repeatedInPlace = (occurrence: SyntaxNode, node: SyntaxNode): boolean => {
+    const at = current.get(String(node.id || ''));
+    return sameMaterial(occurrence, node) && (at?.parent?.children || [])
+      .some(sister => sister !== at!.node && collectExactSubtreeNodeIds(sister).has(occurrence.id));
+  };
   const copies = currentIds
     .filter(id => !claimedNodeIds.has(id) && !findExactNodesByIdInForest(previousForest, id).length)
     .map(id => unique(currentForest, id))
@@ -1387,6 +1419,15 @@ export const planNeutralTransitionAttachments = (
   });
 };
 
+/**
+ * The new parent below a landing parent that keeps its preceding id: the
+ * landing's only sister, when that parent had two or more children in the
+ * preceding stage and the sister holds them in order. A slot holds the earlier
+ * child itself, or a node new in this stage that contains it, such as the
+ * complex another movement of the stage forms on it. The sister only attaches
+ * the landing above the earlier daughters, so the movement moment introduces
+ * it, as `landingAttachmentPath` does when the new id is on the upper node.
+ */
 export const movementLandingWrapper = (
   currentForest: SyntaxNode[],
   previousForest: SyntaxNode[],
@@ -1405,7 +1446,9 @@ export const movementLandingWrapper = (
   const wrapper = currentChildren.find(child => child.id !== landingNodeId);
   if (!wrapper || wrapper.children?.length !== previousChildren.length)
     return null;
-  if (!wrapper.children.every((child, index) => child.id === previousChildren[index].id))
+  if (!wrapper.children.every((child, index) => child.id === previousChildren[index].id
+    || !findNodeByIdInForest(previousForest, child.id)
+      && collectSyntaxSubtreeNodeIds(child).includes(previousChildren[index].id)))
     return null;
   return { parentId, wrapperId: wrapper.id };
 };

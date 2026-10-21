@@ -56,22 +56,14 @@ export function layoutReplayFrames({ steps, stages, width, height, direction, me
   const stageCamera = (stage, completedStep) => {
     const key = `${stage}:${completedStep}`;
     if (!cameras.has(key)) {
-      const items = measured.plan?.frames[stage]?.items ?? [];
-      const treeFirst = items.some(item => TREE_FIRST_FAMILIES.includes(item.familyId));
-      const common = { ...input, stageIndex: stage, stepIndex: completedStep, completedCanvas: completed(stage),
-        plaqueLayout: camera.selectReplayPlaqueLayout(schedule, stage), plaqueSchedule: schedule, coordinates: stageCoordinates };
-      const bounds = camera.buildStageCameraBounds({ ...common, includeOverlays: !treeFirst });
-      cameras.set(key, { bounds, containment: bounds && (treeFirst || items.some(item => item.kind === 'binding-domain'))
-        ? camera.buildStageCameraBounds({ ...common, includeOverlays: false, includePlaques: true, includeBindingDomains: true }) : null });
+      // TreeVisualizer's own call: the same function with the same measures.
+      const { plan, protectedNodeIds, measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel } = measured;
+      cameras.set(key, camera.buildStageCameraFit({ steps, stageIndex: stage, stepIndex: completedStep, completedCanvas: completed(stage),
+        plan, width, height, direction, abstractionMode: false, protectedNodeIds, disableRelationOverlay: false,
+        plaqueSchedule: schedule, coordinates: stageCoordinates, layoutGroups: groups,
+        measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel }));
     }
     return cameras.get(key);
   };
   return { sizes, positions, render, scenes, schedule, ...(measured ? { stageCamera } : {}) };
 }
-
-/** TreeVisualizer's `acceptedCompositionIsTreeFirst` families: their stage
- * camera omits overlays and contains plaques separately. */
-export const TREE_FIRST_FAMILIES = Object.freeze(['copy.multiple-pronunciation', 'copy.partial-deletion',
-  'multidominance.shared-node', 'argument-sharing.domains', 'pf.phrasal-spellout', 'pf.correspondence', 'pf.fission',
-  'pf.impoverishment', 'pf.local-dislocation', 'pf.cyclic-linearization', 'cooper-storage.ledger', 'scope.operator-variable',
-  'accord.link', 'accord.strong-npi', 'focus.prominence', 'focus.f-projection', 'theta.grid']);

@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useGeneration } from './hooks/useGeneration';
-import { recoverLegacyInputTokens } from './services/legacyInputTokens';
 import { useSporeDrift, type Spore } from './hooks/useSporeDrift';
 import { captureVisibleTreeSnapshot } from './services/treeSnapshot';
-import { buildMilesNotation } from './services/milesNotation';
+import { deriveAnalysisDisplay } from './services/analysisDisplay';
 import { useTreeBank } from './hooks/useTreeBank';
 import { useDevPreview, type DevAnalysisOptions, type SavedPreview } from './hooks/useDevPreview';
 import type { TreeBankEntrySummary } from './services/treeBankStore';
 import { TreeBankView, TreeBankDeleteDialog } from './components/TreeBankView';
-import { DerivationNotesView, type CopyCodeKey } from './components/DerivationNotesView';
+import { DerivationNotesView, type CopyStatus } from './components/DerivationNotesView';
+import { copyTextToClipboard } from './services/clipboard';
 import {
   ParseBundle,
   ParseResult
@@ -17,9 +17,7 @@ import TreeVisualizer from './components/AsyncTreeVisualizer';
 import RootLogo from './components/RootLogo';
 import LoadingMark from './components/LoadingMark';
 import FailurePanel from './components/FailurePanel';
-import { collectDerivationStageRecords } from './derivationNotes.js';
 import { GENERATION_MODEL_IDS, getResearchModel } from './server/babelParser/researchModelCatalog.js';
-import { displayTreeForAnalysis, finalForestForAnalysis } from './replay/finalForest.ts';
 import { 
   RotateCcw, 
   Sparkles,
@@ -41,7 +39,7 @@ import {
 
 type AppTab = 'tree' | 'derivation' | 'notes';
 
-const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number }>; label: string }> = [
+const NAV_TABS: Array<{ id: AppTab; icon: React.ComponentType<{ size?: number; className?: string }>; label: string }> = [
   { id: 'tree', icon: Layers, label: 'Canopy' },
   { id: 'derivation', icon: FlameKindling, label: 'Derivation Replay' },
   { id: 'notes', icon: FileText, label: 'Notes' },
@@ -108,12 +106,13 @@ interface AppProps {
 const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const MODEL_OPTIONS = useMemo(() => modelIds.map(id => getResearchModel(id)!), [modelIds]);
   const DEFAULT_MODEL_ID = modelIds[0];
-  const coerceModelRoute = (value?: string): ModelMode =>
-    modelIds.includes(value || '') ? value! : DEFAULT_MODEL_ID;
-  const inferModelRouteFromModel = (modelUsed?: string): ModelMode =>
-    MODEL_OPTIONS.find(model => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID;
+  const coerceModelRoute = useCallback((value?: string): ModelMode =>
+    modelIds.includes(value || '') ? value! : DEFAULT_MODEL_ID, [modelIds, DEFAULT_MODEL_ID]);
+  const inferModelRouteFromModel = useCallback((modelUsed?: string): ModelMode =>
+    MODEL_OPTIONS.find(model => model.providerModel === modelUsed)?.id || DEFAULT_MODEL_ID, [MODEL_OPTIONS, DEFAULT_MODEL_ID]);
   const appContainerRef = useRef<HTMLDivElement>(null);
-  const copiedCodeTimeoutRef = useRef<number | null>(null);
+  const copyStatusTimeoutRef = useRef<number | null>(null);
+  const copyAttemptRef = useRef(0);
   const showcaseMode = useMemo(() => {
     if (typeof window === 'undefined') return false;
     const value = new URLSearchParams(window.location.search).get('showcase');
@@ -143,7 +142,25 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const [parsedFramework, setParsedFramework] = useState<'xbar' | 'minimalism'>('xbar');
   const [modelRoute, setModelRoute] = useState<ModelMode>(DEFAULT_MODEL_ID);
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('high');
-  const [copiedCodeKey, setCopiedCodeKey] = useState<CopyCodeKey | null>(null);
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
+  const showCopyStatus = useCallback((status: CopyStatus) => {
+    if (copyStatusTimeoutRef.current !== null) {
+      window.clearTimeout(copyStatusTimeoutRef.current);
+      copyStatusTimeoutRef.current = null;
+    }
+    setCopyStatus(status);
+    if (status === 'copied') {
+      copyStatusTimeoutRef.current = window.setTimeout(() => {
+        setCopyStatus('idle');
+        copyStatusTimeoutRef.current = null;
+      }, 2000);
+    }
+  }, []);
+  // A later copy or a newly accepted analysis supersedes a pending write's outcome.
+  const resetCopyStatus = useCallback(() => {
+    copyAttemptRef.current += 1;
+    showCopyStatus('idle');
+  }, [showCopyStatus]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState<string | null>(null);
   const [parsedSentence, setParsedSentence] = useState('The farmer eats the pig');
@@ -152,8 +169,9 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const replayPositions = useRef(new WeakMap<ParseResult, number>());
   const [initialReplayPosition, setInitialReplayPosition] = useState<number | null>(null);
   const activeParse: ParseResult | null = analysisBundle?.analyses?.[activeParseIndex] ?? null;
-  const replayInputTokens = useMemo(() => analysisBundle?.inputTokens
-    ?? recoverLegacyInputTokens(activeParse, parsedSentence), [analysisBundle, activeParse, parsedSentence]);
+  const activeDisplay = useMemo(() => analysisBundle && activeParse
+    ? deriveAnalysisDisplay(analysisBundle, activeParse, parsedSentence) : null, [analysisBundle, activeParse, parsedSentence]);
+  const replayInputTokens = activeDisplay?.inputTokens;
   const rememberReplayPosition = useCallback((step: number) => {
     if (activeParse) replayPositions.current.set(activeParse, step);
   }, [activeParse]);
@@ -170,8 +188,9 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
     setWorkspaceView(current => current === 'treeBank' ? 'arboretum' : 'treeBank');
   };
-  const activeFinalForest = useMemo(() => finalForestForAnalysis(activeParse), [activeParse]);
-  const activeDisplayTree = useMemo(() => displayTreeForAnalysis(activeParse), [activeParse]);
+  const activeDisplayTree = activeDisplay?.displayTree ?? null;
+  const milesNotation = activeDisplay?.notation ?? '';
+  const derivationalNoteParagraphs = activeDisplay?.stageRecords ?? [];
   const hasAmbiguity = (analysisBundle?.analyses?.length ?? 0) > 1;
   const selectedModel = getResearchModel(modelRoute)!;
   const selectedModelLabel = selectedModel.label;
@@ -185,14 +204,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   // is entered from Canopy or Notes. A running generation or a failure keeps the
   // bar, because it carries their progress and diagnostics.
   const hideInputForReplay = activeTab === 'derivation' && Boolean(activeParse) && !loading && !error;
-  const milesNotation = useMemo(() => {
-    if (!activeParse) return '';
-    return buildMilesNotation(activeFinalForest);
-  }, [activeParse, activeFinalForest]);
-  const derivationalNoteParagraphs = useMemo(() => {
-    if (!activeParse) return [];
-    return collectDerivationStageRecords(activeParse.derivationStages);
-  }, [activeParse]);
   const acceptDevAnalysis = useCallback((bundle: ParseBundle, options: DevAnalysisOptions) => {
     setInitialReplayPosition(null);
     setAnalysisBundle(bundle);
@@ -212,12 +223,12 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     }
     setActiveParseIndex(0);
     setActiveTab('tree');
-    setCopiedCodeKey(null);
+    resetCopyStatus();
     setIsInputVisible(true);
     setIsInputExpanded(true);
     setWorkspaceView('arboretum');
     resetGeneration();
-  }, [modelRoute, reasoningEffort]);
+  }, [modelRoute, reasoningEffort, coerceModelRoute, resetGeneration, resetCopyStatus]);
 
   const acceptSavedPreview = useCallback((preview: SavedPreview) => {
     const { bundle, sentence, framework: nextFramework, tab, captureMode } = preview;
@@ -232,12 +243,12 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     setReasoningEffort(coerceReasoningEffortForRoute(nextRoute, preview.reasoningEffort || reasoningEffort));
     setActiveParseIndex(0);
     setActiveTab(tab);
-    setCopiedCodeKey(null);
+    resetCopyStatus();
     setWorkspaceView('arboretum');
     resetGeneration();
     setIsInputVisible(!(showcaseMode || captureMode));
     setIsInputExpanded(!(showcaseMode || captureMode));
-  }, [showcaseMode, reasoningEffort]);
+  }, [showcaseMode, reasoningEffort, coerceModelRoute, inferModelRouteFromModel, resetGeneration, resetCopyStatus]);
 
   const devCaptureMode = useDevPreview({
     analysisBundle,
@@ -274,8 +285,8 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
 
   useEffect(() => {
     return () => {
-      if (copiedCodeTimeoutRef.current !== null) {
-        window.clearTimeout(copiedCodeTimeoutRef.current);
+      if (copyStatusTimeoutRef.current !== null) {
+        window.clearTimeout(copyStatusTimeoutRef.current);
       }
     };
   }, []);
@@ -301,7 +312,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setParsedFramework(framework);
       setActiveParseIndex(0);
       setActiveTab('tree');
-      setCopiedCodeKey(null);
+      resetCopyStatus();
     });
   };
 
@@ -343,24 +354,18 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
       setActiveTab(view);
       setAbstractionMode(savedAbstraction);
       clearFailure();
-      setCopiedCodeKey(null);
+      resetCopyStatus();
       setIsInputVisible(true);
       setIsInputExpanded(true);
       setWorkspaceView('arboretum');
     });
   };
 
-  const copyMilesCode = (text: string, key: CopyCodeKey) => {
+  const copyNotation = async (text: string) => {
     if (!text.trim()) return;
-    navigator.clipboard.writeText(text);
-    setCopiedCodeKey(key);
-    if (copiedCodeTimeoutRef.current !== null) {
-      window.clearTimeout(copiedCodeTimeoutRef.current);
-    }
-    copiedCodeTimeoutRef.current = window.setTimeout(() => {
-      setCopiedCodeKey((current) => (current === key ? null : current));
-      copiedCodeTimeoutRef.current = null;
-    }, 2000);
+    const attempt = ++copyAttemptRef.current;
+    const copied = await copyTextToClipboard(text);
+    if (attempt === copyAttemptRef.current) showCopyStatus(copied ? 'copied' : 'failed');
   };
 
   const toggleFullscreen = async () => {
@@ -615,7 +620,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               inputTokens={replayInputTokens}
             />
           ) : activeParse && activeTab === 'notes' ? (
-            <DerivationNotesView paragraphs={derivationalNoteParagraphs} notation={milesNotation} copiedCodeKey={copiedCodeKey} copyMilesCode={copyMilesCode} />
+            <DerivationNotesView paragraphs={derivationalNoteParagraphs} notation={milesNotation} copyStatus={copyStatus} onCopy={(text) => void copyNotation(text)} />
           ) : !loading && (
             <div className="w-full h-full flex flex-col items-center justify-center text-emerald-900/10 gap-10">
               <div className="relative">

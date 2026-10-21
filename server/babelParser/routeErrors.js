@@ -218,6 +218,16 @@ export const classifyProviderRouteError = ({
       providerMessage: providerMessage || null
     });
   }
+  // Babel's own failures arrive as ParseApiError; a remaining 5xx status is the
+  // provider's answer after the retry policy has finished.
+  if (Number.isFinite(statusCode) && statusCode >= 500) {
+    return new ParseApiError('PROVIDER_UNAVAILABLE', `${providerLabel} returned HTTP ${statusCode} before a result was received.`, 503, {
+      provider: providerLabel,
+      model,
+      ...providerAttemptDetails,
+      providerMessage: providerMessage || null
+    });
+  }
   if (isNetworkTransportError(error)) {
     return new ParseApiError('PROVIDER_UNAVAILABLE', `${providerLabel} transport failed before the model returned a result.`, 503, {
       provider: providerLabel,

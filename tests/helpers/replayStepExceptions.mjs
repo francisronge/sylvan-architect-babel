@@ -4,7 +4,9 @@
  * a new finding fails, and so does every listed frame where it no longer
  * occurs. These rules have no measure, so every bound is null. Contract
  * warnings are facts about authored data at 'record'; the movement warning is
- * placed at its relation's moment. */
+ * placed at its relation's moment. An entry a change adds or lets
+ * grow also takes the owner's approval as its last argument
+ * (scripts/checkExceptionGrowth.mjs). */
 
 const UNRESOLVED_ENDPOINTS = 'Open: movement recognition finds no single source and landing (list-valued or competing landing '
   + 'fields), so the claim stays neutral and draws no path; its own moment still introduces the copy.';
@@ -34,10 +36,10 @@ const OBJECT_LANGUAGE_ROLES = 'Authored data: the claim and its fields are named
 const RETAINED_HOST_SOURCE = 'Open: the prior fields name the moving negative and its receiving head, which keeps its slot and '
   + 'lineage as it becomes the complex, so recognition finds two preceding sources and draws no head path.';
 
-const x = (reason, record, rule, subtype, subject, frames) => ({ reason, record, rule, subtype, subject, at: { '-': { [frames]: null } } });
+const x = (reason, record, rule, subtype, subject, frames, approval) => ({ reason, record, rule, subtype, subject, at: { '-': { [frames]: null } },
+  ...(approval && { approval }) });
 
 export const STEP_EXCEPTIONS = [
-  x(UNRESOLVED_ENDPOINTS, 'replay-regressions/landing-at-stage-record.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:0", '30'),
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/1', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "8:1", '51'),
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/2', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '29'),
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/2', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "7:0", '42'),
@@ -98,5 +100,5 @@ export const STEP_EXCEPTIONS = [
   x(INTERMEDIATE_TRACE, 'replay-regressions/rewrite-stage-new-head.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '57'),
   x(INTERMEDIATE_TRACE, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '33'),
   x(INTERMEDIATE_TRACE, 'replay-regressions/later-occupant-source-before-movement.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "2:0", '33'),
-  x(UNNAMED_LANDING, 'performance/french-relative.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "9:0", '105'),
+  x(UNNAMED_LANDING, 'performance/french-relative.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "9:0", '104'),
 ];

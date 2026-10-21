@@ -1,5 +1,6 @@
 import type { SyntaxNode } from '../types.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
+import { CATEGORY_FALLBACK_GLYPH_WIDTH } from './rendererMetrics.ts';
 import type { PlaybackStep } from './types.ts';
 
 type MetricKeys = { labels: string[]; measured: WeakMap<CategoryTextMeasure, string>; fallback?: string };
@@ -24,7 +25,7 @@ export function categoryMetricKey(steps: readonly PlaybackStep[], measure?: Cate
   if (cached !== undefined) return cached;
   const values = keys.labels.map(label => {
     const layout = categoryTextLayout(label, measure);
-    const lineWidths = layout.lines.map(line => measure?.(line) ?? [...line].length * 25);
+    const lineWidths = layout.lines.map(line => measure?.(line) ?? [...line].length * CATEGORY_FALLBACK_GLYPH_WIDTH);
     return [label, layout, lineWidths];
   });
   const key = JSON.stringify(values, (_name, value) => typeof value === 'number'

@@ -17,9 +17,13 @@ syntactic rules. Desktop remains the primary experience.
    only those credits.
 2. Renderer follow-ups left after the October renderer pass. Each has saved
    evidence; branches that exist are named.
-   - Plaques left far from their anchor (catalog #3;
-     `fix/renderer-plaque-reach`): a narrower margin brings 12 of 55 listed
-     plaques within reach but moves some others farther away.
+   - Plaques left far from their anchor (catalog #3): a second look after
+     allocation brings 8 of the 63 listed plaques within reach, and a ninth for
+     part of its life, without moving any other plaque. The other 54 need a
+     decision: 11 have no room, 19 lose the near pocket to later syntax while
+     their anchor stands still, 10 to positions their anchor reaches by reflow,
+     7 to a plaque placed earlier, and 7 to other plaques' final pockets or the
+     quarter-nearer condition.
    - A host drops a row when a parent is inserted above it. This stays instant
      (no glide), so it needs a layout answer or acceptance.
    - Two `RELATION_TIMING_CONFLICT` cycles that no order satisfies. In the
@@ -37,21 +41,16 @@ syntactic rules. Desktop remains the primary experience.
      the long tough relative (night4 09-en-tough-relative-long), whose claim
      names only the landing and the new trace. Both belong with recognition
      (item 4).
-   - An identity claim still introduces a repeat when both conjuncts already
-     share one current root (across-the-board questions).
    - After a failed parse in Derivation Replay, the sentence input stays
      visible: the failure panel has no dismiss control.
    - Stage coordinate preparation keeps an ink cache that raises peak memory
      by about 100 MiB on the largest saved analyses.
    - A wrapped category line can start with the space that overflowed the
      line before (22 saved labels).
-   - Saved analyses that still fail a Replay invariant (14 findings in 6 of 986
-     analyses, all older than the pass): a step that does not do what it says
-     in the French clitic-climbing causative (all three analyses); marks that
-     do not persist as defined in the English gapping, raising/control mix and
-     relative pied-piping runs; a parent shown before its children in the
-     raising/control mix; and unstable construction in the second
-     there-insertion analysis.
+   - Saved analyses that still fail a Replay invariant (3 findings in 2 of 986
+     analyses, all older than the pass): a mark that does not persist as
+     defined in the English relative pied-piping run, and unstable
+     construction in the second there-insertion analysis.
    - Mobile calibration and a desktop minimum-zoom clamp.
 3. Clean up the tests:
    - Retire hand-picked per-frame Replay checks that the invariant sweep

@@ -4,7 +4,7 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { placeStagePlaques, plaqueTreeObstacles } from '../replay/relations/plaquePlacement.ts';
-import { TREE_FIRST_FAMILIES } from '../scripts/replayFrameLayout.mjs';
+import { TREE_FIRST_FAMILIES } from '../replay/stageCamera.ts';
 import { formatFrames, frameList, matchFindings, proposeExceptions } from './helpers/findings.mjs';
 import { measurePlaqueText, measureRun } from './helpers/visualFontMetrics.mjs';
 import {
@@ -245,10 +245,11 @@ test('control: layout-width compares every viewport with the first, in Replay an
   assert(found.every(finding => RULES.includes(finding.rule)), 'the discovery summary lists every reported rule');
 });
 
-test('the frame layout keeps TreeVisualizer\'s tree-first families', () => {
+test('TreeVisualizer classifies tree-first families through the shared list the frame layout fits with', () => {
   const source = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
-  const block = /acceptedCompositionIsTreeFirst = [\s\S]*?\);/.exec(source)[0];
-  assert.deepEqual([...block.matchAll(/familyId === '([^']+)'/g)].map(match => match[1]).sort(), [...TREE_FIRST_FAMILIES].sort());
+  assert.match(source, /acceptedCompositionIsTreeFirst = isTreeFirstComposition\(/u);
+  assert(TREE_FIRST_FAMILIES.size > 0);
+  for (const family of TREE_FIRST_FAMILIES) assert(!source.includes(`'${family}'`), `${family} has one owner, replay/stageCamera.ts`);
 });
 
 /* Historical defects Francis caught by eye (catalog of 18 October 2026), laid
@@ -273,7 +274,7 @@ const CASES = [
   [1, `${CATALOG}/0/analyses/0`, 'b-or:category ["Coord[alternative","]"]', [], 'fixed by #73'],
   [2, `${CATALOG}/1/analyses/0`, 'plaque(1:3 case: nominative)@subject', [], 'fixed by #74'],
   [2, `${CATALOG}/2/analyses/0`, 'plaque(3:2 case: Nominative)@mSubject', [], 'fixed by #74'],
-  [3, `${CATALOG}/3/analyses/0`, 'plaque(0:1 theta Theme)@stolen', [[20, 'desktop'], [20, 'desktop-large']], 'open'],
+  [3, `${CATALOG}/3/analyses/0`, 'plaque(0:1 theta Theme)@stolen', [], 'fixed by the second look for remote plaques'],
   [4, `${CATALOG}/4/analyses/0`, 'connector(3:3)root-cp→subject-np plaque(3:2 clauseType: declarative)@declarative-c', [], 'fixed by #76'],
   [9, RECORDS[1], 'juan->juan::__leaf what1::__leaf:word', [], 'fixed by #79'],
   [24, `${CATALOG}/6/analyses/0`, 'matrixClause->matrixTP', [], 'preview 3e4b4dc rejected, main keeps one row']

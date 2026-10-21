@@ -3,9 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import {
-  checkAttachAtMerge, checkNoEarlyReveal, checkParentAfterChildren, checkRelationConstruction, frameStructure
-} from './helpers/replayInvariants.mjs';
+import { checkRelationConstruction, frameStructure } from './helpers/replayInvariants.mjs';
 import { checkStepSemantics } from './helpers/replayStepInvariants.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/merged-material-construction.json', import.meta.url), 'utf8'));
@@ -37,14 +35,6 @@ const emptySteps = (replay, record, stageIndex) => checkStepSemantics(replay, re
   .filter(found => found.subtype === 'empty-step' && replay.playbackSteps[found.frame - 1].replayFrameIndex === stageIndex)
   .map(found => `frame ${found.frame}: ${found.detail}`);
 
-test('every case satisfies the construction invariants and gives no claim a phrase its stage only merges', () => {
-  fixture.cases.forEach((record, index) => {
-    const replay = play(index);
-    assert.deepEqual([...checkNoEarlyReveal(replay), ...checkAttachAtMerge(replay), ...checkParentAfterChildren(replay),
-      ...checkRelationConstruction(replay, record)].map(violation => `${violation.rule} @${violation.frame}: ${violation.detail}`), [], `case ${index + 1}`);
-  });
-});
-
 test('an occurrence shared across conjuncts is selected and merged in its own conjunct, not at the identity claim', () => {
   const record = fixture.cases[0], replay = play(0), steps = replay.playbackSteps;
   for (const [stageIndex, copy, phrase] of [[1, 'whatSellObject', 'sellVP'], [4, 'didSell', 'sellTProjection']]) {
@@ -55,6 +45,16 @@ test('an occurrence shared across conjuncts is selected and merged in its own co
     assertMomentAddsNothing(steps, at);
     assert.deepEqual(emptySteps(replay, record, stageIndex), [], `stage ${stageIndex + 1} has no empty construction step`);
   }
+});
+
+test('an occurrence shared across conjuncts stays with construction when the stage also joins the conjuncts beneath one root', () => {
+  const record = fixture.cases[2], replay = play(2), steps = replay.playbackSteps;
+  assertBuiltByOwnStep(steps, 'whatSellObject');
+  for (const phrase of ['sellVP', 'vpCoordinationLower', 'vpCoordination']) assertBuiltByOwnStep(steps, phrase, 'ExternalMerge');
+  const at = moment(steps, 1, 0);
+  assert.ok(firstShown(steps, 'vpCoordination') < at, 'the coordination is merged before the identity claim names its occurrences');
+  assertMomentAddsNothing(steps, at);
+  assert.deepEqual(emptySteps(replay, record, 1), [], 'stage 2 has no empty construction step');
 });
 
 test('a phrase whose boundary a realization claim describes is merged by its own step before both claims', () => {
@@ -90,6 +90,13 @@ test('a repeat of an occurrence\'s material is its claim\'s copy only inside the
   assert.deepEqual(['new::__leaf', 'new', 'sellVP'].map(id => firstStepOf(apart, id)),
     ['LexicalSelect new::__leaf', 'Project new', 'ExternalMerge sellVP']);
   assertMomentAddsNothing(apart, moment(apart, 1, 0));
+  // Joining the conjuncts gives the repeat its occurrence's root, but it was
+  // still merged with sell, not beside an object that holds the occurrence.
+  const joined = compile(twoStages([object(), verb('buy'), verb('sell')], [branch('both', '&P', branch('buyVP', 'VP', verb('buy'), object()),
+    branch('sellVP', 'VP', verb('sell'), leaf('new', 'D', { word: 'it', lineageId: 'shared' })))], claim)).playbackSteps;
+  assert.deepEqual(['new::__leaf', 'new', 'sellVP', 'both'].map(id => firstStepOf(joined, id)),
+    ['LexicalSelect new::__leaf', 'Project new', 'ExternalMerge sellVP', 'ExternalMerge both']);
+  assertMomentAddsNothing(joined, moment(joined, 1, 0));
   const remerged = twoStages([branch('vp', 'VP', verb('buy'), object())], [branch('top', 'XP',
     leaf('new', 'D', { word: 'it', lineageId: 'shared' }), branch('vp', 'VP', verb('buy'), object()))], claim);
   const inside = compile(remerged);

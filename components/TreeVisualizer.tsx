@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { CATEGORY_FONT } from '../replay/categoryTextLayout.ts';
+import { CAMERA_ZOOM, CATEGORY_FALLBACK_GLYPH_WIDTH, CATEGORY_FONT } from '../replay/rendererMetrics.ts';
 import { initialReplayStepIndex, replayStartState } from '../replay/initialReplayStep.ts';
 import { buildResolvedLinkTraceIndexMap } from '../replay/movementIndices.ts';
 import { isPhrasalReplayMovement } from '../replay/movementLinks.ts';
@@ -14,14 +14,16 @@ import {
   buildRenderableDerivationCanvasData
 } from '../replay/replayCanvas.ts';
 import {
-  buildStageCameraBounds,
+  buildStageCameraFit,
   buildStageLayoutGroups,
+  isTreeFirstComposition,
   selectReplayPlaqueLayout,
   stageTreeLayoutSize
 } from '../replay/stageCamera.ts';
 import { buildMovementProtectedNodeIds } from '../replay/triangulation.ts';
 import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 import { type DerivationStage, type SyntaxNode } from '../types';
+import { selectReplayCanvas } from './replayStepCanvas.ts';
 import { withPlaqueTextMeasure } from './renderer/plaqueText.ts';
 import { applyRelationEmphasis } from './renderer/relationInteraction.ts';
 import { updateSyntaxReveal } from './renderer/syntaxReveal.ts';
@@ -88,7 +90,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const treeDirection = useTreeDirection(sentence);
   const svgRef = useRef<SVGSVGElement>(null);
   // An active D3 gesture must dispatch to the current frame's handler after a redraw.
-  const zoomBehavior = useMemo(() => d3.zoom<SVGSVGElement, unknown>().scaleExtent([0.05, 10]), []);
+  const zoomBehavior = useMemo(() => d3.zoom<SVGSVGElement, unknown>().scaleExtent([...CAMERA_ZOOM.userZoomExtent]), []);
   const containerRef = useRef<HTMLDivElement>(null);
   const replayHeaderRef = useRef<HTMLDivElement>(null);
   const replayPanelRef = useRef<HTMLDivElement>(null);
@@ -114,6 +116,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const trajectoryLabelMaskId = `trajectory-labels-${useId().replace(/:/g, '')}`;
   // Each font pass records the runs its measures are called with; a later face
   // load re-measures them to decide whether layout must be measured again.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- each font pass starts fresh measures.
   const measuredRuns = useMemo(() => createMeasuredRuns(), [fontLayoutPass]);
   const latestMeasuredRuns = useRef(measuredRuns);
   latestMeasuredRuns.current = measuredRuns;
@@ -123,7 +126,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     const cache = new Map<string, { args: [string]; result: number }>();
     const measure = (text: string) => {
       let cached = cache.get(text);
-      if (!cached) cache.set(text, cached = { args: [text], result: context?.measureText(text).width ?? [...text].length * 25 });
+      if (!cached) cache.set(text, cached = { args: [text], result: context?.measureText(text).width ?? [...text].length * CATEGORY_FALLBACK_GLYPH_WIDTH });
       return cached.result;
     };
     return Object.assign(measure, { runs: () => cache.values() });
@@ -217,12 +220,15 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     return buildRenderableDerivationCanvasData(
       committedDerivationFrame.workspaceForest || []
     );
-  }, [committedDerivationFrame, committedDerivationVisualLinks, usesDerivationFrames]);
+  }, [committedDerivationFrame, usesDerivationFrames]);
   const committedCanonicalDerivationCanvasData = useMemo(() => {
     if (!usesDerivationFrames) return null;
     return buildRenderableCommittedCanvasData(
       data
     );
+    // A new preparation rebuilds this canvas. Without the links an equal canvas would keep
+    // its earlier identity, which is not proven neutral.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rebuild for each preparation.
   }, [data, committedDerivationVisualLinks, usesDerivationFrames]);
   const firstSentenceReplayToken = useMemo(
     () => String(resolveSavedInputTokens(sentence, inputTokens)[0] || '').trim(),
@@ -363,16 +369,14 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     };
   }, [playbackSteps]);
 
-  const canvasData = useMemo(() => {
-    if (usesDerivationFrames) {
-      return activeDerivationReplayStep?.replayCanvasData
-        || committedCanonicalDerivationCanvasData
-        || committedDerivationCanvasData
-        || data;
-    }
-    if (animated) return data;
-    return buildRenderableCommittedCanvasData(data);
-  }, [
+  const canvasData = useMemo(() => selectReplayCanvas({
+    usesDerivationFrames, animated, stepCanvas: activeDerivationReplayStep?.replayCanvasData,
+    activeForest: activeDerivationFrame?.workspaceForest,
+    committedCanonicalCanvas: committedCanonicalDerivationCanvasData,
+    committedDerivationCanvas: committedDerivationCanvasData, data
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- as above, a new preparation rebuilds the Canopy canvas.
+  }), [
+    activeDerivationFrame,
     activeDerivationReplayStep,
     animated,
     committedCanonicalDerivationCanvasData,
@@ -387,24 +391,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     if (!Array.isArray(nodeIds) || nodeIds.length === 0) return null;
     return new Set(nodeIds.map((id) => String(id || '')).filter(Boolean));
   }, [activeDerivationReplayStep, usesDerivationFrames]);
-  const acceptedCompositionIsTreeFirst = (relationRenderPlan?.frames[activeDerivationFrameIndex]?.items ?? []).some((item) =>
-    item.familyId === 'copy.multiple-pronunciation'
-    || item.familyId === 'copy.partial-deletion'
-    || item.familyId === 'multidominance.shared-node'
-    || item.familyId === 'argument-sharing.domains'
-    || item.familyId === 'pf.phrasal-spellout'
-    || item.familyId === 'pf.correspondence'
-    || item.familyId === 'pf.fission'
-    || item.familyId === 'pf.impoverishment'
-    || item.familyId === 'pf.local-dislocation'
-    || item.familyId === 'pf.cyclic-linearization'
-    || item.familyId === 'cooper-storage.ledger'
-    || item.familyId === 'scope.operator-variable'
-    || item.familyId === 'accord.link'
-    || item.familyId === 'accord.strong-npi'
-    || item.familyId === 'focus.prominence'
-    || item.familyId === 'focus.f-projection'
-    || item.familyId === 'theta.grid');
+  const acceptedCompositionIsTreeFirst = isTreeFirstComposition(relationRenderPlan?.frames[activeDerivationFrameIndex]?.items ?? []);
   const stageLayoutGroups = useMemo(() => buildStageLayoutGroups(playbackSteps, replayDerivationFrames),
     [playbackSteps, replayDerivationFrames]);
   const layoutContent = useMemo(() => committedDerivationCanvasData && settledFontText === fontText ? {
@@ -412,7 +399,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     plan: disableRelationOverlay ? null : relationRenderPlan, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
     layoutGroups: stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
   } : null, [committedDerivationCanvasData, playbackSteps, relationRenderPlan, abstractionMode, movementProtectedNodeIds,
-    disableRelationOverlay, stageLayoutGroups, measurePlaqueText, treeDirection, settledFontText, fontText, treeLabelRuns, measureTreeLabel]);
+    disableRelationOverlay, stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeDirection,
+    settledFontText, fontText, treeLabelRuns, measureTreeLabel]);
   const viewport = useMemo(() => ({ ...dimensions, bounds: uiBounds }), [dimensions, uiBounds]);
   // The frame is drawn for the displayed viewport, which stays the earlier one
   // while a resize prepares a new layout.
@@ -423,7 +411,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       ? stageTreeLayoutSize(playbackSteps, activeDerivationFrameIndex, frameViewport.width, frameViewport.height, stageLayoutGroups)
       : null
   ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, frameViewport, stageLayoutGroups]);
-  const missingReplayCoordinates = Boolean(layoutContent && plaqueLayoutReady && usesDerivationFrames
+  // An empty stage paints no syntax, so it needs no coordinates.
+  const missingReplayCoordinates = Boolean(layoutContent && plaqueLayoutReady && usesDerivationFrames && canvasData
     && !replayCoordinates?.get(activeDerivationFrameIndex)?.has(canvasData));
   const layoutReady = settledFontText === fontText && dimensions.width > 0 && plaqueLayoutReady && !missingReplayCoordinates;
   const stagePlaqueLayout = useMemo(() => selectReplayPlaqueLayout(replayPlaqueSchedule, activeDerivationFrameIndex),
@@ -432,34 +421,22 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     currentStepIndex >= 0 ? currentStepIndex : undefined), [replayPlaqueSchedule, activeDerivationFrameIndex, currentStepIndex]);
   const completedReplayStep = currentStepIndex === playbackSteps.length - 1
     && playbackSteps[currentStepIndex]?.replayKind === 'macro' ? currentStepIndex : undefined;
-  const stageCameraBounds = useMemo(() => {
+  const stageCameraFit = useMemo(() => {
     if (!layoutReady || !animated || !usesDerivationFrames || !activeDerivationFrame || !frameViewport?.width) return null;
-    return buildStageCameraBounds({
+    return buildStageCameraFit({
       steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
       stepIndex: completedReplayStep,
       completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
       plan: relationRenderPlan, width: frameViewport.width, height: frameViewport.height, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
-      includeOverlays: !disableRelationOverlay && !acceptedCompositionIsTreeFirst,
-      plaqueLayout: stagePlaqueLayout, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
+      disableRelationOverlay, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups,
+      measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
     });
   }, [layoutReady, animated, usesDerivationFrames, activeDerivationFrame, activeDerivationFrameIndex, completedReplayStep,
-    playbackSteps, relationRenderPlan, frameViewport, abstractionMode,
-    movementProtectedNodeIds, disableRelationOverlay, acceptedCompositionIsTreeFirst, stagePlaqueLayout, replayPlaqueSchedule, replayCoordinates, stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, treeDirection]);
-  const stagePlaqueContainmentBounds = useMemo(() => {
-    const hasBindingDomain = relationRenderPlan?.frames[activeDerivationFrameIndex]?.items.some(item => item.kind === 'binding-domain');
-    if (!stageCameraBounds || !activeDerivationFrame || !frameViewport || disableRelationOverlay
-      || (!acceptedCompositionIsTreeFirst && !hasBindingDomain)) return null;
-    return buildStageCameraBounds({
-      steps: playbackSteps, stageIndex: activeDerivationFrameIndex,
-      stepIndex: completedReplayStep,
-      completedCanvas: buildRenderableDerivationCanvasData(activeDerivationFrame.workspaceForest || []),
-      plan: relationRenderPlan, width: frameViewport.width, height: frameViewport.height, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
-      includeOverlays: false, includePlaques: true, includeBindingDomains: true,
-      plaqueLayout: stagePlaqueLayout, plaqueSchedule: replayPlaqueSchedule, coordinates: replayCoordinates, layoutGroups: stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
-    });
-  }, [stageCameraBounds, activeDerivationFrame, disableRelationOverlay, acceptedCompositionIsTreeFirst, completedReplayStep,
-    playbackSteps, activeDerivationFrameIndex, relationRenderPlan, frameViewport, abstractionMode,
-    movementProtectedNodeIds, stagePlaqueLayout, replayPlaqueSchedule, replayCoordinates, stageLayoutGroups, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, treeDirection]);
+    playbackSteps, relationRenderPlan, frameViewport, abstractionMode, movementProtectedNodeIds, disableRelationOverlay,
+    replayPlaqueSchedule, replayCoordinates, stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns,
+    measureTreeLabel, treeDirection]);
+  const stageCameraBounds = stageCameraFit?.bounds ?? null;
+  const stagePlaqueContainmentBounds = stageCameraFit?.containment ?? null;
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -522,7 +499,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       settler.dispose();
       viewportSettlerRef.current = null;
     };
-  }, []);
+  }, [reportViewError]);
 
   useEffect(() => {
     const start = replayStartState({ animated, autoPlay, stepCount: playbackSteps.length, initialStepIndex });
@@ -589,6 +566,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       d3.select(svgRef.current).attr('data-babel-rendered-step', null);
       return;
     }
+    if (!canvasData) return;
     updateSyntaxReveal({
       animated,
       activeStepIndex,
@@ -607,6 +585,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       firstSentenceReplayDisplayToken,
       terminalMorphRef
     });
+    // The current step and pending fronting sources follow the listed step and step count, or
+    // change with a new preparation. Adding them is likely neutral but unproven.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately keyed; see above.
   }, [
     activeDerivationArrowLinks,
     layoutReady,
@@ -631,7 +612,16 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   ]);
 
   useEffect(() => {
-    if (!layoutReady || !canvasData || !svgRef.current || !frameViewport?.width) return;
+    if (!layoutReady || !svgRef.current || !frameViewport?.width) return;
+    if (!canvasData) {
+      // An empty authored stage paints an empty canvas.
+      d3.select(svgRef.current).selectAll('*').remove();
+      svgRef.current.setAttribute('data-babel-rendered-step', String(activeStepIndex));
+      framePaintedRef.current = true;
+      if (frameViewport.width === dimensions.width && frameViewport.height === dimensions.height
+        && !viewportSettlerRef.current?.pending) svgRef.current.removeAttribute('data-babel-viewport-pending');
+      return;
+    }
 
     const disposeFrame = drawTreeFrame({
       layout: {
@@ -691,6 +681,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     if (frameViewport.width === dimensions.width && frameViewport.height === dimensions.height
       && !viewportSettlerRef.current?.pending) svgRef.current.removeAttribute('data-babel-viewport-pending');
     return disposeFrame;
+    // Redraw only for the listed inputs. The others are refs, stable handlers, values derived from
+    // listed inputs, or objects rebuilt every render, which would redraw on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately keyed; see above.
   }, [
     layoutReady,
     replayCoordinates,
@@ -738,6 +731,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     applyInteractiveEmphasis();
     const deferredEmphasisFrame = window.requestAnimationFrame(guardViewCallback(applyInteractiveEmphasis, reportViewError));
     return () => window.cancelAnimationFrame(deferredEmphasisFrame);
+    // Keyed by the moments' fields because the objects are rebuilt every render; reportViewError
+    // is the boundary's stable handler.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately keyed; see above.
   }, [
     activeRelationMoment?.stageIndex,
     activeRelationMoment?.relationIndex,

@@ -126,6 +126,7 @@ test('public HTTP parse route completes queued responses and preserves terminal 
       const body = await response.json();
       assert.equal(response.status, 504);
       assert.match(body.error.message, /timed out|timeout/i);
+      assert.equal(body.error.failure.class, 'transport_serialization');
       assert.equal(body.analyses, undefined);
       assert.doesNotMatch(JSON.stringify(body), /test-only-provider-key/);
       if (phase === 'waitInBody') {

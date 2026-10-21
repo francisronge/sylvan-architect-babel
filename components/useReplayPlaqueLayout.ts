@@ -30,6 +30,7 @@ export function useReplayPlaqueLayout<V extends { width: number; height: number 
   [content, viewport.width, viewport.height]);
   // Viewports with equal keys prepare the same layout, so a request keeps its first viewport.
   const input = useMemo<StageLayoutInput | null>(() => content && key !== null
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the viewport is read through the listed key.
     ? { ...content, width: viewport.width, height: viewport.height } : null, [content, key]);
   useEffect(() => {
     if (!input) return;
@@ -41,7 +42,7 @@ export function useReplayPlaqueLayout<V extends { width: number; height: number 
     const fail = (error: Error) => {
       if (!active) return;
       active = false;
-      clearTimeout(timer); stopWorker?.(); measurements.return(undefined);
+      clearTimeout(timer); stopWorker?.(); measurements.return(undefined as never);
       setState({ input, attempt, error: error.message });
     };
     let job: PlaqueLayoutJob | undefined;
@@ -92,7 +93,7 @@ export function useReplayPlaqueLayout<V extends { width: number; height: number 
       } catch (error) { fail(error instanceof Error ? error : new Error(String(error))); }
     };
     if (active) timer = setTimeout(measure, 0);
-    return () => { active = false; clearTimeout(timer); stopWorker?.(); measurements.return(undefined); };
+    return () => { active = false; clearTimeout(timer); stopWorker?.(); measurements.return(undefined as never); };
   }, [input, attempt]);
   const current = state?.input === input && state.attempt === attempt ? state : undefined;
   const cameraGroup = content?.layoutGroups?.find(group => group.includes(stageIndex)) ?? [stageIndex];

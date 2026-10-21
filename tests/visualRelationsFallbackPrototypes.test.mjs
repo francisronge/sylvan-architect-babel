@@ -32,6 +32,7 @@ import {
   VISUAL_RELATIONS_FIXTURE_COVERAGE,
   summarizeVisualRelationsFixtureCoverage
 } from '../docs/design/visual-relations-coverage-matrix.ts';
+import { rawCases } from '../docs/design/visual-relations-lab-cards.ts';
 
 const readSource = (relativePath) => readFile(new URL(relativePath, import.meta.url), 'utf8');
 
@@ -610,7 +611,7 @@ test('prototypes stay outside the accepted set and coverage matrix while remaini
   assert.equal(summarizeVisualRelationsFixtureCoverage().statuses.fallback, 3);
 
   const labSource = await readSource('../docs/design/visual-relations-current-lab.tsx');
-  assert.equal(/^    title: 'P1[A-F]/m.test(labSource), false);
+  assert.deepEqual(rawCases.filter((card) => /^P1[A-F]/.test(card.title)).map((card) => card.title), []);
   assert.match(labSource, /import \{ FallbackPrototypesSection \}/);
   assert.match(labSource, /<FallbackPrototypesSection \/>/);
   assert.match(labSource, /href="#fallback-prototypes">Fallback prototypes<\/a>/);

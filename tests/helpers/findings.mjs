@@ -12,7 +12,11 @@
  * occurs, each frame list (written like '3-7,9,canopy') with the bound of
  * `measure` at those frames, or null for a rule without a measure. Matching
  * reports a finding no exception covers, a finding whose measure exceeds the
- * bound of its own place, and every listed place where the fault no longer occurs. */
+ * bound of its own place, and every listed place where the fault no longer occurs.
+ *
+ * An exception that a change adds, or lets grow, also carries the owner's
+ * `approval: { by, on, expires, note, accepts }`, where `accepts` is the `at`
+ * he accepted (`exceptionGrowth`); see scripts/checkExceptionGrowth.mjs. */
 
 const NO_VIEWPORT = '-';
 const identity = item => JSON.stringify([item.rule, item.subtype, item.record, item.subject]);
@@ -62,7 +66,8 @@ export function matchFindings(findings, exceptions) {
 
 /** The exceptions that would cover exactly these findings: each place bounded by
  * its measure rounded up to two decimals, consecutive frames sharing a bound
- * written as one list. For review: a listed exception needs its own reason. */
+ * written as one list. For the owner's review: a listed exception needs its own
+ * reason and his approval. */
 export function proposeExceptions(findings) {
   const grouped = new Map();
   for (const finding of findings) {
@@ -91,3 +96,77 @@ const runs = frames => {
   const others = frames.filter(frame => typeof frame !== 'number');
   return [...out, ...(others.length ? [others] : [])];
 };
+
+/** Who may accept a fault as an exception. */
+export const EXCEPTION_OWNERS = ['Francis Ronge'];
+
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const validDate = text => typeof text === 'string' && DATE.test(text) && !Number.isNaN(Date.parse(`${text}T00:00:00Z`));
+const boundsOf = exception => {
+  const out = new Map();
+  for (const { viewport, bound } of placesOf(exception)) out.set(viewport, [...(out.get(viewport) ?? []), bound]);
+  for (const bounds of out.values()) bounds.sort((a, b) => (b ?? -Infinity) - (a ?? -Infinity));
+  return out;
+};
+
+/** How `head`'s entry grew from `base`'s (undefined when new): the viewports
+ * where it lists more places, or where a place's bound exceeds what the base
+ * allowed, comparing bounds largest first. Renumbered frames and smaller
+ * bounds are not growth; a fault may move with its frames but not spread or
+ * worsen. */
+function growthOf(base, head) {
+  if (!base) return ['new exception'];
+  const before = boundsOf(base), out = [];
+  for (const [viewport, bounds] of boundsOf(head)) {
+    const allowed = before.get(viewport) ?? [];
+    if (bounds.length > allowed.length) { out.push(`${viewport}: ${allowed.length} → ${bounds.length} places`); continue; }
+    const index = bounds.findIndex((bound, at) => (bound ?? -Infinity) > (allowed[at] ?? -Infinity) + 1e-9);
+    if (index >= 0) out.push(`${viewport}: bound ${allowed[index]} → ${bounds[index]}`);
+  }
+  return out;
+}
+
+const isPlainObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const validAt = at => isPlainObject(at) && Object.values(at).every(lists => isPlainObject(lists)
+  && Object.values(lists).every(bound => bound === null || Number.isFinite(bound)));
+
+/** What is wrong with `entry`'s approval on `today` ('YYYY-MM-DD'), or null.
+ * The approval binds to the value it accepts, not to when the change was based:
+ * `accepts` is the `at` the owner accepted, and the entry may not grow beyond
+ * it (by `growthOf`), so it stays valid across unrelated base commits but a
+ * later growth needs his approval again. */
+export function approvalProblem(entry, { today }) {
+  const approval = entry.approval;
+  if (!approval) return 'no approval';
+  if (!EXCEPTION_OWNERS.includes(approval.by)) return `approval by ${JSON.stringify(approval.by)}, not ${EXCEPTION_OWNERS.join(' or ')}`;
+  if (!validDate(approval.on) || !validDate(approval.expires) || !(approval.expires > approval.on))
+    return 'approval needs on and expires dates (YYYY-MM-DD), expires after on';
+  if (typeof approval.note !== 'string' || !approval.note.trim()) return 'approval needs a note saying where the owner gave it';
+  if (!validAt(approval.accepts))
+    return 'approval needs accepts: the entry\'s `at` (viewport → frame list → bound) exactly as the owner accepted it';
+  const beyond = growthOf({ at: approval.accepts }, entry);
+  if (beyond.length) return `grown beyond what the approval of ${approval.on} accepts (${beyond.join('; ')}); `
+    + 'the owner must accept the new value';
+  if (today && approval.expires < today) return `approval expired on ${approval.expires}`;
+  return null;
+}
+
+/** Compares exception lists (`{ name: entries }`, keyed by file and export)
+ * between a change's base and head. Every head entry needs a reason; an entry
+ * the change adds or lets grow needs a valid owner approval; any approval
+ * fails once it expires or its entry grows beyond what it accepts. Returns one
+ * problem per entry. */
+export function exceptionGrowth(base, head, { today }) {
+  const problems = [];
+  for (const [list, entries] of Object.entries(head)) {
+    const before = new Map((base[list] ?? []).map(entry => [identity(entry), entry]));
+    for (const entry of entries) {
+      const name = `${list} ${entry.rule}/${entry.subtype ?? '-'} ${entry.record} ${entry.subject}`;
+      if (typeof entry.reason !== 'string' || !entry.reason.trim()) problems.push({ name, problem: 'no reason' });
+      const grown = growthOf(before.get(identity(entry)), entry);
+      const problem = (grown.length || entry.approval) && approvalProblem(entry, { today });
+      if (problem) problems.push({ name, grown, problem });
+    }
+  }
+  return problems;
+}
