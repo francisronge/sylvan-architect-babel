@@ -1,31 +1,6 @@
 import assert from 'node:assert/strict';
-import { rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
-import { build } from 'esbuild';
-
-const repo = fileURLToPath(new URL('..', import.meta.url));
-
-const loadAtlasCases = async (t) => {
-  const outfile = join(
-    tmpdir(),
-    `babel-feature-pronunciation-${process.pid}-${Date.now()}.mjs`
-  );
-  t.after(() => rm(outfile, { force: true }));
-  await build({
-    entryPoints: [`${repo}/docs/design/visual-relations-current-lab.tsx`],
-    outfile,
-    bundle: true,
-    format: 'esm',
-    platform: 'node',
-    jsx: 'automatic',
-    define: { 'process.env.NODE_ENV': '"production"' },
-    logLevel: 'silent'
-  });
-  return (await import(`${pathToFileURL(outfile).href}?v=${Date.now()}`)).rawCases;
-};
+import { rawCases } from '../docs/design/visual-relations-lab-cards.ts';
 
 const collectFeaturePronunciationFailures = (
   node,
@@ -52,8 +27,7 @@ const collectFeaturePronunciationFailures = (
   }
 };
 
-test('Atlas feature notation is silent in every Replay stage', async (t) => {
-  const rawCases = await loadAtlasCases(t);
+test('Atlas feature notation is silent in every Replay stage', () => {
   const failures = [];
 
   rawCases.forEach((card) => {

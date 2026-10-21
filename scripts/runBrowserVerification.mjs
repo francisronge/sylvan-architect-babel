@@ -7,10 +7,12 @@ import { browserSuite, requiredTestSummary } from './browserSuites.mjs';
 
 const root = new URL('../', import.meta.url);
 const args = process.argv.slice(2);
-let suite = 'full', evidence = process.env.BABEL_BROWSER_EVIDENCE;
+// Videos are opt-in (--video or BABEL_BROWSER_VIDEO=1): no assertion reads one.
+let suite = 'full', evidence = process.env.BABEL_BROWSER_EVIDENCE, video = process.env.BABEL_BROWSER_VIDEO === '1';
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--suite') suite = args[++i];
   else if (args[i] === '--evidence') evidence = args[++i];
+  else if (args[i] === '--video') video = true;
   else throw new Error(`Unknown browser verification argument: ${args[i]}`);
 }
 const specs = await browserSuite(root, suite);
@@ -20,7 +22,7 @@ const tapFile = path.join(evidence, 'tests.tap');
 const started = Date.now();
 const buildConcurrency = process.env.GOMAXPROCS || '2';
 const receipt = { suite, required: specs, startedAt: new Date(started).toISOString(), evidence,
-  node: process.version, testConcurrency: 1, buildConcurrency,
+  node: process.version, testConcurrency: 1, buildConcurrency, video,
   exitCode: null, signal: null, testSummary: null, elapsedMs: null, error: null };
 console.log(`Browser ${suite}: ${specs.length} required specs. Evidence: ${evidence}`);
 for (const spec of specs) console.log(`  ${spec.owner}: ${spec.file}`);
@@ -29,6 +31,7 @@ const child = spawn(process.execPath, ['--test', '--test-concurrency=1', '--test
   `--test-reporter-destination=${tapFile}`, ...specs.map(spec => `tests/browser/${spec.file}`)], {
   cwd: fileURLToPath(root), stdio: ['ignore', 'inherit', 'inherit'], env: { ...process.env,
     GOMAXPROCS: buildConcurrency,
+    BABEL_BROWSER_VIDEO: video ? '1' : '0',
     BABEL_BROWSER_EVIDENCE: evidence,
     BABEL_WORKFLOW_EVIDENCE: path.join(evidence, 'application'),
     BABEL_CLOSEOUT_EVIDENCE: path.join(evidence, 'closeout'),

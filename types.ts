@@ -10,6 +10,8 @@ export interface SyntaxNode {
   lineageId?: string;
   /** Derived display ownership; excluded when projecting the authored syntax contract. */
   replayOrigin?: import('./replay/displayIdentity.ts').ReplayNodeOrigin;
+  /** Derived Replay scaffolding that reserves layout space but is never drawn. */
+  replayLayoutOnly?: boolean;
 }
 
 export type OpenOntologyLabel = string & {};

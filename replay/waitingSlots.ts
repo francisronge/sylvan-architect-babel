@@ -6,7 +6,7 @@ import type { TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
-import { collisionAreas } from './workspaceComponentLifetime.ts';
+import { inkBounds, inkOverlapArea, paintedNodeInk, type InkBounds } from './workspaceComponentLifetime.ts';
 
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
 
@@ -79,19 +79,56 @@ export function reserveWaitingSlots({ steps, sizes, coordinates, direction, meas
     }
     return true;
   };
-  // Ink overlap of every painted pair, internal pairs included, per reservation version.
-  const overlapCache = new WeakMap<TreeCoordinateReservation, Map<string, number>>();
-  const overlaps = (scene: typeof scenes[number]) => {
-    const points = output.get(scene.canvas)!;
-    let pairs = overlapCache.get(points);
-    if (!pairs) {
-      const nodes = [...paint(scene).values()];
-      overlapCache.set(points, pairs = collisionAreas(nodes, nodes, measureCategoryText,
-        { measureTreeInk, measureTreeLabel, treeLabelRuns: treeLabelRuns?.get(scene.canvas) }));
-    }
-    return pairs;
+  // Each painted node's ink, as collisionAreas measures it, depends only on its
+  // own position and its painted parent's. Measure it once per canvas and those
+  // positions; a slot re-measures only the nodes it moves.
+  type Ink = { x: number; y: number; parentX?: number; parentY?: number; ink: ReturnType<typeof paintedNodeInk>; box: InkBounds };
+  const measured = new Map<SyntaxNode, Map<string, Ink[]>>();
+  const inkOf = (scene: typeof scenes[number], nodes: ReadonlyMap<string, Node>, node: Node): Ink => {
+    let byNode = measured.get(scene.canvas);
+    if (!byNode) measured.set(scene.canvas, byNode = new Map());
+    const id = getNodeId(node), parent = node.parent && nodes.has(getNodeId(node.parent)) ? node.parent : undefined;
+    const entries = byNode.get(id) ?? [];
+    const found = entries.find(entry => Object.is(entry.x, node.x) && Object.is(entry.y, node.y)
+      && Object.is(entry.parentX, parent?.x) && Object.is(entry.parentY, parent?.y));
+    if (found) return found;
+    const ink = paintedNodeInk(node, other => nodes.has(getNodeId(other)), measureCategoryText,
+      { measureTreeInk, measureTreeLabel, treeLabelRuns: treeLabelRuns?.get(scene.canvas) });
+    const entry = { x: node.x, y: node.y, parentX: parent?.x, parentY: parent?.y, ink, box: inkBounds(ink) };
+    // The planned and the trial positions alternate; older entries are rarely asked for again.
+    byNode.set(id, [entry, ...entries.slice(0, 3)]);
+    return entry;
   };
-  const keepsOverlaps = overlapsKept;
+  /** `overlapsKept` over `collisionAreas(nodes, nodes)` of both paintings. Pairs of
+   * nodes whose ink the slot leaves unchanged keep their exact area, so only
+   * ordered pairs with a moved node are measured: in the slotted painting, then
+   * in the planned one wherever the slotted pair overlaps. */
+  const keepsOverlaps = (scene: typeof scenes[number], before: ReadonlyMap<string, Node>, after: ReadonlyMap<string, Node>) => {
+    const moved = new Set<string>();
+    for (const [id, node] of after) {
+      const prior = before.get(id)!, parent = node.parent && after.has(getNodeId(node.parent)) ? node.parent : undefined;
+      const priorParent = parent && before.get(getNodeId(parent))!;
+      if (!Object.is(node.x, prior.x) || !Object.is(node.y, prior.y)
+        || parent && (!Object.is(parent.x, priorParent!.x) || !Object.is(parent.y, priorParent!.y))) moved.add(id);
+    }
+    const area = (nodes: ReadonlyMap<string, Node>, a: string, b: string) => {
+      const own = inkOf(scene, nodes, nodes.get(a)!), other = inkOf(scene, nodes, nodes.get(b)!);
+      return inkOverlapArea(own.ink, own.box, other.ink, other.box);
+    };
+    const slotted = new Map<string, number>(), planned = new Map<string, number>();
+    const measure = (a: string, b: string) => {
+      const next = area(after, a, b);
+      if (!next) return;
+      const key = JSON.stringify([a, b]), prior = area(before, a, b);
+      slotted.set(key, next);
+      if (prior) planned.set(key, prior);
+    };
+    for (const a of moved) for (const b of after.keys()) {
+      measure(a, b);
+      if (!moved.has(b)) measure(b, a);
+    }
+    return overlapsKept(planned, slotted);
+  };
   for (let attach = 1; attach < scenes.length; attach++) {
     const now = paint(scenes[attach]), before = paint(scenes[attach - 1]);
     for (const [id] of now) {
@@ -126,14 +163,14 @@ export function reserveWaitingSlots({ steps, sizes, coordinates, direction, meas
       }
       const saved = new Map(changes.map(({ scene }) => [scene.canvas, output.get(scene.canvas)!]));
       const accepted = changes.every(({ scene, ids }) => {
-        const original = overlaps(scene);
+        const original = paint(scene);
         const points = new Map(output.get(scene.canvas)!);
         // Right-to-left frames reflect x around their own stage width.
         const shift = direction === 'rtl' ? scene.size[0] - scenes[attach].size[0] : 0;
         for (const member of ids) points.set(member, { ...slot.get(member)!, x: slot.get(member)!.x + shift, y: slot.get(member)!.y + lift });
         output.set(scene.canvas, points);
         const placed = paint(scene);
-        return valid(placed) && keepsOverlaps(original, overlaps(scene));
+        return valid(placed) && keepsOverlaps(scene, original, placed);
       });
       if (!accepted) for (const [canvas, points] of saved) output.set(canvas, points);
     }

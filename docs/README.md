@@ -14,7 +14,7 @@ This file answers one question: which document should be trusted for what?
 | [`docs/implementation/invention-boundary.md`](implementation/invention-boundary.md) | Deterministic compiler and elaboration boundary. |
 | [`docs/implementation/baselines/provider-free-baseline-spec.md`](implementation/baselines/provider-free-baseline-spec.md) | Provider-free baseline contract. |
 | [`docs/design/visual-relations-tier2-shape-dispatch-spec.md`](design/visual-relations-tier2-shape-dispatch-spec.md) | Intended Tier-2 behavior and earlier fixture verification; open renderer work is listed in the roadmap. |
-| [`docs/design/visual-relations-renderer-closeout-2026-08-25.md`](design/visual-relations-renderer-closeout-2026-08-25.md) | Historical fixture closeout, not a sign-off on the later live-output failures. |
+| [`docs/design/visual-relations-renderer-closeout-2026-08-25.md`](design/visual-relations-renderer-closeout-2026-08-25.md) | Renderer behavior contract: rules only; open renderer work is listed in the roadmap. |
 
 ## Supporting Implementation Records
 

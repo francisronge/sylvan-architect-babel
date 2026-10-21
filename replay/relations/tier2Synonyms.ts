@@ -101,7 +101,7 @@ export const thematicSlotQualifier = (key: string, kind: 'anchor' | 'value'): st
 };
 
 // Inflect only declared role nouns. This does not stem arbitrary open names.
-const singularRole = (key: string) => key.replace(/\b(assigners|sources|targets|goals|recipients|assignees|bearers|governors|licensors|licensers|predicates|arguments|heads|introducers|subjects|objects|nominals)$/u,
+const singularRole = (key: string) => key.replace(/\b(assigners|sources|targets|landings|goals|recipients|assignees|bearers|governors|licensors|licensers|predicates|arguments|heads|introducers|subjects|objects|nominals)$/u,
   noun => noun.slice(0, -1));
 
 export const TIER2_ROLE_SYNONYMS: readonly Tier2SynonymGroup[] = [

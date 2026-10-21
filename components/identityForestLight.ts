@@ -2,7 +2,7 @@ import type { Point } from '../replay/relations/overlayGeometry.ts';
 
 export type IdentityLightFamily = {
   occurrencePools: readonly (readonly string[])[];
-  emphasis: string;
+  emphasis: string | null;
 };
 
 /** Shared terminal ink retains every relation that owns it. */

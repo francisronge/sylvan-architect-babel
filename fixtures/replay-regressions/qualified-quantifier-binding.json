@@ -1,4 +1,5 @@
 {
+  "description": "Scope alternatives recover only the variable-backed universal (qualifiedQuantifierBinding).",
   "provenance": {
     "source": "/tmp/babel-ten-model-comparison-20261006/sol-spanish-scope/attempts/parse/bundle.json",
     "model": "openai:gpt-6.1-sol",
