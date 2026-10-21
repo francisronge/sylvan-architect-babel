@@ -3,6 +3,9 @@ import {
   orthogonalTrajectoryPath,
   phaseArcPath
 } from '../../replay/relations/markGeometry.ts';
+import {
+  quadraticTrajectoryBellyY, SHELL_ATTACHMENT_CLEARANCE, TRAJECTORY_ROUTES
+} from '../../replay/rendererMetrics.ts';
 import { type HierNode } from '../../replay/types.ts';
 import type { DrawingLayer, RelationMeasurements } from './drawingContext.ts';
 interface TrajectoryRefinementsContext extends Pick<RelationMeasurements,
@@ -46,22 +49,22 @@ export function createTrajectoryRefinements({
       if (!sourceRect || !targetRect) return;
       const sourceCenter = {
         x: sourceRect.x + sourceRect.width / 2,
-        y: sourceRect.y + sourceRect.height + 6
+        y: sourceRect.y + sourceRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
       };
       const targetCenter = {
         x: targetRect.x + targetRect.width / 2,
-        y: targetRect.y + targetRect.height + 6
+        y: targetRect.y + targetRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
       };
       const direction = Math.sign(targetCenter.x - sourceCenter.x) || 1;
-      const start = { x: sourceCenter.x + 8 * direction, y: sourceCenter.y };
+      const start = { x: sourceCenter.x + TRAJECTORY_ROUTES.quadraticEndpointInset * direction, y: sourceCenter.y };
       const groupedOffset = (pathIndex - ((atbPaths.length - 1) / 2)) * 18;
-      const requestedTargetShift = -8 * direction + groupedOffset;
+      const requestedTargetShift = -TRAJECTORY_ROUTES.quadraticEndpointInset * direction + groupedOffset;
       const targetShiftLimit = Math.max(2, Math.min(18, targetRect.width / 2 - 1));
       const targetShift = Math.max(-targetShiftLimit, Math.min(targetShiftLimit, requestedTargetShift));
       const end = { x: targetCenter.x + targetShift, y: targetCenter.y };
       const control = {
         x: (start.x + end.x) / 2,
-        y: Math.max(start.y, end.y) + Math.max(42, Math.abs(end.x - start.x) * 0.2)
+        y: quadraticTrajectoryBellyY(start, end)
       };
       const d = `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} Q ${control.x.toFixed(1)} ${control.y.toFixed(1)}, ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
       path.attr('d', d);
@@ -124,21 +127,21 @@ export function createTrajectoryRefinements({
     if (!sourceRect || !targetRect) return;
     const sourceCenter = {
       x: sourceRect.x + sourceRect.width / 2,
-      y: sourceRect.y + sourceRect.height + 6
+      y: sourceRect.y + sourceRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
     };
     const targetCenter = {
       x: targetRect.x + targetRect.width / 2,
-      y: targetRect.y + targetRect.height + 6
+      y: targetRect.y + targetRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
     };
     const direction = Math.sign(targetCenter.x - sourceCenter.x) || 1;
-    const start = { x: sourceCenter.x + 8 * direction, y: sourceCenter.y };
-    const requestedTargetShift = -8 * direction;
+    const start = { x: sourceCenter.x + TRAJECTORY_ROUTES.quadraticEndpointInset * direction, y: sourceCenter.y };
+    const requestedTargetShift = -TRAJECTORY_ROUTES.quadraticEndpointInset * direction;
     const targetShiftLimit = Math.max(2, Math.min(18, targetRect.width / 2 - 1));
     const targetShift = Math.max(-targetShiftLimit, Math.min(targetShiftLimit, requestedTargetShift));
     const end = { x: targetCenter.x + targetShift, y: targetCenter.y };
     const control = {
       x: (start.x + end.x) / 2,
-      y: Math.max(start.y, end.y) + Math.max(42, Math.abs(end.x - start.x) * 0.2)
+      y: quadraticTrajectoryBellyY(start, end)
     };
     const d = `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} Q ${control.x.toFixed(1)} ${control.y.toFixed(1)}, ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
     path.attr('d', d);
@@ -231,16 +234,16 @@ export function createTrajectoryRefinements({
     const treeTop = d3.min(textRects, (rect) => rect.y);
     const start = {
       x: sourceRect.x + sourceRect.width / 2,
-      y: sourceRect.y - 8
+      y: sourceRect.y - SHELL_ATTACHMENT_CLEARANCE.top
     };
     const end = {
       x: targetRect.x + targetRect.width / 2,
-      y: targetRect.y - 8
+      y: targetRect.y - SHELL_ATTACHMENT_CLEARANCE.top
     };
     const crestY = Math.min(
-      treeTop !== undefined ? treeTop - 90 : start.y - 90,
-      start.y - 70,
-      end.y - 70
+      treeTop !== undefined ? treeTop - TRAJECTORY_ROUTES.ceilingAboveTextTop : start.y - TRAJECTORY_ROUTES.ceilingAboveTextTop,
+      start.y - TRAJECTORY_ROUTES.crestAboveEndpoint,
+      end.y - TRAJECTORY_ROUTES.crestAboveEndpoint
     );
     const d = `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} C ${start.x.toFixed(1)} ${crestY.toFixed(1)}, ${end.x.toFixed(1)} ${crestY.toFixed(1)}, ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
     path.attr('d', d);
@@ -276,15 +279,15 @@ export function createTrajectoryRefinements({
       ? rawTargetX - Number.EPSILON * Math.max(1, Math.abs(rawTargetX))
       : rawTargetX;
     const originY = kind === 'roll-up'
-      ? sourceRect.y + sourceRect.height + 6
-      : sourceExtent.y + sourceExtent.height + (kind === 'smuggling' ? 28 : 0) + 6;
+      ? sourceRect.y + sourceRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
+      : sourceExtent.y + sourceExtent.height + (kind === 'smuggling' ? 28 : 0) + SHELL_ATTACHMENT_CLEARANCE.bottom;
 
     const treeRect = measureRenderedElementsInTreeSpace(
       g.selectAll<SVGGraphicsElement, HierNode>('.category-label, .terminal-label').nodes()
     );
     let laneY = treeRect
-      ? treeRect.y + treeRect.height + 90 * (1 + pathIndex)
-      : originY + 90 * (1 + pathIndex);
+      ? treeRect.y + treeRect.height + TRAJECTORY_ROUTES.orthogonalLaneSpacing * (1 + pathIndex)
+      : originY + TRAJECTORY_ROUTES.orthogonalLaneSpacing * (1 + pathIndex);
     if (kind === 'roll-up') {
       const obstacles = g.selectAll<SVGGraphicsElement, HierNode>('text')
         .nodes()
@@ -295,9 +298,9 @@ export function createTrajectoryRefinements({
         && candidateY <= rect.y + rect.height + 8
         && Math.min(sourceX, targetX) - 8 <= rect.x + rect.width
         && Math.max(sourceX, targetX) + 8 >= rect.x);
-      laneY = originY + 46;
+      laneY = originY + TRAJECTORY_ROUTES.rollUpLaneOffset;
       for (let attempt = 0; attempt < 40 && !laneIsClear(laneY); attempt += 1) {
-        laneY += 12;
+        laneY += TRAJECTORY_ROUTES.rollUpLaneStep;
       }
     }
 
@@ -322,21 +325,21 @@ export function createTrajectoryRefinements({
     if (!sourceRect || !targetRect) return;
     const sourceCenter = {
       x: sourceRect.x + sourceRect.width / 2,
-      y: sourceRect.y + sourceRect.height + 6
+      y: sourceRect.y + sourceRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
     };
     const targetCenter = {
       x: targetRect.x + targetRect.width / 2,
-      y: targetRect.y + targetRect.height + 6
+      y: targetRect.y + targetRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
     };
     const direction = Math.sign(targetCenter.x - sourceCenter.x) || 1;
-    const start = { x: sourceCenter.x + 8 * direction, y: sourceCenter.y };
-    const requestedTargetShift = -8 * direction;
+    const start = { x: sourceCenter.x + TRAJECTORY_ROUTES.quadraticEndpointInset * direction, y: sourceCenter.y };
+    const requestedTargetShift = -TRAJECTORY_ROUTES.quadraticEndpointInset * direction;
     const targetShiftLimit = Math.max(2, Math.min(18, targetRect.width / 2 - 1));
     const targetShift = Math.max(-targetShiftLimit, Math.min(targetShiftLimit, requestedTargetShift));
     const end = { x: targetCenter.x + targetShift, y: targetCenter.y };
     const control = {
       x: (start.x + end.x) / 2,
-      y: Math.max(start.y, end.y) + Math.max(42, Math.abs(end.x - start.x) * 0.2)
+      y: quadraticTrajectoryBellyY(start, end)
     };
     const d = `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} Q ${control.x.toFixed(1)} ${control.y.toFixed(1)}, ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
     path.attr('d', d);
@@ -353,18 +356,18 @@ export function createTrajectoryRefinements({
     if (!sourceRect || !targetRect) return;
     const sourceCenter = {
       x: sourceRect.x + sourceRect.width / 2,
-      y: sourceRect.y + sourceRect.height + 6
+      y: sourceRect.y + sourceRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
     };
     const targetCenter = {
       x: targetRect.x + targetRect.width / 2,
-      y: targetRect.y + targetRect.height + 6
+      y: targetRect.y + targetRect.height + SHELL_ATTACHMENT_CLEARANCE.bottom
     };
     const direction = Math.sign(targetCenter.x - sourceCenter.x) || 1;
-    const start = { x: sourceCenter.x + 8 * direction, y: sourceCenter.y };
-    const end = { x: targetCenter.x - 8 * direction, y: targetCenter.y };
+    const start = { x: sourceCenter.x + TRAJECTORY_ROUTES.quadraticEndpointInset * direction, y: sourceCenter.y };
+    const end = { x: targetCenter.x - TRAJECTORY_ROUTES.quadraticEndpointInset * direction, y: targetCenter.y };
     const control = {
       x: (start.x + end.x) / 2,
-      y: Math.max(start.y, end.y) + Math.max(42, Math.abs(end.x - start.x) * 0.2)
+      y: quadraticTrajectoryBellyY(start, end)
     };
     const d = `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} Q ${control.x.toFixed(1)} ${control.y.toFixed(1)}, ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
     path.attr('d', d);

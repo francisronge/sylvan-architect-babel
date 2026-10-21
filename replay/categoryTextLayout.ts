@@ -1,9 +1,9 @@
+import { CATEGORY_FALLBACK_GLYPH_WIDTH, CATEGORY_LINE_HEIGHT } from './rendererMetrics.ts';
+
 export type CategoryTextMeasure = (text: string) => number;
-export const CATEGORY_FONT = '900 42px Quicksand, sans-serif';
-export const CATEGORY_LINE_HEIGHT = 48;
 const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
-const fallbackMeasure: CategoryTextMeasure = value => [...value].length * 25;
+const fallbackMeasure: CategoryTextMeasure = value => [...value].length * CATEGORY_FALLBACK_GLYPH_WIDTH;
 const layouts = new WeakMap<CategoryTextMeasure, Map<string, ReturnType<typeof wrapCategoryText>>>();
 
 /** A measurement callback represents one immutable font state. Keep wrapping

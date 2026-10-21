@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import { type OverlayBounds } from '../../replay/relations/geometryBounds.ts';
+import { markerScaleAtZoom } from '../../replay/rendererMetrics.ts';
 import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
@@ -110,7 +111,7 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     // Labels and complete fallback badges keep their accepted automatic-Fit
     // size, then scale with the tree. Their connectors use the same reference
     // when redrawn under a retained manual camera.
-    const fittedMarkerScale = Math.min(1 / fitted.k, 3);
+    const fittedMarkerScale = markerScaleAtZoom(fitted.k);
     g.selectAll<SVGGElement, unknown>('.vr-tree-notation').attr('transform', function () {
       const x = Number(this.dataset.vrX) + Number(this.dataset.vrStackOffset || 0) * fittedMarkerScale;
       return `translate(${x},${this.dataset.vrY}) scale(${fittedMarkerScale})`;

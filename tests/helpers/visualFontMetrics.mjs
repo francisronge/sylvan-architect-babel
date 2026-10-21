@@ -7,7 +7,7 @@
  * lets the production tree-label and tree-ink measures run against them. */
 import { existsSync, readFileSync } from 'node:fs';
 import { inflateSync } from 'node:zlib';
-import { CATEGORY_FONT } from '../../replay/categoryTextLayout.ts';
+import { CATEGORY_FONT } from '../../replay/rendererMetrics.ts';
 
 const FONT_ROOT = new URL('../../node_modules/@fontsource/', import.meta.url);
 

@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds, getNodeId, isReplayDisplayChild } from './displayIdentity.ts';
+import { INDEX_LABEL } from './rendererMetrics.ts';
 import type { PreparedReplay } from './prepareReplay.ts';
 import { resolveUniqueDisplayTerminal } from './relations/trajectoryAttachment.ts';
 import { visiblePlanFrameItems } from './relations/relationFrame.ts';
@@ -35,9 +36,10 @@ export const treeLabelRunKey = (run: TreeLabelRuns): string => JSON.stringify([
   run.kind, run.text, run.lines ?? null, run.indices.map(index => [index.text, index.mode])
 ]);
 export function treeLabelIndexAttributes(kind: TreeLabelRuns['kind'], mode: TreeLabelIndex['mode']) {
-  return { dx: '5', 'font-size': kind === 'terminal' ? '30px' : '22px',
+  const index = INDEX_LABEL[kind === 'terminal' ? 'terminal' : 'category'];
+  return { dx: String(INDEX_LABEL.dx), 'font-size': `${index.fontSize}px`,
     'font-family': 'Crimson Pro, Georgia, serif', 'font-style': 'italic',
-    ...(mode === 'identity' ? {'baseline-shift': 'sub'} : {dy: kind === 'terminal' ? '14' : '9'}) };
+    ...(mode === 'identity' ? {'baseline-shift': 'sub'} : {dy: String(index.thetaDy)}) };
 }
 export type TreeLabelBounds = { x: number; y: number; width: number; height: number };
 export type TreeLabelMeasure = (runs: TreeLabelRuns) => TreeLabelBounds | undefined;

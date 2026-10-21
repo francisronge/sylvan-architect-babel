@@ -1,6 +1,7 @@
 import type { HierarchyPointNode } from 'd3';
 import type { SyntaxNode } from '../../types.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from '../categoryTextLayout.ts';
+import { CATEGORY_LABEL, TERMINAL_LABEL } from '../rendererMetrics.ts';
 import { isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf } from '../replaySurfaceNotation.ts';
 import type { Rect } from './overlayGeometry.ts';
 import type { RelationPlanItem } from './renderPlan.ts';
@@ -97,7 +98,7 @@ export function bindingDomainTreeRect(nodes: readonly HierarchyPointNode<SyntaxN
       if (!text) continue;
       // Terminal ink uses the same font at 56px instead of 42px. Allow the
       // italic overhang and the terminal's separately displayed chain index.
-      const width = (measureText ? measureText(text) * 56 / 42 : [...text].length * 56) + 56;
+      const width = (measureText ? measureText(text) * TERMINAL_LABEL.fontSize / CATEGORY_LABEL.fontSize : [...text].length * 56) + 56;
       rectangles.push({ x: node.x - width / 2, y: node.y + 55, width, height: 100 });
     }
   }
