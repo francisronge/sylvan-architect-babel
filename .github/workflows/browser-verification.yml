@@ -116,26 +116,77 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  # The painted Replay of the human-catalogue analyses, judged frame by frame
+  # (npm run verify:browser-visual). It runs beside the shards; a renderer,
+  # layout or camera change that paints differently fails here.
+  browser-visual:
+    name: Painted Replay geometry and motion
+    needs: changes
+    if: needs.changes.outputs.markdown-only != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Read the locked Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
+
+      - name: Restore pinned browser downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-ubuntu-24.04-${{ steps.playwright.outputs.version }}-chromium
+
+      - name: Install the pinned Chromium runtime
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Verify painted Replay
+        run: npm run verify:browser-visual -- --evidence "$RUNNER_TEMP/browser-visual"
+
+      - name: Retain the painted Replay audit
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: browser-visual-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/browser-visual
+          if-no-files-found: warn
+          retention-days: 14
+
   browser-verification:
     name: Provider-free browser behavior
-    needs: [changes, browser-shard]
+    needs: [changes, browser-shard, browser-visual]
     # Always reports, so this check is never left pending: it passes for a
-    # Markdown-only pull request whose shards were skipped, and otherwise only
-    # when both shards passed and their receipts ran every required spec once.
+    # Markdown-only pull request whose browser jobs were skipped, and otherwise
+    # only when both shards and the painted Replay check passed and the shard
+    # receipts ran every required spec once.
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Require the shards to succeed, or to be skipped for Markdown only
+      - name: Require the browser jobs to succeed, or to be skipped for Markdown only
         env:
           CHANGES: ${{ needs.changes.result }}
           MARKDOWN_ONLY: ${{ needs.changes.outputs.markdown-only }}
           SHARDS: ${{ needs.browser-shard.result }}
+          VISUAL: ${{ needs.browser-visual.result }}
         run: |
-          echo "changes: $CHANGES; markdown only: $MARKDOWN_ONLY; shards: $SHARDS"
+          echo "changes: $CHANGES; markdown only: $MARKDOWN_ONLY; shards: $SHARDS; painted Replay: $VISUAL"
           if [ "$CHANGES" != success ]; then exit 1; fi
-          if [ "$MARKDOWN_ONLY" = true ]; then [ "$SHARDS" = skipped ]; exit $?; fi
-          [ "$SHARDS" = success ]
+          if [ "$MARKDOWN_ONLY" = true ]; then [ "$SHARDS" = skipped ] && [ "$VISUAL" = skipped ]; exit $?; fi
+          [ "$SHARDS" = success ] && [ "$VISUAL" = success ]
 
       - name: Check out candidate
         if: needs.changes.outputs.markdown-only != 'true'
