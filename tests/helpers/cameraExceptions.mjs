@@ -16,7 +16,11 @@ const SPREAD_RETENTION = 'Open (layout): the new stage spreads the unmoved share
 const MOVED_OFF_CANVAS = 'Open (camera, low severity): the moved constituent\'s landing first paints beyond the canvas while the '
   + 'unmoved syntax stays in place; the camera then travels to it.';
 
-const NEXT_PINNED = 'Open (camera, low severity): reached by Next inside the completed stage, the retained pose keeps the wide '
+const CONTINUED_RECENTRE = 'Open (layout): the stage builds a new N above the continued nominal\'s noun (N + P -> N), and the '
+  + 'continued D and Num, which keep their slot and daughters, re-centre over the wider N as the stage begins. D stays attached, '
+  + 'but the preceding layout reserved only the noun\'s width, so they shift sideways.';
+
+const NEXT_PINNED ='Open (camera, low severity): reached by Next inside the completed stage, the retained pose keeps the wide '
   + 'final tree against the header edge, leaving just over a third of the view empty below; a direct selection fits it.';
 
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
@@ -124,4 +128,8 @@ export const EXCEPTIONS = [
   // paints part of its landing beyond the canvas.
   x(MOVED_OFF_CANVAS, 'replay-regressions/successive-cyclic-source.json#/cases/0', 'first-paint-continuity', 'off-canvas:moved', 'stage 12',
     { desktop: { '121>122': 27.71 }, mobile: { '121>122': 56.45 } }),
+  x(CONTINUED_RECENTRE, 'replay-regressions/renamed-continuing-nominal.json#', 'first-paint-continuity', 'jump:stage-coordinates',
+    'stage 2', { desktop: { '18>19': 26.08 } },
+    { by: 'Francis Ronge', on: '2026-10-21', expires: '2027-01-21', note: 'there-insertion: D and Num re-centre over the wider rebuilt N (~26 px) instead of D separating; accepted for now until a layout reserves N\'s final width (approved 21 Oct in the lead session)',
+      accepts: { desktop: { '18>19': 26.08 } } }),
 ];

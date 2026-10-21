@@ -12,6 +12,7 @@ import {
   regroupingParents,
   restoreRegroupedConstituents
 } from './constructionAttachments.ts';
+import { renameContinuedOccurrences } from './continuedOccurrences.ts';
 import { applyVizIds, createReplayIdentityContext, getNodeId, type ReplayIdentityContext } from './displayIdentity.ts';
 import { buildResolvedLinkTraceIndexMap, resolveTraceIndexFromNodeContext } from './movementIndices.ts';
 import { buildStructuralReplayFallback } from './playbackFormatting.ts';
@@ -179,6 +180,8 @@ export interface StructuralPlaybackInput {
   layoutScaffoldForest?: SyntaxNode[];
   identity?: ReplayIdentityContext;
   inputTokens?: string[];
+  /** Preceding ids this stage continues under new ids; see `continuedOccurrences`. */
+  continuedOccurrenceIds?: ReadonlyMap<string, string>;
 }
 
 export const buildStructuralDerivationPlaybackSteps = ({
@@ -190,7 +193,8 @@ export const buildStructuralDerivationPlaybackSteps = ({
   sentence,
   layoutScaffoldForest,
   identity = createReplayIdentityContext(derivationFrames?.flatMap(frame => frame.workspaceForest || []) ?? forest),
-  inputTokens
+  inputTokens,
+  continuedOccurrenceIds = new Map()
 }: StructuralPlaybackInput): PlaybackStep[] => {
   const sentenceInitialSurface = String(resolveSavedInputTokens(sentence, inputTokens)[0] || '').trim();
   const canvas = buildRenderableDerivationCanvasData(forest, identity);
@@ -205,17 +209,19 @@ export const buildStructuralDerivationPlaybackSteps = ({
   const visibleNodeById = new Map<string, HierNode>(visibleNodes.map((node) => [getNodeId(node), node] as const));
   const visibleIds = new Set<string>(visibleNodes.map((node) => getNodeId(node)));
   const rawNodeById = collectForestNodesById(forest);
-  const previousConstructionForest = frameIndex > 0 ? derivationFrames?.[frameIndex - 1]?.workspaceForest || [] : [];
+  // Construction reads a continued occurrence as the preceding node itself, so
+  // a renamed node is retained in place exactly as if its id had been kept.
+  const previousConstructionForest = renameContinuedOccurrences(
+    frameIndex > 0 ? derivationFrames?.[frameIndex - 1]?.workspaceForest || [] : [], continuedOccurrenceIds);
+  const previousVisibleConstructionIds = new Set(Array.from(previousVisibleNodeIds, id => continuedOccurrenceIds.get(id) ?? id));
   const pendingAttachmentNodeIds = constructionAttachmentUpdates(previousConstructionForest, forest);
   const hasAttachmentUpdates = pendingAttachmentNodeIds.size > 0;
   const hasAttachmentContinuity = hasAttachmentUpdates
     || hasConstructionWrapperInsertions(previousConstructionForest, forest);
   const continuityVisibleNodeIds = (() => {
-    const seeded = new Set(previousVisibleNodeIds);
+    const seeded = new Set(previousVisibleConstructionIds);
     const hasOvertReplayDescendant = (node: HierNode): boolean => node.descendants().some((descendant) => !isSyntheticWorkspaceRootNode(descendant) && isLexicalLeaf(descendant.data));
-    const previousFrameForest = frameIndex > 0 && Array.isArray(derivationFrames?.[frameIndex - 1]?.workspaceForest)
-      ? derivationFrames?.[frameIndex - 1]?.workspaceForest || []
-      : [];
+    const previousFrameForest = previousConstructionForest;
     // Lineage continuity is lineage-to-lineage: an occurrence continues a
     // previously visible object when some previously visible occurrence
     // carried the same authored lineageId. Node ids are a different concept.
@@ -236,7 +242,7 @@ export const buildStructuralDerivationPlaybackSteps = ({
     const currentShapes = collectReplayContinuitySubtreeSignatures([cloned], 0);
     collectForestNodesById(previousFrameForest).forEach((previousNode, previousNodeId) => {
       const previousLineageId = String(previousNode?.lineageId || '');
-      if (previousLineageId && previousVisibleNodeIds.has(previousNodeId) && !staysInPlace(previousNode, previousNodeId)) {
+      if (previousLineageId && previousVisibleConstructionIds.has(previousNodeId) && !staysInPlace(previousNode, previousNodeId)) {
         const shapes = previousVisibleLineageShapes.get(previousLineageId) || new Set<string>();
         shapes.add(previousShapes.get(previousNode) || '');
         previousVisibleLineageShapes.set(previousLineageId, shapes);
@@ -274,7 +280,7 @@ export const buildStructuralDerivationPlaybackSteps = ({
         return;
       const previousNode = previousContinuitySubtrees.get(signature);
       const previousSubtreeIds = new Set(collectSubtreeNodeIds(previousNode));
-      const previousSubtreeWasVisible = Array.from(previousSubtreeIds).some((nodeId) => previousVisibleNodeIds.has(nodeId));
+      const previousSubtreeWasVisible = Array.from(previousSubtreeIds).some((nodeId) => previousVisibleConstructionIds.has(nodeId));
       if (!previousSubtreeWasVisible)
         return;
       // A new node that takes over the earlier node's own children, while that
