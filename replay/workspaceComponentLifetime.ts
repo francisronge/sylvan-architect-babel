@@ -5,7 +5,7 @@ import { getNodeId } from './displayIdentity.ts';
 import { authoredDisplayWord } from './displayWordMaterial.ts';
 import { cubicIntersectsRect } from './relations/curveClearance.ts';
 import { plaqueBranchObstacles, plaqueTreeObstacles } from './relations/plaquePlacement.ts';
-import { createTreeInkCache, treeInkObstacles, type TreeInkCache, type TreeInkTextMeasure } from './treeInkGeometry.ts';
+import { createTreeInkCache, treeInkObstacles, type TreeBranchInk, type TreeInkCache, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 import type { TreeCoordinateReservation, TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
@@ -24,6 +24,8 @@ export type WorkspacePlacementScene = {
   measureTreeInk?: TreeInkTextMeasure;
   treeLabelRuns?: ReadonlyMap<string, readonly TreeLabelRuns[]>;
   measureTreeLabel?: TreeLabelMeasure;
+  /** Branch ink shared by every scene of one placement run. */
+  branchInk?: TreeBranchInk;
   step: PlaybackStep;
   canvas: SyntaxNode;
   size: [number, number];
@@ -308,12 +310,13 @@ function precedingSourcePositions(
 type InkMetrics = Pick<WorkspacePlacementScene, 'measureTreeInk' | 'treeLabelRuns' | 'measureTreeLabel'>;
 const placementInk = (nodes: Node[], measure?: CategoryTextMeasure, metrics: InkMetrics = {}) =>
   treeInkObstacles(nodes, measure, metrics.measureTreeInk, false, metrics.treeLabelRuns, metrics.measureTreeLabel);
-type InkScene = Pick<WorkspacePlacementScene, 'measureCategoryText' | 'measureTreeInk' | 'treeLabelRuns' | 'measureTreeLabel'>;
+type InkScene = Pick<WorkspacePlacementScene, 'measureCategoryText' | 'measureTreeInk' | 'treeLabelRuns' | 'measureTreeLabel' | 'branchInk'>;
 const sceneInks = new WeakMap<InkScene, ReturnType<typeof createTreeInkCache>>();
 /** The scene's tree ink, measured once per node position across its paintings. */
 export function sceneTreeInk(scene: InkScene) {
   let ink = sceneInks.get(scene);
-  if (!ink) sceneInks.set(scene, ink = createTreeInkCache(scene.measureCategoryText, scene.measureTreeInk, scene.treeLabelRuns, scene.measureTreeLabel));
+  if (!ink) sceneInks.set(scene, ink = createTreeInkCache(scene.measureCategoryText, scene.measureTreeInk, scene.treeLabelRuns,
+    scene.measureTreeLabel, scene.branchInk));
   return ink;
 }
 

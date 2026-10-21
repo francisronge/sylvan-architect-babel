@@ -7,7 +7,7 @@ import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { rigidMovementHosts } from './movementHostContinuity.ts';
 import { cubicIntersectsRect } from './relations/curveClearance.ts';
 import { stageVerticalGeometry } from './stageVerticalGeometry.ts';
-import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
+import { createTreeBranchInk, treeInkObstacles, type TreeBranchInk, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import { treeInkMetricKey } from './treeInkMetricKey.ts';
 import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
@@ -47,6 +47,7 @@ type Scene = WorkspaceAttachmentScene & {
   measureTreeInk?: TreeInkTextMeasure;
   treeLabelRuns?: ReadonlyMap<string, readonly TreeLabelRuns[]>;
   measureTreeLabel?: TreeLabelMeasure;
+  branchInk: TreeBranchInk;
   currentRowHeight: number;
 };
 
@@ -95,6 +96,8 @@ export function reserveWorkspaceAttachments({
       - (b.replayStageStepIndex ?? (b.replayKind === 'macro' ? Infinity : 0))));
   const stageRows = new Map(stageSizes.map(([stage]) => [stage,
     stageVerticalGeometry(orderedSteps.filter(step => step.replayFrameIndex === stage)).rowHeight]));
+  // Released with the scenes when this placement returns.
+  const branchInk = createTreeBranchInk();
   const scenes: Scene[] = orderedSteps.flatMap(step => {
     const canvas = step.replayCanvasData, size = sizes.get(step.replayFrameIndex!);
     if (!canvas || !size) return [];
@@ -105,7 +108,7 @@ export function reserveWorkspaceAttachments({
     const nodes = new Map<string, Node>(tree.descendants().filter(node => visible.has(getNodeId(node)))
       .map(node => [getNodeId(node), node] as const));
     return [{ step, canvas, size, currentRowHeight: stageRows.get(step.replayFrameIndex!)!, nodes, coordinates, measureCategoryText, measureTreeInk,
-      treeLabelRuns: treeLabelRuns?.get(canvas), measureTreeLabel }];
+      treeLabelRuns: treeLabelRuns?.get(canvas), measureTreeLabel, branchInk }];
   });
 
   // Construction can resize a stage even before its first merge. Reserve each
