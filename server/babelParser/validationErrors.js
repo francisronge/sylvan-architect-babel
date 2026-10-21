@@ -3,11 +3,13 @@ import { createHash } from 'node:crypto';
 import { FAILURE_CLASSES, FAILURE_RULES, createFailureRecord } from './failureRecord.js';
 export { FAILURE_CLASSES, FAILURE_RULES } from './failureRecord.js';
 
+// Bound on a complete failure body. formatApiError enforces it across every
+// artifact the body carries.
 export const MAX_RAW_OUTPUT_BODY_BYTES = 2 * 1024 * 1024;
 export const MAX_INLINE_OFFENDING_VALUE_BYTES = 64 * 1024;
 // Base64 expands bytes by 4/3. Reserve 128 KiB for the typed failure,
-// attempt receipts, and JSON envelope so the complete error body remains
-// within the 2 MiB in-body boundary.
+// attempt receipts, and JSON envelope so a body carrying one artifact at this
+// cap still fits.
 export const MAX_RAW_OUTPUT_BYTES = Math.floor((MAX_RAW_OUTPUT_BODY_BYTES - (128 * 1024)) * 3 / 4);
 
 const FAILURE_CLASS_VALUES = new Set(Object.values(FAILURE_CLASSES));
@@ -56,6 +58,18 @@ export const createRawOutputArtifact = (rawOutput) => {
     truncated: retainedBytes.byteLength !== bytes.byteLength,
     sha256: sha256Bytes(bytes),
     data: retainedBytes.toString('base64')
+  };
+};
+
+/** Keeps a shorter retained prefix. Length and SHA-256 still describe every byte received. */
+export const retainArtifactPrefix = (artifact, maxRetainedBytes) => {
+  const retained = Buffer.from(artifact.data, 'base64');
+  const kept = retained.subarray(0, Math.max(0, Math.min(retained.byteLength, Math.floor(maxRetainedBytes))));
+  return {
+    ...artifact,
+    retainedByteLength: kept.byteLength,
+    truncated: kept.byteLength !== artifact.byteLength,
+    data: kept.toString('base64')
   };
 };
 
