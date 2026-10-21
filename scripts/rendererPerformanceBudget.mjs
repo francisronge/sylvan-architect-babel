@@ -1,5 +1,9 @@
+// CI runners stay cold past one warm-up (first measured samples 20-27% slow) and
+// alternate between fast and slow phases, so two warm-up rounds are discarded and
+// the median comes from seven alternating rounds.
 export const rendererPerformancePolicy = Object.freeze({
-  samples: 5,
+  warmupRounds: 2,
+  samples: 7,
   relativeTolerance: 0.10,
   absoluteToleranceMs: 100,
   maxSpreadRatio: 0.25,
