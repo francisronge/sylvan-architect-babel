@@ -10,7 +10,7 @@ import * as camera from '../replay/stageCamera.ts';
 import * as coordinates from '../replay/stageCoordinates.ts';
 import * as layout from '../replay/treeLayout.ts';
 import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
-import { checkContinuedOccurrences, checkStableConstruction, frameStructure } from './helpers/replayInvariants.mjs';
+import { checkAttachAtMerge, checkContinuedOccurrences, checkStableConstruction, frameStructure } from './helpers/replayInvariants.mjs';
 
 // Stage 2 authors catsDP as restrictedDP and numberP as restrictedNum: the same
 // D over Num over three and cats, with a new N inserted above cats to hold the PP.
@@ -34,6 +34,52 @@ test('a renamed node that keeps its slot and daughters continues its predecessor
   assert.deepEqual(dp.data.aliasIds, ['catsDP']);
   assert.deepEqual(checkStableConstruction(replay), []);
   assert.deepEqual(checkContinuedOccurrences(replay, fixture), []);
+});
+
+// A word whose label is the word itself is painted as a lexical display leaf
+// named after its parent (`numberP::__lex_three`), so a renamed parent must
+// carry the same leaf with it rather than give the word a new identity.
+const withLexicalThree = (rename = new Map()) => {
+  const record = structuredClone(fixture);
+  record.derivationStages.forEach((stage, index) => stage.workspaceForest.forEach(function visit(node) {
+    if (node.id === 'three') node.label = 'three';
+    if (rename.has(node.id) && index >= rename.get(node.id)[1]) node.id = rename.get(node.id)[0];
+    node.children?.forEach(visit);
+  }));
+  return record;
+};
+
+test('a word under a continued occurrence keeps its painted identity and is not selected again', () => {
+  const record = withLexicalThree(), lexical = prepareReplay({ ...record, includePlayback: true }), list = lexical.playbackSteps;
+  const done = list.findLastIndex(step => step.replayFrameIndex === 0);
+  const own = list.flatMap((step, index) => step.replayFrameIndex === 1 ? [index] : []);
+  assert.deepEqual(own.filter(index => list[index].replayKind === 'micro').map(index => [list[index].operation, list[index].targetNodeId]), [
+    ['ExternalMerge', 'restrictedN'], ['LexicalSelect', 'be::__leaf'], ['Project', 'be'], ['ExternalMerge', 'existV']
+  ], 'three is already on screen, so the stage never selects it again');
+  for (const index of [done, ...own]) {
+    const { children } = frameStructure(list[index]);
+    assert.deepEqual(children.get('restrictedNum'), ['restrictedNum::__lex_three', index === done ? 'cats' : 'restrictedN'],
+      `the word is one painted node on both sides of the rename at frame ${index + 1}`);
+  }
+  const three = d3.hierarchy(list[done].replayCanvasData).find(node => node.data.id === 'restrictedNum::__lex_three');
+  assert.deepEqual(three.data.aliasIds, ['three', 'numberP::__lex_three'], 'the word keeps its authored and preceding ids');
+  assert.deepEqual(checkContinuedOccurrences(lexical, record), []);
+  assert.deepEqual(checkStableConstruction(lexical), []);
+  assert.deepEqual(checkAttachAtMerge(lexical), []);
+});
+
+test('a word follows its owner through successive renames', () => {
+  // numberP -> restrictedNum at stage 2, then restrictedNum -> embeddedNum at stage 3.
+  const record = withLexicalThree(new Map([['restrictedNum', ['embeddedNum', 2]]]));
+  const chained = prepareReplay({ ...record, includePlayback: true }), list = chained.playbackSteps;
+  for (const stageIndex of [0, 1, 2]) {
+    const last = list.findLastIndex(step => step.replayFrameIndex === stageIndex);
+    assert.deepEqual(frameStructure(list[last]).children.get('embeddedNum')?.[0], 'embeddedNum::__lex_three', `stage ${stageIndex + 1}`);
+  }
+  assert(!list.some(step => step.replayKind === 'micro' && /__lex_three/.test(step.targetNodeId) && step.replayFrameIndex > 0),
+    'only the first stage selects the word');
+  assert.deepEqual(checkContinuedOccurrences(chained, record), []);
+  assert.deepEqual(checkAttachAtMerge(chained), []);
 });
 
 for (const [width, height] of [[1600, 948], [390, 844]]) {

@@ -409,7 +409,8 @@ function continuedPairs(previousForest, currentForest, relations) {
  * of the stage shows it holding each preceding daughter (directly, or through
  * the one new node inserted above it), and the preceding stage's completed
  * frame and the stage's first frame paint it under one id, so it neither tears
- * down nor jumps when the stage begins. */
+ * down nor jumps when the stage begins. Each daughter it keeps is likewise
+ * painted under one id across that boundary and never built again. */
 export function checkContinuedOccurrences(replay, record) {
   const steps = replay.playbackSteps, stages = record.derivationStages ?? [], out = [];
   const frames = replay.replayDerivationFrames ?? [];
@@ -431,10 +432,19 @@ export function checkContinuedOccurrences(replay, record) {
       const before = standsFor(frameStructure(steps[last]), from), first = standsFor(frameStructure(steps[own[0]]), to);
       if (before.length !== 1 || first.length !== 1 || before[0] !== first[0])
         out.push(violation('continued-occurrence', own[0] + 1, `${to} continues ${from} but is painted as [${first}] after [${before}]`));
+      const kept = (daughters.get(from) ?? []).filter(daughter => !continuation.has(daughter));
+      for (const daughter of kept) {
+        const was = standsFor(frameStructure(steps[last]), daughter), is = standsFor(frameStructure(steps[own[0]]), daughter);
+        if (was.length === 1 && (is.length !== 1 || is[0] !== was[0]))
+          out.push(violation('continued-occurrence', own[0] + 1, `${daughter} stays in ${to}, which continues ${from}, but is painted as [${is}] after [${was}]`));
+      }
       for (const index of own) {
         const step = steps[index], structure = frameStructure(step), [shown] = standsFor(structure, to);
-        if (step.replayKind === 'micro' && authoredIdentity(structure.nodes.get(step.targetNodeId) ?? { data: { id: step.targetNodeId } }).id === to)
+        const built = step.replayKind === 'micro' && authoredIdentity(structure.nodes.get(step.targetNodeId) ?? { data: { id: step.targetNodeId } }).id;
+        if (built === to)
           out.push(violation('continued-occurrence', index + 1, `${to} continues ${from} but is built again`));
+        if (built && kept.includes(built))
+          out.push(violation('continued-occurrence', index + 1, `${built} stays in ${to}, which continues ${from}, but is built again`));
         if (!shown) { out.push(violation('continued-occurrence', index + 1, `${to} continues ${from} but is not painted`)); continue; }
         for (const daughter of daughters.get(from) ?? []) {
           for (const id of standsFor(structure, continuation.get(daughter) ?? daughter)) {

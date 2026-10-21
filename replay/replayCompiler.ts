@@ -31,5 +31,5 @@ export const buildPlaybackStepsFromDerivationFrames = (input: ReplayCompilationI
   const retainedSteps = retainRestatementsUntilOwningStep(positionedSteps, frames, compilation.resolveFrameRelations);
   const timedSteps = retainedSteps.length === positionedSteps.length ? retainedSteps : recountReplayProgress(retainedSteps, replayPlan);
   const realizedSteps = attachReplayRealizations(normalizeReplaySentenceInitialCasing(timedSteps, sentenceInitialSurface), frames, resolveSavedInputTokens(sentence, inputTokens));
-  return displayContinuedOccurrences(realizedSteps, frames, compilation.continuedOccurrenceIds);
+  return displayContinuedOccurrences(realizedSteps, frames, compilation.continuedOccurrenceIds, compilation.identity);
 };
