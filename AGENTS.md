@@ -141,7 +141,9 @@ Browser receipts, TAP output and failure captures go outside the worktree. Use
 default because no check reads them; add `-- --video` (or set `BABEL_BROWSER_VIDEO=1`)
 to record the app workflow, closeout and feature-composition sessions when reviewing
 motion. Failure screenshots are always kept. CI retains browser
-and timing artifacts. Native-browser checks and the offline corpus comparator
+and timing artifacts. CI and browser verification run on every pull request and
+nightly on main, not after a merge: a pull request must be up to date with main,
+so it has already verified the merged tree. Native-browser checks and the offline corpus comparator
 prove different things: the comparator checks Replay, plans and unmeasured tree
 reservations; it does not measure fonts, plaques, connector painting or the camera.
 The visual audit runs the production layout, plaque allocation, camera Fit and

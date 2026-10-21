@@ -1,9 +1,14 @@
 name: Functional browser verification
 
+# Pull requests and a nightly run on main. A merge to main needs no run of its
+# own: branch protection requires every pull request to be up to date with
+# main, so the merged tree is the tree its pull request already verified. The
+# nightly run covers what changes without a commit (runner images, browser
+# downloads) and keeps main's dependency cache warm.
 on:
   pull_request:
-  push:
-    branches: [main]
+  schedule:
+    - cron: '23 3 * * *'
   workflow_dispatch:
 
 permissions:
