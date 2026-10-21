@@ -146,6 +146,24 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const [modelRoute, setModelRoute] = useState<ModelMode>(DEFAULT_MODEL_ID);
   const [reasoningEffort, setReasoningEffort] = useState<ReasoningEffort>('high');
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
+  const showCopyStatus = useCallback((status: CopyStatus) => {
+    if (copyStatusTimeoutRef.current !== null) {
+      window.clearTimeout(copyStatusTimeoutRef.current);
+      copyStatusTimeoutRef.current = null;
+    }
+    setCopyStatus(status);
+    if (status === 'copied') {
+      copyStatusTimeoutRef.current = window.setTimeout(() => {
+        setCopyStatus('idle');
+        copyStatusTimeoutRef.current = null;
+      }, 2000);
+    }
+  }, []);
+  // A later copy or a newly accepted analysis supersedes a pending write's outcome.
+  const resetCopyStatus = useCallback(() => {
+    copyAttemptRef.current += 1;
+    showCopyStatus('idle');
+  }, [showCopyStatus]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenError, setFullscreenError] = useState<string | null>(null);
   const [parsedSentence, setParsedSentence] = useState('The farmer eats the pig');
@@ -219,7 +237,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     setIsInputExpanded(true);
     setWorkspaceView('arboretum');
     resetGeneration();
-  }, [modelRoute, reasoningEffort, coerceModelRoute, resetGeneration]);
+  }, [modelRoute, reasoningEffort, coerceModelRoute, resetGeneration, resetCopyStatus]);
 
   const acceptSavedPreview = useCallback((preview: SavedPreview) => {
     const { bundle, sentence, framework: nextFramework, tab, captureMode } = preview;
@@ -239,7 +257,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     resetGeneration();
     setIsInputVisible(!(showcaseMode || captureMode));
     setIsInputExpanded(!(showcaseMode || captureMode));
-  }, [showcaseMode, reasoningEffort, coerceModelRoute, inferModelRouteFromModel, resetGeneration]);
+  }, [showcaseMode, reasoningEffort, coerceModelRoute, inferModelRouteFromModel, resetGeneration, resetCopyStatus]);
 
   const devCaptureMode = useDevPreview({
     analysisBundle,
@@ -352,24 +370,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
     });
   };
 
-  const showCopyStatus = (status: CopyStatus) => {
-    if (copyStatusTimeoutRef.current !== null) {
-      window.clearTimeout(copyStatusTimeoutRef.current);
-      copyStatusTimeoutRef.current = null;
-    }
-    setCopyStatus(status);
-    if (status === 'copied') {
-      copyStatusTimeoutRef.current = window.setTimeout(() => {
-        setCopyStatus('idle');
-        copyStatusTimeoutRef.current = null;
-      }, 2000);
-    }
-  };
-  // A later copy or a newly accepted analysis supersedes a pending write's outcome.
-  const resetCopyStatus = () => {
-    copyAttemptRef.current += 1;
-    showCopyStatus('idle');
-  };
   const copyNotation = async (text: string) => {
     if (!text.trim()) return;
     const attempt = ++copyAttemptRef.current;
