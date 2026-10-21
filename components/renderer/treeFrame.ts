@@ -73,12 +73,10 @@ interface FrameReplay extends Pick<SyntaxDrawingContext,
   completedReplayStep: number | undefined;
 }
 type FrameRelations = Pick<Parameters<typeof paintRelationScene>[0],
-  | 'disableRelationOverlay'
   | 'relationRenderPlan'
   | 'playedRelationIndices'
   | 'activeRelationMoment'
   | 'acceptedCompositionIsTreeFirst'
-  | 'focusedRelationMoment'
 >;
 interface FrameCamera extends Pick<CameraSession,
   | 'cameraAnimationRef'
@@ -138,12 +136,10 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     completedReplayStep
   } = replay;
   const {
-    disableRelationOverlay,
     relationRenderPlan,
     playedRelationIndices,
     activeRelationMoment,
-    acceptedCompositionIsTreeFirst,
-    focusedRelationMoment
+    acceptedCompositionIsTreeFirst
   } = relations;
   const { zoomBehavior, cameraAnimationRef, manualCameraRef, data, derivationStagesSignature, autoCameraRef, fitRevision } = camera;
   const {
@@ -259,7 +255,6 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     firstSentenceReplayDisplayToken,
     terminalMorphRef,
     g,
-    disableRelationOverlay,
     relationRenderPlan,
     measureCategoryText,
     currentReplayStep,
@@ -285,7 +280,6 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     deferredAcceptedRelationDraws,
     identityForestLightFamilies
   } = paintRelationScene({
-    disableRelationOverlay,
     relationRenderPlan,
     usesDerivationFrames,
     activeDerivationFrameIndex,
@@ -304,7 +298,6 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     animated,
     acceptedCompositionIsTreeFirst,
     containerWidth,
-    focusedRelationMoment,
     cameraRuntime,
     uiBounds,
     containerRef,
@@ -427,12 +420,12 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     // active relation. Apply the same current emphasis to the new elements.
     applyRelationEmphasisRef.current?.();
     identityLighting.start();
-    if (animated && focusedRelationMoment) {
+    if (animated && activeRelationMoment) {
       if (collectionRevealRef.current?.steps !== playbackSteps
         || collectionRevealRef.current.stepIndex !== activeStepIndex) {
         collectionRevealRef.current = { steps: playbackSteps, stepIndex: activeStepIndex, startedAt: performance.now() };
       }
-      cameraEffects.finishCollectionReveal = revealPlaqueCollections(svgRef.current!, focusedRelationMoment, {
+      cameraEffects.finishCollectionReveal = revealPlaqueCollections(svgRef.current!, activeRelationMoment, {
         elapsed: performance.now() - collectionRevealRef.current.startedAt,
         reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
         idPrefix: `${trajectoryLabelMaskId}-collection`

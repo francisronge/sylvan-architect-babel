@@ -38,7 +38,7 @@ interface BindingDrawingContext extends Pick<RelationLayers,
   overlay: DrawingLayer;
   operatorVariableScopeRankByItem: Map<number, number>;
   operatorVariableScopeItems: { item: Extract<RelationPlanItem, { kind: "operator-variable-binding"; }>; itemIndex: number; }[];
-  focusedRelationMoment: { stageIndex: number; relationIndex: number; } | null;
+  activeRelationMoment: { stageIndex: number; relationIndex: number; } | null;
   relationEmphasisForItem: (item: RelationPlanItem) => RelationEmphasis;
   overlayNodeById: Map<string, d3.HierarchyPointNode<SyntaxNode>>;
   frameItems: RelationPlanItem[];
@@ -106,7 +106,7 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
   acceptedRootLayerBeforeNodes,
   operatorVariableBindingLayers,
   operatorVariableScopeItems,
-  focusedRelationMoment,
+  activeRelationMoment,
   operatorVariableSharedPathLayers,
   relationEmphasisForItem,
   measuredTreeLabelRectNow,
@@ -216,8 +216,8 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
     let pathItem: RelationPlanItem = planItem;
     if (planItem.kind === 'operator-variable-binding' && planItem.bindingPathRefs) {
       const pathOwner = planItem.bindingPathRefs.find(ref =>
-        ref.stageIndex === focusedRelationMoment?.stageIndex
-        && ref.relationIndex === focusedRelationMoment?.relationIndex) ?? planItem.relationRef;
+        ref.stageIndex === activeRelationMoment?.stageIndex
+        && ref.relationIndex === activeRelationMoment?.relationIndex) ?? planItem.relationRef;
       pathItem = {
         ...planItem, relationRef: pathOwner, composedRefs: [],
         coalescedRefs: planItem.bindingPathRefs.filter(ref =>

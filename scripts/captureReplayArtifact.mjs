@@ -7,6 +7,7 @@ import { finalForestForAnalysis } from '../replay/finalForest.ts';
 import { openCaptureSession } from './browserSession.mjs';
 import { waitForReplayPaint, waitForCanopyPaint, waitForNotesPaint } from './captureReadiness.mjs';
 import { assertReplayCapturePayload } from './replayCapturePayload.mjs';
+import { escapeHtml } from './escapeHtml.mjs';
 
 const { values } = parseArgs({ options: {
   bundle: { type: 'string' }, out: { type: 'string' }, browser: { type: 'string' },
@@ -47,13 +48,6 @@ const reasoningEffort = request.reasoningEffort || sourceParseBundle.requestedRe
   || firstAnalysis.provenance?.requestedReasoningEffort || firstAnalysis.provenance?.reasoningEffort || '';
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const writeJson = (file, value) => fs.writeFileSync(path.join(outDir, file), JSON.stringify(value, null, 2) + '\n');
-
-const escapeHtml = (value) =>
-  String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 
 const writeViewer = (frameCount) => {
   const lastFrame = Math.max(0, frameCount - 1);

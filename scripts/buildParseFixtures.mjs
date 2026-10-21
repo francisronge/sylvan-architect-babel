@@ -3,27 +3,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { stripVolatileProvenance } from './volatileProvenance.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const rawDir = path.join(repoRoot, 'fixtures', 'raw');
 const normalizedDir = path.join(repoRoot, 'fixtures', 'normalized');
-const volatileProvenanceFields = [
-  'timestamp',
-  'promptVersion',
-  'parserVersion',
-  'uiVersion'
-];
-
-const stripVolatileProvenance = (bundle) => {
-  for (const analysis of bundle.analyses || []) {
-    if (!analysis.provenance || typeof analysis.provenance !== 'object') continue;
-    for (const field of volatileProvenanceFields) {
-      delete analysis.provenance[field];
-    }
-  }
-  return bundle;
-};
-
 const buildFixture = (rawPath) => {
   const fixture = JSON.parse(fs.readFileSync(rawPath, 'utf8'));
   const { sentence, framework, modelRoute, payload } = fixture;

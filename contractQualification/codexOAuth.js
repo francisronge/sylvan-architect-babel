@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { buildSystemInstruction } from '../server/babelParser/systemInstruction.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
 import { resolveResearchModelSelection } from '../server/babelParser/researchModelCatalog.js';
+import { drainSseEvents, sseEventData } from './sseEvents.js';
 import { qualificationResponseHeaders, qualificationTransportError } from './telemetry.js';
 
 // Subscription transport only; this module is not part of Babel's public provider routes.
@@ -119,8 +120,7 @@ export const requestCodexQualification = async ({
     let buffer = '';
     let protocolError = null;
     const acceptEvent = block => {
-      const data = block.split(/\r?\n/u).filter(line => line.startsWith('data:'))
-        .map(line => line.slice(5).replace(/^ /u, '')).join('\n');
+      const data = sseEventData(block);
       if (!data || data === '[DONE]') return;
       let event;
       try { event = JSON.parse(data); }
@@ -153,12 +153,7 @@ export const requestCodexQualification = async ({
       onBytes(Buffer.from(value));
       if (!http.ok) continue;
       phase = 'decode-stream';
-      buffer += decoder.decode(value, { stream: true });
-      let separator;
-      while ((separator = /\r?\n\r?\n/u.exec(buffer))) {
-        acceptEvent(buffer.slice(0, separator.index));
-        buffer = buffer.slice(separator.index + separator[0].length);
-      }
+      buffer = drainSseEvents(buffer + decoder.decode(value, { stream: true }), acceptEvent);
       if (terminalEvent || protocolError) break;
     }
     if (!http.ok) return result('failed', `Provider HTTP ${http.status}; see raw response bytes.`,

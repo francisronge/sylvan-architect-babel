@@ -59,7 +59,7 @@ export function layoutReplayFrames({ steps, stages, width, height, direction, me
       // TreeVisualizer's own call: the same function with the same measures.
       const { plan, protectedNodeIds, measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel } = measured;
       cameras.set(key, camera.buildStageCameraFit({ steps, stageIndex: stage, stepIndex: completedStep, completedCanvas: completed(stage),
-        plan, width, height, direction, abstractionMode: false, protectedNodeIds, disableRelationOverlay: false,
+        plan, width, height, direction, abstractionMode: false, protectedNodeIds,
         plaqueSchedule: schedule, coordinates: stageCoordinates, layoutGroups: groups,
         measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel }));
     }

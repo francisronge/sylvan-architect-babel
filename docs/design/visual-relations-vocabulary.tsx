@@ -864,7 +864,7 @@ function PrimitiveDrawing({ name, markerPrefix }: { name: PrimitiveName; markerP
     case 'Dependent-case elbow':
       /*
        * The dependent-Case orthogonal elbow: down then across, filled
-       * circular endpoints at ELBOW_ENDPOINT_RADIUS, never an arrowhead.
+       * circular endpoints of radius 9, never an arrowhead.
        */
       return (
         <>
