@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useGeneration } from './hooks/useGeneration';
+import { submittedGenerationRequest } from './services/generationState';
 import { useSporeDrift, type Spore } from './hooks/useSporeDrift';
 import { captureVisibleTreeSnapshot } from './services/treeSnapshot';
 import { deriveAnalysisDisplay } from './services/analysisDisplay';
@@ -294,21 +295,21 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const handleParse = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (loading) return;
-    if (!input.trim()) return;
-
-    setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
-    await generate({
-      sentence: input,
+    const request = submittedGenerationRequest(input, {
       framework,
       modelId: modelRoute,
       settings: { [selectedModel.controls[0].id]: activeReasoningEffort }
-    }, data => {
+    });
+    if (!request) return;
+
+    setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
+    await generate(request, data => {
       setInitialReplayPosition(null);
       setAnalysisBundle(data);
       const nextModelRoute = coerceModelRoute(data.requestedModelId || modelRoute);
       setModelRoute(nextModelRoute);
       setReasoningEffort(coerceReasoningEffortForRoute(nextModelRoute, data.requestedReasoningEffort || activeReasoningEffort));
-      setParsedSentence(input.trim());
+      setParsedSentence(request.sentence);
       setParsedFramework(framework);
       setActiveParseIndex(0);
       setActiveTab('tree');

@@ -80,6 +80,19 @@ export interface GenerationRequest {
   settings: Record<string, string>;
 }
 
+/**
+ * The request a submitted draft makes, or null for a blank draft. Outer
+ * whitespace is not part of the sentence: the server echoes the sentence it
+ * receives, and the workspace and Tree Bank keep this same trimmed sentence.
+ */
+export const submittedGenerationRequest = (
+  draft: string,
+  options: Omit<GenerationRequest, 'sentence'>
+): GenerationRequest | null => {
+  const sentence = draft.trim();
+  return sentence ? { ...options, sentence } : null;
+};
+
 // Own only the request lifecycle. The workspace retains the previous analysis
 // until it accepts a complete response; failures retain their original evidence.
 export const runGeneration = async (
