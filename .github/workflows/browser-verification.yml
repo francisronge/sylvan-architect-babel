@@ -19,10 +19,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  browser-verification:
-    name: Provider-free browser behavior
+  browser-shard:
+    name: Browser behavior (${{ matrix.shard }})
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # The shards of BROWSER_CI_SHARDS in scripts/browserSuites.mjs; the
+        # final job fails unless their receipts cover the full gate.
+        shard: [renderer, application]
     steps:
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,14 +47,58 @@ jobs:
       - name: Install pinned browser runtimes
         run: npx --no-install playwright install --with-deps chromium webkit
 
-      - name: Verify all required browser suites
-        run: npm run verify:browser -- --evidence "$RUNNER_TEMP/browser-evidence"
+      - name: Verify this shard's required browser suites
+        run: npm run verify:browser -- --suite "ci:${{ matrix.shard }}" --evidence "$RUNNER_TEMP/browser-evidence"
 
       - name: Retain browser diagnostics and captures
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: browser-verification-${{ github.run_attempt }}
+          name: browser-verification-${{ matrix.shard }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/browser-evidence
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Retain the shard receipt for the coverage check
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: browser-receipt-${{ matrix.shard }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/browser-evidence/receipt.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  browser-verification:
+    name: Provider-free browser behavior
+    needs: browser-shard
+    # Passes only when both shards passed and their receipts ran every required
+    # spec exactly once.
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require both shards to succeed
+        env:
+          SHARDS: ${{ needs.browser-shard.result }}
+        run: |
+          echo "shards: $SHARDS"
+          [ "$SHARDS" = success ]
+
+      - name: Check out candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+
+      - name: Download the shard receipts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: browser-receipt-*
+          path: ${{ runner.temp }}/browser-receipts
+
+      - name: Confirm the shards ran every required browser spec exactly once
+        run: node scripts/checkBrowserShardReceipts.mjs "$RUNNER_TEMP/browser-receipts"
