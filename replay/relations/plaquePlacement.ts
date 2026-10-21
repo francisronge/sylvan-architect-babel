@@ -20,6 +20,7 @@ import {
 } from './overlayGeometry.ts';
 import {
   plaqueColumnContains,
+  plaqueColumnCovers,
   plaquesOverlap,
   preparePlaqueColumnIntervals,
   preparePlaqueObstacleIndex,
@@ -823,6 +824,9 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
 export type PlaqueSpace = {
   obstacles: PlaqueRect[];
   acceptsConnector: (box: PlaqueRect) => boolean;
+  /** A partial check of the Case arrow alone: true only when `acceptsConnector`
+   * rejects the arrow, in at least one scene, whatever ports the box has. */
+  blocksArrow?: (box: PlaqueRect) => boolean;
   /** Search hints in first-occurrence order. The search reads each distinct value
    * once, so a space may omit a repeat of an earlier hint. */
   connectorCandidateXs?: (box: PlaqueRect) => number[];
@@ -918,12 +922,18 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     };
     const caseClears = request.caseAssignment && !space ? prepareCasePlaqueSpace(anchor, occupied) : undefined;
     const sourceRect = request.caseAssignment ? caseSourceRect(anchor) : undefined;
+    const accepts = (box: PlaqueRect) => space ? space.acceptsConnector(box)
+        : (!caseClears || caseClears(box))
+          && collectionPlaqueClears(box, nodes, occupied);
     const clear = (candidate: PlaqueRect) => {
       if (overlaps(candidate)) return undefined;
+      // Ports never move a Case arrow: every attachment tried below draws the
+      // same one. A pocket whose arrow is blocked is rejected before choosing them.
+      if (request.caseAssignment) {
+        const arrow = { ...candidate, caseRowY: request.caseRowY, drawnWidth: request.drawnWidth, drawnHeight: request.drawnHeight };
+        if (space ? space.blocksArrow?.(arrow) : caseClears && !caseClears(arrow)) return undefined;
+      }
       const box = attach(candidate, request);
-      const accepts = (box: PlaqueRect) => space ? space.acceptsConnector(box)
-          : (!caseClears || caseClears(box))
-            && collectionPlaqueClears(box, nodes, occupied);
       if (accepts(box)) return box;
       // Try another port before accepting a clear side fallback. Restrict this
       // search to otherwise valid pockets, not every rejected allocation candidate.
@@ -996,12 +1006,41 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         [box.x - width - scanGap, box.x + box.width + scanGap])])]
         .sort((a, b) => horizontalGap(a) - horizontalGap(b));
       const columnIntervals = preparePlaqueColumnIntervals(searched, height, scanGap);
+      const idealY = request.caseAssignment ? anchorY + 163 - (request.caseRowY ?? 93) : anchorY - height / 2;
       let bestDistance = priorDistance;
+      /** A closed range of heights holding every lane `canImprove` accepts in
+       * column `x`: its squared distance is at least the vertical part's, after
+       * the horizontal part that column fixes. The margin exceeds the rounding
+       * of these coordinates, so the range never excludes an accepted lane. */
+      const improvingRange = (x: number, dx: number): [number, number] | undefined => {
+        if (!Number.isFinite(bestDistance)) return undefined;
+        if (!sourceRect) {
+          const reach = Math.sqrt(Math.max(0, bestDistance - dx * dx)) + 1 + 1e-6 * (Math.sqrt(bestDistance) + Math.abs(idealY));
+          return Number.isFinite(reach + idealY) ? [idealY - reach, idealY + reach] : undefined;
+        }
+        // caseAssignmentPlaqueCurve's side choice, target and possible sources.
+        const centerX = sourceRect.x + sourceRect.width / 2;
+        const side = centerX < x ? 'left' : centerX > x + width ? 'right' : 'vertical';
+        const targetX = side === 'left' ? x - 12 : x + width + 12;
+        const horizontal = side === 'vertical' ? 0 : Math.min(Math.abs(targetX - centerX),
+          Math.abs(targetX - (side === 'left' ? sourceRect.x + sourceRect.width + 8 : sourceRect.x - 8)));
+        const sourceYs = [sourceRect.y - 8, sourceRect.y + sourceRect.height / 2, sourceRect.y + sourceRect.height + 8];
+        const targetOffsets = side === 'vertical' ? [-12, height + 12] : [request.caseRowY ?? 93];
+        const scale = Math.sqrt(bestDistance) + Math.abs(x) + width + height + Math.abs(sourceRect.x) + Math.abs(sourceRect.y)
+          + sourceRect.width + sourceRect.height;
+        const reach = Math.sqrt(Math.max(0, bestDistance - horizontal * horizontal)) + 1 + 1e-6 * scale;
+        const low = Math.min(...sourceYs) - Math.max(...targetOffsets) - reach;
+        const high = Math.max(...sourceYs) - Math.min(...targetOffsets) + reach;
+        return Number.isFinite(low) && Number.isFinite(high) ? [low, high] : undefined;
+      };
       for (const x of xs) {
         const dx = horizontalGap(x);
         if (dx * dx >= bestDistance) break;
         const merged = columnIntervals(x, width);
-        const idealY = request.caseAssignment ? anchorY + 163 - (request.caseRowY ?? 93) : anchorY - height / 2;
+        // One blocked interval covering every improving height leaves this
+        // column without lanes, so its connector hints need not be computed.
+        const range = improvingRange(x, dx);
+        if (range && plaqueColumnCovers(merged, range[0], range[1])) continue;
         // The nearest box-sized gap can still put the curved approach through
         // another label. Consider the remaining gap edges before falling below.
         const candidate = { x, y: 0, width, height, collectionRows: request.collectionRows };
@@ -1020,7 +1059,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         };
         const addLane = (y: number) => { if (canImprove(y)) lanes.add(y); };
         addLane(idealY);
-        for (const y of new Set(rawConnectorLanes)) {
+        // A hint whose three lanes all fall outside the range cannot add one.
+        for (const y of new Set(range ? rawConnectorLanes.filter(y => y >= range[0] - 17 && y <= range[1] + 17) : rawConnectorLanes)) {
           addLane(y); addLane(y - 16); addLane(y + 16);
         }
         for (const [low, high] of merged) { addLane(low); addLane(high); }

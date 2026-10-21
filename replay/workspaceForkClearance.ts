@@ -5,6 +5,18 @@ import { WorkspaceObstacleBuffer } from './workspaceObstacleBuffer.ts';
 type Point = { x: number; y: number };
 type ChildInk = { point: Point; obstacles: readonly PlaqueRect[] | WorkspaceObstacleBuffer };
 
+/** A child's absolute ink relative to its root, as `{ ...box, x: box.x - point.x,
+ * y: box.y - point.y }` copies would be, without allocating one per box. */
+export function relativeChildInk(point: Point, ink: readonly PlaqueRect[]): WorkspaceObstacleBuffer {
+  const bounds = new Float64Array(ink.length * 4);
+  for (let index = 0; index < ink.length; index++) {
+    const box = ink[index], offset = index * 4;
+    bounds[offset] = box.x - point.x; bounds[offset + 1] = box.y - point.y;
+    bounds[offset + 2] = box.width; bounds[offset + 3] = box.height;
+  }
+  return new WorkspaceObstacleBuffer(bounds, ink);
+}
+
 /** Child contours exclude the incoming fork edges. Check those native cubics
  * separately against other children's ink, using the same branch envelope as
  * plaqueTreeObstacles. Obstacles are local to their current child root. */

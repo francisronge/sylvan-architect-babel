@@ -238,11 +238,12 @@ export function preparePlaqueColumnIntervals(obstacles: readonly ObstacleRect[],
     const key = Math.floor(value / cell);
     return Math.abs(key) <= limit ? key : NaN;
   };
-  let cells: Map<number, number[]> | undefined, seen: Uint32Array | undefined;
+  let cells: Map<number, number[]> | undefined, seen: Uint32Array | undefined, matches: Uint32Array | undefined;
   const everywhere: number[] = [];
   const index = () => {
     cells = new Map();
     seen = new Uint32Array(ordered.length);
+    matches = new Uint32Array(ordered.length);
     ordered.forEach((interval, position) => {
       const first = cellOf(interval.x), last = cellOf(interval.right);
       if (!(last - first <= reach)) { everywhere.push(position); return; }
@@ -259,19 +260,37 @@ export function preparePlaqueColumnIntervals(obstacles: readonly ObstacleRect[],
     // A single column needs no index.
     if (!queried || !(last - first <= reach)) { queried = true; return scan(x, width); }
     if (!cells) index();
-    if (++stamp === 0xffffffff) { seen!.fill(0); stamp = 1; }
-    const matches: number[] = [];
-    const visit = (position: number) => {
-      if (seen![position] === stamp) return;
-      seen![position] = stamp;
-      const interval = ordered[position];
-      if (x < interval.right && right > interval.x) matches.push(position);
-    };
-    everywhere.forEach(visit);
-    for (let key = first; key <= last; key++) cells!.get(key)?.forEach(visit);
-    matches.sort((a, b) => a - b);
     const merged: number[][] = [];
-    for (const position of matches) merge(merged, ordered[position]);
+    const lists = [everywhere];
+    for (let key = first; key <= last; key++) { const members = cells!.get(key); if (members) lists.push(members); }
+    const add = (position: number) => {
+      const interval = ordered[position];
+      if (x < interval.right && right > interval.x) merge(merged, interval);
+    };
+    // Each list holds ascending positions. Few lists merge directly in that
+    // order, skipping a repeat; many are deduplicated and sorted instead.
+    if (lists.length <= 8) {
+      const heads = new Array<number>(lists.length).fill(0);
+      for (let previous = -1;;) {
+        let best = -1, position = Infinity;
+        for (let i = 0; i < lists.length; i++) {
+          const head = heads[i];
+          if (head < lists[i].length && lists[i][head] < position) { position = lists[i][head]; best = i; }
+        }
+        if (best < 0) return merged;
+        heads[best]++;
+        if (position !== previous) { add(position); previous = position; }
+      }
+    }
+    if (++stamp === 0xffffffff) { seen!.fill(0); stamp = 1; }
+    let count = 0;
+    for (const list of lists) for (const position of list) {
+      if (seen![position] === stamp) continue;
+      seen![position] = stamp;
+      matches![count++] = position;
+    }
+    // Distinct positions sort numerically, as typed arrays do without a comparator.
+    for (const position of matches!.subarray(0, count).sort()) add(position);
     return merged;
   };
 }
@@ -285,4 +304,15 @@ export function plaqueColumnContains(intervals: readonly (readonly number[])[], 
     else high = middle;
   }
   return low > 0 && y < intervals[low - 1][1];
+}
+
+/** Whether one interval contains every height from `low` to `high`. */
+export function plaqueColumnCovers(intervals: readonly (readonly number[])[], low: number, high: number): boolean {
+  let first = 0, last = intervals.length;
+  while (first < last) {
+    const middle = (first + last) >>> 1;
+    if (intervals[middle][0] < low) first = middle + 1;
+    else last = middle;
+  }
+  return first > 0 && high < intervals[first - 1][1];
 }
