@@ -1,5 +1,6 @@
-import type { DerivationStage, DerivationStageRelation, SyntaxNode } from '../../types.ts';
+import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
 import type { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
+import type { RelationStage } from '../relationStages.ts';
 import type { RelationClaimDispatch } from './relationClaims.ts';
 import type { ProductionFamilyKind, ProductionRenderFamily } from './renderFamilies.ts';
 import type {
@@ -28,8 +29,8 @@ export type RegisteredPlanContext = {
   };
   workspace: {
     nodes: Map<string, SyntaxNode>;
-    stage: DerivationStage;
-    stageList: DerivationStage[];
+    stage: RelationStage;
+    stageList: RelationStage[];
     stageIndex: number;
     relations: DerivationStageRelation[];
   };
