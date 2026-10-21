@@ -4,7 +4,7 @@ name: Functional browser verification
 # own: branch protection requires every pull request to be up to date with
 # main, so the merged tree is the tree its pull request already verified. The
 # nightly run covers what changes without a commit (runner images, browser
-# downloads) and keeps main's dependency cache warm.
+# downloads) and keeps main's dependency and browser caches warm.
 on:
   pull_request:
   schedule:
@@ -78,6 +78,19 @@ jobs:
 
       - name: Install locked dependencies
         run: npm ci
+
+      - name: Read the locked Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./package-lock.json').packages['node_modules/playwright-core'].version")" >> "$GITHUB_OUTPUT"
+
+      # The browser builds belong to the locked Playwright version. The install
+      # step below skips builds already present and still installs the system
+      # dependencies, which are not cached.
+      - name: Restore pinned browser downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-ubuntu-24.04-${{ steps.playwright.outputs.version }}-chromium-webkit
 
       - name: Install pinned browser runtimes
         run: npx --no-install playwright install --with-deps chromium webkit
