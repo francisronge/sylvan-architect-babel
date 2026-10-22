@@ -14,17 +14,27 @@ import type { RelationPlanItem } from './renderPlan.ts';
 
 type Node = HierarchyPointNode<SyntaxNode>;
 
-/** Fixed native plaques keep their geometry. Other plaques reserve their full
- * measured footprint, including the range of retained terminal/index variants. */
-export function nativePlaqueObstacles(items: RelationPlanItem[], nodes: Node[], {
-  measureCategoryText, measureTreeInk, labels, measureTreeLabel, measurePlaqueText
-}: {
+type NativePlaqueMeasures = {
   measureCategoryText?: CategoryTextMeasure;
   measureTreeInk?: TreeInkTextMeasure;
   labels?: ReadonlyMap<string, readonly TreeLabelRuns[]>;
   measureTreeLabel?: TreeLabelMeasure;
   measurePlaqueText?: PlaqueTextMeasure;
-} = {}): PlaqueRect[] {
+};
+
+/** Fixed native plaques keep their geometry. Other plaques reserve their full
+ * measured footprint, including the range of retained terminal/index variants. */
+export function nativePlaqueObstacles(items: RelationPlanItem[], nodes: Node[], measures: NativePlaqueMeasures = {}): PlaqueRect[] {
+  return nativePlaqueFootprints(items, nodes, measures).map(bounds =>
+    ({ x: bounds.x - 6, y: bounds.y - 6, width: bounds.width + 12, height: bounds.height + 12, plaqueShell: true }));
+}
+
+/** Each fixed native plaque's measured footprint: the union of its boxes over the
+ * retained label variants of its anchors. Allocation reserves it and the stage
+ * camera fits it, so both read the same measured labels. */
+export function nativePlaqueFootprints(items: RelationPlanItem[], nodes: Node[], {
+  measureCategoryText, measureTreeInk, labels, measureTreeLabel, measurePlaqueText
+}: NativePlaqueMeasures = {}): PlaqueRect[] {
   const fixed = items.filter(item => item.kind === 'undirected-link' && item.linkStyle === 'feature-sharing'
     || item.kind === 'directed-path' && item.pathStyle === 'dependent-case');
   if (!fixed.length) return [];
@@ -83,10 +93,6 @@ export function nativePlaqueObstacles(items: RelationPlanItem[], nodes: Node[], 
       alternatives = [0, 1].map(edge => nativeRelationPlaqueRects([item],
         (id, terminal) => anchor(id, terminal)?.[edge] ?? null, measurePlaqueText));
     }
-    return (alternatives[0] ?? []).map((box, index) => {
-      const boxes = alternatives.map(rects => rects[index] ?? box);
-      const bounds = boundingRect(boxes);
-      return { x: bounds.x - 6, y: bounds.y - 6, width: bounds.width + 12, height: bounds.height + 12, plaqueShell: true };
-    });
+    return (alternatives[0] ?? []).map((box, index) => boundingRect(alternatives.map(rects => rects[index] ?? box)));
   });
 }

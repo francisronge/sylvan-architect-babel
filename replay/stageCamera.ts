@@ -14,12 +14,11 @@ import { resolveUniqueDisplayTerminal } from './relations/trajectoryAttachment.t
 import { type PlanPositionProvider } from './relations/boundGeometry.ts';
 import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
 import { predicationPlaqueObstacles } from './relations/predicationPlaqueSpace.ts';
-import { nativePlaqueObstacles } from './relations/nativePlaqueSpace.ts';
+import { nativePlaqueFootprints, nativePlaqueObstacles } from './relations/nativePlaqueSpace.ts';
 import { prepareLifetimePlaqueSpaces, type LifetimeScene } from './relations/plaqueLifetimeSpace.ts';
 import {
   caseAssignmentSource,
   measuredCaseSourceRect,
-  nativeRelationPlaqueRects,
   beyondNearbyReach,
   DETACHED_PLAQUE_GAP,
   MIN_RELOCATION_GAIN,
@@ -40,7 +39,6 @@ import {
   type PlaqueRect
 } from './relations/plaquePlacement.ts';
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
-import { boundingRect } from './relations/rectGeometry.ts';
 import {
   planItemRelationRefs,
   resolveDisplayedTrajectoryAttachments,
@@ -51,7 +49,7 @@ import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from 
 import { isUnderTriangulation, markTriangulatedNodes } from './triangulation.ts';
 import { isDisplayTerminalNode, resolveLeafSurface } from './replaySurfaceNotation.ts';
 import {
-  LEAF_INK_EXTENT_Y, nominalLabelWidth, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE,
+  LEAF_INK_EXTENT_Y, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE,
   SHELL_ATTACHMENT_CLEARANCE, TERMINAL_ATTACHMENT_Y, TRAJECTORY_ROUTES
 } from './rendererMetrics.ts';
 import { buildStageCoordinateReservations } from './stageCoordinates.ts';
@@ -630,6 +628,21 @@ export function buildStagePlaqueLayout(input: StageLayoutInput): Map<number, Pla
   return buildReplayPlaqueLayouts(input)[input.stageIndex] ?? new Map();
 }
 
+/** Every label variant a scene paints. Equal forests can share a scene while later
+ * relation moments add indices; prepared labels are keyed by canvas identity, so
+ * retain every canvas's map. */
+function sceneLabelRuns({ steps, completedCanvas, treeLabelRuns }: Pick<StageLayoutInput, 'steps' | 'completedCanvas' | 'treeLabelRuns'>,
+  stepIndices: readonly number[]) {
+  const labels = new Map<string, TreeLabelRuns[]>();
+  if (!treeLabelRuns) return labels;
+  const canvases = new Set<SyntaxNode>(stepIndices.map(index => steps[index].replayCanvasData ?? completedCanvas));
+  if (!canvases.size) canvases.add(completedCanvas);
+  for (const canvas of canvases) for (const [id, variants] of treeLabelRuns.get(canvas) ?? []) {
+    labels.set(id, [...(labels.get(id) ?? []), ...variants]);
+  }
+  return labels;
+}
+
 /** Shared reservation for placement and verification, including unrevealed stage trajectories. */
 export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: StageGeometry) {
   const { scenes, completedTree } = stageLayouts(input, geometry);
@@ -650,18 +663,10 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
     const byId = indexHierarchyNodesByIdAndAliases(currentNodes);
     const items = authoredItems.map(item => resolveDisplayedTrajectoryAttachments(item,
       id => byId.get(id)?.data, { stageIndex: input.stageIndex, playedRelationIndices: scene.playedRelations }));
-    const labels = new Map<string, TreeLabelRuns[]>();
-    if (input.treeLabelRuns && items.some(item => item.kind === 'undirected-link'
+    const labels = input.treeLabelRuns && items.some(item => item.kind === 'undirected-link'
       && ['predication', 'feature-sharing'].includes(item.linkStyle)
-      || item.kind === 'directed-path' && ['dependent-case', 'case-assignment'].includes(item.pathStyle))) {
-      // Equal forests can share a scene while later relation moments add indices.
-      // Their prepared labels are keyed by canvas identity, so retain every map.
-      const canvases = new Set<SyntaxNode>(scene.stepIndices.map(index => input.steps[index].replayCanvasData ?? input.completedCanvas));
-      if (!canvases.size) canvases.add(input.completedCanvas);
-      for (const canvas of canvases) for (const [id, variants] of input.treeLabelRuns.get(canvas) ?? []) {
-        labels.set(id, [...(labels.get(id) ?? []), ...variants]);
-      }
-    }
+      || item.kind === 'directed-path' && ['dependent-case', 'case-assignment'].includes(item.pathStyle))
+      ? sceneLabelRuns(input, scene.stepIndices) : new Map<string, TreeLabelRuns[]>();
     const obstacles: PlaqueRect[] = [...plaqueTreeObstacles(currentNodes, input.measureCategoryText), ...plaqueConnectorObstacles(items, currentNodes),
       ...predicationPlaqueObstacles(items, currentNodes, {
         measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk,
@@ -880,19 +885,9 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
       }
     }
     if (includePlaques && plan) {
-      const rectFor = (id: string, terminal: boolean) => {
-        const node = byId.get(id);
-        if (!node) return null;
-        const leaves = terminal ? node.descendants().filter(child =>
-          isDisplayTerminalNode(child.data)) : [];
-        const rects = (leaves.length ? leaves : [node]).map(child => {
-          const word = leaves.length ? resolveLeafSurface(child) : '';
-          const width = nominalLabelWidth(String(word || child.data.label || ''));
-          return { x: child.x - width / 2, y: child.y + (word ? 85 : -42), width, height: word ? 90 : 84 };
-        });
-        return boundingRect(rects);
-      };
-      nativeRelationPlaqueRects(plan.frames[stageIndex]?.items ?? [], rectFor, measurePlaqueText).forEach(rect => include({
+      // Fixed native plaques: the measured footprint allocation reserves for them.
+      nativePlaqueFootprints(plan.frames[stageIndex]?.items ?? [], fitNodes, { measureCategoryText, measureTreeInk,
+        labels: sceneLabelRuns({ steps, completedCanvas, treeLabelRuns }, stepIndices), measureTreeLabel, measurePlaqueText }).forEach(rect => include({
         minX: rect.x - PLAQUE_FIT_MARGIN, maxX: rect.x + rect.width + PLAQUE_FIT_MARGIN,
         minY: rect.y - PLAQUE_FIT_MARGIN, maxY: rect.y + rect.height + PLAQUE_FIT_MARGIN
       }));

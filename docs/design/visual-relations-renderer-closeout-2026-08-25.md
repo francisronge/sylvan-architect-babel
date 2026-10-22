@@ -222,6 +222,8 @@ must choose another position. Reservations cover retained label/index variants,
 including variants that reverse the vertical order of dependent-case bearers.
 The worker probes native plaque text using the same authored-occurrence alias
 index as allocation. A missing metric fails instead of substituting different ink.
+The stage camera fits that same measured footprint, not one derived from
+nominal word and category boxes.
 
 Vines are routed as a group. If staggered bearer heights make the independent
 curves cross, their inward bends begin later so their horizontal order remains
