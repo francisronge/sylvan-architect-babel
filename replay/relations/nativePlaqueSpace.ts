@@ -39,19 +39,33 @@ export function nativePlaqueFootprints(items: RelationPlanItem[], nodes: Node[],
     || item.kind === 'directed-path' && item.pathStyle === 'dependent-case');
   if (!fixed.length) return [];
   const visible = new Set(nodes), byId = indexHierarchyNodesByIdAndAliases(nodes);
-  const fallback = new Map<string, PlaqueRect[]>();
-  for (const box of treeInkObstacles(nodes, measureCategoryText, measureTreeInk)) {
-    if (!box.connectorAttachment) continue;
-    const group = fallback.get(box.connectorAttachment) ?? [];
-    group.push(box); fallback.set(box.connectorAttachment, group);
+  // A label's own boxes depend only on its node, so the conservative fallback is
+  // measured only for nodes that lack complete label metrics, when first needed.
+  const sameId = new Map<string, Node[]>();
+  for (const node of nodes) {
+    const group = sameId.get(getNodeId(node));
+    if (group) group.push(node); else sameId.set(getNodeId(node), [node]);
   }
+  const fallbacks = new Map<string, Map<string, PlaqueRect[]>>();
+  const fallbackFor = (id: string) => {
+    let fallback = fallbacks.get(id);
+    if (!fallback) {
+      fallbacks.set(id, fallback = new Map());
+      for (const box of treeInkObstacles(sameId.get(id) ?? [], measureCategoryText, measureTreeInk)) {
+        if (!box.connectorAttachment) continue;
+        const group = fallback.get(box.connectorAttachment) ?? [];
+        group.push(box); fallback.set(box.connectorAttachment, group);
+      }
+    }
+    return fallback;
+  };
   const rectangles = (node: Node, kind: 'category' | 'terminal') => {
     const runs = labels?.get(getNodeId(node))?.filter(run => run.kind === kind) ?? [];
     const boxes = runs.map(run => measureTreeLabel?.(run));
     const complete = boxes.length > 0 && boxes.every((box): box is TreeLabelBounds => Boolean(box
       && [box.x, box.y, box.width, box.height].every(Number.isFinite) && box.width > 0 && box.height > 0));
     return complete ? boxes.map(box => ({ ...box, x: node.x + box.x, y: node.y + box.y }))
-      : fallback.get(`${getNodeId(node)}:${kind}`) ?? [];
+      : fallbackFor(getNodeId(node)).get(`${getNodeId(node)}:${kind}`) ?? [];
   };
   const anchors = new Map<string, [PlaqueRect, PlaqueRect] | null>();
   const anchor = (id: string, terminal: boolean) => {

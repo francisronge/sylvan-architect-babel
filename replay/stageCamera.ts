@@ -885,9 +885,11 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
         }
       }
     }
-    if (includePlaques && plan) {
+    const items = plan?.frames[stageIndex]?.items ?? [];
+    if (includePlaques && items.some(item => item.kind === 'undirected-link' && item.linkStyle === 'feature-sharing'
+      || item.kind === 'directed-path' && item.pathStyle === 'dependent-case')) {
       // Fixed native plaques: the measured footprint allocation reserves for them.
-      nativePlaqueFootprints(plan.frames[stageIndex]?.items ?? [], fitNodes, { measureCategoryText, measureTreeInk,
+      nativePlaqueFootprints(items, fitNodes, { measureCategoryText, measureTreeInk,
         labels: sceneLabelRuns({ steps, completedCanvas, treeLabelRuns }, stepIndices), measureTreeLabel, measurePlaqueText }).forEach(rect => include({
         minX: rect.x - PLAQUE_FIT_MARGIN, maxX: rect.x + rect.width + PLAQUE_FIT_MARGIN,
         minY: rect.y - PLAQUE_FIT_MARGIN, maxY: rect.y + rect.height + PLAQUE_FIT_MARGIN
