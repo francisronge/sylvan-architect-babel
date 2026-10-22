@@ -497,26 +497,50 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
 }
 
 // Each plan's right-to-left reservations, per translation, so a reused layout
-// returns the same maps.
+// returns the same maps, and each such map's plan.
 const reflections = new WeakMap<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, Map<number, ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>>();
+const reflectedPlans = new WeakMap<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>();
+
+/** The x about which right-to-left Replay reflects every stage: the completed
+ * stage's width, or `size`'s when no stage size is known. A painted
+ * right-to-left x is this axis less the painted left-to-right x. */
+export function rightToLeftAxis(steps: readonly PlaybackStep[], size: [number, number],
+  sizeForStage?: (stageIndex: number) => [number, number] | null) {
+  const completed = Math.max(...steps.flatMap(step => step.replayCanvasData && step.replayFrameIndex !== undefined ? [step.replayFrameIndex] : []));
+  return Number.isFinite(completed) && sizeForStage?.(completed)?.[0] || size[0];
+}
+
+const translated = (frames: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, dx: number) => new Map([...frames].map(([canvas, points]) =>
+  [canvas, new Map([...points].map(([id, point]) => [id, { x: point.x + dx, y: point.y }]))]));
 
 /** A stage's right-to-left reservations: its left-to-right plan, translated so
  * that painting (layoutSyntaxTree reflects x about the stage width) reflects
- * every frame of every stage about the same axis, the completed stage's width.
+ * every frame of every stage about the same axis, `rightToLeftAxis`.
  * Right-to-left Replay is then the left-to-right Replay reflected: the same rows,
  * the same relative positions and the same motion, and the camera carry across
  * a stage boundary is the left-to-right carry reflected. */
 function reflectedReservations(steps: readonly PlaybackStep[], planned: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>,
   size: [number, number], sizeForStage?: (stageIndex: number) => [number, number] | null) {
-  const completed = Math.max(...steps.flatMap(step => step.replayCanvasData && step.replayFrameIndex !== undefined ? [step.replayFrameIndex] : []));
-  const dx = size[0] - (Number.isFinite(completed) && sizeForStage?.(completed)?.[0] || size[0]);
+  const dx = size[0] - rightToLeftAxis(steps, size, sizeForStage);
   if (!dx) return planned;
-  let translated = reflections.get(planned);
-  if (!translated) reflections.set(planned, translated = new Map());
-  let result = translated.get(dx);
-  if (!result) translated.set(dx, result = new Map([...planned].map(([canvas, points]) => [canvas,
-    new Map([...points].map(([id, point]) => [id, { x: point.x + dx, y: point.y }]))])));
+  let byShift = reflections.get(planned);
+  if (!byShift) reflections.set(planned, byShift = new Map());
+  let result = byShift.get(dx);
+  if (!result) {
+    byShift.set(dx, result = translated(planned, dx));
+    reflectedPlans.set(result, planned);
+  }
   return result;
+}
+
+/** The left-to-right plan of one stage's right-to-left reservations, so work
+ * that must be the reflection of its left-to-right result (plaque placement)
+ * can run on the left-to-right layout. Reservations that crossed a worker
+ * boundary are translated back. */
+export function leftToRightReservations(steps: readonly PlaybackStep[], reflected: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>,
+  size: [number, number], sizeForStage?: (stageIndex: number) => [number, number] | null): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
+  const dx = size[0] - rightToLeftAxis(steps, size, sizeForStage);
+  return !dx ? reflected : reflectedPlans.get(reflected) ?? translated(reflected, -dx);
 }
 
 function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],

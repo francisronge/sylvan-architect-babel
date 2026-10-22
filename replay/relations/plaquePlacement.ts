@@ -166,6 +166,27 @@ export function prepareUniquePlaqueObstacles() {
   };
 }
 
+/** A placement reflected about the vertical line at `axis`, for right-to-left
+ * Replay. Its drawn shell lands on the mirror of the left-to-right shell, so a
+ * plaque the left-to-right search put right of its anchor stands left of it;
+ * row ports and side edges reflect with it. Left to right, a shell drawn
+ * narrower than a later phase reserves that width rightward from its left edge
+ * while plaques are allocated; reflected, it reserves only its drawn shell, so
+ * the reservation never extends toward the anchor. Its wider phase has its own
+ * reflected placement. */
+export function reflectPlaquePlacement(placement: PlaquePlacement, axis: number): PlaquePlacement {
+  const drawn = placement.drawnWidth ?? placement.width;
+  const reflectX = (x: number) => axis - x;
+  return { ...placement, x: axis - placement.x - drawn, width: drawn, attachmentX: reflectX(placement.attachmentX),
+    ...(placement.collectionRows ? { collectionRows: placement.collectionRows.map(row => ({ ...row,
+      ...(row.edge === 'left' || row.edge === 'right' ? { edge: row.edge === 'left' ? 'right' : 'left' } as const : {}),
+      ...(row.portX === undefined ? {} : { portX: drawn - row.portX }) })) } : {}),
+    ...(placement.connectorInk ? { connectorInk: { ...placement.connectorInk,
+      x: axis - placement.connectorInk.x - placement.connectorInk.width } } : {}),
+    ...(placement.curve ? { curve: Object.fromEntries(Object.entries(placement.curve).map(([key, point]) =>
+      [key, { ...point, x: reflectX(point.x) }])) as typeof placement.curve } : {}) };
+}
+
 /** Carry a reserved offset with its actual Replay node, without choosing another pocket. */
 export function projectPlaqueLayout(layout: Map<number, PlaquePlacement>, positionFor: (id: string) => { x: number; y: number } | null) {
   const projected = new Map<number, PlaquePlacement>();

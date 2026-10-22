@@ -34,6 +34,7 @@ import {
   prepareStagePlaqueRequests,
   projectPlaqueContent,
   projectPlaqueLayout,
+  reflectPlaquePlacement,
   type PlaquePlacement,
   type PlaqueRect
 } from './relations/plaquePlacement.ts';
@@ -52,7 +53,7 @@ import {
   LEAF_INK_EXTENT_Y, nominalLabelWidth, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE,
   SHELL_ATTACHMENT_CLEARANCE, TERMINAL_ATTACHMENT_Y, TRAJECTORY_ROUTES
 } from './rendererMetrics.ts';
-import { buildStageCoordinateReservations } from './stageCoordinates.ts';
+import { buildStageCoordinateReservations, leftToRightReservations, rightToLeftAxis } from './stageCoordinates.ts';
 import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
@@ -264,6 +265,7 @@ export function selectReplayPlaqueLayout(schedule: ReplayPlaqueSchedule, stageIn
  * of phases at one pocket (`bringNear`), which moves no other plaque. */
 export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?: MeasuredStageCoordinates,
   stageReady?: (schedule: ReplayPlaqueSchedule, stageIndex: number) => void): ReplayPlaqueSchedule {
+  if (input.direction === 'rtl') return reflectedPlaqueSchedule(input, coordinates, stageReady);
   const lifetimeSpaceOf = prepareLifetimePlaqueSpaces(), curveRects = prepareCurveObstacleRects();
   const frames = input.plan?.frames ?? [];
   const spaces = frames.map((_, stageIndex) => measureStagePlaqueSpace({ ...input, stageIndex }, { reservations: coordinates?.get(stageIndex) }));
@@ -609,6 +611,34 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
 }
 
 /** Completed-stage layouts for callers without an active Replay moment. */
+/** Right to left, plaques take the reflection of their left-to-right pockets:
+ * the schedule is made on the left-to-right layout, which right-to-left Replay
+ * reflects about one axis (stageCoordinates.ts, `rightToLeftAxis`), and every
+ * placement is reflected about that axis. Pocket order, column scans and ports
+ * then prefer the reading-direction side exactly as left to right does. */
+function reflectedPlaqueSchedule(input: StageLayoutInput, coordinates?: MeasuredStageCoordinates,
+  stageReady?: (schedule: ReplayPlaqueSchedule, stageIndex: number) => void): ReplayPlaqueSchedule {
+  const sizeFor = (stage: number) => stageTreeLayoutSize(input.steps, stage, input.width, input.height, input.layoutGroups);
+  const axes = new Map<number, number>();
+  const axisFor = (stage: number | undefined) => {
+    if (stage === undefined) return undefined;
+    if (!axes.has(stage)) { const size = sizeFor(stage); if (size) axes.set(stage, rightToLeftAxis(input.steps, size, sizeFor)); }
+    return axes.get(stage);
+  };
+  const reflectLayout = (layout: Map<number, PlaquePlacement>, axis: number | undefined) => axis === undefined ? layout
+    : new Map([...layout].map(([index, placement]) => [index, reflectPlaquePlacement(placement, axis)] as const));
+  const reflect = (schedule: ReplayPlaqueSchedule): ReplayPlaqueSchedule => ({
+    stages: schedule.stages.map((layout, stage) => reflectLayout(layout, axisFor(stage))),
+    steps: new Map([...schedule.steps].map(([step, layout]) => [step, reflectLayout(layout, axisFor(input.steps[step]?.replayFrameIndex))]))
+  });
+  const leftToRight = coordinates && new Map([...coordinates].map(([stage, frames]) => {
+    const size = sizeFor(stage);
+    return [stage, size ? leftToRightReservations(input.steps, frames, size, sizeFor) : frames] as const;
+  }));
+  return reflect(buildReplayPlaqueSchedule({ ...input, direction: 'ltr' }, leftToRight,
+    stageReady && ((schedule, stageIndex) => stageReady(reflect(schedule), stageIndex))));
+}
+
 export function buildReplayPlaqueLayouts(input: StageLayoutInput): Map<number, PlaquePlacement>[] {
   return buildReplayPlaqueSchedule(input).stages;
 }
@@ -893,7 +923,7 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
       trajectoryCeilingY: (d3.min(fitNodes, node => node.y) ?? 0) - TRAJECTORY_ROUTES.ceilingAboveTopNode,
       trajectoryFloorY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
       connectorBaselineY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,
-      railBaseY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase,
+      railBaseY: maxY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase, direction,
       hasExistingGapNotation: (id, text) => {
         const node = byId.get(id);
         return Boolean(node && (resolveLeafSurface(node) || node.data.label) === text);
