@@ -49,7 +49,13 @@ jobs:
 
       - name: Install the pinned Chromium runtime
         working-directory: candidate
-        run: npx --no-install playwright install --with-deps chromium
+        # Bounded and retried, as in browser-verification.yml.
+        run: |
+          for attempt in 1 2 3; do
+            timeout --kill-after=30s 8m npx --no-install playwright install --with-deps chromium && exit 0
+            echo "::warning::browser install attempt $attempt failed or stalled; retrying"
+          done
+          exit 1
 
       - name: Compare actual browser opening times
         working-directory: candidate
