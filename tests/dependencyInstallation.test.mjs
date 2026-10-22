@@ -61,6 +61,11 @@ test('Doctor writes a receipt when Playwright and installed dependencies are mis
     // The corpus inputs load the motion rule, which measures through the camera carry.
     await fs.mkdir(path.join(root, 'components'));
     await fs.copyFile(new URL('../components/treeViewport.ts', import.meta.url), path.join(root, 'components', 'treeViewport.ts'));
+    // The carry measures painted positions through the replay identity helpers.
+    await fs.mkdir(path.join(root, 'replay'));
+    for (const name of ['cameraCarry.ts', 'displayIdentity.ts']) {
+      await fs.copyFile(new URL(`../replay/${name}`, import.meta.url), path.join(root, 'replay', name));
+    }
     // ...and decides step ownership with the shared motion helper.
     await fs.mkdir(path.join(root, 'tests', 'helpers'), { recursive: true });
     await fs.copyFile(new URL('./helpers/motionOwnership.mjs', import.meta.url), path.join(root, 'tests', 'helpers', 'motionOwnership.mjs'));
