@@ -4,7 +4,7 @@ import type { FacetPlanCompilers } from './facetPlanContext.ts';
 import { featureFacetPlan } from './featurePlan.ts';
 import { movementFacetPlan } from './movementPlan.ts';
 import { pfFacetPlan } from './pfPlan.ts';
-import { collectForest, stableChainKey } from './planSyntax.ts';
+import { collectForest, flattenAnchorIds, stableChainKey } from './planSyntax.ts';
 import type { RelationClaimDispatch, Tier2ResolvedFacet } from './relationClaims.ts';
 import type { PlanDiagnostic, PlanRelationRef, RelationPlanItem } from './renderPlan.ts';
 import { structuralFacetPlan } from './structuralPlan.ts';
@@ -78,8 +78,11 @@ export const compileTier2RelationOutputs = ({
     const authoredPriorWitnessNodeIds = unique(
       Object.values(identityAnchorBlock(facet.facetIdentity, 'priorAnchors')).flat()
     );
+    // As for Tier 1, the authored block proves continuity only as a whole: an
+    // unresolved witness elsewhere in it withholds the cue and replacement.
     const priorAnchorBlockComplete = authoredPriorWitnessNodeIds.length > 0
-      && authoredPriorWitnessNodeIds.every((id) => priorNodeIds.has(id));
+      && [...authoredPriorWitnessNodeIds, ...Object.values(relationRef.priorAnchors ?? {}).flatMap(flattenAnchorIds)]
+        .every((id) => priorNodeIds.has(id));
     const predecessorGroup = predecessorReplacementGroup(
       facet,
       relationRef.stageIndex,

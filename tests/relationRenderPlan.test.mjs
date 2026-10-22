@@ -1099,6 +1099,22 @@ test('Transfer retains each exact accessible edge in its prepared plan', () => {
   assert.deepEqual(plan.frames[0].items.filter((item) => item.domainStyle === 'transfer-edge').map((item) => item.rootNodeId), ['e1', 'e2']);
 });
 
+test('Phase and Transfer restatements compare their edge lists in any order', () => {
+  const forest = [node('phase', 'CP', [leaf('e1', 'D', 'who'), leaf('e2', 'D', 'she'), node('sod', 'TP', [leaf('v', 'V', 'left')])])];
+  const transfer = edge => ({ relation: 'TransferDomain', anchors: { phase: 'phase', edge, spellOutDomain: 'sod' } });
+  const phaseArcs = relations => compileRelationRenderPlan([stage(relations, forest)]).frames[0].items
+    .filter(item => item.componentLabel === 'Phase' || item.domainStyle === 'phase');
+  for (const second of [['e1', 'e2'], ['e2', 'e1']]) {
+    assert.deepEqual(phaseArcs([transfer(['e1', 'e2']), transfer(second)]).map(item => item.relationRef.relationIndex), [0],
+      `one Phase arc for edges ${second}`);
+  }
+  // A Phase relation is elaborated by a later Transfer naming its edge in any position.
+  for (const edge of [['e1', 'e2'], ['e2', 'e1']]) {
+    const arcs = phaseArcs([{ relation: 'Phase', anchors: { phase: 'phase', edge: 'e1' } }, transfer(edge)]);
+    assert.deepEqual(arcs.map(item => `${item.kind}:${item.relationRef.relationIndex}`), ['fong-component:0'], `edges ${edge}`);
+  }
+});
+
 test('focus emphasis contains only actual native edges and rejects competing branch ownership', () => {
   const forest = [node('root', 'TP', [node('left', 'DP', [leaf('a', 'N', 'Mia')]), node('right', 'VP', [leaf('b', 'V', 'sang')])])];
   const plan = compileRelationRenderPlan([stage([{ relation: 'FocusMarking', anchors: { domain: 'root', focus: 'a', background: 'b' } }], forest)]);
@@ -1589,4 +1605,40 @@ test('a theta badge shows the index of its argument\'s chain', () => {
   const theta = items.flatMap(item => item.thetaRoles ?? []).find(role => role.nodeId === 'low');
   assert.ok(chain && theta, 'the chain and the theta role are both drawn');
   assert.equal(theta.index, chain.index);
+});
+
+test('a phrasal argument shows its chain\'s index when the copies share descendant lineages', () => {
+  const copy = (id, silent) => node(id, 'DP', [leaf(`${id}D`, 'D', 'the', { lineageId: 'det', ...(silent ? { silent: true } : {}) }),
+    leaf(`${id}N`, 'N', 'books', { lineageId: 'noun', ...(silent ? { silent: true } : {}) })],
+  { lineageId: 'books', ...(silent ? { silent: true } : {}) });
+  const tree = node('tp', 'TP', [copy('high', false),
+    node('vp', 'VP', [leaf('v', 'V', 'sold'), copy('low', true), leaf('other', 'DP', 'Leo')])]);
+  const plan = compileRelationRenderPlan([stage([
+    { relation: 'Unrelated coreference', anchors: { occurrences: ['other', 'v'] } },
+    { relation: 'Theme theta-role assignment', anchors: { argument: 'low', predicate: 'v' }, values: { thetaRole: 'Theme' } },
+    { relation: 'Object movement chain', anchors: { occurrences: ['high', 'low'] } },
+    { relation: 'Noun theta-role assignment', anchors: { argument: 'lowN', predicate: 'v' }, values: { thetaRole: 'Possessum' } }
+  ], [tree])]);
+  const items = plan.frames[0].items;
+  const chain = items.find(item => item.kind === 'coindex' && item.nodeIds.includes('high'));
+  const role = id => items.flatMap(item => item.thetaRoles ?? []).find(entry => entry.nodeId === id);
+  assert.ok(chain && role('low') && role('lowN'), 'the chain and both theta roles are drawn');
+  assert.equal(role('low').index, chain.index);
+  // A copied descendant is its own argument, not the phrase's chain.
+  assert.notEqual(role('lowN').index, chain.index);
+});
+
+test('a theta assignment with a trace witness draws its grid, never a movement path', () => {
+  const tree = node('tp', 'TP', [leaf('high', 'DP', 'Mia', { lineageId: 'mia' }),
+    node('vp', 'VP', [leaf('low', 'DP', 'Mia', { lineageId: 'mia', silent: true }), leaf('v', 'V', 'see'), leaf('obj', 'DP', 'him')])]);
+  const items = anchors => compileRelationRenderPlan([stage([{ relation: 'ThetaAssignment', anchors }], [tree])]).frames[0].items;
+  const witnessed = items({ predicate: 'v', agent: 'low', theme: 'obj', traceWitness: 'low' });
+  const grid = witnessed.find(item => item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid');
+  assert.deepEqual(grid?.thetaRoles.map(role => `${role.nodeId}:${role.label}`), ['low:Agent', 'obj:Theme']);
+  // The witness is retained as neutral context rather than read as a theta role.
+  assert.deepEqual(witnessed.filter(item => item.kind === 'fallback').map(item => Object.keys(item.relationRef.anchors)), [['traceWitness']]);
+  for (const anchors of [{ predicate: 'v', agent: 'low', source: 'obj', traceWitness: 'low' },
+    { predicate: 'v', theme: 'obj', source: 'low', target: 'high', traceWitness: 'low' }]) {
+    assert(!items(anchors).some(item => item.kind === 'trajectory'), JSON.stringify(anchors));
+  }
 });
