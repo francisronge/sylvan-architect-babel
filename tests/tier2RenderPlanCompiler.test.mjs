@@ -583,7 +583,7 @@ test('Task 8 replaces an earlier claim only through complete immediate prior anc
   );
 });
 
-test('unowned unresolved prior evidence does not suppress complete Tier-2 continuity', () => {
+test('an unresolved witness anywhere in the authored prior block withholds Tier-2 continuity', () => {
   const priorForest = [node('partial_prior_root', 'TP', [
     node('partial_prior_a', 'DP', [])
   ])];
@@ -605,9 +605,12 @@ test('unowned unresolved prior evidence does not suppress complete Tier-2 contin
   const identity = plan.frames[1].items.find(
     (item) => item.tier2FacetId === 'identity.occurrences'
   );
-  assert.equal(identity?.backward, true);
-  assert.deepEqual(identity?.priorWitnessNodeIds, ['partial_prior_a']);
-  assert.ok(identity?.replacementPredecessorGroup);
+  // As for Tier 1, a subset of the block never stands in for the whole: the
+  // identity still draws, but without the backward cue or a predecessor.
+  assert.ok(identity);
+  assert.equal(identity.backward, false);
+  assert.deepEqual(identity.priorWitnessNodeIds, []);
+  assert.equal(identity.replacementPredecessorGroup, undefined);
   const residual = plan.frames[1].items.find((item) => item.kind === 'fallback');
   assert.equal(residual?.backward, false);
   assert.deepEqual(residual?.priorWitnessNodeIds, []);
@@ -615,6 +618,26 @@ test('unowned unresolved prior evidence does not suppress complete Tier-2 contin
     plan.diagnostics.some((diagnostic) => diagnostic.kind === 'prior-anchor-unresolved'),
     true
   );
+});
+
+test('an incomplete Tier-2 prior block does not retire the earlier state it names', () => {
+  const before = [node('vp', 'VP', [leaf('v', 'V', 'see'), leaf('x', 'DP', 'Mia')])];
+  const after = [node('tp', 'TP', [leaf('y', 'DP', 'Leo'), ...before])];
+  const earlier = { relation: 'phi feature checking', anchors: { goal: 'x' }, values: { number: 'singular' } };
+  const later = priorAnchors => compileRelationRenderPlan([stage([earlier], before), stage([{
+    relation: 'phi feature checking', anchors: { goal: 'y' }, priorAnchors, values: { number: 'plural' }
+  }], after)]);
+  const visible = plan => visiblePlanFrameItems(plan, 1, new Set([0]), 0)
+    .filter(item => item.kind === 'node-plaque').map(item => `${item.anchorNodeIds}:${item.rows.map(row => row.value)}`);
+  assert.deepEqual(visible(later({ goal: 'x' })), ['y:plural'], 'a complete block replaces the earlier state');
+  for (const priorAnchors of [{ goal: 'x', extra: 'ghost' }, { goal: 'x', extra: 'y' }]) {
+    const plan = later(priorAnchors);
+    assert.deepEqual(visible(plan).sort(), ['x:singular', 'y:plural'], JSON.stringify(priorAnchors));
+    const update = plan.frames[1].items.find(item => item.kind === 'node-plaque' && item.relationRef.stageIndex === 1);
+    assert.equal(update.backward, false);
+    assert.equal(update.replacementPredecessorGroup, undefined);
+    assert.ok(plan.diagnostics.some(diagnostic => diagnostic.kind === 'prior-anchor-unresolved'));
+  }
 });
 
 test('Task 8 does not coalesce outputs when prior-anchor evidence differs', () => {
