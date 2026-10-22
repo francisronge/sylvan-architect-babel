@@ -874,27 +874,37 @@ export const dispatchRelationClaimBatch = (
   }));
 };
 
-/** Earlier claims can clarify later restatements; later relations never justify earlier ones. */
+/** Where each drawing relation puts a node plaque, keyed `stageIndex:relationIndex`,
+ * as the render plan compiled from a set of dispatches draws it. */
+export type NodePlaqueHosts = (dispatches: RelationClaimDispatch[][]) => ReadonlyMap<string, ReadonlySet<string>>;
+
+/** Earlier claims can clarify later restatements; later relations never justify earlier ones.
+ * `plaqueHosts` lets a later stage's drawing keep an earlier structure-only
+ * plaque when it puts no plaque on that plaque's node; without it, any later
+ * drawing on the node withdraws the plaque. */
 export function dispatchStageRelations(stages: readonly { workspaceForest: SyntaxNode[]; relations: DerivationStageRelation[]; realizations?: SurfaceRealization[] }[],
-  options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens' | 'structuralRules'> = {}): RelationClaimDispatch[][] {
-  const structuralRules = options.structuralRules ?? structuralRecognitionRules();
-  const dispatches = dispatchStagesInOrder(stages, structuralRules.size ? { ...options, structuralRules } : options);
+  options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens' | 'structuralRules'> & { plaqueHosts?: NodePlaqueHosts } = {}): RelationClaimDispatch[][] {
+  const { plaqueHosts, ...dispatchOptions } = options;
+  const structuralRules = dispatchOptions.structuralRules ?? structuralRecognitionRules();
+  const dispatches = dispatchStagesInOrder(stages, structuralRules.size ? { ...dispatchOptions, structuralRules } : dispatchOptions);
   if (!structuralRules.has('plaque.single-host')) return dispatches;
-  // A structure-only plaque yields to any other relation that anchors its host
-  // and draws: two plaques on one node crowd each other out of reach.
-  const drawsAt = new Map<string, Set<string>>();
-  dispatches.forEach((stage, stageIndex) => stage.forEach((dispatch, relationIndex) => {
-    if (!dispatch.claims.some(claim => claim.tier !== 3)) return;
-    Object.values(stages[stageIndex].relations[relationIndex].anchors ?? {}).flat().forEach(id =>
-      drawsAt.set(String(id), new Set([...(drawsAt.get(String(id)) ?? []), `${stageIndex}:${relationIndex}`])));
-  }));
-  const yielding = new Set(dispatches.flatMap((stage, stageIndex) => stage.flatMap((dispatch, relationIndex) => {
-    const key = `${stageIndex}:${relationIndex}`;
-    const hosts = Object.values(stages[stageIndex].relations[relationIndex].anchors ?? {}).flat().map(String);
-    return dispatch.structuralRules?.includes('plaque.single-host')
-      && hosts.some(id => [...(drawsAt.get(id) ?? [])].some(other => other !== key)) ? [key] : [];
-  })));
-  return yielding.size ? dispatchStagesInOrder(stages, { ...options, structuralRules }, yielding) : dispatches;
+  // A structure-only plaque yields to another relation that anchors its host
+  // and draws: two plaques on one node crowd each other out of reach. A later
+  // stage's drawing withdraws it only by putting a plaque on that node; a later
+  // line, arrow or connector ending there leaves the plaque in place.
+  const drawings = dispatches.flatMap((stage, stageIndex) => stage.flatMap((dispatch, relationIndex) =>
+    dispatch.claims.some(claim => claim.tier !== 3) ? [{
+      stageIndex, key: `${stageIndex}:${relationIndex}`,
+      hosts: new Set(Object.values(stages[stageIndex].relations[relationIndex].anchors ?? {}).flat().map(String)),
+      structureOnly: Boolean(dispatch.structuralRules?.includes('plaque.single-host'))
+    }] : []));
+  const contested = drawings.filter(plaque => plaque.structureOnly).map(plaque => ({ plaque,
+    others: drawings.filter(other => other !== plaque && [...plaque.hosts].some(id => other.hosts.has(id))) }));
+  const hostsOf = plaqueHosts && contested.some(({ plaque, others }) => others.some(other => other.stageIndex > plaque.stageIndex))
+    ? plaqueHosts(dispatches) : undefined;
+  const yielding = new Set(contested.filter(({ plaque, others }) => others.some(other => other.stageIndex <= plaque.stageIndex
+    || !hostsOf || [...plaque.hosts].some(id => hostsOf.get(other.key)?.has(id)))).map(({ plaque }) => plaque.key));
+  return yielding.size ? dispatchStagesInOrder(stages, { ...dispatchOptions, structuralRules }, yielding) : dispatches;
 }
 
 /** One ordered pass over the stages. Earlier claims inform later ones through
