@@ -1,6 +1,7 @@
 import type { SyntaxNode } from '../../types.ts';
 import type { RelationStage } from '../relationStages.ts';
 import type { NodePlaquePlanItem, PlanRelationRef, RelationPlanItem } from './renderPlan.ts';
+import { continuesReplacementGroup } from './tier2PlanIdentity.ts';
 
 type Collection = {
   plaque: NodePlaquePlanItem;
@@ -68,7 +69,7 @@ export function featureCollectionSupersessions(
     // have different current participants and therefore a different slot.
     live = live.filter(previous => !replacementItems.some(item =>
       item.replacementGroup === previous.plaque.replacementGroup
-      || item.replacementPredecessorGroup === previous.plaque.replacementGroup));
+      || continuesReplacementGroup(item.replacementPredecessorGroup, previous.plaque.replacementGroup)));
     const slots = new Set(next.map(collection => collection.slot));
     for (const slot of slots) {
       const updates = next.filter(collection => collection.slot === slot);

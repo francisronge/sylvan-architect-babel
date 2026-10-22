@@ -13,6 +13,7 @@ import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
 import { earlierWorkspaceForks, prepareWorkspaceHistoryGuard, WORKSPACE_HISTORY_EVALUATION_LIMIT } from '../replay/workspaceHistoryRefinement.ts';
 import { TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/nested-premovement-width.json', import.meta.url)));
 const close = (a, b, message) => assert(Math.abs(a - b) <= 1e-6, `${message}: ${a} vs ${b}`);
@@ -36,7 +37,10 @@ function setup(input, width, height, direction) {
   return { steps, sizes, points, preceding, render, diagnostic: getCoherentWorkspaceDiagnostics(steps)[0] };
 }
 
-for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
+// Planning is direction-free (right to left reflects the left-to-right plan), so
+// these planner checks run right to left only for a record whose layout is not
+// the reflection of its left-to-right layout (tests/helpers/rtlMirror.mjs).
+for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of directionsFor('replay-regressions/nested-premovement-width.json#')) {
   test(`${width}px ${direction}: head movement retains its source slot without a stretched earlier branch`, () => {
     const source = JSON.stringify(record), { steps, sizes, points, preceding, render, diagnostic } = setup(record, width, height, direction);
     assert.deepEqual(retainMovementSourceSlots([...steps].reverse(), sizes, new Map(preceding), direction), points,

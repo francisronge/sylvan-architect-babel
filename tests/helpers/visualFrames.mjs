@@ -350,7 +350,7 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     stage, positionFor, { ...RELATION_BINDING_METRICS, markerScale,
       hasExistingGapNotation: runText, plaqueTextLayout: { measureText: measurePlaqueText }, isItemRevealed: index => revealed.has(index),
       trajectoryCeilingY: textTop - TRAJECTORY_ROUTES.ceilingAboveTextTop, trajectoryFloorY: maxY + lanes.trajectoryFloor,
-      connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase, ...extra });
+      connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase, direction: visual.direction, ...extra });
   const drawable = createPrimitiveVisibility(items, resolveOverlayAnchor);
   const shownMarks = bound => bound.primitives.filter(primitive => revealed.has(primitive.itemIndex) && drawable(primitive));
   if (!items.some(item => item.kind === 'fallback')) return { ...none, plaques, marks: boundMarks(shownMarks(bind({})), items) };
@@ -372,7 +372,7 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
   const bound = bind({ fallbackMeasurements, separateFallbackMoments: true });
   const scale = fallbackMarkerScale(fitted.k, fallbackMeasurements.labels.map(value => value.height));
   // measureRelationInkObstacles reserves filled plaque shells with five units of padding.
-  const refit = fitFallbackGeometry(bound, { markerScale, fittedMarkerScale: scale, fittedAnchorScale: markerScaleAtZoom(fitted.k),
+  const refit = fitFallbackGeometry(bound, { markerScale, fittedMarkerScale: scale, fittedAnchorScale: markerScaleAtZoom(fitted.k), direction: visual.direction,
     badgeGap: RELATION_BINDING_METRICS.badgeGap, laneGap: RELATION_BINDING_METRICS.laneGap, fallbackMeasurements, railBaseY: maxY + lanes.railBase, separateFallbackMoments: true, fittedViewport: fitted.view,
     relationInkObstacles: plaques.map(({ rect: shell }) => rect(shell.x - 5, shell.y - 5, shell.width + 10, shell.height + 10)) });
   const marks = shownMarks(bound);

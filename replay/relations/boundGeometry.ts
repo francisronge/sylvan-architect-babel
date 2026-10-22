@@ -425,6 +425,9 @@ export type BindGeometryOptions = {
   trajectoryCeilingY?: number;
   /** Measured clear floor for drop-first orthogonal movement routes. */
   trajectoryFloorY?: number;
+  /** Writing direction. Neutral role labels try the reading-direction side of
+   * their node first, so right-to-left placement reflects left-to-right. */
+  direction?: 'ltr' | 'rtl';
 };
 
 /**

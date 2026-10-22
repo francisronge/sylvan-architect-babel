@@ -232,7 +232,8 @@ const overlapDepth = (a: Rect, b: Rect) => Math.max(0, Math.min(
 const ROLE_SEARCH_REACH = 2;
 
 /** Accepted Orchard side placement, reserving all marks before any relation is
- * revealed. The first free preferred spot wins. When all are taken, the role
+ * revealed. The first free preferred spot wins; the side after the node in
+ * reading `direction` comes first, so right to left reflects left to right. When all are taken, the role
  * takes the nearest free spot on either side of its node or in the rows above
  * and below, searched in steps of its own height up to twice its farthest
  * preferred spot; it never drifts beyond that reach. With a viewport, a free
@@ -240,20 +241,22 @@ const ROLE_SEARCH_REACH = 2;
  * the role is larger than the viewport. When nothing within reach is free, the
  * role takes the spot there that overlaps least, inside the viewport first. */
 export const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidth' | 'textHeight'>,
-  scale: number, occupied: Rect[], viewport?: Rect): Point => {
-  const rect = mark.labelRect;
+  scale: number, occupied: Rect[], viewport?: Rect, direction: 'ltr' | 'rtl' = 'ltr'): Point => {
+  const rect = mark.labelRect, reading = direction === 'rtl' ? -1 : 1;
   const extent = (mark.textWidth / 2 + 4) * scale;
   const gap = (mark.textWidth / 2 + 7) * scale;
   const above = rect.y - 15 * scale;
   const below = rect.y + rect.height + 15 * scale;
   const center = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
   const boxFor = (point: Point): Rect => fallbackLabelRect({ ...mark, ...point }, scale);
+  const after = reading > 0 ? rect.x + rect.width + gap : rect.x - gap;
+  const before = reading > 0 ? rect.x - gap : rect.x + rect.width + gap;
   const preferred = [
-    { x: rect.x + rect.width + gap, y: center.y },
-    { x: rect.x - gap, y: center.y },
+    { x: after, y: center.y },
+    { x: before, y: center.y },
     { x: center.x, y: above },
-    { x: rect.x + rect.width + gap, y: above },
-    { x: rect.x - gap, y: above }
+    { x: after, y: above },
+    { x: before, y: above }
   ];
   const meets = (box: Rect, other: Rect) => box.x < other.x + other.width - 0.5
     && box.x + box.width > other.x + 0.5 && box.y < other.y + other.height - 0.5
@@ -276,11 +279,11 @@ export const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 't
       const x = Math.max(viewport.x + extent, Math.min(center.x, viewport.x + viewport.width - extent));
       searched.push({ x, y: above }, { x, y: below });
     }
-    // Equal distances go to rows above and to the right side, as the preferred spots run.
+    // Equal distances go to rows above and to the reading-direction side, as the preferred spots run.
     const offsets = [0];
     for (let k = 1; k * step <= limit; k++) offsets.push(-k, k);
     for (const row of offsets) for (const column of offsets) {
-      const point = { x: center.x - column * step, y: center.y + row * step };
+      const point = { x: center.x - reading * column * step, y: center.y + row * step };
       if (distance(point) <= limit) searched.push(point);
     }
     const reachable = inflateRect(boxFor(center), limit);
@@ -323,7 +326,7 @@ export const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 't
 /** Refit the same measured allocation, preserving claim ownership and stage-wide reservation. */
 export const fitFallbackGeometry = (
   frame: BoundFrame,
-  options: FallbackRoutingOptions & Pick<BindGeometryOptions, 'badgeGap' | 'railBaseY' | 'railLaneGap' | 'fallbackMeasurements' | 'separateFallbackMoments'>
+  options: FallbackRoutingOptions & Pick<BindGeometryOptions, 'badgeGap' | 'railBaseY' | 'railLaneGap' | 'fallbackMeasurements' | 'separateFallbackMoments' | 'direction'>
     & { fittedMarkerScale: number; fittedAnchorScale?: number; fittedViewport?: Rect; relationInkObstacles?: Rect[] }
 ): Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail> => {
   if (options.separateFallbackMoments) {
@@ -365,7 +368,7 @@ export const fitFallbackGeometry = (
   const centers = new Map<number, Point>();
   frame.primitives.filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')
     .sort((a, b) => a.allocationOrder - b.allocationOrder).forEach(mark => {
-      const point = placeFallbackMark(mark, scale, occupied, options.fittedViewport);
+      const point = placeFallbackMark(mark, scale, occupied, options.fittedViewport, options.direction);
       updates.set(mark, { ...mark, ...point });
       centers.set(mark.allocationOrder, point);
     });

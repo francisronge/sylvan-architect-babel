@@ -618,20 +618,30 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
         const original = children.map(child => members.get(child.id)!);
         const lockedIndex = fixedSlots.keys().next().value;
         const pivot = lockedIndex === undefined ? 0 : original[lockedIndex].x;
-        const positions = (factor: number) => original.map(point => ({ x: pivot + (point.x - pivot) * factor, y: point.y }));
         const clear = (points: readonly Point[]) => {
           const center = (points[0].x + points.at(-1)!.x) / 2;
           return currentForkBranchesClear({ x: center, y: 0 }, children.map((child, index) => ({ point: points[index], obstacles: ink(child) })))
             && children.every((left, i) => children.every((right, j) => j <= i || clearPair(left, right, points[j].x - points[i].x)));
         };
-        let low = 1, high = 2;
-        for (let attempt = 0; attempt < 8 && !clear(positions(high)); attempt++) { low = high; high *= 2; }
-        if (!clear(positions(high))) throw Error(`Current fork branches cannot clear child ink ${part.serial}:${part.id}`);
-        for (let attempt = 0; attempt < 20; attempt++) {
-          const middle = (low + high) / 2;
-          if (clear(positions(middle))) high = middle; else low = middle;
-        }
-        const points = positions(high), center = (points[0].x + points.at(-1)!.x) / 2;
+        // Doubles, then bisects, the smallest clear amount of one enlargement.
+        const enlarge = (positions: (amount: number) => Point[], low: number, high: number) => {
+          for (let attempt = 0; attempt < 8 && !clear(positions(high)); attempt++) { low = high; high *= 2; }
+          if (!clear(positions(high))) return undefined;
+          for (let attempt = 0; attempt < 20; attempt++) {
+            const middle = (low + high) / 2;
+            if (clear(positions(middle))) high = middle; else low = middle;
+          }
+          return positions(high);
+        };
+        // Widening scales every child's offset from the fork's centre, so a
+        // branch passing over an inner sister crosses her at the same height
+        // however wide the fork grows: a wrapped label rising to that height
+        // stays crossed. Lowering the row moves the label down faster than the
+        // crossing, so it follows, unless a current slot fixes the row.
+        const points = enlarge(factor => original.map(point => ({ x: pivot + (point.x - pivot) * factor, y: point.y })), 1, 2)
+          ?? (lockedIndex === undefined ? enlarge(depth => original.map(point => ({ x: point.x, y: point.y + depth })), 0, TREE_ROW_HEIGHT / 4) : undefined);
+        if (!points) throw Error(`Current fork branches cannot clear child ink ${part.serial}:${part.id}`);
+        const center = (points[0].x + points.at(-1)!.x) / 2;
         placeChildren(points, center);
       }
       const selected = selectedContours?.get(part.serial);
