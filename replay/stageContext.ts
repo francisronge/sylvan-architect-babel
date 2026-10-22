@@ -125,8 +125,15 @@ export const prepareReplayStage = (
           && ownership.priorNodeIds.has(landing.id)
           && findExactNodesByIdInForest(previousFrameWorkspaceRoots, landing.id).length === 1
           && findExactNodesByIdInForest(workspaceRoots, landing.id).length === 1);
-      if (!ownsLanding || pendingProjectionReveals.some(reveal => reveal.nodeId === parent.id && reveal.stageIndex === index))
+      if (!ownsLanding)
         return;
+      const owner = relation.authoredRelationIndex ?? relationIndex;
+      const pending = pendingProjectionReveals.find(reveal => reveal.nodeId === parent.id && reveal.stageIndex === index);
+      // Another claim may own the same landing and play first.
+      if (pending) {
+        pending.relationIndexes.push(owner);
+        return;
+      }
       let firstStageIndex = index - 1;
       while (firstStageIndex > 0) {
         const earlier = frames[firstStageIndex - 1].workspaceForest?.find(root => root.id === parent.id);
@@ -148,10 +155,7 @@ export const prepareReplayStage = (
       // Withhold the saved unary shell until its second child attaches. A
       // fallback can own an exact node's relocation without proving a
       // linguistic movement drawing; earlier claims still retain their anchors.
-      pendingProjectionReveals.push({
-        nodeId: parent.id, firstStageIndex, stageIndex: index,
-        relationIndex: relation.authoredRelationIndex ?? relationIndex
-      });
+      pendingProjectionReveals.push({ nodeId: parent.id, firstStageIndex, stageIndex: index, relationIndexes: [owner] });
     });
   });
   const plannedStageRelocatesPriorLandingOccurrence = index > 0
