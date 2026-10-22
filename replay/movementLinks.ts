@@ -213,16 +213,18 @@ export const getActiveReplayRelationLinks = (step?: PlaybackStep | null): Resolv
     return [];
   const stageIndex = step?.replayRelationIdentity?.stageIndex;
   const relationIndex = step?.replayRelationIdentity?.relationIndex;
-  if (Number.isInteger(stageIndex) && Number.isInteger(relationIndex)) {
-    const authoredRelationKey = `${stageIndex}:${relationIndex}`;
-    const exactLinks = links.filter((link) => (String((link as ReplayAuthoredRelationLink).authoredRelationKey || '').trim()
-      === authoredRelationKey));
+  const linkKey = (link: ResolvedRelationLink) => String((link as ReplayAuthoredRelationLink).authoredRelationKey || '').trim();
+  const identified = Number.isInteger(stageIndex) && Number.isInteger(relationIndex);
+  if (identified) {
+    const exactLinks = links.filter((link) => linkKey(link) === `${stageIndex}:${relationIndex}`);
     if (exactLinks.length > 0)
       return exactLinks;
   }
   if (step?.replayKind === 'relation') {
     const authoredName = String(step.operation || '').trim();
-    return links.filter((link) => String(link?.relation || '').trim() === authoredName);
+    // An identified moment never borrows a same-named link that another
+    // authored relation, such as an earlier stage's, owns.
+    return links.filter((link) => (!identified || !linkKey(link)) && String(link?.relation || '').trim() === authoredName);
   }
   return !step?.replayKind ? links : [];
 };
