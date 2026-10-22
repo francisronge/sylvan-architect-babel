@@ -1,5 +1,5 @@
 import type { AssignmentScope } from './assignmentContinuity.ts';
-import { assignmentOutcomes, establishesAssignment } from './outcomeResolver.ts';
+import { assignmentOutcomes, establishesAssignment, hasUnrecognizedAssignmentOutcome } from './outcomeResolver.ts';
 import { nativeThetaRoles, sameNameValueEntries } from './tier2EvidenceQueries.ts';
 import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
 
@@ -25,7 +25,7 @@ export function recoverCompoundAssignments(evidence: Tier2FacetEvidence): Assign
     return i ? i * depthWeight - (left[0].length - i) : -1;
   };
   const scopes: AssignmentScope[] = [];
-  if (assignmentOutcomes(evidence).some(entry => !entry.concepts.includes('outcome'))) return scopes;
+  if (hasUnrecognizedAssignmentOutcome(evidence)) return scopes;
   for (const kind of ['theta-grid', 'feature.dependency'] as const) {
     if (kind === 'theta-grid' && !establishesAssignment(evidence)) continue;
     const sourceRole = kind === 'theta-grid' ? 'predicate' : 'feature.source';

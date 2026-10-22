@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect, useId, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Download, Eye } from 'lucide-react';
 import { GenerationRecord, ParseFailure, RawOutputArtifact } from '../types';
+import { createFileDownloads } from './fileDownload';
 import ViewErrorBoundary from './ViewErrorBoundary';
 
 const FailedOutputInspection = lazy(() => import('./FailedOutputInspection'));
@@ -48,21 +49,10 @@ const formatOffendingValue = (value: unknown): string => {
   }
 };
 
-const downloadFile = (blob: Blob, filename: string) => {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-};
-
-const downloadRawOutput = (artifact: RawOutputArtifact) => {
+const rawOutputBlob = (artifact: RawOutputArtifact) => {
   const binary = window.atob(artifact.data);
   const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-  downloadFile(new Blob([bytes], { type: artifact.mediaType }), `babel-model-output-${artifact.sha256.slice(0, 12)}.txt`);
+  return new Blob([bytes], { type: artifact.mediaType });
 };
 
 const FailurePanel: React.FC<FailurePanelProps> = ({
@@ -75,6 +65,8 @@ const FailurePanel: React.FC<FailurePanelProps> = ({
   children
 }) => {
   const [inspecting, setInspecting] = useState(false);
+  const [downloads] = useState(createFileDownloads);
+  useEffect(() => downloads.release, [downloads]);
   return (
   <div className="mb-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-xs text-rose-300 shadow-inner">
     <div className="flex items-start gap-3">
@@ -106,7 +98,8 @@ const FailurePanel: React.FC<FailurePanelProps> = ({
         {rawOutput && (
           <button
             type="button"
-            onClick={() => downloadRawOutput(rawOutput)}
+            onClick={() => downloads.download(rawOutputBlob(rawOutput),
+              `babel-model-output-${rawOutput.sha256.slice(0, 12)}.txt`)}
             className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/15 px-3 py-2 font-black uppercase tracking-widest text-[9px] text-rose-100 hover:bg-rose-500/25"
           >
             <Download size={12} />
@@ -123,7 +116,7 @@ const FailurePanel: React.FC<FailurePanelProps> = ({
         {generationRecord && (
           <button
             type="button"
-            onClick={() => downloadFile(
+            onClick={() => downloads.download(
               new Blob([JSON.stringify({ message, failure, rawOutput, generationRecord,
                 ...(sentence !== undefined ? { input: { sentence, ...(inputTokens ? { inputTokens } : {}) } } : {})
               }, null, 2)], { type: 'application/json' }),
