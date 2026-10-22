@@ -7,6 +7,7 @@ import {
 import { type HierNode } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
 import { availableTreeViewport, linearizationViewport } from '../treeViewport.ts';
+import { settledClientPoint } from './cameraState.ts';
 import type { ClaimDrawing, DrawingLayer, RelationEmphasis, TreeMeasurements } from './drawingContext.ts';
 
 import { nativeLinearizationPlateHeight } from '../../replay/relations/nativeDrawingContent.ts';
@@ -22,6 +23,8 @@ interface LinearizationDrawingContext extends Pick<ClaimDrawing, 'relationLayerK
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   treeData: d3.HierarchyPointNode<SyntaxNode>;
   uiBounds: { top: number; right: number; bottom: number; headerBottom: number; panelTop: number };
+  /** The tree layer's screen matrix under the settled camera (`deferredTreeMatrix`). */
+  deferredTreeMatrix: () => DOMMatrix | null;
 }
 
 export function createLinearizationDrawing({
@@ -35,7 +38,8 @@ export function createLinearizationDrawing({
   exactScreenTreeLabelRectNow,
   treeData,
   exactScreenDirectTreeLabelRectNow,
-  uiBounds
+  uiBounds,
+  deferredTreeMatrix
 }: LinearizationDrawingContext) {
   const scheduleAcceptedCyclicLinearization = (
     item: RelationPlanItem,
@@ -62,10 +66,14 @@ export function createLinearizationDrawing({
       scheduledAcceptedPfRelations.add(drawingKey);
       queueAcceptedRelationDraw(item, emphasis, () => {
         const root = g.node();
-        const matrix = root?.getScreenCTM();
+        // The plate and rails are placed in the viewport and sized in screen
+        // pixels for the settled camera; the live pose may still be moving there.
+        const liveMatrix = root?.getScreenCTM();
+        const matrix = deferredTreeMatrix();
         const svgRect = svg.node()?.getBoundingClientRect();
-        if (!root || !matrix || !svgRect) return;
+        if (!root || !liveMatrix || !matrix || !svgRect) return;
         const inverse = matrix.inverse();
+        const settle = settledClientPoint(liveMatrix, matrix);
         const toLocal = (clientX: number, clientY: number) =>
           new DOMPoint(clientX, clientY).matrixTransform(inverse);
         const screenScale = Math.max(0.001, Math.hypot(matrix.a, matrix.b));
@@ -116,7 +124,8 @@ export function createLinearizationDrawing({
               .text(`${spaceAuthoredName(anchorSetItem.set.relation, { snakeCase: true })}${anchorSetItem.set.instanceIndex > 0
                 ? ` (${anchorSetItem.set.instanceIndex + 1})`
                 : ''} · ${spaceAuthoredName(rail.role, { snakeCase: true })}`);
-            const overflow = (caption.node()?.getBoundingClientRect().bottom ?? 0) - railLabelBottom;
+            const captionRect = caption.node()?.getBoundingClientRect();
+            const overflow = (captionRect ? settle(captionRect.left, captionRect.bottom).y : 0) - railLabelBottom;
             if (overflow > 0) {
               caption.attr('y', (y - localPx(6) - localPx(overflow)).toFixed(1));
             }
