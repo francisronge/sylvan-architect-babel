@@ -157,13 +157,14 @@ export interface RawOutputArtifact {
   data: string;
 }
 
+/** Babel removed JSON delimiter repair on 22 Oct 2026; only earlier saved records carry these. */
 export type PayloadRepairKind =
   | 'insert_closers_before_mismatched_closer'
   | 'remove_unmatched_closer'
   | 'append_closers_at_end_of_output';
 
 export interface JsonDiagnostic {
-  kind: 'json-syntax' | 'json-root-type';
+  kind: 'json-syntax' | 'json-root-type' | 'json-delimiter-damage';
   message: string;
   candidateByteOffset?: number;
   originalByteOffset?: number;

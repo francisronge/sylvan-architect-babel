@@ -66,7 +66,9 @@ export const movementLandingGroups = (relation: DerivationReplayPlanStep): Deriv
 export const buildPreMovementStructuralForest = (
   forest: SyntaxNode[],
   relations: DerivationReplayPlanStep[],
-  previousForest: SyntaxNode[] = []
+  previousForest: SyntaxNode[] = [],
+  /** The completed stage, when `forest` holds only part of it. */
+  currentForest: SyntaxNode[] = forest
 ): SyntaxNode[] => {
   const structuralForest = cloneSyntaxForest(forest);
   const collectNodes = (root?: SyntaxNode | null): SyntaxNode[] => {
@@ -203,6 +205,13 @@ export const buildPreMovementStructuralForest = (
       replaceStructuralNode(parent.id, host);
     }
   };
+  // A partial forest can omit a pending head landing while construction has
+  // already placed the receiving head inside the landing's new complex.
+  // Before the movement, that head stands alone.
+  const restoreAbsentHeadLandingHost = (movement?: RecoveredMovement): void => {
+    if (movement?.trajectoryKind === 'head' && !findNode(movement.targetNodeId))
+      restoreHeadHost(findNode(findParentNodeIdInForest(currentForest, movement.targetNodeId)));
+  };
   const precedingLandingSlot = (relation: DerivationReplayPlanStep, landing: SyntaxNode): SyntaxNode | null => {
     const parent = findParent(landing.id);
     const oldParent = parent && previousLocations.get(parent.id)?.node;
@@ -269,6 +278,8 @@ export const buildPreMovementStructuralForest = (
       // Another claim about the same landing may already have withdrawn it;
       // this movement still restores its own source.
       const withdrawn = !landing && Boolean(findNodeInForest(forest, movement.targetNodeId));
+      if (!landing && !withdrawn)
+        restoreAbsentHeadLandingHost(movement);
       if ((!landing && !withdrawn) || restoredSources.some(restored => !restored))
         return;
       if (landing) {
@@ -315,6 +326,8 @@ export const buildPreMovementStructuralForest = (
       .map((sourceId) => findNode(sourceId))
       .filter((source): source is SyntaxNode => Boolean(source));
     const target = findNode(targetId);
+    if (!target)
+      restoreAbsentHeadLandingHost(relation.recoveredMovement);
     if (sources.length !== sourceIds.length || sources.length === 0 || !target)
       return;
     const targetLineageId = String(target.lineageId || '');
