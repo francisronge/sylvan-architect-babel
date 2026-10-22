@@ -1,8 +1,10 @@
 import { collectVisibleReplayOvertTokenCounts } from '../replay/playbackVisibility.ts';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { applyPreFrontingSentenceInitialCasing, hasDeterminerNominalComplement, maybeLowercaseSentenceInitialFunctionSurface } from '../replay/replayCasing.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { collectPronouncedLeafNodeIdsInOrder, findNodeByIdInForest } from '../replay/syntaxForest.ts';
 
 const counts = (tree, ids) => collectVisibleReplayOvertTokenCounts({
   replayCanvasData: tree, replayVisibleNodeIds: ids
@@ -54,7 +56,7 @@ test('feature annotations do not disable position-sensitive casing or change aut
 });
 
 test('a standalone nominal preserves authored capitals before and after movement, even with tokenIndex zero', () => {
-  for (const word of ['Mia', 'I', 'Which']) {
+  for (const word of ['Mia', 'I']) {
     for (const tokenIndex of [undefined, 0]) {
       const nominal = { id: 'nominal', label: 'D[person:3]', children: [{ ...leaf('name', word), tokenIndex }] };
       const verb = { id: 'verb', label: 'V', children: [leaf('v', 'seems')] };
@@ -96,6 +98,49 @@ test('an explicitly wh-marked nominal loses sentence casing in its lower positio
     surface: 'What', sentenceInitialSurface: 'What', parentLabel: nominal.label,
     visibleOvertLeafIds: ['v', 'word'], nodeId: 'word'
   }), 'what');
+});
+
+test('a bare D pronoun or expletive loses sentence casing where it is not first, while names and I keep theirs', () => {
+  const verb = { id: 'verb', label: 'V', children: [leaf('v', 'seem')] };
+  for (const [word, expected] of [['There', 'there'], ['It', 'it'], ['They', 'they'], ['Nobody', 'nobody'],
+    ['Which', 'which'], ['John', 'John'], ['Mia', 'Mia'], ['I', 'I']]) {
+    for (const label of ['D', 'D[person:3]']) {
+      const nominal = { id: 'nominal', label, children: [leaf('word', word)] };
+      const input = freeze([
+        { operation: 'LexicalSelect', targetNodeId: 'word', targetLabel: word, sourceLabels: [word],
+          replayCanvasData: { id: 'root', label: 'VP', children: [verb, nominal] } },
+        { operation: 'Move', targetNodeId: 'word', targetLabel: word,
+          replayCanvasData: { id: 'root', label: 'TP', children: [nominal, verb] } }
+      ]);
+      const [before, after] = applyPreFrontingSentenceInitialCasing(input, `${word} seem ...`);
+      assert.equal(before.replayCanvasData.children[1].children[0].word, expected, `${word} under ${label} after the verb`);
+      assert.equal(before.targetLabel, expected);
+      assert.deepEqual(before.sourceLabels, [expected]);
+      assert.equal(after.replayCanvasData.children[0].children[0].word, word, `${word} keeps sentence casing when first`);
+      assert.equal(maybeLowercaseSentenceInitialFunctionSurface({
+        surface: word, sentenceInitialSurface: word, parentLabel: label,
+        visibleOvertLeafIds: ['v', 'word'], nodeId: 'word'
+      }), expected, 'the renderer uses the same lexical-casing rule');
+      assert.equal(maybeLowercaseSentenceInitialFunctionSurface({
+        surface: word, sentenceInitialSurface: word, parentLabel: label,
+        visibleOvertLeafIds: ['word', 'v'], nodeId: 'word'
+      }), word, 'the first visible word keeps sentence casing');
+    }
+  }
+});
+
+test('the expletive There is lowercase after seem until it raises', () => {
+  const fixture = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/renamed-continuing-nominal.json', import.meta.url), 'utf8'));
+  const steps = prepareReplay({ ...fixture, includePlayback: true }).playbackSteps;
+  const pronounced = step => collectPronouncedLeafNodeIdsInOrder(step.replayCanvasData)
+    .filter(id => !step.replayVisibleNodeIds || step.replayVisibleNodeIds.includes(id))
+    .map(id => findNodeByIdInForest([step.replayCanvasData], id)?.word);
+  const raised = steps.findIndex(step => step.replayFrameIndex === 4);
+  const beforeRaising = steps.slice(0, raised).map(pronounced).filter(words => words.includes('seem'));
+  assert.ok(beforeRaising.length > 0);
+  for (const words of beforeRaising)
+    assert.deepEqual(words.slice(0, 2), ['seem', 'there'], words.join(' '));
+  assert.deepEqual(pronounced(steps.at(-1)).slice(0, 2), ['There', 'seem']);
 });
 
 test('a determiner with a nominal complement still loses sentence casing before fronting in either notation', () => {
