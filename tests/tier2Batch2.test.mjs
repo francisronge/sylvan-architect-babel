@@ -248,15 +248,17 @@ test('Tier-2 cycles preserve authored outcome labels with the same paths as Tier
   }
 });
 
-test('cyclic paths preserve neutral qualifiers and reject contradictory or global outcomes', () => {
-  for (const outcome of ['pending evaluation', ['blocked', 'pending evaluation'], '']) {
+test('cyclic paths preserve neutral qualifiers and reject contradictory, unread or global outcomes', () => {
+  for (const outcome of [['blocked', 'pending evaluation'], '']) {
     const result = inspect(relation({ probe: 'a', goal: 'b' }, { cycle: '2', outcome }));
     assert(has(result, 'agreement.cycle'));
     assert.equal(result.items.find(item => item.pathStyle === 'agree-cyclic').secondaryLabel,
       Array.isArray(outcome) ? 'blocked' : undefined);
     assert.deepEqual(result.dispatch.primaryRelation.values, { outcome: Array.isArray(outcome) ? ['pending evaluation'] : outcome });
   }
-  for (const outcome of ['converged', ['allowed', 'blocked']]) {
+  // An outcome no concept reads names neither success nor failure; it does not
+  // become a qualifier of a successful path.
+  for (const outcome of ['converged', ['allowed', 'blocked'], 'pending evaluation']) {
     const result = inspect(relation({ probe: 'a', goal: 'b' }, { cycle: '2', outcome }));
     assert(!has(result, 'agreement.cycle'), JSON.stringify(outcome));
     assert(!has(result, 'feature.dependency'));

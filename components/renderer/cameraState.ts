@@ -22,6 +22,8 @@ export type AutoCameraState = TreeCameraState & {
 
 /** Retained camera interaction state for one mounted tree, shared across frame draws. */
 export interface CameraSession {
+  /** `deferred` is the pose the camera is settling at: the accepted fit or retained
+   * manual pose, or the pose a gesture reached. */
   cameraRuntime: { applying: boolean; cancel: (() => void) | undefined; deferred: d3.ZoomTransform | null };
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   zoom: d3.ZoomBehavior<SVGSVGElement, unknown>;
@@ -37,4 +39,22 @@ export interface CameraSession {
   svgRef: { current: SVGSVGElement | null };
   reportViewError: (error: unknown) => void;
   manualCameraRef: { current: TreeCameraState | null };
+}
+
+/** The tree layer's screen matrix under `deferred`, the pose the camera is
+ * settling at. A camera transition paints its start pose synchronously, so a
+ * placement made after a fit that clamps to the viewport or sizes a mark in
+ * screen pixels uses this matrix; measuring painted elements into tree space
+ * keeps their live matrix. Before any fit it is the live matrix. */
+export function deferredTreeMatrix(svg: SVGSVGElement | null | undefined, tree: SVGGElement | null | undefined,
+  deferred: { x: number; y: number; k: number } | null) {
+  const outer = deferred ? svg?.getScreenCTM() : null;
+  return deferred && outer ? outer.translate(deferred.x, deferred.y).scale(deferred.k) : tree?.getScreenCTM() ?? null;
+}
+
+/** Carries a client point measured under the live tree matrix to where it lies
+ * under the settled one. */
+export function settledClientPoint(live: DOMMatrix, settled: DOMMatrix) {
+  const intoTree = live.inverse();
+  return (x: number, y: number) => new DOMPoint(x, y).matrixTransform(intoTree).matrixTransform(settled);
 }

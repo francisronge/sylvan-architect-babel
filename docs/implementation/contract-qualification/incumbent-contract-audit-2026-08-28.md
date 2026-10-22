@@ -215,8 +215,11 @@ the audit:
 1. **Exact surface enforcement.** Babel currently rejects an analysis when no
    authored tree has overt terminals matching the input. Francis has not yet
    accepted this as the final product policy.
-2. **Delimiter repair.** The strict JSON parser can add or discard closing
-   delimiters and records `json_delimiter_damage_repaired`.
+2. **Delimiter repair.** Decided: Francis removed it on 22 Oct 2026. The strict
+   JSON parser no longer adds or discards closing delimiters; unbalanced brackets
+   fail as `TRANSPORT_JSON_DELIMITERS_BALANCED`. Saved records keep any
+   `json_delimiter_damage_repaired` flag they were made with. A stricter rule is
+   held for the public app.
 3. **Payload transcriber.** The Gemini route can run a second model after JSON or
    normalization failure. Whether it survives at all depends on observed
    failures; any surviving role must be transport-only and provably

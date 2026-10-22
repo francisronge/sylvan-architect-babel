@@ -11,6 +11,23 @@ export const matches = (node, selector) => selector.split(',').some(part => {
     && attributes.every(name => Object.hasOwn(node.attrs, name));
 });
 
+// A 2-D affine screen matrix with the DOMMatrix operations the renderer uses.
+export class Matrix {
+  constructor(a = 1, b = 0, c = 0, d = 1, e = 0, f = 0) { Object.assign(this, { a, b, c, d, e, f }); }
+  multiply(m) {
+    return new Matrix(this.a * m.a + this.c * m.b, this.b * m.a + this.d * m.b,
+      this.a * m.c + this.c * m.d, this.b * m.c + this.d * m.d,
+      this.a * m.e + this.c * m.f + this.e, this.b * m.e + this.d * m.f + this.f);
+  }
+  translate(x, y = 0) { return this.multiply(new Matrix(1, 0, 0, 1, x, y)); }
+  scale(x, y = x) { return this.multiply(new Matrix(x, 0, 0, y, 0, 0)); }
+  inverse() {
+    const det = this.a * this.d - this.b * this.c;
+    return new Matrix(this.d / det, -this.b / det, -this.c / det, this.a / det,
+      (this.c * this.f - this.d * this.e) / det, (this.b * this.e - this.a * this.f) / det);
+  }
+}
+
 // A deterministic SVG DOM for running the real D3 painters. Native browser
 // captures remain responsible for font rasterization and camera animation.
 export function createSvgDom(measureText = (text, style) => ({
@@ -86,7 +103,7 @@ export function createSvgDom(measureText = (text, style) => ({
     addEventListener(name, listener) { (this.handlers ??= {})[name] = listener; }
     removeEventListener(name) { delete this.handlers?.[name]; }
     getBoundingClientRect() { return this.rect; }
-    getScreenCTM() { return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0, inverse() { return this; } }; }
+    getScreenCTM() { return new Matrix(); }
     metrics() { return measureText(this.textContent, {
       fontSize: parseFloat(this.styles['font-size'] || 28),
       letterSpacing: parseFloat(this.styles['letter-spacing'] || 0)
@@ -109,8 +126,8 @@ export function createSvgDom(measureText = (text, style) => ({
     DOMPoint: class {
       constructor(x, y) { this.x = x; this.y = y; }
       matrixTransform(matrix) {
-        return { x: this.x * (matrix.a ?? matrix.scale ?? 1) + this.y * (matrix.c ?? 0) + (matrix.e ?? 0),
-          y: this.x * (matrix.b ?? 0) + this.y * (matrix.d ?? matrix.scale ?? 1) + (matrix.f ?? 0) };
+        return new globals.DOMPoint(this.x * (matrix.a ?? matrix.scale ?? 1) + this.y * (matrix.c ?? 0) + (matrix.e ?? 0),
+          this.x * (matrix.b ?? 0) + this.y * (matrix.d ?? matrix.scale ?? 1) + (matrix.f ?? 0));
       }
     }
   };
