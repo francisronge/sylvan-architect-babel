@@ -1099,6 +1099,22 @@ test('Transfer retains each exact accessible edge in its prepared plan', () => {
   assert.deepEqual(plan.frames[0].items.filter((item) => item.domainStyle === 'transfer-edge').map((item) => item.rootNodeId), ['e1', 'e2']);
 });
 
+test('Phase and Transfer restatements compare their edge lists in any order', () => {
+  const forest = [node('phase', 'CP', [leaf('e1', 'D', 'who'), leaf('e2', 'D', 'she'), node('sod', 'TP', [leaf('v', 'V', 'left')])])];
+  const transfer = edge => ({ relation: 'TransferDomain', anchors: { phase: 'phase', edge, spellOutDomain: 'sod' } });
+  const phaseArcs = relations => compileRelationRenderPlan([stage(relations, forest)]).frames[0].items
+    .filter(item => item.componentLabel === 'Phase' || item.domainStyle === 'phase');
+  for (const second of [['e1', 'e2'], ['e2', 'e1']]) {
+    assert.deepEqual(phaseArcs([transfer(['e1', 'e2']), transfer(second)]).map(item => item.relationRef.relationIndex), [0],
+      `one Phase arc for edges ${second}`);
+  }
+  // A Phase relation is elaborated by a later Transfer naming its edge in any position.
+  for (const edge of [['e1', 'e2'], ['e2', 'e1']]) {
+    const arcs = phaseArcs([{ relation: 'Phase', anchors: { phase: 'phase', edge: 'e1' } }, transfer(edge)]);
+    assert.deepEqual(arcs.map(item => `${item.kind}:${item.relationRef.relationIndex}`), ['fong-component:0'], `edges ${edge}`);
+  }
+});
+
 test('focus emphasis contains only actual native edges and rejects competing branch ownership', () => {
   const forest = [node('root', 'TP', [node('left', 'DP', [leaf('a', 'N', 'Mia')]), node('right', 'VP', [leaf('b', 'V', 'sang')])])];
   const plan = compileRelationRenderPlan([stage([{ relation: 'FocusMarking', anchors: { domain: 'root', focus: 'a', background: 'b' } }], forest)]);
