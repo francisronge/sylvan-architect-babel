@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useReplayStepDevBridge } from '../hooks/useDevPreview.ts';
 import { CAMERA_ZOOM, CATEGORY_FALLBACK_GLYPH_WIDTH, CATEGORY_FONT } from '../replay/rendererMetrics.ts';
 import { initialReplayStepIndex, replayStartState } from '../replay/initialReplayStep.ts';
 import { buildResolvedLinkTraceIndexMap } from '../replay/movementIndices.ts';
@@ -326,37 +327,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
       )
       : new Map<string, string>()
   ), [traceDisplayFrame, traceDisplayFrameIndex, traceDisplayRelationLinks, movementChainIndexCatalogue]);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const target = window as typeof window & {
-      __BABEL_DEV_SET_REPLAY_STEP__?: (nextStep: number) => void;
-      __BABEL_DEV_GET_REPLAY_STEP_COUNT__?: () => number;
-      __BABEL_DEV_GET_REPLAY_STEP_PAYLOAD__?: (index: number) => typeof currentReplayStep;
-    };
-    target.__BABEL_DEV_SET_REPLAY_STEP__ = (nextStep: number) => {
-      const requested = Number(nextStep);
-      const maxStep = Math.max(playbackSteps.length - 1, 0);
-      const bounded = Number.isFinite(requested)
-        ? Math.max(0, Math.min(Math.trunc(requested), maxStep))
-        : 0;
-      setIsAutoPlaying(false);
-      setActiveStepIndex(bounded);
-    };
-    target.__BABEL_DEV_GET_REPLAY_STEP_COUNT__ = () => playbackSteps.length;
-    target.__BABEL_DEV_GET_REPLAY_STEP_PAYLOAD__ = (index: number) => {
-      const requested = Number(index);
-      const bounded = Number.isFinite(requested)
-        ? Math.max(0, Math.min(Math.trunc(requested), Math.max(playbackSteps.length - 1, 0)))
-        : 0;
-      return playbackSteps[bounded] || null;
-    };
-
-    return () => {
-      delete target.__BABEL_DEV_SET_REPLAY_STEP__;
-      delete target.__BABEL_DEV_GET_REPLAY_STEP_COUNT__;
-      delete target.__BABEL_DEV_GET_REPLAY_STEP_PAYLOAD__;
-    };
-  }, [playbackSteps]);
+  useReplayStepDevBridge(playbackSteps, setActiveStepIndex, setIsAutoPlaying);
 
   const canvasData = useMemo(() => selectReplayCanvas({
     usesDerivationFrames, animated, stepCanvas: activeDerivationReplayStep?.replayCanvasData,
