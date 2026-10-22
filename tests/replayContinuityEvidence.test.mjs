@@ -154,3 +154,19 @@ test('a wrapper can replace retained children before their parent gains a separa
   assert.deepEqual(childrenAt(merge, 'phrase'), ['wrapper', 'three']);
 });
 
+
+test('a new phrase repeating the material of an earlier phrase that changes in place is built at its own steps', () => {
+  // The earlier phrase keeps its id while a modifier joins it, so the new
+  // phrase with its former material is a second occurrence, not a renaming.
+  const earlierCore = branch('earlierCore', [leaf('second', 'two')]);
+  const before = branch('earlier', [leaf('first', 'one'), earlierCore]);
+  const after = branch('clause', [
+    branch('earlier', [leaf('first', 'one'), branch('wrapper', [branch('modifier', [leaf('three', 'three')]), earlierCore])]),
+    branch('repeat', [leaf('repeatFirst', 'one'), branch('repeatCore', [leaf('repeatSecond', 'two')])])
+  ]);
+  const steps = replay([before], [after]);
+  for (const id of ['repeat', 'repeatFirst', 'repeatCore', 'repeatSecond'])
+    assertFirstVisibleAtConstruction(steps, id);
+  for (const id of ['earlier', 'first', 'earlierCore', 'second'])
+    assert.ok(steps[0].replayVisibleNodeIds.includes(id), `${id} continues from the preceding stage`);
+});

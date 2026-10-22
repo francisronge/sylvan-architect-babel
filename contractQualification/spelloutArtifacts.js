@@ -31,7 +31,7 @@ export const planSpelloutAttempts = (payload, results) => {
  * model text; the analyses that pass the spelling check become one ordinary
  * qualification attempt, so the unchanged parser, Replay and review apply.
  * spellout.json keeps the conversion evidence: words, aligned spans, tokens,
- * observations and the original ingress repairs.
+ * observations and the ingress status.
  */
 export const writeSpelloutAttempts = ({ outputPath, sentence, framework, model, text }) => {
   const rawBytes = Buffer.from(text, 'utf8');
@@ -51,7 +51,7 @@ export const writeSpelloutAttempts = ({ outputPath, sentence, framework, model, 
   const results = convertSpelloutPayload(parsed.payload, sentence);
   const plan = planSpelloutAttempts(parsed.payload, results);
   Object.assign(record, {
-    ingress: { status: 'parsed', integrityFlags: parsed.integrityFlags || [], repairDiagnostics: parsed.repairDiagnostics || [] },
+    ingress: { status: 'parsed', integrityFlags: [], repairDiagnostics: [] },
     analyses: results.map(({ analysis, ...result }) => result),
     attempts: [...plan.attempts.map(({ id, inputTokens, analysisIndices }) => ({ id, inputTokens, analysisIndices })),
       ...plan.failures.map(({ id, analysisIndex }) => ({ id, analysisIndices: [analysisIndex], failed: true }))]

@@ -2401,7 +2401,7 @@
       ]
     },
     "replay-regressions/review-final-framing.json#/cases/0": {
-      "frames": "9s9mkDXf KtGdc79m AOVpeStK tZHEKxaq GoGUveHC u7ZexfqX 6cHBDSZO sNRB5zcQ _dfVG8H7 vQoBI_ZO Oxk1gCxG SIb7pGiI rmjtPJM4 KP8_WSXj abA4yWuq uStwcTvP 1C6CvIez V80IuBdN 9hL-eYqy YfAf59vi yay8u3Fl sczoF436 EIQpbmhS fuuEd15V jOWWf19K hlZrfkgD TsEi6r9j CqvJPUdY 2kHtJacK 2LoJBsCg 18Z9IgQ7 8J2uiBTN GFo-AAaY RqxYilpx lAKLqz91 irsw59el SfAHg8lu RJpyfRIl Pvl0omKK MJQkRu91 Mbdy9Y5Z DrapHqvl cYnP5igQ UTN3UOoH i80ufuc9 4qXT4x0Q UbeXpSKd",
+      "frames": "9s9mkDXf KtGdc79m AOVpeStK tZHEKxaq GoGUveHC u7ZexfqX 6cHBDSZO sNRB5zcQ _dfVG8H7 vQoBI_ZO Oxk1gCxG SIb7pGiI rmjtPJM4 KP8_WSXj abA4yWuq uStwcTvP 1C6CvIez V80IuBdN 9hL-eYqy YfAf59vi yay8u3Fl sczoF436 EIQpbmhS fuuEd15V jOWWf19K hlZrfkgD TsEi6r9j CqvJPUdY 2kHtJacK 2LoJBsCg 18Z9IgQ7 8J2uiBTN GFo-AAaY RqxYilpx lAKLqz91 irsw59el SfAHg8lu RJpyfRIl bBY-csfi PIv0EFNG aceHpuB1 aXLGdnLN jNqtMxvI m-WwF9tE vrVWbpgP 1dlhiIWR JUmc9ZvG",
       "canopy": "6vtPzLNr",
       "tiers": [
         "0:0 T3 fallback",
@@ -2411,13 +2411,12 @@
         "1:2 T3 fallback",
         "2:0 T2 coindex coreference.coindex coreference.coindex",
         "2:0 T3 fallback",
-        "2:1 T2 binding-domain binding.domain binding.dependency",
         "2:1 T3 fallback",
         "2:2 T3 fallback"
       ]
     },
     "replay-regressions/review-final-framing.json#/cases/1": {
-      "frames": "SXm-_tmc D40P1_v8 3vb3SMIY mvQSxDqt y5aKjHYY 2aCfG1qd k21reijE wTFzJzmX RaF1EKxL aQJ3Ky7h jYTZjewD xtj2B56Q hfpK3qBl 0fRetihA foOGXCaV RAOM_D9c 5f4PqbTL 23D2Ao6E o75mJseS _pOc2W9O d6zBuqlA FTpFd2XS 3q2taOZ3 QtBMtJ4R rrdYcZbY x41z--tK I2xFK4vD wqyaAhgQ VOCiXfEN bgNswYcG 3pfmxz2y jIDWXaPR B2XBkFes aHgBqNyT 60rTOqDi ESiSs7gv 1v5BlSXZ KwpxMVhl WqNPqzp_ -ELX-XG0 osKJxoNW 4q85CX08 LoQlIqdK 1XV2oqc6 7EaHLSqw GyTBWT3M 8QknL3KT cJZW9dgV PJYqkpuM",
+      "frames": "SXm-_tmc D40P1_v8 3vb3SMIY mvQSxDqt y5aKjHYY 2aCfG1qd k21reijE wTFzJzmX RaF1EKxL aQJ3Ky7h jYTZjewD xtj2B56Q hfpK3qBl 0fRetihA foOGXCaV RAOM_D9c 5f4PqbTL 23D2Ao6E o75mJseS _pOc2W9O d6zBuqlA FTpFd2XS 3q2taOZ3 QtBMtJ4R rrdYcZbY x41z--tK I2xFK4vD wqyaAhgQ VOCiXfEN bgNswYcG 3pfmxz2y jIDWXaPR B2XBkFes aHgBqNyT 60rTOqDi ESiSs7gv 1v5BlSXZ KwpxMVhl WqNPqzp_ -ELX-XG0 osKJxoNW F61-sLMS 5ZFhjJ4a c8-xlMYt 1iXi3rlN ep0FANph NJW1mKC_ -9TQEKd5 Y5pA06lH",
       "canopy": "z6Nw_syY",
       "tiers": [
         "0:0 T3 fallback",
@@ -2427,7 +2426,6 @@
         "1:1 T2 directed-path tier2.feature-dependency feature.dependency",
         "2:0 T2 coindex coreference.coindex coreference.coindex",
         "2:0 T3 fallback",
-        "2:1 T2 binding-domain binding.domain binding.dependency",
         "2:1 T3 fallback",
         "2:2 T3 fallback"
       ]
@@ -3043,7 +3041,7 @@
       ]
     },
     "replay-regressions/unrecognized-movement.json#/cases/2": {
-      "frames": "w7dvkGgW xLYLDxF6 VXP1_-6w WMJR8q9R piBsXyfC 4lrA1Mbh DcwZ7_50 b24iaQtF MGdlPHcV EpuZBMki Ozhb12VQ zemD7p3K 6yYLV37e WHg4_5tv zn_xUdZG 3Mcs3QRv 0T2UB4aJ VAAH6X_h ULLFJYbv jD3Gjo7X Eg6vLTEP 3Bgdf1eS 6z_6Y4sx uTZ0KZ82 KTpYBfvc hw4iyk_X BVW3iuWK yKHZpBv3 ulnSuuhD aa0c_ccn PrWuZZhR QZ_pAAzF JK2KXC8w lgGw-t7E QwRDSm-f yzovuzDj vG-sWxiL mpw6zvSW cn_HwVJ- ewyaZqqL 8P8Zrt9q -yutpLLZ vzPezydM PpPa8wSp sHF4d2D9 Qi6cGmuF ghkkVFyF 3QZdxYzi wMgqn_Se ZRURgcUz _NvgknGn 7Ccjebp3 CeApSksp F8l064Jn zMezzbew b71XA_1W tCV4WOsy 4uSqmFYx wgt7HoXd -KVMYh9E wLftbkC_ 3JyAh-1W _yIvMisR _LpG45Dp e0Pa5It1 GJvid4Z- e3EG3t5_ P-aFduF0 TUrsWEzA 0w7Jv2xU avd_JmY8 CEnAgVzV M5SX2f1M 5Sg8HX9D",
+      "frames": "w7dvkGgW xLYLDxF6 VXP1_-6w WMJR8q9R piBsXyfC 4lrA1Mbh DcwZ7_50 b24iaQtF MGdlPHcV EpuZBMki Ozhb12VQ zemD7p3K 6yYLV37e WHg4_5tv zn_xUdZG 3Mcs3QRv 0T2UB4aJ VAAH6X_h ULLFJYbv jD3Gjo7X Eg6vLTEP 3Bgdf1eS 6z_6Y4sx uTZ0KZ82 KTpYBfvc hw4iyk_X BVW3iuWK yKHZpBv3 ulnSuuhD aa0c_ccn PrWuZZhR QZ_pAAzF JK2KXC8w lgGw-t7E QwRDSm-f yzovuzDj vG-sWxiL mpw6zvSW cn_HwVJ- CdORAasP 9A3moU7Y QgRn0k2G K7Kjdw89 LrPwazRf avcxsZ3D bQx4CMUC Bjk6ey09 KbmMGEyn EpDbJ1ho 8Cej4yvb rjeRx2j6 SMgT_rJR RmPc4EYP -_zldW-k 77aL1D-y ERfH79SK ERSkIoNV w9DYtKtf yVT-3s0w _vFjk7-j ODacgexS 4prIEBq4 -0XmasKK Pn_aD2Dw OVrkNT_v eEV9TXjb JKdMNLFj DY0-L8QQ -U0tiHvW lxCFaLCP NrarLgeJ EwL4xfh_ gP8tHNtG 5T8sUHG_",
       "canopy": "OKsmavmw",
       "tiers": [
         "0:0 T2 directed-path tier2.feature-dependency feature.dependency",
