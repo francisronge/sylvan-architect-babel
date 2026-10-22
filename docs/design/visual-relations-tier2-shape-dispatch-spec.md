@@ -1354,14 +1354,26 @@ a separate exact resolver.
   blocked-operation family may map both `blocked` and `failed` to its blocked
   path without making those concepts globally interchangeable.
 - A recognized but unaccepted concept does not earn that family's styled mark.
-- An unknown literal remains visible but earns no styled outcome.
+- An unknown literal remains visible but earns no styled outcome. When an
+  `outcome`, `status` or `result` field names no recognized outcome, its
+  literal is still the claim's outcome, so a Tier-2 facet that reads outcomes
+  cannot draw its successful form over it. Beside a recognized outcome in the
+  same field, unknown items are qualifiers left to the neutral claim. On a
+  verdict or judgment field, a literal that names no outcome is that field's
+  judgment. A proven movement transition still draws its path: an outcome the
+  resolver cannot read does not deny it and stays beside the path as a
+  neutral qualifier.
 - The resolver uses exact normalization only. It performs no fuzzy or semantic
   matching.
 
 When a recipe requires an outcome, a missing or unaccepted outcome leaves that
-recipe incomplete. An incomplete registered Tier-1 relation receives the Tier-3
-neutral fallback. For an unknown relation, only that Tier-2 facet is skipped;
-complete sibling facets still draw. If no Tier-2 facet survives, Tier 3 draws.
+recipe incomplete. An authored outcome that a recipe with an optional outcome
+does not accept, including an unknown outcome field, leaves it incomplete too;
+only an absent optional outcome earns the ordinary drawing. Assignment
+recovery does not split an envelope whose outcome it cannot read. An incomplete
+registered Tier-1 relation receives the Tier-3 neutral fallback. For an
+unknown relation, only that Tier-2 facet is skipped; complete sibling facets
+still draw. If no Tier-2 facet survives, Tier 3 draws.
 
 The direct blocking-cross facet accepts the `blocked` concept only, including
 exact synonyms such as `prevented` and `barred`. Relation-specific path facets

@@ -53,6 +53,8 @@ export function installCameraInteraction(session: Pick<CameraSession,
       g.attr('transform', event.transform as unknown as string);
       if (event.sourceEvent && !cameraRuntime.applying) {
         cameraRuntime.cancel?.();
+        // A gesture ends any transition where it is; deferred drawing places for this pose.
+        cameraRuntime.deferred = event.transform;
         cameraAnimationRef.current = null;
         svg.attr('data-babel-camera-settled-step', activeStepIndex);
         effects.finishCollectionReveal?.();
