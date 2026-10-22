@@ -923,7 +923,11 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       ...(request.caseAssignment ? caseRouteRects(attachment, placement, undefined, caseSources) : []));
   }
   // Compact boxes keep first choice of nearby pockets, even when a wider grid can also fit locally.
-  requests.sort((a, b) => Number(!fitsLocalPocket(a)) - Number(!fitsLocalPocket(b)) || a.index - b.index);
+  // Among them, a plaque that shows its owner only by proximity chooses before one that a
+  // Case arrow or collector joins to its owner, which can still reach a farther pocket.
+  const joined = (request: PlaqueRequest) => Number(Boolean(request.caseAssignment || request.collectionRows?.length));
+  requests.sort((a, b) => Number(!fitsLocalPocket(a)) - Number(!fitsLocalPocket(b)) || joined(a) - joined(b)
+    || a.index - b.index);
   for (const request of requests) {
     if (result.has(request.index)) continue;
     const anchors = request.ids.map(id => byId.get(id)).filter((node): node is Node => Boolean(node));

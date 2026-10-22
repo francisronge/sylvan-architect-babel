@@ -246,7 +246,9 @@ stage-wide union still reserves its later visible placement before reveal.
 The worker, painter and camera consume the same stage and step maps.
 
 A plaque without its own Case arrow or collector shows its owner only by
-proximity. One anchor-relative pocket clear at every position of a moving anchor
+proximity. Among compact plaques placed together, such plaques choose their
+pockets before Case and collection plaques, whose connectors still join them to
+their owners from a farther pocket. One anchor-relative pocket clear at every position of a moving anchor
 can lie beyond all of the plaque's nearby pockets. Such a remote plaque instead
 takes a pocket for each position that an authored movement carries its anchor to,
 inside the moved phrase or the complex head that movement forms. Reflow, merges
