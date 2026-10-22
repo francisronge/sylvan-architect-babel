@@ -359,6 +359,9 @@ D6's Number and Gender paths. Curve handles, dash styling, ownership and reveal
 timing remain shared with the existing drawing. Case plaques also reserve at least
 two category-line heights between the arrow's source and target; collision
 clearance alone must not reduce the shaft to an almost invisible fragment.
+Allocation measures the arrow's source as the painter does: the native text box
+of the source's word or category label in that scene, the union of its retained
+label variants. Without label measurements it keeps the estimated box.
 
 Allocation runs in a worker after chunked browser text measurement.
 
