@@ -1,8 +1,12 @@
 export interface CategoryShape {
+  /** The first member's category; a compound head names several. */
   category: string;
   head: string;
   kind: 'head' | 'bar' | 'phrase';
   compound: boolean;
+  /** Every member's head category in authored order: "v+T" and "T+v" each
+   * bundle v and T, and a simple label has one member. */
+  members: string[];
 }
 
 const withoutFeatures = (label: string): string => {
@@ -45,7 +49,7 @@ export const readCategoryLabel = (label?: string | null): CategoryShape | undefi
   if (parts.some(part => !part) || parts.length > 1 && parts.some(part => part?.kind !== 'head')
     || projection && parts.length !== 1) return;
   const first = parts[0]!;
-  return { ...first, kind: projection ? 'bar' : first.kind, compound: parts.length > 1 };
+  return { ...first, kind: projection ? 'bar' : first.kind, compound: parts.length > 1, members: parts.map(part => part!.head) };
 };
 
 /** Category identity for consumers that do not need its projection level. */

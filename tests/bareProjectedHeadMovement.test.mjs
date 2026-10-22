@@ -49,7 +49,7 @@ test('nested trailing annotations preserve category recognition without rewritin
 });
 
 for (const [category, label] of [['T', 'T[Aux, finite]'], ['C[force]', 'C[T[Aux], finite]'],
-  ['Z', 'Z[features[nested]]']]) test(`a lexical ${label} projects over its exact retained source domain`, () => {
+  ['Z', 'Z[features[nested]]'], ['T', 'Aux+T[finite]'], ['T', 'T+Aux[finite]']]) test(`a lexical ${label} projects over its exact retained source domain`, () => {
   const input = projection(category, label), original = structuredClone(input);
   const movement = recover(input).movement;
   assert.equal(movement?.trajectoryKind, 'head');

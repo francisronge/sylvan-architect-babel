@@ -20,7 +20,7 @@ jobs:
   renderer-performance:
     name: Renderer performance
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 35
     steps:
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -52,8 +52,12 @@ jobs:
         # Bounded and retried, as in browser-verification.yml.
         run: |
           for attempt in 1 2 3; do
-            timeout --kill-after=30s 8m npx --no-install playwright install --with-deps chromium && exit 0
+            timeout --kill-after=30s 10m npx --no-install playwright install --with-deps chromium && exit 0
             echo "::warning::browser install attempt $attempt failed or stalled; retrying"
+            # A killed attempt can leave apt holding its locks; clear them so the retry can run.
+            sudo pkill -9 -f 'apt-get|dpkg' || true
+            sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock /var/lib/apt/lists/lock
+            sudo dpkg --configure -a || true
           done
           exit 1
 

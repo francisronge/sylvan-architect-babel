@@ -43,6 +43,14 @@ export interface RecoveredMovement {
 type MovementContextKind = 'site' | 'head-host' | 'head-complex' | 'head-landing' | 'head-member';
 
 const headCategory = (node: SyntaxNode): string => readCategoryLabel(node.label)?.head ?? '';
+/** Whether two labels name the same head: a complex and its host, a head and
+ * its projection, or two occurrences of one head. A compound label names each
+ * member it bundles, in either order ("v+T", "T+v"), so a complex spelled by
+ * its members still names its host; simple labels match exactly. */
+const sharesHeadCategory = (left: SyntaxNode | undefined, right: SyntaxNode | undefined): boolean => {
+  const members = readCategoryLabel(right?.label)?.members ?? [];
+  return Boolean(readCategoryLabel(left?.label)?.members.some(member => members.includes(member)));
+};
 const sameAuthoredValue = (left: unknown, right: unknown): boolean => {
   if (left === right) return true;
   if (Array.isArray(left)) return Array.isArray(right) && left.length === right.length
@@ -75,16 +83,17 @@ const memberAtPath = (root: SyntaxNode, path: readonly number[]): SyntaxNode | u
 const readsAsProjection = (node: SyntaxNode): boolean => ['bar', 'phrase'].includes(readCategoryLabel(node.label)?.kind ?? '');
 // Explicit zero-level notation, which may be followed by an annotation.
 const HEAD_NOTATION = /^([A-Za-z][A-Za-z]*)(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u;
-const notatedHead = (label?: string): string | undefined => {
-  const shape = readCategoryLabel(label);
-  return shape ? shape.kind === 'head' ? shape.head : undefined : HEAD_NOTATION.exec(label ?? '')?.[1];
+const notatedHeads = (label?: string): string[] | undefined => {
+  const shape = readCategoryLabel(label), notated = HEAD_NOTATION.exec(label ?? '')?.[1];
+  return shape ? shape.kind === 'head' ? shape.members : undefined : notated ? [notated] : undefined;
 };
 
 /** Head adjunction read from structure when labels are prose, such as
  * "Honorific head: complex": a new parent holds only the landing and one
  * unchanged terminal host, in that host's exact preceding slot. When every
  * label reads as category notation, the notation decides instead; no label
- * may read as a projection, and explicit parent and host heads must agree.
+ * may read as a projection, and explicit parent and host heads must share a
+ * member.
  * A phrase can take the same shape beside a bare head, so callers also need
  * an explicitly anchored receiving head or complex. */
 const adjoinsHostInPlace = (parent: SyntaxNode, landingId: string, workspaces?: MovementWorkspaces): boolean => {
@@ -93,10 +102,10 @@ const adjoinsHostInPlace = (parent: SyntaxNode, landingId: string, workspaces?: 
   if (!workspaces || !landing || siblings.length !== 1) return false;
   const host = siblings[0], { current, prior } = workspaces, before = prior.nodes.get(host.id);
   const involved = [parent, landing, host];
-  const [parentHead, hostHead] = [notatedHead(parent.label), notatedHead(host.label)];
+  const [parentHeads, hostHeads] = [notatedHeads(parent.label), notatedHeads(host.label)];
   return Boolean(before) && !host.children?.length && !prior.nodes.has(parent.id)
     && involved.some(node => !readCategoryLabel(node.label)) && !involved.some(readsAsProjection)
-    && (!parentHead || !hostHead || parentHead === hostHead)
+    && (!parentHeads || !hostHeads || parentHeads.some(head => hostHeads.includes(head)))
     && !(landing.lineageId && host.lineageId === landing.lineageId)
     && ![parent.id, host.id].some(id => current.duplicates.has(id) || prior.duplicates.has(id))
     && sameAuthoredValue(before, host) && sameMovementSourceSlot(current, prior, parent.id, host.id);
@@ -114,7 +123,7 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
     return readCategoryLabel(landing.label)?.kind === 'head' && onlyExponents(landing);
   }
   if (siblings.length === 1 && readCategoryLabel(siblings[0].label)?.kind === 'head'
-    && headCategory(siblings[0]) === headCategory(parent)) {
+    && sharesHeadCategory(siblings[0], parent)) {
     // A previously built host remains the same head when another head adjoins;
     // its internal clitic or inflection structure need not be flat.
     if (onlyExponents(siblings[0])) return true;
@@ -131,7 +140,7 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
     && siblings.every(node => !['bar', 'phrase'].includes(readCategoryLabel(node.label)?.kind ?? '')
       && !node.children?.length && !containsLowerOccurrence(node))
     && Boolean(before && readCategoryLabel(before.label)?.kind === 'head'
-      && headCategory(before) === headCategory(parent)
+      && sharesHeadCategory(before, parent)
       && sameAuthoredValue(before.children, siblings));
 };
 
@@ -141,7 +150,7 @@ type MovementWorkspaces = { current: MovementOccurrences; prior: MovementOccurre
 const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: SyntaxNode,
   workspaces?: MovementWorkspaces): boolean => {
   const targetCategory = readCategoryLabel(target.label), parentCategory = readCategoryLabel(parent.label);
-  if (targetCategory?.kind !== 'head' || targetCategory.head !== parentCategory?.head) return false;
+  if (targetCategory?.kind !== 'head' || !parentCategory || !sharesHeadCategory(target, parent)) return false;
   const sisters = (parent.children ?? []).filter(child => child.id !== target.id);
   if (parentCategory.kind !== 'head') return onlyExponents(target)
     && sisters.every(child => ['bar', 'phrase'].includes(readCategoryLabel(child.label)?.kind ?? ''));
@@ -181,7 +190,7 @@ const isHeadAssembly = (node: SyntaxNode): boolean => {
   if (readCategoryLabel(node.label)?.kind !== 'head') return false;
   const children = node.children ?? [];
   return children.every(isHeadAssembly) && (children.length < 2
-    || children.some(child => headCategory(child) === headCategory(node)));
+    || children.some(child => sharesHeadCategory(child, node)));
 };
 
 const hasAssembledMemberWitness = (source: SyntaxNode, sisters: readonly SyntaxNode[]): boolean => {
@@ -191,7 +200,7 @@ const hasAssembledMemberWitness = (source: SyntaxNode, sisters: readonly SyntaxN
   return members.some(member => member.lineageId && member.lineageId !== source.lineageId
     && members.filter(other => other.lineageId === member.lineageId).length === 1
     && lower.some(witness => witness.id !== member.id && witness.lineageId === member.lineageId
-      && readCategoryLabel(witness.label)?.kind === 'head' && headCategory(witness) === headCategory(member)));
+      && readCategoryLabel(witness.label)?.kind === 'head' && sharesHeadCategory(witness, member)));
 };
 
 const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly SyntaxNode[] = [],
@@ -206,16 +215,16 @@ const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly
   // pair proves an existing assembly even for an intransitive complement or a
   // nested head; otherwise the flat head needs a branching complement.
   const oldSisters = priorSource.parent?.children?.filter(child => child.id !== priorSource.node?.id) ?? [];
-  const projectedSource = oldShape?.kind === 'head' && oldShape.head === oldParent?.head
+  const projectedSource = oldShape?.kind === 'head' && sharesHeadCategory(priorSource.node, priorSource.parent)
     && (oldParent?.kind !== 'head'
       ? oldSisters.every(child => ['bar', 'phrase'].includes(readCategoryLabel(child.label)?.kind ?? ''))
       : Boolean(priorSource.node && (hasAssembledMemberWitness(priorSource.node, oldSisters)
         || onlyExponents(priorSource.node) && oldSisters.length
-          && oldSisters.every(child => child.children?.length && headCategory(child) && headCategory(child) !== oldShape.head))));
+          && oldSisters.every(child => child.children?.length && headCategory(child) && !sharesHeadCategory(child, priorSource.node)))));
   // Bare nominal phrases can share this assembly shape. Only an explicitly
   // anchored, verified receiving head licenses the additional head reading.
   const headUnit = !target.children?.length || Boolean(target.word?.trim()) || shape?.compound
-    || Boolean(headContext && priorSource.node?.children?.length && headCategory(priorSource.node) === headCategory(target)
+    || Boolean(headContext && priorSource.node?.children?.length && sharesHeadCategory(priorSource.node, target)
       && isHeadAssembly(priorSource.node) && isHeadAssembly(target))
     || HEAD_NOTATION.test(target.label) || projectedSource;
   if (headUnit && parent && (isHeadComplex(parent, target.id, previous)
@@ -620,13 +629,12 @@ export function recoverMovementEvidence(
       const projectsBesideLanding = (): boolean => {
         if (!head) return false;
         const parent = current.parents.get(occurrence);
-        const category = headCategory(head);
         if (!parent || current.duplicates.has(parent.id) || parent.children?.length !== 2
-          || headCategory(parent) !== category) return false;
+          || !sharesHeadCategory(parent, head)) return false;
         let projection = parent.children.find(child => child.id !== occurrence);
-        while (projection && !current.duplicates.has(projection.id) && headCategory(projection) === category) {
+        while (projection && !current.duplicates.has(projection.id) && sharesHeadCategory(projection, head)) {
           if (projection.id === id) return true;
-          const spine = projection.children?.filter(child => headCategory(child) === category) ?? [];
+          const spine = projection.children?.filter(child => sharesHeadCategory(child, head)) ?? [];
           if (spine.length !== 1) return false;
           projection = spine[0];
         }

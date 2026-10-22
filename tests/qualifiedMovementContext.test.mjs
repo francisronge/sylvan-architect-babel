@@ -86,6 +86,15 @@ test('generic head is context only when the exact retained head projects beside 
   }
 });
 
+test('a generic head inside a complex spelled by its members still projects beside the phrasal landing', () => {
+  for (const label of ['T', 'Asp+T', 'T+Asp']) {
+    const r = structuredClone(records.find(r => r.name === 'contextual-head'));
+    const core = find(r.currentForest, 'aTCore');
+    core.children[0] = { id: 'aTComplex', label, children: [{ id: 'aAsp', label: 'Asp', silent: true }, core.children[0]] };
+    assert.equal(recover(r).movement?.targetNodeId, 'aDPHigh', label);
+  }
+});
+
 test('a containing landing clause proves its topic shell without replacing the moved nominal endpoint', () => {
   const r = records.find(r => r.name === 'containing-landing-clause'), movement = recover(r).movement;
   assert(movement.context.some(c => c.key === 'landingClause' && c.nodeId === 'cp-sentence' && c.kind === 'site'));
