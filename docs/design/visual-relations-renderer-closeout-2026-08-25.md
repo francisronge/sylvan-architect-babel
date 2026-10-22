@@ -256,8 +256,10 @@ takes a pocket for each position that an authored movement carries its anchor to
 inside the moved phrase or the complex head that movement forms. Reflow, merges
 and other phrases' movement do not count. At each such movement it keeps its
 pocket unless a clear pocket is at least a quarter nearer, or nearby while its own
-is not. Between those movements it keeps one offset, and plaques placed later
-avoid its pocket as they avoid any other.
+is not. Until it is placed at that movement its old pocket stays reserved, so
+allocation order cannot hand the pocket to another plaque first. Between those
+movements it keeps one offset, and plaques placed later avoid its pocket as they
+avoid any other.
 
 A proximity plaque still beyond its nearby reach once every phase is allocated
 gets a second look for each run of consecutive phases in which it keeps one

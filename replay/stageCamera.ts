@@ -495,7 +495,9 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       if (invalid) remembered.delete(key);
     });
     // A relocated plaque starts a new lifetime when an authored movement carries its
-    // anchor. Its old pocket no longer reserves space; it is only an incumbent.
+    // anchor; its old pocket becomes its incumbent. That pocket stays reserved like any
+    // other until the plaque itself is placed, so whichever plaque is allocated first
+    // cannot take it before its owner decides whether to leave it.
     const relocating = new Set(phaseRequests[phaseIndex].filter(request => relocatedKeys.has(keyOf(request.index))
       && anchorMoved(phaseIndex, request.ids[0])).map(request => request.index));
     const reconsider = new Set(phaseRequests[phaseIndex].filter(request =>
@@ -506,7 +508,6 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       untilMovement: boolean) => {
       const key = keyOf(index);
       const known = new Map(remembered);
-      relocating.forEach(other => known.delete(keyOf(other)));
       allocated.forEach((placement, itemIndex) => known.set(keyOf(itemIndex), placement));
       const extent = lifetimeExtent(phaseIndex, phaseRequests[phaseIndex].find(request => request.index === index)!);
       const end = untilMovement ? extent.movement ?? extent.end : extent.end;
