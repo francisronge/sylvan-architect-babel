@@ -26,6 +26,9 @@ const distPath = path.resolve(__dirname, '../dist');
 const app = express();
 const port = Number(process.env.PORT || 3000);
 const isLocalRuntime = process.env.NODE_ENV !== 'production';
+// A local runtime holds the developer's provider keys without Origin checks, so it
+// accepts connections from this machine only. Production listens on every interface.
+const listenHost = String(process.env.BABEL_LISTEN_HOST || '').trim() || (isLocalRuntime ? '127.0.0.1' : '');
 
 const parseTrustProxySetting = () => {
   const raw = String(process.env.BABEL_TRUST_PROXY || '').trim();
@@ -171,6 +174,8 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-app.listen(port, () => {
-  console.log(`[secure-server] listening on http://127.0.0.1:${port}`);
+const server = app.listen(...(listenHost ? [port, listenHost] : [port]), () => {
+  const { address, port: boundPort } = server.address();
+  const shownHost = address.includes(':') ? `[${address}]` : address;
+  console.log(`[secure-server] listening on http://${shownHost}:${boundPort}`);
 });
