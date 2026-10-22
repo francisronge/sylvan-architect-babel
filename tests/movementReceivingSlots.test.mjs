@@ -192,3 +192,41 @@ for (const direction of ['ltr','rtl']) test(`${direction}: a receiving slot cann
     assert(Math.max(...xs)-Math.min(...xs)<=limits[i]+1e-6,'slot alignment cannot transfer excess width to an earlier completed state');
   });
 });
+
+// The same Neg-to-I incorporation, authored with neutral role names and with worded
+// movement roles. The receiving head keeps its identity while a new inner I⁰ takes
+// over its auxiliary and tense beside the landing. Read as movement, the claim must
+// reserve exactly the room its neutral reading reserves, in every frame.
+const retainedHead = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/retained-head-attachment.json', import.meta.url)));
+const retainedHeadAsMovement = structuredClone(retainedHead);
+Object.assign(retainedHeadAsMovement.derivationStages[2].relations[0],
+  { anchors: { lowerCopy: 'tNegTrace', higherCopy: 'tNegHigh' }, priorAnchors: { source: 'tNeg' } });
+for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
+  test(`${width}px ${direction}: a head landing whose receiver keeps its identity reserves the room of its neutral reading`, () => {
+    const laid = input => {
+      const steps = prepareReplay({ ...structuredClone(input), includePlayback: true }).playbackSteps;
+      const groups = buildStageLayoutGroups(steps, input.derivationStages);
+      const sizes = new Map(input.derivationStages.map((_, i) => [i, stageTreeLayoutSize(steps, i, width, height, groups)]));
+      const points = new Map([...sizes].flatMap(([i, size]) => [...buildStageCoordinateReservations(steps, i, size, i => sizes.get(i), direction)]));
+      return { steps, scenes: steps.map(step => {
+        const root = d3.hierarchy(step.replayCanvasData); applyVizIds(root);
+        const visible = new Set(step.replayVisibleNodeIds);
+        return new Map(layoutSyntaxTree(root, sizes.get(step.replayFrameIndex), direction, points.get(step.replayCanvasData), visible)
+          .descendants().filter(n => visible.has(getNodeId(n))).map(n => [getNodeId(n), n]));
+      }) };
+    };
+    const playsAsMovement = steps => steps.some(step => (step.replayRelationLinks ?? [])
+      .some(link => link.renderFamily === 'trajectory' && link.authoredRelationKey === '2:0'));
+    const neutral = laid(retainedHead), movement = laid(retainedHeadAsMovement);
+    assert(!playsAsMovement(neutral.steps) && playsAsMovement(movement.steps), 'only the worded claim is read as movement');
+    assert.equal(movement.scenes.length, neutral.scenes.length);
+    neutral.scenes.forEach((nodes, frame) => {
+      for (const [id, node] of nodes) {
+        const other = movement.scenes[frame].get(id);
+        if (!other) continue;
+        close(node.x, other.x, `frame ${frame + 1} ${id} x`);
+        close(node.y, other.y, `frame ${frame + 1} ${id} y`);
+      }
+    });
+  });
+}
