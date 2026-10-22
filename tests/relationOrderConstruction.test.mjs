@@ -91,3 +91,21 @@ test('a movement waits for the construction of the parent an earlier claim needs
   assert.ok(steps[movement].replayVisibleNodeIds.includes('a1_npsc'));
   assert.ok(!steps.some(step => step.movementDiagnostics?.some(message => message.includes('RELATION_TIMING_CONFLICT'))));
 });
+
+test('a phrase that keeps its id at its landing stays in place until its movement while construction builds the landing parent', () => {
+  // The relative complementizer claim, authored first, names the finite TP
+  // that the subject (keeping its id) raises into; construction builds TP
+  // for it, but the subject stays in its vP specifier until it moves.
+  const record = reorder(fixture('replay-regressions/successive-cyclic-source.json#/cases/0'), 8, [3, 0, 1, 2]);
+  const replay = prepare(record);
+  assert.deepEqual(violations(replay, record), []);
+  const parentOf = (node, id, parent = null) => node?.id === id ? parent?.id
+    : (node?.children || []).reduce((found, child) => found ?? parentOf(child, id, node), undefined);
+  const steps = stageSteps(replay, 8), movement = relationMoment(steps, 2);
+  assert.ok(steps.findIndex(step => step.targetNodeId === 'expectTP') < movement, 'TP is built before the subject moves');
+  steps.slice(0, movement).forEach(step => {
+    assert.ok(step.replayVisibleNodeIds.includes('teacherDP'), `the subject stays visible at ${step.replayKind} ${step.operation}`);
+    assert.equal(parentOf(step.replayCanvasData, 'teacherDP'), 'expectvP');
+  });
+  assert.equal(parentOf(steps[movement].replayCanvasData, 'teacherDP'), 'expectTP');
+});

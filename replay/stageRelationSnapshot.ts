@@ -72,6 +72,12 @@ export const createStageRelationSnapshots = (
   } = placements;
   const keptIdLandings = new Map([...fallbackTransitionOwnership].map(([relationIndex, ownership]) =>
     [relationIndex, keptIdLandingNodeIds(ownership, previousFrameWorkspaceRoots, workspaceRoots)]));
+  // A recovered movement whose landing kept the moved phrase's id relocates
+  // that phrase only at its own moment, even when ordinary construction
+  // builds the landing's parent first.
+  const keptIdMovementLandings = new Map(frameRelationSteps.map((relation, relationIndex) => [relationIndex,
+    (relation.recoveredMovements ?? [relation.recoveredMovement]).filter(movement => movement?.transition
+      && movement.priorSourceNodeId === movement.targetNodeId).map(movement => movement!.targetNodeId)]));
   const collectInactiveTrajectoryTargetNodeIds = (activeRelationIndexes: Set<number>, preservedForest: SyntaxNode[] = []): Set<string> => {
     const inactiveTargetNodeIds = new Set<string>();
     const activeTargetNodeIds = new Set(relationPlacements
@@ -191,7 +197,7 @@ export const createStageRelationSnapshots = (
           .map(nodeId => replayOwnerId(baseStep?.replayCanvasData, nodeId))
           .filter(nodeId => ordinaryStructuralNodeIds.has(nodeId))),
         withheldNodeIds: pendingMovementNodeIds,
-        pendingKeptIdLandingNodeIds: new Set([...keptIdLandings].flatMap(([relationIndex, nodeIds]) => activeRelationIndexes.has(relationIndex) ? [] : nodeIds)),
+        pendingKeptIdLandingNodeIds: new Set([...keptIdLandings, ...keptIdMovementLandings].flatMap(([relationIndex, nodeIds]) => activeRelationIndexes.has(relationIndex) ? [] : nodeIds)),
         attachedNodeIds: new Set([...fallbackTransitionOwnership].flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex)
           ? (ownership.attachments ?? []).map(attachment => attachment.host) : [])),
         heldAttachmentNodeIds: new Set(heldAttachmentNodeIds())
