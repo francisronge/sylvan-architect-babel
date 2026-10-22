@@ -289,8 +289,13 @@ export const buildStructuralDerivationPlaybackSteps = ({
       // node keeps its ID elsewhere, is an inserted segment rather than the
       // earlier node renamed. Its children continue; it waits for its own step.
       const currentId = String(nodes[0].data?.id || ''), previousId = String(previousNode?.id || '');
-      const insertedSegment = currentId !== previousId && !previousFrameNodeIds.has(currentId) && rawNodeById.has(previousId)
+      const newBesideEarlier = currentId !== previousId && !previousFrameNodeIds.has(currentId) && rawNodeById.has(previousId);
+      const insertedSegment = newBesideEarlier
         && (rawNodeById.get(currentId)?.children || []).every((child) => previousFrameNodeIds.has(String(child.id || '')));
+      // Otherwise a new node beside the earlier one that repeats its earlier
+      // material is a second occurrence, which its own construction builds.
+      if (newBesideEarlier && !insertedSegment)
+        return;
       nodes[0].descendants().forEach((descendant) => {
         if (!isSyntheticWorkspaceRootNode(descendant) && !(insertedSegment && descendant === nodes[0])) {
           seeded.add(getNodeId(descendant));
