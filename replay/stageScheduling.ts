@@ -304,6 +304,12 @@ export const finalizeStageReplay = (
       [...transitionHostNodeIds].filter(([, owner]) => owner === placement.relationIndex)
         .flatMap(([hostId]) => findNodeByIdInForest(workspaceRoots, hostId)?.children || [])
         .forEach(child => attachmentPrerequisites.push(child.id));
+      // A landing joins a parent that ordinary construction builds (one an
+      // earlier claim needs first) only once that construction has run.
+      if (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
+        placement.authoredTargetNodeIds.map(nodeId => findParentNodeIdInForest(workspaceRoots, nodeId))
+          .filter(parentId => parentId && structuralProducers.has(parentId) && !landingHostIds.has(parentId))
+          .forEach(parentId => attachmentPrerequisites.push(parentId));
       return [...placement.relationAnchorNodeIds, ...attachmentPrerequisites].filter(nodeId => relationProducers.get(nodeId) !== placement.relationIndex);
     };
     // A movement's other current anchors are context: its moment neither

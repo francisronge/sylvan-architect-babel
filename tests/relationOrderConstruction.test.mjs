@@ -76,3 +76,18 @@ test('a claim on the clause a later raising lands in sees that clause from its c
   ] };
   assertProjectionStaysVisible(record, 1, 'matrixTP', 0, ['TP']);
 });
+
+test('a movement waits for the construction of the parent an earlier claim needs before the landing', () => {
+  // A verb-second clause: the V2 claim, authored first, names CP, so ordinary
+  // construction builds CP for it; the subject lands in CP only after that.
+  const record = reorder(fixture('movement/source-occurrence-ownership.json#/0'), 3, [2, 1, 0]);
+  const replay = prepare(record);
+  assert.deepEqual(violations(replay, record), []);
+  const steps = stageSteps(replay, 3);
+  const projection = steps.findIndex(step => step.replayKind === 'micro' && step.targetNodeId === 'a1_cp');
+  const movement = relationMoment(steps, 1);
+  assert.ok(projection >= 0 && projection < movement, 'CP is built before the subject lands in it');
+  assert.ok(!steps[movement - 1].replayVisibleNodeIds.includes('a1_npsc'));
+  assert.ok(steps[movement].replayVisibleNodeIds.includes('a1_npsc'));
+  assert.ok(!steps.some(step => step.movementDiagnostics?.some(message => message.includes('RELATION_TIMING_CONFLICT'))));
+});
