@@ -8,8 +8,8 @@ import {
 } from './helpers/replayInvariants.mjs';
 
 /* Authored relation order decides moment order, never whether construction
- * builds forward. Each case reorders one stage's relations and expects the
- * same construction guarantees as authored order. */
+ * builds forward. Each case authors one stage's relations in an order that
+ * once broke construction and expects the guarantees every order has. */
 
 const corpus = loadFixtureAnalyses();
 const fixture = id => structuredClone(corpus.records.find(entry => entry.id === id).record);
@@ -34,6 +34,11 @@ const renameTense = (record, labels) => {
   renamed.derivationStages.forEach(stage => { stage.workspaceForest = stage.workspaceForest.map(rename); });
   return renamed;
 };
+const leaf = (id, label, word, extra = {}) => ({ id, label, ...(word ? { word } : { silent: true }), ...extra, children: [] });
+const node = (id, label, children) => ({ id, label, children });
+const stage = (workspaceForest, relations = []) => ({ statement: 'Authored state.', stageRecord: 'Authored state.', relations, workspaceForest });
+const parentOf = (tree, id, parent = null) => tree?.id === id ? parent?.id
+  : (tree?.children || []).reduce((found, child) => found ?? parentOf(child, id, tree), undefined);
 const assertProjectionStaysVisible = (record, stage, projectionId, relationIndex, labels) => {
   const replay = prepare(record);
   assert.deepEqual(violations(replay, record), []);
@@ -57,11 +62,9 @@ test('a constructed projection stays visible whatever its label when its specifi
 test('a claim on the clause a later raising lands in sees that clause from its construction', () => {
   // "There seem to be cats.": clause typing names matrix TP before the
   // expletive raises into its specifier.
-  const leaf = (id, label, word, extra = {}) => ({ id, label, ...(word ? { word } : { silent: true }), ...extra, children: [] });
   const embedded = there => ({ id: 'embeddedTP', label: 'TP', children: [there, { id: 'embeddedTProjection', label: 'TP', children: [
     leaf('to', 'T', 'to'), { id: 'beVP', label: 'VP', children: [leaf('be', 'V', 'be'), leaf('cats', 'N', 'cats')] }
   ] }] });
-  const stage = (workspaceForest, relations = []) => ({ statement: 'Authored state.', stageRecord: 'Authored state.', relations, workspaceForest });
   const record = { sentence: 'There seem to be cats.', derivationStages: [
     stage([embedded(leaf('thereLower', 'D', 'There', { lineageId: 'there' }))]),
     stage([{ id: 'rootCP', label: 'CP', children: [leaf('declarativeC', 'C'), { id: 'matrixTP', label: 'TP', children: [
@@ -99,8 +102,6 @@ test('a phrase that keeps its id at its landing stays in place until its movemen
   const record = reorder(fixture('replay-regressions/successive-cyclic-source.json#/cases/0'), 8, [3, 0, 1, 2]);
   const replay = prepare(record);
   assert.deepEqual(violations(replay, record), []);
-  const parentOf = (node, id, parent = null) => node?.id === id ? parent?.id
-    : (node?.children || []).reduce((found, child) => found ?? parentOf(child, id, node), undefined);
   const steps = stageSteps(replay, 8), movement = relationMoment(steps, 2);
   assert.ok(steps.findIndex(step => step.targetNodeId === 'expectTP') < movement, 'TP is built before the subject moves');
   steps.slice(0, movement).forEach(step => {
@@ -108,4 +109,29 @@ test('a phrase that keeps its id at its landing stays in place until its movemen
     assert.equal(parentOf(step.replayCanvasData, 'teacherDP'), 'expectvP');
   });
   assert.equal(parentOf(steps[movement].replayCanvasData, 'teacherDP'), 'expectTP');
+});
+
+test('a receiving head selected for a later head movement stands alone until that movement', () => {
+  // The subject's movement, authored first, needs T' as its landing context,
+  // so construction builds T' over the newly selected T. A neutral claim in
+  // the same stage makes Replay apply only the moments that have played.
+  const vP = (subject, verb, object) => node('vP', 'vP', [subject, node('vBar', "v'", [leaf('v', 'v'), node('VP', 'VP', [verb, object])])]);
+  const record = { sentence: 'Peter read it', derivationStages: [
+    stage([vP(leaf('subjLow', 'D', 'Peter', { lineageId: 'subj' }), leaf('verbLow', 'V', 'read', { lineageId: 'verb' }), leaf('objOld', 'D', 'it'))]),
+    stage([node('TP', 'TP', [leaf('subjHigh', 'D', 'Peter', { lineageId: 'subj' }), node('TBar', "T'", [
+      node('Tcomplex', 'T', [leaf('verbHigh', 'V', 'read', { lineageId: 'verb' }), leaf('T', 'T')]),
+      vP(leaf('subjLow', 'D', 'Peter', { lineageId: 'subj', silent: true }), leaf('verbLow', 'V', 'read', { lineageId: 'verb', silent: true }), leaf('objNew', 'D', 'it'))
+    ])])], [
+      { relation: 'subject movement', anchors: { landing: 'subjHigh', source: 'subjLow', licenser: 'T' } },
+      { relation: 'finite head movement', anchors: { landing: 'verbHigh', source: 'verbLow', tense: 'T' } },
+      { relation: 'Object change', anchors: { participant: 'objNew' }, priorAnchors: { participant: 'objOld' } }
+    ])
+  ] };
+  const replay = prepare(record);
+  assert.deepEqual(violations(replay, record), []);
+  const steps = stageSteps(replay, 1), movement = relationMoment(steps, 1);
+  steps.slice(0, movement).forEach(step => assert.equal(parentOf(step.replayCanvasData, 'T'), 'TBar',
+    `T stands alone at ${step.replayKind} ${step.operation}`));
+  assert.equal(parentOf(steps[movement].replayCanvasData, 'T'), 'Tcomplex');
+  assert.equal(parentOf(steps[movement].replayCanvasData, 'verbHigh'), 'Tcomplex');
 });

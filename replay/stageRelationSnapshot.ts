@@ -210,7 +210,7 @@ export const createStageRelationSnapshots = (
         if (!activeTreeTransitionTargetNodeIds.has(targetId || '')) return [group];
         return group.recoveredMovement?.transition ? [{ ...group, preserveMovementLanding: true }] : [];
       });
-    }), previousFrameWorkspaceRoots);
+    }), previousFrameWorkspaceRoots, workspaceRoots);
     // A pending claim's new landing wrapper waits for its moment, unless an
     // active relation has already introduced that landing, which the
     // restoration above also keeps.
