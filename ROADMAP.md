@@ -396,8 +396,11 @@ review authority, and correction path.
 
 - More relation-card design without a reproducible defect.
 - Provider calls as part of default verification.
-- Changes to the existing automatic JSON delimiter repair, unless a new failure
-  warrants investigation.
+- Reintroducing automatic JSON delimiter repair. Francis removed it on 22 Oct
+  2026: a response whose brackets do not balance now fails as
+  `TRANSPORT_JSON_DELIMITERS_BALANCED` with its raw output. A stricter rule that
+  only drops stray closers after the complete value
+  (`exp/json-repair-preserve-nesting`) is held for the public app.
 - Reintroducing the model-based payload transcriber.
 - A model-authored final tree, notes ledger, compatibility ledger, or fixed
   relation ontology.
