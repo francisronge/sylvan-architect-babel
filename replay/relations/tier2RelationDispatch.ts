@@ -100,13 +100,18 @@ const resolveClaimCollisions = (
   const selected = new Map<string, Tier2EvaluatedFacet>(initial);
   const diagnostics: Tier2CollisionDiagnostic[] = [];
 
-  const participants = (id: string): Set<string> => new Set(initial.get(id)?.evaluation.consumedEvidence
-    .filter(ref => ref.field === 'anchors')
-    .flatMap(ref => {
-      const entry = evidence.authoredCurrentAnchors?.find(entry => entry.key === ref.key);
-      return (ref.itemIndices ?? entry?.items.map((_, index) => index) ?? [])
-        .flatMap(index => entry?.items[index] === undefined ? [] : [entry.items[index]]);
-    }));
+  const participants = (id: string, coreOnly = false): Set<string> => {
+    const facet = initial.get(id);
+    const core = new Set(facet?.recipe.anchors.filter(requirement => !requirement.optional).map(({ role }) => role));
+    return new Set(facet?.evaluation.consumedEvidence
+      .filter(ref => ref.field === 'anchors')
+      .flatMap(ref => {
+        const entry = evidence.authoredCurrentAnchors?.find(entry => entry.key === ref.key);
+        if (coreOnly && !entry?.concepts.some(concept => core.has(concept))) return [];
+        return (ref.itemIndices ?? entry?.items.map((_, index) => index) ?? [])
+          .flatMap(index => entry?.items[index] === undefined ? [] : [entry.items[index]]);
+      }));
+  };
   const covers = (owner: string, other: string): boolean => {
     const owned = participants(owner);
     const compared = participants(other);
@@ -119,9 +124,16 @@ const resolveClaimCollisions = (
     return compared.size > 0 && [...compared].every(id => owned.has(id));
   };
 
+  // Tied readings are one claim when they name the same endpoints. An optional
+  // domain or scope that only one reading consumes is context, not another claim.
+  const sameEndpoints = (left: string, right: string): boolean => {
+    const a = participants(left, true), b = participants(right, true);
+    return a.size > 0 && a.size === b.size && [...a].every(id => b.has(id));
+  };
   const failClosed = (collision: string, facetIds: readonly string[]) => {
     const tied = facetIds.filter((id) => initial.has(id));
-    if (tied.length < 2 || !tied.every(id => covers(id, tied[0]) && covers(tied[0], id))) return;
+    if (tied.length < 2 || !tied.every(id => covers(id, tied[0]) && covers(tied[0], id)
+      || sameEndpoints(id, tied[0]))) return;
     tied.forEach((id) => selected.delete(id));
     diagnostics.push({ kind: 'ambiguous-facets', collision, facets: [...tied] });
   };
