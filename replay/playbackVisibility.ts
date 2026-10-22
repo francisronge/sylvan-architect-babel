@@ -36,80 +36,6 @@ import {
 } from './syntaxForest.ts';
 import { type DerivationReplayPlan, type PlaybackStep } from './types.ts';
 
-export const hidePendingInflSpecifierWrappersInStep = (step: PlaybackStep): PlaybackStep => {
-  const visibleIds = new Set((Array.isArray(step.replayVisibleNodeIds) ? step.replayVisibleNodeIds : [])
-    .map((nodeId) => String(nodeId || ''))
-    .filter(Boolean));
-  const protectedRelationEndpointIds = new Set<string>();
-  (Array.isArray(step.replayRelationLinks) ? step.replayRelationLinks : []).forEach((link) => {
-    [
-      String(link?.sourceNodeId || ''),
-      String(link?.targetNodeId || ''),
-      String(link?.witnessNodeId || '')
-    ].filter(Boolean).forEach((nodeId) => protectedRelationEndpointIds.add(nodeId));
-  });
-  const canvasRoot = step.replayCanvasData || null;
-  if (!canvasRoot || visibleIds.size === 0)
-    return step;
-  const hiddenIds = new Set<string>();
-  const walk = (node: SyntaxNode) => {
-    const nodeId = String(node?.id || '');
-    const label = String(node?.label || '').trim().toLowerCase();
-    const children = Array.isArray(node?.children) ? node.children : [];
-    if (nodeId && visibleIds.has(nodeId) && ['infl', 'ip', 't', 'tp'].includes(label)) {
-      // A unary authored parent has no pending daughter. Matching its child's
-      // label does not make that completed projection future layout metadata.
-      if (children.length > 1) {
-        const spineChildIndex = children.findIndex((child, index) => index > 0
-          && visibleIds.has(String(child?.id || ''))
-          && String(child?.label || '').trim().toLowerCase() === label);
-        if (spineChildIndex > 0) {
-          const hasVisibleSpecifierMaterial = children
-            .slice(0, spineChildIndex)
-            .some((child) => {
-              let found = false;
-              const scan = (candidate: SyntaxNode) => {
-                if (visibleIds.has(String(candidate?.id || ''))) {
-                  found = true;
-                  return;
-                }
-                (candidate.children || []).forEach(scan);
-              };
-              scan(child);
-              return found;
-            });
-          if (!hasVisibleSpecifierMaterial && !protectedRelationEndpointIds.has(nodeId))
-            hiddenIds.add(nodeId);
-        }
-      }
-    }
-    children.forEach(walk);
-  };
-  walk(canvasRoot);
-  if (hiddenIds.size === 0)
-    return step;
-  const markHiddenInflWrappersAsLayoutOnly = (node: SyntaxNode): SyntaxNode | null => {
-    const nodeId = String(node?.id || '');
-    const children = Array.isArray(node?.children) ? node.children : [];
-    const nextNode = { ...node };
-    if (nodeId && hiddenIds.has(nodeId)) {
-      (nextNode as any).replayLayoutOnly = true;
-    }
-    if (children.length > 0) {
-      nextNode.children = children
-        .map(markHiddenInflWrappersAsLayoutOnly)
-        .filter(Boolean) as SyntaxNode[];
-    }
-    return nextNode;
-  };
-  const replayCanvasData = markHiddenInflWrappersAsLayoutOnly(canvasRoot) || canvasRoot;
-  return {
-    ...step,
-    replayCanvasData,
-    replayVisibleNodeIds: (step.replayVisibleNodeIds || []).filter((nodeId) => !hiddenIds.has(String(nodeId || '')))
-  };
-};
-
 const deferPendingMovementProjections = (steps: PlaybackStep[], projections: Array<{
   nodeId: string;
   firstStageIndex: number;
@@ -791,10 +717,9 @@ export const normalizePlaybackSequence = (
   const changed = collapseZeroDeltaReplaySteps(persistent);
   const attached = insertPreMovementLandingMergeSteps(changed);
   const projected = deferPendingMovementProjections(attached, pendingProjections);
-  const materialized = projected.map(hidePendingInflSpecifierWrappersInStep);
-  // A withheld wrapper remains layout context, not a visible construction
+  // A withheld node remains layout context, not a visible construction
   // claim. Apply the final visibility refinement before counting its steps.
-  const constructed = materialized.filter(step => step.replayKind !== 'micro'
+  const constructed = projected.filter(step => step.replayKind !== 'micro'
     || !['LexicalSelect', 'Project', 'ExternalMerge'].includes(String(step.operation))
     || getReplayVisibleNodeIdSet(step).has(step.targetNodeId));
   return recountReplayProgress(constructed, replayPlan);
