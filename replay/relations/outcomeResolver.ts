@@ -61,7 +61,8 @@ export const OUTCOME_ALIAS_GROUPS: readonly OutcomeAliasGroup[] = [
   group('failed', [
     'fail', 'fails', 'failure', 'failures',
     'unsuccessful', 'not successful',
-    'did not succeed', 'does not succeed'
+    'did not succeed', 'does not succeed',
+    'attempted but failed'
   ]),
   group('crashed', [
     'crash', 'crashes',

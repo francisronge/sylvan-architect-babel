@@ -50,8 +50,18 @@ test('normalization and aliases are exact without fuzzy repair', () => {
   assert.equal(resolveOutcomeLiteral('constraint violation')?.concept, 'violation');
   assert.equal(resolveOutcomeLiteral('ungrammatical')?.concept, 'illicit');
   assert.equal(resolveOutcomeLiteral('permitted')?.concept, 'allowed');
+  assert.equal(resolveOutcomeLiteral('Attempted but failed')?.concept, 'failed');
   assert.equal(resolveOutcomeLiteral('blockd')?.concept, null);
   assert.equal(resolveOutcomeLiteral('  '), null);
+});
+
+test('an attempted-but-failed status draws the failed agreement path', () => {
+  const tree = node('tp_attempted', 'TP', [leaf('dp_attempted', 'DP', 'Mia'), leaf('t_attempted', 'T', 'will')]);
+  const paths = status => compileRelationRenderPlan([stage([{ relation: 'phi agreement',
+    anchors: { probe: 't_attempted', goal: 'dp_attempted' }, values: { features: '3sg', status } }], [tree])])
+    .frames[0].items.filter(item => item.kind === 'directed-path');
+  assert.deepEqual(paths('attempted but failed').map(item => [item.claimTier, item.tier2FacetId, item.outcome]),
+    [[2, 'feature.dependency', 'blocked']]);
 });
 
 test('family acceptance does not turn one recognized concept into another', () => {
