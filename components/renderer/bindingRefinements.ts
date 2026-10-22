@@ -35,7 +35,10 @@ interface BindingRefinementsContext extends Pick<RelationMeasurements,
   visibleNodes: d3.HierarchyPointNode<SyntaxNode>[];
   measureCategoryText: (text: string) => number;
   g: DrawingLayer;
+  /** Live screen matrix of the tree layer, for measuring painted elements. */
   treeMatrix: DOMMatrix;
+  /** Its matrix under the settled camera, for viewport clamps. */
+  settledTreeMatrix: DOMMatrix;
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
 }
 export function createBindingRefinements({
@@ -57,6 +60,7 @@ export function createBindingRefinements({
   measuredTreeLabelsRect,
   g,
   treeMatrix,
+  settledTreeMatrix,
   svg
 }: BindingRefinementsContext) {
   const measuredPredicationRect = (nodeId: string) => {
@@ -424,7 +428,7 @@ export function createBindingRefinements({
     if (!domainRect) return;
     const fittedSvgRect = svg.node()?.getBoundingClientRect();
     const viewportRight = fittedSvgRect
-      ? new DOMPoint(fittedSvgRect.right - 12, fittedSvgRect.top).matrixTransform(inverse).x
+      ? new DOMPoint(fittedSvgRect.right - 12, fittedSvgRect.top).matrixTransform(settledTreeMatrix.inverse()).x
       : undefined;
     const bracketPath = idiomDomainBracketPath(domainRect, viewportRight);
     if (bracketPath) bracket.attr('d', bracketPath);

@@ -23,7 +23,7 @@ import { type SyntaxNode } from '../../types.ts';
 import { revealPlaqueCollections } from '../collectionReveal.ts';
 import { guardViewCallback } from '../viewErrorHandling.ts';
 import { installCameraInteraction, updateScreenStableText, type CameraEffects } from './cameraInteraction.ts';
-import type { CameraSession } from './cameraState.ts';
+import { deferredTreeMatrix, type CameraSession } from './cameraState.ts';
 import { fitTreeCamera } from './frameCamera.ts';
 import { createIdentityForestLight } from './identityLighting.ts';
 import { installRelationHitTargets } from './relationInteraction.ts';
@@ -174,6 +174,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
   const g = svg.attr('width', '100%').attr('height', '100%').append('g');
 
   const cameraRuntime = { applying: false, cancel: undefined as (() => void) | undefined, deferred: null as d3.ZoomTransform | null };
+  const settledTreeMatrix = () => deferredTreeMatrix(svg.node(), g.node(), cameraRuntime.deferred);
 
   const cameraEffects: CameraEffects = {};
   const zoom = installCameraInteraction({
@@ -298,7 +299,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     animated,
     acceptedCompositionIsTreeFirst,
     containerWidth,
-    cameraRuntime,
+    deferredTreeMatrix: settledTreeMatrix,
     uiBounds,
     containerRef,
     TARGET_EMERALD
@@ -356,7 +357,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     deferredAcceptedRelationDraws,
     playedRelationIndices,
     svg,
-    updateScreenStableText: scale => updateScreenStableText(g, scale)
+    updateScreenStableText: scale => updateScreenStableText(g, scale),
+    deferredTreeMatrix: settledTreeMatrix
   });
   const identityLighting = createIdentityForestLight({
     container: containerRef.current, svg: svgRef.current, identityForestLightFamilies, reportViewError
