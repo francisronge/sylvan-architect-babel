@@ -640,6 +640,20 @@ test('an incomplete Tier-2 prior block does not retire the earlier state it name
   }
 });
 
+test('a Tier-2 update retires the state it names however many stages ago it was authored', () => {
+  const forest = [node('tp', 'TP', [leaf('y', 'DP', 'Leo'), node('vp', 'VP', [leaf('v', 'V', 'see'), leaf('x', 'DP', 'Mia')])])];
+  const singular = { relation: 'phi feature checking', anchors: { goal: 'x' }, values: { number: 'singular' } };
+  const plural = { relation: 'phi feature checking', anchors: { goal: 'x' }, priorAnchors: { goal: 'x' }, values: { number: 'plural' } };
+  const other = { relation: 'phi feature checking', anchors: { goal: 'y' }, values: { person: 'third' } };
+  for (const [label, middle] of [['an unrelated stage', [other]], ['a restatement', [singular]]]) {
+    const plan = compileRelationRenderPlan([stage([singular], forest), stage(middle, forest), stage([plural], forest)]);
+    const rows = played => visiblePlanFrameItems(plan, 2, played, played?.size ? 0 : null)
+      .filter(item => item.kind === 'node-plaque' && item.anchorNodeIds.includes('x')).map(item => item.rows[0].value);
+    assert.deepEqual(rows(new Set()), ['singular'], `${label}: the earlier state stays until the update plays`);
+    assert.deepEqual(rows(new Set([0])), ['plural'], `${label}: the update retires it at its moment`);
+  }
+});
+
 test('Task 8 does not coalesce outputs when prior-anchor evidence differs', () => {
   const forest = [node('prior_root', 'TP', [
     node('prior_a', 'DP', []),
