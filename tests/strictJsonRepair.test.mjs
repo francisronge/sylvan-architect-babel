@@ -9,21 +9,9 @@ import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { createTreeBankBundleSnapshot } from '../treeBankSnapshot.js';
 import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 
+// Babel used to rebalance brackets until a response parsed; Francis removed that
+// repair on 22 Oct 2026. These tests pin that unbalanced brackets now fail.
 const fixturesDirectory = new URL('../fixtures/raw/', import.meta.url);
-
-const expectedDiagnostic = ({
-  kind,
-  candidateByteOffset,
-  removedText = '',
-  insertedText = ''
-}) => ({
-  kind,
-  candidateByteOffset,
-  removedText,
-  insertedText,
-  removedBytesHex: Buffer.from(removedText, 'utf8').toString('hex'),
-  insertedBytesHex: Buffer.from(insertedText, 'utf8').toString('hex')
-});
 
 const createLocalRoutes = (rawText) => createParseRoutes({
   ParseApiError,
@@ -32,162 +20,141 @@ const createLocalRoutes = (rawText) => createParseRoutes({
   generateLocal: async () => rawText
 });
 
-test('reports appended EOF closers with their exact byte edit', () => {
-  const candidate = '{"a":[1,2';
-  const parsed = parseModelJsonDetailed(candidate);
+const assertUnbalanced = (error, raw, { candidateByteOffset, message }) => {
+  assert.equal(error instanceof ParseApiError, true);
+  assert.equal(error.code, 'BAD_MODEL_RESPONSE');
+  assert.equal(error.failure.class, 'transport_serialization');
+  assert.equal(error.failure.ruleId, 'TRANSPORT_JSON_DELIMITERS_BALANCED');
+  assert.equal(error.failure.processingStep, 'json-decoding');
+  const { jsonDiagnostic } = error.details;
+  assert.equal(jsonDiagnostic.kind, 'json-delimiter-damage');
+  assert.equal(jsonDiagnostic.candidateByteOffset, candidateByteOffset);
+  assert.match(jsonDiagnostic.message, message);
+  assert.equal(error.failure.message, jsonDiagnostic.message);
+  assert.equal(jsonDiagnostic.originalSyntaxError.kind, 'json-syntax');
+  assert.equal(jsonDiagnostic.originalSyntaxError.candidateByteOffset, candidateByteOffset);
+  assert.equal('payloadRepairDiagnostics' in error.details, false);
+  assert.equal(Buffer.from(error.rawOutput.data, 'base64').toString('utf8'), raw);
+  return true;
+};
 
-  assert.deepEqual(parsed.payload, { a: [1, 2] });
-  assert.equal(parsed.jsonDiagnostic.kind, 'json-syntax');
-  assert.equal(parsed.jsonDiagnostic.originalByteOffset, Buffer.byteLength(candidate));
-  assert.deepEqual(parsed.integrityFlags, ['json_delimiter_damage_repaired']);
-  assert.deepEqual(parsed.repairDiagnostics, [expectedDiagnostic({
-    kind: 'append_closers_at_end_of_output',
-    candidateByteOffset: Buffer.byteLength(candidate, 'utf8'),
-    insertedText: ']}'
-  })]);
+const rejectsUnbalanced = (raw, expected) => assert.throws(
+  () => parseModelJsonDetailed(raw),
+  (error) => assertUnbalanced(error, raw, expected)
+);
+
+test('brackets left open at the end fail instead of being closed', () => {
+  const raw = '{"a":[1,2';
+  rejectsUnbalanced(raw, { candidateByteOffset: Buffer.byteLength(raw), message: /ends with 2 brackets still open/ });
 });
 
-test('original JSON error offsets account for BOM, whitespace and multibyte text', () => {
-  const candidate = '{"é":[1,2}';
-  const raw = `\uFEFF\n  ${candidate}\n`;
-  const parsed = parseModelJsonDetailed(raw);
-  assert.equal(parsed.jsonDiagnostic.candidateByteOffset, Buffer.byteLength(candidate.slice(0, -1)));
-  assert.equal(parsed.jsonDiagnostic.originalByteOffset, Buffer.byteLength(raw.slice(0, raw.indexOf('}'))));
-  assert.match(parsed.jsonDiagnostic.message, /JSON/);
+test('a mismatched closer fails instead of having closers inserted before it', () => {
+  const raw = '{"é":[1,2}';
+  rejectsUnbalanced(raw, {
+    candidateByteOffset: Buffer.byteLength(raw.slice(0, -1)),
+    message: /closing bracket at byte 10 does not match/
+  });
 });
 
-test('delimiter repairs preserve node-reference strings, escapes and literal delimiters', () => {
-  const payload = { derivationStages: [{ relations: [{ relation: 'Open',
-    anchors: { 'unfamiliar role': ['n]é', 'quoted"id'] },
-    priorAnchors: { old: 'n]é' }, values: { notation: '[}]\\' } }],
-    workspaceForest: [{ id: 'n]é', label: 'N', children: [] }, { refId: 'quoted"id' }] }] };
-  const json = JSON.stringify(payload);
-  for (const candidate of [json.slice(0, -2), `${json}}`, json.slice(0, -2) + '}']) {
-    const parsed = parseModelJsonDetailed(candidate);
-    assert.deepEqual(parsed.payload, payload);
-    assert.ok(parsed.repairDiagnostics.length > 0);
+test('a stray closer inside the value fails instead of being removed', () => {
+  const raw = '{"a":[1,2]]}';
+  rejectsUnbalanced(raw, {
+    candidateByteOffset: Buffer.byteLength('{"a":[1,2]'),
+    message: /closing bracket at byte 10 does not match/
+  });
+});
+
+test('a stray closer after the complete value fails instead of being removed', () => {
+  for (const tail of ['}', ']', ' }\n]}']) {
+    const raw = `{"a":1}${tail}`;
+    rejectsUnbalanced(raw, {
+      candidateByteOffset: Buffer.byteLength('{"a":1}') + tail.indexOf(tail.trim()[0]),
+      message: /follows the complete value/
+    });
   }
 });
 
-test('reports closers inserted before a mismatched closer at a UTF-8 byte offset', () => {
-  const candidate = '{"é":[1,2}';
-  const parsed = parseModelJsonDetailed(candidate);
-
-  assert.deepEqual(parsed.payload, { é: [1, 2] });
-  assert.deepEqual(parsed.repairDiagnostics, [expectedDiagnostic({
-    kind: 'insert_closers_before_mismatched_closer',
-    candidateByteOffset: Buffer.byteLength(candidate.slice(0, -1), 'utf8'),
-    insertedText: ']'
-  })]);
+// Reduced from a saved GPT-6.1 Sol output (night4-20261019 40-en-long-question) whose
+// analyses each lacked their final "]}": closing the end nested later analyses inside
+// earlier ones.
+test('closers missing inside the value fail even though closing the end would parse', () => {
+  const stage = { statement: 'S', stageRecord: 'R', relations: [], workspaceForest: [{ id: 'n', label: 'N', children: [] }] };
+  const analysis = JSON.stringify({ derivationStages: [stage] });
+  const raw = `{"analyses":[${analysis.slice(0, -2)},${analysis}]}`;
+  assert.equal(JSON.parse(`${raw}]}`).analyses.length, 1);
+  rejectsUnbalanced(raw, { candidateByteOffset: Buffer.byteLength(raw), message: /ends with 2 brackets still open/ });
 });
 
-test('reports an unmatched closer removal with its exact byte edit', () => {
-  const candidate = '{"a":1}}';
-  const parsed = parseModelJsonDetailed(candidate);
-
-  assert.deepEqual(parsed.payload, { a: 1 });
-  assert.deepEqual(parsed.repairDiagnostics, [expectedDiagnostic({
-    kind: 'remove_unmatched_closer',
-    candidateByteOffset: Buffer.byteLength(candidate.slice(0, -1), 'utf8'),
-    removedText: '}'
-  })]);
+test('error offsets account for BOM, whitespace and multibyte text', () => {
+  const candidate = '{"é":[1,2}';
+  const raw = `﻿\n  ${candidate}\n`;
+  assert.throws(() => parseModelJsonDetailed(raw), (error) => {
+    const { jsonDiagnostic } = error.details;
+    for (const diagnostic of [jsonDiagnostic, jsonDiagnostic.originalSyntaxError]) {
+      assert.equal(diagnostic.candidateByteOffset, Buffer.byteLength(candidate.slice(0, -1)));
+      assert.equal(diagnostic.originalByteOffset, Buffer.byteLength(raw.slice(0, raw.indexOf('}'))));
+    }
+    assert.match(jsonDiagnostic.originalSyntaxError.message, /JSON/);
+    return true;
+  });
 });
 
 test('does not treat delimiters inside strings as damage', () => {
   const parsed = parseModelJsonDetailed('{"text":"[}"}');
-
-  assert.deepEqual(parsed.payload, { text: '[}' });
-  assert.deepEqual(parsed.integrityFlags, []);
-  assert.deepEqual(parsed.repairDiagnostics, []);
+  assert.deepEqual(parsed, { payload: { text: '[}' } });
 });
 
-test('retains attempted edits when delimiter repair cannot produce valid JSON', () => {
-  assert.throws(
-    () => parseModelJsonDetailed('{"text":"unterminated}'),
-    (error) => {
-      assert.equal(error instanceof ParseApiError, true);
-      assert.equal(error.code, 'BAD_MODEL_RESPONSE');
-      assert.equal(error.failure.processingStep, 'json-decoding');
+test('other syntax errors stay ordinary JSON failures with no attempted edits', () => {
+  for (const raw of ['{"text":"unterminated}', '{"a":1 "b":2}', '{"a":1} trailing']) {
+    assert.throws(() => parseModelJsonDetailed(raw), (error) => {
+      assert.equal(error.failure.ruleId, 'TRANSPORT_JSON_OBJECT');
       assert.equal(error.details.jsonDiagnostic.kind, 'json-syntax');
-      assert.match(error.details.jsonDiagnostic.message, /Unterminated string/);
-      assert.deepEqual(error.details.payloadRepairDiagnostics, [expectedDiagnostic({
-        kind: 'append_closers_at_end_of_output',
-        candidateByteOffset: Buffer.byteLength('{"text":"unterminated}', 'utf8'),
-        insertedText: '}'
-      })]);
+      assert.equal('payloadRepairDiagnostics' in error.details, false);
       return true;
-    }
-  );
+    });
+  }
 });
 
-test('retains successful delimiter edits when the repaired root is not an object', () => {
-  assert.throws(
-    () => parseModelJsonDetailed('[1,2'),
-    (error) => {
-      assert.equal(error instanceof ParseApiError, true);
-      assert.equal(error.details.jsonDiagnostic.kind, 'json-root-type');
-      assert.match(error.details.jsonDiagnostic.message, /received an array/);
-      assert.equal(error.details.jsonDiagnostic.originalSyntaxError.kind, 'json-syntax');
-      assert.deepEqual(error.details.payloadRepairDiagnostics, [expectedDiagnostic({
-        kind: 'append_closers_at_end_of_output',
-        candidateByteOffset: Buffer.byteLength('[1,2', 'utf8'),
-        insertedText: ']'
-      })]);
-      return true;
-    }
-  );
-});
-
-test('successful repair diagnostics persist through normalization and Tree Bank snapshots', async () => {
-  const fixture = JSON.parse(await readFile(new URL('mia-laughed.xbar.json', fixturesDirectory), 'utf8'));
-  const completePayload = JSON.stringify(fixture.payload);
-  const repaired = parseModelJsonDetailed(completePayload.slice(0, -1));
-  const bundle = normalizeParseBundle(
-    repaired.payload,
-    fixture.framework,
-    fixture.sentence,
-    fixture.modelRoute,
-    true,
-    {
-      payloadIntegrityFlags: repaired.integrityFlags,
-      payloadRepairDiagnostics: repaired.repairDiagnostics
-    }
-  );
-
-  const provenance = bundle.analyses[0].provenance;
-  assert.deepEqual(provenance.payloadRepairDiagnostics, repaired.repairDiagnostics);
-  assert.deepEqual(
-    createTreeBankBundleSnapshot(bundle).analyses[0].provenance.payloadRepairDiagnostics,
-    repaired.repairDiagnostics
-  );
-});
-
-test('the local route returns successful repair diagnostics in parse provenance', async () => {
-  const fixture = JSON.parse(await readFile(new URL('mia-laughed.xbar.json', fixturesDirectory), 'utf8'));
-  const candidate = JSON.stringify(restateAsSpellout(fixture.payload, fixture.sentence)).slice(0, -1);
-  const bundle = await createLocalRoutes(candidate).parseSentenceWithLocalModel(
-    fixture.sentence,
-    fixture.framework
-  );
-
-  assert.equal(bundle.analyses[0].provenance.payloadRepairDiagnostics[0].kind,
-    'append_closers_at_end_of_output');
-});
-
-test('the local route retains repair diagnostics when normalization rejects the payload', async () => {
-  const candidate = '{"derivationStages":[]';
+test('a stray closer inside a tree fails with the raw output instead of splitting the tree', async () => {
+  const fixture = JSON.parse(await readFile(new URL('what-did-mia-see.xbar.json', fixturesDirectory), 'utf8'));
+  const text = JSON.stringify(restateAsSpellout(fixture.payload, fixture.sentence));
+  // Rebalancing this stray "]" used to close cp_question early: two roots, no tree.
+  const at = text.indexOf('"children":[]', text.lastIndexOf('"id":"what_high"')) + '"children":[]'.length;
+  const damaged = `${text.slice(0, at)}]${text.slice(at)}`;
   await assert.rejects(
-    createLocalRoutes(candidate).parseSentenceWithLocalModel('Mia', 'xbar'),
-    (error) => {
-      assert.equal(error instanceof ParseApiError, true);
-      assert.equal(error.details.payloadRepairDiagnostics[0].kind,
-        'append_closers_at_end_of_output');
-      return true;
-    }
+    createLocalRoutes(damaged).parseSentenceWithLocalModel(fixture.sentence, fixture.framework),
+    (error) => assertUnbalanced(error, damaged, {
+      candidateByteOffset: Buffer.byteLength(text.slice(0, at)),
+      message: /does not match/
+    })
   );
 });
 
-test('committed raw fixtures activate no delimiter repair', async () => {
+test('the local route fails a response with an unclosed end', async () => {
+  const fixture = JSON.parse(await readFile(new URL('mia-laughed.xbar.json', fixturesDirectory), 'utf8'));
+  const raw = JSON.stringify(restateAsSpellout(fixture.payload, fixture.sentence)).slice(0, -1);
+  await assert.rejects(
+    createLocalRoutes(raw).parseSentenceWithLocalModel(fixture.sentence, fixture.framework),
+    (error) => assertUnbalanced(error, raw, { candidateByteOffset: Buffer.byteLength(raw), message: /1 bracket still open/ })
+  );
+});
+
+test('saved records keep the repair evidence they were made with', async () => {
+  const fixture = JSON.parse(await readFile(new URL('mia-laughed.xbar.json', fixturesDirectory), 'utf8'));
+  const bundle = normalizeParseBundle(fixture.payload, fixture.framework, fixture.sentence, fixture.modelRoute, true);
+  const savedRepair = [{ kind: 'append_closers_at_end_of_output', candidateByteOffset: 9,
+    removedText: '', insertedText: '}', removedBytesHex: '', insertedBytesHex: '7d' }];
+  const saved = { ...bundle, analyses: bundle.analyses.map((analysis) => ({ ...analysis, provenance: {
+    ...analysis.provenance,
+    payloadIntegrityFlags: ['json_delimiter_damage_repaired'],
+    payloadRepairDiagnostics: savedRepair
+  } })) };
+  const provenance = createTreeBankBundleSnapshot(saved).analyses[0].provenance;
+  assert.deepEqual(provenance.payloadRepairDiagnostics, savedRepair);
+  assert.deepEqual(provenance.payloadIntegrityFlags, ['json_delimiter_damage_repaired']);
+});
+
+test('committed raw fixtures parse with no repair', async () => {
   const fixtureNames = (await readdir(fixturesDirectory))
     .filter((name) => name.endsWith('.json'))
     .sort();
@@ -195,8 +162,6 @@ test('committed raw fixtures activate no delimiter repair', async () => {
 
   for (const fixtureName of fixtureNames) {
     const rawFixture = await readFile(new URL(fixtureName, fixturesDirectory), 'utf8');
-    const parsed = parseModelJsonDetailed(rawFixture);
-    assert.deepEqual(parsed.repairDiagnostics, [], fixtureName);
-    assert.equal(parsed.integrityFlags.includes('json_delimiter_damage_repaired'), false, fixtureName);
+    assert.deepEqual(Object.keys(parseModelJsonDetailed(rawFixture)), ['payload'], fixtureName);
   }
 });

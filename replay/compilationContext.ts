@@ -27,11 +27,13 @@ export const createReplayCompilation = ({
   const plannedStageCount = Array.isArray(replayPlan?.stages) ? replayPlan.stages.length : 0;
   const plannedRelationsByFrame: DerivationReplayPlanStep[][] = [];
   const resolveFrameRelations = frameRelations ?? createFrameRelationResolver(frames, replayPlan);
+  // A saved unary shell withheld from its first stage until the earliest
+  // moment of the relations that own its second child at `stageIndex`.
   const pendingProjectionReveals: Array<{
     nodeId: string;
     firstStageIndex: number;
     stageIndex: number;
-    relationIndex: number;
+    relationIndexes: number[];
   }> = [];
   // Each stage's continuations of its preceding stage, `previous id -> current id`.
   const continuations = new Map<number, Map<string, string>>();

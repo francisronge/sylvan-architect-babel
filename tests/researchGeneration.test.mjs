@@ -217,18 +217,24 @@ test('invalid model selections and settings are rejected before any provider cal
   assert.deepEqual(validateParseBody({ sentence: fixture.sentence, modelId: 'moonshot:kimi-k3' }).settings, { reasoning_effort: 'high' });
 });
 
-test('repair diagnostics and original bytes survive the new generation path', async (t) => {
+test('unbalanced brackets fail on the new generation path with the original bytes', async (t) => {
   isolate(t);
   const model = getResearchModel('moonshot:kimi-k3');
   const damagedOutput = rawOutput.slice(0, -1);
   const responseText = JSON.stringify(envelopeFor(model, damagedOutput));
-  t.mock.method(globalThis, 'fetch', async () => new Response(responseText));
-  const bundle = await parseFromBody({ sentence: fixture.sentence, modelId: model.id });
-  assert.equal(decode(bundle.rawModelOutput), damagedOutput);
-  assert.equal(decode(bundle.generationRecord.rawProviderResponse), responseText);
-  assert.equal(bundle.analyses[0].provenance.payloadRepairDiagnostics[0].kind, 'append_closers_at_end_of_output');
-  assert.deepEqual(bundle.generationRecord.processing.json.repairDiagnostics, bundle.analyses[0].provenance.payloadRepairDiagnostics);
-  assert.equal(bundle.generationRecord.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damagedOutput));
+  const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(responseText));
+  await assert.rejects(() => parseFromBody({ sentence: fixture.sentence, modelId: model.id }), (error) => {
+    const failure = formatApiError(error).body.error;
+    assert.equal(failure.failure.class, 'transport_serialization');
+    assert.equal(failure.failure.ruleId, 'TRANSPORT_JSON_DELIMITERS_BALANCED');
+    assert.equal(decode(failure.rawOutput), damagedOutput);
+    assert.equal(decode(failure.generationRecord.rawProviderResponse), responseText);
+    assert.deepEqual(failure.generationRecord.processing.json.repairDiagnostics, []);
+    assert.equal(failure.generationRecord.processing.json.diagnostic.kind, 'json-delimiter-damage');
+    assert.equal(failure.generationRecord.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damagedOutput));
+    return true;
+  });
+  assert.equal(fetch.mock.callCount(), 1, 'a failed parse never regenerates');
 });
 
 test('a large malformed answer keeps the whole failure body within its bound on every route', async t => {
@@ -295,10 +301,10 @@ test('all active routes keep a malformed relation neutral without replacing the 
   isolate(t);
   const payload = structuredClone(spelledPayload);
   payload.derivationStages[3].relations[1].values = ['literal content'];
-  const damaged = JSON.stringify(payload).slice(0, -2);
+  const raw = JSON.stringify(payload);
   for (const modelId of GENERATION_MODEL_IDS) {
     const model = getResearchModel(modelId);
-    const responseText = JSON.stringify(envelopeFor(model, damaged));
+    const responseText = JSON.stringify(envelopeFor(model, raw));
     const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(responseText));
     const result = await parseFromBody({ sentence: fixture.sentence, modelId });
     const record = result.generationRecord;
@@ -306,11 +312,11 @@ test('all active routes keep a malformed relation neutral without replacing the 
     assert.equal(claim.relationContractFailure.issues[0].fieldPath,
       '$.derivationStages[3].relations[1].values');
     assert.deepEqual(claim.relationContractFailure.raw.values, ['literal content']);
-    assert.equal(decode(result.rawModelOutput), damaged);
+    assert.equal(decode(result.rawModelOutput), raw);
     assert.equal(decode(record.rawProviderResponse), responseText);
       assert.equal(record.outcome.attempts.length, 1);
-      assert.equal(record.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damaged));
-      assert.deepEqual(record.processing.json.repairDiagnostics.map(({ insertedText }) => insertedText), [']}']);
+      assert.equal(record.processing.json.diagnostic, undefined);
+      assert.deepEqual(record.processing.json.repairDiagnostics, []);
       const inspection = runQualificationAttempt({
         attempt: { id: modelId, request: { sentence: fixture.sentence, framework: 'xbar' },
           model: { providerRoute: model.providerRoute, providerModel: model.providerModel, nativeSettings: {} },
@@ -319,7 +325,7 @@ test('all active routes keep a malformed relation neutral without replacing the 
       });
       assert.deepEqual(inspection.inspection.payload, payload);
       assert.equal(inspection.inspection.analyses[0].stages.length, payload.derivationStages.length);
-      assert.deepEqual(inspection.receipt.ingress.jsonDiagnostic, record.processing.json.diagnostic);
+      assert.equal(inspection.receipt.ingress.jsonDiagnostic, undefined);
       assert.equal(inspection.bundle.analyses.length, 1);
     assert.equal(fetch.mock.callCount(), 1);
     fetch.mock.restore();
