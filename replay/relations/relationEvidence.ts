@@ -4,7 +4,7 @@ import { isUnqualifiedGrammaticalProperty, uniqueCurrentOwners } from './evidenc
 import { recoverMovementEvidence } from './movementEvidence.ts';
 import { directedNominalConcordMembers, nominalConcordMembers } from './nominalConcord.ts';
 import {
-  isUnestablishedOutcomeLiteral,
+  isRecognizedOutcomeLiteral,
   negativeClaimFailure,
   POSITIVE_OUTCOMES,
   relationAssertionFailure,
@@ -50,7 +50,8 @@ const normalizeBlock = (
   block: Record<string, string | string[]> | undefined,
   scope: Tier2SynonymScope,
   synonymIndex: Tier2SynonymIndex,
-  context?: Parameters<typeof relationRoleConcepts>[2]
+  context?: Parameters<typeof relationRoleConcepts>[2],
+  { keepUnrecognizedOutcomes = false }: { keepUnrecognizedOutcomes?: boolean } = {}
 ): {
   concepts: Record<string, string[]>;
   authored: Tier2AuthoredEvidenceEntry[];
@@ -65,8 +66,14 @@ const normalizeBlock = (
     const activeConcepts: string[] = [];
     const conceptItemIndices: Record<string, number[]> = {};
     concepts.forEach((concept) => {
+      // An outcome, status or result field that names no recognized outcome
+      // stays outcome evidence, so no recipe draws its successful form over an
+      // outcome it cannot read; the claim stays neutral. Beside a recognized
+      // outcome, unknown items are qualifiers left to the neutral claim. On a
+      // verdict field an unrecognized literal is that field's judgment.
       const conceptItems = scope === 'value' && concept === 'outcome'
-        ? items.filter((item) => resolveOutcomeLiteral(item)?.concept || isUnestablishedOutcomeLiteral(item))
+        ? keepUnrecognizedOutcomes && !concepts.includes('verdict') && !items.some(isRecognizedOutcomeLiteral)
+          ? items.filter((item) => item.trim()) : items.filter(isRecognizedOutcomeLiteral)
         : scope === 'value' && concept === 'verdict'
           ? items.filter((item) => hasAuthoredJudgment(context) || !resolveOutcomeLiteral(item)?.concept)
           : items;
@@ -113,7 +120,12 @@ export const buildTier2FacetEvidence = ({
   priorForest?: readonly SyntaxNode[]; activeLens?: boolean; synonymIndex?: Tier2SynonymIndex }): Tier2FacetEvidence => {
   const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex, { ...relation, forest: currentForest });
   const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex, { ...relation, anchors: relation.priorAnchors ?? {}, forest: priorForest });
-  const values = normalizeBlock(relation.values, 'value', synonymIndex, { ...relation, forest: currentForest });
+  const { movement, failure: movementFailure, diagnostics: movementDiagnostics } = recoverMovementEvidence(relation, currentForest, priorForest);
+  // A proven movement transition is structural fact, and Replay draws its
+  // path. An outcome the resolver cannot read does not deny it, so that
+  // literal remains a neutral qualifier beside the path.
+  const values = normalizeBlock(relation.values, 'value', synonymIndex, { ...relation, forest: currentForest },
+    { keepUnrecognizedOutcomes: !movement?.transition });
   // A verdict explicitly attached to the analysis is not the outcome of every
   // independent dependency in the same authored envelope. Local verdicts retain
   // their outcome meaning when no whole-analysis target has been established.
@@ -315,7 +327,6 @@ export const buildTier2FacetEvidence = ({
       appendItems(values.concepts, 'pf.rows', entry.items);
     });
   }
-  const { movement, failure: movementFailure, diagnostics: movementDiagnostics } = recoverMovementEvidence(relation, currentForest, priorForest);
   if (movement) {
     currentAnchors.concepts['movement.source'] = [movement.sourceNodeId];
     currentAnchors.concepts['movement.witness'] = [movement.witnessNodeId];

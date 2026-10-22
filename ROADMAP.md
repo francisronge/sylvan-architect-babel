@@ -27,15 +27,10 @@ syntactic rules. Desktop remains the primary experience.
      movement arrow, since a plaque brought near keeps the full gap from arrows.
    - A host drops a row when a parent is inserted above it. This stays instant
      (no glide), so it needs a layout answer or acceptance.
-   - Two `RELATION_TIMING_CONFLICT` cycles that no order satisfies. In the
-     relative pied-piping run, the neutral Internal Merge names wh2, which the
-     recognized operator-variable movement introduces, and that movement's
-     landing joins the pp2 the Internal Merge builds; in the Icelandic case
-     transfer, continued V-to-I and I-to-C each own part of one moving head
-     complex. Each needs a decision about which claim introduces the shared
-     syntax. The pied-piping cycle is also the one invariant finding left in
-     the 986 saved analyses: the Internal Merge's neutral mark never paints,
-     because wh2 is absent at its moment. A movement also does not wait for a
+   - A `RELATION_TIMING_CONFLICT` cycle that no order satisfies: in the
+     Icelandic case transfer, continued V-to-I and I-to-C each own part of one
+     moving head complex. It needs a decision about which claim introduces the
+     shared head complex. A movement also does not wait for a
      contextual anchor, so the Icelandic raising chain's verb-trace role lacks
      its anchor at its moment (waiting would cost the subject landing its
      reserved slot and shift the matrix IP about 120 px).

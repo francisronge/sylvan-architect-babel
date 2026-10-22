@@ -736,6 +736,7 @@
       "list: allow": 1,
       "list: allowed": 2,
       "list: allows": 1,
+      "list: attempted but failed": 1,
       "list: barred": 1,
       "list: bars": 1,
       "list: block": 1,
