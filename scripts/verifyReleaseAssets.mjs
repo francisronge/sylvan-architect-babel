@@ -131,6 +131,11 @@ for (const name of ['react', 'react-dom', 'scheduler', 'd3-selection', 'd3-ease'
     missing.push(`dist/${CODE_NOTICES_FILE} -> ${name} (bundled package without a notice)`);
   }
 }
+// Rollback and bug reports identify a deployment by its build stamp.
+const builtPage = await readDist('index.html');
+if (builtPage !== null && !/<meta name="babel-build" content="[^"+]+\+[0-9a-f]{7,}(?:\.dirty)?">/.test(builtPage)) {
+  missing.push('dist/index.html (no <meta name="babel-build"> with a commit)');
+}
 const fontNotices = await readDist(FONT_NOTICES_FILE);
 let distFontCount = 0;
 if (fontNotices !== null) {

@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 
 import { createDevParseMiddleware } from './server/devParseMiddleware.js';
 import { parseCsvEnv } from './server/parseHttpPolicy.js';
+import { buildVersionPlugin } from './scripts/buildVersionPlugin.mjs';
 import { thirdPartyNoticesPlugins } from './scripts/thirdPartyNoticesPlugin.mjs';
 
 const secureParseApiPlugin = (mode: string): Plugin => {
@@ -35,7 +36,7 @@ export default defineConfig(({ mode }) => {
         return hosts.length > 0 ? hosts : undefined;
       })()
     },
-    plugins: [react(), secureParseApiPlugin(mode), notices.plugin],
+    plugins: [react(), secureParseApiPlugin(mode), buildVersionPlugin({ root: __dirname }), notices.plugin],
     worker: {
       plugins: () => [notices.workerPlugin]
     },
