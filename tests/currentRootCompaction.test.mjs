@@ -11,6 +11,7 @@ import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
 import { compactCurrentRootForks } from '../replay/currentRootCompaction.ts';
 import { TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
+import { directionsFor } from './helpers/rtlMirror.mjs';
 
 const records = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/compact-current-root.json', import.meta.url))).cases;
 function setup(record, width, height, direction) {
@@ -38,8 +39,12 @@ const examples = [
   { key: 'compact-movement/sol-spanish', frame: 32, head: 'c', host: 'ip', fork: 'cbar' },
 ];
 
+// Planning is direction-free (right to left reflects the left-to-right plan), so
+// these planner checks run right to left only for a record whose layout is not
+// the reflection of its left-to-right layout (tests/helpers/rtlMirror.mjs).
+const directions = example => directionsFor(`replay-regressions/compact-current-root.json#/cases/${records.findIndex(record => record.key === example.key)}`);
 for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of ['ltr', 'rtl']) {
-  for (const example of examples) test(`${width}px ${direction}: ${example.key} opens landing space at movement, not construction`, () => {
+  for (const example of examples) if (directions(example).includes(direction)) test(`${width}px ${direction}: ${example.key} opens landing space at movement, not construction`, () => {
     const record = records.find(record => record.key === example.key), original = JSON.stringify(record);
     const { steps, points, baseline, compacted, render, at } = setup(record, width, height, direction);
     const before = at(example.frame, compacted), wide = at(example.frame, baseline), movement = at(example.frame + 1, compacted);

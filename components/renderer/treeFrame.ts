@@ -302,7 +302,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     deferredTreeMatrix: settledTreeMatrix,
     uiBounds,
     containerRef,
-    TARGET_EMERALD
+    TARGET_EMERALD,
+    treeDirection
   });
   // Initial viewport fit:
   // Derivation replay should keep one camera per Derivation frame, not refit to each

@@ -31,7 +31,7 @@ type Scene = {
   coordinates: TreeCoordinateReservation;
   constructionForest?: boolean;
 };
-type StageReservation = { categoryMetrics: string; treeInkMetrics: string; treeLabelMetrics: string; size: [number, number]; direction: TreeDirection; preceding?: TreeCoordinateReservation; frames: ReadonlyMap<SyntaxNode, TreeCoordinateReservation> };
+type StageReservation = { categoryMetrics: string; treeInkMetrics: string; treeLabelMetrics: string; size: [number, number]; preceding?: TreeCoordinateReservation; frames: ReadonlyMap<SyntaxNode, TreeCoordinateReservation> };
 const cache = new WeakMap<readonly PlaybackStep[], Map<string, StageReservation>>();
 export type ContourPlanStatus = 'established' | 'repaired' | 'unresolved';
 const contourPlans = new WeakMap<readonly PlaybackStep[], Map<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, ContourPlanStatus>>();
@@ -112,7 +112,7 @@ function hasValidBranches(scene: Scene) {
 /** When a relation opens a stage, a workspace awaiting attachment keeps its
  * completed shape. The later merge centers its new surrounding parents without
  * relaying out the untouched component first. */
-function retainWorkspaceComponents(scenes: Scene[], preceding: Scene, originOffsetX: number): Scene[] {
+function retainWorkspaceComponents(scenes: Scene[], preceding: Scene): Scene[] {
   const roots = [...preceding.nodes.values()].filter(node => preceding.visible.has(getNodeId(node))
     && (!node.parent || !preceding.visible.has(getNodeId(node.parent))
       || node.parent.data.replayOrigin?.kind === 'workspace'));
@@ -141,11 +141,11 @@ function retainWorkspaceComponents(scenes: Scene[], preceding: Scene, originOffs
   const offset = oldRoot.y - newRoot.y * scale;
   const result = scenes.map(scene => {
     const coordinates = new Map([...scene.coordinates].map(([id, point]) =>
-      [id, { x: point.x + originOffsetX, y: point.y * scale + offset }]));
+      [id, { x: point.x, y: point.y * scale + offset }]));
     unchanged.forEach(root => root.each(node => {
       const id = getNodeId(node);
       const prior = preceding.coordinates.get(id)!;
-      coordinates.set(id, { x: prior.x + originOffsetX, y: prior.y });
+      coordinates.set(id, { x: prior.x, y: prior.y });
     }));
     return centerParents({ ...scene, coordinates });
   });
@@ -226,7 +226,7 @@ function reserveContours(scenes: Scene[], separateAttachments = false): Scene[] 
  * the owning moment. The same maps serve camera bounds, allocation and painting. */
 function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
-  direction: TreeDirection = 'ltr', measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
+  measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
   treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure,
   { orderedContours = false }: { orderedContours?: boolean } = {}): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
   let stages = cache.get(steps);
@@ -237,13 +237,13 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
   const previous = frames[0]?.replayKind === 'relation' && sizeForStage && steps.find(step => step.replayFrameIndex === stageIndex - 1 && step.replayKind === 'macro');
   const previousSize = previous && sizeForStage!(stageIndex - 1);
   const precedingCoordinates = previous?.replayCanvasData && previousSize
-    ? buildStageLocalCoordinates(steps, stageIndex - 1, previousSize, sizeForStage, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, { orderedContours }).get(previous.replayCanvasData) : undefined;
+    ? buildStageLocalCoordinates(steps, stageIndex - 1, previousSize, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, { orderedContours }).get(previous.replayCanvasData) : undefined;
   const categoryMetrics = categoryMetricKey(steps, measureCategoryText);
   const treeInkMetrics = treeInkMetricKey(steps, measureCategoryText, measureTreeInk);
   const treeLabelMetrics = treeLabelMetricKey(steps, treeLabelRuns, measureTreeLabel);
   const cacheKey = `${stageIndex}:${orderedContours}`, cached = stages.get(cacheKey);
   if (cached && cached.size[0] === size[0] && cached.size[1] === size[1]
-    && cached.direction === direction && cached.categoryMetrics === categoryMetrics && cached.treeInkMetrics === treeInkMetrics && cached.treeLabelMetrics === treeLabelMetrics && cached.preceding === precedingCoordinates) return cached.frames;
+    && cached.categoryMetrics === categoryMetrics && cached.treeInkMetrics === treeInkMetrics && cached.treeLabelMetrics === treeLabelMetrics && cached.preceding === precedingCoordinates) return cached.frames;
   const { rowHeight, temporaryRootDepth } = stageVerticalGeometry(frames);
   const scenes: Scene[] = frames.map(step => {
     const canvas = step.replayCanvasData!, root = d3.hierarchy(canvas);
@@ -291,25 +291,21 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
     const root = d3.hierarchy(previous.replayCanvasData); applyVizIds(root);
     const nodes = new Map<string, d3.HierarchyPointNode<SyntaxNode>>(
       layoutSyntaxTree(root, previousSize!, 'ltr', precedingCoordinates).descendants().map(node => [getNodeId(node), node]));
-    // RTL painting reflects x around the current canvas width. Carry the origin
-    // with the retained workspace, translating the whole scene to preserve its
-    // existing clearances instead of pushing that component into its neighbours.
-    const originOffsetX = direction === 'rtl' ? size[0] - previousSize![0] : 0;
     const retained = retainWorkspaceComponents(finalScenes, { canvas: previous.replayCanvasData, nodes,
-      coordinates: precedingCoordinates, visible: new Set(previous.replayVisibleNodeIds ?? nodes.keys()) }, originOffsetX);
+      coordinates: precedingCoordinates, visible: new Set(previous.replayVisibleNodeIds ?? nodes.keys()) });
     // The repair plan keeps this stage's own layout when a retained component would interleave a sister.
     if (!orderedContours || retained.every(scene => siblingContoursOrdered([...scene.nodes.values()]
       .filter(node => scene.visible.has(getNodeId(node))), 'ltr', node => scene.coordinates.get(getNodeId(node))!))) finalScenes = retained;
   }
   const reservations = new Map(finalScenes.map(scene => [scene.canvas, scene.coordinates]));
-  stages.set(cacheKey, { size: [...size], direction, categoryMetrics, treeInkMetrics, treeLabelMetrics, preceding: precedingCoordinates, frames: reservations });
+  stages.set(cacheKey, { size: [...size], categoryMetrics, treeInkMetrics, treeLabelMetrics, preceding: precedingCoordinates, frames: reservations });
   return reservations;
 }
 
 type StageFrames = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
 type StageOffset = { x: number; y: number };
 type PaintedFrame = readonly [TreeCoordinateReservation | undefined, [number, number]] | undefined;
-const stageOffsets = new WeakMap<StageFrames, Map<string, WeakMap<object, StageOffset>>>();
+const stageOffsets = new WeakMap<StageFrames, WeakMap<object, StageOffset>>();
 const completedStage = {};
 const alignedStages = new WeakMap<StageFrames, Map<string, StageFrames>>();
 type PlanChoice = { mode: 'stage' | 'slotted' | 'aligned'; shift: StageOffset };
@@ -323,10 +319,10 @@ const stageStepOrder = (step: PlaybackStep) => step.replayStageStepIndex ?? (ste
 const stageSteps = (steps: readonly PlaybackStep[], stage: number) => steps
   .filter(step => step.replayFrameIndex === stage && step.replayCanvasData).sort((a, b) => stageStepOrder(a) - stageStepOrder(b));
 
-function paintedSyntax(step: PlaybackStep, size: [number, number], direction: TreeDirection, coordinates: TreeCoordinateReservation) {
+function paintedSyntax(step: PlaybackStep, size: [number, number], coordinates: TreeCoordinateReservation) {
   const root = d3.hierarchy(step.replayCanvasData!); applyVizIds(root);
   const visible = new Set<string>(step.replayVisibleNodeIds ?? root.descendants().map(node => getNodeId(node)));
-  return new Map<string, d3.HierarchyPointNode<SyntaxNode>>(layoutSyntaxTree(root, size, direction, coordinates, visible).descendants()
+  return new Map<string, d3.HierarchyPointNode<SyntaxNode>>(layoutSyntaxTree(root, size, 'ltr', coordinates, visible).descendants()
     .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
     .map(node => [getNodeId(node), node] as const));
 }
@@ -339,38 +335,33 @@ function paintedSyntax(step: PlaybackStep, size: [number, number], direction: Tr
  * completed stage is the anchor, so the final tree keeps its coordinates. A
  * translation leaves every stage's own geometry and camera fit unchanged. */
 function stageOffset(steps: readonly PlaybackStep[], stage: number, sizeForStage: (stage: number) => [number, number] | null,
-  direction: TreeDirection, local: (stage: number, size: [number, number]) => StageFrames): StageOffset {
+  local: (stage: number, size: [number, number]) => StageFrames): StageOffset {
   const size = sizeForStage(stage), nextSize = sizeForStage(stage + 1);
   if (!size) return { x: 0, y: 0 };
   // An offset depends on this stage's local frames and on the aligned frames of
   // every later stage, which the next stage's aligned frames already embody.
   const frames = local(stage, size);
   const next = nextSize && stageSteps(steps, stage + 1).length
-    ? alignedStageCoordinates(steps, stage + 1, nextSize, sizeForStage, direction, local) : undefined;
-  let byDirection = stageOffsets.get(frames);
-  if (!byDirection) stageOffsets.set(frames, byDirection = new Map());
-  let offsets = byDirection.get(direction);
-  if (!offsets) byDirection.set(direction, offsets = new WeakMap());
+    ? alignedStageCoordinates(steps, stage + 1, nextSize, sizeForStage, local) : undefined;
+  let offsets = stageOffsets.get(frames);
+  if (!offsets) stageOffsets.set(frames, offsets = new WeakMap());
   const cached = offsets.get(next ?? completedStage);
   if (cached) return cached;
   const closing = stageSteps(steps, stage).at(-1), opening = stageSteps(steps, stage + 1)[0];
   let offset: StageOffset = { x: 0, y: 0 };
   if (next && nextSize && closing && opening) {
-    const before = paintedSyntax(closing, size, direction, frames.get(closing.replayCanvasData!)!);
-    const after = paintedSyntax(opening, nextSize, direction, next.get(opening.replayCanvasData!)!);
-    const { x, y } = carriedShift(before, after);
-    // Reservations are stored before right-to-left reflection, so a painted shift reverses x.
-    offset = { x: direction === 'rtl' ? -x : x, y };
+    offset = carriedShift(paintedSyntax(closing, size, frames.get(closing.replayCanvasData!)!),
+      paintedSyntax(opening, nextSize, next.get(opening.replayCanvasData!)!));
   }
   offsets.set(next ?? completedStage, offset);
   return offset;
 }
 
 function alignedStageCoordinates(steps: readonly PlaybackStep[], stage: number, size: [number, number],
-  sizeForStage: (stage: number) => [number, number] | null, direction: TreeDirection,
+  sizeForStage: (stage: number) => [number, number] | null,
   local: (stage: number, size: [number, number]) => StageFrames): StageFrames {
   const frames = local(stage, size);
-  const { x, y } = stageOffset(steps, stage, sizeForStage, direction, local);
+  const { x, y } = stageOffset(steps, stage, sizeForStage, local);
   if (!x && !y) return frames;
   let aligned = alignedStages.get(frames);
   if (!aligned) alignedStages.set(frames, aligned = new Map());
@@ -384,9 +375,9 @@ function alignedStageCoordinates(steps: readonly PlaybackStep[], stage: number, 
 /** A stage's local frames as the alignment translates them, before cross-stage
  * planning. Diagnostics and cache checks read this; layout uses the plans below. */
 export function alignedStageFrames(steps: readonly PlaybackStep[], stage: number, size: [number, number],
-  sizeForStage: (stage: number) => [number, number] | null, direction: TreeDirection = 'ltr'): StageFrames {
-  return alignedStageCoordinates(steps, stage, size, sizeForStage, direction, (index, stageSize) =>
-    buildStageLocalCoordinates(steps, index, stageSize, sizeForStage, direction));
+  sizeForStage: (stage: number) => [number, number] | null): StageFrames {
+  return alignedStageCoordinates(steps, stage, size, sizeForStage, (index, stageSize) =>
+    buildStageLocalCoordinates(steps, index, stageSize, sizeForStage));
 }
 
 /** Motion a plan's own frames show: components the step does not own that move,
@@ -395,13 +386,13 @@ export function alignedStageFrames(steps: readonly PlaybackStep[], stage: number
  * A component that keeps its painted parent stays one row below it, so when the
  * step moves that parent to another row the component's row change is the
  * parent's; its other motion counts. */
-function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep) => PaintedFrame, direction: TreeDirection) {
+function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep) => PaintedFrame) {
   // Playback order, whatever order the steps were passed in.
   const ordered = [...steps].sort((a, b) => (a.replayFrameIndex ?? 0) - (b.replayFrameIndex ?? 0) || stageStepOrder(a) - stageStepOrder(b));
   const scenes = ordered.flatMap(step => {
     const [coordinates, size] = step.replayCanvasData && painted(step) || [];
     return coordinates && size ? [{ step, canvas: step.replayCanvasData!, size, coordinates,
-      nodes: paintedSyntax(step, size, direction, coordinates) }] : [];
+      nodes: paintedSyntax(step, size, coordinates) }] : [];
   });
   const render = (scene: typeof scenes[number]) => [...scene.nodes.values()];
   const paintedParent = (scene: typeof scenes[number], id: string) => {
@@ -492,10 +483,69 @@ function slotsReduceMotion(before: ReturnType<typeof planMotion>, after: ReturnT
  * that ends early can move a lower occurrence and its ancestors at its moment.
  * When the chosen plan still moves syntax that a step does not own, or moves
  * material as it is joined, the same plan is made again with aligned stage
- * frames and replaces it only under `alignmentImprovesMotion`. */
+ * frames and replaces it only under `alignmentImprovesMotion`.
+ *
+ * Planning reads no writing direction: one plan, in left-to-right coordinates,
+ * serves both directions (`reflectedReservations`), so every comparison it makes
+ * across stages of different widths measures from the same edge. */
 export function buildStageCoordinateReservations(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
   direction: TreeDirection = 'ltr', measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
+  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
+  const planned = planStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+  return direction === 'rtl' ? reflectedReservations(steps, planned, size, sizeForStage) : planned;
+}
+
+// Each plan's right-to-left reservations, per translation, so a reused layout
+// returns the same maps, and each such map's plan.
+const reflections = new WeakMap<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, Map<number, ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>>();
+const reflectedPlans = new WeakMap<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>();
+
+/** The x about which right-to-left Replay reflects every stage: the completed
+ * stage's width, or `size`'s when no stage size is known. A painted
+ * right-to-left x is this axis less the painted left-to-right x. */
+export function rightToLeftAxis(steps: readonly PlaybackStep[], size: [number, number],
+  sizeForStage?: (stageIndex: number) => [number, number] | null) {
+  const completed = Math.max(...steps.flatMap(step => step.replayCanvasData && step.replayFrameIndex !== undefined ? [step.replayFrameIndex] : []));
+  return Number.isFinite(completed) && sizeForStage?.(completed)?.[0] || size[0];
+}
+
+const translated = (frames: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, dx: number) => new Map([...frames].map(([canvas, points]) =>
+  [canvas, new Map([...points].map(([id, point]) => [id, { x: point.x + dx, y: point.y }]))]));
+
+/** A stage's right-to-left reservations: its left-to-right plan, translated so
+ * that painting (layoutSyntaxTree reflects x about the stage width) reflects
+ * every frame of every stage about the same axis, `rightToLeftAxis`.
+ * Right-to-left Replay is then the left-to-right Replay reflected: the same rows,
+ * the same relative positions and the same motion, and the camera carry across
+ * a stage boundary is the left-to-right carry reflected. */
+function reflectedReservations(steps: readonly PlaybackStep[], planned: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>,
+  size: [number, number], sizeForStage?: (stageIndex: number) => [number, number] | null) {
+  const dx = size[0] - rightToLeftAxis(steps, size, sizeForStage);
+  if (!dx) return planned;
+  let byShift = reflections.get(planned);
+  if (!byShift) reflections.set(planned, byShift = new Map());
+  let result = byShift.get(dx);
+  if (!result) {
+    byShift.set(dx, result = translated(planned, dx));
+    reflectedPlans.set(result, planned);
+  }
+  return result;
+}
+
+/** The left-to-right plan of one stage's right-to-left reservations, so work
+ * that must be the reflection of its left-to-right result (plaque placement)
+ * can run on the left-to-right layout. Reservations that crossed a worker
+ * boundary are translated back. */
+export function leftToRightReservations(steps: readonly PlaybackStep[], reflected: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>,
+  size: [number, number], sizeForStage?: (stageIndex: number) => [number, number] | null): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
+  const dx = size[0] - rightToLeftAxis(steps, size, sizeForStage);
+  return !dx ? reflected : reflectedPlans.get(reflected) ?? translated(reflected, -dx);
+}
+
+function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
+  sizeForStage?: (stageIndex: number) => [number, number] | null,
+  measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
   treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
   const sizes = new Map<number, [number, number]>();
   if (sizeForStage) for (const step of steps) {
@@ -509,23 +559,23 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
   const plan = (orderedContours: boolean, mode: 'stage' | 'slotted' | 'aligned' = 'stage') => {
     const alignStages = mode === 'aligned';
     const stageLocal = (stage: number, stageSize: [number, number]) => buildStageLocalCoordinates(steps, stage, stageSize, sizeForStage,
-      direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, { orderedContours });
+      measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, { orderedContours });
     const local = alignStages && sizeForStage ? (stage: number, stageSize: [number, number]) =>
-      alignedStageCoordinates(steps, stage, stageSize, sizeForStage, direction, stageLocal) : stageLocal;
+      alignedStageCoordinates(steps, stage, stageSize, sizeForStage, stageLocal) : stageLocal;
     const original = local(stageIndex, size);
     if (!sizeForStage) return { frames: original, key: original, painted: (step: PlaybackStep): PaintedFrame =>
       step.replayFrameIndex === stageIndex ? [original.get(step.replayCanvasData!), size] as const : undefined };
-    const planned = reserveWorkspaceAttachments({ steps, sizes, direction, minimumSiblingGap: TREE_SIBLING_GAP, coordinatesForStage: local,
+    const planned = reserveWorkspaceAttachments({ steps, sizes, direction: 'ltr', minimumSiblingGap: TREE_SIBLING_GAP, coordinatesForStage: local,
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, orderedContours, alignedStages: alignStages });
     const compact = compactCurrentRootForks(steps, sizes, planned, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
-    const retained = retainMovementSourceSlots(steps, sizes, compact, direction, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+    const retained = retainMovementSourceSlots(steps, sizes, compact, 'ltr', measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
     let slotted = slotPlans.get(retained);
     if (!slotted) slotPlans.set(retained, slotted = new Map());
     let continuous = mode === 'stage' ? retained : slotted.get(mode);
-    if (!continuous) slotted.set(mode, continuous = reserveWaitingSlots({ steps, sizes, coordinates: retained, direction,
+    if (!continuous) slotted.set(mode, continuous = reserveWaitingSlots({ steps, sizes, coordinates: retained, direction: 'ltr',
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, withinStage: !alignStages }));
     // Every placement above can hold a movement's slot for its lower occurrence alone.
-    continuous = reserveMovementSlotClearance({ steps, sizes, coordinates: continuous, direction,
+    continuous = reserveMovementSlotClearance({ steps, sizes, coordinates: continuous, direction: 'ltr',
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel });
     return { frames: new Map([...original].map(([canvas, coordinates]) => [canvas, continuous.get(canvas) ?? coordinates])),
       key: continuous, painted: (step: PlaybackStep): PaintedFrame => {
@@ -541,8 +591,8 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
       if (!coordinates || !stageSize) return true;
       const root = d3.hierarchy(step.replayCanvasData!); applyVizIds(root);
       const visible = new Set<string>(step.replayVisibleNodeIds ?? root.descendants().map(node => getNodeId(node)));
-      return siblingContoursOrdered(layoutSyntaxTree(root, stageSize, direction, coordinates, visible).descendants()
-        .filter(node => visible.has(getNodeId(node))), direction);
+      return siblingContoursOrdered(layoutSyntaxTree(root, stageSize, 'ltr', coordinates, visible).descendants()
+        .filter(node => visible.has(getNodeId(node))));
     }));
     return result;
   };
@@ -555,14 +605,13 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
     if (!sizeForStage) return chosen.frames;
     let choice = alignedChoices.get(chosen.key);
     if (choice === undefined) {
-      const before = planMotion(steps, chosen.painted, direction);
+      const before = planMotion(steps, chosen.painted);
       choice = { mode: 'stage', shift: { x: 0, y: 0 } };
       const accept = (mode: 'slotted' | 'aligned', candidate: ReturnType<typeof plan>, improves: typeof alignmentImprovesMotion) => {
         if (!ordered(candidate)) return false;
-        const after = planMotion(steps, candidate.painted, direction), shift = finalTreeShift(before, after);
+        const after = planMotion(steps, candidate.painted), shift = finalTreeShift(before, after);
         if (!shift || !improves(before, after)) return false;
-        // Reservations are stored before right-to-left reflection, so a painted shift reverses x.
-        choice = { mode, shift: { x: direction === 'rtl' ? shift.x : -shift.x, y: -shift.y } };
+        choice = { mode, shift: { x: -shift.x, y: -shift.y } };
         return true;
       };
       if (before.count && !accept('aligned', plan(orderedContours, 'aligned'), alignmentImprovesMotion))

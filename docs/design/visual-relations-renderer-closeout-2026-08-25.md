@@ -104,12 +104,25 @@ only to presentation coordinates. Stored children, tokens, glyphs and syntactic
 dependencies are never reversed.
 
 When an unchanged workspace component carries coordinates across stages, preserve
-its position after applying the writing direction. RTL reflection uses the current
-canvas width, so rebase the whole retained scene by the width difference before
-reflection. Rebasing only the carried component changes its clearance from other
-syntax and can introduce collisions. The reservation cache, painter and bounds
-calculation share that direction. This changes the drawing origin, not its internal
-spacing or automatic fit; a manually positioned camera retains the component.
+its position after applying the writing direction. Coordinates are planned once,
+left to right, for both directions. RTL reflection uses the current canvas width,
+so each stage's reservations are first translated as a whole by its width less the
+completed stage's width; every frame of every stage then reflects about that one
+axis, and RTL Replay is the LTR Replay reflected, with the same rows, relative
+positions and motion. Rebasing only the carried component would change its
+clearance from other syntax and can introduce collisions. The reservation cache,
+painter and bounds calculation share that reflection. This changes the drawing
+origin, not its internal spacing or automatic fit; a manually positioned camera
+retains the component.
+
+Relation plaques and neutral role labels mirror as well (Francis, 22 October
+2026: "mirror them too"). Plaques are allocated on the LTR layout and each
+placement is reflected about the same axis, so a pocket the LTR search finds
+right of its anchor stands left of it RTL, and row ports and side edges reflect
+with it. A shell drawn narrower than a later phase reserves that width only
+while plaques are allocated; reflected, it reserves its drawn shell, and its wider
+phase has its own reflected placement. Role labels try the reading-direction
+side of their witness first (below). Plaque and label text stays upright.
 
 Generated sentence-initial casing does not change an authored subtree's identity.
 For geometry retention only, compare a generated word child's initial capitalization
@@ -429,9 +442,11 @@ reveal, and syntax and plaque obstacles remain reserved. Static inspection keeps
 the combined allocation because its claims can be displayed together. Vertical
 clearance uses label height rather than the width of the authored role name.
 
-A role label takes the first free of its five preferred spots: right of its
-witness label, left, above, above right and above left. When all five are taken,
+A role label takes the first free of its five preferred spots: after its
+witness label in reading direction (right of it LTR, left of it RTL), before it,
+above, above after and above before. When all five are taken,
 it takes the nearest free spot on either side or in the rows above and below,
+equal distances again going to the reading-direction side,
 searched in steps of its own height out to twice its farthest preferred spot. A
 free spot inside the fitted viewport comes first; when none is free inside it,
 a label that could fit the viewport takes the free spot that leaves it least. If
