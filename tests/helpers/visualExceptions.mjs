@@ -12,8 +12,6 @@ const SPOKE_ATTACHED = 'Accepted since #76: keeping the gap would cut off the sp
   + 'and the spoke meets the plaque\'s edge.';
 const PLAQUE_CROWDED = 'Open (catalog #3): no nearby pocket stays clear for the plaque\'s lifetime, so the allocator takes '
   + 'the nearest clear pocket beyond its nearby candidates. #74 and #84 relocate plaques whose anchor moves, not these.';
-const LANE = 'Open: a neutral counter-lane connector runs its lane through tree text. Only its stems are clipped around '
-  + 'labels, and the lane sits just below the participants, above deeper unrelated syntax.';
 const SOURCE_POCKET = 'Accepted with the held movement slot: the complete source keeps its sister clearance until its '
   + 'movement, so the plaque pocket beside its anchor, clear for the plaque\'s whole lifetime, lies just beyond its reach.';
 
@@ -137,40 +135,6 @@ export const EXCEPTIONS = [
     'plaque(3:0 resultingStem: 読ん)@vComplex', { desktop: { '40-61': 1.35 }, 'desktop-large': { '40-61': 1.35 } }),
   x(PLAQUE_CROWDED, 'visual-relations/stable-complex-head-plaques.json#', 'mark-distance', 'plaque',
     'plaque(4:0 resultingStem: 読ん)@vComplex', { desktop: { '52-61': 1.43 }, 'desktop-large': { '52-61': 1.43 } }),
-  x(LANE, 'movement/source-occurrence-ownership.json#/0', 'line-clearance', 'connector-text',
-    'connector(1:1)a1_tense→a1_nps a1_vbar0:category', { 'desktop-large': { '33': 4.73 } }),
-  x(LANE, 'replay-regressions/astra-turkish-relative-2.json#', 'line-clearance', 'connector-text',
-    'connector(1:1)b_letters_n→b_op_spec b_ayse:category', { 'desktop-large': { '41': 6.37 } }),
-  x(LANE, 'replay-regressions/astra-turkish-relative-2.json#', 'line-clearance', 'connector-text',
-    'connector(1:1)b_letters_n→b_op_spec b_rel_ibar:category', { 'desktop-large': { '41': 4.23 } }),
-  x(LANE, 'replay-regressions/astra-turkish-relative-2.json#', 'line-clearance', 'connector-text',
-    'connector(1:2)b_letters_n→b_possessor b_ayse:category', { 'desktop-large': { '42': 6.37 } }),
-  x(LANE, 'replay-regressions/astra-turkish-relative-2.json#', 'line-clearance', 'connector-text',
-    'connector(1:2)b_letters_n→b_possessor b_rel_ibar:category', { 'desktop-large': { '42': 4.23 } }),
-  x(LANE, 'replay-regressions/astra-turkish-relative-2.json#', 'line-clearance', 'connector-text',
-    'connector(1:5)b_yesterday→b_read b_student_n:category', { 'desktop-large': { '45': 4.23 } }),
-  x(LANE, 'replay-regressions/construction-slot-continuity.json#/cases/0', 'line-clearance', 'connector-text',
-    'connector(3:1)vRaised→iTense subjectD:category', { 'desktop-large': { '34': 4.86 } }),
-  x(LANE, 'replay-regressions/diverse-recovery.json#/examples/2/analysis', 'line-clearance', 'connector-text',
-    'connector(3:2)raisedSubjectK→pastAuxiliary littleV:category', { desktop: { '35': 2.63 }, 'desktop-large': { '35': 1.86 } }),
-  x(LANE, 'replay-regressions/diverse-recovery.json#/examples/3/analysis', 'line-clearance', 'connector-text',
-    'connector(2:1)book→ropHigh rc:category', { 'desktop-large': { '38': 2.17 } }),
-  x(LANE, 'replay-regressions/diverse-recovery.json#/examples/3/analysis', 'line-clearance', 'connector-text',
-    'connector(2:1)book→ropHigh rtp:category', { 'desktop-large': { '38': 2.03 } }),
-  x(LANE, 'replay-regressions/later-occupant-intermediate-landing.json#', 'line-clearance', 'connector-text',
-    'connector(8:1)called→matrixT car:category', { 'desktop-large': { '57': 2.03 } }),
-  x(LANE, 'replay-regressions/later-occupant-intermediate-landing.json#', 'line-clearance', 'connector-text',
-    'connector(8:1)called→matrixT relativeC:category', { 'desktop-large': { '57': 4.65 } }),
-  x(LANE, 'replay-regressions/later-occupant-intermediate-landing.json#', 'line-clearance', 'connector-text',
-    'connector(8:1)called→matrixT relativeTP:category', { 'desktop-large': { '57': 2.03 } }),
-  x(LANE, 'replay-regressions/later-occupant-intermediate-landing.json#', 'line-clearance', 'connector-text',
-    'connector(8:1)called→matrixT whose:category', { 'desktop-large': { '57': 4.79 } }),
-  x(LANE, 'replay-regressions/shared-landing-source.json#', 'line-clearance', 'connector-text',
-    'connector(2:1)whMatrix→edgeTrace sayV::__leaf:word', { 'desktop-large': { '46': 1.23 } }),
-  x(LANE, 'replay-regressions/sol-spanish-qr.json#/analyses/1', 'line-clearance', 'connector-text',
-    'connector(1:1)i→vh sd:category', { 'desktop-large': { '31': 2.58 } }),
-  x(LANE, 'replay-regressions/workspace-reservation.json#/cases/0', 'line-clearance', 'connector-text',
-    'connector(7:1)negative-copula→matrix-predication v-complement:category', { 'desktop-large': { '52': 1.9 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:1 theta experiencer)@relativeLightVerb', { desktop: { '14-43': 1.23 }, 'desktop-large': { '14-43': 1.23 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/waiting-root-continuity.json#', 'mark-distance', 'plaque',
