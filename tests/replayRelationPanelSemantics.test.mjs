@@ -4,7 +4,7 @@ import test from 'node:test';
 import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
 import { buildPlaybackStepsFromDerivationFrames } from '../replay/replayCompiler.ts';
 import { buildReplaySupportLines } from '../replay/replayPanel.ts';
-import { stepRepresentsMovement } from '../replay/movementLinks.ts';
+import { getActiveReplayRelationLinks, stepRepresentsMovement } from '../replay/movementLinks.ts';
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 
 const leaf = (id, label, word) => ({ id, label, word, children: [] });
@@ -67,6 +67,25 @@ test('movement relation moments alone receive Source and Landing support lines',
     buildReplaySupportLines(step).map(({ label }) => label),
     ['Source', 'Landing']
   );
+});
+
+test('a moment without links of its own does not borrow an earlier same-named relation\'s link', () => {
+  // A later stage restates the movement with an anchor that resolves to
+  // nothing; the persisting earlier link is that stage's, not this moment's.
+  const earlier = relationLink({
+    relation: 'AbarMove',
+    relationIndex: 0,
+    anchors: [{ role: 'lowerCopy', nodeId: 'dp_low' }, { role: 'pronouncedCopy', nodeId: 'dp_high' }],
+    renderFamily: 'trajectory',
+    trajectoryKind: 'phrasal'
+  });
+  const step = { ...relationStep({ relation: 'AbarMove', relationIndex: 0, links: [earlier] }),
+    replayRelationIdentity: { stageIndex: 1, relationIndex: 0 } };
+  assert.deepEqual(getActiveReplayRelationLinks(step), []);
+  assert.ok(!buildReplaySupportLines(step).some(({ label }) => ['Source', 'Landing'].includes(label)));
+  // A link without an owner still matches the moment by name.
+  const { authoredRelationKey, ...unowned } = earlier;
+  assert.deepEqual(getActiveReplayRelationLinks({ ...step, replayRelationLinks: [unowned] }), [unowned]);
 });
 
 test('BoundingNodeCrossing uses its registered authored roles, not movement labels', () => {
