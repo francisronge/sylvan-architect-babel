@@ -3,6 +3,16 @@
 The Apache License 2.0 applies only to rights the project can grant. It does not
 replace the licenses or rights described below.
 
+## Babel App Build
+
+`npm run build` writes the app's notices into `dist`. `THIRD_PARTY_NOTICES.txt`
+names every package whose code the app bundle and its Replay workers include,
+with the license text copied from each installed package.
+`assets/OFL-1.1.txt` sits beside the bundled Crimson Pro, JetBrains Mono and
+Quicksand font files, names each file, and carries each family's copyright
+notice and the SIL Open Font License 1.1. `scripts/thirdPartyNoticesPlugin.mjs`
+generates both, and `npm run release:verify-assets` checks a finished build.
+
 ## Relation Orchard Bundles
 
 `docs/research/relation-orchard/relation-orchard.bundle.js` includes React,

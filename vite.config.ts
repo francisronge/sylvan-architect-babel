@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 
 import { createDevParseMiddleware } from './server/devParseMiddleware.js';
 import { parseCsvEnv } from './server/parseHttpPolicy.js';
+import { thirdPartyNoticesPlugins } from './scripts/thirdPartyNoticesPlugin.mjs';
 
 const secureParseApiPlugin = (mode: string): Plugin => {
   const env = loadEnv(mode, '.', '');
@@ -21,21 +22,27 @@ const secureParseApiPlugin = (mode: string): Plugin => {
   };
 };
 
-export default defineConfig(({ mode }) => ({
-  server: {
-    port: 5177,
-    strictPort: true,
-    host: '127.0.0.1',
-    allowedHosts: (() => {
-      const env = loadEnv(mode, '.', '');
-      const hosts = parseCsvEnv(env.BABEL_DEV_ALLOWED_HOSTS);
-      return hosts.length > 0 ? hosts : undefined;
-    })()
-  },
-  plugins: [react(), secureParseApiPlugin(mode)],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, '.')
+export default defineConfig(({ mode }) => {
+  const notices = thirdPartyNoticesPlugins({ root: __dirname });
+  return {
+    server: {
+      port: 5177,
+      strictPort: true,
+      host: '127.0.0.1',
+      allowedHosts: (() => {
+        const env = loadEnv(mode, '.', '');
+        const hosts = parseCsvEnv(env.BABEL_DEV_ALLOWED_HOSTS);
+        return hosts.length > 0 ? hosts : undefined;
+      })()
+    },
+    plugins: [react(), secureParseApiPlugin(mode), notices.plugin],
+    worker: {
+      plugins: () => [notices.workerPlugin]
+    },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '.')
+      }
     }
-  }
-}));
+  };
+});
