@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { buildCodexQualificationRequest } from './codexOAuth.js';
 import { hashQualificationBytes } from './run.js';
+import { checkLocalRuntimeHost, readLocalHostPolicy } from '../server/localHostPolicy.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const runnerPath = path.join(repoRoot, 'scripts/runCodexQualification.mjs');
@@ -64,14 +65,15 @@ export const runManualQualification = async ({ request, outputPath, signal, spaw
 /** Loopback-only app adapter. Browser input cannot select credentials, output paths or shell code. */
 export const createManualParseMiddleware = ({ runsRoot, port, run = runManualQualification }) => {
   let active = null;
-  const hosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
+  const hostPolicy = readLocalHostPolicy({}, { port });
   const middleware = async (req, res, next) => {
     const send = (status, payload) => {
       if (res.destroyed || res.writableEnded) return;
       res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
       res.end(JSON.stringify(payload));
     };
-    if (!hosts.has(req.headers.host)) return send(403, { error: { code: 'FORBIDDEN_HOST', message: 'Use the local Babel app address.' } });
+    const wrongHost = checkLocalRuntimeHost(hostPolicy, req.headers.host);
+    if (wrongHost) return send(wrongHost.status, wrongHost.body);
     if (req.url?.split('?')[0] !== '/api/parse') return next();
     if (req.method !== 'POST') return send(405, { error: { code: 'METHOD_NOT_ALLOWED', message: 'Use POST /api/parse.' } });
     if (req.headers.origin !== `http://${req.headers.host}`) {
