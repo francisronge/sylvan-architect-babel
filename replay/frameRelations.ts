@@ -277,10 +277,17 @@ export const getFrameRelations = (
     // Fallback may reveal the authored landing without rescuing a Tier 1 recipe.
     // Specialized drawing kinds still prove either a head or a phrasal transition.
     const registeredKind = registeredTrajectoryDisplayKind(step.relation);
+    const movementKey = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
+    const transition = !ownedMovements.has(movementKey)
+      && !isCarriedHeadMemberTransition(movement, earlierMovements, previousForest, currentForest)
+      && (facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition);
+    // A kind conflict refuses the movement. When no other claim applies its
+    // change, that change stays this claim's neutral output.
     if ((registeredKind === 'head' || registeredKind === 'phrasal') && registeredKind !== movement.trajectoryKind)
       return {
         ...step,
         recoveredMovement: { ...movement, transition: false, drawTrajectory: false },
+        ...(transition ? { refusedMovementTransition: true as const } : {}),
         movementDiagnostics: [...priorDiagnostics, `MOVEMENT_KIND_CONFLICT: ${step.relation} selects ${registeredKind} movement, but the anchored context was recovered as ${movement.trajectoryKind}. No recovered transition was applied.`]
       };
     const primaryMovement = dispatch.primaryClaim?.tier === 1 && registeredKind === movement.trajectoryKind;
@@ -290,10 +297,6 @@ export const getFrameRelations = (
       `Stage ${input.stageIndex + 1}, relation ${relationIndex + 1} (${step.relation}): movement endpoints ${movement.sourceNodeId} -> ${movement.targetNodeId} are identifiable, but the drawing was not licensed: ${dispatch.primaryClaim && 'reason' in dispatch.primaryClaim ? dispatch.primaryClaim.reason : 'no-movement-facet'}. The authored analysis is unchanged.`,
       ...(dispatch.tier1Dispatch.signatureIssues || []).map(issue => `Tier 1 signature: ${JSON.stringify(issue)}`)
     ] : [];
-    const movementKey = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
-    const transition = !ownedMovements.has(movementKey)
-      && !isCarriedHeadMemberTransition(movement, earlierMovements, previousForest, currentForest)
-      && (facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition);
     // Later claims may inspect the same dependency; its structural change occurs once.
     if (transition) {
       ownedMovements.add(movementKey);

@@ -5,6 +5,7 @@ import { prepareReplay } from '../replay/prepareReplay.ts';
 import { adaptDerivationStagesForReplay } from '../replay/authoredFrames.ts';
 import { getFrameRelations } from '../replay/frameRelations.ts';
 import { currentWorkspaceMovements } from '../replay/currentWorkspaceMovements.ts';
+import { checkAttachAtMerge, checkNoEarlyReveal, checkRelationConstruction, checkStableConstruction } from './helpers/replayInvariants.mjs';
 
 const leaf = (id, label, word, extra = {}) => ({ id, label, word, ...extra });
 const node = (id, label, children, extra = {}) => ({ id, label, children, ...extra });
@@ -151,6 +152,43 @@ test('a phrasal specialized recipe cannot own a proved head transition', () => {
   assert.equal(step.recoveredMovement?.transition, false);
   assert.equal(step.recoveredMovement?.drawTrajectory, false);
   assert.match(step.movementDiagnostics.join('\n'), /MOVEMENT_KIND_CONFLICT.*selects phrasal.*recovered as head/);
+});
+
+// No moment applies a movement whose kind its claim refuses, so the claim's
+// neutral moment shows that change: before it the source keeps its form,
+// and nothing the change introduces appears at a construction step.
+const refusedRemnant = () => {
+  const record = headRecord('RemnantMovement');
+  record.derivationStages[1].relations[0].anchors.traceWitness = 'lowerHead';
+  return record;
+};
+for (const [name, record, before, introduced] of [
+  ['HeadMove', () => phraseRecord('HeadMove'), ['phrase', 'vp'], ['cp', 'lower', 'trace']],
+  ['Lowering', () => phraseRecord('Lowering'), ['phrase', 'vp'], ['cp', 'lower', 'trace']],
+  ['RemnantMovement', refusedRemnant, ['inflection'], ['complex', 'lowered', 'lowerHead']]
+]) test(`${name} still introduces the movement its kind refuses at its own neutral moment`, () => {
+  const input = record(), original = clone(input), prepared = prepareReplay(input);
+  const steps = prepared.playbackSteps;
+  const index = steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1);
+  assert.ok(index > 0);
+  for (const step of steps.slice(0, index))
+    for (const id of introduced) assert.ok(!step.replayVisibleNodeIds.includes(id), `${id} waits for the moment`);
+  for (const id of before) assert.ok(steps[index - 1].replayVisibleNodeIds.includes(id), `${id} keeps its preceding form`);
+  for (const id of introduced) assert.ok(steps[index].replayVisibleNodeIds.includes(id), `${id} arrives at the moment`);
+  assert.deepEqual([checkNoEarlyReveal(prepared), checkStableConstruction(prepared), checkAttachAtMerge(prepared),
+    checkRelationConstruction(prepared, input)].flat(), []);
+  assert.equal(relationSteps(input)[0].refusedMovementTransition, true);
+  assert.deepEqual(input, original);
+});
+
+test('a refused movement kind that restates an applied movement owns no change of its own', () => {
+  const record = phraseRecord('AbarMove');
+  record.derivationStages[1].relations.push({ ...clone(record.derivationStages[1].relations[0]), relation: 'HeadMove' });
+  const steps = relationSteps(record);
+  assert.equal(steps[0].recoveredMovement.transition, true);
+  assert.equal(steps[1].recoveredMovement.transition, false);
+  assert.equal(steps[1].refusedMovementTransition, undefined);
+  assert.equal(steps[1].anchoredCopyDisplacement, undefined);
 });
 
 test('malformed specialized endpoint lists cannot earn movement ownership or a drawing', () => {
