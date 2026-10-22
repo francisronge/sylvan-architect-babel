@@ -78,19 +78,6 @@ export const createParseRoutes = ({
     analyses: (Array.isArray(bundle?.analyses) ? bundle.analyses : []).map(mapper)
   });
 
-  const attachPayloadRepairDiagnostics = (error, payloadRepairDiagnostics = []) => {
-    if (!(error instanceof ParseApiError) || payloadRepairDiagnostics.length === 0) return error;
-    return new ParseApiError(
-      error.code,
-      error.message,
-      error.status,
-      {
-        ...(error.details && typeof error.details === 'object' ? error.details : {}),
-        payloadRepairDiagnostics
-      }
-    );
-  };
-
   const createGenerationRecord = ({
     provider,
     framework,
@@ -130,8 +117,7 @@ export const createParseRoutes = ({
     model,
     generationMeta,
     payloadPreview,
-    debugPayloadPath,
-    payloadRepairDiagnostics = []
+    debugPayloadPath
   }) => {
     const commonDetails = {
       stage,
@@ -140,7 +126,6 @@ export const createParseRoutes = ({
       textLength: generationMeta.textLength,
       preview: generationMeta.preview || '',
       ...(typeof payloadPreview === 'string' ? { payloadPreview } : {}),
-      ...(payloadRepairDiagnostics.length > 0 ? { payloadRepairDiagnostics } : {}),
       debugPayloadPath
     };
     if (!(error instanceof ParseApiError)) {
@@ -230,25 +215,14 @@ export const createParseRoutes = ({
     primaryDebugPayloadPath
   }) => {
     let payload;
-    let payloadIntegrityFlags = [];
-    let payloadRepairDiagnostics = [];
+    // Babel no longer repairs JSON, so new records always carry an empty list.
     const jsonProcessing = { repairDiagnostics: [] };
     generationRecord.processing = { json: jsonProcessing };
     const jsonStartedAt = performance.now();
 
     try {
-      const parsedPayload = parseModelJsonDetailed(generationMeta.rawText);
-      payload = parsedPayload.payload;
-      payloadIntegrityFlags = Array.isArray(parsedPayload.integrityFlags)
-        ? parsedPayload.integrityFlags
-        : [];
-      payloadRepairDiagnostics = Array.isArray(parsedPayload.repairDiagnostics)
-        ? parsedPayload.repairDiagnostics
-        : [];
-      jsonProcessing.repairDiagnostics = payloadRepairDiagnostics;
-      if (parsedPayload.jsonDiagnostic) jsonProcessing.diagnostic = parsedPayload.jsonDiagnostic;
+      payload = parseModelJsonDetailed(generationMeta.rawText).payload;
     } catch (error) {
-      jsonProcessing.repairDiagnostics = error.details?.payloadRepairDiagnostics || [];
       if (error.details?.jsonDiagnostic) jsonProcessing.diagnostic = error.details.jsonDiagnostic;
       const debugPayloadPath = modelRoute !== 'gemini' || (error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE')
         ? writeDebugModelPayload({
@@ -280,7 +254,7 @@ export const createParseRoutes = ({
         sentence,
         modelRoute,
         true,
-        { spellout: true, payloadIntegrityFlags, payloadRepairDiagnostics }
+        { spellout: true }
       );
       if (normalized?.analyses?.[0]) {
         normalized = mapBundleAnalyses(
@@ -313,8 +287,7 @@ export const createParseRoutes = ({
         model,
         generationMeta,
         payloadPreview,
-        debugPayloadPath,
-        payloadRepairDiagnostics
+        debugPayloadPath
       });
     } finally {
       normalizationProcessing.durationMs = performance.now() - normalizationStartedAt;
@@ -342,7 +315,6 @@ export const createParseRoutes = ({
 
     let generationFailureEvidence = null;
     let generationStartedAt = null;
-    let payloadRepairDiagnostics = [];
     try {
       generationStartedAt = Date.now();
       const rawText = await generateLocal({
@@ -370,21 +342,13 @@ export const createParseRoutes = ({
         });
       }
 
-      const parsedPayload = parseModelJsonDetailed(rawText);
-      payloadRepairDiagnostics = Array.isArray(parsedPayload.repairDiagnostics)
-        ? parsedPayload.repairDiagnostics
-        : [];
       let normalized = normalizeParseBundle(
-        parsedPayload.payload,
+        parseModelJsonDetailed(rawText).payload,
         framework,
         sentence,
         promptRoute,
         true,
-        {
-          spellout: true,
-          payloadIntegrityFlags: parsedPayload.integrityFlags,
-          payloadRepairDiagnostics
-        }
+        { spellout: true }
       );
       if (normalized?.analyses?.[0]) {
         normalized = mapBundleAnalyses(normalized, (analysis) => ({
@@ -405,7 +369,7 @@ export const createParseRoutes = ({
     } catch (error) {
       if (error instanceof ParseApiError) {
         throw attachGenerationFailureEvidence({
-          error: attachPayloadRepairDiagnostics(error, payloadRepairDiagnostics),
+          error,
           ParseApiError,
           generationRecord: generationFailureEvidence?.generationRecord,
           rawText: generationFailureEvidence?.rawText
