@@ -61,7 +61,8 @@ export const OUTCOME_ALIAS_GROUPS: readonly OutcomeAliasGroup[] = [
   group('failed', [
     'fail', 'fails', 'failure', 'failures',
     'unsuccessful', 'not successful',
-    'did not succeed', 'does not succeed'
+    'did not succeed', 'does not succeed',
+    'attempted but failed'
   ]),
   group('crashed', [
     'crash', 'crashes',
@@ -135,6 +136,11 @@ const unestablishedOutcomes = new Set([
 
 export const isUnestablishedOutcomeLiteral = (value: unknown): boolean =>
   unestablishedOutcomes.has(normalizeOutcomeLiteral(value));
+
+/** Whether a literal names an outcome concept or an unestablished status.
+ * Any other outcome literal is unrecognized and keeps its claim neutral. */
+export const isRecognizedOutcomeLiteral = (value: unknown): boolean =>
+  Boolean(resolveOutcomeLiteral(value)?.concept) || isUnestablishedOutcomeLiteral(value);
 
 export type AssertionFamily = 'agreement' | 'binding' | 'case' | 'correspondence' | 'feature-sharing' | 'movement';
 
@@ -256,6 +262,11 @@ export const authoredPathOutcome = (
 
 export const assignmentOutcomes = (evidence: Tier2FacetEvidence) => (evidence.authoredValues ?? []).filter(entry =>
   entry.concepts.includes('outcome') || ['outcome', 'status', 'result', 'verdict', 'judgment'].includes(normalizeTier2Synonym(entry.key)));
+
+/** Assignment recovery refuses an outcome field that names no recognized
+ * outcome, leaving the envelope to its neutral claim instead of splitting it. */
+export const hasUnrecognizedAssignmentOutcome = (evidence: Tier2FacetEvidence) => assignmentOutcomes(evidence).some(entry =>
+  !entry.concepts.includes('outcome') || !entry.items.some(isRecognizedOutcomeLiteral));
 
 export const establishesAssignment = (evidence: Tier2FacetEvidence) => assignmentOutcomes(evidence).every(entry =>
   entry.items.every(literal => POSITIVE_OUTCOMES.some(concept => concept === resolveOutcomeLiteral(literal)?.concept)));

@@ -59,12 +59,14 @@ export const createStageRelationSnapshots = (
     currentFrameVisibleNodeIds,
     buildFrameLayoutScaffold,
     frameSemanticStep,
-    plannedStage
+    plannedStage,
+    priorVisibleNodeIds
   } = stage;
   const {
     relationPlacements,
     singleRelationLinksByIndex,
     getMovementCreatedLandingHostNodeIds,
+    getMovementPiedPipedNodeIds,
     relationVisibleNodeIdsByIndex,
     relationLayoutNodeIds,
     frameHasTreeTransition,
@@ -131,13 +133,14 @@ export const createStageRelationSnapshots = (
     return inactiveTargetNodeIds;
   };
   const collectInactivePhrasalLandingHostNodeIds = (activeRelationIndexes: Set<number>): Set<string> => {
+    const landingOwned = (placement: RelationPlacement) => [...getMovementCreatedLandingHostNodeIds(placement), ...getMovementPiedPipedNodeIds(placement)];
     const activeLandingHostNodeIds = new Set(relationPlacements
       .filter((placement) => activeRelationIndexes.has(placement.relationIndex))
-      .flatMap(getMovementCreatedLandingHostNodeIds)
+      .flatMap(landingOwned)
       .filter(Boolean));
     return new Set(relationPlacements
       .filter((placement) => !activeRelationIndexes.has(placement.relationIndex))
-      .flatMap(getMovementCreatedLandingHostNodeIds)
+      .flatMap(landingOwned)
       .filter((nodeId) => Boolean(nodeId) && !activeLandingHostNodeIds.has(nodeId)));
   };
   const buildActiveRelationLinks = (activeRelationIndexes: Set<number>): ResolvedRelationLink[] => {
@@ -325,6 +328,13 @@ export const createStageRelationSnapshots = (
       snapshotWorkspaceRoots.flatMap(collectSyntaxSubtreeNodeIds)
         .forEach(nodeId => requestedVisibleNodeIds.add(nodeId));
     }
+    // A pending rewrite's shown input keeps its preceding place until the
+    // rewrite's moment, even a separate workspace the completed stage lacks.
+    if (nonMovementTransitionForest !== workspaceRoots)
+      [...fallbackTransitionOwnership].filter(([relationIndex]) => !activeRelationIndexes.has(relationIndex))
+        .flatMap(([, ownership]) => [...ownership.priorNodeIds])
+        .filter(nodeId => priorVisibleNodeIds.has(nodeId) && findExactNodeByIdInForest(snapshotWorkspaceRoots, nodeId))
+        .forEach(nodeId => requestedVisibleNodeIds.add(nodeId));
     const inactiveTrajectoryTargetNodeIds = collectInactiveTrajectoryTargetNodeIds(activeRelationIndexes, snapshotWorkspaceRoots);
     inactiveTrajectoryTargetNodeIds.forEach((nodeId) => requestedVisibleNodeIds.delete(nodeId));
     const inactivePhrasalLandingHostNodeIds = collectInactivePhrasalLandingHostNodeIds(activeRelationIndexes);
