@@ -1,4 +1,5 @@
 import { parseSentence, ParseServiceError } from './parseService.ts';
+import { assertBundleDisplayable } from './analysisDisplay.ts';
 import type { GenerationRecord, ParseBundle, ParseFailure, RawOutputArtifact } from '../types.ts';
 
 export interface GenerationError {
@@ -50,7 +51,6 @@ export type GenerationAction =
   | { type: 'accepted' }
   | { type: 'failed'; cause: unknown; request?: GenerationError['request'] }
   | { type: 'finished' }
-  | { type: 'clear-error' }
   | { type: 'clear-failure' }
   | { type: 'reset' }
   | { type: 'report-error'; error: GenerationError };
@@ -66,7 +66,6 @@ export const generationReducer = (state: GenerationState, action: GenerationActi
         : null };
     }
     case 'finished': return { ...state, loading: false };
-    case 'clear-error': return { ...state, error: null };
     case 'clear-failure': return { ...state, error: null, needsKey: false };
     case 'reset': return initialGenerationState;
     case 'report-error': return { ...state, error: action.error };
@@ -80,8 +79,39 @@ export interface GenerationRequest {
   settings: Record<string, string>;
 }
 
+/**
+ * The request a submitted draft makes, or null for a blank draft. Outer
+ * whitespace is not part of the sentence: the server echoes the sentence it
+ * receives, and the workspace and Tree Bank keep this same trimmed sentence.
+ */
+export const submittedGenerationRequest = (
+  draft: string,
+  options: Omit<GenerationRequest, 'sentence'>
+): GenerationRequest | null => {
+  const sentence = draft.trim();
+  return sentence ? { ...options, sentence } : null;
+};
+
+// App derives each analysis's display values outside its view boundaries. A
+// response that cannot be displayed therefore fails its generation, keeping the
+// raw output, record and word list for the failure panel.
+const assertResponseDisplayable = (bundle: ParseBundle, sentence: string): void => {
+  try {
+    assertBundleDisplayable(bundle, sentence, 'Analysis');
+  } catch (error) {
+    throw new ParseServiceError({
+      code: 'ANALYSIS_NOT_DISPLAYABLE',
+      message: error instanceof Error ? error.message : String(error),
+      rawOutput: bundle.rawModelOutput,
+      generationRecord: bundle.generationRecord,
+      inputTokens: bundle.inputTokens
+    });
+  }
+};
+
 // Own only the request lifecycle. The workspace retains the previous analysis
-// until it accepts a complete response; failures retain their original evidence.
+// until it accepts a complete, displayable response; failures retain their
+// original evidence.
 export const runGeneration = async (
   request: GenerationRequest,
   dispatch: (action: GenerationAction) => void,
@@ -92,6 +122,7 @@ export const runGeneration = async (
   dispatch({ type: 'started' });
   try {
     const bundle = await parse(request.sentence, request.framework, request.modelId, request.settings);
+    assertResponseDisplayable(bundle, request.sentence);
     accept(bundle);
     dispatch({ type: 'accepted' });
   } catch (cause) {

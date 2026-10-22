@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useGeneration } from './hooks/useGeneration';
+import { submittedGenerationRequest } from './services/generationState';
 import { useSporeDrift, type Spore } from './hooks/useSporeDrift';
 import { captureVisibleTreeSnapshot } from './services/treeSnapshot';
 import { deriveAnalysisDisplay } from './services/analysisDisplay';
@@ -17,6 +18,7 @@ import TreeVisualizer from './components/AsyncTreeVisualizer';
 import RootLogo from './components/RootLogo';
 import LoadingMark from './components/LoadingMark';
 import FailurePanel from './components/FailurePanel';
+import { submitsSentence } from './components/sentenceSubmitKey';
 import { GENERATION_MODEL_IDS, getResearchModel } from './server/babelParser/researchModelCatalog.js';
 import { 
   RotateCcw, 
@@ -130,7 +132,9 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   );
   const sporeLayerRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState('The farmer eats the pig');
-  const { loading, error, needsKey, generate, clearError, clearFailure, resetGeneration, reportError } = useGeneration();
+  // A failure and its downloads stay until the next generation starts, also
+  // while the model or effort for that next request is being chosen.
+  const { loading, error, needsKey, generate, clearFailure, resetGeneration, reportError } = useGeneration();
   useSporeDrift(sporeLayerRef, spores, loading);
   const [analysisBundle, setAnalysisBundle] = useState<ParseBundle | null>(null);
   const [activeParseIndex, setActiveParseIndex] = useState(0);
@@ -294,21 +298,21 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
   const handleParse = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (loading) return;
-    if (!input.trim()) return;
-
-    setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
-    await generate({
-      sentence: input,
+    const request = submittedGenerationRequest(input, {
       framework,
       modelId: modelRoute,
       settings: { [selectedModel.controls[0].id]: activeReasoningEffort }
-    }, data => {
+    });
+    if (!request) return;
+
+    setInitialReplayPosition(activeParse ? replayPositions.current.get(activeParse) ?? null : null);
+    await generate(request, data => {
       setInitialReplayPosition(null);
       setAnalysisBundle(data);
       const nextModelRoute = coerceModelRoute(data.requestedModelId || modelRoute);
       setModelRoute(nextModelRoute);
       setReasoningEffort(coerceReasoningEffortForRoute(nextModelRoute, data.requestedReasoningEffort || activeReasoningEffort));
-      setParsedSentence(input.trim());
+      setParsedSentence(request.sentence);
       setParsedFramework(framework);
       setActiveParseIndex(0);
       setActiveTab('tree');
@@ -512,7 +516,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                           onChange={(event) => {
                             setModelRoute(event.target.value);
                             setReasoningEffort('high');
-                            clearFailure();
                           }}
                           className="w-40 xl:grow bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
                         >
@@ -531,7 +534,6 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                           disabled={loading}
                           onChange={(event) => {
                             setReasoningEffort(event.target.value as ReasoningEffort);
-                            clearError();
                           }}
                           className="w-24 xl:grow bg-transparent text-[11px] font-bold focus:outline-current disabled:opacity-50"
                         >
@@ -663,10 +665,12 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
 
             {!hideShowcaseInput && !hideInputForReplay && !devCaptureMode && (
               <>
-                {/* Input UI */}
+                {/* Input UI. A hidden panel or collapsed body stays mounted for its
+                    transition, so inert keeps its controls out of focus order. */}
                 <div
                   data-babel-tree-controls="bottom"
                   aria-hidden={!isInputVisible}
+                  inert={!isInputVisible}
                   className={`absolute left-1/2 -translate-x-1/2 z-30 w-full max-w-3xl px-4 md:px-8 transition-[opacity,transform] duration-700 ${isInputVisible ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-10 pointer-events-none'}`}
                   style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
                 >
@@ -694,7 +698,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                       </div>
                     </div>
 
-                    <div className={`transition-[max-height,opacity,padding] duration-700 ease-in-out ${isInputExpanded ? 'max-h-[350px] opacity-100 p-4 md:p-6 pt-3 md:pt-4' : 'max-h-0 opacity-0'}`}>
+                    <div inert={!isInputExpanded} className={`transition-[max-height,opacity,padding] duration-700 ease-in-out ${isInputExpanded ? 'max-h-[350px] opacity-100 p-4 md:p-6 pt-3 md:pt-4' : 'max-h-0 opacity-0'}`}>
                       {error && (
                         <FailurePanel
                           message={error.message}
@@ -722,7 +726,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
+                              if (submitsSentence(e)) {
                                 e.preventDefault();
                                 void handleParse();
                               }

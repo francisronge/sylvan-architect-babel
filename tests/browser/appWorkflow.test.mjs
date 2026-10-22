@@ -265,6 +265,16 @@ test('failed submissions preserve the selected analysis and paused Replay, then 
               assert.equal(await sentenceInput(page).inputValue(), failedDraft);
               assert.equal(await page.getByRole('alert').count(), 1, 'failure remains visible and announced');
               if (kind === 'malformed-model-output') {
+                // Choosing the next request's model or effort keeps this failure and its downloads.
+                const [model, effort] = [0, 1].map(index => page.getByRole('banner').locator('select').nth(index));
+                const selectAnother = async select => select.selectOption(await select.locator('option').evaluateAll(
+                  (options, current) => options.map(option => option.value).find(value => value !== current), await select.inputValue()));
+                const selectedModel = await model.inputValue();
+                await selectAnother(model);
+                await selectAnother(effort);
+                await model.selectOption(selectedModel);
+                assert.equal(await page.getByRole('alert').count(), 1, 'changing the model or effort keeps the failure');
+                assert.equal(await page.getByRole('button', { name: /^Download raw output/ }).count(), 1);
                 const rawDownload = page.waitForEvent('download');
                 await page.getByRole('button', { name: /^Download raw output/ }).click();
                 assert.equal(await readFile(await (await rawDownload).path(), 'utf8'), malformedText);
@@ -376,7 +386,33 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         const emptyBank = { records: [], savedWorks: [], previews: [], treeBank: [] };
         const ready = () => page.locator('svg[data-babel-tree="true"]').waitFor();
         await page.goto(server.url);
+        // A collapsed or hidden sentence panel stays mounted for its transition,
+        // but its controls cannot receive focus.
+        const sentenceFocusable = () => page.evaluate(() => {
+          const box = document.querySelector('textarea[aria-label="Sentence to analyze"]');
+          box.focus();
+          const focused = document.activeElement === box;
+          box.blur();
+          return focused;
+        });
+        assert.equal(await sentenceFocusable(), true);
+        await page.getByTitle('Collapse', { exact: true }).click();
+        assert.equal(await sentenceFocusable(), false, 'the collapsed panel body is out of the focus order');
+        await page.getByRole('button', { name: 'Expand sentence input', exact: true }).click();
+        assert.equal(await sentenceFocusable(), true);
+        await page.getByTitle('Hide Control Panel', { exact: true }).click();
+        assert.equal(await sentenceFocusable(), false, 'the hidden panel is out of the focus order');
+        await page.getByTitle('Restore Arboretum Link', { exact: true }).click();
+        assert.equal(await sentenceFocusable(), true);
         await page.getByRole('textbox', { name: 'Sentence to analyze' }).fill(bundle.sentence);
+        // Enter that confirms an input-method candidate does not submit.
+        await page.getByRole('textbox', { name: 'Sentence to analyze' }).evaluate(box => {
+          for (const init of [{ isComposing: true, keyCode: 13 }, { isComposing: false, keyCode: 229 }]) {
+            box.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true, ...init }));
+          }
+        });
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        assert.equal(requests.length, 0, 'IME confirmation makes no request');
         await page.getByRole('button', { name: 'Analyze sentence', exact: true }).click();
         await page.getByText('Fixture request interrupted.', { exact: true }).waitFor();
         assert.equal(await page.getByRole('textbox', { name: 'Sentence to analyze' }).inputValue(), bundle.sentence);
@@ -447,6 +483,18 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         await page.getByRole('button', { name: 'Copy Canopy', exact: true }).waitFor();
         await page.getByTitle('Open Tree Bank', { exact: true }).click();
         await page.getByRole('button', { name: 'Delete', exact: true }).click();
+        // The confirmation is modal: focus starts on Cancel, Escape cancels, and
+        // focus returns to the Delete control that opened it.
+        const confirmation = page.getByRole('dialog', { name: 'Delete saved tree?' });
+        await confirmation.waitFor();
+        const focusedText = () => page.evaluate(() => document.activeElement?.textContent?.trim());
+        assert.equal(await focusedText(), 'Cancel');
+        await page.keyboard.press('Escape');
+        await confirmation.waitFor({ state: 'detached' });
+        assert.equal(await focusedText(), 'Delete');
+        assert.deepEqual(await snapshot(), stored, 'cancelling deletes nothing');
+        await page.getByRole('button', { name: 'Delete', exact: true }).click();
+        await confirmation.waitFor();
         await page.evaluate(() => { window.abortTreeBankOperation = { method: 'delete', store: 'savedWorks' }; });
         await page.getByRole('button', { name: 'Delete Tree', exact: true }).click();
         await page.getByText('Unable to delete this saved tree.', { exact: false }).waitFor();

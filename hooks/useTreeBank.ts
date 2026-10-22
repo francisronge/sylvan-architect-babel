@@ -28,7 +28,9 @@ type CurrentTreeBankSave = Omit<TreeBankSaveInput, 'id' | 'createdAt' | 'updated
 export function useTreeBank() {
   const treeBankSaveSuccessTimeoutRef = useRef<number | null>(null);
   const [treeBankEntries, setTreeBankEntries] = useState<TreeBankEntrySummary[]>([]);
-  const [treeBankLoading, setTreeBankLoading] = useState(false);
+  // Only the first listing replaces the library with a loading state. Later
+  // refreshes (focus, saves, deletions, other tabs) update the cards in place.
+  const [treeBankLoaded, setTreeBankLoaded] = useState(false);
   const [treeBankError, setTreeBankError] = useState<string | null>(null);
   const [treeBankSaveSuccess, setTreeBankSaveSuccess] = useState(false);
   const [treeBankSaving, setTreeBankSaving] = useState(false);
@@ -39,7 +41,6 @@ export function useTreeBank() {
     let revision = 0;
     const refresh = async () => {
       const currentRevision = ++revision;
-      setTreeBankLoading(true);
       try {
         const { entries, issues } = await listTreeBankEntries();
         if (!cancelled && currentRevision === revision) {
@@ -53,7 +54,7 @@ export function useTreeBank() {
           setTreeBankError(treeBankFailureMessage(error, 'Tree Bank could not be loaded.'));
         }
       } finally {
-        if (!cancelled && currentRevision === revision) setTreeBankLoading(false);
+        if (!cancelled && currentRevision === revision) setTreeBankLoaded(true);
       }
     };
     void refresh();
@@ -120,7 +121,7 @@ export function useTreeBank() {
   };
 
   return {
-    entries: treeBankEntries, loading: treeBankLoading, error: treeBankError,
+    entries: treeBankEntries, loading: !treeBankLoaded, error: treeBankError,
     saveSuccess: treeBankSaveSuccess, saving: treeBankSaving, opening: treeBankOpening,
     pendingDelete: entryPendingDelete, setPendingDelete: setEntryPendingDelete,
     save, open, deletePending
