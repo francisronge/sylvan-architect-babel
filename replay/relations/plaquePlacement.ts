@@ -80,6 +80,14 @@ const fitsLocalPocket = ({ width, height }: Pick<PlaqueRect, 'width' | 'height'>
 // these box tops, each centred or this far to either side.
 const nearbyPocketTops = (height: number) => [-height - 60, -height / 2, 55, 115, 175, 235];
 const nearbyPocketGap = 110;
+/** One claim's nearest-pocket search checks at most this many pockets, then
+ * keeps its prior pocket or goes below the tree. Long wrapped labels multiply
+ * the box-clear pockets; a claim whose every nearby connector or Case arrow is
+ * blocked would otherwise check them all. The committed analyses need at most
+ * 82,517. */
+export const LOCAL_POCKET_CHECK_LIMIT = 150_000;
+/** A column's first list of lanes holds at least those within this distance. */
+const POCKET_LANE_REACH = 120;
 /** A pocket clearly nearer than an incumbent lies within this fraction of its distance. */
 export const MIN_RELOCATION_GAIN = 0.75;
 /** Plaques keep this gap from every obstacle. */
@@ -165,6 +173,27 @@ export function prepareUniquePlaqueObstacles() {
     add: (box: PlaqueRect) => !find(box, true),
     has: (box: PlaqueRect) => find(box, false)
   };
+}
+
+/** A placement reflected about the vertical line at `axis`, for right-to-left
+ * Replay. Its drawn shell lands on the mirror of the left-to-right shell, so a
+ * plaque the left-to-right search put right of its anchor stands left of it;
+ * row ports and side edges reflect with it. Left to right, a shell drawn
+ * narrower than a later phase reserves that width rightward from its left edge
+ * while plaques are allocated; reflected, it reserves only its drawn shell, so
+ * the reservation never extends toward the anchor. Its wider phase has its own
+ * reflected placement. */
+export function reflectPlaquePlacement(placement: PlaquePlacement, axis: number): PlaquePlacement {
+  const drawn = placement.drawnWidth ?? placement.width;
+  const reflectX = (x: number) => axis - x;
+  return { ...placement, x: axis - placement.x - drawn, width: drawn, attachmentX: reflectX(placement.attachmentX),
+    ...(placement.collectionRows ? { collectionRows: placement.collectionRows.map(row => ({ ...row,
+      ...(row.edge === 'left' || row.edge === 'right' ? { edge: row.edge === 'left' ? 'right' : 'left' } as const : {}),
+      ...(row.portX === undefined ? {} : { portX: drawn - row.portX }) })) } : {}),
+    ...(placement.connectorInk ? { connectorInk: { ...placement.connectorInk,
+      x: axis - placement.connectorInk.x - placement.connectorInk.width } } : {}),
+    ...(placement.curve ? { curve: Object.fromEntries(Object.entries(placement.curve).map(([key, point]) =>
+      [key, { ...point, x: reflectX(point.x) }])) as typeof placement.curve } : {}) };
 }
 
 /** Carry a reserved offset with its actual Replay node, without choosing another pocket. */
@@ -878,6 +907,37 @@ type PlaqueLifetime = {
   caseSources?: CaseSourceRects;
 };
 
+/** A binary heap: `pop` returns the item `before` orders first. */
+function createMinQueue<T>(before: (a: T, b: T) => number) {
+  const items: T[] = [];
+  return {
+    peek: (): T | undefined => items[0],
+    push(item: T) {
+      let index = items.push(item) - 1;
+      while (index) {
+        const parent = (index - 1) >> 1;
+        if (before(items[parent], item) <= 0) break;
+        items[index] = items[parent]; index = parent;
+      }
+      items[index] = item;
+    },
+    pop(): T | undefined {
+      const top = items[0], last = items.pop()!;
+      if (!items.length) return top;
+      let index = 0;
+      for (;;) {
+        const left = 2 * index + 1, right = left + 1;
+        if (left >= items.length) break;
+        const child = right < items.length && before(items[right], items[left]) < 0 ? right : left;
+        if (before(last, items[child]) <= 0) break;
+        items[index] = items[child]; index = child;
+      }
+      items[index] = last;
+      return top;
+    }
+  };
+}
+
 /** Geometry only: a common enclosing subtree locates a plaque, never establishes a linguistic domain. */
 export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obstacles = plaqueTreeObstacles(nodes),
   previous = new Map<string, PlaquePlacement>(), measureText?: PlaqueTextMeasure, lifetime?: PlaqueLifetime) {
@@ -1037,15 +1097,14 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         .sort((a, b) => horizontalGap(a) - horizontalGap(b));
       const columnIntervals = preparePlaqueColumnIntervals(searched, height, scanGap);
       const idealY = request.caseAssignment ? anchorY + 163 - (request.caseRowY ?? 93) : anchorY - height / 2;
-      let bestDistance = priorDistance;
-      /** A closed range of heights holding every lane `canImprove` accepts in
-       * column `x`: its squared distance is at least the vertical part's, after
-       * the horizontal part that column fixes. The margin exceeds the rounding
-       * of these coordinates, so the range never excludes an accepted lane. */
-      const improvingRange = (x: number, dx: number): [number, number] | undefined => {
-        if (!Number.isFinite(bestDistance)) return undefined;
+      /** A closed range holding every height in column `x` whose squared
+       * distance can be below `bound`: that distance is at least the vertical
+       * part's, after the horizontal part that column fixes. The margin exceeds
+       * the rounding of these coordinates, so the range never excludes a lane. */
+      const improvingRange = (x: number, dx: number, bound: number): [number, number] | undefined => {
+        if (!Number.isFinite(bound)) return undefined;
         if (!sourceRect) {
-          const reach = Math.sqrt(Math.max(0, bestDistance - dx * dx)) + 1 + 1e-6 * (Math.sqrt(bestDistance) + Math.abs(idealY));
+          const reach = Math.sqrt(Math.max(0, bound - dx * dx)) + 1 + 1e-6 * (Math.sqrt(bound) + Math.abs(idealY));
           return Number.isFinite(reach + idealY) ? [idealY - reach, idealY + reach] : undefined;
         }
         // caseAssignmentPlaqueCurve's side choice, target and possible sources.
@@ -1056,62 +1115,125 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
           Math.abs(targetX - (side === 'left' ? sourceRect.x + sourceRect.width + 8 : sourceRect.x - 8)));
         const sourceYs = [sourceRect.y - 8, sourceRect.y + sourceRect.height / 2, sourceRect.y + sourceRect.height + 8];
         const targetOffsets = side === 'vertical' ? [-12, height + 12] : [request.caseRowY ?? 93];
-        const scale = Math.sqrt(bestDistance) + Math.abs(x) + width + height + Math.abs(sourceRect.x) + Math.abs(sourceRect.y)
+        const scale = Math.sqrt(bound) + Math.abs(x) + width + height + Math.abs(sourceRect.x) + Math.abs(sourceRect.y)
           + sourceRect.width + sourceRect.height;
-        const reach = Math.sqrt(Math.max(0, bestDistance - horizontal * horizontal)) + 1 + 1e-6 * scale;
+        const reach = Math.sqrt(Math.max(0, bound - horizontal * horizontal)) + 1 + 1e-6 * scale;
         const low = Math.min(...sourceYs) - Math.max(...targetOffsets) - reach;
         const high = Math.max(...sourceYs) - Math.min(...targetOffsets) + reach;
         return Number.isFinite(low) && Number.isFinite(high) ? [low, high] : undefined;
       };
-      for (const x of xs) {
-        const dx = horizontalGap(x);
-        if (dx * dx >= bestDistance) break;
-        const merged = columnIntervals(x, width);
+      // What every list of a column's lanes uses, whatever its bound.
+      type ColumnPrecursor = { x: number; dx: number; merged?: number[][]; hints?: number[]; arrows: Map<number, { chord: number; distance?: number }> };
+      // One column's lanes nearer than `bound`, nearest first, ties in the lane
+      // order of a scan of the columns in gap order. A larger bound only adds
+      // lanes after these, in the same order; `complete` when it adds none.
+      const columnLanes = (column: ColumnPrecursor, bound: number) => {
+        const { x, dx } = column;
+        const merged = column.merged ??= columnIntervals(x, width);
         // One blocked interval covering every improving height leaves this
         // column without lanes, so its connector hints need not be computed.
-        const range = improvingRange(x, dx);
-        if (range && plaqueColumnCovers(merged, range[0], range[1])) continue;
+        const range = improvingRange(x, dx, bound);
+        if (range && plaqueColumnCovers(merged, range[0], range[1])) return { lanes: [], complete: false };
+        let complete = true;
         // The nearest box-sized gap can still put the curved approach through
         // another label. Consider the remaining gap edges before falling below.
         const candidate = { x, y: 0, width, height, collectionRows: request.collectionRows };
-        const rawConnectorLanes = request.collectionRows?.length ? [
+        const rawConnectorLanes = column.hints ??= request.collectionRows?.length ? [
           ...(space?.connectorCandidateYs?.(candidate) ?? collectionPlaqueCandidateYs(candidate, nodes, occupied)),
           ...Array.from({ length: 33 }, (_, lane) => idealY + (lane - 16) * 40)
         ] : [];
         const lanes = new Set<number>();
-        const canImprove = (y: number) => {
-          if (!Number.isFinite(y) || plaqueColumnContains(merged, y)) return false;
-          if (!Number.isFinite(bestDistance)) return true;
-          const dy = y - idealY;
-          if (!sourceRect) return dx * dx + dy * dy < bestDistance;
-          const route = caseAssignmentPlaqueCurve(sourceRect, { x, y, width, height }, y + (request.caseRowY ?? 93));
-          return (route.target.x - route.source.x) ** 2 + (route.target.y - route.source.y) ** 2 < bestDistance;
+        // A Case arrow's squared chord, then its squared sampled length when first needed.
+        const arrow = (y: number, assigner: PlaqueRect) => {
+          let known = column.arrows.get(y);
+          if (!known) {
+            const route = caseAssignmentPlaqueCurve(assigner, { x, y, width, height }, y + (request.caseRowY ?? 93));
+            column.arrows.set(y, known = { chord: (route.target.x - route.source.x) ** 2 + (route.target.y - route.source.y) ** 2 });
+          }
+          return known;
         };
-        const addLane = (y: number) => { if (canImprove(y)) lanes.add(y); };
+        const withinBound = (y: number) => {
+          if (!Number.isFinite(bound)) return true;
+          const dy = y - idealY;
+          if (!sourceRect) return dx * dx + dy * dy < bound;
+          return arrow(y, sourceRect).chord < bound;
+        };
+        // Heights outside the range, in or between blocked intervals, cannot improve.
+        const addLane = (y: number) => {
+          if (!Number.isFinite(y) || plaqueColumnContains(merged, y)) return;
+          if ((!range || y >= range[0] && y <= range[1]) && withinBound(y)) lanes.add(y); else complete = false;
+        };
         addLane(idealY);
         // A hint whose three lanes all fall outside the range cannot add one.
-        for (const y of new Set(range ? rawConnectorLanes.filter(y => y >= range[0] - 17 && y <= range[1] + 17) : rawConnectorLanes)) {
+        const hints = range ? rawConnectorLanes.filter(y => y >= range[0] - 17 && y <= range[1] + 17) : rawConnectorLanes;
+        if (hints.length < rawConnectorLanes.length) complete = false;
+        for (const y of new Set(hints)) {
           addLane(y); addLane(y - 16); addLane(y + 16);
         }
         for (const [low, high] of merged) { addLane(low); addLane(high); }
-        // Blocked lanes and candidates whose lower bound cannot beat the current
-        // placement never enter the sort. Surviving ties retain insertion order.
+        // Blocked heights and those not nearer than the bound never enter the
+        // sort. Surviving ties retain insertion order.
         const ys = [...lanes]
           .sort((a, b) => Math.abs(a - idealY) - Math.abs(b - idealY));
+        const ranked: Array<{ y: number; distance: number }> = [];
         for (const y of ys) {
           const dy = y - idealY;
-          const route = sourceRect ? caseAssignmentPlaqueCurve(sourceRect,
-            { x, y, width, height }, y + (request.caseRowY ?? 93)) : null;
-          if (route && (route.target.x - route.source.x) ** 2 + (route.target.y - route.source.y) ** 2 >= bestDistance) continue;
-          const points = route && sampleCubic(route.source, route.control1, route.control2, route.target, 16);
-          const distance = points ? points.slice(1).reduce((length, point, i) =>
-            length + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0) ** 2 : dx * dx + dy * dy;
-          if (!request.caseAssignment && distance >= bestDistance) break;
-          const accepted = distance < bestDistance ? clear({ x, y, width, height }) : undefined;
-          if (accepted) {
-            placement = accepted; bestDistance = distance;
+          let distance = dx * dx + dy * dy;
+          if (sourceRect) {
+            const known = arrow(y, sourceRect);
+            if (known.chord >= bound) { complete = false; continue; }
+            if (known.distance === undefined) {
+              const route = caseAssignmentPlaqueCurve(sourceRect, { x, y, width, height }, y + (request.caseRowY ?? 93));
+              const points = sampleCubic(route.source, route.control1, route.control2, route.target, 16);
+              known.distance = points.slice(1).reduce((length, point, i) =>
+                length + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0) ** 2;
+            }
+            distance = known.distance;
           }
+          if (distance >= bound) complete = false;
+          if (!request.caseAssignment && distance >= bound) break;
+          if (distance < bound) ranked.push({ y, distance });
         }
+        // Box distances already ascend with the height offset; arrow lengths need not.
+        return { lanes: sourceRect ? ranked.sort((a, b) => a.distance - b.distance) : ranked, complete };
+      };
+      // The claim keeps the pocket a scan of the columns in gap order keeps:
+      // the nearest accepted before the first column whose squared gap reaches
+      // the best distance so far. That gap bounds every box distance in its
+      // column, but a Case arrow, which can leave the side of its source, can
+      // be shorter. Ranking each pocket by the larger of its squared distance
+      // and its column's squared gap, then by column, distance and lane, makes
+      // the first accepted pocket in that order the scan's, so no farther one
+      // is checked. A column lists only the lanes within a few times its rank
+      // and lists more once those are checked.
+      type PocketColumn = ColumnPrecursor & { index: number; gap: number; key: number; lanes: Array<{ y: number; distance: number }>; listed: number; next: number };
+      const columns = createMinQueue<PocketColumn>((a, b) => a.key - b.key || a.index - b.index);
+      let opened = 0, checks = 0;
+      for (;;) {
+        for (let nearest = columns.peek(); opened < xs.length; opened++) {
+          const dx = horizontalGap(xs[opened]), gap = dx * dx;
+          if (gap >= priorDistance) { opened = xs.length; break; }
+          if (nearest && gap > nearest.key) break;
+          columns.push({ index: opened, x: xs[opened], dx, gap, key: gap, lanes: [], listed: 0, next: 0, arrows: new Map() });
+          nearest = columns.peek();
+        }
+        const column = columns.pop();
+        if (!column || column.key >= priorDistance) break;
+        if (column.next === column.lanes.length) {
+          // A longer list repeats the lanes already checked first.
+          const bound = Math.min(priorDistance, Math.max(4 * column.key, column.key + POCKET_LANE_REACH ** 2));
+          const { lanes, complete } = columnLanes(column, bound);
+          column.lanes = lanes; column.listed = complete ? Infinity : bound;
+        } else {
+          const { y } = column.lanes[column.next++];
+          if (checks++ === LOCAL_POCKET_CHECK_LIMIT) break;
+          const box = clear({ x: column.x, y, width, height });
+          if (box) { placement = box; break; }
+        }
+        if (column.next < column.lanes.length) column.key = Math.max(column.gap, column.lanes[column.next].distance);
+        else if (column.listed < priorDistance) column.key = Math.max(column.gap, column.listed);
+        else continue;
+        columns.push(column);
       }
     }
     placement ??= priorCandidate;

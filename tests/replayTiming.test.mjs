@@ -5,6 +5,8 @@ import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { getFrameRelations } from '../replay/frameRelations.ts';
 import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { prepareReplay } from '../replay/prepareReplay.ts';
+import { checkStableConstruction } from './helpers/replayInvariants.mjs';
 
 const saved = JSON.parse(fs.readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url)));
 const copy = name => structuredClone(saved.find(record => record.name === name));
@@ -454,4 +456,35 @@ test('a relation-owned merge is not preceded by an empty structural step', () =>
   assert.ok(steps.every(step => step.replayKind !== 'micro' || visible(step, step.targetNodeId)));
   for (const step of [merge, movement, steps.at(-1)]) assert.ok(visible(step, 'independent'));
   assert.deepEqual(record, original);
+});
+
+test('a separate workspace an unrecognised claim rewrites stays shown until that claim\'s moment', () => {
+  const leaf = (id, label, word) => ({ id, label, word, children: [] });
+  const node = (id, label, children) => ({ id, label, children });
+  for (const phrasal of [false, true]) {
+    const workspace = (id, word) => phrasal ? node(id, 'AdvP', [leaf(`${id}Head`, 'Adv', word), leaf(`${id}Mod`, 'Adv', 'very')]) : leaf(id, 'Adv', word);
+    const state = (workspaceForest, relations = []) => ({ statement: 'Authored state.', stageRecord: 'Authored state.', relations, workspaceForest });
+    const verbPhrase = node('VP', 'VP', [leaf('subj', 'D', 'Peter'), leaf('V', 'V', 'left')]);
+    const record = { sentence: 'Peter left', derivationStages: [
+      state([verbPhrase, workspace('other', 'there')]),
+      // Construction builds TP first; only the claim's moment replaces the
+      // separate workspace "other" with "later".
+      state([node('TP', 'TP', [leaf('T', 'T', ''), verbPhrase]), workspace('later', 'here')], [
+        { relation: 'Later change', anchors: { participant: 'later' }, priorAnchors: { participant: 'other' } }
+      ])
+    ] };
+    const original = structuredClone(record);
+    const replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
+    assert.deepEqual(checkStableConstruction(replay, record), [], `phrasal: ${phrasal}`);
+    const steps = replay.playbackSteps.filter(step => step.replayFrameIndex === 1);
+    const moment = steps.findIndex(step => step.replayKind === 'relation');
+    assert.ok(moment > 0, 'construction precedes the claim');
+    steps.slice(0, moment).forEach(step => {
+      assert.ok(step.replayVisibleNodeIds.includes('other'), `other stays at ${step.operation} ${step.targetNodeId}`);
+      assert.ok(!step.replayVisibleNodeIds.includes('later'));
+    });
+    assert.ok(steps[moment].replayVisibleNodeIds.includes('later'));
+    assert.ok(!steps[moment].replayVisibleNodeIds.includes('other'));
+    assert.deepEqual(record, original);
+  }
 });

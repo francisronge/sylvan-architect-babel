@@ -44,7 +44,7 @@ export const neutralGeometry = {
         labelRect, backward: mark.backward, numeral: mark.position, role: mark.role, text,
         textWidth: metrics.width, ...(textHeight === undefined ? {} : { textHeight })
       };
-      const center = placeFallbackMark(shape, markerScale, occupied);
+      const center = placeFallbackMark(shape, markerScale, occupied, undefined, options.direction);
       markCenters.set(mark.witness, center);
       const bound: BoundFallbackMark = {
         type: 'fallback-mark', nodeId: mark.witness, ...center, ...shape,

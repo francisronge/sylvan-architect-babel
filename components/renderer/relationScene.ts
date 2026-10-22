@@ -20,6 +20,7 @@ import {
 } from '../../replay/relations/renderPlan.ts';
 import { projectThetaGrid } from '../../replay/relations/thetaGridComposition.ts';
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
+import type { TreeDirection } from '../../replay/treeLayout.ts';
 import { type HierNode } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
 import { createBindingDrawing, indexLetterLabels } from './bindingDrawing.ts';
@@ -74,6 +75,8 @@ interface RelationSceneContext {
   uiBounds: { top: number; right: number; bottom: number; headerBottom: number; panelTop: number };
   containerRef: { current: HTMLDivElement | null };
   TARGET_EMERALD: string;
+  /** Neutral role labels prefer the reading-direction side of their node. */
+  treeDirection: TreeDirection;
 }
 export function paintRelationScene({
   relationRenderPlan,
@@ -97,7 +100,8 @@ export function paintRelationScene({
   deferredTreeMatrix,
   uiBounds,
   containerRef,
-  TARGET_EMERALD
+  TARGET_EMERALD,
+  treeDirection
 }: RelationSceneContext) {
   let overlayFitBounds: OverlayBounds | null = null;
   let fitFallbackOverlays: ((fitZoom: number, fittedViewport: Rect) => void) | undefined;
@@ -239,10 +243,11 @@ export function paintRelationScene({
         // complete frame's terminal row; rails placed by the binder's one
         // vertical allocation law beneath the deepest allocated lane.
         connectorBaselineY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,
-        railBaseY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase
+        railBaseY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase,
+        direction: treeDirection
       }
     ));
-    const fallbackPlacement = createFallbackPlacement({ fallbackMeasurements, boundFrame, markerScale, badgeGap, frameMaxNodeY, animated, usesDerivationFrames, g });
+    const fallbackPlacement = createFallbackPlacement({ fallbackMeasurements, boundFrame, markerScale, badgeGap, frameMaxNodeY, animated, usesDerivationFrames, g, direction: treeDirection });
     fitFallbackOverlays = fallbackPlacement.fit;
     finishFallbackPlacement = fallbackPlacement.finish;
     const primitiveWitnessesVisible = createPrimitiveVisibility(frameItems, resolveOverlayAnchor);

@@ -85,7 +85,7 @@ export const finalizeStageReplay = (
   let structuralSteps = steps.map(stripSemanticPayloadFromMicrostep);
   if (plannedStage) {
     const placements = planStageRelations(compilation, stage);
-    const { relationPlacements, getMovementCreatedLandingHostNodeIds, getMovementCreatedLandingHostPaths, transitionHostNodeIds } = placements;
+    const { relationPlacements, getMovementCreatedLandingHostNodeIds, getMovementCreatedLandingHostPaths, getMovementPiedPipedNodeIds, transitionHostNodeIds } = placements;
     const transitionNodeIds = new Set([...nonMovementTransitionNodeIds.values()].flatMap(ids => [...ids]));
     // A construction step for a claim's new parent can also complete ordinary
     // attachments: material that parent, or a surviving parent it regroups,
@@ -134,8 +134,10 @@ export const finalizeStageReplay = (
         if (relationTargetSubtreeIds.has(stepTargetNodeId))
           return true;
         // The new attachment belongs to movement, not a later merge of
-        // a temporarily detached landing complex.
-        return getMovementCreatedLandingHostNodeIds(placement).includes(stepTargetNodeId);
+        // a temporarily detached landing complex, and so does the phrase
+        // pied-piped with the landing.
+        return getMovementCreatedLandingHostNodeIds(placement).includes(stepTargetNodeId)
+          || getMovementPiedPipedNodeIds(placement).includes(stepTargetNodeId);
       });
     };
     /*
@@ -199,7 +201,7 @@ export const finalizeStageReplay = (
       const landingPlacements = relationPlacements.filter((placement) => getMovementCreatedLandingHostPaths(placement).some(path => path.at(-1) === landingHostNodeId));
       const landingHostIds = new Set(landingPlacements.flatMap(getMovementCreatedLandingHostNodeIds));
       const landingTargetNodeIds = new Set(landingPlacements
-        .flatMap((placement) => placement.authoredTargetNodeIds)
+        .flatMap((placement) => [...placement.authoredTargetNodeIds, ...getMovementPiedPipedNodeIds(placement)])
         .filter(Boolean));
       const addSubtree = (nodeId: string) => {
         collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId))
@@ -267,6 +269,7 @@ export const finalizeStageReplay = (
           ...[...placement.authoredTargetNodeIds, ...placement.sourceNodeIds].flatMap(nodeId => collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId)))
             .filter(nodeId => !findExactNodeByIdInForest(structuralWorkspaceRoots, nodeId)),
           ...getMovementCreatedLandingHostNodeIds(placement),
+          ...getMovementPiedPipedNodeIds(placement),
           ...(placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).flatMap(movement => newReceivingHeadNodeIds(movement, previousFrameWorkspaceRoots, workspaceRoots))
         ]
         : [...(nonMovementTransitionNodeIds.get(placement.relationIndex) || []),
@@ -304,6 +307,12 @@ export const finalizeStageReplay = (
       [...transitionHostNodeIds].filter(([, owner]) => owner === placement.relationIndex)
         .flatMap(([hostId]) => findNodeByIdInForest(workspaceRoots, hostId)?.children || [])
         .forEach(child => attachmentPrerequisites.push(child.id));
+      // A landing joins a parent that ordinary construction builds (one an
+      // earlier claim needs first) only once that construction has run.
+      if (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
+        placement.authoredTargetNodeIds.map(nodeId => findParentNodeIdInForest(workspaceRoots, nodeId))
+          .filter(parentId => parentId && structuralProducers.has(parentId) && !landingHostIds.has(parentId))
+          .forEach(parentId => attachmentPrerequisites.push(parentId));
       return [...placement.relationAnchorNodeIds, ...attachmentPrerequisites].filter(nodeId => relationProducers.get(nodeId) !== placement.relationIndex);
     };
     // A movement's other current anchors are context: its moment neither

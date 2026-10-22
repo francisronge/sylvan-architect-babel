@@ -11,6 +11,7 @@ import {
   plaqueCollectionConnectorObstacles,
   plaqueCaseConnectorObstacles,
   placeStagePlaques,
+  LOCAL_POCKET_CHECK_LIMIT,
   plaqueIdentity,
   plaqueTreeObstacles,
   plaqueConnectorObstacles,
@@ -832,4 +833,23 @@ test('a large plaque whose own stem blocks its column takes the nearest clear la
   assert(result.x >= stem.x + stem.width, 'the plaque uses the clear column on the right');
   assert.equal(result.y, ideal.y, 'it stays at the subtree depth instead of descending past unrelated syntax');
   assert(!plaquesOverlap(result, stem) && !plaquesOverlap(result, leftSyntax));
+});
+
+test('a claim whose every nearby connector is refused checks a bounded number of pockets', () => {
+  const nodes = d3.tree().nodeSize([600, 300])(d3.hierarchy({ id: 'root', label: 'XP', children: [
+    { id: 'left', label: 'X', word: 'first' }, { id: 'right', label: 'Y', word: 'second' }] })).descendants();
+  const item = { kind: 'node-plaque', plaqueStyle: 'feature', anchorNodeIds: ['left'], title: 'Authored relation',
+    rows: [{ label: 'claim', value: 'value' }], relationRef: { stageIndex: 0, relationIndex: 0 } };
+  // Small ink in a staggered field: every gap is a box-clear pocket, about
+  // 870,000 of them, as the wrapped lines of long labels multiply them.
+  const ink = [];
+  for (let i = 0; i < 60; i++) for (let j = 0; j < 60; j++)
+    ink.push({ x: -6000 + i * 200 + j * 3, y: -6000 + j * 200, width: 8, height: 8 });
+  const obstacles = [...plaqueTreeObstacles(nodes), ...ink];
+  let checks = 0;
+  const space = { obstacles, acceptsConnector: () => { checks++; return false; } };
+  const box = placeStagePlaques([item], nodes, obstacles, new Map(), undefined, { sizes: new Map(), spaceFor: () => space }).get(0);
+  assert.equal(box.location, 'below');
+  // The nearby candidates come first; the scan stops at its limit.
+  assert.ok(checks <= LOCAL_POCKET_CHECK_LIMIT + 18, `${checks} connector checks`);
 });

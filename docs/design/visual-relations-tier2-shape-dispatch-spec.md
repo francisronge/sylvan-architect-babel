@@ -347,8 +347,9 @@ those checks with several listed landings, a source pairs only with the landing
 whose parent contains it; any remaining ambiguity still refuses the group.
 Array order supplies no association. Preserve
 authored witnesses, context, routing and outcome for each recovered path. All
-paths, landings and their smallest necessary attachment parents appear at the
-same authored relation moment; a source whose movement already
+paths, landings, their smallest necessary attachment parents and any phrase a
+phrasal landing pied-pipes (material that stood beside the moved constituent
+before it moved) appear at the same authored relation moment; a source whose movement already
 happened is not restored to its earlier form by a later shared claim.
 
 ## Shared role interpretation
