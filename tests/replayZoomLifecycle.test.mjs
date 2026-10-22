@@ -27,7 +27,7 @@ const setup = () => {
       finishCollectionReveal: () => effects.revealsFinished++,
       refreshIdentityForestLight: () => effects.lightRefreshes++
     });
-    return { zoom, applyCameraTransform: transform => applyCameraTransform(session, transform) };
+    return { zoom, applyCameraTransform: transform => applyCameraTransform(session, transform), session };
   };
   const group = () => d3.select(new Element('g'));
   const wheel = () => svg.handlers.wheel.call(svg, { type: 'wheel', deltaY: -100, deltaMode: 0,
@@ -57,6 +57,21 @@ test('an active wheel gesture uses the new Replay frame handler after redraw', a
   assert.equal(first.attr('transform'), String(before), 'the detached frame must not receive later camera updates');
   assert.deepEqual(camera.current.transform, before, 'programmatic updates must not become manual input');
   await ended;
+});
+
+test('a gesture during a camera transition becomes the pose deferred drawing places for', () => {
+  const { svg, bind, group } = setup();
+  const { zoom, applyCameraTransform, session } = bind(group());
+  let cancelled = 0;
+  const destination = d3.zoomIdentity.translate(30, 40).scale(0.3);
+  Object.assign(session.cameraRuntime, { deferred: destination, cancel: () => { cancelled++; } });
+  applyCameraTransform(d3.zoomIdentity.translate(10, 10).scale(0.5));
+  assert.equal(session.cameraRuntime.deferred, destination,
+    'painting the start of an automatic transition keeps its destination');
+  const pan = d3.zoomIdentity.translate(240, 120).scale(0.5);
+  d3.select(svg).call(zoom.transform, pan, null, { type: 'mousemove' });
+  assert.equal(cancelled, 1);
+  assert.deepEqual(session.cameraRuntime.deferred, pan);
 });
 
 for (const active of [true, false]) {
