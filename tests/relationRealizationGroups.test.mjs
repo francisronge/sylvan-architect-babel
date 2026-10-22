@@ -303,7 +303,8 @@ test('PF transfer recovery is identical in direct, batch and staged dispatch', (
     const facet = output.facets.find(facet => facet.recipe.id === 'pf.structured');
     assert.deepEqual(facet.evaluation.consumedEvidence.find(ref => ref.field === 'priorAnchors'),
       { field: 'priorAnchors', key: 'arbitraryWitnesses' });
-    assert.deepEqual(JSON.parse(facet.facetIdentity).priorAnchors['rewrite.output'].map(node => node.id), ['oldB', 'oldA']);
+    // An unpaired witness list is a set in the claim identity, whatever its authored order.
+    assert.deepEqual(JSON.parse(facet.facetIdentity).priorAnchors['rewrite.output'].map(node => node.id), ['oldA', 'oldB']);
   }
 });
 

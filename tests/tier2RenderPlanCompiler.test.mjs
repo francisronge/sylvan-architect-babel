@@ -791,3 +791,16 @@ test('different binding indices, scopes, occurrence lineages and prior-state cla
     assert.equal(bindingPaths(plan.frames[1]).length, 2, variant);
   }
 });
+
+test('a restated Tier-2 claim shares its ink whatever order its fields are authored in', () => {
+  const forest = [node('tp', 'TP', [leaf('high', 'DP', 'Mia', { lineageId: 'mia' }),
+    node('vp', 'VP', [leaf('low', 'DP', 'Mia', { lineageId: 'mia', silent: true }), leaf('v', 'V', 'leave')])])];
+  const first = { relation: 'copy pronunciation', anchors: { pronouncedOccurrence: 'high', unpronouncedOccurrence: 'low' } };
+  const swapped = { relation: 'copy pronunciation', anchors: { unpronouncedOccurrence: 'low', pronouncedOccurrence: 'high' } };
+  for (const restated of [first, swapped]) {
+    const plan = compileRelationRenderPlan([stage([first], structuredClone(forest)), stage([restated], structuredClone(forest))]);
+    const marks = plan.frames[1].items.filter(item => item.kind === 'coindex');
+    assert.equal(marks.length, 1, JSON.stringify(restated.anchors));
+    assert.deepEqual(planItemRelationRefs(marks[0]).map(ref => `${ref.stageIndex}:${ref.relationIndex}`), ['0:0', '1:0']);
+  }
+});
