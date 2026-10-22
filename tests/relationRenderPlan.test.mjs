@@ -1590,3 +1590,24 @@ test('a theta badge shows the index of its argument\'s chain', () => {
   assert.ok(chain && theta, 'the chain and the theta role are both drawn');
   assert.equal(theta.index, chain.index);
 });
+
+test('a phrasal argument shows its chain\'s index when the copies share descendant lineages', () => {
+  const copy = (id, silent) => node(id, 'DP', [leaf(`${id}D`, 'D', 'the', { lineageId: 'det', ...(silent ? { silent: true } : {}) }),
+    leaf(`${id}N`, 'N', 'books', { lineageId: 'noun', ...(silent ? { silent: true } : {}) })],
+  { lineageId: 'books', ...(silent ? { silent: true } : {}) });
+  const tree = node('tp', 'TP', [copy('high', false),
+    node('vp', 'VP', [leaf('v', 'V', 'sold'), copy('low', true), leaf('other', 'DP', 'Leo')])]);
+  const plan = compileRelationRenderPlan([stage([
+    { relation: 'Unrelated coreference', anchors: { occurrences: ['other', 'v'] } },
+    { relation: 'Theme theta-role assignment', anchors: { argument: 'low', predicate: 'v' }, values: { thetaRole: 'Theme' } },
+    { relation: 'Object movement chain', anchors: { occurrences: ['high', 'low'] } },
+    { relation: 'Noun theta-role assignment', anchors: { argument: 'lowN', predicate: 'v' }, values: { thetaRole: 'Possessum' } }
+  ], [tree])]);
+  const items = plan.frames[0].items;
+  const chain = items.find(item => item.kind === 'coindex' && item.nodeIds.includes('high'));
+  const role = id => items.flatMap(item => item.thetaRoles ?? []).find(entry => entry.nodeId === id);
+  assert.ok(chain && role('low') && role('lowN'), 'the chain and both theta roles are drawn');
+  assert.equal(role('low').index, chain.index);
+  // A copied descendant is its own argument, not the phrase's chain.
+  assert.notEqual(role('lowN').index, chain.index);
+});
