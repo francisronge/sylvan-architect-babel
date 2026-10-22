@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-import { access, readFile } from 'node:fs/promises';
+import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { orchardResearchImages, orchardSourcePreviewPath } from '../docs/research/relation-orchard/source-research-images.ts';
+import { CODE_NOTICES_FILE, FONT_NOTICES_FILE } from './thirdPartyNoticesPlugin.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -112,10 +113,45 @@ for (const documentPath of documentsToScan) {
   }
 }
 
+// The app build (`npm run build`) must carry the notices for what it ships:
+// every bundled font file is named in the OFL notice, and the code notice
+// covers the packages every build bundles.
+const distRoot = path.join(repoRoot, 'dist');
+const readDist = async (relativePath) => {
+  try {
+    return await readFile(path.join(distRoot, relativePath), 'utf8');
+  } catch {
+    missing.push(`dist/${relativePath} (run npm run build first)`);
+    return null;
+  }
+};
+const codeNotices = await readDist(CODE_NOTICES_FILE);
+for (const name of ['react', 'react-dom', 'scheduler', 'd3-selection', 'd3-ease', 'lucide-react']) {
+  if (codeNotices !== null && !new RegExp(`^${name}@`, 'm').test(codeNotices)) {
+    missing.push(`dist/${CODE_NOTICES_FILE} -> ${name} (bundled package without a notice)`);
+  }
+}
+// Rollback and bug reports identify a deployment by its build stamp.
+const builtPage = await readDist('index.html');
+if (builtPage !== null && !/<meta name="babel-build" content="[^"+]+\+[0-9a-f]{7,}(?:\.dirty)?">/.test(builtPage)) {
+  missing.push('dist/index.html (no <meta name="babel-build"> with a commit)');
+}
+const fontNotices = await readDist(FONT_NOTICES_FILE);
+let distFontCount = 0;
+if (fontNotices !== null) {
+  const listed = new Set(fontNotices.split('\n').map(line => line.trim()));
+  const assetFiles = await readdir(path.join(distRoot, 'assets'));
+  for (const file of assetFiles.filter(name => /\.(?:woff2?|ttf|otf|eot)$/i.test(name))) {
+    distFontCount += 1;
+    if (!listed.has(`assets/${file}`)) missing.push(`dist/assets/${file} (font not named in dist/${FONT_NOTICES_FILE})`);
+  }
+  if (distFontCount === 0) missing.push('dist/assets has no font files; the font notice check saw nothing');
+}
+
 if (missing.length > 0) {
   console.error('Release asset verification failed:');
   for (const failure of missing) console.error(`- ${failure}`);
   process.exitCode = 1;
 } else {
-  console.log(`Release assets verified: ${requiredPaths.length} required files, ${sourcePreviewPaths.size} source previews, and ${documentsToScan.length} linked documents.`);
+  console.log(`Release assets verified: ${requiredPaths.length} required files, ${sourcePreviewPaths.size} source previews, ${documentsToScan.length} linked documents, and app build notices for ${distFontCount} font files.`);
 }
