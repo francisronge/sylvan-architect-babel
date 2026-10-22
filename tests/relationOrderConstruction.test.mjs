@@ -35,7 +35,7 @@ const renameTense = (record, labels) => {
   return renamed;
 };
 const leaf = (id, label, word, extra = {}) => ({ id, label, ...(word ? { word } : { silent: true }), ...extra, children: [] });
-const node = (id, label, children) => ({ id, label, children });
+const node = (id, label, children, extra = {}) => ({ id, label, ...extra, children });
 const stage = (workspaceForest, relations = []) => ({ statement: 'Authored state.', stageRecord: 'Authored state.', relations, workspaceForest });
 const parentOf = (tree, id, parent = null) => tree?.id === id ? parent?.id
   : (tree?.children || []).reduce((found, child) => found ?? parentOf(child, id, tree), undefined);
@@ -134,4 +134,29 @@ test('a receiving head selected for a later head movement stands alone until tha
     `T stands alone at ${step.replayKind} ${step.operation}`));
   assert.equal(parentOf(steps[movement].replayCanvasData, 'T'), 'Tcomplex');
   assert.equal(parentOf(steps[movement].replayCanvasData, 'verbHigh'), 'Tcomplex');
+});
+
+test('a withheld unary shell appears at the first moment of any claim that owns its new daughter', () => {
+  // "The students have all left.": IP is saved with one daughter until the
+  // subject raises. The stranded-quantifier claim, authored first, owns the
+  // subject's relocation too but waits for the movement that introduces its
+  // trace, so IP appears with the movement.
+  const subject = node('dp', 'DP', [leaf('the', 'D', 'The'), leaf('students', 'N', 'students')], { lineageId: 'subject' });
+  const clause = (specifier, restriction) => node('ip', 'IP', [...specifier, node('ibar', "I'", [leaf('have', 'I', 'have'),
+    node('vp', 'VP', [node('qp', 'QP', [leaf('all', 'Q', 'all'), restriction]), leaf('left', 'V', 'left')])])]);
+  const record = { sentence: 'The students have all left', derivationStages: [
+    stage([clause([], subject)]),
+    stage([clause([subject], leaf('trace', 'DP trace', '', { lineageId: 'subject' }))], [
+      { relation: 'stranded-quantifier-dependency', anchors: { interpretedRestriction: 'dp', localRestriction: 'trace', quantifier: 'all' },
+        priorAnchors: { localRestriction: 'dp', quantifier: 'all' } },
+      { relation: 'A-movement-and-trace-binding', anchors: { landingProjection: 'ip', raisedDP: 'dp', sourceTrace: 'trace' },
+        priorAnchors: { containingQP: 'qp', sourceDP: 'dp' } }
+    ])
+  ] };
+  const replay = prepare(record);
+  assert.deepEqual(violations(replay, record), []);
+  const steps = stageSteps(replay, 1), movement = relationMoment(steps, 1);
+  assert.ok(movement < relationMoment(steps, 0), 'the movement plays first');
+  assert.ok(!replay.playbackSteps[replay.playbackSteps.indexOf(steps[movement]) - 1].replayVisibleNodeIds.includes('ip'));
+  assert.ok(steps[movement].replayVisibleNodeIds.includes('ip'));
 });

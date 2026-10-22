@@ -40,14 +40,15 @@ const deferPendingMovementProjections = (steps: PlaybackStep[], projections: Arr
   nodeId: string;
   firstStageIndex: number;
   stageIndex: number;
-  relationIndex: number;
+  relationIndexes: number[];
 }>): PlaybackStep[] => {
   if (projections.length === 0)
     return steps;
+  // The shell appears at whichever owning moment plays first.
   const reveals = projections.map(projection => ({
     ...projection,
     moment: steps.findIndex(step => step.replayRelationIdentity?.stageIndex === projection.stageIndex
-      && step.replayRelationIdentity.relationIndex === projection.relationIndex)
+      && projection.relationIndexes.includes(step.replayRelationIdentity.relationIndex))
   })).filter(projection => projection.moment >= 0);
   return steps.flatMap((step, index) => {
     const withheld = new Set(reveals.filter(projection => index < projection.moment
@@ -706,7 +707,7 @@ const stabilizeStructuralReplayVisibility = (steps: PlaybackStep[]): PlaybackSte
 /** Keep sequence repair ordered: visibility precedes persistence, then atomic landings and progress. */
 export const normalizePlaybackSequence = (
   steps: PlaybackStep[],
-  pendingProjections: Array<{ nodeId: string; firstStageIndex: number; stageIndex: number; relationIndex: number }>,
+  pendingProjections: Array<{ nodeId: string; firstStageIndex: number; stageIndex: number; relationIndexes: number[] }>,
   replayPlan?: DerivationReplayPlan | null
 ): PlaybackStep[] => {
   const squashed = squashAdjacentStructuralReplayDuplicates(steps);
