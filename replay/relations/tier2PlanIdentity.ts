@@ -91,3 +91,29 @@ export const predecessorReplacementGroup = (
     anchors: canonicalReplacementAnchors(anchors)
   });
 };
+
+const tier2Group = (group: string): { facet: string; stageIndex: number; anchors: string } | undefined => {
+  if (!group.startsWith('{')) return undefined;
+  try {
+    const { facet, stageIndex, anchors } = JSON.parse(group) as Record<string, unknown>;
+    return typeof facet === 'string' && Number.isInteger(stageIndex) && anchors && typeof anchors === 'object'
+      ? { facet, stageIndex: stageIndex as number, anchors: JSON.stringify(anchors) } : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/** Whether a later claim's predecessor group names this earlier state. A Tier-2
+ * predecessor names its facet over the exact prior anchors in the preceding
+ * stage, so it continues every such state still live there, including one
+ * first authored several stages earlier and its unchanged restatements. */
+export const continuesReplacementGroup = (
+  predecessorGroup: string | undefined,
+  group: string | undefined
+): boolean => {
+  if (!predecessorGroup || !group) return false;
+  if (predecessorGroup === group) return true;
+  const predecessor = tier2Group(predecessorGroup), earlier = tier2Group(group);
+  return Boolean(predecessor && earlier && predecessor.facet === earlier.facet
+    && predecessor.anchors === earlier.anchors && earlier.stageIndex <= predecessor.stageIndex);
+};

@@ -44,7 +44,8 @@ test('the prose-label structural reading needs an unchanged host in its slot and
 });
 
 test('each member of a compound head may carry its own features', () => {
-  assert.deepEqual(readCategoryLabel('Asp⁰[progressive]+Pred+v+V'), { category: 'Asp', head: 'Asp', kind: 'head', compound: true });
+  assert.deepEqual(readCategoryLabel('Asp⁰[progressive]+Pred+v+V'),
+    { category: 'Asp', head: 'Asp', kind: 'head', compound: true, members: ['Asp', 'Pred', 'v', 'V'] });
   assert.equal(readCategoryLabel('Asp⁰[progressive'), undefined, 'malformed notation stays uninterpreted');
 });
 

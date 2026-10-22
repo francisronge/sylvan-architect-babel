@@ -163,6 +163,10 @@ export interface DerivationReplayPlanStep {
   /** Exact evidence owned by the neutral primary, excluding recovered sibling claims. */
   neutralTransitionEvidence?: Pick<DerivationStageRelation, 'anchors' | 'priorAnchors'>;
   recoveredMovement?: RecoveredMovement & { drawTrajectory: boolean };
+  /** The stage's change of `recoveredMovement` is applied by no moment: its kind conflicts with the kind the relation
+   * registers, and no other claim applies it here or earlier. The claim is then no restatement of an owned movement,
+   * and keeps the neutral ownership of the occurrences it relates. */
+  refusedMovementTransition?: true;
   /** Several proved sources may converge on one landing in this single moment. */
   recoveredMovements?: Array<RecoveredMovement & { drawTrajectory: boolean }>;
   /** Exact new landing owned by a claim whose preceding source state is unavailable. */

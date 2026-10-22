@@ -16,6 +16,7 @@ import {
   type RelationRenderPlan,
   type TrajectoryPlanItem
 } from './renderPlan.ts';
+import { continuesReplacementGroup } from './tier2PlanIdentity.ts';
 import { recoveredClaimMovements } from './tier2RelationDispatch.ts';
 
 /** Materialize authored claim lifetimes and exact occurrence transfers.
@@ -261,8 +262,7 @@ export function materializePlanFrames(
           && candidate.appearsAtStage > item.appearsAtStage
           && candidate.appearsAtStage <= frameIndex
           && (candidate.replacementGroup === item.replacementGroup
-            || (Boolean(candidate.replacementPredecessorGroup)
-              && candidate.replacementPredecessorGroup === item.replacementGroup)
+            || continuesReplacementGroup(candidate.replacementPredecessorGroup, item.replacementGroup)
             || (collectionSupersession?.stageIndex === candidate.relationRef.stageIndex
               && collectionSupersession?.relationIndex === candidate.relationRef.relationIndex)
             || sameMovementAfterAttachment(candidate)));
