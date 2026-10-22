@@ -97,10 +97,10 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
       && (step === 0 || step === 1 || (step === -1 && previousFit.stageIndex === stageIndex && !previousFit.completed))) {
       // Stages lay out syntax in their own coordinates, so a stage crossing first
       // carries the accepted pose by the common shift of unmoved shared syntax.
-      const accepted = previousFit.stageIndex === stageIndex ? previousFit.transform
-        : carryCamera(previousFit.transform, previousFit.paintedNodes, paintedNodes);
+      const crossing = previousFit.stageIndex !== stageIndex;
+      const accepted = crossing ? carryCamera(previousFit.transform, previousFit.paintedNodes, paintedNodes) : previousFit.transform;
       const advanced = advanceFittedCamera(accepted, fitted, stageFitContainmentBounds,
-        { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom });
+        { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom }, { crossing });
       fitted = d3.zoomIdentity.translate(advanced.x, advanced.y).scale(advanced.k);
     }
     autoCameraRef.current = {
