@@ -59,12 +59,14 @@ export const createStageRelationSnapshots = (
     currentFrameVisibleNodeIds,
     buildFrameLayoutScaffold,
     frameSemanticStep,
-    plannedStage
+    plannedStage,
+    priorVisibleNodeIds
   } = stage;
   const {
     relationPlacements,
     singleRelationLinksByIndex,
     getMovementCreatedLandingHostNodeIds,
+    getMovementPiedPipedNodeIds,
     relationVisibleNodeIdsByIndex,
     relationLayoutNodeIds,
     frameHasTreeTransition,
@@ -72,6 +74,12 @@ export const createStageRelationSnapshots = (
   } = placements;
   const keptIdLandings = new Map([...fallbackTransitionOwnership].map(([relationIndex, ownership]) =>
     [relationIndex, keptIdLandingNodeIds(ownership, previousFrameWorkspaceRoots, workspaceRoots)]));
+  // A recovered movement whose landing kept the moved phrase's id relocates
+  // that phrase only at its own moment, even when ordinary construction
+  // builds the landing's parent first.
+  const keptIdMovementLandings = new Map(frameRelationSteps.map((relation, relationIndex) => [relationIndex,
+    (relation.recoveredMovements ?? [relation.recoveredMovement]).filter(movement => movement?.transition
+      && movement.priorSourceNodeId === movement.targetNodeId).map(movement => movement!.targetNodeId)]));
   const collectInactiveTrajectoryTargetNodeIds = (activeRelationIndexes: Set<number>, preservedForest: SyntaxNode[] = []): Set<string> => {
     const inactiveTargetNodeIds = new Set<string>();
     const activeTargetNodeIds = new Set(relationPlacements
@@ -131,13 +139,14 @@ export const createStageRelationSnapshots = (
     return inactiveTargetNodeIds;
   };
   const collectInactivePhrasalLandingHostNodeIds = (activeRelationIndexes: Set<number>): Set<string> => {
+    const landingOwned = (placement: RelationPlacement) => [...getMovementCreatedLandingHostNodeIds(placement), ...getMovementPiedPipedNodeIds(placement)];
     const activeLandingHostNodeIds = new Set(relationPlacements
       .filter((placement) => activeRelationIndexes.has(placement.relationIndex))
-      .flatMap(getMovementCreatedLandingHostNodeIds)
+      .flatMap(landingOwned)
       .filter(Boolean));
     return new Set(relationPlacements
       .filter((placement) => !activeRelationIndexes.has(placement.relationIndex))
-      .flatMap(getMovementCreatedLandingHostNodeIds)
+      .flatMap(landingOwned)
       .filter((nodeId) => Boolean(nodeId) && !activeLandingHostNodeIds.has(nodeId)));
   };
   const buildActiveRelationLinks = (activeRelationIndexes: Set<number>): ResolvedRelationLink[] => {
@@ -191,7 +200,7 @@ export const createStageRelationSnapshots = (
           .map(nodeId => replayOwnerId(baseStep?.replayCanvasData, nodeId))
           .filter(nodeId => ordinaryStructuralNodeIds.has(nodeId))),
         withheldNodeIds: pendingMovementNodeIds,
-        pendingKeptIdLandingNodeIds: new Set([...keptIdLandings].flatMap(([relationIndex, nodeIds]) => activeRelationIndexes.has(relationIndex) ? [] : nodeIds)),
+        pendingKeptIdLandingNodeIds: new Set([...keptIdLandings, ...keptIdMovementLandings].flatMap(([relationIndex, nodeIds]) => activeRelationIndexes.has(relationIndex) ? [] : nodeIds)),
         attachedNodeIds: new Set([...fallbackTransitionOwnership].flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex)
           ? (ownership.attachments ?? []).map(attachment => attachment.host) : [])),
         heldAttachmentNodeIds: new Set(heldAttachmentNodeIds())
@@ -204,7 +213,7 @@ export const createStageRelationSnapshots = (
         if (!activeTreeTransitionTargetNodeIds.has(targetId || '')) return [group];
         return group.recoveredMovement?.transition ? [{ ...group, preserveMovementLanding: true }] : [];
       });
-    }), previousFrameWorkspaceRoots);
+    }), previousFrameWorkspaceRoots, workspaceRoots);
     // A pending claim's new landing wrapper waits for its moment, unless an
     // active relation has already introduced that landing, which the
     // restoration above also keeps.
@@ -325,6 +334,13 @@ export const createStageRelationSnapshots = (
       snapshotWorkspaceRoots.flatMap(collectSyntaxSubtreeNodeIds)
         .forEach(nodeId => requestedVisibleNodeIds.add(nodeId));
     }
+    // A pending rewrite's shown input keeps its preceding place until the
+    // rewrite's moment, even a separate workspace the completed stage lacks.
+    if (nonMovementTransitionForest !== workspaceRoots)
+      [...fallbackTransitionOwnership].filter(([relationIndex]) => !activeRelationIndexes.has(relationIndex))
+        .flatMap(([, ownership]) => [...ownership.priorNodeIds])
+        .filter(nodeId => priorVisibleNodeIds.has(nodeId) && findExactNodeByIdInForest(snapshotWorkspaceRoots, nodeId))
+        .forEach(nodeId => requestedVisibleNodeIds.add(nodeId));
     const inactiveTrajectoryTargetNodeIds = collectInactiveTrajectoryTargetNodeIds(activeRelationIndexes, snapshotWorkspaceRoots);
     inactiveTrajectoryTargetNodeIds.forEach((nodeId) => requestedVisibleNodeIds.delete(nodeId));
     const inactivePhrasalLandingHostNodeIds = collectInactivePhrasalLandingHostNodeIds(activeRelationIndexes);

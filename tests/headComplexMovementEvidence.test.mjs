@@ -5,6 +5,7 @@ import { readCategoryLabel } from '../replay/categoryLabel.ts';
 import { recoverMovementEvidence } from '../replay/relations/movementEvidence.ts';
 import { dispatchRelationClaims } from '../replay/relations/tier2RelationDispatch.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { checkNoEarlyReveal, checkStableConstruction } from './helpers/replayInvariants.mjs';
 
 const head = (id, label, lineageId, children = []) => ({ id, label, lineageId, children });
 const recover = input => recoverMovementEvidence(input.relation, input.currentForest, input.priorForest);
@@ -324,5 +325,90 @@ test('carried-member context requires the intact assembly proof and cannot erase
   ]) {
     const input = carriedAssembly(); mutate(input);
     assert.equal(recover(input).movement, undefined, mutate.toString());
+  }
+});
+
+// A raised v complex adjoins T under a parent whose compound label bundles
+// both heads; the host is T, whichever member the label spells first.
+const compoundComplex = label => {
+  const verbal = (id, verbId, lightId, silent) => head(id, 'v', 'complexVerb', [
+    { id: verbId, label: 'V', word: 'read', lineageId: 'verb', ...(silent && { silent: true }) },
+    { id: lightId, label: 'v', lineageId: 'light', silent: true }]);
+  const vp = lower => ({ id: 'vp', label: 'v', children: [lower,
+    { id: 'object', label: 'D', children: [{ id: 'objectNoun', label: 'N', word: 'books' }] }] });
+  const tense = { id: 'tense', label: 'T', silent: true };
+  return {
+    priorForest: [structuredClone(tense), vp(verbal('lowComplex', 'lowVerb', 'lowLight'))],
+    currentForest: [{ id: 'clause', label: 'T', children: [
+      { id: 'complex', label, children: [verbal('highComplex', 'highVerb', 'highLight'), structuredClone(tense)] },
+      vp({ ...verbal('lowComplex', 'lowVerb', 'lowLight', true), silent: true })] }],
+    relation: { relation: 'head movement', anchors: { complexHead: 'complex', higherOccurrence: 'highComplex',
+      host: 'tense', source: 'lowComplex' }, priorAnchors: { source: 'lowComplex' } }
+  };
+};
+const compoundStages = input => [input.priorForest, input.currentForest].map((workspaceForest, i) => ({
+  statement: '', stageRecord: '', workspaceForest, relations: i ? [input.relation] : [] }));
+
+test('a compound complex label that bundles its host category proves head adjunction in either member order', () => {
+  for (const label of ['T', 'v+T', 'T+v', 'v⁰+T⁰', 'V+v+T', 'v/T']) {
+    const input = compoundComplex(label), original = structuredClone(input);
+    const result = recover(input);
+    assert.deepEqual([result.movement?.sourceNodeId, result.movement?.targetNodeId, result.movement?.trajectoryKind],
+      ['lowComplex', 'highComplex', 'head'], label);
+    assert.deepEqual(result.diagnostics.filter(item => item.startsWith('MOVEMENT_CONTEXT_UNPROVEN')), [], label);
+    const stages = compoundStages(input);
+    const steps = prepareReplay({ derivationStages: stages, sentence: 'read books', includePlayback: true }).playbackSteps;
+    const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1);
+    assert(moment > 0, label);
+    for (const step of steps.slice(0, moment))
+      for (const id of ['complex', 'highComplex', 'highVerb', 'highLight'])
+        assert(!step.replayVisibleNodeIds.includes(id), `${label}: ${id} waits for the head movement`);
+    for (const id of ['complex', 'highComplex', 'highVerb', 'highLight'])
+      assert(steps[moment].replayVisibleNodeIds.includes(id), `${label}: ${id} arrives with the head movement`);
+    assert.equal(find([steps[moment - 1].replayCanvasData], 'lowVerb').silent, undefined, `${label}: the source keeps its word until the moment`);
+    assert(steps[moment].replayRelationLinks.some(link => link.authoredRelationKey === '1:0'
+      && link.trajectoryKind === 'head' && link.sourceNodeId === 'lowComplex' && link.targetNodeId === 'highComplex'), label);
+    assert(compileRelationRenderPlan(stages).frames[1].items.some(item => item.kind === 'trajectory'
+      && item.trajectoryKind === 'head' && item.targetNodeId === 'highComplex'), label);
+    assert.deepEqual(input, original, label);
+  }
+});
+
+test('two occurrences of one moved complex name the same head when one spells its members', () => {
+  for (const label of ['V+v', 'v+V']) {
+    const input = compoundComplex('T');
+    for (const forest of [input.priorForest, input.currentForest]) find(forest, 'lowComplex').label = label;
+    const movement = recover(input).movement;
+    assert.deepEqual([movement?.sourceNodeId, movement?.targetNodeId, movement?.trajectoryKind],
+      ['lowComplex', 'highComplex', 'head'], label);
+  }
+});
+
+test('a complex spelled by its members still heads the projection it leaves', () => {
+  for (const label of ['V+v', 'v+V']) {
+    // Without a named receiving head, the source's preceding head slot proves the head reading.
+    const input = compoundComplex('T');
+    input.relation.anchors = { higherOccurrence: 'highComplex', source: 'lowComplex' };
+    for (const forest of [input.priorForest, input.currentForest]) find(forest, 'lowComplex').label = label;
+    const movement = recover(input).movement;
+    assert.deepEqual([movement?.sourceNodeId, movement?.targetNodeId, movement?.trajectoryKind],
+      ['lowComplex', 'highComplex', 'head'], label);
+  }
+});
+
+test('a compound complex label must still name its host category', () => {
+  for (const label of ['v', 'V+v', 'D+v', 'C+v', 'Tense']) {
+    const input = compoundComplex(label), result = recover(input);
+    assert.notEqual(result.movement?.trajectoryKind, 'head', label);
+    assert(result.diagnostics.some(item => item.startsWith('MOVEMENT_CONTEXT_UNPROVEN') && item.includes('anchors.complexHead')), label);
+    // The refused head movement stays a neutral claim; its moment still
+    // introduces the complex, and no construction step shows it earlier.
+    const prepared = prepareReplay({ derivationStages: compoundStages(input), sentence: 'read books', includePlayback: true });
+    const steps = prepared.playbackSteps;
+    const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1);
+    for (const step of steps.slice(0, moment))
+      assert(!step.replayVisibleNodeIds.includes('highComplex'), `${label}: the landing waits for its moment`);
+    assert(steps[moment].replayVisibleNodeIds.includes('highComplex'), label);
+    assert.deepEqual([checkNoEarlyReveal(prepared), checkStableConstruction(prepared)].flat(), [], label);
   }
 });

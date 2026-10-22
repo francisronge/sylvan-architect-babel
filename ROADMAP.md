@@ -1,6 +1,6 @@
 # Babel Roadmap
 
-Status date: 2026-10-19
+Status date: 2026-10-21
 
 This is Babel's single list of remaining work, in order. Completed work and its
 evidence live in Git history. Durable rules and contracts live in the canonical
@@ -16,48 +16,35 @@ syntactic rules. Desktop remains the primary experience.
    the Max plan's monthly API credits can be claimed (around 2026-10-24). Spend
    only those credits.
 2. Renderer follow-ups left after the October renderer pass. Each has saved
-   evidence; branches that exist are named.
+   evidence.
    - Plaques left far from their anchor (catalog #3): a second look after
-     allocation brings 8 of the 63 listed plaques within reach, and a ninth for
-     part of its life, without moving any other plaque. The other 54 need a
+     allocation brings 7 of the 63 listed plaques within reach, and an eighth
+     for part of its life, without moving any other plaque. The other 55 need a
      decision: 11 have no room, 19 lose the near pocket to later syntax while
      their anchor stands still, 10 to positions their anchor reaches by reflow,
-     7 to a plaque placed earlier, and 7 to other plaques' final pockets or the
-     quarter-nearer condition.
+     7 to a plaque placed earlier, 7 to other plaques' final pockets or the
+     quarter-nearer condition, and 1 whose nearer pocket lies too close to a
+     movement arrow, since a plaque brought near keeps the full gap from arrows.
    - A host drops a row when a parent is inserted above it. This stays instant
      (no glide), so it needs a layout answer or acceptance.
-   - Two `RELATION_TIMING_CONFLICT` cycles that no order satisfies. In the
-     relative pied-piping run, the neutral Internal Merge names wh2, which the
-     recognized operator-variable movement introduces, and that movement's
-     landing joins the pp2 the Internal Merge builds; in the Icelandic case
-     transfer, continued V-to-I and I-to-C each own part of one moving head
-     complex. Each needs a decision about which claim introduces the shared
-     syntax. A movement also does not wait for a contextual anchor, so the
-     Icelandic raising chain's verb-trace role lacks its anchor at its moment
-     (waiting would cost the subject landing its reserved slot and shift the
-     matrix IP about 120 px).
+   - A `RELATION_TIMING_CONFLICT` cycle that no order satisfies: in the
+     Icelandic case transfer, continued V-to-I and I-to-C each own part of one
+     moving head complex. It needs a decision about which claim introduces the
+     shared head complex. A movement also does not wait for a
+     contextual anchor, so the Icelandic raising chain's verb-trace role lacks
+     its anchor at its moment (waiting would cost the subject landing its
+     reserved slot and shift the matrix IP about 120 px).
    - Movements still drawn as copies without an arrow: the Hungarian verbal
      particle's topicalization (night3 14-hu-verbal-particle), and hop 8:0 of
      the long tough relative (night4 09-en-tough-relative-long), whose claim
      names only the landing and the new trace. Both belong with recognition
-     (item 4).
+     (item 3).
    - After a failed parse in Derivation Replay, the sentence input stays
      visible: the failure panel has no dismiss control.
    - A wrapped category line can start with the space that overflowed the
      line before (22 saved labels).
-   - Saved analyses that still fail a Replay invariant (3 findings in 2 of 986
-     analyses, all older than the pass): a mark that does not persist as
-     defined in the English relative pied-piping run, and unstable
-     construction in the second there-insertion analysis.
    - Mobile calibration and a desktop minimum-zoom clamp.
-3. Clean up the tests:
-   - Retire hand-picked per-frame Replay checks that the invariant sweep
-     (`tests/replayInvariants.test.mjs`) now covers.
-   - Move the design lab's example cards into fixture data, so the checks on
-     them read data instead of slicing the lab's source text.
-   - Check right-to-left once, as a mirror of left-to-right across the saved
-     parses, then run continuity checks once per width.
-4. Recognition:
+3. Recognition:
    - Neutral relations can earn a shared-lineage coindex or a single-host
      plaque from structure alone; the adjunction fork stays off because
      structure cannot tell scope from modification (see the
@@ -66,12 +53,13 @@ syntactic rules. Desktop remains the primary experience.
      relations: measure the wrong-picture rate where Babel already draws, and
      decide whether each further measured rule can claim its whole envelope.
    - Later, consider Jev as a fallback.
-5. Remove the legacy server model-route picker (Gemini default, stale model names,
+4. Remove the legacy server model-route picker (Gemini default, stale model names,
    legacy environment variables) and the `.artifacts` harnesses that depend on it.
    Treat this as an explicit endpoint-contract change.
-6. Merge duplicated layout checks without changing a pixel, proving identical
-   coordinates with `npm run verify:corpus`, and fix the one remaining stretched
-   branch in Indonesian control analysis 2.
+5. Merge duplicated layout checks without changing a pixel, proving identical
+   output with the fixture layout fingerprint (`npm run verify:visual-offline`)
+   and `npm run verify:corpus`, and fix the one remaining stretched branch in
+   Indonesian control analysis 2.
 
 ## Execution Order
 
@@ -403,8 +391,11 @@ review authority, and correction path.
 
 - More relation-card design without a reproducible defect.
 - Provider calls as part of default verification.
-- Changes to the existing automatic JSON delimiter repair, unless a new failure
-  warrants investigation.
+- Reintroducing automatic JSON delimiter repair. Francis removed it on 22 Oct
+  2026: a response whose brackets do not balance now fails as
+  `TRANSPORT_JSON_DELIMITERS_BALANCED` with its raw output. A stricter rule that
+  only drops stray closers after the complete value
+  (`exp/json-repair-preserve-nesting`) is held for the public app.
 - Reintroducing the model-based payload transcriber.
 - A model-authored final tree, notes ledger, compatibility ledger, or fixed
   relation ontology.

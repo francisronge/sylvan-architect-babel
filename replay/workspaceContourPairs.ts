@@ -44,6 +44,24 @@ function firstPossibleOverlap(prefix: readonly number[] | undefined, rect: Plaqu
   return low;
 }
 
+/** Indices of finite rectangle tops in `bounds` (x, y, width, height per
+ * rectangle), ordered as a stable sort by `y` orders them: equal tops,
+ * signed zeros included, keep index order. Counting distinct tops replaces
+ * the comparisons. */
+function orderByTop(bounds: Float64Array, length: number): number[] {
+  const tops = new Float64Array(length);
+  for (let index = 0; index < length; index++) tops[index] = bounds[index * 4 + 1] || 0;
+  const sorted = tops.slice().sort(), ranks = new Map<number, number>();
+  for (let index = 0; index < length; index++)
+    if (!index || sorted[index] !== sorted[index - 1]) ranks.set(sorted[index], ranks.size);
+  const starts = new Uint32Array(ranks.size + 1), rank = new Uint32Array(length);
+  for (let index = 0; index < length; index++) starts[(rank[index] = ranks.get(tops[index])!) + 1]++;
+  for (let index = 1; index < starts.length; index++) starts[index] += starts[index - 1];
+  const order = new Array<number>(length);
+  for (let index = 0; index < length; index++) order[starts[rank[index]]++] = index;
+  return order;
+}
+
 /** Contour obstacles stay immutable for the lifetime of this pair.
  * Separation is used during packing even when no exact contact query follows.
  * Preserve that scan's order and arithmetic without allocating contact tuples. */
@@ -70,7 +88,7 @@ export function createWorkspaceContourPairPreparer() {
     contacts: Uint32Array; hash: number };
   const buckets = new Map<number, Entry[]>(), recent = new Map<Entry, true>();
   const bits = new Float64Array(1), words = new Uint32Array(bits.buffer);
-  const maxEntries = 64, maxContacts = 65536, maxSnapshotValues = 131072;
+  const maxEntries = 256, maxContacts = 262144, maxSnapshotValues = 524288;
   let contactCount = 0, snapshotValues = 0;
   const fingerprint = (left: WorkspaceObstacleBuffer, right: WorkspaceObstacleBuffer) => {
     let hash = 2166136261;
@@ -114,7 +132,7 @@ export function createWorkspaceContourPairPreparer() {
     const a = left.bounds, b = right.bounds;
     let entry = buckets.get(hash)?.find(item => matches(item.left, left) && matches(item.right, right));
     if (!entry) {
-      const order = Array.from({ length: right.length }, (_, i) => i).sort((i, j) => b[i * 4 + 1] - b[j * 4 + 1]);
+      const order = orderByTop(b, right.length);
       const prefix: number[] = [];
       let maximum = -Infinity;
       for (const index of order) {

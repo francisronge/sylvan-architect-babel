@@ -1,8 +1,6 @@
 /** Resolve authored frame relations and accumulate their anchored visual links. */
-import { classifyRelationAnchors } from '../derivationReplayPlan.js';
 import { type ResolvedRelationLink } from '../relationLinks.ts';
 import { type DerivationStageRelation, type SyntaxNode } from '../types.ts';
-import { getFrameDetailsRecord } from './authoredFrames.ts';
 import { readCategoryLabel } from './categoryLabel.ts';
 import { buildMovementChainIndexCatalogue, type MovementChainIndexCatalogue } from './movementIndices.ts';
 import { getReplayPlanStage } from './playbackFormatting.ts';
@@ -13,6 +11,12 @@ import {
 } from './relationAnchors.ts';
 import { productionRelationRegistry } from './relationDispatch/productionRegistry.js';
 import { findRelationRegistryEntry } from './relationDispatch/relationRegistry.js';
+import {
+  dispatchRelationStages,
+  getAuthoredFrameRelations,
+  relationStagesFromFrames,
+  type DispatchedRelationStages
+} from './relationStages.ts';
 import { isPriorMovementContextFailure } from './relations/movementDiagnosticOwnership.ts';
 import { type RecoveredMovement } from './relations/movementEvidence.ts';
 import { registeredTrajectoryDisplayKind } from './relations/movementIdentities.ts';
@@ -25,7 +29,6 @@ import {
 } from './relations/renderFamilies.ts';
 import {
   dispatchRelationClaims,
-  dispatchStageRelations,
   recoveredClaimMovements
 } from './relations/tier2RelationDispatch.ts';
 import { recoveredCovertMovement } from './relations/tier2Transitions.ts';
@@ -50,73 +53,15 @@ import {
   type ReplayDerivationFrame
 } from './types.ts';
 
-const getAuthoredFrameRelations = (frame?: ReplayDerivationFrame | null, plannedStage?: DerivationReplayPlanStage | null): DerivationReplayPlanStep[] => {
-  const plannedRelations = Array.isArray(plannedStage?.relationSteps) ? plannedStage.relationSteps : [];
-  if (plannedRelations.length > 0)
-    return plannedRelations;
-  const details = getFrameDetailsRecord(frame);
-  const workspaceForest = Array.isArray(frame?.workspaceForest)
-    ? frame.workspaceForest
-    : Array.isArray(frame?.after?.workspaceForest)
-      ? frame.after.workspaceForest
-      : [];
-  const relations = Array.isArray(details.derivationStageRelations)
-    ? details.derivationStageRelations
-    : [];
-  return relations
-    .map<DerivationReplayPlanStep | null>((relation, authoredRelationIndex) => {
-      if (!relation || typeof relation !== 'object')
-        return null;
-      const relationRecord = relation as Record<string, unknown>;
-      const label = String(relationRecord.relation || '').trim();
-      const anchors = relationRecord.anchors && typeof relationRecord.anchors === 'object' && !Array.isArray(relationRecord.anchors)
-        ? relationRecord.anchors as Record<string, unknown>
-        : {};
-      if (!label)
-        return null;
-      const priorAnchors = relationRecord.priorAnchors && typeof relationRecord.priorAnchors === 'object' && !Array.isArray(relationRecord.priorAnchors)
-        ? relationRecord.priorAnchors as Record<string, string | string[]>
-        : undefined;
-      const values = relationRecord.values && typeof relationRecord.values === 'object' && !Array.isArray(relationRecord.values)
-        ? relationRecord.values as Record<string, string | string[]>
-        : undefined;
-      return {
-        kind: 'relation',
-        relation: label,
-        anchors,
-        ...(priorAnchors ? { priorAnchors } : {}),
-        ...(values ? { values } : {}),
-        ...(relationRecord.relationContractFailure && typeof relationRecord.relationContractFailure === 'object'
-          ? {
-            relationContractFailure: relationRecord.relationContractFailure as DerivationStageRelation['relationContractFailure'],
-            movementDiagnostics: (relationRecord.relationContractFailure as {
-              issues?: Array<{
-                message: string;
-              }>;
-            })
-              .issues?.map(issue => issue.message) ?? []
-          } : {}),
-        authoredRelationIndex,
-        ...(() => {
-          const { resolved, unresolved } = classifyRelationAnchors(anchors, workspaceForest);
-          return {
-            resolvedAnchors: resolved,
-            ...(unresolved.length > 0 ? { unresolvedAnchors: unresolved } : {})
-          };
-        })()
-      } satisfies DerivationReplayPlanStep;
-    })
-    .filter((relation): relation is DerivationReplayPlanStep => relation !== null);
-};
-
-/** One immutable preparation request can share its ordered relation recovery
- * across the final links, chain catalogue, and playback construction. */
-export const createFrameRelationResolver = (frames: ReplayDerivationFrame[], replayPlan?: DerivationReplayPlan | null) => {
-  const dispatches = dispatchStageRelations(frames.map((frame, i) => ({
-    workspaceForest: frame.workspaceForest || [],
-    realizations: frame.after?.realizations ?? getReplayPlanStage(replayPlan, i)?.realizations,
-    relations: getAuthoredFrameRelations(frame, getReplayPlanStage(replayPlan, i)) as DerivationStageRelation[]
-  })));
+/** One immutable preparation request shares its ordered relation recovery
+ * across the final links, chain catalogue, and playback construction. Pass the
+ * dispatches the relation render plan compiled so both read every claim once. */
+export const createFrameRelationResolver = (
+  frames: ReplayDerivationFrame[],
+  replayPlan?: DerivationReplayPlan | null,
+  relationClaims: DispatchedRelationStages = dispatchRelationStages(relationStagesFromFrames(frames, replayPlan))
+) => {
+  const { dispatches } = relationClaims;
   const resolved = new Map<number, DerivationReplayPlanStep[]>();
   return (index: number) => {
     if (!resolved.has(index))
@@ -332,10 +277,17 @@ export const getFrameRelations = (
     // Fallback may reveal the authored landing without rescuing a Tier 1 recipe.
     // Specialized drawing kinds still prove either a head or a phrasal transition.
     const registeredKind = registeredTrajectoryDisplayKind(step.relation);
+    const movementKey = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
+    const transition = !ownedMovements.has(movementKey)
+      && !isCarriedHeadMemberTransition(movement, earlierMovements, previousForest, currentForest)
+      && (facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition);
+    // A kind conflict refuses the movement. When no other claim applies its
+    // change, that change stays this claim's neutral output.
     if ((registeredKind === 'head' || registeredKind === 'phrasal') && registeredKind !== movement.trajectoryKind)
       return {
         ...step,
         recoveredMovement: { ...movement, transition: false, drawTrajectory: false },
+        ...(transition ? { refusedMovementTransition: true as const } : {}),
         movementDiagnostics: [...priorDiagnostics, `MOVEMENT_KIND_CONFLICT: ${step.relation} selects ${registeredKind} movement, but the anchored context was recovered as ${movement.trajectoryKind}. No recovered transition was applied.`]
       };
     const primaryMovement = dispatch.primaryClaim?.tier === 1 && registeredKind === movement.trajectoryKind;
@@ -345,10 +297,6 @@ export const getFrameRelations = (
       `Stage ${input.stageIndex + 1}, relation ${relationIndex + 1} (${step.relation}): movement endpoints ${movement.sourceNodeId} -> ${movement.targetNodeId} are identifiable, but the drawing was not licensed: ${dispatch.primaryClaim && 'reason' in dispatch.primaryClaim ? dispatch.primaryClaim.reason : 'no-movement-facet'}. The authored analysis is unchanged.`,
       ...(dispatch.tier1Dispatch.signatureIssues || []).map(issue => `Tier 1 signature: ${JSON.stringify(issue)}`)
     ] : [];
-    const movementKey = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
-    const transition = !ownedMovements.has(movementKey)
-      && !isCarriedHeadMemberTransition(movement, earlierMovements, previousForest, currentForest)
-      && (facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition);
     // Later claims may inspect the same dependency; its structural change occurs once.
     if (transition) {
       ownedMovements.add(movementKey);

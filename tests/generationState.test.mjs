@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ParseServiceError } from '../services/parseService.ts';
-import { generationReducer, initialGenerationState, resolveGenerationError, runGeneration } from '../services/generationState.ts';
+import { generationReducer, initialGenerationState, resolveGenerationError, runGeneration, submittedGenerationRequest } from '../services/generationState.ts';
+import { prepareTreeBankSave } from '../services/treeBankRecords.ts';
+import { parseFromBodyWithProviders } from '../server/parseApi.js';
 
 const request = {
   sentence: '  The farmer eats the pig.  ',
@@ -99,13 +101,54 @@ test('an acceptance error still releases the loading state', async () => {
   assert.deepEqual(observed.actions, ['started', 'failed', 'finished']);
 });
 
-test('dismissal, provider selection and external restoration retain their distinct reset behavior', () => {
+test('opening saved work and external restoration retain their distinct reset behavior', () => {
   const failed = { loading: true, error: { message: 'key missing' }, needsKey: true };
-  const dismissed = generationReducer(failed, { type: 'clear-error' });
-  assert.deepEqual(dismissed, { loading: true, error: null, needsKey: true });
   assert.deepEqual(generationReducer(failed, { type: 'clear-failure' }), { loading: true, error: null, needsKey: false });
   assert.deepEqual(generationReducer(failed, { type: 'reset' }), initialGenerationState);
   const previewError = { message: 'Unable to load preview bundle: HTTP 404' };
   assert.deepEqual(generationReducer(failed, { type: 'report-error', error: previewError }), { ...failed, error: previewError });
   assert.deepEqual(failed, { loading: true, error: { message: 'key missing' }, needsKey: true }, 'state transitions must not mutate prior state');
+});
+
+test('a padded draft sends its trimmed sentence, so the echoed bundle saves under the sentence the workspace shows', async () => {
+  const options = { framework: 'xbar', modelId: 'openai:gpt-6.1-sol', settings: { reasoningEffort: 'high' } };
+  assert.equal(submittedGenerationRequest(' \n\t ', options), null, 'a blank draft makes no request');
+  const analysis = { derivationStages: [{ statement: 's', stageRecord: 'r', relations: [],
+    workspaceForest: [{ id: 'n1', label: 'V', word: 'laughed' }] }] };
+  // The server echoes exactly the sentence it received.
+  const server = sentence => parseFromBodyWithProviders({ sentence, framework: 'xbar', modelRoute: 'gemini' },
+    { gemini: async () => ({ analyses: [analysis], ambiguityDetected: false }) });
+  const save = (sentence, bundle) => {
+    const now = new Date().toISOString();
+    return prepareTreeBankSave({ id: 'work', sentence, framework: 'xbar', activeParseIndex: 0, bundle, createdAt: now, updatedAt: now });
+  };
+  const draft = '  Mia laughed. \n';
+  const submitted = submittedGenerationRequest(draft, options);
+  assert.deepEqual(submitted, { ...options, sentence: 'Mia laughed.' });
+  let accepted;
+  await runGeneration(submitted, observedState().dispatch, bundle => { accepted = bundle; }, sentence => server(sentence));
+  assert.equal(accepted.sentence, submitted.sentence);
+  await save(submitted.sentence, accepted);
+  // The historical defect: the untrimmed draft was sent while the trimmed one was saved.
+  await assert.rejects(save(draft.trim(), await server(draft)), /Sentence mismatch/);
+});
+
+test('a response that cannot be displayed fails its generation and keeps its raw output', async () => {
+  const bundle = {
+    sentence: request.sentence, ambiguityDetected: false, inputTokens: ['The', 'farmer'],
+    analyses: [{ tree: { id: 'r', label: 'NP', children: [null] }, derivationStages: [] }],
+    rawModelOutput: { text: '{ original authored output }' }, generationRecord: { id: 'generation-record-2' }
+  };
+  const observed = observedState();
+  let accepted = false;
+  await runGeneration(request, observed.dispatch, () => { accepted = true; }, async () => bundle);
+  assert.equal(accepted, false, 'the workspace keeps its previous analysis');
+  assert.deepEqual(observed.actions, ['started', 'failed', 'finished']);
+  assert.equal(observed.state.loading, false);
+  assert.equal(observed.state.error.code, 'ANALYSIS_NOT_DISPLAYABLE');
+  assert.match(observed.state.error.message, /^Analysis 1 cannot be displayed: /);
+  assert.equal(observed.state.error.rawOutput, bundle.rawModelOutput);
+  assert.equal(observed.state.error.generationRecord, bundle.generationRecord);
+  assert.equal(observed.state.error.inputTokens, bundle.inputTokens);
+  assert.deepEqual(observed.state.error.request, { sentence: request.sentence, framework: request.framework });
 });

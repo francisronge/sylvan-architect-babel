@@ -1,4 +1,5 @@
-import type { DerivationStage, SyntaxNode } from '../../types.ts';
+import type { SyntaxNode } from '../../types.ts';
+import type { RelationStage } from '../relationStages.ts';
 import { collectAuthoredSilentSubtreeIds } from './authoredSilence.ts';
 import { featureCollectionSupersessions } from './featureCollectionContinuity.ts';
 import { movementContextFailure } from './movementEvidence.ts';
@@ -15,6 +16,7 @@ import {
   type RelationRenderPlan,
   type TrajectoryPlanItem
 } from './renderPlan.ts';
+import { continuesReplacementGroup } from './tier2PlanIdentity.ts';
 import { recoveredClaimMovements } from './tier2RelationDispatch.ts';
 
 /** Materialize authored claim lifetimes and exact occurrence transfers.
@@ -28,7 +30,7 @@ const distinctTransitions = <T extends { relationIndex: number }>(candidates: T[
 
 export function materializePlanFrames(
   items: RelationPlanItem[],
-  stageList: DerivationStage[],
+  stageList: RelationStage[],
   stageDispatches: RelationClaimDispatch[][],
   stageNodeMaps: Map<string, SyntaxNode>[],
   organizationCompanions: Map<RelationPlanItem, AnchorSetPlanItem[]>,
@@ -260,8 +262,7 @@ export function materializePlanFrames(
           && candidate.appearsAtStage > item.appearsAtStage
           && candidate.appearsAtStage <= frameIndex
           && (candidate.replacementGroup === item.replacementGroup
-            || (Boolean(candidate.replacementPredecessorGroup)
-              && candidate.replacementPredecessorGroup === item.replacementGroup)
+            || continuesReplacementGroup(candidate.replacementPredecessorGroup, item.replacementGroup)
             || (collectionSupersession?.stageIndex === candidate.relationRef.stageIndex
               && collectionSupersession?.relationIndex === candidate.relationRef.relationIndex)
             || sameMovementAfterAttachment(candidate)));

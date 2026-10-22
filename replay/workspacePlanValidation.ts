@@ -8,7 +8,7 @@ import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts
 import type { TreeCoordinateReservation, TreeDirection } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
 import { extentOverlap, obstacleExtent, verticalObstacleIndex } from './verticalObstacleIndex.ts';
-import { currentForkBranchesClear } from './workspaceForkClearance.ts';
+import { currentForkBranchesClear, relativeChildInk } from './workspaceForkClearance.ts';
 
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 export type WorkspacePlanScene = {
@@ -83,7 +83,7 @@ export function validateWorkspacePlacement({ scenes, baseline, direction, placem
       if (children.length < 2) continue;
       const childInk = children.map(child => ({
         point: child,
-        obstacles: footprints(child).map(rect => ({ ...rect, x: rect.x - child.x, y: rect.y - child.y }))
+        obstacles: relativeChildInk(child, footprints(child))
       }));
       if (!currentForkBranchesClear(parent, childInk)) {
         return failed('render-validation', `Current fork branch crosses child ink at frame ${index + 1}.`);

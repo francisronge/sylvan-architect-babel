@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { preparePlaqueObstacleIndex, preparePlaqueOverlapIndex, preparePlaqueColumnIntervals, plaqueColumnContains, plaquesOverlap } from '../replay/relations/plaqueObstacleIndex.ts';
+import { preparePlaqueObstacleIndex, preparePlaqueOverlapIndex, preparePlaqueColumnIntervals, plaqueColumnContains, plaqueColumnCovers, plaquesOverlap } from '../replay/relations/plaqueObstacleIndex.ts';
 import { uniquePlaqueObstacles } from '../replay/relations/plaquePlacement.ts';
 
 test('the obstacle index preserves exact collision decisions, including unbounded stems and touching edges', () => {
@@ -127,7 +127,7 @@ test('prepared column intervals retain strict gaps, touching endpoints and unbou
   const original = structuredClone(obstacles);
   for (const height of [0, 20, 80.5, 238]) for (const gap of [0, 24, 24.000001]) {
     const prepared = preparePlaqueColumnIntervals(obstacles, height, gap);
-    for (const width of [0, 1.5, 480]) for (const x of [-900, -30 - gap, 0, 30 + gap, 80.5, 96.25 + gap, 1000]) {
+    for (const width of [0, 1.5, 480, 2400]) for (const x of [-900, -30 - gap, 0, 30 + gap, 80.5, 96.25 + gap, 1000]) {
       const intervals = obstacles.filter(box => x < box.x + box.width + gap && x + width + gap > box.x)
         .map(box => [box.y - height - gap, box.extendsDownward ? Infinity : box.y + box.height + gap])
         .sort((a, b) => a[0] - b[0]);
@@ -142,6 +142,11 @@ test('prepared column intervals retain strict gaps, touching endpoints and unbou
         [low, low + 1e-9, (low + high) / 2, high - 1e-9, high])]) {
         assert.equal(plaqueColumnContains(prepared(x, width), y), expected.some(([low, high]) => y > low && y < high),
           'binary membership preserves exact open boundaries, including touching intervals');
+      }
+      const edges = [-100000, 100000, ...expected.flatMap(([low, high]) => [low, low + 1e-9, (low + high) / 2, high - 1e-9, high])];
+      for (const from of edges) for (const to of edges) if (from <= to) {
+        assert.equal(plaqueColumnCovers(prepared(x, width), from, to), expected.some(([low, high]) => from > low && to < high),
+          'one open interval must contain the whole closed range');
       }
     }
   }

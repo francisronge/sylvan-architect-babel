@@ -113,11 +113,14 @@ export function prepareLifetimePlaqueSpaces() {
       });
       return values;
     };
+    const project = ({ scene }: (typeof views)[number], box: PlaqueRect) =>
+      projectPlaqueContent({ ...box, x: box.x - scene.dx, y: box.y - scene.dy }, scene.request);
+    const arrowClears = (view: (typeof views)[number], box: PlaqueRect, projected = project(view, box)) =>
+      box.caseRowY === undefined || !view.scene.caseVisible || view.caseClears(projected);
     const accepts = (view: (typeof views)[number], box: PlaqueRect) => {
-      const { scene } = view;
-      const projected = projectPlaqueContent({ ...box, x: box.x - scene.dx, y: box.y - scene.dy }, scene.request);
+      const { scene } = view, projected = project(view, box);
       projected.collectionRows = projected.collectionRows?.filter(row => scene.rowVisible(row.ownerKeys));
-      return (box.caseRowY === undefined || !scene.caseVisible || view.caseClears(projected))
+      return arrowClears(view, box, projected)
         && (!projected.collectionRows?.length || view.collection.clears(projected));
     };
     // Nearly every rejected pocket fails in the scene that rejected the last one.
@@ -127,6 +130,7 @@ export function prepareLifetimePlaqueSpaces() {
       obstacles: lifetimeObstacles(scenes),
       connectorCandidateXs: box => candidates(box, 'x'),
       connectorCandidateYs: box => candidates(box, 'y'),
+      blocksArrow: box => witness < views.length && !arrowClears(views[witness], box),
       acceptsConnector: box => {
         if (box.caseRowY === undefined && !box.collectionRows?.length) return true;
         for (let step = 0; step < views.length; step++) {

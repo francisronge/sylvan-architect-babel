@@ -104,12 +104,25 @@ only to presentation coordinates. Stored children, tokens, glyphs and syntactic
 dependencies are never reversed.
 
 When an unchanged workspace component carries coordinates across stages, preserve
-its position after applying the writing direction. RTL reflection uses the current
-canvas width, so rebase the whole retained scene by the width difference before
-reflection. Rebasing only the carried component changes its clearance from other
-syntax and can introduce collisions. The reservation cache, painter and bounds
-calculation share that direction. This changes the drawing origin, not its internal
-spacing or automatic fit; a manually positioned camera retains the component.
+its position after applying the writing direction. Coordinates are planned once,
+left to right, for both directions. RTL reflection uses the current canvas width,
+so each stage's reservations are first translated as a whole by its width less the
+completed stage's width; every frame of every stage then reflects about that one
+axis, and RTL Replay is the LTR Replay reflected, with the same rows, relative
+positions and motion. Rebasing only the carried component would change its
+clearance from other syntax and can introduce collisions. The reservation cache,
+painter and bounds calculation share that reflection. This changes the drawing
+origin, not its internal spacing or automatic fit; a manually positioned camera
+retains the component.
+
+Relation plaques and neutral role labels mirror as well (Francis, 22 October
+2026: "mirror them too"). Plaques are allocated on the LTR layout and each
+placement is reflected about the same axis, so a pocket the LTR search finds
+right of its anchor stands left of it RTL, and row ports and side edges reflect
+with it. A shell drawn narrower than a later phase reserves that width only
+while plaques are allocated; reflected, it reserves its drawn shell, and its wider
+phase has its own reflected placement. Role labels try the reading-direction
+side of their witness first (below). Plaque and label text stays upright.
 
 Generated sentence-initial casing does not change an authored subtree's identity.
 For geometry retention only, compare a generated word child's initial capitalization
@@ -429,13 +442,16 @@ reveal, and syntax and plaque obstacles remain reserved. Static inspection keeps
 the combined allocation because its claims can be displayed together. Vertical
 clearance uses label height rather than the width of the authored role name.
 
-A role label takes the first free of its five preferred spots: right of its
-witness label, left, above, above right and above left. When all five are taken,
+A role label takes the first free of its five preferred spots: after its
+witness label in reading direction (right of it LTR, left of it RTL), before it,
+above, above after and above before. When all five are taken,
 it takes the nearest free spot on either side or in the rows above and below,
+equal distances again going to the reading-direction side,
 searched in steps of its own height out to twice its farthest preferred spot. A
-free spot inside the fitted viewport comes first. If nothing within that reach
-is free, the label takes the spot there that overlaps least. It never covers its
-own witness label and never moves beyond that reach.
+free spot inside the fitted viewport comes first; when none is free inside it,
+a label that could fit the viewport takes the free spot that leaves it least. If
+nothing within that reach is free, the label takes the spot there that overlaps
+least. It never covers its own witness label and never moves beyond that reach.
 
 When a neutral role annotates a witness already enclosed by a phase-edge
 outline, its placement reserves that outline's padding as well as the category
@@ -460,7 +476,9 @@ Plaque placement reserves syntax, movement trajectories and the straight stems
 of neutral links across the complete stage. Small plaques try measured nearby gaps when the usual pockets are blocked;
 large plaques retain their below-subtree placement. A carried plaque keeps its
 offset unless new stage geometry occupies it. Neutral lower connectors retain straight stems and separate lanes. Plaques
-yield to their reserved stems; the lower lanes clear plaque bottoms. Role text
+yield to their reserved stems; the lower lanes clear plaque bottoms. They also drop below tree text of
+the stage that their turns or runs would cross, to the nearest gap within one tree row; where unrelated text
+leaves no such gap, they keep their local floor rather than descend beneath it. Role text
 yields to the connector routes. These allocations precede relation reveal, so revealing a plaque
 does not move existing syntax or annotations.
 
@@ -690,8 +708,8 @@ Syntax stands from its first frame where it will be once attached. A waiting
 workspace or a newly selected head appears at its attachment slot and keeps it
 until its own merge, which then moves nothing already on screen. A piece that
 attaches through a parent inserted above an existing host waits at its final x
-beside that host's current row: branches keep their one-row length, and the
-insertion lowers the host and the piece together. A slot holds only while every
+and on its final row, one row below that host's current row, so the insertion
+lowers only the host. A slot holds only while every
 painted member keeps the parent it attaches with, every frame stays valid and
 no ink collision is added. Placements that span stages use stage frames
 translated, as a whole, by the median shift of the unmoved syntax they share

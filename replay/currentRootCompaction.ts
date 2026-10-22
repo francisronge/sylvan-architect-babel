@@ -8,7 +8,7 @@ import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts
 import { layoutSyntaxTree, type TreeCoordinateReservation } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
 import { verticalObstacleIndex } from './verticalObstacleIndex.ts';
-import { currentForkBranchesClear } from './workspaceForkClearance.ts';
+import { currentForkBranchesClear, relativeChildInk } from './workspaceForkClearance.ts';
 import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
 import { TREE_SIBLING_GAP } from './treeSpacing.ts';
 
@@ -140,7 +140,7 @@ export function compactCurrentRootForks(steps: readonly PlaybackStep[], sizes: R
             if (children.length < 2 || members.has(getNodeId(node))
               || !node.descendants().some(child => members.has(getNodeId(child)))) continue;
             if (!currentForkBranchesClear(node, children.map(child => ({ point: child,
-              obstacles: subtreeInk(child).map(box => ({ ...box, x: box.x - child.x, y: box.y - child.y })) })))) return false;
+              obstacles: relativeChildInk(child, subtreeInk(child)) })))) return false;
           }
           return true;
         });

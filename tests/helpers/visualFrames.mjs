@@ -293,15 +293,17 @@ function layoutGroup(visual, viewports, only, Element) {
       const marks = relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule: scene.schedule, fitted, runs });
       return { frame: stepIndex + 1, viewport: viewport.name, zoom: fitted.k, rowHeight: TREE_ROW_HEIGHT, texts: [...painted.texts, ...marks.texts],
         chrome: frameChrome(viewport, harness.session.cameraRuntime.deferred),
-        plaques: marks.plaques, lines: [...painted.lines, ...marks.lines] };
+        plaques: marks.plaques, lines: [...painted.lines, ...marks.lines], marks: marks.marks };
     });
   });
 }
 
 /** Plaques, neutral role labels and connectors, bound as paintRelationScene
- * binds them for this step and refit at the Fit as fitFallbackOverlays does. */
+ * binds them for this step and refit at the Fit as fitFallbackOverlays does,
+ * and `marks`: every other revealed relation mark as bound (arrows, badges,
+ * lenses, shapes), for the layoutSnapshot.mjs fingerprint. */
 function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule, fitted, runs }) {
-  const stage = step.replayFrameIndex, none = { texts: [], plaques: [], lines: [] };
+  const stage = step.replayFrameIndex, none = { texts: [], plaques: [], lines: [], marks: [] };
   if (!plan?.frames[stage]) return none;
   const steps = visual.prepared.playbackSteps, played = new Set();
   for (let index = 0; index <= stepIndex; index++) {
@@ -340,7 +342,18 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
   const shown = index => revealed.has(index) && planItemDependencyNodeIds(items[index]).every(id => Boolean(resolveOverlayAnchor(id)));
   const visiblePlacements = [...placements].filter(([index]) => items[index] && shown(index));
   const plaques = visiblePlacements.map(([index, box]) => plaqueRecord(items[index], box, laidOut.get(box.attachmentNodeId)));
-  if (!items.some(item => item.kind === 'fallback')) return { ...none, plaques };
+  const markerScale = markerScaleAtZoom(fitted.k), maxY = d3.max(all, node => node.y) ?? 0;
+  const textTop = d3.min(painted.texts, text => text.cell.y) ?? TRAJECTORY_ROUTES.textTopFallbackY;
+  const lanes = RELATION_LANES_BELOW_DEEPEST_NODE;
+  const runText = (id, text) => (runs.get(id) ?? []).some(run => run.text + run.indices.map(index => index.text).join('') === text);
+  const bind = extra => bindRelationPlanFrame({ ...plan, frames: plan.frames.map((frame, index) => index === stage ? { ...frame, items } : frame) },
+    stage, positionFor, { ...RELATION_BINDING_METRICS, markerScale,
+      hasExistingGapNotation: runText, plaqueTextLayout: { measureText: measurePlaqueText }, isItemRevealed: index => revealed.has(index),
+      trajectoryCeilingY: textTop - TRAJECTORY_ROUTES.ceilingAboveTextTop, trajectoryFloorY: maxY + lanes.trajectoryFloor,
+      connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase, direction: visual.direction, ...extra });
+  const drawable = createPrimitiveVisibility(items, resolveOverlayAnchor);
+  const shownMarks = bound => bound.primitives.filter(primitive => revealed.has(primitive.itemIndex) && drawable(primitive));
+  if (!items.some(item => item.kind === 'fallback')) return { ...none, plaques, marks: boundMarks(shownMarks(bind({})), items) };
   // measureFallbackLabels: plain label cells for every laid-out node.
   const labelRects = new Map(all.filter(node => !canvas.isSyntheticWorkspaceRootNode(node) && !isUnderTriangulation(node)).map(node => {
     const run = isCategory(node) ? { kind: 'category', text: node.data.label || '', lines: categoryTextLayout(node.data.label || '', measureCategoryText).lines, indices: [] }
@@ -356,22 +369,13 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     visibleLabels: [...labelRects].filter(([id]) => visibleIds.has(id)).map(([, value]) => value),
     visibleObstacles: visiblePlacements.map(([, box]) => box), labelFor: id => rectFor(id, false), subtreeFor: id => rectFor(id, true),
     bottom: Math.max(0, ...[...labelRects.values()].map(value => value.y + value.height)) };
-  const markerScale = markerScaleAtZoom(fitted.k), maxY = d3.max(all, node => node.y) ?? 0;
-  const textTop = d3.min(painted.texts, text => text.cell.y) ?? TRAJECTORY_ROUTES.textTopFallbackY;
-  const lanes = RELATION_LANES_BELOW_DEEPEST_NODE;
-  const runText = (id, text) => (runs.get(id) ?? []).some(run => run.text + run.indices.map(index => index.text).join('') === text);
-  const bound = bindRelationPlanFrame({ ...plan, frames: plan.frames.map((frame, index) => index === stage ? { ...frame, items } : frame) },
-    stage, positionFor, { ...RELATION_BINDING_METRICS, markerScale,
-      hasExistingGapNotation: runText, plaqueTextLayout: { measureText: measurePlaqueText }, fallbackMeasurements,
-      separateFallbackMoments: true, isItemRevealed: index => revealed.has(index), trajectoryCeilingY: textTop - TRAJECTORY_ROUTES.ceilingAboveTextTop,
-      trajectoryFloorY: maxY + lanes.trajectoryFloor, connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase });
+  const bound = bind({ fallbackMeasurements, separateFallbackMoments: true });
   const scale = fallbackMarkerScale(fitted.k, fallbackMeasurements.labels.map(value => value.height));
   // measureRelationInkObstacles reserves filled plaque shells with five units of padding.
-  const refit = fitFallbackGeometry(bound, { markerScale, fittedMarkerScale: scale, fittedAnchorScale: markerScaleAtZoom(fitted.k),
+  const refit = fitFallbackGeometry(bound, { markerScale, fittedMarkerScale: scale, fittedAnchorScale: markerScaleAtZoom(fitted.k), direction: visual.direction,
     badgeGap: RELATION_BINDING_METRICS.badgeGap, laneGap: RELATION_BINDING_METRICS.laneGap, fallbackMeasurements, railBaseY: maxY + lanes.railBase, separateFallbackMoments: true, fittedViewport: fitted.view,
     relationInkObstacles: plaques.map(({ rect: shell }) => rect(shell.x - 5, shell.y - 5, shell.width + 10, shell.height + 10)) });
-  const drawable = createPrimitiveVisibility(items, resolveOverlayAnchor);
-  const marks = bound.primitives.filter(primitive => revealed.has(primitive.itemIndex) && drawable(primitive));
+  const marks = shownMarks(bound);
   const texts = marks.filter(primitive => primitive.type === 'fallback-mark').map(primitive => {
     const mark = refit.get(primitive) ?? primitive, height = (mark.textHeight ?? 20) * scale, claims = refsOf(items[primitive.itemIndex]);
     // The placement box adds two units per side for the three-unit round outline.
@@ -385,7 +389,26 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
       nodes: primitive.witnessNodeIds.flatMap(id => laidOut.get(id)?.descendants().map(display.getNodeId) ?? [id]),
       paths: pathPolylines(segment.d), halfWidth: (segment.route === 'direct' ? 1.5 : 1.9) * scale / 2 };
   });
-  return { texts, plaques, lines };
+  return { texts, plaques, lines, marks: boundMarks(marks, items) };
+}
+
+/** Every bound mark except plaques, neutral role labels and connectors (recorded
+ * above as plaques, texts and lines), as plain data: hierarchy nodes and
+ * functions are dropped and repeated references kept once. Ids name the mark's
+ * type, claims and occurrence, so a comparison can pair them across checkouts. */
+function boundMarks(primitives, items) {
+  const counts = new Map();
+  return primitives.filter(primitive => !['plaque', 'fallback-mark', 'segment'].includes(primitive.type)).map(primitive => {
+    const base = `${primitive.type}(${refsOf(items[primitive.itemIndex]).join('/')})`, n = (counts.get(base) ?? 0) + 1;
+    counts.set(base, n);
+    const seen = new WeakSet();
+    const data = JSON.parse(JSON.stringify(primitive, (key, value) => {
+      if (typeof value === 'function' || value && typeof value === 'object' && 'parent' in value && 'data' in value) return undefined;
+      if (value && typeof value === 'object') { if (seen.has(value)) return undefined; seen.add(value); }
+      return value;
+    }));
+    return { id: `${base}#${n}`, ...data };
+  });
 }
 
 /** The Canopy tree: the final stage's forest, laid out as drawTreeFrame lays out a

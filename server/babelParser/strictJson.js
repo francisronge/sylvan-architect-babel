@@ -1,3 +1,5 @@
+import { FAILURE_RULES } from './failureRecord.js';
+
 const normalizeParsedRoot = (value) => {
   if (value && typeof value === 'object' && !Array.isArray(value)) return value;
   return null;
@@ -8,116 +10,48 @@ const CLOSE_TO_OPEN = {
   ']': '['
 };
 
-const OPEN_TO_CLOSE = {
-  '{': '}',
-  '[': ']'
-};
-
 const UTF8_ENCODER = new TextEncoder();
 
-const bytesToHex = (value) => Array.from(
-  UTF8_ENCODER.encode(String(value || '')),
-  (byte) => byte.toString(16).padStart(2, '0')
-).join('');
+const byteLength = (text) => UTF8_ENCODER.encode(text).byteLength;
 
-const createRepairDiagnostic = ({
-  kind,
-  candidateByteOffset,
-  removedText = '',
-  insertedText = ''
-}) => ({
-  kind,
-  candidateByteOffset,
-  removedText,
-  insertedText,
-  removedBytesHex: bytesToHex(removedText),
-  insertedBytesHex: bytesToHex(insertedText)
-});
-
-const repairDelimiterDamage = (candidate) => {
-  let output = '';
+/**
+ * Finds the first bracket outside strings that breaks nesting: a closer that does not
+ * close the innermost open bracket, or brackets still open at the end. It only
+ * reports; Babel never inserts, removes or moves a bracket.
+ */
+const findBracketImbalance = (candidate) => {
   const stack = [];
-  const diagnostics = [];
   let inString = false;
   let escaped = false;
-  let inputByteOffset = 0;
-
-  for (const char of candidate) {
-    const charByteOffset = inputByteOffset;
-    inputByteOffset += UTF8_ENCODER.encode(char).byteLength;
-    output += char;
-
+  for (let index = 0; index < candidate.length; index += 1) {
+    const char = candidate[index];
     if (inString) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === '\\') {
-        escaped = true;
-      } else if (char === '"') {
-        inString = false;
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') inString = true;
+    else if (char === '{' || char === '[') stack.push(char);
+    else if (char === '}' || char === ']') {
+      if (stack[stack.length - 1] !== CLOSE_TO_OPEN[char]) {
+        return { index, kind: stack.length === 0 ? 'closer-after-value' : 'mismatched-closer' };
       }
-      continue;
-    }
-
-    if (char === '"') {
-      inString = true;
-      continue;
-    }
-
-    if (char === '{' || char === '[') {
-      stack.push(char);
-      continue;
-    }
-
-    if (char !== '}' && char !== ']') continue;
-
-    const expectedOpen = CLOSE_TO_OPEN[char];
-    if (stack[stack.length - 1] === expectedOpen) {
       stack.pop();
-      continue;
     }
-
-    const matchingOpenIndex = stack.lastIndexOf(expectedOpen);
-    if (matchingOpenIndex >= 0) {
-      output = output.slice(0, -1);
-      let insertedText = '';
-      while (stack.length > 0 && stack[stack.length - 1] !== expectedOpen) {
-        insertedText += OPEN_TO_CLOSE[stack.pop()];
-      }
-      output += insertedText;
-      output += char;
-      stack.pop();
-      diagnostics.push(createRepairDiagnostic({
-        kind: 'insert_closers_before_mismatched_closer',
-        candidateByteOffset: charByteOffset,
-        insertedText
-      }));
-      continue;
-    }
-
-    output = output.slice(0, -1);
-    diagnostics.push(createRepairDiagnostic({
-      kind: 'remove_unmatched_closer',
-      candidateByteOffset: charByteOffset,
-      removedText: char
-    }));
   }
-
-  let appendedText = '';
-  while (stack.length > 0) {
-    appendedText += OPEN_TO_CLOSE[stack.pop()];
-  }
-  if (appendedText) {
-    output += appendedText;
-    diagnostics.push(createRepairDiagnostic({
-      kind: 'append_closers_at_end_of_output',
-      candidateByteOffset: inputByteOffset,
-      insertedText: appendedText
-    }));
-  }
-
-  return diagnostics.length > 0
-    ? { repairedCandidate: output, repairDiagnostics: diagnostics }
+  return !inString && stack.length > 0
+    ? { index: candidate.length, kind: 'open-at-end', openCount: stack.length }
     : null;
+};
+
+const describeBracketImbalance = (imbalance, candidateByteOffset) => {
+  const where = imbalance.kind === 'open-at-end'
+    ? `the response ends with ${imbalance.openCount} bracket${imbalance.openCount === 1 ? '' : 's'} still open`
+    : imbalance.kind === 'closer-after-value'
+      ? `the closing bracket at byte ${candidateByteOffset} follows the complete value`
+      : `the closing bracket at byte ${candidateByteOffset} does not match the bracket it would close`;
+  return `The response's brackets do not balance: ${where}. Babel does not insert, remove or move brackets, because the missing or extra bracket may belong anywhere earlier and rebalancing can place part of an analysis inside the wrong element.`;
 };
 
 const describeJsonError = (error, candidate, rawText) => {
@@ -126,17 +60,27 @@ const describeJsonError = (error, candidate, rawText) => {
   const offset = position ? Number(position[1])
     : /end of JSON input/i.test(message) ? candidate.length : null;
   const prefix = rawText.indexOf(candidate);
-  return {
+  const syntaxError = {
     kind: 'json-syntax',
     message,
     ...(offset === null ? {} : {
-      candidateByteOffset: UTF8_ENCODER.encode(candidate.slice(0, offset)).byteLength,
-      originalByteOffset: UTF8_ENCODER.encode(rawText.slice(0, prefix + offset)).byteLength
+      candidateByteOffset: byteLength(candidate.slice(0, offset)),
+      originalByteOffset: byteLength(rawText.slice(0, prefix + offset))
     })
+  };
+  // When the parser stops at the first bracket that breaks nesting, name that bracket.
+  const imbalance = offset === null ? null : findBracketImbalance(candidate);
+  if (!imbalance || imbalance.index !== offset) return syntaxError;
+  return {
+    kind: 'json-delimiter-damage',
+    message: describeBracketImbalance(imbalance, syntaxError.candidateByteOffset),
+    candidateByteOffset: syntaxError.candidateByteOffset,
+    originalByteOffset: syntaxError.originalByteOffset,
+    originalSyntaxError: syntaxError
   };
 };
 
-const createBadJsonError = (createError, rawText, repairDiagnostics = [], jsonDiagnostic) => {
+const createBadJsonError = (createError, rawText, jsonDiagnostic) => {
   const error = typeof createError === 'function'
     ? createError(
       'BAD_MODEL_RESPONSE',
@@ -148,11 +92,12 @@ const createBadJsonError = (createError, rawText, repairDiagnostics = [], jsonDi
   if (error && typeof error === 'object') {
     error.details = {
       ...(error.details && typeof error.details === 'object' ? error.details : {}),
-      ...(repairDiagnostics.length > 0 ? { payloadRepairDiagnostics: repairDiagnostics } : {}),
       ...(jsonDiagnostic ? { jsonDiagnostic } : {})
     };
     if (error.failure) {
       error.failure = { ...error.failure, processingStep: 'json-decoding',
+        ...(jsonDiagnostic?.kind === 'json-delimiter-damage'
+          ? { ruleId: FAILURE_RULES.TRANSPORT_JSON_DELIMITERS_BALANCED } : {}),
         expectedForm: 'one complete JSON object', message: jsonDiagnostic?.message || error.message };
       error.details.failure = error.failure;
     }
@@ -160,64 +105,34 @@ const createBadJsonError = (createError, rawText, repairDiagnostics = [], jsonDi
   return error;
 };
 
-const parseStrictJsonCandidate = (
-  candidate,
-  createError,
-  integrityFlags = [],
-  repairDiagnostics = [],
-  rawTextForError = candidate
-) => {
-  let parsed;
-  let jsonDiagnostic;
-  try {
-    parsed = JSON.parse(candidate);
-  } catch (initialError) {
-    jsonDiagnostic = describeJsonError(initialError, candidate, rawTextForError);
-    const repair = repairDelimiterDamage(candidate);
-    if (!repair) {
-      throw createBadJsonError(createError, rawTextForError, repairDiagnostics, jsonDiagnostic);
-    }
-    repairDiagnostics.push(...repair.repairDiagnostics);
-    try {
-      parsed = JSON.parse(repair.repairedCandidate);
-      integrityFlags.push('json_delimiter_damage_repaired');
-    } catch {
-      throw createBadJsonError(createError, rawTextForError, repairDiagnostics, jsonDiagnostic);
-    }
-  }
-
-  const normalized = normalizeParsedRoot(parsed);
-  if (!normalized) {
-    throw createBadJsonError(createError, rawTextForError, repairDiagnostics, {
-      kind: 'json-root-type', message: `Expected one JSON object; received ${parsed === null ? 'null' : Array.isArray(parsed) ? 'an array' : typeof parsed}.`,
-      ...(jsonDiagnostic ? { originalSyntaxError: jsonDiagnostic } : {})
-    });
-  }
-  return { payload: normalized, ...(jsonDiagnostic ? { jsonDiagnostic } : {}) };
-};
-
+/**
+ * Parses the model text as received, after removing a leading BOM and outer whitespace.
+ * Nothing else is repaired: a response whose brackets do not balance fails as
+ * TRANSPORT_JSON_DELIMITERS_BALANCED with the parser's own error retained.
+ */
 export const parseStrictModelJsonDetailed = (rawText, createError) => {
   const originalText = String(rawText ?? '');
   const text = originalText
     .replace(/^\uFEFF/, '')
     .trim();
   if (!text) {
-    throw createBadJsonError(createError, originalText, [], {
+    throw createBadJsonError(createError, originalText, {
       kind: 'json-syntax', message: 'The response contains no JSON text.', originalByteOffset: 0
     });
   }
 
-  const integrityFlags = [];
-  const repairDiagnostics = [];
-  return {
-    ...parseStrictJsonCandidate(
-      text,
-      createError,
-      integrityFlags,
-      repairDiagnostics,
-      originalText
-    ),
-    integrityFlags,
-    repairDiagnostics
-  };
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    throw createBadJsonError(createError, originalText, describeJsonError(error, text, originalText));
+  }
+  const payload = normalizeParsedRoot(parsed);
+  if (!payload) {
+    throw createBadJsonError(createError, originalText, {
+      kind: 'json-root-type',
+      message: `Expected one JSON object; received ${parsed === null ? 'null' : Array.isArray(parsed) ? 'an array' : typeof parsed}.`
+    });
+  }
+  return { payload };
 };

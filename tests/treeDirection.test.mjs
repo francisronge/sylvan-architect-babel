@@ -6,6 +6,15 @@ import { buildStageCameraBounds, measureStagePlaqueSpace } from '../replay/stage
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import * as display from '../replay/displayIdentity.ts';
+import * as camera from '../replay/stageCamera.ts';
+import * as coordinates from '../replay/stageCoordinates.ts';
+import * as layout from '../replay/treeLayout.ts';
+import { layoutReplayFrames } from '../scripts/replayFrameLayout.mjs';
+import { motionFrame, replayMotionFaults } from '../scripts/replayMotionContinuity.mjs';
+import wrapperContour from '../fixtures/replay-regressions/wrapper-contour-reservation.json' with { type: 'json' };
+import receivingWidth from '../fixtures/replay-regressions/receiving-slot-width-control.json' with { type: 'json' };
+import laterOccupant from '../fixtures/replay-regressions/later-occupant-intermediate-landing.json' with { type: 'json' };
 
 const forest = [{ id: 'ip', label: 'IP', children: [
   { id: 'v', label: 'V', word: 'قرأت' },
@@ -59,3 +68,29 @@ for (const direction of ['ltr', 'rtl']) test(`a future landing cannot bend an au
   const landed = layoutSyntaxTree(d3.hierarchy(complete), [900, 400], direction);
   assert(Math.abs(landed.x - (landed.children[0].x + landed.children[1].x) / 2) < 1e-8);
 });
+
+// Stages differ in width. The right-to-left planner once measured painted x from
+// the right edge of each stage, so at a stage of another width "the same place"
+// moved: these Replays changed rows, recentred within a stage or translated at a
+// stage boundary right to left only, and moved syntax left to right did not.
+for (const [name, record] of [['wrapper-contour-reservation', wrapperContour],
+  ['receiving-slot-width-control', receivingWidth], ['later-occupant-intermediate-landing', laterOccupant]]) {
+  test(`${name}: right-to-left Replay is the left-to-right Replay reflected about the completed stage`, () => {
+    const replay = direction => layoutReplayFrames({ steps: prepareReplay({ ...structuredClone(record), includePlayback: true }).playbackSteps,
+      stages: record.derivationStages, width: 1440, height: 900, direction }, { coordinates, camera, layout, display, d3 });
+    const ltr = replay('ltr'), rtl = replay('rtl'), widths = new Set([...ltr.sizes.values()].map(([width]) => width));
+    assert(widths.size > 1, 'the record keeps stages of different widths');
+    const axis = ltr.sizes.get(record.derivationStages.length - 1)[0];
+    ltr.scenes.forEach(({ nodes }, index) => {
+      const mirror = rtl.scenes[index].nodes;
+      assert.deepEqual([...mirror.keys()].sort(), [...nodes.keys()].sort(), `frame ${index + 1} paints the same syntax`);
+      for (const [id, node] of nodes) {
+        assert(Math.abs(node.x + mirror.get(id).x - axis) < 1e-6, `frame ${index + 1}: ${id} reflects about ${node.x + mirror.get(id).x}, not ${axis}`);
+        assert.equal(mirror.get(id).y, node.y, `frame ${index + 1}: ${id} keeps its row`);
+      }
+    });
+    const faults = ({ scenes }) => replayMotionFaults({ frames: scenes.map(scene => motionFrame(scene.step, scene.nodes, display.getNodeId)) })
+      .map(({ frame, kind, node, distance }) => `${frame} ${kind} ${node} ${distance.toFixed(6)}`);
+    assert.deepEqual(faults(rtl), faults(ltr), 'the same motion in both directions');
+  });
+}

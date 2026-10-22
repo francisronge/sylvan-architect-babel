@@ -100,20 +100,44 @@ const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null, identity = create
     delete next.children;
     if (!parentId || current.replayOrigin || !shouldStabilizeReplayLeafId(current))
       return next;
-    const tokenIndex = Number.isInteger(current.tokenIndex)
-      ? `tok_${current.tokenIndex}`
-      : '';
-    const surfaceKey = normalizeReplayStableIdPart(current.word || current.label);
-    const stableKey = tokenIndex ? `${tokenIndex}_${surfaceKey}` : surfaceKey;
     next.aliasIds = Array.from(new Set([
       ...(Array.isArray(current.aliasIds) ? current.aliasIds : []),
       String(current.id || '')
     ].filter(Boolean)));
-    next.replayOrigin = { kind: 'lexical', ownerId: parentId, authoredId: typeof current.id === 'string' ? current.id : ownId };
-    next.id = identity.allocate(`${parentId}::__lex_${stableKey}`, next.replayOrigin);
+    const lexical = lexicalLeafIdentity(current, parentId, typeof current.id === 'string' ? current.id : ownId);
+    next.replayOrigin = lexical.origin;
+    next.id = identity.allocate(lexical.preferred, lexical.origin);
     return next;
   };
   return walk(node, '');
+};
+
+/** A stabilized lexical leaf is named after its owner, its authored parent. */
+const lexicalLeafIdentity = (leaf: SyntaxNode, ownerId: string, authoredId: string | undefined) => {
+  const tokenIndex = Number.isInteger(leaf.tokenIndex)
+    ? `tok_${leaf.tokenIndex}`
+    : '';
+  const surfaceKey = normalizeReplayStableIdPart(leaf.word || leaf.label);
+  const stableKey = tokenIndex ? `${tokenIndex}_${surfaceKey}` : surfaceKey;
+  return { preferred: `${ownerId}::__lex_${stableKey}`, origin: { kind: 'lexical', ownerId, authoredId } as const };
+};
+
+/**
+ * The id a stabilized lexical display leaf has under `ownerId`, the occurrence
+ * that continues its owner. The id derives from the owner, so a continued
+ * occurrence renamed A -> C would otherwise give its unchanged word a new
+ * identity. Only an id the compilation has already allocated is returned:
+ * nothing is allocated, and a leaf never built under that owner has none.
+ */
+export const lexicalLeafIdUnderOwner = (
+  leaf: SyntaxNode,
+  ownerId: string,
+  identity: ReplayIdentityContext
+): string | undefined => {
+  if (leaf.replayOrigin?.kind !== 'lexical' || !ownerId)
+    return undefined;
+  const { preferred, origin } = lexicalLeafIdentity(leaf, ownerId, leaf.replayOrigin.authoredId);
+  return identity.allocated(preferred, origin);
 };
 
 export const buildRenderableDerivationCanvasData = (

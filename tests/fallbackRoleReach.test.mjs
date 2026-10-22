@@ -36,6 +36,18 @@ test('a free spot inside the fitted viewport comes before a nearer one outside i
   assert(!row.some(rect => meets(box, rect)));
 });
 
+test('with no free spot inside the viewport, a role takes the free spot that leaves it least', () => {
+  // bughunt2 33-it-restructuring, mobile frame 39: the nearest free spot put
+  // "lexical Terminal" 15 px past the canvas edge.
+  const viewport = { x: -1000, y: -45, width: 2000, height: 90 };
+  const { point, box } = place(row, viewport);
+  // Below its label the role would leave the viewport by 19 units; above it, by 16.
+  assert.deepEqual(point, { x: 20, y: -52 });
+  assert.equal(viewport.y - box.y, 16);
+  assert(!row.some(rect => meets(box, rect)));
+  assert(distance(point) <= 2 * reach);
+});
+
 test('with nothing free within twice its reach, a role overlaps least and never covers its own label', () => {
   const crowded = [label, { x: -5000, y: -5000, width: 10000, height: 10000 }];
   const { point, box } = place(crowded);

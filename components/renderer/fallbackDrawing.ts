@@ -153,8 +153,9 @@ interface FallbackPlacementContext {
   animated: boolean;
   usesDerivationFrames: boolean;
   g: DrawingLayer;
+  direction: 'ltr' | 'rtl';
 }
-export function createFallbackPlacement({ fallbackMeasurements, boundFrame, markerScale, badgeGap, frameMaxNodeY, animated, usesDerivationFrames, g }: FallbackPlacementContext) {
+export function createFallbackPlacement({ fallbackMeasurements, boundFrame, markerScale, badgeGap, frameMaxNodeY, animated, usesDerivationFrames, g, direction }: FallbackPlacementContext) {
   const fallbackConnectorPaths = new Map<BoundSegment, DrawingLayer>();
   const fallbackMarkGroups = new Map<BoundPrimitive, DrawingLayer>();
   const fallbackRailGroups = new Map<BoundAnchorSetRail, DrawingLayer>();
@@ -167,7 +168,7 @@ export function createFallbackPlacement({ fallbackMeasurements, boundFrame, mark
     fitFallbackGeometry(boundFrame, {
       markerScale, fittedMarkerScale: scale, fittedAnchorScale: anchorScale, badgeGap, laneGap: RELATION_BINDING_METRICS.laneGap, fallbackMeasurements,
       railBaseY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase, fittedViewport, relationInkObstacles,
-      separateFallbackMoments: animated && usesDerivationFrames
+      separateFallbackMoments: animated && usesDerivationFrames, direction
     }).forEach((fitted, original) => {
       if (original.type === 'fallback-mark' && fitted.type === 'fallback-mark') {
         fallbackMarkGroups.get(original)?.attr('transform', `translate(${fitted.x},${fitted.y}) scale(${scale})`);

@@ -356,6 +356,17 @@ test('ambiguous binding meanings stay neutral while an independent outline and d
   }
 });
 
+test('an optional domain one binding reading consumes does not split the ambiguous tie', () => {
+  for (const anchors of [{ operator: 'controller', dependent: 'subject' },
+    { operator: 'controller', dependent: 'subject', scope: 'root' }]) {
+    const result = inspect(record(anchors, undefined, 'variable binding'));
+    assert(!result.facets.includes('binding.dependency'), JSON.stringify(anchors));
+    assert(!result.facets.includes('operator-binding'), JSON.stringify(anchors));
+    assert(result.plan.diagnostics.some(d => d.kind === 'tier2-collision' && d.detail.includes('binding-or-operator-reading')));
+    assert.deepEqual(result.plan.frames[0].items.map(item => item.claimTier), [3], JSON.stringify(anchors));
+  }
+});
+
 for (const [id, name, anchors, blockingKey, blockingAlias] of [
   ['transfer.access', 'PostTransferAccess', { source: 'controller', target: 'a', transferredDomain: 'domain' }, 'target', 'inaccessibleGoal'],
   ['intervention', 'Intervention', { probe: 'controller', target: 'a', intervener: 'b' }, 'intervener', 'blocker'],

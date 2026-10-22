@@ -16,7 +16,7 @@ import { visiblePlanFrameItems } from '../../replay/relations/relationFrame.ts';
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
 import { extractDisplayedSubscriptIndex } from '../../replay/replaySurfaceNotation.ts';
 import { identityLabelTarget, treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
-import { relationOwnsNonMovementTreeTransition, resolveFallbackTreeTransitionOwnership } from '../../replay/treeTransitions.ts';
+import { piedPipedPhrase, relationOwnsNonMovementTreeTransition, resolveFallbackTreeTransitionOwnership } from '../../replay/treeTransitions.ts';
 import { resolveSavedInputTokens } from '../../server/babelParser/surfaceTokens.js';
 import { createSvgDom, descendants, select } from './svgDom.mjs';
 
@@ -409,7 +409,8 @@ function continuedPairs(previousForest, currentForest, relations) {
  * of the stage shows it holding each preceding daughter (directly, or through
  * the one new node inserted above it), and the preceding stage's completed
  * frame and the stage's first frame paint it under one id, so it neither tears
- * down nor jumps when the stage begins. */
+ * down nor jumps when the stage begins. Each daughter it keeps is likewise
+ * painted under one id across that boundary and never built again. */
 export function checkContinuedOccurrences(replay, record) {
   const steps = replay.playbackSteps, stages = record.derivationStages ?? [], out = [];
   const frames = replay.replayDerivationFrames ?? [];
@@ -431,10 +432,19 @@ export function checkContinuedOccurrences(replay, record) {
       const before = standsFor(frameStructure(steps[last]), from), first = standsFor(frameStructure(steps[own[0]]), to);
       if (before.length !== 1 || first.length !== 1 || before[0] !== first[0])
         out.push(violation('continued-occurrence', own[0] + 1, `${to} continues ${from} but is painted as [${first}] after [${before}]`));
+      const kept = (daughters.get(from) ?? []).filter(daughter => !continuation.has(daughter));
+      for (const daughter of kept) {
+        const was = standsFor(frameStructure(steps[last]), daughter), is = standsFor(frameStructure(steps[own[0]]), daughter);
+        if (was.length === 1 && (is.length !== 1 || is[0] !== was[0]))
+          out.push(violation('continued-occurrence', own[0] + 1, `${daughter} stays in ${to}, which continues ${from}, but is painted as [${is}] after [${was}]`));
+      }
       for (const index of own) {
         const step = steps[index], structure = frameStructure(step), [shown] = standsFor(structure, to);
-        if (step.replayKind === 'micro' && authoredIdentity(structure.nodes.get(step.targetNodeId) ?? { data: { id: step.targetNodeId } }).id === to)
+        const built = step.replayKind === 'micro' && authoredIdentity(structure.nodes.get(step.targetNodeId) ?? { data: { id: step.targetNodeId } }).id;
+        if (built === to)
           out.push(violation('continued-occurrence', index + 1, `${to} continues ${from} but is built again`));
+        if (built && kept.includes(built))
+          out.push(violation('continued-occurrence', index + 1, `${built} stays in ${to}, which continues ${from}, but is built again`));
         if (!shown) { out.push(violation('continued-occurrence', index + 1, `${to} continues ${from} but is not painted`)); continue; }
         for (const daughter of daughters.get(from) ?? []) {
           for (const id of standsFor(structure, continuation.get(daughter) ?? daughter)) {
@@ -492,10 +502,12 @@ export function checkLandingAttached(replay) {
 
 /** What one relation moment introduces by itself. A proved movement transition
  * (a new landing or proven relocation) owns its complete landing and lower
- * occurrence: the subtrees at its own link endpoints, whatever mark draws it.
+ * occurrence: the subtrees at its own link endpoints, whatever mark draws it,
+ * and a phrasal landing also the phrase it pied-pipes (`piedPiped`, from the
+ * authored stages: replay/treeTransitions.ts piedPipedPhrase).
  * A neutral relation owns only the exact rewrite the compiler proved for it.
  * Other anchors are context that must already be on screen. */
-export function momentOwnership(step) {
+export function momentOwnership(step, frames = []) {
   const { stageIndex, relationIndex } = step.replayRelationIdentity, key = `${stageIndex}:${relationIndex}`;
   const own = (step.replayRelationLinks ?? []).filter(link => link.authoredRelationKey === key);
   const movements = own.filter(link => link.movementTransition === true);
@@ -504,7 +516,10 @@ export function momentOwnership(step) {
     sources: new Set(movements.flatMap(link => [link.sourceNodeId, link.witnessNodeId, link.priorSourceNodeId]).filter(Boolean)),
     inputs: new Set(movements.length ? [] : step.replayTreeTransition?.priorNodeIds ?? []),
     rewritten: new Set(step.replayTreeTransition?.currentNodeIds ?? []),
-    anchored: new Set(own.flatMap(link => (link.anchors ?? []).map(anchor => anchor.nodeId)).filter(Boolean))
+    anchored: new Set(own.flatMap(link => (link.anchors ?? []).map(anchor => anchor.nodeId)).filter(Boolean)),
+    piedPiped: new Set(movements.filter(link => link.trajectoryKind === 'phrasal').flatMap(link => piedPipedPhrase(
+      frames[stageIndex]?.workspaceForest ?? [], frames[stageIndex - 1]?.workspaceForest ?? [], link.targetNodeId,
+      [link.priorSourceNodeId, link.sourceNodeId]).nodeIds))
   };
 }
 
@@ -517,12 +532,13 @@ export function momentOwnership(step) {
  * the word a relation realizes on an occurrence already shown: its own
  * pronunciation owner's, or with none one the relation anchors (`voices`). */
 function revealedByRelation(node, ownership, previous, voices) {
-  const { endpoints, sources, inputs, rewritten, anchored } = ownership;
+  const { endpoints, sources, inputs, rewritten, anchored, piedPiped } = ownership;
   const isOwned = candidate => named(candidate, endpoints) || named(candidate, rewritten);
   const shownBefore = candidate => previous.displayed.has(getNodeId(candidate));
   if (node.ancestors().some(ancestor => named(ancestor, endpoints))) return true;
   const origin = node.data.replayOrigin;
   if (named(node, rewritten) || origin?.kind === 'word' && rewritten.has(origin.ownerId)) return true;
+  if (named(node, piedPiped) || origin?.kind === 'word' && piedPiped.has(origin.ownerId)) return true;
   if (origin?.kind === 'word' && node.parent && shownBefore(node.parent) && voices(node.parent, anchored.has(origin.ownerId))) return true;
   const rootBefore = id => { while (previous.parent.get(id)) id = previous.parent.get(id); return id; };
   const rootsOf = ids => new Set([...previous.displayed].filter(id => !ids || named(previous.nodes.get(id), ids)).map(rootBefore));
@@ -552,7 +568,7 @@ export function checkNoEarlyReveal(replay) {
     const structure = frameStructure(step), target = String(step.targetNodeId ?? '');
     const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
     const authored = identity && replay.replayDerivationFrames?.[identity.stageIndex]?.relations?.[identity.relationIndex];
-    const ownership = identity ? momentOwnership(step) : null;
+    const ownership = identity ? momentOwnership(step, replay.replayDerivationFrames) : null;
     Object.values(authored?.anchors ?? {}).flat().forEach(id => ownership?.anchored.add(String(id)));
     const voices = (owner, named) => voicesOccurrence(pronunciation, identity, authoredIdentity(owner).id, named);
     for (const id of structure.displayed) {
@@ -646,7 +662,7 @@ export function checkAttachAtMerge(replay) {
   let previous = EMPTY_FRAME;
   steps.forEach((step, index) => {
     const current = frameStructure(step), target = String(step.targetNodeId ?? '');
-    const ownership = step.replayKind === 'relation' && step.replayRelationIdentity ? momentOwnership(step) : null;
+    const ownership = step.replayKind === 'relation' && step.replayRelationIdentity ? momentOwnership(step, replay.replayDerivationFrames) : null;
     for (const id of current.displayed) {
       const parent = current.parent.get(id);
       if (!parent || !previous.displayed.has(parent)) continue;

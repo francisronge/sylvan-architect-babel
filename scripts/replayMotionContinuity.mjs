@@ -14,8 +14,8 @@
  *   workspace or a selected head that does not stand at its merge site makes
  *   the joining step jump. `waiting` marks a daughter that was a workspace root.
  *   When the step inserts the new parent above a host it already had, a
- *   daughter whose old row the new parent now occupies (the host, or a piece
- *   waiting beside it) may descend below it; its horizontal motion still counts.
+ *   daughter whose old row the new parent now occupies may descend below it;
+ *   its horizontal motion still counts.
  *
  * - `shape-motion`: a node moved, and moved relative to its painted parent,
  *   while that parent kept exactly the same painted children. Whoever owns the step, a
@@ -76,7 +76,7 @@ export function replayMotionFaults({ frames }, { threshold = MOTION_FAULT_THRESH
     const parent = current.get(target);
     if (kind !== 'micro' || !['ExternalMerge', 'Project'].includes(operation) || !parent || prior.has(target)) continue;
     // An insertion places the new parent above a host it already had; the host
-    // and any piece waiting beside it then descend together, which the step owns.
+    // then descends below it, which the step owns.
     const insertion = frames[index].points.some(point => point.parent === target && prior.get(point.id)?.parent
       && prior.get(point.id).parent === parent.parent);
     for (const point of frames[index].points) {

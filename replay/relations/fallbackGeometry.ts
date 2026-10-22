@@ -8,6 +8,7 @@ import type {
 } from './boundGeometry.ts';
 import type { Point, Rect } from './overlayGeometry.ts';
 import { allocateSpanLanes } from './overlayGeometry.ts';
+import { TREE_ROW_HEIGHT } from '../treeSpacing.ts';
 import type { PlaqueTextStyle } from './plaqueTextLayout.ts';
 
 export const anchorSetRailPaths = (rail: BoundAnchorSetRail, markerScale: number, fallbackScale = markerScale) => ({
@@ -149,17 +150,38 @@ export const routeFallbackSegments = (
     ? Math.max(...counterSegments.flatMap(segment => [segment.from.y, segment.to.y])) : 0;
   // Measured endpoints already include their subtree bottoms. Unrelated
   // deeper syntax must not turn a local connection into a tree-height detour.
-  let measuredBaseline = options.fallbackMeasurements
+  const localFloor = options.fallbackMeasurements
     ? participantBottom + 34 * markerScale
     : options.connectorBaselineY ?? participantBottom + 46 * markerScale;
   // Move the common floor, not individual lanes, so distinct links stay distinct.
+  // A plaque the lanes come near pushes it below the plaque. A tree label of the
+  // stage pushes it when the lanes' turns or runs would cross the label's own
+  // clearance, since stems are cut around labels but turns and runs are not.
+  // Labels may lower the floor by at most one tree row; where unrelated text
+  // leaves no gap that near, the lanes keep the floor plaques alone set.
+  // Every label of the stage counts, so the floor holds while its nodes appear.
   const clearance = ROUTE_CLEARANCE * markerScale;
-  for (const box of [...(options.obstacles ?? [])].sort((a, b) => a.y - b.y)) {
-    if (box.y - clearance <= measuredBaseline + Math.max(0, ...lanes) * laneGap
-      && counterSegments.some(segment => box.x - clearance < Math.max(segment.from.x, segment.to.x)
-        && box.x + box.width + clearance > Math.min(segment.from.x, segment.to.x)))
-      measuredBaseline = Math.max(measuredBaseline, box.y + box.height + clearance);
-  }
+  const labelClearance = LABEL_CLEARANCE * markerScale;
+  const turn = 8 * markerScale;
+  const stroke = FALLBACK_STROKE_WIDTHS['counter-lane'].shadow / 2 * markerScale;
+  const deepestLane = Math.max(0, ...lanes) * laneGap;
+  const crosses = (box: Rect, gap: number) => counterSegments.some(segment => box.x - gap < Math.max(segment.from.x, segment.to.x)
+    && box.x + box.width + gap > Math.min(segment.from.x, segment.to.x));
+  const floorBelow = (labels: readonly Rect[]) => {
+    let floor = localFloor;
+    for (const { box, label } of [...(options.obstacles ?? []).map(box => ({ box, label: false })),
+      ...labels.map(box => ({ box, label: true }))].sort((a, b) => a.box.y - b.box.y)) {
+      if (!label && box.y - clearance <= floor + deepestLane && crosses(box, clearance))
+        floor = Math.max(floor, box.y + box.height + clearance);
+      if (label && box.y - labelClearance < floor + deepestLane + stroke
+        && box.y + box.height + labelClearance > floor - turn - stroke && crosses(box, labelClearance + stroke))
+        floor = box.y + box.height + labelClearance + turn + stroke;
+    }
+    return floor;
+  };
+  const plaqueFloor = floorBelow([]);
+  const labelFloor = counterSegments.length ? floorBelow(options.fallbackMeasurements?.labels ?? []) : plaqueFloor;
+  const measuredBaseline = labelFloor - plaqueFloor <= TREE_ROW_HEIGHT ? labelFloor : plaqueFloor;
   let counterIndex = 0;
   return segments.map(segment => {
     if (segment.route === 'direct') {
@@ -210,27 +232,31 @@ const overlapDepth = (a: Rect, b: Rect) => Math.max(0, Math.min(
 const ROLE_SEARCH_REACH = 2;
 
 /** Accepted Orchard side placement, reserving all marks before any relation is
- * revealed. The first free preferred spot wins. When all are taken, the role
+ * revealed. The first free preferred spot wins; the side after the node in
+ * reading `direction` comes first, so right to left reflects left to right. When all are taken, the role
  * takes the nearest free spot on either side of its node or in the rows above
  * and below, searched in steps of its own height up to twice its farthest
  * preferred spot; it never drifts beyond that reach. With a viewport, a free
- * spot inside it comes first. When nothing within reach is free, the role takes
- * the spot there that overlaps least, inside the viewport first. */
+ * spot inside it comes first, then the free spot that leaves it least, unless
+ * the role is larger than the viewport. When nothing within reach is free, the
+ * role takes the spot there that overlaps least, inside the viewport first. */
 export const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 'textWidth' | 'textHeight'>,
-  scale: number, occupied: Rect[], viewport?: Rect): Point => {
-  const rect = mark.labelRect;
+  scale: number, occupied: Rect[], viewport?: Rect, direction: 'ltr' | 'rtl' = 'ltr'): Point => {
+  const rect = mark.labelRect, reading = direction === 'rtl' ? -1 : 1;
   const extent = (mark.textWidth / 2 + 4) * scale;
   const gap = (mark.textWidth / 2 + 7) * scale;
   const above = rect.y - 15 * scale;
   const below = rect.y + rect.height + 15 * scale;
   const center = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
   const boxFor = (point: Point): Rect => fallbackLabelRect({ ...mark, ...point }, scale);
+  const after = reading > 0 ? rect.x + rect.width + gap : rect.x - gap;
+  const before = reading > 0 ? rect.x - gap : rect.x + rect.width + gap;
   const preferred = [
-    { x: rect.x + rect.width + gap, y: center.y },
-    { x: rect.x - gap, y: center.y },
+    { x: after, y: center.y },
+    { x: before, y: center.y },
     { x: center.x, y: above },
-    { x: rect.x + rect.width + gap, y: above },
-    { x: rect.x - gap, y: above }
+    { x: after, y: above },
+    { x: before, y: above }
   ];
   const meets = (box: Rect, other: Rect) => box.x < other.x + other.width - 0.5
     && box.x + box.width > other.x + 0.5 && box.y < other.y + other.height - 0.5
@@ -253,11 +279,11 @@ export const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 't
       const x = Math.max(viewport.x + extent, Math.min(center.x, viewport.x + viewport.width - extent));
       searched.push({ x, y: above }, { x, y: below });
     }
-    // Equal distances go to rows above and to the right side, as the preferred spots run.
+    // Equal distances go to rows above and to the reading-direction side, as the preferred spots run.
     const offsets = [0];
     for (let k = 1; k * step <= limit; k++) offsets.push(-k, k);
     for (const row of offsets) for (const column of offsets) {
-      const point = { x: center.x - column * step, y: center.y + row * step };
+      const point = { x: center.x - reading * column * step, y: center.y + row * step };
       if (distance(point) <= limit) searched.push(point);
     }
     const reachable = inflateRect(boxFor(center), limit);
@@ -271,7 +297,19 @@ export const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 't
       const box = boxFor(point);
       return !nearby.some(other => meets(box, other));
     };
-    chosen = spots.find(point => contained(point) && free(point)) ?? spots.find(free);
+    // A role that could fit the viewport but finds no free spot inside takes the
+    // free spot that leaves it least; one wider or taller than the viewport keeps
+    // its nearest free spot, for panning.
+    const box = boxFor(center);
+    const protrusion = (point: Point) => {
+      const placed = boxFor(point);
+      return !viewport ? 0 : Math.max(0, viewport.x - placed.x, viewport.y - placed.y,
+        placed.x + placed.width - viewport.x - viewport.width, placed.y + placed.height - viewport.y - viewport.height);
+    };
+    const fits = viewport && box.width <= viewport.width && box.height <= viewport.height;
+    chosen = spots.find(point => contained(point) && free(point))
+      ?? (fits ? spots.filter(free).reduce<Point | undefined>((best, point) =>
+        !best || protrusion(point) < protrusion(best) ? point : best, undefined) : spots.find(free));
     if (!chosen) {
       const overlap = (point: Point) => {
         const box = boxFor(point);
@@ -288,7 +326,7 @@ export const placeFallbackMark = (mark: Pick<BoundFallbackMark, 'labelRect' | 't
 /** Refit the same measured allocation, preserving claim ownership and stage-wide reservation. */
 export const fitFallbackGeometry = (
   frame: BoundFrame,
-  options: FallbackRoutingOptions & Pick<BindGeometryOptions, 'badgeGap' | 'railBaseY' | 'railLaneGap' | 'fallbackMeasurements' | 'separateFallbackMoments'>
+  options: FallbackRoutingOptions & Pick<BindGeometryOptions, 'badgeGap' | 'railBaseY' | 'railLaneGap' | 'fallbackMeasurements' | 'separateFallbackMoments' | 'direction'>
     & { fittedMarkerScale: number; fittedAnchorScale?: number; fittedViewport?: Rect; relationInkObstacles?: Rect[] }
 ): Map<BoundFallbackMark | BoundSegment | BoundAnchorSetRail, BoundFallbackMark | BoundSegment | BoundAnchorSetRail> => {
   if (options.separateFallbackMoments) {
@@ -330,7 +368,7 @@ export const fitFallbackGeometry = (
   const centers = new Map<number, Point>();
   frame.primitives.filter((mark): mark is BoundFallbackMark => mark.type === 'fallback-mark')
     .sort((a, b) => a.allocationOrder - b.allocationOrder).forEach(mark => {
-      const point = placeFallbackMark(mark, scale, occupied, options.fittedViewport);
+      const point = placeFallbackMark(mark, scale, occupied, options.fittedViewport, options.direction);
       updates.set(mark, { ...mark, ...point });
       centers.set(mark.allocationOrder, point);
     });

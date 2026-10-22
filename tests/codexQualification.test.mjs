@@ -209,6 +209,23 @@ test('partial, failed and inconsistent streams retain evidence without retrying 
   }
 });
 
+test('an unterminated final terminal response is discarded at EOF, as SSE requires', async () => {
+  const text = '{"statement":"x"}';
+  for (const cut of ['\n', '\n\n']) {
+    const bytes = Buffer.from(streamFor(text).slice(0, -cut.length));
+    const leftover = event(completed(text)).slice(0, -cut.length);
+    const captured = [], lifecycle = [];
+    const result = await requestCodexQualification({ body: request().body, credentials,
+      onBytes: chunk => captured.push(chunk), onLifecycle: entry => lifecycle.push(entry),
+      fetchImpl: async () => chunkedResponse(bytes) });
+    assert.equal(result.status, 'interrupted');
+    assert.equal(result.failure.reason, 'eof_without_terminal');
+    assert.equal(result.terminalEvent, null);
+    assert.equal(lifecycle.find(entry => entry.type === 'stream-eof').bufferedBytes, Buffer.byteLength(leftover));
+    assert.deepEqual(Buffer.concat(captured), bytes);
+  }
+});
+
 test('Codex completion metadata can omit output when completed message events contain it', async () => {
   const text = '{"statement":"model-authored text"}';
   const terminal = completed(text);

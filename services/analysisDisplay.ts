@@ -24,16 +24,17 @@ export const deriveAnalysisDisplay = (bundle: ParseBundle, analysis: ParseResult
 });
 
 /**
- * A stored workspace is offered to App only when every analysis it can select
- * yields its display values, so a damaged saved record fails its open request
- * instead of App's render.
+ * A bundle is offered to App only when every analysis it can select yields its
+ * display values, so a damaged saved record or response fails its open or
+ * generation request instead of App's render. `subject` names the analyses in
+ * the error.
  */
-export const assertBundleDisplayable = (bundle: ParseBundle, sentence: string): void => {
+export const assertBundleDisplayable = (bundle: ParseBundle, sentence: string, subject = 'Saved analysis'): void => {
   bundle.analyses.forEach((analysis, index) => {
     try {
       deriveAnalysisDisplay(bundle, analysis, sentence);
     } catch (error) {
-      throw new Error(`Saved analysis ${index + 1} cannot be displayed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`${subject} ${index + 1} cannot be displayed: ${error instanceof Error ? error.message : String(error)}`);
     }
   });
 };

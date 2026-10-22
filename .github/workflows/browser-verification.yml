@@ -1,10 +1,13 @@
 name: Functional browser verification
 
-# Pull requests and a nightly run on main. A merge to main needs no run of its
-# own: branch protection requires every pull request to be up to date with
-# main, so the merged tree is the tree its pull request already verified. The
-# nightly run covers what changes without a commit (runner images, browser
-# downloads) and keeps main's dependency and browser caches warm.
+# Pull requests and a nightly run on main; a merge to main gets no run of its
+# own. Branch protection requires a pull request to be up to date with main,
+# but its required checks are only "Provider-free verification" and "Renderer
+# performance", so it does not enforce this workflow: a pull request can merge
+# before its browser run finishes or after it fails, and a Markdown-only pull
+# request skips the browser jobs. The nightly run checks main as merged, covers
+# what changes without a commit (runner images, browser downloads) and keeps
+# main's dependency and browser caches warm.
 on:
   pull_request:
   schedule:
@@ -14,8 +17,10 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request supersedes its unfinished run. Other runs never
+# share a group, so nightly and manual runs always finish.
 concurrency:
-  group: browser-verification-${{ github.event.pull_request.number || github.ref }}
+  group: browser-verification-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -57,7 +62,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.markdown-only != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -92,8 +97,19 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-ubuntu-24.04-${{ steps.playwright.outputs.version }}-chromium-webkit
 
+      # A stalled package mirror once held this step for the job's whole 30
+      # minutes. Bound each attempt and retry, so a stall costs minutes.
       - name: Install pinned browser runtimes
-        run: npx --no-install playwright install --with-deps chromium webkit
+        run: |
+          for attempt in 1 2 3; do
+            timeout --kill-after=30s 10m npx --no-install playwright install --with-deps chromium webkit && exit 0
+            echo "::warning::browser install attempt $attempt failed or stalled; retrying"
+            # A killed attempt can leave apt holding its locks; clear them so the retry can run.
+            sudo pkill -9 -f 'apt-get|dpkg' || true
+            sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock /var/lib/apt/lists/lock
+            sudo dpkg --configure -a || true
+          done
+          exit 1
 
       - name: Verify this shard's required browser suites
         run: npm run verify:browser -- --suite "ci:${{ matrix.shard }}" --evidence "$RUNNER_TEMP/browser-evidence"

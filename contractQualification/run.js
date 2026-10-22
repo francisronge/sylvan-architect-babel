@@ -213,25 +213,19 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
     };
   }
 
-  let ingress = { integrityFlags: [], repairDiagnostics: [] };
+  // Receipts keep these fields so saved and new receipts share one shape; Babel no
+  // longer repairs JSON, so new receipts always record empty lists.
+  const ingress = { integrityFlags: [], repairDiagnostics: [] };
   let phase = 'json-ingress';
   let parsedPayload;
   let inspection = null;
   const analysisOutcomes = [];
   try {
-    const parsed = parseModelJsonDetailed(rawOutput);
-    parsedPayload = parsed.payload;
-    ingress = {
-      integrityFlags: Array.isArray(parsed.integrityFlags) ? parsed.integrityFlags : [],
-      repairDiagnostics: Array.isArray(parsed.repairDiagnostics)
-        ? parsed.repairDiagnostics
-        : [],
-      ...(parsed.jsonDiagnostic ? { jsonDiagnostic: parsed.jsonDiagnostic } : {})
-    };
+    parsedPayload = parseModelJsonDetailed(rawOutput).payload;
     inspection = {
       kind: 'authored-workspace-inspection',
       rawOutput: { ...rawOutputArtifact, encoding: 'base64', data: rawBytes.toString('base64') },
-      repairDiagnostics: structuredClone(ingress.repairDiagnostics),
+      repairDiagnostics: [],
       payload: structuredClone(parsedPayload),
       input: {
         sentence: attempt.request.sentence,
@@ -255,15 +249,13 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
     phase = 'normalization';
     const reasoningSetting = Object.values(attempt.model.nativeSettings)[0] || '';
     const normalized = stripVolatileProvenance(normalizeParseBundle(
-      parsed.payload,
+      parsedPayload,
       attempt.request.framework,
       attempt.request.sentence,
       attempt.model.providerRoute,
       true,
       {
         inputTokens: resolveSavedInputTokens(attempt.request.sentence, attempt.request.inputTokens),
-        payloadIntegrityFlags: ingress.integrityFlags,
-        payloadRepairDiagnostics: ingress.repairDiagnostics,
         analysisOutcomes
       }
     ));
@@ -324,19 +316,13 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
       analysisEvidence
     };
   } catch (error) {
-    const repairDiagnostics = Array.isArray(error?.details?.payloadRepairDiagnostics)
-      ? error.details.payloadRepairDiagnostics
-      : ingress.repairDiagnostics;
-    if (inspection) inspection.repairDiagnostics = structuredClone(repairDiagnostics);
     return {
       inspection,
       receipt: receiptWithHash({
         ...base,
         ingress: {
-          integrityFlags: ingress.integrityFlags,
-          repairDiagnostics,
-          ...((error?.details?.jsonDiagnostic || ingress.jsonDiagnostic)
-            ? { jsonDiagnostic: error?.details?.jsonDiagnostic || ingress.jsonDiagnostic } : {})
+          ...ingress,
+          ...(error?.details?.jsonDiagnostic ? { jsonDiagnostic: error.details.jsonDiagnostic } : {})
         },
         outcome: {
           status: 'failed',

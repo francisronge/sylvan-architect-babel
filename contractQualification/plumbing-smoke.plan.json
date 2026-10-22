@@ -40,7 +40,7 @@
       }
     },
     {
-      "id": "smoke-repaired-mia-laughed-xbar",
+      "id": "smoke-unbalanced-mia-laughed-xbar",
       "request": {
         "sentence": "Mia laughed.",
         "framework": "xbar"

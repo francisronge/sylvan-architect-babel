@@ -17,6 +17,7 @@ import {
   describeParseServerFailure,
   readParseAccessPolicy
 } from './parseHttpPolicy.js';
+import { PERMISSIONS_POLICY, helmetOptions } from './securityHeaders.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,30 +96,10 @@ const enforceParseRequestSecurity = (req, res, next) => {
 app.set('trust proxy', parseTrustProxySetting());
 app.disable('x-powered-by');
 
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      useDefaults: false,
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:'],
-        fontSrc: ["'self'", 'data:'],
-        connectSrc: ["'self'"],
-        objectSrc: ["'none'"],
-        baseUri: ["'self'"],
-        frameAncestors: ["'none'"],
-        formAction: ["'self'"]
-      }
-    },
-    referrerPolicy: { policy: 'no-referrer' },
-    hsts: isLocalRuntime ? false : undefined
-  })
-);
+app.use(helmet(helmetOptions({ hsts: !isLocalRuntime })));
 
 app.use((_, res, next) => {
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Permissions-Policy', PERMISSIONS_POLICY);
   next();
 });
 

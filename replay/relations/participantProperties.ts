@@ -30,8 +30,9 @@ function pairedCaseProperties(evidence: Tier2FacetEvidence) {
   });
 }
 
-/** These independent properties can survive an incomplete exact assignment.
- * A malformed registered primary still owns its unresolved assigning claim. */
+/** These properties can survive an incomplete exact assignment only under
+ * fields that fill none of its declared roles, which the dispatcher checks. A
+ * malformed registered primary still owns its declared bearers and values. */
 export function recoverPairedCaseProperties(evidence: Tier2FacetEvidence) {
   return pairedCaseProperties(evidence).flatMap(({ anchor, value }) => value.items.map((_, index) =>
     scopeEvidence(evidence, 'plaque.structured', [{ entry: anchor, indices: [index], concept: 'plaque.anchor' }],

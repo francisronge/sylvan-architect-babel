@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Archive, Clock3, FolderOpen, RotateCcw, Trash2 } from 'lucide-react';
 import type { TreeBankEntrySummary } from '../services/treeBankStore.ts';
 import TreeBankPreview from './TreeBankPreview';
@@ -15,6 +15,7 @@ const formatTreeBankDate = (iso: string): string => {
 
 interface TreeBankViewProps {
   entries: TreeBankEntrySummary[];
+  /** True only until the first listing; later refreshes keep the cards mounted. */
   loading: boolean;
   error: string | null;
   opening: boolean;
@@ -147,12 +148,32 @@ interface TreeBankDeleteDialogProps {
   onCancel: () => void;
 }
 
+// A modal dialog: the rest of the page is inert while it is open, Escape
+// cancels, and focus starts on Cancel and returns to the control that opened it.
+// The transparent dialog only hosts the overlay, which keeps its own look.
 export function TreeBankDeleteDialog({ entry, onConfirm, onCancel }: TreeBankDeleteDialogProps) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const cancel = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  useEffect(() => {
+    const element = dialog.current;
+    const previouslyFocused = document.activeElement;
+    element?.showModal();
+    cancel.current?.focus();
+    return () => {
+      element?.close();
+      if (previouslyFocused instanceof HTMLElement && previouslyFocused.isConnected) previouslyFocused.focus();
+    };
+  }, []);
   return (
+  <dialog ref={dialog} aria-labelledby={titleId} aria-describedby={descriptionId}
+    onCancel={event => { event.preventDefault(); onCancel(); }}
+    className="fixed inset-0 m-0 h-full max-h-none w-full max-w-none overflow-visible border-0 bg-transparent p-0 backdrop:bg-transparent">
   <div className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center px-6">
     <div className="glass-dark rounded-[2rem] p-8 w-full max-w-xl border border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.14)]">
-      <h3 className="serif text-3xl text-white mt-1 mb-4">Delete saved tree?</h3>
-      <p className="text-emerald-50/80 leading-relaxed">
+      <h3 id={titleId} className="serif text-3xl text-white mt-1 mb-4">Delete saved tree?</h3>
+      <p id={descriptionId} className="text-emerald-50/80 leading-relaxed">
         This will permanently remove <span className="italic">"{entry.sentence}"</span> from Tree Bank.
       </p>
       <div className="mt-7 flex items-center gap-3">
@@ -164,6 +185,7 @@ export function TreeBankDeleteDialog({ entry, onConfirm, onCancel }: TreeBankDel
           Delete Tree
         </button>
         <button
+          ref={cancel}
           onClick={onCancel}
           className="px-5 py-2.5 rounded-xl border border-white/15 bg-white/5 text-white/70 hover:text-emerald-300 hover:border-emerald-500/40 transition-all text-[10px] font-black uppercase tracking-widest"
         >
@@ -172,5 +194,6 @@ export function TreeBankDeleteDialog({ entry, onConfirm, onCancel }: TreeBankDel
       </div>
     </div>
   </div>
+  </dialog>
   );
 }

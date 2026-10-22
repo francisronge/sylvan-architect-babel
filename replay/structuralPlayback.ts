@@ -12,7 +12,7 @@ import {
   regroupingParents,
   restoreRegroupedConstituents
 } from './constructionAttachments.ts';
-import { renameContinuedOccurrences } from './continuedOccurrences.ts';
+import { continuedLexicalLeafIds, renameContinuedOccurrences } from './continuedOccurrences.ts';
 import { applyVizIds, createReplayIdentityContext, getNodeId, type ReplayIdentityContext } from './displayIdentity.ts';
 import { buildResolvedLinkTraceIndexMap, resolveTraceIndexFromNodeContext } from './movementIndices.ts';
 import { buildStructuralReplayFallback } from './playbackFormatting.ts';
@@ -213,7 +213,9 @@ export const buildStructuralDerivationPlaybackSteps = ({
   // a renamed node is retained in place exactly as if its id had been kept.
   const previousConstructionForest = renameContinuedOccurrences(
     frameIndex > 0 ? derivationFrames?.[frameIndex - 1]?.workspaceForest || [] : [], continuedOccurrenceIds);
-  const previousVisibleConstructionIds = new Set(Array.from(previousVisibleNodeIds, id => continuedOccurrenceIds.get(id) ?? id));
+  const continuedLeafIds = continuedLexicalLeafIds(cloned, continuedOccurrenceIds, identity);
+  const previousVisibleConstructionIds = new Set(Array.from(previousVisibleNodeIds,
+    id => continuedOccurrenceIds.get(id) ?? continuedLeafIds.get(id) ?? id));
   const pendingAttachmentNodeIds = constructionAttachmentUpdates(previousConstructionForest, forest);
   const hasAttachmentUpdates = pendingAttachmentNodeIds.size > 0;
   const hasAttachmentContinuity = hasAttachmentUpdates
@@ -287,8 +289,13 @@ export const buildStructuralDerivationPlaybackSteps = ({
       // node keeps its ID elsewhere, is an inserted segment rather than the
       // earlier node renamed. Its children continue; it waits for its own step.
       const currentId = String(nodes[0].data?.id || ''), previousId = String(previousNode?.id || '');
-      const insertedSegment = currentId !== previousId && !previousFrameNodeIds.has(currentId) && rawNodeById.has(previousId)
+      const newBesideEarlier = currentId !== previousId && !previousFrameNodeIds.has(currentId) && rawNodeById.has(previousId);
+      const insertedSegment = newBesideEarlier
         && (rawNodeById.get(currentId)?.children || []).every((child) => previousFrameNodeIds.has(String(child.id || '')));
+      // Otherwise a new node beside the earlier one that repeats its earlier
+      // material is a second occurrence, which its own construction builds.
+      if (newBesideEarlier && !insertedSegment)
+        return;
       nodes[0].descendants().forEach((descendant) => {
         if (!isSyntheticWorkspaceRootNode(descendant) && !(insertedSegment && descendant === nodes[0])) {
           seeded.add(getNodeId(descendant));

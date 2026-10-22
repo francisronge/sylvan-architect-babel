@@ -64,6 +64,14 @@ export function movementReceivingHosts(
       hosts.add(receiver);
       priorChildren.forEach(id => hosts.add(id));
     }
+    // The receiving head can instead keep its identity while one new inner
+    // wrapper, beside the landing, takes over all of its prior children. Those
+    // children change parent here, exactly as in the neutral reading of the same
+    // rewrite (neutralWorkspaceAttachments), so they are released alike.
+    const inner = retained.length === 1 && !before.has(retained[0]) ? current.children(retained[0]) : [];
+    if (priorChildren.length && inner.length === priorChildren.length
+      && priorChildren.every((id, index) => id === inner[index] && sameTopology(id)))
+      priorChildren.forEach(id => hosts.add(id));
   }
   return hosts;
 }
