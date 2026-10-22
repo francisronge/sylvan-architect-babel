@@ -617,12 +617,22 @@ const witnessOnlyWrapped = (wrapper: SyntaxNode, witnessId: string, claimIds: re
       && claimNodeIds(other).some(id => region.has(id)));
 };
 
+/**
+ * Whether a claim's change is neutral output. A claim restating a recovered
+ * movement observes a transition that movement's own moment owns, in this
+ * stage or an earlier one, and a registered recipe owns its claim's change.
+ * A movement whose kind the recipe refuses, and that no other claim applies
+ * (`refusedMovementTransition`), has neither owner, so its claim's change
+ * stays neutral, like a claim that fell to Tier 3 or names no registered
+ * relation.
+ */
+const ownsNeutralChange = (relation: DerivationReplayPlanStep): boolean => relation.refusedMovementTransition
+  || !relation.recoveredMovement && (Boolean(relation.neutralTransitionEvidence)
+    || !findRelationRegistryEntry(productionRelationRegistry, String(relation.relation || '').trim()));
+
 /** The preceding witnesses and current anchors of a neutral claim that names both. */
 const priorWitnessClaim = (relation: DerivationReplayPlanStep) => {
-  // A recovered chain restatement observes an already owned transition.
-  if (relation.recoveredMovement)
-    return null;
-  if (!relation.neutralTransitionEvidence && findRelationRegistryEntry(productionRelationRegistry, String(relation.relation || '').trim()))
+  if (!ownsNeutralChange(relation))
     return null;
   const evidence = relation.neutralTransitionEvidence ?? relation;
   const priorAnchorIds = relationAnchorNodeIds(evidence.priorAnchors);
@@ -792,8 +802,7 @@ export const anchoredCopyDisplacement = (
   currentForest: SyntaxNode[],
   claimedNodeIds: ReadonlySet<string> = new Set()
 ): DerivationReplayPlanStep['anchoredCopyDisplacement'] => {
-  if (relation.recoveredMovement || !relation.neutralTransitionEvidence
-    && findRelationRegistryEntry(productionRelationRegistry, String(relation.relation || '').trim()))
+  if (!ownsNeutralChange(relation))
     return undefined;
   const unique = (forest: SyntaxNode[], id: string): SyntaxNode | undefined => {
     const matches = findExactNodesByIdInForest(forest, id);
@@ -874,7 +883,7 @@ export const resolveFallbackTreeTransitionOwnership = (
   previousForest: SyntaxNode[],
   currentForest: SyntaxNode[]
 ): FallbackTreeTransitionOwnership | null => {
-  if (relation.recoveredMovement)
+  if (relation.recoveredMovement && !relation.refusedMovementTransition)
     return null;
   const witnessed = resolvePriorWitnessTreeTransitionOwnership(relation, previousForest, currentForest);
   const copied = resolveAnchoredCopyOwnership(relation, previousForest, currentForest);
@@ -1284,7 +1293,7 @@ export const relationOwnsNonMovementTreeTransition = (
     return false;
   const relationName = String(relation.relation || '').trim();
   const registryEntry = findRelationRegistryEntry(productionRelationRegistry, relationName);
-  if (!registryEntry || relation.neutralTransitionEvidence) {
+  if (!registryEntry || relation.neutralTransitionEvidence || relation.refusedMovementTransition) {
     return Boolean(resolveFallbackTreeTransitionOwnership(relation, previousForest, currentForest));
   }
   const transitionKinds = relationProductionTransitionKinds(relation);
