@@ -102,7 +102,8 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 - During implementation, run the smallest focused test proving the changed behavior.
 - Keep heavy gates sequential. Offline tests run two files at a time; the browser gate runs specs serially and limits esbuild CPU parallelism to two. Close unneeded visible test browsers.
 - Renderer startup has a PR performance budget. For renderer, layout, worker, or font changes, run `npm run verify:renderer-performance -- --baseline-root /path/to/base-checkout` with installed locked dependencies in both checkouts. A slowdown must be investigated and fixed before sign-off; do not weaken the fixture, timing boundary, or budget to make it pass. Intentional budget changes require explicit user approval.
-- Behavior changes require focused regression tests.
+- Behavior changes require focused regression tests. For a bug fix, run the new test against the unfixed code and see it fail before relying on it passing; state both results.
+- In reports and PR evidence, mark how each claim is known: measured (a named command, test or capture you ran), inferred (reasoned from code or other results) or guessed. Never present an inferred or guessed claim as measured.
 - Fix a failing Replay, visual or camera check; do not list it. Only Francis accepts a fault as an exception: put his approval on the entry with where he gave it, and never write one you did not receive. Do not narrow a rule, add a carve-out or rewrite a test so that it accepts a shape he has not accepted.
 - For relation drawing changes, run `npm run verify:renderer-browser` to check native endpoint attachment, persistence, zoom/Fit and narrow viewports. Keep this browser gate separate from the offline suite.
 - Run `npm run verify:all` once before completing broad, shared, contract, fixture, or release work. Documentation-only changes do not require it.
