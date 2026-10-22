@@ -433,9 +433,10 @@ A role label takes the first free of its five preferred spots: right of its
 witness label, left, above, above right and above left. When all five are taken,
 it takes the nearest free spot on either side or in the rows above and below,
 searched in steps of its own height out to twice its farthest preferred spot. A
-free spot inside the fitted viewport comes first. If nothing within that reach
-is free, the label takes the spot there that overlaps least. It never covers its
-own witness label and never moves beyond that reach.
+free spot inside the fitted viewport comes first; when none is free inside it,
+a label that could fit the viewport takes the free spot that leaves it least. If
+nothing within that reach is free, the label takes the spot there that overlaps
+least. It never covers its own witness label and never moves beyond that reach.
 
 When a neutral role annotates a witness already enclosed by a phase-edge
 outline, its placement reserves that outline's padding as well as the category
@@ -460,7 +461,9 @@ Plaque placement reserves syntax, movement trajectories and the straight stems
 of neutral links across the complete stage. Small plaques try measured nearby gaps when the usual pockets are blocked;
 large plaques retain their below-subtree placement. A carried plaque keeps its
 offset unless new stage geometry occupies it. Neutral lower connectors retain straight stems and separate lanes. Plaques
-yield to their reserved stems; the lower lanes clear plaque bottoms. Role text
+yield to their reserved stems; the lower lanes clear plaque bottoms. They also drop below tree text of
+the stage that their turns or runs would cross, to the nearest gap within one tree row; where unrelated text
+leaves no such gap, they keep their local floor rather than descend beneath it. Role text
 yields to the connector routes. These allocations precede relation reveal, so revealing a plaque
 does not move existing syntax or annotations.
 

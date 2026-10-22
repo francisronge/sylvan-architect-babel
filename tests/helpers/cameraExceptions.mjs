@@ -20,8 +20,11 @@ const CONTINUED_RECENTRE = 'Open (layout): the stage builds a new N above the co
   + 'continued D and Num, which keep their slot and daughters, re-centre over the wider N as the stage begins. D stays attached, '
   + 'but the preceding layout reserved only the noun\'s width, so they shift sideways.';
 
-const NEXT_PINNED ='Open (camera, low severity): reached by Next inside the completed stage, the retained pose keeps the wide '
-  + 'final tree against the header edge, leaving just over a third of the view empty below; a direct selection fits it.';
+const LOWERED_SUBTREE = 'Accepted (camera, fixes A+B): at a stage crossing whose movement inserts a parent above an existing '
+  + 'subtree, the camera holds the syntax that did not move still, so the lowered subtree slides to its new place instead of the '
+  + 'rest of the tree jumping.';
+const CROSSING_CENTRE = 'Accepted (camera, fixes A+B): entering a new stage, an axis the camera has to pan is centred at the '
+  + 'retained zoom, so the settled pose differs by a few pixels (or, with a lowered subtree, more) from a direct selection.';
 
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
@@ -88,12 +91,6 @@ export const EXCEPTIONS = [
     { mobile: { '32>33': 27.4 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/sol-spanish-qr.json#/analyses/1', 'first-paint-continuity', 'off-canvas:unmoved', 'stage 4',
     { mobile: { '35>36': 59.47 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/unproven-second-landing.json#', 'first-paint-continuity', 'off-canvas:unmoved', 'stage 2',
-    { mobile: { '32>33': 38.86 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/workspace-source-continuity.json#/cases/0', 'first-paint-continuity', 'jump:camera', 'stage 5',
-    { desktop: { '56>55': 46.18 }, mobile: { '56>55': 24.92 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/workspace-source-continuity.json#/cases/0', 'first-paint-continuity', 'jump:camera', 'stage 6',
-    { desktop: { '55>56': 43.47 }, mobile: { '55>56': 24.7 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/workspace-spanish-continuity.json#', 'first-paint-continuity', 'jump:camera', 'stage 1',
     { desktop: { '9>8': 51.01 }, mobile: { '9>8': 29.98 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/workspace-spanish-continuity.json#', 'first-paint-continuity', 'jump:camera', 'stage 2',
@@ -122,7 +119,6 @@ export const EXCEPTIONS = [
       accepts: { desktop: { '43>44': 65.74 }, mobile: { '43>44': 32.12 } } }),
   x(SPREAD_RETENTION, 'replay-regressions/waiting-root-continuity.json#', 'settled-path-independence', 'retention',
     'stage 3', { desktop: { '43>44': 30.03 }, mobile: { '43>44': 37.77 } }),
-  x(NEXT_PINNED, 'performance/turkish-embedded.json#', 'content-placement', 'pinned', 'stage 5', { desktop: { '89': 0.34 } }),
   // Binding each hop to its new trace removes the saved analysis's off-canvas
   // unmoved pose at stage 10 on 711ef7d; the final subject raising now first
   // paints part of its landing beyond the canvas.
@@ -132,4 +128,64 @@ export const EXCEPTIONS = [
     'stage 2', { desktop: { '18>19': 26.08 } },
     { by: 'Francis Ronge', on: '2026-10-21', expires: '2027-01-21', note: 'there-insertion: D and Num re-centre over the wider rebuilt N (~26 px) instead of D separating; accepted for now until a layout reserves N\'s final width (approved 21 Oct in the lead session)',
       accepts: { desktop: { '18>19': 26.08 } } }),
+  x(LOWERED_SUBTREE, 'movement/holdout-transitions.json#/3', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 2',
+    { desktop: { '39>40': 74.06 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '39>40': 74.06 } } }),
+  x(LOWERED_SUBTREE, 'movement/holdout-transitions.json#/3', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 1',
+    { desktop: { '40>39': 64.82 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '40>39': 64.82 } } }),
+  x(CROSSING_CENTRE, 'replay-regressions/successive-cyclic-source.json#/cases/0', 'settled-path-independence', 'retention', 'stage 12',
+    { desktop: { '121>122': 9.61 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '121>122': 9.61 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/unproven-second-landing.json#', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 2',
+    { desktop: { '32>33': 195.14 }, mobile: { '32>33': 70.91 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '32>33': 195.14 }, mobile: { '32>33': 70.91 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/unproven-second-landing.json#', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 1',
+    { desktop: { '33>32': 162.74 }, mobile: { '33>32': 48.37 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '33>32': 162.74 }, mobile: { '33>32': 48.37 } } }),
+  x(CROSSING_CENTRE, 'replay-regressions/unrecognized-movement.json#/cases/3', 'settled-path-independence', 'retention', 'stage 3',
+    { desktop: { '29>30': 68.46 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '29>30': 68.46 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/unrecognized-movement.json#/cases/3', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 3',
+    { desktop: { '29>30': 94.17 }, mobile: { '29>30': 63.01 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '29>30': 94.17 }, mobile: { '29>30': 63.01 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/unrecognized-movement.json#/cases/3', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 2',
+    { desktop: { '30>29': 103.54 }, mobile: { '30>29': 52.73 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '30>29': 103.54 }, mobile: { '30>29': 52.73 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/workspace-arabic-continuity.json#/cases/0', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 2',
+    { desktop: { '29>30': 27.53 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '29>30': 27.53 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/workspace-arabic-continuity.json#/cases/2', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 2',
+    { desktop: { '29>30': 27.53 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '29>30': 27.53 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/workspace-arabic-continuity.json#/cases/4', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 2',
+    { desktop: { '30>31': 103.35 }, mobile: { '30>31': 52.75 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '30>31': 103.35 }, mobile: { '30>31': 52.75 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/workspace-arabic-continuity.json#/cases/4', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 1',
+    { desktop: { '31>30': 88.63 }, mobile: { '31>30': 42.53 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '31>30': 88.63 }, mobile: { '31>30': 42.53 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/workspace-source-continuity.json#/cases/0', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 6',
+    { desktop: { '55>56': 43.47 }, mobile: { '55>56': 24.7 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '55>56': 43.47 }, mobile: { '55>56': 24.7 } } }),
+  x(LOWERED_SUBTREE, 'replay-regressions/workspace-source-continuity.json#/cases/0', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 5',
+    { desktop: { '56>55': 46.18 }, mobile: { '56>55': 24.92 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { desktop: { '56>55': 46.18 }, mobile: { '56>55': 24.92 } } }),
+  x(CROSSING_CENTRE, 'showcase/relatives-and-clitics.json#/cases/4', 'settled-path-independence', 'retention', 'stage 3',
+    { mobile: { '36>37': 7.78 } },
+    { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
+      accepts: { mobile: { '36>37': 7.78 } } }),
 ];

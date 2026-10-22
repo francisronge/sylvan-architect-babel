@@ -1,3 +1,5 @@
+import { paintedShift, type PaintedNodes } from '../replay/cameraCarry.ts';
+
 export type ViewportRect = { left: number; top: number; right: number; bottom: number };
 export type ViewportSize = { width: number; height: number };
 
@@ -43,49 +45,44 @@ export function createViewportSettler({ apply, painted, schedule, cancel, delay 
   };
 }
 
-/** One frame's painted syntax: tree-space position and hierarchy parent, keyed by display ID. */
-export type PaintedNodes = ReadonlyMap<string, { x: number; y: number; parentId: string | null }>;
+export type { PaintedNodes };
 
 /** Playback does not zoom in merely because a later stage has more room.
- * Preserve the accepted pose until clearance needs a pan or smaller scale. */
+ * Preserve the accepted pose until clearance needs a pan or smaller scale.
+ * Entering a new stage (`crossing`), an axis that clearance has to pan is
+ * centred on the envelope instead of clamped to the edge it overflowed: the
+ * camera moves on that axis anyway, and the stage then keeps the pose for all
+ * its micro-steps. Within a stage the least pan remains. */
 export function advanceFittedCamera(
   previous: { x: number; y: number; k: number },
   fitted: { x: number; y: number; k: number },
   bounds: { minX: number; minY: number; maxX: number; maxY: number },
-  view: ViewportRect
+  view: ViewportRect,
+  { crossing = false }: { crossing?: boolean } = {}
 ) {
-  return previous.k <= fitted.k + 1e-7 ? containCamera(previous, bounds, view) : fitted;
+  if (previous.k > fitted.k + 1e-7) return fitted;
+  const contained = containCamera(previous, bounds, view);
+  if (!crossing || contained === previous) return contained;
+  const epsilon = 1e-6, { k } = contained;
+  // containCamera's position before clamping: scaled about the view centre.
+  const centerX = (view.left + view.right) / 2, centerY = (view.top + view.bottom) / 2;
+  const scaledX = centerX + (previous.x - centerX) * k / previous.k, scaledY = centerY + (previous.y - centerY) * k / previous.k;
+  return {
+    x: Math.abs(contained.x - scaledX) > epsilon ? centerX - (bounds.minX + bounds.maxX) / 2 * k : contained.x,
+    y: Math.abs(contained.y - scaledY) > epsilon ? centerY - (bounds.minY + bounds.maxY) / 2 * k : contained.y,
+    k
+  };
 }
 
 /** Each stage lays out its syntax in its own coordinates. Translate a pose by the
- * median coordinate shift of the syntax both frames share, removing the common
- * translation between the two layouts; residual layout changes still move. A node
- * whose shared ancestors change (a reattached, moved constituent) is left out
- * unless nothing else is shared. */
+ * median coordinate shift of the syntax the crossing leaves in place
+ * (carryReference in replay/cameraCarry.ts), removing the common translation
+ * between the two layouts; residual layout changes still move. A moved
+ * constituent, or syntax lowered under a newly inserted parent, travels on screen. */
 export function carryCamera(pose: { x: number; y: number; k: number }, before: PaintedNodes, after: PaintedNodes) {
-  const sharedAncestors = (nodes: PaintedNodes, id: string) => {
-    const ids: string[] = [];
-    for (let parent = nodes.get(id)!.parentId; parent; parent = nodes.get(parent)?.parentId ?? null) {
-      if (before.has(parent) && after.has(parent)) ids.push(parent);
-    }
-    return ids;
-  };
-  const shared = [...after.keys()].filter(id => before.has(id));
-  const unmoved = shared.filter(id => {
-    const prior = sharedAncestors(before, id), current = sharedAncestors(after, id);
-    return prior.length === current.length && prior.every((ancestor, index) => ancestor === current[index]);
-  });
-  const reference = unmoved.length ? unmoved : shared;
-  if (!reference.length) return pose;
-  const median = (values: number[]) => {
-    values.sort((a, b) => a - b);
-    return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
-  };
-  return {
-    x: pose.x + median(reference.map(id => before.get(id)!.x - after.get(id)!.x)) * pose.k,
-    y: pose.y + median(reference.map(id => before.get(id)!.y - after.get(id)!.y)) * pose.k,
-    k: pose.k
-  };
+  const shift = paintedShift(before, after);
+  if (!shift.x && !shift.y) return pose;
+  return { x: pose.x - shift.x * pose.k, y: pose.y - shift.y * pose.k, k: pose.k };
 }
 
 /** Retain an accepted fit; correct overflow with the least translation and scale reduction. */

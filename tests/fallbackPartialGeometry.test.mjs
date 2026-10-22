@@ -388,6 +388,35 @@ test('a local scalar connector does not descend to unrelated deep syntax', () =>
     'a plaque in the local lane still requires clearance');
 });
 
+test('a counter lane drops below unrelated tree text it would run through, not below the whole tree', () => {
+  // bughunt 09-en-do-support stage 5: the lane under the lower T ran through the
+  // word "John" of the subject between the two participants.
+  const labels = { a: { x: 0, y: 0, width: 30, height: 20 }, b: { x: 200, y: 200, width: 30, height: 20 } };
+  const word = { x: 80, y: 240, width: 100, height: 40 };
+  const deep = { x: 600, y: 1800, width: 90, height: 30 };
+  const measurements = { labels: [...Object.values(labels), word, deep], labelFor: id => labels[id],
+    subtreeFor: id => labels[id], bottom: 1830 };
+  const bound = bindRelationPlanFrame(plan, 0, id => ({ x: labels[id].x + 15, y: labels[id].y }), { fallbackMeasurements: measurements });
+  const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} ≠ ${expected}`);
+  close(bound.primitives.find(p => p.type === 'segment').laneY, 293.2);
+  // At scale 1 the lane at 254 runs through the word: it takes the gap below,
+  // three units under the word plus its turn (8) and half its shadow (2.2). At
+  // 0.5 and 3 its turns and run already clear the word's three units, so it stays.
+  for (const [scale, laneY] of [[0.5, 237], [1, 293.2], [3, 322]]) {
+    const segment = [...fitFallbackGeometry(bound, { fittedMarkerScale: scale, fallbackMeasurements: measurements }).values()]
+      .find(p => p.type === 'segment');
+    close(segment.laneY, laneY);
+    assert.ok(segment.laneY + 2.2 * scale <= word.y - 3 * scale
+      || segment.laneY - 10.2 * scale >= word.y + word.height + 3 * scale, 'the turns and run keep clear of the word');
+  }
+  // Rows of text with no gap for the lane within one tree row (220 units) below
+  // its local floor keep that floor rather than descending past all of them.
+  const rows = Array.from({ length: 6 }, (_, index) => ({ x: 80, y: 240 + 50 * index, width: 100, height: 40 }));
+  const dense = { ...measurements, labels: [...Object.values(labels), ...rows] };
+  const crowded = bindRelationPlanFrame(plan, 0, id => ({ x: labels[id].x + 15, y: labels[id].y }), { fallbackMeasurements: dense });
+  close(crowded.primitives.find(p => p.type === 'segment').laneY, 254);
+});
+
 test('future labels and plaques reserve space without cutting holes in current connectors', () => {
   const segment = { type: 'segment', itemIndex: 0, route: 'direct', lane: null,
     from: { x: 0, y: 100 }, to: { x: 500, y: 100 }, witnessNodeIds: ['a', 'b'], d: '' };
