@@ -4,6 +4,7 @@ import type { RecoveredMovement } from './movementEvidence.ts';
 import {
   assignmentOutcomes,
   establishesAssignment,
+  hasUnrecognizedAssignmentOutcome,
   negativeClaimFailure,
   relationAssertionFailure
 } from './outcomeResolver.ts';
@@ -73,7 +74,7 @@ export type AssignmentScope = {
 /** Recover an explicitly restated assignment through its established occurrence and position. */
 export function recoverAssignmentContinuity(evidence: Tier2FacetEvidence, context: AssignmentContext): AssignmentScope[] {
   const outcomes = assignmentOutcomes(evidence);
-  if (outcomes.some(entry => !entry.concepts.includes('outcome'))) return [];
+  if (hasUnrecognizedAssignmentOutcome(evidence)) return [];
   const nodes = occurrences(evidence.currentForest);
   const anchors = evidence.authoredCurrentAnchors ?? [];
   const allIds = [...new Set(anchors.flatMap(entry => [...entry.items]))];

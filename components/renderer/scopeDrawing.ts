@@ -17,6 +17,8 @@ interface ScopeDrawingContext extends Pick<ClaimDrawing, 'relationLayerKey' | 'a
   treeData: d3.HierarchyPointNode<SyntaxNode>;
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   containerWidth: number;
+  /** The tree layer's screen matrix under the settled camera (`deferredTreeMatrix`). */
+  deferredTreeMatrix: () => DOMMatrix | null;
   markPreterminalLensNode: (nodeId: string, role: string) => void;
   frameItems: RelationPlanItem[];
   resolveOverlayAnchor: (nodeId: string) => d3.HierarchyPointNode<SyntaxNode> | undefined;
@@ -36,6 +38,7 @@ export function createScopeDrawing({
   treeData,
   svg,
   containerWidth,
+  deferredTreeMatrix,
   markPreterminalLensNode,
   frameItems,
   resolveOverlayAnchor,
@@ -186,9 +189,10 @@ export function createScopeDrawing({
           const width = 420;
           const height = 12 + content.rows.length * 46;
           const preferredX = treeRect ? treeRect.x + treeRect.width + 54 : rect.x + rect.width + 54;
-          const viewportRight = new DOMPoint(svgRect.right - 12, svgRect.top).matrixTransform(inverse).x;
-          const x = isCompactViewport(containerWidth)
-            ? Math.min(preferredX, viewportRight - width)
+          // A compact ledger keeps inside the viewport the settled camera shows.
+          const settledMatrix = isCompactViewport(containerWidth) ? deferredTreeMatrix() : null;
+          const x = settledMatrix ? Math.min(preferredX,
+            new DOMPoint(svgRect.right - 12, svgRect.top).matrixTransform(settledMatrix.inverse()).x - width)
             : preferredX;
           const y = rect.y + rect.height / 2 - height / 2;
           pathLayer.append('path')

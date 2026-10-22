@@ -66,6 +66,7 @@ export const createStageRelationSnapshots = (
     relationPlacements,
     singleRelationLinksByIndex,
     getMovementCreatedLandingHostNodeIds,
+    getMovementPiedPipedNodeIds,
     relationVisibleNodeIdsByIndex,
     relationLayoutNodeIds,
     frameHasTreeTransition,
@@ -132,13 +133,14 @@ export const createStageRelationSnapshots = (
     return inactiveTargetNodeIds;
   };
   const collectInactivePhrasalLandingHostNodeIds = (activeRelationIndexes: Set<number>): Set<string> => {
+    const landingOwned = (placement: RelationPlacement) => [...getMovementCreatedLandingHostNodeIds(placement), ...getMovementPiedPipedNodeIds(placement)];
     const activeLandingHostNodeIds = new Set(relationPlacements
       .filter((placement) => activeRelationIndexes.has(placement.relationIndex))
-      .flatMap(getMovementCreatedLandingHostNodeIds)
+      .flatMap(landingOwned)
       .filter(Boolean));
     return new Set(relationPlacements
       .filter((placement) => !activeRelationIndexes.has(placement.relationIndex))
-      .flatMap(getMovementCreatedLandingHostNodeIds)
+      .flatMap(landingOwned)
       .filter((nodeId) => Boolean(nodeId) && !activeLandingHostNodeIds.has(nodeId)));
   };
   const buildActiveRelationLinks = (activeRelationIndexes: Set<number>): ResolvedRelationLink[] => {

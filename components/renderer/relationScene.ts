@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 import { type PlanPositionProvider } from '../../replay/relations/boundGeometry.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import {
-  isCompactViewport, markerScaleAtZoom, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TRAJECTORY_ROUTES
+  markerScaleAtZoom, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TRAJECTORY_ROUTES
 } from '../../replay/rendererMetrics.ts';
 import { boundOverlayBounds, type OverlayBounds } from '../../replay/relations/geometryBounds.ts';
 import {
@@ -67,7 +67,10 @@ interface RelationSceneContext {
   animated: boolean;
   acceptedCompositionIsTreeFirst: boolean;
   containerWidth: number;
-  cameraRuntime: { applying: boolean; cancel: (() => void) | undefined; deferred: d3.ZoomTransform | null };
+  /** The tree layer's screen matrix under the settled camera. Deferred draws
+   * run after the fit, possibly while the camera is still moving to it; their
+   * viewport placements and screen sizes follow its destination. */
+  deferredTreeMatrix: () => DOMMatrix | null;
   uiBounds: { top: number; right: number; bottom: number; headerBottom: number; panelTop: number };
   containerRef: { current: HTMLDivElement | null };
   TARGET_EMERALD: string;
@@ -91,7 +94,7 @@ export function paintRelationScene({
   animated,
   acceptedCompositionIsTreeFirst,
   containerWidth,
-  cameraRuntime,
+  deferredTreeMatrix,
   uiBounds,
   containerRef,
   TARGET_EMERALD
@@ -310,55 +313,6 @@ export function paintRelationScene({
       } : bounds;
     });
 
-    const fitDeferredOverlayToCompactViewport = (layer: SVGGElement, inset = 12) => {
-      if (!isCompactViewport(containerWidth)) return;
-      const svgNode = svg.node();
-      const parent = layer.parentElement;
-      const parentMatrix = parent instanceof SVGGraphicsElement ? parent.getScreenCTM() : null;
-      if (!svgNode || !parentMatrix) return;
-      const viewport = svgNode.getBoundingClientRect();
-      const availableWidth = Math.max(1, viewport.width - inset * 2);
-      const availableHeight = Math.max(1, viewport.height - inset * 2);
-      const initialRect = layer.getBoundingClientRect();
-      if (initialRect.width <= 0 || initialRect.height <= 0) return;
-
-      const fitScale = Math.min(
-        1,
-        availableWidth / initialRect.width,
-        availableHeight / initialRect.height
-      );
-      const bounds = layer.getBBox();
-      const pivotX = bounds.x + bounds.width / 2;
-      const pivotY = bounds.y + bounds.height / 2;
-      const scaleTransform = fitScale < 0.999
-        ? `translate(${pivotX} ${pivotY}) scale(${fitScale}) translate(${-pivotX} ${-pivotY})`
-        : '';
-      layer.setAttribute('transform', scaleTransform);
-
-      const fittedRect = layer.getBoundingClientRect();
-      const left = viewport.left + inset;
-      const right = viewport.right - inset;
-      const top = viewport.top + inset;
-      const bottom = viewport.bottom - inset;
-      const screenDx = fittedRect.left < left
-        ? left - fittedRect.left
-        : fittedRect.right > right
-          ? right - fittedRect.right
-          : 0;
-      const screenDy = fittedRect.top < top
-        ? top - fittedRect.top
-        : fittedRect.bottom > bottom
-          ? bottom - fittedRect.bottom
-          : 0;
-      if (screenDx === 0 && screenDy === 0) return;
-
-      const inverse = parentMatrix.inverse();
-      const origin = new DOMPoint(0, 0).matrixTransform(inverse);
-      const shifted = new DOMPoint(screenDx, screenDy).matrixTransform(inverse);
-      const translateTransform = `translate(${shifted.x - origin.x} ${shifted.y - origin.y})`;
-      layer.setAttribute('transform', `${translateTransform} ${scaleTransform}`.trim());
-    };
-
     const {
       trajectoryMarkerIds,
       pairMergeLayers,
@@ -420,8 +374,8 @@ export function paintRelationScene({
       g,
       svg,
       exactScreenTreeLabelRectNow,
-      fitDeferredOverlayToCompactViewport,
-      getDeferredRelationCamera: () => cameraRuntime.deferred,
+      containerWidth,
+      deferredTreeMatrix,
       overlayNodeById,
       measureGraphicsElementsInTreeSpace,
       uiBounds,
@@ -440,7 +394,8 @@ export function paintRelationScene({
       exactScreenTreeLabelRectNow,
       treeData,
       exactScreenDirectTreeLabelRectNow,
-      uiBounds
+      uiBounds,
+      deferredTreeMatrix
     });
     const { scheduleAcceptedScopeInformationRelation, scheduleAcceptedFocusProminence } = createScopeDrawing({
       relationLayerKey,
@@ -454,6 +409,7 @@ export function paintRelationScene({
       treeData,
       svg,
       containerWidth,
+      deferredTreeMatrix,
       markPreterminalLensNode,
       frameItems,
       resolveOverlayAnchor,

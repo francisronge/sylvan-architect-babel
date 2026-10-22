@@ -29,6 +29,8 @@ interface PlaqueRefinementsContext extends Pick<RelationMeasurements,
   activeDerivationFrameIndex: number;
   replayPlaqueLayout: Map<number, PlaquePlacement>;
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  /** The tree layer's screen matrix under the settled camera (`deferredTreeMatrix`). */
+  deferredTreeMatrix: () => DOMMatrix | null;
 }
 export function createPlaqueRefinements({
   g,
@@ -41,10 +43,12 @@ export function createPlaqueRefinements({
   replayPlaqueLayout,
   svg,
   measuredTreeLabelsRect,
-  measuredSubtreeRect
+  measuredSubtreeRect,
+  deferredTreeMatrix
 }: PlaqueRefinementsContext) {
+  // Screen-sized pieces, sized once for the settled camera, then scaled with the tree.
   const refineSplitAntecedenceComposition = () => {
-    const matrix = g.node()?.getScreenCTM();
+    const matrix = deferredTreeMatrix();
     if (!matrix) return;
     const screenScale = Math.hypot(matrix.a, matrix.b);
     if (!Number.isFinite(screenScale) || screenScale <= 0) return;

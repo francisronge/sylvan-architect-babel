@@ -21,6 +21,8 @@ interface RelationGeometryContext {
   playedRelationIndices: Set<number> | null;
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   updateScreenStableText: (screenScale: number) => void;
+  /** The tree layer's screen matrix under the settled camera (`deferredTreeMatrix`). */
+  deferredTreeMatrix: () => DOMMatrix | null;
 }
 export function refineRelationGeometry({
   treeData,
@@ -34,11 +36,16 @@ export function refineRelationGeometry({
   deferredAcceptedRelationDraws,
   playedRelationIndices,
   svg,
-  updateScreenStableText
+  updateScreenStableText,
+  deferredTreeMatrix
 }: RelationGeometryContext) {
   const treeSpace = g.node();
+  // Refinement follows the fit, which paints the start of a camera transition.
+  // Painted elements are measured with the live matrix; viewport clamps and
+  // screen sizes use the settled one.
   const treeMatrix = treeSpace?.getScreenCTM();
-  if (treeSpace && treeMatrix) {
+  const settledTreeMatrix = deferredTreeMatrix();
+  if (treeSpace && treeMatrix && settledTreeMatrix) {
     const {
       measuredSubtreeLabelRects,
       unionRects,
@@ -84,6 +91,7 @@ export function refineRelationGeometry({
       measuredTreeLabelsRect,
       g,
       treeMatrix,
+      settledTreeMatrix,
       svg
     });
     const { refineSplitAntecedenceComposition, renderPfRealizationPlate, layoutAnalysisVerdicts } = createPlaqueRefinements({
@@ -97,7 +105,8 @@ export function refineRelationGeometry({
       replayPlaqueLayout,
       svg,
       measuredTreeLabelsRect,
-      measuredSubtreeRect
+      measuredSubtreeRect,
+      deferredTreeMatrix
     });
     const {
       refineAcrossTheBoardPaths,
@@ -149,9 +158,12 @@ export function refineRelationGeometry({
 
     const fittedSvgNode = svg.node();
     if (fittedSvgNode) {
-      const fittedScale = d3.zoomTransform(fittedSvgNode).k || 1;
-      updateScreenStableText(fittedScale);
-      layoutAnalysisVerdicts(fittedScale);
+      const liveScale = d3.zoomTransform(fittedSvgNode).k || 1;
+      updateScreenStableText(liveScale);
+      // Verdicts take the settled zoom: the live zoom times the settled-to-live screen scale.
+      const settledScale = liveScale * Math.hypot(settledTreeMatrix.a, settledTreeMatrix.b)
+        / Math.hypot(treeMatrix.a, treeMatrix.b);
+      layoutAnalysisVerdicts(Number.isFinite(settledScale) && settledScale > 0 ? settledScale : liveScale);
     }
     g.selectAll<SVGGElement, unknown>('.babel-idiom-chunk-relation-layer').each(refineIdiomChunkRelation);
     g.selectAll<SVGPathElement, unknown>('.vr-trajectory-parasitic-gap').each(refineParasiticGapPath);
