@@ -284,10 +284,11 @@ export const featurePlan = {
     return;
   },
   'theta-grid': (context) => {
-    const { anchors, claimDispatch, primaryRelation, base } = context.claim;
-    const { pushCompositeTrajectory, pushDiagnostic, pushNeutralFallback, requireResolved, items } = context.output;
+    // A theta claim draws its grid, never a movement path: its source or
+    // target can name thematic roles, and a trace witness is context.
+    const { claimDispatch, primaryRelation, base } = context.claim;
+    const { pushDiagnostic, pushNeutralFallback, requireResolved, items } = context.output;
     const { stage } = context.workspace;
-    if (anchors.traceWitness && pushCompositeTrajectory('phrasal')) return;
     const evidence = buildTier2FacetEvidence({ relation: claimDispatch.boundPrimaryRelation, currentForest: stage.workspaceForest || [] });
     const { assignments, error } = nativeThetaAssignments(evidence);
     if (!assignments) {

@@ -583,7 +583,7 @@ test('Task 8 replaces an earlier claim only through complete immediate prior anc
   );
 });
 
-test('unowned unresolved prior evidence does not suppress complete Tier-2 continuity', () => {
+test('an unresolved witness anywhere in the authored prior block withholds Tier-2 continuity', () => {
   const priorForest = [node('partial_prior_root', 'TP', [
     node('partial_prior_a', 'DP', [])
   ])];
@@ -605,9 +605,12 @@ test('unowned unresolved prior evidence does not suppress complete Tier-2 contin
   const identity = plan.frames[1].items.find(
     (item) => item.tier2FacetId === 'identity.occurrences'
   );
-  assert.equal(identity?.backward, true);
-  assert.deepEqual(identity?.priorWitnessNodeIds, ['partial_prior_a']);
-  assert.ok(identity?.replacementPredecessorGroup);
+  // As for Tier 1, a subset of the block never stands in for the whole: the
+  // identity still draws, but without the backward cue or a predecessor.
+  assert.ok(identity);
+  assert.equal(identity.backward, false);
+  assert.deepEqual(identity.priorWitnessNodeIds, []);
+  assert.equal(identity.replacementPredecessorGroup, undefined);
   const residual = plan.frames[1].items.find((item) => item.kind === 'fallback');
   assert.equal(residual?.backward, false);
   assert.deepEqual(residual?.priorWitnessNodeIds, []);
@@ -615,6 +618,40 @@ test('unowned unresolved prior evidence does not suppress complete Tier-2 contin
     plan.diagnostics.some((diagnostic) => diagnostic.kind === 'prior-anchor-unresolved'),
     true
   );
+});
+
+test('an incomplete Tier-2 prior block does not retire the earlier state it names', () => {
+  const before = [node('vp', 'VP', [leaf('v', 'V', 'see'), leaf('x', 'DP', 'Mia')])];
+  const after = [node('tp', 'TP', [leaf('y', 'DP', 'Leo'), ...before])];
+  const earlier = { relation: 'phi feature checking', anchors: { goal: 'x' }, values: { number: 'singular' } };
+  const later = priorAnchors => compileRelationRenderPlan([stage([earlier], before), stage([{
+    relation: 'phi feature checking', anchors: { goal: 'y' }, priorAnchors, values: { number: 'plural' }
+  }], after)]);
+  const visible = plan => visiblePlanFrameItems(plan, 1, new Set([0]), 0)
+    .filter(item => item.kind === 'node-plaque').map(item => `${item.anchorNodeIds}:${item.rows.map(row => row.value)}`);
+  assert.deepEqual(visible(later({ goal: 'x' })), ['y:plural'], 'a complete block replaces the earlier state');
+  for (const priorAnchors of [{ goal: 'x', extra: 'ghost' }, { goal: 'x', extra: 'y' }]) {
+    const plan = later(priorAnchors);
+    assert.deepEqual(visible(plan).sort(), ['x:singular', 'y:plural'], JSON.stringify(priorAnchors));
+    const update = plan.frames[1].items.find(item => item.kind === 'node-plaque' && item.relationRef.stageIndex === 1);
+    assert.equal(update.backward, false);
+    assert.equal(update.replacementPredecessorGroup, undefined);
+    assert.ok(plan.diagnostics.some(diagnostic => diagnostic.kind === 'prior-anchor-unresolved'));
+  }
+});
+
+test('a Tier-2 update retires the state it names however many stages ago it was authored', () => {
+  const forest = [node('tp', 'TP', [leaf('y', 'DP', 'Leo'), node('vp', 'VP', [leaf('v', 'V', 'see'), leaf('x', 'DP', 'Mia')])])];
+  const singular = { relation: 'phi feature checking', anchors: { goal: 'x' }, values: { number: 'singular' } };
+  const plural = { relation: 'phi feature checking', anchors: { goal: 'x' }, priorAnchors: { goal: 'x' }, values: { number: 'plural' } };
+  const other = { relation: 'phi feature checking', anchors: { goal: 'y' }, values: { person: 'third' } };
+  for (const [label, middle] of [['an unrelated stage', [other]], ['a restatement', [singular]]]) {
+    const plan = compileRelationRenderPlan([stage([singular], forest), stage(middle, forest), stage([plural], forest)]);
+    const rows = played => visiblePlanFrameItems(plan, 2, played, played?.size ? 0 : null)
+      .filter(item => item.kind === 'node-plaque' && item.anchorNodeIds.includes('x')).map(item => item.rows[0].value);
+    assert.deepEqual(rows(new Set()), ['singular'], `${label}: the earlier state stays until the update plays`);
+    assert.deepEqual(rows(new Set([0])), ['plural'], `${label}: the update retires it at its moment`);
+  }
 });
 
 test('Task 8 does not coalesce outputs when prior-anchor evidence differs', () => {
@@ -752,5 +789,18 @@ test('different binding indices, scopes, occurrence lineages and prior-state cla
     if (variant === 'prior') second.priorAnchors = { operator: 'operator', variable: 'variable' };
     const plan = compileRelationRenderPlan([stage([first], bindingForest()), stage([second], nextForest)]);
     assert.equal(bindingPaths(plan.frames[1]).length, 2, variant);
+  }
+});
+
+test('a restated Tier-2 claim shares its ink whatever order its fields are authored in', () => {
+  const forest = [node('tp', 'TP', [leaf('high', 'DP', 'Mia', { lineageId: 'mia' }),
+    node('vp', 'VP', [leaf('low', 'DP', 'Mia', { lineageId: 'mia', silent: true }), leaf('v', 'V', 'leave')])])];
+  const first = { relation: 'copy pronunciation', anchors: { pronouncedOccurrence: 'high', unpronouncedOccurrence: 'low' } };
+  const swapped = { relation: 'copy pronunciation', anchors: { unpronouncedOccurrence: 'low', pronouncedOccurrence: 'high' } };
+  for (const restated of [first, swapped]) {
+    const plan = compileRelationRenderPlan([stage([first], structuredClone(forest)), stage([restated], structuredClone(forest))]);
+    const marks = plan.frames[1].items.filter(item => item.kind === 'coindex');
+    assert.equal(marks.length, 1, JSON.stringify(restated.anchors));
+    assert.deepEqual(planItemRelationRefs(marks[0]).map(ref => `${ref.stageIndex}:${ref.relationIndex}`), ['0:0', '1:0']);
   }
 });

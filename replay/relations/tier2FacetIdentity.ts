@@ -3,7 +3,8 @@ import {
   INDEPENDENT_TIER2_VALUE_ROLES,
   indexTier2Forests,
   literalThetaRoles,
-  namedThetaInventory
+  namedThetaInventory,
+  sameNameValueEntries
 } from './tier2EvidenceQueries.ts';
 import type {
   Tier2AuthoredEvidenceEntry,
@@ -65,11 +66,22 @@ const appendIdentityItems = (
   target[key] = [...(target[key] ?? []), ...items];
 };
 
+/** Roles whose item positions pair them with values or with another role, or
+ * whose recipe reads a sequence; their authored order is part of the claim. */
+const positionalRoles = (recipeEntry: Tier2FacetRecipe): Set<string> | 'all' => {
+  if (recipeEntry.checks.some(({ kind }) => ['native-linearization', 'native-rewrite', 'rebracketing-configuration'].includes(kind))) return 'all';
+  return new Set(recipeEntry.checks.flatMap(check => check.kind === 'paired-values' ? [check.role]
+    : check.kind === 'paired-cardinality' ? [...check.roles]
+      : check.kind === 'feature-dependency' ? ['feature.target']
+        : check.kind === 'large-array' ? [check.role] : []));
+};
+
 const identityRoleBlock = (
   recipeEntry: Tier2FacetRecipe,
   anchors: Readonly<Record<string, readonly string[]>> | undefined,
   authoredEntries: readonly Tier2AuthoredEvidenceEntry[] | undefined,
   index: TreeIndex,
+  authoredValues: Tier2FacetEvidence['authoredValues'],
   includeWorkspace = true
 ): Record<string, ReturnType<typeof identityWitnesses>> => {
   if (!authoredEntries) {
@@ -82,12 +94,24 @@ const identityRoleBlock = (
 
   const recipeRoles = new Set(recipeEntry.anchors.map(({ role }) => role));
   const normalized: Record<string, string[]> = {};
-  authoredEntries.forEach(({ key, concepts, items }) => {
+  const positional = positionalRoles(recipeEntry);
+  const ordered = new Set<string>();
+  authoredEntries.forEach((entry) => {
+    const { key, concepts, items } = entry;
     const matchingRoles = concepts.filter((concept) => recipeRoles.has(concept));
     const identityRoles = matchingRoles.length > 0
       ? matchingRoles
       : (recipeEntry.kind === 'claim' ? [`literal:${key}`] : []);
-    identityRoles.forEach((role) => appendIdentityItems(normalized, role, items));
+    identityRoles.forEach((role) => {
+      appendIdentityItems(normalized, role, items);
+      // A same-name values list pairs with this field's items by position.
+      if (positional === 'all' || positional.has(role) || sameNameValueEntries({ authoredValues }, entry).length) ordered.add(role);
+    });
+  });
+  // Neither authored field order nor an unpaired list's order carries meaning:
+  // the witnesses of a role that is not paired or sequenced form a set.
+  Object.entries(normalized).forEach(([role, ids]) => {
+    if (!ordered.has(role)) ids.sort();
   });
   return Object.fromEntries(
     Object.entries(normalized)
@@ -147,13 +171,15 @@ const buildFacetIdentity = ({
         recipeEntry,
         evidence.currentAnchors,
         evidence.authoredCurrentAnchors,
-        currentIndex
+        currentIndex,
+        evidence.authoredValues
       ),
       priorAnchors: identityRoleBlock(
         recipeEntry,
         evidence.priorAnchors,
         evidence.authoredPriorAnchors,
-        priorIndex
+        priorIndex,
+        evidence.authoredValues
       ),
       values: identityValueBlock(recipeEntry, evidence),
       outcome: evaluation.outcomeConcept,
@@ -170,13 +196,15 @@ const buildFacetIdentity = ({
       evidence.currentAnchors,
       evidence.authoredCurrentAnchors,
       currentIndex,
+      evidence.authoredValues,
       !persistent
     ),
     priorAnchors: identityRoleBlock(
       recipeEntry,
       evidence.priorAnchors,
       evidence.authoredPriorAnchors,
-      priorIndex
+      priorIndex,
+      evidence.authoredValues
     ),
     values: identityValueBlock(recipeEntry, evidence),
     outcome: evaluation.outcomeConcept,

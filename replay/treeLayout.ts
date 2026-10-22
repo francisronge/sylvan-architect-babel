@@ -35,16 +35,26 @@ export function layoutSyntaxTree(root: d3.HierarchyNode<SyntaxNode>, size: [numb
     // There is no lookahead here: hidden scaffolding contributes no local shape.
     const step = { replayCanvasData: root.data, replayKind: 'macro', replayFrameIndex: 0,
       replayVisibleNodeIds: [...(visibleIds ?? tree.descendants().map(getNodeId))] } as PlaybackStep;
-    const points = workspaceLifetimeContourCoordinates(
-      prepareWorkspaceLifetimeContours([step], measurements.measureCategoryText,
-        measurements.measureTreeInk, measurements.treeLabelRuns, measurements.measureTreeLabel, direction)()
-    ).get(root.data)!;
-    const xs = [...points.values()].map(point => point.x);
-    const offset = xs.length ? size[0] / 2 - (Math.min(...xs) + Math.max(...xs)) / 2 : 0;
-    tree.each(node => {
-      const point = points.get(getNodeId(node));
-      if (point) { node.x = point.x + offset; node.y = point.y; }
-    });
+    // Packing refines the D3 layout. A tree it cannot pack keeps that layout,
+    // as Replay keeps its baseline, rather than leaving the scene without one.
+    const points = (() => {
+      try {
+        return workspaceLifetimeContourCoordinates(
+          prepareWorkspaceLifetimeContours([step], measurements.measureCategoryText,
+            measurements.measureTreeInk, measurements.treeLabelRuns, measurements.measureTreeLabel, direction)()
+        ).get(root.data)!;
+      } catch {
+        return undefined;
+      }
+    })();
+    if (points) {
+      const xs = [...points.values()].map(point => point.x);
+      const offset = xs.length ? size[0] / 2 - (Math.min(...xs) + Math.max(...xs)) / 2 : 0;
+      tree.each(node => {
+        const point = points.get(getNodeId(node));
+        if (point) { node.x = point.x + offset; node.y = point.y; }
+      });
+    }
   }
   if (reservation) tree.each(node => {
     const position = reservation.get(getNodeId(node));
