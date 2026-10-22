@@ -148,14 +148,26 @@ test('JSON repairs and typed failures remain visible in qualification receipts',
   const valid = JSON.stringify(fixture.payload);
   const repaired = runQualificationAttempt({
     attempt,
-    rawOutputBytes: Buffer.from(valid.slice(0, -1), 'utf8')
+    rawOutputBytes: Buffer.from(`${valid}}`, 'utf8')
   });
   assert.equal(repaired.receipt.outcome.status, 'valid-pending-review');
   assert.deepEqual(repaired.receipt.ingress.integrityFlags, ['json_delimiter_damage_repaired']);
   assert.equal(
     repaired.receipt.ingress.repairDiagnostics[0].kind,
-    'append_closers_at_end_of_output'
+    'remove_unmatched_closer'
   );
+
+  const unbalanced = runQualificationAttempt({
+    attempt,
+    rawOutputBytes: Buffer.from(valid.slice(0, -1), 'utf8')
+  });
+  assert.equal(unbalanced.receipt.outcome.status, 'failed');
+  assert.equal(unbalanced.receipt.outcome.phase, 'json-ingress');
+  assert.equal(unbalanced.receipt.outcome.failure.ruleId, 'TRANSPORT_JSON_DELIMITERS_BALANCED');
+  assert.equal(unbalanced.receipt.ingress.jsonDiagnostic.kind, 'json-delimiter-damage');
+  assert.deepEqual(unbalanced.receipt.ingress.integrityFlags, []);
+  assert.equal(unbalanced.receipt.ingress.repairDiagnostics[0].kind, 'append_closers_at_end_of_output');
+  assert.deepEqual(unbalanced.analysisEvidence, []);
 
   const malformed = runQualificationAttempt({
     attempt,

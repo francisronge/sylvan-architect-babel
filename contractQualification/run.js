@@ -114,7 +114,7 @@ export const validateQualificationPlan = (input) => {
     requireExactFields(attempt.source, ['kind', 'path'], `${path}.source`);
     if (![
       'committed-fixture-payload',
-      'committed-fixture-payload-missing-final-closer',
+      'committed-fixture-payload-stray-final-closer',
       'raw-text-file'
     ].includes(attempt.source.kind)) {
       throw new TypeError(

@@ -73,12 +73,23 @@ for (const sample of fableCases) {
     const raw = Buffer.from(sample.missingClosers ? complete.slice(0, -2) : complete);
     const originalBytes = Buffer.from(raw);
     const result = runQualificationAttempt({ attempt, rawOutputBytes: raw });
-    assert.equal(result.inspection.analyses[0].normalization.status, 'succeeded');
     assert.equal(result.receipt.rawOutput.sha256, createHash('sha256').update(originalBytes).digest('hex'));
+    assert.deepEqual(raw, originalBytes);
+    if (sample.missingClosers) {
+      // Babel does not guess where the two missing closers belonged.
+      assert.equal(result.receipt.outcome.status, 'failed');
+      assert.equal(result.receipt.outcome.failure.ruleId, 'TRANSPORT_JSON_DELIMITERS_BALANCED');
+      assert.deepEqual(result.receipt.ingress.repairDiagnostics, [{
+        kind: 'append_closers_at_end_of_output', candidateByteOffset: originalBytes.byteLength,
+        removedText: '', insertedText: ']}', removedBytesHex: '', insertedBytesHex: '5d7d'
+      }]);
+      assert.equal(result.inspection, null);
+      return;
+    }
+    assert.equal(result.inspection.analyses[0].normalization.status, 'succeeded');
     assert.equal(result.bundle.analyses.length, 1);
     assert.deepEqual(result.bundle.analyses[0].derivationStages[sample.brokenIndex]
       .relations[sample.relationIndex].relationContractFailure.raw.values, sample.values);
-    assert.deepEqual(raw, originalBytes);
     assert.deepEqual(result.inspection.payload, payloadFor(sample));
     assert.equal(result.inspection.analyses[0].stages.length, 5);
     assert.ok(result.inspection.analyses[0].stages.every((entry) => Array.isArray(entry.workspaceForest)));
@@ -88,14 +99,7 @@ for (const sample of fableCases) {
     assert.equal(result.inspection.rawOutput.sha256, result.receipt.rawOutput.sha256);
     assert.deepEqual(Buffer.from(result.inspection.rawOutput.data, 'base64'), originalBytes);
     assert.deepEqual(result.inspection.repairDiagnostics, result.receipt.ingress.repairDiagnostics);
-    if (sample.missingClosers) {
-      assert.deepEqual(result.receipt.ingress.repairDiagnostics, [{
-        kind: 'append_closers_at_end_of_output', candidateByteOffset: originalBytes.byteLength,
-        removedText: '', insertedText: ']}', removedBytesHex: '', insertedBytesHex: '5d7d'
-      }]);
-    } else {
-      assert.deepEqual(result.receipt.ingress.repairDiagnostics, []);
-    }
+    assert.deepEqual(result.receipt.ingress.repairDiagnostics, []);
   });
 }
 
@@ -290,7 +294,7 @@ test('a malformed relation in an ambiguity envelope stays local to its analysis'
 
 test('the generation route preserves every raw stage and diagnostic without a replacement call', async () => {
   // The live route receives a spell-out output: the same stages without token addresses.
-  const raw = JSON.stringify(restateAsSpellout(payloadFor(fableCases[0]), 'Mia', ['Mia'])).slice(0, -2);
+  const raw = `${JSON.stringify(restateAsSpellout(payloadFor(fableCases[0]), 'Mia', ['Mia']))}]}`;
   const previousKey = process.env.OPENAI_API_KEY;
   process.env.OPENAI_API_KEY = 'provider-free-test-key';
   let calls = 0;
@@ -308,7 +312,7 @@ test('the generation route preserves every raw stage and diagnostic without a re
     assert.equal(result.analyses[0].derivationStages[2].relations[0]
       .relationContractFailure.issues[0].fieldPath, '$.derivationStages[2].relations[0].values');
     assert.equal(result.analyses[0].provenance.payloadRepairDiagnostics[0].kind,
-      'append_closers_at_end_of_output');
+      'remove_unmatched_closer');
     assert.equal(calls, 1);
   } finally {
     if (previousKey === undefined) delete process.env.OPENAI_API_KEY;

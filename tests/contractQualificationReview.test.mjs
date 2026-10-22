@@ -88,9 +88,9 @@ test('the provider-free review preserves success, repair, and failure evidence',
     assert.equal(repaired.outcome.status, 'valid-pending-review');
     assert.equal(
       repairedReceipt.ingress.repairDiagnostics[0].kind,
-      'append_closers_at_end_of_output'
+      'remove_unmatched_closer'
     );
-    assert.equal(repairedReceipt.ingress.repairDiagnostics[0].insertedText, '}');
+    assert.equal(repairedReceipt.ingress.repairDiagnostics[0].removedText, '}');
 
     const malformed = manifest.entries.find(({ attemptId }) => (
       attemptId === 'smoke-malformed-json'

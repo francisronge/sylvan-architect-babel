@@ -220,15 +220,15 @@ test('invalid model selections and settings are rejected before any provider cal
 test('repair diagnostics and original bytes survive the new generation path', async (t) => {
   isolate(t);
   const model = getResearchModel('moonshot:kimi-k3');
-  const damagedOutput = rawOutput.slice(0, -1);
+  const damagedOutput = `${rawOutput}}`;
   const responseText = JSON.stringify(envelopeFor(model, damagedOutput));
   t.mock.method(globalThis, 'fetch', async () => new Response(responseText));
   const bundle = await parseFromBody({ sentence: fixture.sentence, modelId: model.id });
   assert.equal(decode(bundle.rawModelOutput), damagedOutput);
   assert.equal(decode(bundle.generationRecord.rawProviderResponse), responseText);
-  assert.equal(bundle.analyses[0].provenance.payloadRepairDiagnostics[0].kind, 'append_closers_at_end_of_output');
+  assert.equal(bundle.analyses[0].provenance.payloadRepairDiagnostics[0].kind, 'remove_unmatched_closer');
   assert.deepEqual(bundle.generationRecord.processing.json.repairDiagnostics, bundle.analyses[0].provenance.payloadRepairDiagnostics);
-  assert.equal(bundle.generationRecord.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damagedOutput));
+  assert.equal(bundle.generationRecord.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(rawOutput));
 });
 
 test('a large malformed answer keeps the whole failure body within its bound on every route', async t => {
@@ -295,7 +295,7 @@ test('all active routes keep a malformed relation neutral without replacing the 
   isolate(t);
   const payload = structuredClone(spelledPayload);
   payload.derivationStages[3].relations[1].values = ['literal content'];
-  const damaged = JSON.stringify(payload).slice(0, -2);
+  const damaged = `${JSON.stringify(payload)}]}`;
   for (const modelId of GENERATION_MODEL_IDS) {
     const model = getResearchModel(modelId);
     const responseText = JSON.stringify(envelopeFor(model, damaged));
@@ -309,8 +309,8 @@ test('all active routes keep a malformed relation neutral without replacing the 
     assert.equal(decode(result.rawModelOutput), damaged);
     assert.equal(decode(record.rawProviderResponse), responseText);
       assert.equal(record.outcome.attempts.length, 1);
-      assert.equal(record.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damaged));
-      assert.deepEqual(record.processing.json.repairDiagnostics.map(({ insertedText }) => insertedText), [']}']);
+      assert.equal(record.processing.json.diagnostic.originalByteOffset, Buffer.byteLength(damaged) - 2);
+      assert.deepEqual(record.processing.json.repairDiagnostics.map(({ removedText }) => removedText), [']}']);
       const inspection = runQualificationAttempt({
         attempt: { id: modelId, request: { sentence: fixture.sentence, framework: 'xbar' },
           model: { providerRoute: model.providerRoute, providerModel: model.providerModel, nativeSettings: {} },

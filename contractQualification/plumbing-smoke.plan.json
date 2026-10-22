@@ -52,7 +52,7 @@
         }
       },
       "source": {
-        "kind": "committed-fixture-payload-missing-final-closer",
+        "kind": "committed-fixture-payload-stray-final-closer",
         "path": "fixtures/raw/mia-laughed.xbar.json"
       }
     },

@@ -47,8 +47,8 @@ const rawBytesForAttempt = (attempt) => {
   }
   const payload = `${JSON.stringify(fixture.payload, null, 2)}\n`;
   return Buffer.from(
-    attempt.source.kind === 'committed-fixture-payload-missing-final-closer'
-      ? payload.replace(/\}\s*$/u, '')
+    attempt.source.kind === 'committed-fixture-payload-stray-final-closer'
+      ? `${payload.trimEnd()}}\n`
       : payload,
     'utf8'
   );

@@ -163,7 +163,7 @@ export type PayloadRepairKind =
   | 'append_closers_at_end_of_output';
 
 export interface JsonDiagnostic {
-  kind: 'json-syntax' | 'json-root-type';
+  kind: 'json-syntax' | 'json-root-type' | 'json-delimiter-damage';
   message: string;
   candidateByteOffset?: number;
   originalByteOffset?: number;
