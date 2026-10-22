@@ -380,6 +380,11 @@ export const dispatchRelationClaims = (
         : lookupTier2SynonymCandidates(synonymIndex, 'role', role))
     : []);
   const primaryAcceptsAdditionalAnchors = registryEntry?.signature.anchors.allowAdditional === true;
+  // A claim of a registered envelope is independent of its primary only when
+  // none of its current anchors fills a role that primary declares.
+  const fillsDeclaredPrimaryRole = (key: string): boolean => declaredPrimaryAnchorKeys.has(normalizeTier2Synonym(key))
+    || [...(evidence.authoredCurrentAnchors?.find(entry => entry.key === key)?.concepts ?? []),
+      ...lookupTier2SynonymCandidates(synonymIndex, 'role', key)].some(concept => declaredPrimaryAnchorConcepts.has(concept));
   const indexes = indexTier2Forests(evidence);
   const evaluations = evaluateClaims(evidence, indexes);
   const thematic = typedThematicAssignment(evidence);
@@ -409,15 +414,7 @@ export const dispatchRelationClaims = (
       const currentAnchorEvidence = evaluation.consumedEvidence.filter(
         ({ field }) => field === 'anchors'
       );
-      return currentAnchorEvidence.length > 0 && currentAnchorEvidence.every(
-        ({ key }) => (
-          !declaredPrimaryAnchorKeys.has(normalizeTier2Synonym(key))
-          && [...(evidence.authoredCurrentAnchors?.find(entry => entry.key === key)?.concepts ?? []),
-          ...lookupTier2SynonymCandidates(synonymIndex, 'role', key)].every(
-            (concept) => !declaredPrimaryAnchorConcepts.has(concept)
-          )
-        )
-      );
+      return currentAnchorEvidence.length > 0 && currentAnchorEvidence.every(({ key }) => !fillsDeclaredPrimaryRole(key));
     })
     : completeClaims;
   const { selected, diagnostics } = resolveClaimCollisions(eligibleClaims, evidence);
@@ -583,7 +580,8 @@ export const dispatchRelationClaims = (
     if (covered) selected.splice(index, 1);
   }
   const properties = !registryEntry ? [...recoverParticipantProperties(evidence), ...recoverNamedArgumentProperties(evidence)]
-    : authoredTier1Dispatch.outcome !== 'resolved' ? recoverPairedCaseProperties(evidence) : [];
+    : authoredTier1Dispatch.outcome !== 'resolved' ? recoverPairedCaseProperties(evidence)
+      .filter(scope => !Object.keys(scope.origins.anchors).some(fillsDeclaredPrimaryRole)) : [];
   // An explicitly named abstract tense head owns a checked tense property.
   // A generic PF reading of that same lone row is weaker carrier evidence.
   if (relationLabelClauses(evidence.relationName).includes('tense feature checking')) {
