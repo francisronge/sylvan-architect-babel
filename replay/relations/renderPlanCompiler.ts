@@ -1,4 +1,4 @@
-import type { DerivationStage } from '../../types.ts';
+import type { DerivationStage, SyntaxNode } from '../../types.ts';
 import { dispatchRelationStages, projectRelationStages, type DispatchedRelationStages } from '../relationStages.ts';
 import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
 import { findRelationRegistryEntry } from '../relationDispatch/relationRegistry.js';
@@ -724,6 +724,25 @@ export const compileDispatchedRelationRenderPlan = (
   const chainIndexByLineage = new Map([...dependencyPlaceholders.keys()]
     .map((key, ordinal) => [key, dependencyLetters[ordinal]] as const)
     .filter(([key]) => key.startsWith('lineage:')));
+  // A phrasal chain's key lists every lineage its occurrences share, the
+  // copied descendants' too (stableChainKey). An argument belongs to such a
+  // chain when its own lineage is listed and its subtree carries all of them.
+  const chainIndexOf = (stageIndex: number, nodeId: string, key: string): string | undefined => {
+    if (chainIndexByLineage.has(key)) return chainIndexByLineage.get(key);
+    const subtree = new Set<string>();
+    const walk = (node: SyntaxNode) => {
+      if (node.lineageId) subtree.add(String(node.lineageId));
+      node.children?.forEach(walk);
+    };
+    const argument = stageNodeMaps[stageIndex].get(nodeId);
+    if (argument) walk(argument);
+    const own = key.slice('lineage:'.length);
+    const letters = new Set([...chainIndexByLineage].flatMap(([chain, letter]) => {
+      const shared = chain.slice('lineage:'.length).split('|');
+      return shared.includes(own) && shared.every(lineage => subtree.has(lineage)) ? [letter] : [];
+    }));
+    return letters.size === 1 ? [...letters][0] : undefined;
+  };
   let nextArgumentIndex = 0;
   // Theta notation identifies the exact argument, or its explicit root lineage.
   // Shared descendants and similarly spelled labels cannot merge arguments.
@@ -733,7 +752,7 @@ export const compileDispatchedRelationRenderPlan = (
     const key = lineage ? `lineage:${lineage}` : `theta:${nodeId}`;
     if (!argumentIndexByKey.has(key)) {
       const authored = authoredIndicesByIdentity.get(key);
-      let index = authored?.size === 1 ? [...authored][0] : chainIndexByLineage.get(key) ?? '';
+      let index = authored?.size === 1 ? [...authored][0] : (lineage && chainIndexOf(stageIndex, nodeId, key)) || '';
       while (!index) {
         const candidate = conventionalIndex(nextArgumentIndex++);
         if (!usedIndices.has(candidate)) index = candidate;

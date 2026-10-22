@@ -11,6 +11,11 @@ import {
 import type { RegisteredPlanCompilers } from './registeredPlanContext.ts';
 import { singleValue } from './tier2PlanValues.ts';
 
+/** An authored edge list is a set. Two claims about one phase head describe
+ * the same edge composition when their edge occurrences overlap, in any order. */
+const sharesEdge = (authored: string | string[] | undefined, edges: readonly string[]): boolean =>
+  flattenAnchorIds(authored).some(id => edges.includes(id));
+
 export const domainPlan = {
   'boundary-cuts': (context) => {
     const { anchors, values, family, base } = context.claim;
@@ -63,7 +68,7 @@ export const domainPlan = {
         return Boolean(candidateEntry)
           && families[candidateEntry!.id]?.family === 'transfer-domain'
           && flattenAnchorIds(companionAnchors(candidateStageIndex, candidateRelationIndex).phase)[0] === phase
-          && flattenAnchorIds(companionAnchors(candidateStageIndex, candidateRelationIndex).edge)[0] === edge;
+          && sharesEdge(companionAnchors(candidateStageIndex, candidateRelationIndex).edge, [edge]);
       })
     ));
     if (transferElaboratesPhase && edge) {
@@ -123,7 +128,7 @@ export const domainPlan = {
         return Boolean(candidateEntry)
           && ['phase-arc', 'transfer-domain'].includes(families[candidateEntry!.id]?.family)
           && flattenAnchorIds(companionAnchors(candidateStageIndex, candidateRelationIndex).phase)[0] === phase
-          && flattenAnchorIds(companionAnchors(candidateStageIndex, candidateRelationIndex).edge)[0] === edge;
+          && sharesEdge(companionAnchors(candidateStageIndex, candidateRelationIndex).edge, edges);
       });
     });
     if (!phaseAlreadyAuthored) {
@@ -195,7 +200,7 @@ export const domainPlan = {
           return Boolean(candidateEntry)
             && families[candidateEntry!.id]?.family === 'blocked-access'
             && flattenAnchorIds(companionAnchors(candidateStageIndex, candidateRelationIndex).phase)[0] === phase
-            && flattenAnchorIds(companionAnchors(candidateStageIndex, candidateRelationIndex).edge)[0] === edge;
+            && sharesEdge(companionAnchors(candidateStageIndex, candidateRelationIndex).edge, flattenAnchorIds(anchors.edge));
         });
       });
       if (!priorComposition) {
