@@ -6,6 +6,8 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 
+import { trackProviderCalls } from './babelParser/providerTransport.js';
+import { createDailyParseQuota } from './dailyParseQuota.js';
 import { formatApiError, parseFromRequest } from './parseApi.js';
 import {
   MALFORMED_JSON,
@@ -49,36 +51,10 @@ const accessPolicy = readParseAccessPolicy(process.env, {
 const parseRateLimitPerMinute = toPositiveInt(process.env.BABEL_PARSE_RATE_LIMIT_PER_MINUTE, 30);
 const parseDailyLimitPerIp = toPositiveInt(process.env.BABEL_PARSE_DAILY_LIMIT_PER_IP, 1200);
 const maxInFlightParses = toPositiveInt(process.env.BABEL_MAX_IN_FLIGHT_PARSES, 8);
-const dailyUsageByIp = new Map();
+const dailyQuota = createDailyParseQuota({ limit: parseDailyLimitPerIp });
 let inFlightParses = 0;
 
 const getClientIp = (req) => String(req.ip || req.socket?.remoteAddress || 'unknown');
-
-const currentDayBucket = () => Math.floor(Date.now() / 86400000);
-
-const enforceDailyIpQuota = (req, res, next) => {
-  const ip = getClientIp(req);
-  const dayBucket = currentDayBucket();
-  const key = `${ip}|${dayBucket}`;
-  const used = Number(dailyUsageByIp.get(key) || 0);
-
-  if (used >= parseDailyLimitPerIp) {
-    return res.status(429).json({
-      error: { code: 'RATE_LIMITED_DAILY', message: 'Daily parse limit reached for this IP. Please retry tomorrow.' }
-    });
-  }
-
-  dailyUsageByIp.set(key, used + 1);
-  if (dailyUsageByIp.size > 20000) {
-    for (const existingKey of dailyUsageByIp.keys()) {
-      const bucket = Number(String(existingKey).split('|')[1]);
-      if (!Number.isFinite(bucket) || bucket < dayBucket) {
-        dailyUsageByIp.delete(existingKey);
-      }
-    }
-  }
-  return next();
-};
 
 // `trust proxy` decides whether req.protocol reads a forwarded protocol.
 const enforceParseRequestSecurity = (req, res, next) => {
@@ -123,17 +99,28 @@ app.all('/api/parse', (req, res, next) => {
   return next();
 });
 
-app.post('/api/parse', parseLimiter, enforceDailyIpQuota, enforceParseRequestSecurity, async (req, res) => {
+// Only an admitted request uses the daily allowance and an in-flight slot.
+app.post('/api/parse', parseLimiter, enforceParseRequestSecurity, async (req, res) => {
+  const ip = getClientIp(req);
+  if (dailyQuota.exhausted(ip)) {
+    return res.status(429).json({
+      error: { code: 'RATE_LIMITED_DAILY', message: 'Daily parse limit reached for this IP. Please retry tomorrow.' }
+    });
+  }
   if (inFlightParses >= maxInFlightParses) {
     return res.status(503).json({
       error: { code: 'SERVER_BUSY', message: 'Too many parse requests are in-flight. Please retry shortly.' }
     });
   }
 
+  dailyQuota.record(ip);
   inFlightParses += 1;
+  // The slot stays taken after the response ends until every provider call settles.
+  const generation = trackProviderCalls(() => parseFromRequest(req, res));
+  generation.settled.then(() => { inFlightParses -= 1; });
 
   try {
-    const result = await parseFromRequest(req, res);
+    const result = await generation.result;
     if (!res.destroyed) res.status(200).json(result);
   } catch (error) {
     if (res.destroyed) return;
@@ -142,8 +129,6 @@ app.post('/api/parse', parseLimiter, enforceDailyIpQuota, enforceParseRequestSec
       console.error('[api/parse] server error', describeParseServerFailure(error, formatted));
     }
     res.status(formatted.status).json(formatted.body);
-  } finally {
-    inFlightParses = Math.max(0, inFlightParses - 1);
   }
 });
 
