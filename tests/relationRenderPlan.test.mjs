@@ -1627,3 +1627,18 @@ test('a phrasal argument shows its chain\'s index when the copies share descenda
   // A copied descendant is its own argument, not the phrase's chain.
   assert.notEqual(role('lowN').index, chain.index);
 });
+
+test('a theta assignment with a trace witness draws its grid, never a movement path', () => {
+  const tree = node('tp', 'TP', [leaf('high', 'DP', 'Mia', { lineageId: 'mia' }),
+    node('vp', 'VP', [leaf('low', 'DP', 'Mia', { lineageId: 'mia', silent: true }), leaf('v', 'V', 'see'), leaf('obj', 'DP', 'him')])]);
+  const items = anchors => compileRelationRenderPlan([stage([{ relation: 'ThetaAssignment', anchors }], [tree])]).frames[0].items;
+  const witnessed = items({ predicate: 'v', agent: 'low', theme: 'obj', traceWitness: 'low' });
+  const grid = witnessed.find(item => item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid');
+  assert.deepEqual(grid?.thetaRoles.map(role => `${role.nodeId}:${role.label}`), ['low:Agent', 'obj:Theme']);
+  // The witness is retained as neutral context rather than read as a theta role.
+  assert.deepEqual(witnessed.filter(item => item.kind === 'fallback').map(item => Object.keys(item.relationRef.anchors)), [['traceWitness']]);
+  for (const anchors of [{ predicate: 'v', agent: 'low', source: 'obj', traceWitness: 'low' },
+    { predicate: 'v', theme: 'obj', source: 'low', target: 'high', traceWitness: 'low' }]) {
+    assert(!items(anchors).some(item => item.kind === 'trajectory'), JSON.stringify(anchors));
+  }
+});

@@ -673,8 +673,10 @@ export const dispatchRelationClaims = (
       priorForest
     })
     : authoredTier1Dispatch;
+  // A theta grid's predicate context and a movement witness are not arguments.
   const thetaContext = registryEntry?.id === 'theta.grid'
-    ? new Set(evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('predicate.context')).map(entry => entry.key))
+    ? new Set(evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('predicate.context')
+      || entry.concepts.includes('movement.witness')).map(entry => entry.key))
     : new Set<string>();
   const unownedAnchors = tier1Dispatch.outcome === 'resolved'
     ? Object.keys(primaryRelation.anchors ?? {}).filter(key => thetaContext.has(key)
