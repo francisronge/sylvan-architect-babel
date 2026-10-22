@@ -1,5 +1,5 @@
 {
   "name": "Sylvan Architect Babel",
-  "description": "A sophisticated linguistic tool that uses Gemini to analyze English sentences and generate detailed X-bar theory syntax trees with high-fidelity visual rendering.",
+  "description": "A syntax tree generator built for research and learning. It helps researchers test how large language models reason about syntax under explicit theoretical prompts, while also giving students a clean and practical way to generate, inspect, and compare syntactic trees.",
   "requestFramePermissions": []
 }
