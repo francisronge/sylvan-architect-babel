@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test, { after } from 'node:test';
 import postcss from 'postcss';
+import { deferredTreeMatrix } from '../components/renderer/cameraState.ts';
 import { createLinearizationDrawing } from '../components/renderer/linearizationDrawing.ts';
 import { createRealizationDrawing } from '../components/renderer/realizationDrawing.ts';
 import { acceptedRelationDrawingKey, relationLayerKey } from '../components/renderer/relationOwnership.ts';
@@ -19,7 +20,7 @@ import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompile
 import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { buildStagePlaqueLayout } from '../replay/stageCamera.ts';
-import { createSvgDom, descendants, matches, select } from './helpers/svgDom.mjs';
+import { createSvgDom, descendants, Matrix, matches, select } from './helpers/svgDom.mjs';
 
 const { Element, restore } = createSvgDom();
 after(restore);
@@ -60,8 +61,11 @@ const guarded = (items) => items.map((item) => ({ ...item,
   relationRef: { ...item.relationRef, anchors: rawGuard, priorAnchors: rawGuard, values: rawGuard }
 }));
 
+// `liveTreeMatrix` is the tree layer's painted screen matrix and
+// `deferredRelationCamera` the pose the camera is settling at.
 function drawNative(name, items, workspaceForest = forest, drawItems = items, overrides = {}) {
   const root = new Element('g');
+  if (overrides.liveTreeMatrix) root.getScreenCTM = () => overrides.liveTreeMatrix;
   const treeData = hierarchy(workspaceForest[0]);
   const byId = new Map(treeData.descendants().map((node) => [node.data.id, node]));
   treeData.descendants().forEach((node, index) => {
@@ -94,13 +98,13 @@ function drawNative(name, items, workspaceForest = forest, drawItems = items, ov
     exactScreenTreeLabelRectForNodeIdsNow: () => ({ x: 0, y: 0, width: 260, height: 280 }),
     markPreterminalLensNode() {}, markSubtreeLensNodes() {},
     isDisplayTerminalNode: (node) => Boolean(node.data.word),
-    fitDeferredOverlayToCompactViewport() {},
     containerWidth: 1600, containerRef: { current: null }, uiBounds: {},
     ...overrides
   };
   const context = { ...dependencies, labelBelongsToNode, acceptedRelationDrawingKey,
     scheduledAcceptedPfRelations: new Set(), identityTerminalOwners: new Map(),
-    relationEmphasisForItem: () => null, getDeferredRelationCamera: () => dependencies.deferredRelationCamera };
+    relationEmphasisForItem: () => null,
+    deferredTreeMatrix: () => deferredTreeMatrix(dependencies.svg.node(), root, dependencies.deferredRelationCamera) };
   const factories = {
     scheduleAcceptedScopeInformationRelation: createScopeDrawing,
     scheduleAcceptedSharingRelation: createSharingDrawing,
@@ -514,6 +518,56 @@ test('a morphology panel uses the destination camera while the visible camera is
     plan.frames[0].items, { svg: select(svgElement), deferredRelationCamera: { x: 90, y: 70, k: 0.5 } });
   assert.deepEqual(calls, [['translate', 90, 70], ['scale', 0.5]]);
   assert.equal(drawing('babel-pf-morphology-shell').length, 1);
+});
+
+// A Replay step paints the start of its camera transition before deferred
+// plates draw. The live tree matrix stays at that start while the settled one
+// is where the camera will rest; each plate must be placed for the latter.
+const settledPlacement = (pose, svgRect = { left: 0, top: 0, right: 1600, bottom: 1100, width: 1600, height: 1100 }) => {
+  const svgElement = new Element('svg');
+  svgElement.rect = svgRect;
+  const settled = new Matrix().translate(pose.x, pose.y).scale(pose.k);
+  const screen = (node, x = 'x', y = 'y') => new DOMPoint(Number(node.attrs[x]), Number(node.attrs[y])).matrixTransform(settled);
+  return { overrides: { svg: select(svgElement), deferredRelationCamera: pose, liveTreeMatrix: new Matrix() }, screen };
+};
+
+test('the Ordering plate takes its viewport slot and screen size from the settled camera', () => {
+  const plan = compileRelationRenderPlan([stage([]), stage([{ relation: 'CyclicLinearization',
+    anchors: { sequence: ['a', 'mid'] }, priorAnchors: { order: ['mid', 'a'] } }])]);
+  const { overrides, screen } = settledPlacement({ x: 100, y: 40, k: 0.5 });
+  const svg = drawNative('scheduleAcceptedCyclicLinearization', plan.frames[1].items, forest,
+    plan.frames[1].items, overrides);
+  const [shell] = svg('babel-pf-morphology-shell');
+  // The wide-viewport slot: 350 px wide against the right inset, at the top inset.
+  assert.deepEqual(screen(shell), new DOMPoint(1234, 16));
+  assert.equal(Number(shell.attrs.width) * 0.5, 350);
+  assert.equal(svg('babel-linearization-row')[0].styles['font-size'], '22px');
+});
+
+test('PF correspondence and phrasal spell-out are clamped and sized for the settled camera', () => {
+  const correspondence = compile({ relation: 'ManyToManyCorrespondence', anchors: { word: 'a' },
+    values: { sources: ['T', 'V'], exponents: ['did', 'go'] } });
+  const { overrides, screen } = settledPlacement({ x: 1200, y: 0, k: 0.5 });
+  const [shell] = drawNative('scheduleAcceptedPfRelation', correspondence.frames[0].items, forest,
+    correspondence.frames[0].items, overrides)('babel-pf-correspondence-shell');
+  assert.equal(Number(shell.attrs.width) * 0.5, 330, 'the panel is 330 screen pixels wide once settled');
+  assert.equal(screen(shell).x + 330, 1588, 'it is clamped against the settled viewport’s right inset');
+  const phrasal = compile({ relation: 'PhrasalSpellOut', anchors: { phrase: 'mid' }, values: { exponent: 'went' } });
+  const [label] = drawNative('scheduleAcceptedPfRelation', phrasal.frames[0].items, forest,
+    phrasal.frames[0].items, overrides)('babel-phrasal-spellout-label');
+  assert.equal(label.styles['font-size'], '32px');
+  assert.equal(label.attrs.x, (260 + 7 / 0.5).toFixed(1));
+});
+
+test('a compact Cooper ledger keeps inside the viewport of the settled camera', () => {
+  const plan = compile({ relation: 'CooperStorage', anchors: { scope: 'root' }, values: { category: 'S', qstore: ['Q_i'] } });
+  const { overrides, screen } = settledPlacement({ x: 100, y: 0, k: 0.5 },
+    { left: 0, top: 0, right: 390, bottom: 844, width: 390, height: 844 });
+  const svg = drawNative('scheduleAcceptedScopeInformationRelation', plan.frames[0].items, forest,
+    plan.frames[0].items, { ...overrides, containerWidth: 390 });
+  const [, right] = svg('babel-cooper-storage-bracket');
+  const rightX = Number(right.attrs.d.match(/H (-?[\d.]+)/)[1]);
+  assert.equal(screen({ attrs: { x: rightX, y: 0 } }).x, 378, 'its right edge meets the settled right inset');
 });
 
 test('native local dislocation paints the same changed partitions from either public tier', () => {

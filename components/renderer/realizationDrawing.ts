@@ -5,6 +5,7 @@ import {
 import {
   type RelationPlanItem
 } from '../../replay/relations/renderPlan.ts';
+import { isCompactViewport } from '../../replay/rendererMetrics.ts';
 import {
   isNullLike,
   resolveLeafSurface
@@ -13,6 +14,7 @@ import { type HierNode } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
 import { detachedPlaqueOrigin } from '../detachedPlaquePlacement.ts';
 import { availableTreeViewport } from '../treeViewport.ts';
+import { settledClientPoint } from './cameraState.ts';
 import type { ClaimDrawing, DrawingLayer, RelationEmphasis, TreeMeasurements } from './drawingContext.ts';
 
 import { withPlaqueTextMeasure } from './plaqueText.ts';
@@ -22,8 +24,9 @@ interface RealizationDrawingContext extends Pick<ClaimDrawing, 'acceptedRelation
   scheduledAcceptedPfRelations: Set<string>;
   g: DrawingLayer;
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  fitDeferredOverlayToCompactViewport: (layer: SVGGElement, inset?: number) => void;
-  getDeferredRelationCamera: () => d3.ZoomTransform | null;
+  containerWidth: number;
+  /** The tree layer's screen matrix under the settled camera (`deferredTreeMatrix`). */
+  deferredTreeMatrix: () => DOMMatrix | null;
   overlayNodeById: Map<string, d3.HierarchyPointNode<SyntaxNode>>;
   measureGraphicsElementsInTreeSpace: (elements: SVGGraphicsElement[]) => { x: number; y: number; width: number; height: number; } | null;
   uiBounds: { top: number; right: number; bottom: number; headerBottom: number; panelTop: number };
@@ -38,8 +41,8 @@ export function createRealizationDrawing({
   g,
   svg,
   exactScreenTreeLabelRectNow,
-  fitDeferredOverlayToCompactViewport,
-  getDeferredRelationCamera,
+  containerWidth,
+  deferredTreeMatrix,
   overlayNodeById,
   measureGraphicsElementsInTreeSpace,
   uiBounds,
@@ -67,7 +70,9 @@ export function createRealizationDrawing({
       queueAcceptedRelationDraw(item, emphasis, () => {
         if (item.kind !== 'node-plaque') return;
         const root = g.node();
-        const matrix = root?.getScreenCTM();
+        // Deferred drawing can run during a camera transition. Place and size
+        // the panel for the settled camera, then let it move with the tree.
+        const matrix = deferredTreeMatrix();
         const svgRect = svg.node()?.getBoundingClientRect();
         if (!root || !matrix || !svgRect) return;
         const inverse = matrix.inverse();
@@ -188,7 +193,11 @@ export function createRealizationDrawing({
           appendLabel('babel-pf-correspondence-exponent', point.label, point, 13);
         });
         const fittedLayer = layer.node();
-        if (fittedLayer) fitDeferredOverlayToCompactViewport(fittedLayer);
+        const svgNode = svg.node();
+        const liveMatrix = root.getScreenCTM();
+        if (fittedLayer && svgNode && liveMatrix && isCompactViewport(containerWidth)) {
+          fitOverlayToCompactViewport(fittedLayer, svgNode.getBoundingClientRect(), liveMatrix, matrix);
+        }
       });
     }
     return true;
@@ -208,13 +217,9 @@ export function createRealizationDrawing({
       queueAcceptedRelationDraw(item, emphasis, () => {
         if (item.kind !== 'node-plaque') return;
         const root = g.node();
-        const outerMatrix = svg.node()?.getScreenCTM();
         // Deferred drawing can run during a camera transition. Place the
         // complete panel for the destination, then let it move with the tree.
-        const deferredRelationCamera = getDeferredRelationCamera();
-        const matrix = deferredRelationCamera && outerMatrix
-          ? outerMatrix.translate(deferredRelationCamera.x, deferredRelationCamera.y).scale(deferredRelationCamera.k)
-          : root?.getScreenCTM();
+        const matrix = deferredTreeMatrix();
         const svgRect = svg.node()?.getBoundingClientRect();
         if (!root || !matrix || !svgRect) return;
         const inverse = matrix.inverse();
@@ -559,4 +564,60 @@ export function createRealizationDrawing({
     return true;
   };
   return { scheduleAcceptedPfRelation, scheduleAcceptedPfMorphologyRelation };
+}
+
+/** Shrinks, then shifts, an overlay drawn directly in the tree layer so that it
+ * lies inside the compact viewport once the camera settles. `live` and
+ * `settled` are the tree layer's live and settled screen matrices: the overlay
+ * is measured as painted and judged where it will be. */
+export function fitOverlayToCompactViewport(layer: SVGGElement, viewport: DOMRect, live: DOMMatrix,
+  settled: DOMMatrix, inset = 12) {
+  const settle = settledClientPoint(live, settled);
+  const settledRect = () => {
+    const rect = layer.getBoundingClientRect();
+    const start = settle(rect.left, rect.top);
+    const end = settle(rect.right, rect.bottom);
+    return {
+      left: Math.min(start.x, end.x), right: Math.max(start.x, end.x),
+      top: Math.min(start.y, end.y), bottom: Math.max(start.y, end.y)
+    };
+  };
+  const availableWidth = Math.max(1, viewport.width - inset * 2);
+  const availableHeight = Math.max(1, viewport.height - inset * 2);
+  const initialRect = settledRect();
+  const initialWidth = initialRect.right - initialRect.left;
+  const initialHeight = initialRect.bottom - initialRect.top;
+  if (initialWidth <= 0 || initialHeight <= 0) return;
+
+  const fitScale = Math.min(1, availableWidth / initialWidth, availableHeight / initialHeight);
+  const bounds = layer.getBBox();
+  const pivotX = bounds.x + bounds.width / 2;
+  const pivotY = bounds.y + bounds.height / 2;
+  const scaleTransform = fitScale < 0.999
+    ? `translate(${pivotX} ${pivotY}) scale(${fitScale}) translate(${-pivotX} ${-pivotY})`
+    : '';
+  layer.setAttribute('transform', scaleTransform);
+
+  const fittedRect = settledRect();
+  const left = viewport.left + inset;
+  const right = viewport.right - inset;
+  const top = viewport.top + inset;
+  const bottom = viewport.bottom - inset;
+  const screenDx = fittedRect.left < left
+    ? left - fittedRect.left
+    : fittedRect.right > right
+      ? right - fittedRect.right
+      : 0;
+  const screenDy = fittedRect.top < top
+    ? top - fittedRect.top
+    : fittedRect.bottom > bottom
+      ? bottom - fittedRect.bottom
+      : 0;
+  if (screenDx === 0 && screenDy === 0) return;
+
+  const inverse = settled.inverse();
+  const origin = new DOMPoint(0, 0).matrixTransform(inverse);
+  const shifted = new DOMPoint(screenDx, screenDy).matrixTransform(inverse);
+  const translateTransform = `translate(${shifted.x - origin.x} ${shifted.y - origin.y})`;
+  layer.setAttribute('transform', `${translateTransform} ${scaleTransform}`.trim());
 }
