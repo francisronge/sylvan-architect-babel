@@ -62,7 +62,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.markdown-only != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -102,8 +102,12 @@ jobs:
       - name: Install pinned browser runtimes
         run: |
           for attempt in 1 2 3; do
-            timeout --kill-after=30s 8m npx --no-install playwright install --with-deps chromium webkit && exit 0
+            timeout --kill-after=30s 10m npx --no-install playwright install --with-deps chromium webkit && exit 0
             echo "::warning::browser install attempt $attempt failed or stalled; retrying"
+            # A killed attempt can leave apt holding its locks; clear them so the retry can run.
+            sudo pkill -9 -f 'apt-get|dpkg' || true
+            sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock /var/lib/apt/lists/lock
+            sudo dpkg --configure -a || true
           done
           exit 1
 

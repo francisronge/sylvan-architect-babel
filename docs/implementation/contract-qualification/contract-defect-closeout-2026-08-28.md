@@ -58,11 +58,13 @@ fixtures and reviewed as one source diff before external review.
 1. **Final-tree surface mismatch.** Babel currently rejects a single final tree
    whose overt words do not match the input. This closeout neither endorses nor
    changes that policy.
-2. **JSON delimiter repair.** The current repair is broader than safe
-   end-of-file closure: it may insert closing delimiters inside a document and
-   discard unmatched closing delimiters. Historical architecture work rejected
-   that broader rewriting and found no modern evidence requiring it. It remains
-   unchanged here so removal or narrowing can be decided explicitly.
+2. **JSON delimiter repair.** Decided: Francis removed it on 22 Oct 2026. It had
+   inserted and discarded closing delimiters anywhere in a document; the only
+   saved response it ever rescued (GPT-6.1 Sol, `night4-20261019`
+   `40-en-long-question`) came out with eight of its ten analyses nested inside
+   another. Unbalanced brackets now fail as `TRANSPORT_JSON_DELIMITERS_BALANCED`
+   with the raw output. A stricter rule that only drops stray closers after the
+   complete value is held for the public app.
 3. **Raw-output visibility.** Failure bytes are preserved, but the eventual
    public-versus-research display policy is separate product work.
 

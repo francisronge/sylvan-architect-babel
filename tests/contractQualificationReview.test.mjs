@@ -81,16 +81,19 @@ test('the provider-free review preserves success, repair, and failure evidence',
       Array.from({ length: evidence.replay.frameCount }, (_, index) => index)
     );
 
-    const repaired = manifest.entries.find(({ attemptId }) => (
-      attemptId === 'smoke-repaired-mia-laughed-xbar'
+    // Babel no longer closes the missing final bracket; the attempt fails at ingress.
+    const unbalanced = manifest.entries.find(({ attemptId }) => (
+      attemptId === 'smoke-unbalanced-mia-laughed-xbar'
     ));
-    const repairedReceipt = readJson(path.join(runRoot, repaired.receipt));
-    assert.equal(repaired.outcome.status, 'valid-pending-review');
-    assert.equal(
-      repairedReceipt.ingress.repairDiagnostics[0].kind,
-      'append_closers_at_end_of_output'
-    );
-    assert.equal(repairedReceipt.ingress.repairDiagnostics[0].insertedText, '}');
+    const unbalancedReceipt = readJson(path.join(runRoot, unbalanced.receipt));
+    assert.equal(unbalanced.outcome.status, 'failed');
+    assert.equal(unbalanced.outcome.phase, 'json-ingress');
+    assert.equal(unbalanced.outcome.failure.ruleId, 'TRANSPORT_JSON_DELIMITERS_BALANCED');
+    assert.equal(unbalanced.analyses.length, 0);
+    assert.equal(unbalancedReceipt.ingress.jsonDiagnostic.kind, 'json-delimiter-damage');
+    assert.deepEqual(unbalancedReceipt.ingress.repairDiagnostics, []);
+    assert.equal(unbalancedReceipt.rawOutput.sha256,
+      sha256(fs.readFileSync(path.join(runRoot, unbalanced.rawOutput))));
 
     const malformed = manifest.entries.find(({ attemptId }) => (
       attemptId === 'smoke-malformed-json'
@@ -127,7 +130,7 @@ test('the provider-free review preserves success, repair, and failure evidence',
     assert.equal(reviewReceipt.visualCaptureMade, false);
     assert.equal(reviewReceipt.interactiveReplay, true);
     assert.equal(reviewReceipt.attemptCount, 5);
-    assert.equal(reviewReceipt.analysisCount, 3);
+    assert.equal(reviewReceipt.analysisCount, 2);
   } finally {
     fs.rmSync(runRoot, { recursive: true, force: true });
   }
