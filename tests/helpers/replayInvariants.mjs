@@ -3,6 +3,7 @@
  * `includePlayback: true`) and returns `{ rule, frame, detail }` violations,
  * where `frame` is the 1-based Replay step or null for a whole-record fact.
  * Checkers never assert; callers decide which violations are expected. */
+import { momentRelationIdentities } from '../../replay/momentRelations.ts';
 import * as d3 from 'd3';
 import { createBindingDrawing, indexLetterLabels } from '../../components/renderer/bindingDrawing.ts';
 import { labelBelongsToNode, shellLabelElement, terminalLabelElement } from '../../components/renderer/treeMeasurements.ts';
@@ -105,6 +106,10 @@ export const voicesOccurrence = (pronunciation, identity, authoredId, named) => 
   const owner = pronunciation(identity.stageIndex, authoredId);
   return owner === undefined ? named : owner === identity.relationIndex;
 };
+
+/** `voicesOccurrence` for a moment, which voices for its own relation and any duplicate sharing it. */
+export const momentVoices = (pronunciation, step, authoredId, named) =>
+  momentRelationIdentities(step).some(identity => voicesOccurrence(pronunciation, identity, authoredId, named));
 
 const stepsOfStage = (steps, stageIndex) => steps.flatMap((step, index) => step.replayFrameIndex === stageIndex ? [index] : []);
 
@@ -241,24 +246,25 @@ function coveredByClaim(stage, relation, id) {
  * belongs to that moment's own authored claim.
  */
 export function checkRelationMoments(replay, record) {
-  const steps = replay.playbackSteps, out = [], moments = new Map();
-  steps.forEach((step, index) => {
-    if (step.replayKind !== 'relation' || !step.replayRelationIdentity) return;
-    const { stageIndex, relationIndex } = step.replayRelationIdentity, key = `${stageIndex}:${relationIndex}`;
+  const steps = replay.playbackSteps, out = [], moments = new Map(), shared = new Set();
+  steps.forEach((step, index) => momentRelationIdentities(step).forEach(({ stageIndex, relationIndex }, position) => {
+    const key = `${stageIndex}:${relationIndex}`;
+    if (position > 0) shared.add(key);
     if (!moments.has(key)) moments.set(key, []);
     moments.get(key).push(index);
     if (step.replayFrameIndex !== stageIndex)
       out.push(violation('relation-moments', index + 1, `relation ${key} plays in stage ${step.replayFrameIndex + 1}, not its own stage ${stageIndex + 1}`));
     if (!isRenderableAuthoredRelation(record.derivationStages?.[stageIndex]?.relations?.[relationIndex]))
       out.push(violation('relation-moments', index + 1, `moment for ${key}, which is not a renderable authored relation`));
-  });
+  }));
   (record.derivationStages ?? []).forEach((stage, stageIndex) => {
     const played = (stage.relations ?? []).flatMap((relation, relationIndex) => {
       const key = `${stageIndex}:${relationIndex}`, own = moments.get(key) ?? [];
       if (!isRenderableAuthoredRelation(relation)) return [];
       if (own.length !== 1) out.push(violation('relation-moments', own[1] === undefined ? null : own[1] + 1,
         `relation ${key} (${relation.relation}) has ${own.length} moments`));
-      return own.length ? [{ key, relation, relationIndex, index: own[0] }] : [];
+      // A true duplicate sharing its original's moment takes that moment's place in the order.
+      return own.length && !shared.has(key) ? [{ key, relation, relationIndex, index: own[0] }] : [];
     }).sort((left, right) => left.index - right.index);
     played.forEach((moment, position) => {
       const overtaking = played.slice(0, position).filter(other => other.relationIndex > moment.relationIndex).at(-1);
@@ -474,6 +480,43 @@ export function checkParentAfterChildren(replay) {
   });
 }
 
+/** Every frame paints each authored node with as many daughters as the
+ * preceding or the current authored stage gives it. Construction builds
+ * forward: a new parent appears with all its daughters at its merge, a retained
+ * node keeps its earlier daughters until the step that gives it its new ones,
+ * and a movement moment brings the landing with the new parent that attaches
+ * it. So no frame paints a unary chain, a partial parent or an extra daughter
+ * that neither stage authors, whichever ids the stages assign and whichever
+ * step or relation paints it. The count is of painted daughters, so hiding a
+ * daughter in the canvas does not satisfy it; derived word leaves are
+ * pronunciation, not daughters. Nodes neither stage authors are left to the
+ * construction rules. */
+export function checkAuthoredArity(replay, record) {
+  const arities = (record.derivationStages ?? []).map(stage => {
+    const out = new Map();
+    const visit = node => { if (!node?.id) return; out.set(String(node.id), (node.children ?? []).length); (node.children ?? []).forEach(visit); };
+    (stage.workspaceForest ?? []).forEach(visit);
+    return out;
+  });
+  const daughterOf = (structure, id) => authoredIdentity(structure.nodes.get(id)).derivedWordOf === undefined;
+  return replay.playbackSteps.flatMap((step, index) => {
+    const own = step.replayFrameIndex, structure = frameStructure(step);
+    const where = `${step.replayKind} ${step.operation} (target ${step.targetNodeId ?? ''})`;
+    return [...structure.displayed].flatMap(id => {
+      const node = structure.nodes.get(id), authored = String(authoredIdentity(node).id ?? '');
+      if (!authored) return [];
+      // A node continuing other authored ids (its aliases) may paint any of their arities.
+      const names = [...new Set([authored, ...(node.data.aliasIds ?? []).map(String)])];
+      const counts = [own - 1, own].flatMap(stage => names.filter(name => arities[stage]?.has(name))
+        .map(name => [stage + 1, name, arities[stage].get(name)]));
+      const daughters = (structure.children.get(id) ?? []).filter(child => daughterOf(structure, child));
+      return !counts.length || counts.some(([, , count]) => count === daughters.length) ? [] : [violation('authored-arity', index + 1,
+        `${authored} paints ${daughters.length} ${daughters.length === 1 ? 'daughter' : 'daughters'} [${daughters.join(', ')}] at ${where}; `
+        + counts.map(([stage, name, count]) => `stage ${stage} authors ${count}${name === authored ? '' : ` for ${name}`}`).join(', '))];
+    });
+  });
+}
+
 const nodeNames = node => [getNodeId(node), node.data.id, ...(node.data.aliasIds ?? [])].filter(Boolean);
 
 const named = (node, ids) => nodeNames(node).some(name => ids.has(name));
@@ -567,10 +610,10 @@ export function checkNoEarlyReveal(replay) {
   steps.forEach((step, index) => {
     const structure = frameStructure(step), target = String(step.targetNodeId ?? '');
     const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
-    const authored = identity && replay.replayDerivationFrames?.[identity.stageIndex]?.relations?.[identity.relationIndex];
     const ownership = identity ? momentOwnership(step, replay.replayDerivationFrames) : null;
-    Object.values(authored?.anchors ?? {}).flat().forEach(id => ownership?.anchored.add(String(id)));
-    const voices = (owner, named) => voicesOccurrence(pronunciation, identity, authoredIdentity(owner).id, named);
+    momentRelationIdentities(step).map(shown => replay.replayDerivationFrames?.[shown.stageIndex]?.relations?.[shown.relationIndex])
+      .forEach(authored => Object.values(authored?.anchors ?? {}).flat().forEach(id => ownership?.anchored.add(String(id))));
+    const voices = (owner, named) => momentVoices(pronunciation, step, authoredIdentity(owner).id, named);
     for (const id of structure.displayed) {
       if (previous.displayed.has(id)) continue;
       const node = structure.nodes.get(id), origin = node.data.replayOrigin;
@@ -744,17 +787,16 @@ export function checkMovementLandingParent(replay, record) {
 export function checkMarksAtOwningMoment(replay) {
   const steps = replay.playbackSteps, plan = replay.relationRenderPlan, out = [], moments = new Map();
   if (!plan) return out;
-  steps.forEach((step, index) => {
-    if (step.replayKind !== 'relation' || !step.replayRelationIdentity) return;
-    const key = `${step.replayRelationIdentity.stageIndex}:${step.replayRelationIdentity.relationIndex}`;
+  steps.forEach((step, index) => momentRelationIdentities(step).forEach(identity => {
+    const key = `${identity.stageIndex}:${identity.relationIndex}`;
     if (!moments.has(key)) moments.set(key, index);
-  });
+  }));
   const played = new Map();
   steps.forEach((step, index) => {
     const stage = step.replayFrameIndex;
     if (!played.has(stage)) played.set(stage, new Set());
     const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
-    if (identity?.stageIndex === stage) played.get(stage).add(identity.relationIndex);
+    momentRelationIdentities(step).filter(shown => shown.stageIndex === stage).forEach(shown => played.get(stage).add(shown.relationIndex));
     for (const item of visiblePlanFrameItems(plan, stage, played.get(stage), identity ? identity.relationIndex : null)) {
       const refs = planItemRelationRefs(item);
       if (refs.some(ref => (moments.get(`${ref.stageIndex}:${ref.relationIndex}`) ?? Infinity) <= index)) continue;
@@ -802,7 +844,7 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
       const stage = step.replayFrameIndex;
       if (!played.has(stage)) played.set(stage, new Set());
       const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
-      if (identity?.stageIndex === stage) played.get(stage).add(identity.relationIndex);
+      momentRelationIdentities(step).filter(shown => shown.stageIndex === stage).forEach(shown => played.get(stage).add(shown.relationIndex));
       const items = visiblePlanFrameItems(plan, stage, played.get(stage), identity ? identity.relationIndex : null);
       if (!items.some(item => LETTER_KINDS.has(item.kind))) return;
       const structure = frameStructure(step), nodes = [...structure.nodes.values()];

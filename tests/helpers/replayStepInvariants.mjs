@@ -7,6 +7,7 @@
  * syntax and new edges to a displayed parent belong to no-early-reveal,
  * stable-construction and attach-at-merge (replayInvariants.mjs), which these
  * rules do not repeat. */
+import { momentRelationIdentities } from '../../replay/momentRelations.ts';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
 import {
@@ -14,7 +15,7 @@ import {
 } from '../../replay/relations/renderPlan.ts';
 import { projectThetaGrid } from '../../replay/relations/thetaGridComposition.ts';
 import { resolveSavedInputTokens } from '../../server/babelParser/surfaceTokens.js';
-import { authoredIdentity, frameStructure, momentOwnership, pronunciationOwners, voicesOccurrence } from './replayInvariants.mjs';
+import { authoredIdentity, frameStructure, momentOwnership, momentVoices, pronunciationOwners } from './replayInvariants.mjs';
 
 const finding = (rule, subtype, subject, frame, detail) => ({ rule, subtype, subject, frame, detail });
 const EMPTY_FRAME = { nodes: new Map(), visible: new Set(), displayed: new Set(), parent: new Map(), children: new Map() };
@@ -132,12 +133,12 @@ export function checkStepSemantics(replay, record) {
     // An edge to a parent displayed at the preceding step is attach-at-merge's.
     const newEdgeElsewhere = id => !(current.parent.get(id) && previous.displayed.has(current.parent.get(id)));
     const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
-    if (identity && !moments.has(refKey(identity))) moments.set(refKey(identity), frame);
+    momentRelationIdentities(step).forEach(shown => { if (!moments.has(refKey(shown))) moments.set(refKey(shown), frame); });
     (step.replayRelationLinks ?? []).filter(link => link.renderFamily === 'trajectory' && Number(link.stepIndex) === stageIndex
       && !firstTrajectories.has(link.authoredRelationKey)).forEach(link => firstTrajectories.set(link.authoredRelationKey, frame));
     // A word whose occurrence has a pronunciation owner belongs to that owner's moment alone.
     const separatelyVoiced = id => change.reworded.includes(id) && pronunciation(stageIndex, occurrenceOf(current, id)) !== undefined
-      && !(identity?.stageIndex === stageIndex && voicesOccurrence(pronunciation, identity, occurrenceOf(current, id), false));
+      && !(identity?.stageIndex === stageIndex && momentVoices(pronunciation, step, occurrenceOf(current, id), false));
     const reportRepaints = owns => change.repainted
       .filter(id => separatelyVoiced(id) || !owns(id) && !(firstOfStage && !stage?.named.has(authoredOf(current, id))))
       .forEach(id => report('unowned-repaint', id, `${id} repaints from ${describePaint(previous.nodes.get(id), initialKey)} `
@@ -163,14 +164,16 @@ export function checkStepSemantics(replay, record) {
       const { stageIndex: owner, relationIndex } = step.replayRelationIdentity, key = relationKey(owner, relationIndex);
       const ownership = momentOwnership(step), authored = record.derivationStages?.[owner]?.relations?.[relationIndex];
       const structural = new Set([...ownership.endpoints, ...ownership.rewritten, ...(step.replayTreeTransition?.priorNodeIds ?? [])]);
-      const prior = new Set(anchorIds(authored?.priorAnchors));
-      const named = new Set([...anchorIds(authored?.anchors), ...prior, ...ownership.anchored]);
+      // A duplicate sharing the moment names its own anchors too.
+      const authoredAtMoment = momentRelationIdentities(step).map(shown => record.derivationStages?.[shown.stageIndex]?.relations?.[shown.relationIndex]);
+      const prior = new Set(authoredAtMoment.flatMap(relation => anchorIds(relation?.priorAnchors)));
+      const named = new Set([...authoredAtMoment.flatMap(relation => anchorIds(relation?.anchors)), ...prior, ...ownership.anchored]);
       const ownedIn = (structure, id, owned) => [id, ...ancestorsIn(structure, id)].some(at => owned.has(at) || owned.has(authoredOf(structure, at)));
       const removable = new Set([...structural, ...prior]);
       // A derived word leaving an occurrence that stays, at the moment voicing it, is that occurrence's repaint.
       const unvoiced = id => { const origin = previous.nodes.get(id)?.data.replayOrigin;
         return origin?.kind === 'word' && current.displayed.has(origin.ownerId)
-          && voicesOccurrence(pronunciation, step.replayRelationIdentity, authoredOf(previous, origin.ownerId), named.has(origin.ownerId)); };
+          && momentVoices(pronunciation, step, authoredOf(previous, origin.ownerId), named.has(origin.ownerId)); };
       change.removed.filter(id => !ownedIn(previous, id, removable) && !unvoiced(id)).forEach(id => report('unowned-removal', id, `${id} disappears`));
       change.reparented.filter(id => newEdgeElsewhere(id) && !ownedIn(previous, id, removable) && !ownedIn(current, id, structural)
         && !change.added.includes(current.parent.get(id))).forEach(id => report('unowned-move', id, move(id)));
@@ -303,7 +306,7 @@ export function checkMarkPersistence(replay, record, { select = isPlanItemReveal
     const stage = step.replayFrameIndex, frame = index + 1;
     if (!played.has(stage)) played.set(stage, new Set());
     const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
-    if (identity?.stageIndex === stage) played.get(stage).add(identity.relationIndex);
+    momentRelationIdentities(step).filter(shown => shown.stageIndex === stage).forEach(shown => played.get(stage).add(shown.relationIndex));
     const resolver = anchorResolver(step), painted = new Map(), all = new Map();
     const report = (subtype, key, detail) => out.push(finding('mark-persistence', subtype, describeKey(key), frame, `${describeKey(key)} ${detail}`));
     // A relation-only mark coalescing identical claims paints, at each moment, for the claim whose moment it is.

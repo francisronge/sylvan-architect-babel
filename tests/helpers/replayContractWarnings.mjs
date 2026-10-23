@@ -3,6 +3,7 @@
  * not Replay construction defects. Each checker returns findings
  * `{ rule, subtype, subject, frame, detail }` for tests/helpers/findings.mjs;
  * `frame` is a 1-based Replay step or 'record' for a fact about the record. */
+import { momentRelationIdentities } from '../../replay/momentRelations.ts';
 import { planItemRelationRefs } from '../../replay/relations/renderPlan.ts';
 import { resolveSavedInputTokens } from '../../server/babelParser/surfaceTokens.js';
 import { vanishedAnchors } from './replayStepInvariants.mjs';
@@ -186,14 +187,13 @@ export function checkMovementUnrendered(replay, record) {
   const reached = new Set(paths.map(item => `${item.relationRef.stageIndex}:${item.kind === 'trajectory' ? item.targetNodeId : item.lfNodeId}`));
   const momentOf = new Map();
   replay.playbackSteps.forEach((step, index) => {
-    const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
-    if (identity && !momentOf.has(relationKey(identity.stageIndex, identity.relationIndex)))
-      momentOf.set(relationKey(identity.stageIndex, identity.relationIndex), index);
+    for (const identity of momentRelationIdentities(step))
+      if (!momentOf.has(relationKey(identity.stageIndex, identity.relationIndex))) momentOf.set(relationKey(identity.stageIndex, identity.relationIndex), index);
   });
   const nameOf = (stageIndex, relationIndex, step) => stages[stageIndex]?.relations?.[relationIndex]?.relation ?? step.operation;
   for (const [key, index] of momentOf) {
     if (drawn.has(key)) continue;
-    const step = replay.playbackSteps[index], { stageIndex, relationIndex } = step.replayRelationIdentity;
+    const step = replay.playbackSteps[index], [stageIndex, relationIndex] = key.split(':').map(Number);
     const codes = [...new Set((step.movementDiagnostics ?? []).map(text => MOVEMENT_CODE.exec(String(text))?.[1]).filter(Boolean))]
       .filter(code => code !== 'MOVEMENT_NOT_ESTABLISHED');
     const proven = (step.replayRelationLinks ?? []).some(link => link.authoredRelationKey === key && link.movementTransition === true);

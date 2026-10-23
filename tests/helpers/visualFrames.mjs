@@ -9,6 +9,7 @@
  * paintRelationScene does. Only DOM reads are replaced: text is measured from
  * the bundled fonts (visualFontMetrics.mjs), so boxes, plaque sizes and the Fit
  * approximate a native capture and never replace one. */
+import { momentRelationIdentities } from '../../replay/momentRelations.ts';
 import * as d3 from 'd3';
 import * as canvas from '../../replay/replayCanvas.ts';
 import * as camera from '../../replay/stageCamera.ts';
@@ -307,8 +308,7 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
   if (!plan?.frames[stage]) return none;
   const steps = visual.prepared.playbackSteps, played = new Set();
   for (let index = 0; index <= stepIndex; index++) {
-    const identity = steps[index].replayRelationIdentity;
-    if (steps[index].replayKind === 'relation' && identity?.stageIndex === stage) played.add(identity.relationIndex);
+    for (const identity of momentRelationIdentities(steps[index])) if (identity.stageIndex === stage) played.add(identity.relationIndex);
   }
   const active = step.replayKind === 'relation' && step.replayRelationIdentity?.stageIndex === stage ? step.replayRelationIdentity.relationIndex : null;
   const all = tree.descendants(), laidOut = canvas.indexHierarchyNodesByIdAndAliases(all);
