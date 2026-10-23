@@ -305,7 +305,7 @@ test('the generation route preserves every raw stage without a replacement call'
         return { text: raw, status: 'completed', candidates: [{ finishReason: 'COMPLETED' }] };
       }
     });
-    const result = await routes.parseSentenceWithOpenAI('Mia');
+    const result = await routes.parseSentenceWithResearchModel('Mia', 'xbar', 'openai:gpt-6-astra');
     assert.equal(result.analyses[0].derivationStages[2].relations[0]
       .relationContractFailure.issues[0].fieldPath, '$.derivationStages[2].relations[0].values');
     assert.equal(result.analyses[0].provenance.payloadRepairDiagnostics, undefined);

@@ -10,9 +10,6 @@
 
 const UNRESOLVED_ENDPOINTS = 'Open: movement recognition finds no single source and landing (list-valued or competing landing '
   + 'fields), so the claim stays neutral and draws no path; its own moment still introduces the copy.';
-const NEEDS_CYCLE = 'Contract conflict (diagnosed RELATION_TIMING_CONFLICT): two relations of the stage each need syntax the '
-  + 'other\'s moment introduces, so no Replay order satisfies both. They, and a relation needing either, keep authored order, and '
-  + 'structure is not introduced early, so this mark has no displayed anchor at its own moment.';
 const CONTEXT_NOT_AWAITED = 'Diagnosed RELATION_TIMING_CONFLICT: the raising chain names, only as context, the verb trace that the '
   + 'later V-to-I movement introduces. A movement keeps its own moment rather than wait for a contextual anchor, so this mark has '
   + 'no displayed anchor at its moment.';
@@ -34,11 +31,8 @@ const x = (reason, record, rule, subtype, subject, frames, approval) => ({ reaso
 
 export const STEP_EXCEPTIONS = [
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/3', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:0", '30'),
-  x(CONTEXT_NOT_AWAITED, 'movement/holdout-transitions.json#/1', 'mark-persistence', 'never-paints', "fallback 1:0", '36'),
-  x(CONTEXT_NOT_AWAITED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 3:0", '38'),
-  x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'never-paints', "fallback 2:1", '28'),
-  x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'late-start', "trajectory tier2.movement-path 2:1", '29'),
-  x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'late-start', "node-plaque theta.grid 2:0", '29'),
+  x(CONTEXT_NOT_AWAITED, 'movement/holdout-transitions.json#/1', 'mark-persistence', 'never-paints', "fallback 1:0", '34'),
+  x(CONTEXT_NOT_AWAITED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 3:0", '37'),
   x(RENAMED, 'movement/source-occurrence-ownership.json#/0', 'contract-output', 'renamed-anchor', "4:a1_vi", 'record'),
   x(RENAMED, 'replay-regressions/case-source-transfer.json#', 'contract-output', 'renamed-anchor', "3:v2", 'record'),
   x(RENAMED, 'replay-regressions/complex-head-chain-restatement.json#', 'contract-output', 'renamed-anchor', "3:i0", 'record'),
@@ -74,7 +68,6 @@ export const STEP_EXCEPTIONS = [
   x(CHAIN_ROLES, 'replay-regressions/independent-clause-and-realization.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "0:2", '22'),
   x(CHAIN_ROLES, 'replay-regressions/obsolete-plaque-pockets.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "3:0", '49'),
   x(CHAIN_ROLES, 'replay-regressions/renamed-head-anchors.json#', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:1", '27'),
-  x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'step-semantics', 'trajectory-off-moment', "2:1", '29'),
   x(OPEN_ROLES, 'replay-regressions/kept-id-landing.json#', 'movement-unrendered', 'COPY_WITHOUT_PATH', "4:0", '46'),
   x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:0", '40'),
   x(OPEN_ROLES, 'replay-regressions/unrecognized-movement.json#/cases/4', 'movement-unrendered', 'COPY_WITHOUT_PATH', "3:1", '41'),

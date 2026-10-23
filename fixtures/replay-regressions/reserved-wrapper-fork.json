@@ -1,0 +1,1145 @@
+{
+  "description": "A current fork whose daughters all wait for one later wrapper stands one row above them; the wrapper's row is reserved but never drawn as a longer branch (currentSiblingRanks, retainCurrentDaughterRanks).",
+  "cases": [
+    {
+      "key": "pt-enclisis/clitic-wrapper-across-stages",
+      "sentence": "Vi-o ontem.",
+      "framework": "minimalism",
+      "inputTokens": [
+        "Vi",
+        "o",
+        "ontem"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "verb": "V0"
+              },
+              "relation": "lexical_specification",
+              "values": {
+                "form": "vi",
+                "lemma": "ver",
+                "mood": "indicative",
+                "number": "singular",
+                "person": "first",
+                "tense": "preterite"
+              }
+            },
+            {
+              "anchors": {
+                "clitic": "D0"
+              },
+              "relation": "lexical_specification",
+              "values": {
+                "case": "accusative",
+                "category": "pronominal D",
+                "gender": "masculine",
+                "number": "singular",
+                "person": "third"
+              }
+            },
+            {
+              "anchors": {
+                "subject": "S0"
+              },
+              "relation": "lexical_specification",
+              "values": {
+                "category": "referential null pronoun",
+                "number": "singular",
+                "person": "first"
+              }
+            }
+          ],
+          "stageRecord": "Select vi as the already inflected first-person singular preterite form of ver, o as a masculine singular accusative pronominal D, and ontem as a temporal adverb. Select a silent first-person singular subject pro, an external-argument-introducing v, finite T, and affirmative declarative C. This is a lexicalist analysis: vi enters with its inflection, rather than being assembled from separately pronounced morphemes. Categories label both heads and their projections; no bar-level nodes are stipulated. The clitic is a minimal nominal projection consisting of D alone, allowing it to receive an object interpretation and subsequently undergo head movement.",
+          "statement": "Select the Portuguese lexical items and silent functional material.",
+          "workspaceForest": [
+            {
+              "children": [],
+              "id": "V0",
+              "label": "V",
+              "lineageId": "verb",
+              "word": "vi"
+            },
+            {
+              "children": [],
+              "id": "D0",
+              "label": "D",
+              "lineageId": "object",
+              "word": "o"
+            },
+            {
+              "children": [],
+              "id": "A0",
+              "label": "Adv",
+              "word": "ontem"
+            },
+            {
+              "children": [],
+              "id": "S0",
+              "label": "D",
+              "lineageId": "subject",
+              "silent": true,
+              "word": "pro"
+            },
+            {
+              "children": [],
+              "id": "v0",
+              "label": "v",
+              "lineageId": "light-verb",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "T0",
+              "label": "T",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "C0",
+              "label": "C",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "argument": "D0",
+                "predicate": "V0"
+              },
+              "relation": "internal_argument",
+              "values": {
+                "interpretation": "entity seen"
+              }
+            }
+          ],
+          "stageRecord": "Externally merge V with the pronominal D and let V label the resulting object. The complement position establishes o as the internal argument of seeing. Its referent may be a masculine person or a grammatically masculine entity; that referential difference does not require different syntactic structures. The clitic has not yet moved.",
+          "statement": "Merge the accusative clitic in the verb's complement position.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "V0",
+                  "label": "V",
+                  "lineageId": "verb",
+                  "word": "vi"
+                },
+                {
+                  "children": [],
+                  "id": "D0",
+                  "label": "D",
+                  "lineageId": "object",
+                  "word": "o"
+                }
+              ],
+              "id": "VP0",
+              "label": "V"
+            },
+            {
+              "children": [],
+              "id": "A0",
+              "label": "Adv",
+              "word": "ontem"
+            },
+            {
+              "children": [],
+              "id": "S0",
+              "label": "D",
+              "lineageId": "subject",
+              "silent": true,
+              "word": "pro"
+            },
+            {
+              "children": [],
+              "id": "v0",
+              "label": "v",
+              "lineageId": "light-verb",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "T0",
+              "label": "T",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "C0",
+              "label": "C",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "argument": "S0",
+                "introducer": "v0",
+                "predicate": "V0"
+              },
+              "relation": "external_argument",
+              "values": {
+                "role": "experiencer"
+              }
+            },
+            {
+              "anchors": {
+                "goal": "D0",
+                "licensor": "v0"
+              },
+              "relation": "accusative_licensing",
+              "values": {
+                "case": "accusative"
+              }
+            },
+            {
+              "anchors": {
+                "modified_event_projection": "vS",
+                "modifier": "A0"
+              },
+              "relation": "temporal_modification",
+              "values": {
+                "attachment": "right adjunct to the event projection",
+                "time": "day before the utterance day"
+              }
+            }
+          ],
+          "stageRecord": "Merge v with the verbal object, then merge pro as its external argument. The subject receives the experiencer role of the perception predicate. Transitive v licenses accusative on the object in its complement domain. Next adjoin ontem on the right of the resulting v-labeled event projection. The adverb locates the seeing event on the day before the utterance day; it does not modify the object nominal. Right adjunction accounts for its sentence-final position after the pronounced verbal material raises.",
+          "statement": "Introduce the null external argument and the temporal event modifier.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "S0",
+                      "label": "D",
+                      "lineageId": "subject",
+                      "silent": true,
+                      "word": "pro"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v0",
+                          "label": "v",
+                          "lineageId": "light-verb",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "V0",
+                              "label": "V",
+                              "lineageId": "verb",
+                              "word": "vi"
+                            },
+                            {
+                              "children": [],
+                              "id": "D0",
+                              "label": "D",
+                              "lineageId": "object",
+                              "word": "o"
+                            }
+                          ],
+                          "id": "VP0",
+                          "label": "V"
+                        }
+                      ],
+                      "id": "vB",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "vS",
+                  "label": "v"
+                },
+                {
+                  "children": [],
+                  "id": "A0",
+                  "label": "Adv",
+                  "word": "ontem"
+                }
+              ],
+              "id": "vA",
+              "label": "v"
+            },
+            {
+              "children": [],
+              "id": "T0",
+              "label": "T",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "C0",
+              "label": "C",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "complex_head": "VH",
+                "host": "V0",
+                "landing_occurrence": "D0",
+                "source_occurrence": "D1"
+              },
+              "priorAnchors": {
+                "host_before_movement": "V0",
+                "object_before_movement": "D0"
+              },
+              "relation": "clitic_head_movement",
+              "values": {
+                "attachment": "right adjunction to V",
+                "pronunciation": "landing occurrence pronounced; complement occurrence silent"
+              }
+            }
+          ],
+          "stageRecord": "Internally merge the object D with V, forming a complex verbal head with the order V–D. The pronounced D occurrence retains its identity at the landing site; a new silent occurrence remains in the earlier complement position. That lower occurrence preserves the object's argument and case dependencies. This head-adjunction analysis treats o as a clitic rather than as a stressed postverbal full nominal. The resulting complex head must still raise through v and into the finite domain.",
+          "statement": "Attach the object clitic to the lexical verb.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "S0",
+                      "label": "D",
+                      "lineageId": "subject",
+                      "silent": true,
+                      "word": "pro"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "v0",
+                          "label": "v",
+                          "lineageId": "light-verb",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "V0",
+                                  "label": "V",
+                                  "lineageId": "verb",
+                                  "word": "vi"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "D0",
+                                  "label": "D",
+                                  "lineageId": "object",
+                                  "word": "o"
+                                }
+                              ],
+                              "id": "VH",
+                              "label": "V",
+                              "lineageId": "verb-clitic-complex"
+                            },
+                            {
+                              "children": [],
+                              "id": "D1",
+                              "label": "D",
+                              "lineageId": "object",
+                              "silent": true,
+                              "word": "o"
+                            }
+                          ],
+                          "id": "VP0",
+                          "label": "V"
+                        }
+                      ],
+                      "id": "vB",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "vS",
+                  "label": "v"
+                },
+                {
+                  "children": [],
+                  "id": "A0",
+                  "label": "Adv",
+                  "word": "ontem"
+                }
+              ],
+              "id": "vA",
+              "label": "v"
+            },
+            {
+              "children": [],
+              "id": "T0",
+              "label": "T",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "C0",
+              "label": "C",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "complex_head": "vH",
+                "host": "v0",
+                "landing_occurrence": "VH",
+                "source_occurrence": "VH1"
+              },
+              "priorAnchors": {
+                "host_before_movement": "v0",
+                "moving_head": "VH"
+              },
+              "relation": "head_movement",
+              "values": {
+                "attachment": "left adjunction",
+                "path": "V to v",
+                "pronunciation": "upper complex pronounced; lower complex silent"
+              }
+            }
+          ],
+          "stageRecord": "Move the complex V head from its established position to v, adjoining it on the left of the silent light verb. The entire complex moves, so the enclitic follows the verb rather than being stranded. Its upper occurrence remains pronounced, while a structurally complete silent copy remains in the lexical verbal projection. The still lower object occurrence is retained separately: the clitic's successive positions belong to one object chain, but are distinct occurrences.",
+          "statement": "Raise the verb–clitic complex to v.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "S0",
+                      "label": "D",
+                      "lineageId": "subject",
+                      "silent": true,
+                      "word": "pro"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "V0",
+                                  "label": "V",
+                                  "lineageId": "verb",
+                                  "word": "vi"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "D0",
+                                  "label": "D",
+                                  "lineageId": "object",
+                                  "word": "o"
+                                }
+                              ],
+                              "id": "VH",
+                              "label": "V",
+                              "lineageId": "verb-clitic-complex"
+                            },
+                            {
+                              "children": [],
+                              "id": "v0",
+                              "label": "v",
+                              "lineageId": "light-verb",
+                              "silent": true
+                            }
+                          ],
+                          "id": "vH",
+                          "label": "v",
+                          "lineageId": "v-complex"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "V1",
+                                  "label": "V",
+                                  "lineageId": "verb",
+                                  "silent": true,
+                                  "word": "vi"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "D2",
+                                  "label": "D",
+                                  "lineageId": "object",
+                                  "silent": true,
+                                  "word": "o"
+                                }
+                              ],
+                              "id": "VH1",
+                              "label": "V",
+                              "lineageId": "verb-clitic-complex",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "D1",
+                              "label": "D",
+                              "lineageId": "object",
+                              "silent": true,
+                              "word": "o"
+                            }
+                          ],
+                          "id": "VP0",
+                          "label": "V"
+                        }
+                      ],
+                      "id": "vB",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "vS",
+                  "label": "v"
+                },
+                {
+                  "children": [],
+                  "id": "A0",
+                  "label": "Adv",
+                  "word": "ontem"
+                }
+              ],
+              "id": "vA",
+              "label": "v"
+            },
+            {
+              "children": [],
+              "id": "T0",
+              "label": "T",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "C0",
+              "label": "C",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "goal": "S0",
+                "probe": "T0"
+              },
+              "relation": "finite_agreement_and_nominative",
+              "values": {
+                "case": "nominative",
+                "number": "singular",
+                "person": "first",
+                "subject_licensing": "referential pro licensed by finite agreement"
+              }
+            },
+            {
+              "anchors": {
+                "inflected_verb": "V0",
+                "tense": "T0"
+              },
+              "relation": "finite_feature_compatibility",
+              "values": {
+                "mood": "indicative",
+                "number": "singular",
+                "person": "first",
+                "tense": "preterite"
+              }
+            },
+            {
+              "anchors": {
+                "clause_type_head": "C0",
+                "clitic": "D0",
+                "finite_head": "T0",
+                "verb": "V0"
+              },
+              "relation": "root_enclisis_licensing",
+              "values": {
+                "clause_type": "affirmative declarative root",
+                "placement": "enclisis",
+                "proclisis_trigger": "absent"
+              }
+            }
+          ],
+          "stageRecord": "Merge T above the event projection. T agrees with the still-low null subject, licensing nominative and matching its first-person singular features. The already inflected vi is compatible with finite preterite T; no change to its lexical spelling is required. Merge silent declarative C above this projection. The affirmative root clause contains no preverbal proclisis trigger, licensing the enclitic order already established inside the verbal complex. Null-subject licensing depends on the finite agreement configuration, not on deletion of an overt subject expression.",
+          "statement": "Build the finite affirmative clause and establish subject agreement.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "C0",
+                  "label": "C",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "T0",
+                      "label": "T",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "S0",
+                              "label": "D",
+                              "lineageId": "subject",
+                              "silent": true,
+                              "word": "pro"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "V0",
+                                          "label": "V",
+                                          "lineageId": "verb",
+                                          "word": "vi"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "D0",
+                                          "label": "D",
+                                          "lineageId": "object",
+                                          "word": "o"
+                                        }
+                                      ],
+                                      "id": "VH",
+                                      "label": "V",
+                                      "lineageId": "verb-clitic-complex"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "v0",
+                                      "label": "v",
+                                      "lineageId": "light-verb",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "vH",
+                                  "label": "v",
+                                  "lineageId": "v-complex"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "V1",
+                                          "label": "V",
+                                          "lineageId": "verb",
+                                          "silent": true,
+                                          "word": "vi"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "D2",
+                                          "label": "D",
+                                          "lineageId": "object",
+                                          "silent": true,
+                                          "word": "o"
+                                        }
+                                      ],
+                                      "id": "VH1",
+                                      "label": "V",
+                                      "lineageId": "verb-clitic-complex",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "D1",
+                                      "label": "D",
+                                      "lineageId": "object",
+                                      "silent": true,
+                                      "word": "o"
+                                    }
+                                  ],
+                                  "id": "VP0",
+                                  "label": "V"
+                                }
+                              ],
+                              "id": "vB",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "vS",
+                          "label": "v"
+                        },
+                        {
+                          "children": [],
+                          "id": "A0",
+                          "label": "Adv",
+                          "word": "ontem"
+                        }
+                      ],
+                      "id": "vA",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "TP0",
+                  "label": "T"
+                }
+              ],
+              "id": "CP0",
+              "label": "C"
+            }
+          ]
+        }
+      ],
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run movement-id-ab-20261018/pt-enclisis.B, analysis 1. Saved in ~/Library/Application Support/Babel/codex-qualification/movement-id-ab-20261018/runs/pt-enclisis.B. Stages 1–6 of 7, otherwise an exact copy. From stage 2, VP0 = [V0 D0] waits for the clitic complex VH that stage 4 inserts under VP0; Replay drew VP0→V0 and VP0→D0 two rows long through stages 2 and 3."
+    },
+    {
+      "key": "pt-enclisis/finite-wrapper-within-stage",
+      "sentence": "Vi-o ontem.",
+      "framework": "minimalism",
+      "inputTokens": [
+        "Vi",
+        "o",
+        "ontem"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "goal": "S0",
+                "probe": "T0"
+              },
+              "relation": "finite_agreement_and_nominative",
+              "values": {
+                "case": "nominative",
+                "number": "singular",
+                "person": "first",
+                "subject_licensing": "referential pro licensed by finite agreement"
+              }
+            },
+            {
+              "anchors": {
+                "inflected_verb": "V0",
+                "tense": "T0"
+              },
+              "relation": "finite_feature_compatibility",
+              "values": {
+                "mood": "indicative",
+                "number": "singular",
+                "person": "first",
+                "tense": "preterite"
+              }
+            },
+            {
+              "anchors": {
+                "clause_type_head": "C0",
+                "clitic": "D0",
+                "finite_head": "T0",
+                "verb": "V0"
+              },
+              "relation": "root_enclisis_licensing",
+              "values": {
+                "clause_type": "affirmative declarative root",
+                "placement": "enclisis",
+                "proclisis_trigger": "absent"
+              }
+            }
+          ],
+          "stageRecord": "Merge T above the event projection. T agrees with the still-low null subject, licensing nominative and matching its first-person singular features. The already inflected vi is compatible with finite preterite T; no change to its lexical spelling is required. Merge silent declarative C above this projection. The affirmative root clause contains no preverbal proclisis trigger, licensing the enclitic order already established inside the verbal complex. Null-subject licensing depends on the finite agreement configuration, not on deletion of an overt subject expression.",
+          "statement": "Build the finite affirmative clause and establish subject agreement.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "C0",
+                  "label": "C",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "T0",
+                      "label": "T",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "S0",
+                              "label": "D",
+                              "lineageId": "subject",
+                              "silent": true,
+                              "word": "pro"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "V0",
+                                          "label": "V",
+                                          "lineageId": "verb",
+                                          "word": "vi"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "D0",
+                                          "label": "D",
+                                          "lineageId": "object",
+                                          "word": "o"
+                                        }
+                                      ],
+                                      "id": "VH",
+                                      "label": "V",
+                                      "lineageId": "verb-clitic-complex"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "v0",
+                                      "label": "v",
+                                      "lineageId": "light-verb",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "vH",
+                                  "label": "v",
+                                  "lineageId": "v-complex"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "V1",
+                                          "label": "V",
+                                          "lineageId": "verb",
+                                          "silent": true,
+                                          "word": "vi"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "D2",
+                                          "label": "D",
+                                          "lineageId": "object",
+                                          "silent": true,
+                                          "word": "o"
+                                        }
+                                      ],
+                                      "id": "VH1",
+                                      "label": "V",
+                                      "lineageId": "verb-clitic-complex",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "D1",
+                                      "label": "D",
+                                      "lineageId": "object",
+                                      "silent": true,
+                                      "word": "o"
+                                    }
+                                  ],
+                                  "id": "VP0",
+                                  "label": "V"
+                                }
+                              ],
+                              "id": "vB",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "vS",
+                          "label": "v"
+                        },
+                        {
+                          "children": [],
+                          "id": "A0",
+                          "label": "Adv",
+                          "word": "ontem"
+                        }
+                      ],
+                      "id": "vA",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "TP0",
+                  "label": "T"
+                }
+              ],
+              "id": "CP0",
+              "label": "C"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "complex_head": "TH",
+                "host": "T0",
+                "landing_occurrence": "vH",
+                "source_occurrence": "vH1"
+              },
+              "priorAnchors": {
+                "host_before_movement": "T0",
+                "moving_head": "vH"
+              },
+              "relation": "head_movement",
+              "values": {
+                "attachment": "left adjunction",
+                "path": "v to T",
+                "pronunciation": "highest verbal complex pronounced; lower verbal complexes silent"
+              }
+            },
+            {
+              "anchors": {
+                "landing_occurrence": "S0",
+                "licensing_head": "T0",
+                "source_occurrence": "S1",
+                "target_projection": "TP0"
+              },
+              "priorAnchors": {
+                "subject_before_movement": "S0"
+              },
+              "relation": "subject_internal_merge",
+              "values": {
+                "pronunciation": "both occurrences silent because the subject is pro",
+                "requirement": "EPP",
+                "target": "specifier of the finite T projection"
+              }
+            }
+          ],
+          "stageRecord": "First move the complex v head from its previously established position to T. Its internal V–D order is preserved, and its lower v-position occurrence becomes entirely silent. Next internally merge the null subject at the edge of the T projection, satisfying the subject-position requirement; its earlier external-argument occurrence remains silent as well. Both movements have sources in the preceding workspace. The subject is interpreted through its external-argument position, the clitic through its complement position, and ontem continues to modify the seeing event. The pronounced terminals are vi, o, and ontem, in that order. The hyphen and final period in the input are orthographic and require neither an extra syntactic terminal nor a realization group.",
+          "statement": "Complete finite head movement and raise the null subject.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "C0",
+                  "label": "C",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "S0",
+                      "label": "D",
+                      "lineageId": "subject",
+                      "silent": true,
+                      "word": "pro"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "V0",
+                                      "label": "V",
+                                      "lineageId": "verb",
+                                      "word": "vi"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "D0",
+                                      "label": "D",
+                                      "lineageId": "object",
+                                      "word": "o"
+                                    }
+                                  ],
+                                  "id": "VH",
+                                  "label": "V",
+                                  "lineageId": "verb-clitic-complex"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "v0",
+                                  "label": "v",
+                                  "lineageId": "light-verb",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "vH",
+                              "label": "v",
+                              "lineageId": "v-complex"
+                            },
+                            {
+                              "children": [],
+                              "id": "T0",
+                              "label": "T",
+                              "silent": true
+                            }
+                          ],
+                          "id": "TH",
+                          "label": "T"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "S1",
+                                  "label": "D",
+                                  "lineageId": "subject",
+                                  "silent": true,
+                                  "word": "pro"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "V2",
+                                              "label": "V",
+                                              "lineageId": "verb",
+                                              "silent": true,
+                                              "word": "vi"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "D3",
+                                              "label": "D",
+                                              "lineageId": "object",
+                                              "silent": true,
+                                              "word": "o"
+                                            }
+                                          ],
+                                          "id": "VH2",
+                                          "label": "V",
+                                          "lineageId": "verb-clitic-complex",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "v1",
+                                          "label": "v",
+                                          "lineageId": "light-verb",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "vH1",
+                                      "label": "v",
+                                      "lineageId": "v-complex",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "V1",
+                                              "label": "V",
+                                              "lineageId": "verb",
+                                              "silent": true,
+                                              "word": "vi"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "D2",
+                                              "label": "D",
+                                              "lineageId": "object",
+                                              "silent": true,
+                                              "word": "o"
+                                            }
+                                          ],
+                                          "id": "VH1",
+                                          "label": "V",
+                                          "lineageId": "verb-clitic-complex",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "D1",
+                                          "label": "D",
+                                          "lineageId": "object",
+                                          "silent": true,
+                                          "word": "o"
+                                        }
+                                      ],
+                                      "id": "VP0",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "vB",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "vS",
+                              "label": "v"
+                            },
+                            {
+                              "children": [],
+                              "id": "A0",
+                              "label": "Adv",
+                              "word": "ontem"
+                            }
+                          ],
+                          "id": "vA",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "TI",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "TP0",
+                  "label": "T"
+                }
+              ],
+              "id": "CP0",
+              "label": "C"
+            }
+          ]
+        }
+      ],
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run movement-id-ab-20261018/pt-enclisis.B, analysis 1. Saved in ~/Library/Application Support/Babel/codex-qualification/movement-id-ab-20261018/runs/pt-enclisis.B. Stages 6–7 of 7, otherwise an exact copy. At the first moment of stage 7 (v-to-T head movement), TP0 = [TH vA] waits for T′ (TI), which the later subject movement of the same stage inserts; Replay drew TP0→TH and TP0→vA two rows long."
+    }
+  ]
+}

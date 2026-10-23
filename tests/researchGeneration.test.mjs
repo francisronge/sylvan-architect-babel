@@ -387,21 +387,29 @@ test('all active routes preserve fenced output and its decoding failure without 
   }
 });
 
-test('all active routes enforce the three-attempt cap for transient server failures', async (t) => {
+test('a socket reset or transient server failure makes exactly one provider request on every route', async (t) => {
   isolate(t);
   for (const modelId of GENERATION_MODEL_IDS) {
-    const fetch = t.mock.method(globalThis, 'fetch', async () => (
-      new Response('{"error":{"message":"Temporarily unavailable"}}', { status: 503 })
-    ));
-    await assert.rejects(() => parseFromBody({ sentence: fixture.sentence, modelId }), error => {
-      const attempts = formatApiError(error).body.error.generationRecord.outcome.attempts;
-      assert.equal(attempts.length, 3);
-      assert.ok(attempts.every(attempt => attempt.retryReason === 'transient_server_failure'));
-      assert.equal(attempts[2].retryStopReason, 'attempt_limit');
-      return true;
-    });
-    assert.equal(fetch.mock.callCount(), 3);
-    fetch.mock.restore();
+    for (const [reason, respond] of [
+      ['transient_transport_failure', () => {
+        throw new TypeError('fetch failed', { cause: Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }) });
+      }],
+      ['transient_server_failure', () => new Response('{"error":{"message":"Temporarily unavailable"}}', { status: 503 })]
+    ]) {
+      const fetch = t.mock.method(globalThis, 'fetch', async () => respond());
+      await assert.rejects(() => parseFromBody({ sentence: fixture.sentence, modelId }), error => {
+        const { status, body } = formatApiError(error);
+        assert.equal(status, 503, modelId);
+        assert.equal(body.error.code, 'PROVIDER_UNAVAILABLE', modelId);
+        const attempts = body.error.generationRecord.outcome.attempts;
+        assert.equal(attempts.length, 1, modelId);
+        assert.equal(attempts[0].retryReason, reason, modelId);
+        assert.equal(attempts[0].retryStopReason, 'no_automatic_retry', modelId);
+        return true;
+      });
+      assert.equal(fetch.mock.callCount(), 1, `${modelId} ${reason}`);
+      fetch.mock.restore();
+    }
   }
 });
 

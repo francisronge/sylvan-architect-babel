@@ -104,17 +104,27 @@ for (const [width, height] of [[1408, 680], [386, 698]]) for (const direction of
     immutable();
   });
 
-  if (runs('icelandic-raising-passive/0', direction)) test(`${width}px ${direction}: Icelandic reserves the subject landing without changing the C–IP merge`, () => {
+  // Raising completes IP before C merges with it, so the subject lands first and C′ then adopts
+  // the completed IP.
+  if (runs('icelandic-raising-passive/0', direction)) test(`${width}px ${direction}: Icelandic lands the subject without moving C, then merges C with the completed IP`, () => {
     const { frame, immutable } = setup('icelandic-raising-passive/0', width, height, direction);
-    const before = frame(37), after = frame(38);
-    assert.equal(before.nodes.get('rootCbar').data.label, "C′");
-    assert.deepEqual(before.nodes.get('rootCbar').children.map(getNodeId), ['rootC', 'matrixIP']);
-    assert(!before.nodes.has('matrixSubjectDP'));
-    assert(after.nodes.has('matrixSubjectDP'));
-    assert.equal(before.nodes.get('matrixIP').x, before.nodes.get('matrixIbar').x, 'a unary branch stays vertical');
-    assert(Math.hypot(before.nodes.get('rootC').x - after.nodes.get('rootC').x, before.nodes.get('rootC').y - after.nodes.get('rootC').y) < 1e-8, 'C stays put when the subject arrives');
-    assert(Math.abs(after.nodes.get('declarativeFeatures').x - after.nodes.get('matrixSubjectDP').x) > 200,
-      'the C child and arriving subject retain separate same-rank slots');
+    const waiting = frame(36), landed = frame(37), merged = frame(38);
+    assert(!waiting.nodes.has('matrixSubjectDP') && waiting.nodes.has('rootC'));
+    assert(landed.nodes.has('matrixSubjectDP'));
+    assert(!landed.nodes.has('rootCbar'), 'C′ waits for the movement that completes its IP daughter');
+    assert.equal(merged.nodes.get('rootCbar').data.label, "C′");
+    assert.deepEqual(merged.nodes.get('rootCbar').children.map(getNodeId), ['rootC', 'matrixIP']);
+    for (const [from, to] of [[waiting, landed], [landed, merged]])
+      assert(Math.hypot(from.nodes.get('rootC').x - to.nodes.get('rootC').x, from.nodes.get('rootC').y - to.nodes.get('rootC').y) < 1e-8,
+        'C stays put as the subject arrives and as C′ adopts the IP');
+    const ip = landed.nodes.get('matrixIP'), adopted = merged.nodes.get('matrixIP');
+    for (const node of ip.descendants().filter(node => landed.nodes.has(getNodeId(node)))) {
+      const next = merged.nodes.get(getNodeId(node));
+      assert(next && Math.hypot(next.x - adopted.x - (node.x - ip.x), next.y - adopted.y - (node.y - ip.y)) < 1e-6,
+        `${getNodeId(node)} keeps its place in the completed IP`);
+    }
+    assert(Math.abs(merged.nodes.get('declarativeFeatures').x - merged.nodes.get('matrixSubjectDP').x) > 200,
+      'the C child and landed subject retain separate same-rank slots');
     immutable();
   });
 
