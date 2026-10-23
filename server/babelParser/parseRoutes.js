@@ -20,7 +20,7 @@ import {
   generateGrokStructuredContent,
   writeDebugModelPayload
 } from './modelRuntime.js';
-import { runWithTransportRetries, withTimeout } from './providerTransport.js';
+import { runProviderAttempt, withTimeout } from './providerTransport.js';
 import { assertGenerationComplete, buildGenerationOutcome, summarizeGeneration } from './generationOutcome.js';
 import {
   createRawOutputArtifact,
@@ -328,7 +328,7 @@ export const createParseRoutes = ({
       }
 
       generationStartedAt = Date.now();
-      const generationReceipt = await runWithTransportRetries({
+      const generationReceipt = await runProviderAttempt({
         abortSignal,
         deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
         run: async () => {

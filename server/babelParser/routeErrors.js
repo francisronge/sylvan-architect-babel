@@ -139,7 +139,7 @@ export const classifyProviderRouteError = ({
     });
   }
   // Babel's own failures arrive as ParseApiError; a remaining 5xx status is the
-  // provider's answer after the retry policy has finished.
+  // provider's answer to Babel's single request.
   if (Number.isFinite(statusCode) && statusCode >= 500) {
     return new ParseApiError('PROVIDER_UNAVAILABLE', `${providerLabel} returned HTTP ${statusCode} before a result was received.`, 503, {
       provider: providerLabel,
