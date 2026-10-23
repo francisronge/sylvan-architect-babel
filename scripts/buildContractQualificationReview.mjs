@@ -85,6 +85,21 @@ const collectFiles = (root) => {
 
 const relativeWebPath = (from, to) => path.relative(from, to).split(path.sep).join('/');
 
+// Manifest and inspection-copy paths name artifacts inside the run; reading one
+// outside it would embed an unrelated local file in the review page.
+const resolveRunArtifact = (file, owner) => {
+  if (typeof file !== 'string' || !file || path.isAbsolute(file)) {
+    throw new Error(`${owner} paths must be relative to the run: ${file}`);
+  }
+  const absolute = path.resolve(runRoot, file);
+  const relative = path.relative(runRoot, absolute);
+  if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error(`${owner} path leaves the run: ${file}`);
+  }
+  return absolute;
+};
+const readRunJson = (file, owner = 'Review manifest') => readJson(resolveRunArtifact(file, owner));
+
 const reviewManifest = readJson(path.join(runRoot, 'review-manifest.json'));
 const copiesArgument = readArg('inspection-copies').trim();
 const copiesBytes = copiesArgument ? fs.readFileSync(path.resolve(copiesArgument)) : null;
@@ -102,6 +117,18 @@ const runReceiptBytes = fs.readFileSync(runReceiptPath);
 const runReceipt = JSON.parse(runReceiptBytes.toString('utf8'));
 if (!Array.isArray(reviewManifest.entries) || reviewManifest.entries.length === 0) {
   throw new Error('Review manifest contains no attempts.');
+}
+for (const entry of reviewManifest.entries) {
+  // Attempt IDs also name capture directories under the review output.
+  const { attemptId } = entry;
+  if (typeof attemptId !== 'string' || !attemptId || attemptId === '.' || attemptId === '..' || /[\\/]/u.test(attemptId)) {
+    throw new Error(`Review manifest attempt ID must be one path segment: ${attemptId}`);
+  }
+  for (const key of ['receipt', 'rawOutput']) resolveRunArtifact(entry[key], 'Review manifest');
+  for (const key of ['bundle', 'inspection']) if (entry[key]) resolveRunArtifact(entry[key], 'Review manifest');
+  for (const analysis of entry.analyses ?? []) {
+    for (const key of ['replay', 'evidence']) resolveRunArtifact(analysis[key], 'Review manifest');
+  }
 }
 
 fs.mkdirSync(outputRoot, { recursive: true });
@@ -139,7 +166,7 @@ if (browserPath) {
           process.execPath,
           [
             path.join(repoRoot, 'scripts', 'captureReplayArtifact.mjs'),
-            '--bundle', path.join(runRoot, entry.bundle),
+            '--bundle', resolveRunArtifact(entry.bundle, 'Review manifest'),
             '--analysis-index', String(analysis.analysisIndex),
             '--out', destination,
             '--browser', browserPath,
@@ -161,7 +188,7 @@ if (browserPath) {
 }
 
 const loadRawOutput = (artifactPath, receipt) => {
-  const bytes = fs.readFileSync(path.join(runRoot, artifactPath));
+  const bytes = fs.readFileSync(resolveRunArtifact(artifactPath, 'Review manifest'));
   const text = bytes.toString('utf8');
   const isUtf8 = Buffer.from(text, 'utf8').equals(bytes);
   return {
@@ -181,15 +208,7 @@ const loadInspectionCopy = (attemptId, rawOutput) => {
     throw new Error(`Inspection copy requires bundle and correctionProvenance paths: ${attemptId}`);
   }
   const readCopyArtifact = (file) => {
-    if (typeof file !== 'string' || !file || path.isAbsolute(file)) {
-      throw new Error(`Inspection copy paths must be relative to the original run: ${attemptId}`);
-    }
-    const absolute = path.resolve(runRoot, file);
-    const relative = path.relative(runRoot, absolute);
-    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-      throw new Error(`Inspection copy path leaves the original run: ${file}`);
-    }
-    const bytes = fs.readFileSync(absolute);
+    const bytes = fs.readFileSync(resolveRunArtifact(file, `Inspection copy for ${attemptId}`));
     return { record: JSON.parse(bytes.toString('utf8')), artifact: { path: file, byteLength: bytes.length, sha256: sha256(bytes) } };
   };
   const bundle = readCopyArtifact(mapping.bundle);
@@ -212,10 +231,8 @@ const reviewData = {
   runtime: runtime.metadata,
   runReceipt,
   attempts: reviewManifest.entries.map((entry) => {
-    const receipt = readJson(path.join(runRoot, entry.receipt));
-    const normalizedRecord = entry.bundle
-      ? readJson(path.join(runRoot, entry.bundle))
-      : null;
+    const receipt = readRunJson(entry.receipt);
+    const normalizedRecord = entry.bundle ? readRunJson(entry.bundle) : null;
     const rawOutput = loadRawOutput(entry.rawOutput, receipt);
     return {
       attemptId: entry.attemptId,
@@ -227,10 +244,10 @@ const reviewData = {
       rawOutput,
       normalizedRecord,
       inspectionCopy: loadInspectionCopy(entry.attemptId, rawOutput),
-      inspection: entry.inspection ? readJson(path.join(runRoot, entry.inspection)) : null,
+      inspection: entry.inspection ? readRunJson(entry.inspection) : null,
       analyses: entry.analyses.map((analysis) => {
-        const replay = readJson(path.join(runRoot, analysis.replay));
-        const evidence = readJson(path.join(runRoot, analysis.evidence));
+        const replay = readRunJson(analysis.replay);
+        const evidence = readRunJson(analysis.evidence);
         const captureRoot = path.join(
           outputRoot,
           entry.attemptId,

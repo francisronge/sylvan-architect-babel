@@ -19,6 +19,7 @@ import {
   describeParseServerFailure,
   readParseAccessPolicy
 } from './parseHttpPolicy.js';
+import { checkLocalRuntimeHost, readLocalHostPolicy } from './localHostPolicy.js';
 import { PERMISSIONS_POLICY, helmetOptions } from './securityHeaders.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +29,10 @@ const distPath = path.resolve(__dirname, '../dist');
 const app = express();
 const port = Number(process.env.PORT || 3000);
 const isLocalRuntime = process.env.NODE_ENV !== 'production';
+// A local runtime holds the developer's provider keys without requiring Origin, so it
+// accepts connections from this machine only and answers only local Host names
+// (localHostPolicy.js). Production listens on every interface.
+const listenHost = String(process.env.BABEL_LISTEN_HOST || '').trim() || (isLocalRuntime ? '127.0.0.1' : '');
 
 const parseTrustProxySetting = () => {
   const raw = String(process.env.BABEL_TRUST_PROXY || '').trim();
@@ -46,8 +51,10 @@ const toPositiveInt = (value, fallback) => {
 
 const accessPolicy = readParseAccessPolicy(process.env, {
   requireOrigin: !isLocalRuntime,
-  allowNoOrigin: isLocalRuntime
+  allowNoOrigin: isLocalRuntime,
+  localPageOrigin: isLocalRuntime
 });
+const localHostPolicy = isLocalRuntime ? readLocalHostPolicy(process.env) : null;
 const parseRateLimitPerMinute = toPositiveInt(process.env.BABEL_PARSE_RATE_LIMIT_PER_MINUTE, 30);
 const parseDailyLimitPerIp = toPositiveInt(process.env.BABEL_PARSE_DAILY_LIMIT_PER_IP, 1200);
 const maxInFlightParses = toPositiveInt(process.env.BABEL_MAX_IN_FLIGHT_PARSES, 8);
@@ -78,6 +85,15 @@ app.use((_, res, next) => {
   res.setHeader('Permissions-Policy', PERMISSIONS_POLICY);
   next();
 });
+
+if (localHostPolicy) {
+  app.use((req, res, next) => {
+    const rejected = checkLocalRuntimeHost(localHostPolicy, req.get('host'));
+    if (!rejected) return next();
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(rejected.status).json(rejected.body);
+  });
+}
 
 app.use(express.json({ limit: MAX_PARSE_BODY_BYTES }));
 
@@ -156,6 +172,8 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-app.listen(port, () => {
-  console.log(`[secure-server] listening on http://127.0.0.1:${port}`);
+const server = app.listen(...(listenHost ? [port, listenHost] : [port]), () => {
+  const { address, port: boundPort } = server.address();
+  const shownHost = address.includes(':') ? `[${address}]` : address;
+  console.log(`[secure-server] listening on http://${shownHost}:${boundPort}`);
 });
