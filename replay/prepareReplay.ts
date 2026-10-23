@@ -5,7 +5,7 @@ import { adaptDerivationStagesForReplay } from './authoredFrames.ts';
 import { applyPreFrontingSentenceInitialCasing } from './replayCasing.ts';
 import { buildAuthoredRelationLinksForFrames, buildMovementChainIndexCatalogueForFrames, createFrameRelationResolver } from './frameRelations.ts';
 import { relationStagesFromFrames } from './relationStages.ts';
-import { buildPlaybackStepsFromDerivationFrames, kernelCasingContexts } from './replayCompiler.ts';
+import { buildPlaybackStepsFromDerivationFrames } from './replayCompiler.ts';
 import { buildResolvedLinkTraceIndexMap } from './movementIndices.ts';
 import { decoratePlaybackStepsWithTraceIndices } from './movementPresentation.ts';
 import { type DerivationReplayPlan, type PlaybackStep } from './types.ts';
@@ -58,8 +58,7 @@ export const prepareReplay = ({ derivationStages, sentence, inputTokens, include
       frameRelations
     });
     playbackSteps = applyPreFrontingSentenceInitialCasing(
-      decoratePlaybackStepsWithTraceIndices(steps, traceIndexByNodeId), sentence, inputTokens,
-      kernelCasingContexts.get(steps)
+      decoratePlaybackStepsWithTraceIndices(steps, traceIndexByNodeId), sentence, inputTokens
     );
   }
   return { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,

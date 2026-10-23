@@ -42,13 +42,14 @@ import { buildRelationReplayBlocks } from './replayPanel.ts';
 import { mergeReplayDetailBlocks } from './replayPanelFormatting.ts';
 import { extractMovementIndex, formatTraceSurfaceForDisplayValue, isTraceLike, resolveLeafSurface, shouldExpandPreterminalLeaf } from './replaySurfaceNotation.ts';
 import type { ReplayStageContext } from './stageContext.ts';
+import { forestCanUseCurrentMaterialLayoutScaffold } from './stageLayout.ts';
 import { planStageRelations, type RelationPlacement } from './stageRelationPlan.ts';
 import { buildBottomUpSequence } from './structuralPlayback.ts';
 import { cloneSyntaxTree, collectPronouncedLeafNodeIdsInOrder, collectSyntaxSubtreeNodeIds, findExactNodeByIdInForest, findExactNodesByIdInForest, findNodeByIdInForest,
   isNotationLeaf, resolvedRelationLinkKey, resolveNodeLabel } from './syntaxForest.ts';
 import { registeredTrajectoryDisplayKind } from './relations/movementIdentities.ts';
 import { buildAnchoredTreeTransitionForest, buildPreMovementStructuralForest, keptIdLandingNodeIds, movementLandingGroups, movementLandingWrapper,
-  newReceivingHeadNodeIds, resolveFallbackTreeTransitionOwnership } from './treeTransitions.ts';
+  newReceivingHeadNodeIds, receivingHeadMaterialNodeId, resolveFallbackTreeTransitionOwnership } from './treeTransitions.ts';
 import type { PlaybackStep } from './types.ts';
 
 /** The switch is read per compilation, so a test can prepare both paths in one process. */
@@ -420,7 +421,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   const { index, plannedStage, frameRelationSteps, fallbackTransitionOwnership, workspaceRoots, previousFrameWorkspaceRoots,
     frameHasNonMovementTreeTransition, nonMovementTreeTransitionRelationIndexes,
     authoredPreviousRelationRelationLinks, frameSemanticStep, frameStageRecordBlocks, frame, structuralWorkspaceRoots,
-    buildFrameLayoutScaffold, frameReplaySnapshot, futureLayoutScaffold } = stage;
+    buildFrameLayoutScaffold, frameReplaySnapshot, futureLayoutScaffold, structuralLayoutScaffold } = stage;
   if (!plannedStage) return null;
   const continued = kernelContinuations(compilation, index);
   const held = heldRootProjections(compilation);
@@ -671,9 +672,11 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     (relation.recoveredMovements ?? [relation.recoveredMovement]).filter(movement => movement?.transition
       && movement.priorSourceNodeId === movement.targetNodeId).map(movement => movement!.targetNodeId)]));
   const topologies = new Map<string, SyntaxNode[]>();
-  const topologyOf = (): SyntaxNode[] => {
+  // Ordinary construction as today counts it: each construction target and its retained daughters.
+  const ordinary = new Set(units.filter(unit => !unit.word).flatMap(unit => [unit.id, ...cur.get(unit.id)!.kids.filter(k => prev.has(k))]));
+  const topologyOf = (state: Frame): SyntaxNode[] => {
     const active = new Set(played);
-    const constructed = [...frameState.keys()].filter(id => unitOf(id) && edit.built(frameState, id));
+    const constructed = [...state.keys()].filter(id => ordinary.has(id));
     const phase = JSON.stringify([[...active].sort((a, b) => a - b), frameHasNonMovementTreeTransition ? constructed.sort() : []]);
     const cached = topologies.get(phase);
     if (cached) return cached;
@@ -716,11 +719,55 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   const attachmentContinuity = attachmentParents.size > 0 || hasConstructionWrapperInsertions(renameContinuedOccurrences(previousFrameWorkspaceRoots, continued), structuralWorkspaceRoots);
   // As today, steps of a stage whose construction holds attachments say so; a moment keeps the preceding step's account.
   const pendingAttachments = (state: Frame, moment = false): string[] | undefined => moment
-    ? steps.length ? steps.at(-1)!.replayPendingAttachmentNodeIds : attachmentContinuity && units.length ? [...attachmentParents].filter(id => !edit.built(state, id)) : undefined
+    ? steps.length ? steps.at(-1)!.replayPendingAttachmentNodeIds : attachmentContinuity && [...edit.diffs.keys()].some(id => edit.reshaped(id)) ? [...attachmentParents].filter(id => !edit.built(state, id)) : undefined
     : attachmentContinuity ? [...attachmentParents].filter(id => !edit.built(state, id)) : undefined;
   /** The step's canvas: its frame inside its layout topology, every shown node with its shown daughters. */
+  // A separately established pronunciation waits for its own moment: until the relation that
+  // pronounces a head movement's landing (or a receiving head) plays, it shows its preceding
+  // word, and a copied phrase shows its earlier occurrence's pronunciation.
+  const pronunciationPatches = (): Map<string, Record<string, unknown>> => {
+    const active = new Set(played), patches = new Map<string, Record<string, unknown>>();
+    const pending = (owner: number, matches: (relation: (typeof frameRelationSteps)[number]) => boolean) => {
+      const realization = frameRelationSteps.findIndex((relation, relationIndex) => playsAfter(relationIndex, owner) && matches(relation));
+      return realization >= 0 && !active.has(realization);
+    };
+    frameRelationSteps.forEach((relation, movementIndex) => (relation.recoveredMovements ?? [relation.recoveredMovement]).forEach(movement => {
+      if (!movement?.transition || movement.trajectoryKind !== 'head' || !active.has(movementIndex)) return;
+      const receivingId = receivingHeadMaterialNodeId(movement, previousFrameWorkspaceRoots, workspaceRoots);
+      [movement.targetNodeId, ...(receivingId ? [receivingId] : [])].forEach(nodeId => {
+        if (!pending(movementIndex, candidate => Boolean(candidate.pronunciationNodeIds?.includes(nodeId)))) return;
+        const prior = findExactNodeByIdInForest(previousFrameWorkspaceRoots, nodeId === receivingId ? nodeId : movement.priorSourceNodeId);
+        const current = findExactNodeByIdInForest(workspaceRoots, nodeId);
+        if (!prior || !current || prior.children?.length || nodeId !== receivingId && current.children?.length) return;
+        if (prior.word === current.word && prior.tokenIndex === current.tokenIndex) return;
+        patches.set(nodeId, { ...patches.get(nodeId), word: prior.word, tokenIndex: prior.tokenIndex });
+      });
+    }));
+    fallbackTransitionOwnership.forEach((ownership, relationIndex) => {
+      if (!active.has(relationIndex)) return;
+      const retain = (nodeId: string, priorNodeId: string | null) => {
+        const waiting = (id: string) => {
+          const named = new Set([id]);
+          for (let parent = cur.get(id)?.parent; parent; parent = cur.get(parent)?.parent) named.add(parent);
+          return pending(relationIndex, candidate => Boolean(candidate.pronunciationNodeIds?.some(named.has, named)));
+        };
+        const walk = (node: SyntaxNode, prior: SyntaxNode | null): void => {
+          const terminal = !node.children?.length, exact = prior && Boolean(prior.children?.length) !== terminal ? prior : null;
+          if (waiting(node.id)) patches.set(node.id, { ...patches.get(node.id), ...Object.fromEntries((terminal ? ['word', 'tokenIndex', 'silent'] : ['silent'])
+            .map(field => [field, exact ? (exact as unknown as Record<string, unknown>)[field] : undefined])) });
+          const aligned = exact && exact.children?.length === node.children?.length ? exact.children! : null;
+          (node.children || []).forEach((child, childIndex) => walk(child, aligned ? aligned[childIndex] : null));
+        };
+        const node = findExactNodeByIdInForest(workspaceRoots, nodeId);
+        if (node) walk(node, priorNodeId === null ? null : findExactNodeByIdInForest(previousFrameWorkspaceRoots, priorNodeId) ?? null);
+      };
+      ownership.copyPairs?.forEach(pair => retain(pair.targetNodeId, pair.priorSourceNodeId));
+      ownership.ambiguousCopyNodeIds?.forEach(nodeId => retain(nodeId, null));
+    });
+    return patches;
+  };
   const snapshot = (state: Frame, moment = false) => {
-    const topology = indexForest(topologyOf()) ?? new Map<string, Info>();
+    const topology = indexForest(topologyOf(state)) ?? new Map<string, Info>();
     const shownKids = (id: string) => edit.kidsOf(state, id);
     const claimedByShown = new Set([...state.keys()].filter(id => !state.get(id)!.word).flatMap(shownKids));
     const kidsOf = (id: string): string[] => state.has(id) && !state.get(id)!.word ? shownKids(id)
@@ -732,16 +779,27 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const ids = new Set([...topology.keys(), ...state.keys()]);
     const claimed = new Set([...ids].flatMap(kidsOf));
     const rank = (id: string): number => topology.get(id)?.order ?? Math.min(...[id, ...kidsOf(id)].map(at => topology.get(at)?.order ?? 1e6 + (cur.get(at)?.order ?? prev.get(at)?.order ?? 0)));
+    const patches = pronunciationPatches();
     const build = (id: string): SyntaxNode => {
       const { children: _children, ...own } = nodeOf(id);
       const node: SyntaxNode = { ...own, id } as SyntaxNode;
+      const patch = patches.get(id);
+      if (patch) for (const [field, value] of Object.entries(patch)) {
+        if (value === undefined) delete (node as unknown as Record<string, unknown>)[field];
+        else (node as unknown as Record<string, unknown>)[field] = value;
+      }
       const kids = kidsOf(id);
       if (kids.length) node.children = kids.map(build);
       return node;
     };
     const canvasForest = [...ids].filter(id => !claimed.has(id)).sort((a, b) => rank(a) - rank(b)).map(build);
     const pending = pendingAttachments(state, moment);
-    const scaffold = buildFrameLayoutScaffold(canvasForest, new Set(pending ?? []));
+    // As today: a stage without relation transitions reuses its construction scaffold where the
+    // frame fits it; otherwise the scaffold is grafted from the frame's own material.
+    const scaffold = relationPlacements.length || placements.relationLayoutNodeIds.length || placements.frameHasTreeTransition
+      ? buildFrameLayoutScaffold(canvasForest, new Set(pending ?? []))
+      : structuralLayoutScaffold && forestCanUseCurrentMaterialLayoutScaffold(canvasForest, structuralLayoutScaffold, attachmentContinuity ? new Set(pending ?? []) : undefined)
+        ? structuralLayoutScaffold : undefined;
     const authoredIds = new Set<string>();
     const visit = (node: SyntaxNode) => { authoredIds.add(node.id); node.children?.forEach(visit); };
     canvasForest.forEach(visit);
