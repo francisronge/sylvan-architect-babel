@@ -591,18 +591,25 @@ const convertAligned = (item, tokens) => {
     const unit = item.units[firstIndex(item.units.length, index => item.units[index].span[0] > start) - 1];
     return Boolean(unit) && end <= unit.span[1];
   };
+  // Each analysis decides whether punctuation is a word: one that leaves out
+  // punctuation another analysis writes does not claim that token. Spelling
+  // covers every other character, so any other uncovered token is a defect.
   const uncovered = tokens.filter(token => !covered(token));
-  if (uncovered.length) {
-    return { diagnostics: uncovered.map(token => failure('SPELLOUT_SEGMENTATION_CONFLICT',
+  const conflicts = uncovered.filter(token => significant(token.text).length);
+  if (conflicts.length) {
+    return { diagnostics: conflicts.map(token => failure('SPELLOUT_SEGMENTATION_CONFLICT',
       `"${token.text}" is a word in another analysis but this analysis does not spell it.`)), observations: item.observations };
   }
   const units = item.units.map(unit => ({ ...unit, tokenIndices: within(unit.span) }));
   // The parser compares an ordinary word with its single token after removing
   // edge punctuation and case. A word that spells its token with other inner
   // marks (don't for don’t), or covers several tokens, is recorded as a
-  // single-leaf group instead.
+  // single-leaf group instead. So is a punctuation word of an analysis that
+  // leaves other punctuation unclaimed, because the parser could otherwise
+  // place it on the unclaimed token.
   const spellingGroups = units.flatMap(unit => (unit.group === undefined && (unit.tokenIndices.length !== 1
-    || normalizeSurfaceToken(unit.text) !== normalizeSurfaceToken(tokens[unit.tokenIndices[0]].text))
+    || normalizeSurfaceToken(unit.text) !== normalizeSurfaceToken(tokens[unit.tokenIndices[0]].text)
+    || (uncovered.length && !normalizeSurfaceToken(unit.text)))
     ? [{ nodeIds: [unit.nodeId], tokenIndices: unit.tokenIndices }] : []));
   const earlierSpans = new Map(item.earlier.map(group => [`${group.stageIndex}:${group.groupIndex}`, group.spans]));
   const groupTokens = new Map();
