@@ -22,7 +22,7 @@ const normalizeParseResult = (
   value,
   framework = 'xbar',
   sentence = '',
-  modelRoute = 'gemini',
+  modelRoute,
   options = {}
 ) => {
   const parsed = value;
@@ -223,7 +223,7 @@ export const normalizeParseBundle = (
   value,
   framework = 'xbar',
   sentence = '',
-  modelRoute = 'gemini',
+  modelRoute,
   enforceDerivationRouteContract = false,
   options = {}
 ) => {

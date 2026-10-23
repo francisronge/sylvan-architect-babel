@@ -85,15 +85,10 @@ const inferFailureClass = (code, details = {}) => {
     code === 'INVALID_REQUEST'
     || code === 'API_KEY_MISSING'
     || code === 'API_KEY_INVALID'
-    || code === 'GEMINI_QUOTA'
     || code === 'PROVIDER_QUOTA'
     || code === 'PROVIDER_TIMEOUT'
     || code === 'MODEL_UNAVAILABLE'
     || code === 'PROVIDER_UNAVAILABLE'
-    || code === 'GEMINI_UNAVAILABLE'
-    || code === 'GEMINI_TIMEOUT'
-    || code === 'GEMINI_TRANSPORT'
-    || code === 'LOCAL_MODEL_UNAVAILABLE'
   ) {
     return FAILURE_CLASSES.TRANSPORT_SERIALIZATION;
   }

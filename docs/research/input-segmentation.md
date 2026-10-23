@@ -319,5 +319,10 @@ keep their form. The open points were resolved as follows:
   first tries each group where its first covered terminal is read, so every
   analysis that passed before converts identically: 219 of 221 saved analyses,
   and the other 2 are the growing-word failures, which now pass.
+- **Punctuation.** Each analysis decides whether punctuation is a syntactic
+  word, as it decides where words divide (Francis, 23 October 2026). The word
+  list keeps a punctuation token that any analysis writes as a word; an
+  analysis that leaves it out does not claim it. Every other character must
+  still be spelled.
 - **Metalanguage** is unchanged. It occurs under either prompt and is a
   separate decision.

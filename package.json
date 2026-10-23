@@ -41,7 +41,6 @@
     "release:verify-assets": "node scripts/verifyReleaseAssets.mjs",
     "preview": "vite preview",
     "start": "node server/index.js",
-    "local:provider-effort": "node .artifacts/provider_effort_local_test.cjs",
     "audit": "npm audit",
     "orchard:build": "node scripts/buildRelationOrchard.mjs",
     "lint": "eslint ."
@@ -50,7 +49,6 @@
     "@fontsource/crimson-pro": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/quicksand": "^5.2.10",
-    "@google/genai": "^1.42.0",
     "d3": "^7.9.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
