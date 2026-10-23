@@ -3,6 +3,7 @@ import { categoryLabel } from './categoryLabel.ts';
 import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 import { type SyntaxNode } from '../types.ts';
 import { replayOwnerId } from './displayIdentity.ts';
+import { readBareProjections } from './projectionStructure.ts';
 import { isResolvedMovementLink } from './movementLinks.ts';
 import { buildStructuralReplayFallback } from './playbackFormatting.ts';
 import {
@@ -101,6 +102,10 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
       children.forEach(child => visit(child, node, silent, layout));
     };
     visit(clonedCanvas, null, false, false);
+    // In bare labels a phrase dominating a word directly (C over a raw 'Who')
+    // names its projection, not the word's head; X-bar writes it as CP.
+    const bare = readBareProjections([clonedCanvas]);
+    const headsWord = (parent?: SyntaxNode | null) => !bare || !parent || bare.minimal(parent);
     const currentLeaves = leafIds.map(leafId => {
       const info = exactNodes.get(leafId)!;
       const leaf = nodesByName.get(leafId);
@@ -120,7 +125,7 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
         return;
       const leafId = String(leaf.id || '');
       const parent = exactNodes.get(leafId)?.parent;
-      if (!isSentenceInitialCaseAdjustableParent(parent?.label || leaf.label))
+      if (!headsWord(parent) || !isSentenceInitialCaseAdjustableParent(parent?.label || leaf.label))
         return;
       const authoredSurface = leaf.replayOrigin?.kind === 'word'
         ? String(nodesByName.get(String(leaf.replayOrigin.ownerId || ''))?.word || '').trim()

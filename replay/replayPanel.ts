@@ -314,8 +314,9 @@ const inferReplayLandingValue = (step: PlaybackStep | null): string => {
     return '';
   }
   const targetDisplay = getReplayMoveTargetLabel(step);
-  const positionFromTree = describeReplayNodePosition(step.replayCanvasData, step.targetNodeId);
-  if (isHeadLikePlaybackStep(step)) {
+  const headLike = isHeadLikePlaybackStep(step);
+  const positionFromTree = describeReplayNodePosition(step.replayCanvasData, step.targetNodeId, { headLanding: headLike });
+  if (headLike) {
     return targetDisplay && !isGenericReplayStructuralLabel(targetDisplay)
       ? combineReplayNodeDisplayWithPosition(targetDisplay, positionFromTree)
       : (positionFromTree || '');
