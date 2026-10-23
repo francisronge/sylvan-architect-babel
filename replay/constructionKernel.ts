@@ -421,7 +421,7 @@ export function kernelContinuations(compilation: ReplayCompilation, index: numbe
 export function buildKernelStageSteps(compilation: ReplayCompilation, stage: ReplayStageContext): PlaybackStep[] | null {
   const { frames, identity, plannedStageCount, sentenceInitialSurface } = compilation;
   const { index, plannedStage, frameRelationSteps, fallbackTransitionOwnership, workspaceRoots, previousFrameWorkspaceRoots,
-    frameHasNonMovementTreeTransition, nonMovementTreeTransitionRelationIndexes,
+    frameHasNonMovementTreeTransition, nonMovementTreeTransitionRelationIndexes, nonMovementTransitionNodeIds,
     authoredPreviousRelationRelationLinks, frameSemanticStep, frameStageRecordBlocks, frame, structuralWorkspaceRoots,
     buildFrameLayoutScaffold, frameReplaySnapshot, futureLayoutScaffold, structuralLayoutScaffold } = stage;
   if (!plannedStage) return null;
@@ -447,6 +447,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const slot = cur.get(p)!.kids.indexOf(id);
     return edit.reshaped(p) ? [key('w', p)] : edit.replaces(p, slot) ? [key('s', p, slot)] : [];
   };
+  const structuralIndex = indexForest(structuralWorkspaceRoots);
   const frame0: Frame = new Map([...prev.keys()].map(id => [id, { content: 'P' as const, kids: 'P' as const, slots: new Map<number, string>() }]));
   const placementOf = new Map(relationPlacements.map(placement => [placement.relationIndex, placement]));
   // Relation edits on the stage's first frame. A proved movement owns its landing, its lower
@@ -463,6 +464,14 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       newReceivingHeadNodeIds(m, previousFrameWorkspaceRoots, workspaceRoots).forEach(whole);
     }
     if (placement && movements.length) [...getMovementCreatedLandingHostNodeIds(placement), ...getMovementPiedPipedNodeIds(placement)].forEach(whole);
+    // A trajectory claim without a proved movement still introduces, at its moment, the new material at its
+    // endpoints that the stage's construction forest lacks, with its landing's new parents (as today).
+    if (!movements.length && placement && (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)) {
+      const constructionIds = new Set(structuralIndex ? structuralIndex.keys() : []);
+      [...placement.authoredTargetNodeIds, ...placement.sourceNodeIds].flatMap(id => subtree(cur, id)).filter(id => !constructionIds.has(id) && !prev.has(id))
+        .forEach(id => { changedKeys(id).forEach(k => seeds.add(k)); place(id, true).forEach(k => seeds.add(k)); });
+      [...getMovementCreatedLandingHostNodeIds(placement), ...getMovementPiedPipedNodeIds(placement)].forEach(whole);
+    }
     // An unproven landing (its source not in the preceding stage) still appears at its own moment.
     if (!movements.length && relation.unprovenNewLandingNodeId && cur.has(relation.unprovenNewLandingNodeId)) {
       subtree(cur, relation.unprovenNewLandingNodeId).flatMap(changedKeys).forEach(k => seeds.add(k));
@@ -470,7 +479,10 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     }
     const ownership = movements.length ? undefined : fallbackTransitionOwnership.get(relationIndex);
     const displaces = (id: string) => prev.has(prevId(id)) && (!cur.has(prevId(id)) || edit.diffs.has(prevId(id)) || cur.get(prevId(id))!.parent !== prev.get(prevId(id))!.parent);
-    if (ownership && [...ownership.priorNodeIds].some(displaces)) {
+    const transitionOwned = frameHasNonMovementTreeTransition && nonMovementTreeTransitionRelationIndexes.has(relationIndex);
+    if (!ownership && transitionOwned && !movements.length)
+      [...(nonMovementTransitionNodeIds.get(relationIndex) ?? [])].filter(id => cur.has(id) && !prev.has(id)).forEach(whole);
+    if (ownership && ([...ownership.priorNodeIds].some(displaces) || transitionOwned)) {
       [...ownership.currentNodeIds, ...(ownership.hostNodeIds ?? [])].forEach(whole);
       ownership.priorNodeIds.forEach(id => subtree(prev, prevId(id)).filter(d => !cur.has(d)).forEach(d => seeds.add(key('d', d))));
     }
@@ -587,7 +599,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   const unitOf = (id: string) => units.find(unit => unit.id === id && !unit.word);
   // Construction waits for the daughters a node has before the stage's movements (today's
   // construction forest); a daughter a later moment completes is carried meanwhile.
-  const structural = indexForest(structuralWorkspaceRoots);
+  const structural = structuralIndex;
   const constructionKids = (id: string): string[] => (structural?.get(id) ?? cur.get(id))?.kids ?? [];
   const required = (placement: RelationPlacement): string[] => {
     const hostIds = new Set(getMovementCreatedLandingHostNodeIds(placement));
