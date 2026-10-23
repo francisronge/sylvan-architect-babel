@@ -494,7 +494,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       ...getMovementPiedPipedNodeIds(placement)].forEach(whole);
     // A trajectory claim without a proved movement still introduces, at its moment, the new material at its
     // endpoints that the stage's construction forest lacks, with its landing's new parents (as today).
-    if (!movements.length && placement && (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition) && claimDisplaces(relation)) {
+    if (!movements.length && placement && (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)) {
       const constructionIds = new Set(structuralIndex ? structuralIndex.keys() : []);
       [...placement.authoredTargetNodeIds, ...placement.sourceNodeIds].flatMap(id => subtree(cur, id)).filter(id => !constructionIds.has(id) && !prev.has(id))
         .forEach(id => { changedKeys(id).forEach(k => seeds.add(k)); place(id, true).forEach(k => seeds.add(k)); });
@@ -507,7 +507,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     }
     const ownership = movements.length ? undefined : fallbackTransitionOwnership.get(relationIndex);
     const displaces = (id: string) => prev.has(prevId(id)) && (!cur.has(prevId(id)) || edit.diffs.has(prevId(id)) || cur.get(prevId(id))!.parent !== prev.get(prevId(id))!.parent);
-    const transitionOwned = frameHasNonMovementTreeTransition && nonMovementTreeTransitionRelationIndexes.has(relationIndex) && claimDisplaces(relation);
+    const transitionOwned = frameHasNonMovementTreeTransition && nonMovementTreeTransitionRelationIndexes.has(relationIndex);
     if (!ownership && transitionOwned && !movements.length)
       [...(nonMovementTransitionNodeIds.get(relationIndex) ?? [])].filter(id => cur.has(id) && !prev.has(id)).forEach(whole);
     if (ownership && ([...ownership.priorNodeIds].some(displaces) || transitionOwned)) {
