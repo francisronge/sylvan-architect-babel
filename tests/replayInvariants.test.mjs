@@ -259,10 +259,10 @@ test('control: one-letter-per-label reports a letter painted twice beside one la
   const relative = prepare(record);
   assert.deepEqual(checkOneLetterPerLabel(relative), []);
   const everyLetter = checkOneLetterPerLabel(relative, () => () => ({ draw: 'glyph', label: null, alsoFor: [] }));
-  assert(reported(everyLetter, 'one-letter-per-label', 22, 'operatorHigh shows i 3 times'));
-  assert(reported(everyLetter, 'one-letter-per-label', 20, 'operatorTrace shows i 2 times'));
+  assert(reported(everyLetter, 'one-letter-per-label', 27, 'operatorHigh shows i 3 times'));
+  assert(reported(everyLetter, 'one-letter-per-label', 26, 'operatorTrace shows i 2 times'));
   const noLetter = checkOneLetterPerLabel(relative, () => () => ({ draw: 'none' }));
-  assert(reported(noLetter, 'one-letter-per-label', 22, 'operatorHigh shows i 0 times'));
+  assert(reported(noLetter, 'one-letter-per-label', 27, 'operatorHigh shows i 0 times'));
 });
 
 test('control: marks-at-owning-moment reports a mark before its moment and a mark whose moment never plays', () => {

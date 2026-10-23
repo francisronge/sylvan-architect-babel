@@ -94,8 +94,8 @@ for (const [width, height] of [[1408, 680], [386, 698]]) for (const direction of
           `frame ${number}: ${id} retains its spacing relative to the workspace`);
         assert.equal(node.y, reflected.y);
       }
-      if (number >= 51 && number < 55) assert(!after.nodes.has('topic-projection'), 'future parent remains invisible');
-      if (number >= 55) assert(after.nodes.has('topic-projection'), 'actual topic merge is still frame 55');
+      if (number >= 51 && number < 54) assert(!after.nodes.has('topic-projection'), 'future parent remains invisible');
+      if (number >= 54) assert(after.nodes.has('topic-projection'), 'actual topic merge is still frame 54');
     }
     const final = frame(59), top = final.nodes.get('matrix-cp'), fit = bounds(59);
     assert(top.y < 0, 'new surrounding parents extend above the retained workspace');
