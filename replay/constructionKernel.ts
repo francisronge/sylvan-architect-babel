@@ -710,8 +710,11 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
         .forEach(id => prerequisites.push(id));
     // A head moves into a host head already merged with its complement: the host complex's parent,
     // when construction builds it, comes first.
+    // A host head the preceding stage had already merged needs no new merge.
+    const mergedBefore = (landing: string) => (cur.get(cur.get(landing)?.parent ?? '')?.kids ?? []).filter(id => id !== landing)
+      .every(host => Boolean(prev.get(prevId(host))?.parent));
     (placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).filter(m => m?.transition && m.trajectoryKind === 'head'
-      && hostedComplex(m.targetNodeId))
+      && hostedComplex(m.targetNodeId) && !mergedBefore(m.targetNodeId))
       .map(m => {
         // The host's merge may sit above another movement's landing parent (a clitic's T complex).
         let at = cur.get(cur.get(m!.targetNodeId)?.parent ?? '')?.parent;

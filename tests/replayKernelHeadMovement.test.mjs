@@ -54,3 +54,11 @@ test('Danish V2 with relations authored V2, subject, I-to-C: I-to-C plays before
   assert.ok(frameStructure(subject).displayed.has('a1_c'));
   assert.deepEqual(pronouncedTwice(all), []);
 });
+
+test('a head moving into a host the preceding stage already merged reports no timing conflict', () => {
+  // Spanish V-to-I with a clitic complex above the landing: I stood in I′ before, so V-to-I needs no new host merge.
+  for (const id of ['replay-regressions/head-movement-ordinary-wrapper.json#', 'replay-regressions/ordinary-receiving-width-control.json#']) {
+    const conflicts = steps(record(id)).flatMap(step => step.movementDiagnostics ?? []).filter(message => message.includes('RELATION_TIMING_CONFLICT'));
+    assert.deepEqual(conflicts, [], id);
+  }
+});
