@@ -171,6 +171,39 @@ test('spelling ignores case and punctuation but keeps the sentence spelling in t
   assert.deepEqual(period.inputTokens, ['Mia', 'laughed', '.']);
 });
 
+test('letter case is ignored for letters whose case forms differ in length or position', () => {
+  const spells = [
+    [['istanbul', 'güzel'], 'İstanbul güzel.', ['İstanbul', 'güzel']],
+    [['İSTANBUL'], 'istanbul', ['istanbul']],
+    [['οδός'], 'ΟΔΌΣ', ['ΟΔΌΣ']],
+    [['ΟΔΌΣ'], 'οδός', ['οδός']],
+    [['STRASSE'], 'Straße', ['Straße']],
+    [['straße'], 'STRASSE', ['STRASSE']],
+    [['Stra', 'SSE'], 'Straße', ['Stra', 'ße']]
+  ];
+  for (const [words, sentence, inputTokens] of spells) {
+    const result = convertOne(flat(...words), sentence);
+    assert.ok(result.ok, `${words} / ${sentence}: ${JSON.stringify(result.diagnostics)}`);
+    assert.deepEqual(result.inputTokens, inputTokens, sentence);
+    assert.equal(normalize(result.analysis, sentence, result.inputTokens).analyses.length, 1, sentence);
+  }
+  // An earlier group's text resolves through the final words caselessly too.
+  const sentence = 'Die STRASSE ist lang.';
+  const payload = { derivationStages: [
+    { statement: 'n', stageRecord: 'n', relations: [], workspaceForest: [leaf('n', 'Straße')], realizations: [{ nodeIds: ['n'], text: 'straße' }] },
+    { statement: 's', stageRecord: 's', relations: [], workspaceForest: [node('s', 'S', leaf('d', 'Die'), leaf('n', 'Straße'), leaf('i', 'ist'), leaf('l', 'lang'))] }
+  ] };
+  const grouped = convertOne(payload, sentence);
+  assert.ok(grouped.ok, JSON.stringify(grouped.diagnostics));
+  assert.deepEqual(grouped.analysis.derivationStages[0].realizations, [{ nodeIds: ['n'], tokenIndices: [1] }]);
+  // Accents, letters and other character variants still count, and one
+  // sentence character is never split.
+  for (const [words, sentence] of [[['cafe'], 'café'], [['kiz'], 'kız'], [['Stras', 'se'], 'Straße'],
+    [['x2'], 'x²'], [['Mia'], 'Ｍｉａ']]) {
+    assert.equal(convertOne(flat(...words), sentence).ok, false, `${words} / ${sentence}`);
+  }
+});
+
 test('misspelled, missing and indexed words fail the spell-out check', () => {
   assert.equal(convertOne(flat('Mia', 'laughs'), 'Mia laughed.').diagnostics[0].rule, 'SPELLOUT_MISMATCH');
   assert.equal(convertOne(flat('Mia'), 'Mia laughed.').diagnostics[0].rule, 'SPELLOUT_INCOMPLETE');
