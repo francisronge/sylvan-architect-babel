@@ -44,7 +44,7 @@ import { extractMovementIndex, formatTraceSurfaceForDisplayValue, isTraceLike, r
 import type { ReplayStageContext } from './stageContext.ts';
 import { forestCanUseCurrentMaterialLayoutScaffold } from './stageLayout.ts';
 import { planStageRelations, type RelationPlacement } from './stageRelationPlan.ts';
-import { buildBottomUpSequence } from './structuralPlayback.ts';
+import { buildBottomUpSequence, constructionChildRank } from './structuralPlayback.ts';
 import { cloneSyntaxTree, collectPronouncedLeafNodeIdsInOrder, collectSyntaxSubtreeNodeIds, findExactNodeByIdInForest, findExactNodesByIdInForest, findNodeByIdInForest,
   isNotationLeaf, resolvedRelationLinkKey, resolveNodeLabel } from './syntaxForest.ts';
 import { registeredTrajectoryDisplayKind } from './relations/movementIdentities.ts';
@@ -564,7 +564,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const hierarchy = d3.hierarchy<SyntaxNode>(structuralCanvas);
     applyVizIds(hierarchy);
     const all = new Set<string>(hierarchy.descendants().map(node => getNodeId(node)));
-    for (const node of buildBottomUpSequence(hierarchy, all)) {
+    for (const node of buildBottomUpSequence(hierarchy, all, constructionChildRank())) {
       const origin = node.data.replayOrigin, word = origin?.kind === 'word';
       const id = word ? String(origin!.ownerId) : origin?.kind === 'lexical' ? String(origin.authoredId) : String(node.data.id);
       if (!cur.has(id) || !constructs(id)) continue;

@@ -4,7 +4,7 @@ import { type ResolvedRelationLink } from '../relationLinks.ts';
 import { isPronouncedLeaf } from '../server/babelParser/nodePronunciation.js';
 import { resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 import { type DerivationOperation, type SyntaxNode } from '../types.ts';
-import { categoryLabel } from './categoryLabel.ts';
+import { categoryLabel, readCategoryLabel } from './categoryLabel.ts';
 import {
   constructionAttachmentUpdates,
   hasConstructionWrapperInsertions,
@@ -146,7 +146,37 @@ export const getDerivationalChildRankForOrdering = (parent: HierNode, child: Hie
   return childIndex;
 };
 
-export const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>): HierNode[] => {
+/**
+ * Sister order by structural role, never by category name: a daughter heads
+ * its parent when they share a head category (an equality of labels, whatever
+ * the notation). A minimal head merges last, after its complement; a head that
+ * is itself a projection is built first, before its specifier or adjunct.
+ * Without a head daughter, phrases with pronounced material precede silent
+ * leaves, and otherwise authored order holds.
+ */
+export const structuralChildRank = (parent: HierNode, child: HierNode, childIndex: number): number => {
+  const head = (node: HierNode | null | undefined) => {
+    const label = String(node?.data?.label || '').trim();
+    return readCategoryLabel(label)?.head ?? label;
+  };
+  const parentHead = head(parent);
+  const daughters = parent.children || [];
+  const headDaughter = parentHead ? daughters.find(daughter => head(daughter) === parentHead && daughter !== undefined) : undefined;
+  if (headDaughter) {
+    const minimal = !(headDaughter.children || []).some(grandchild => head(grandchild) === parentHead);
+    if (child === headDaughter) return minimal ? 3 : 0;
+    return minimal ? 0 : 4;
+  }
+  if (child.children?.length && subtreeHasOvertYield(child.data)) return 0;
+  if (isNotationLeaf(child.data)) return 3;
+  return childIndex;
+};
+
+/** The child rank Replay construction uses: today's table, or `structuralChildRank` under BABEL_REPLAY_STRUCTURAL_RANK=1. */
+export const constructionChildRank = (): typeof getDerivationalChildRankForOrdering => typeof process !== 'undefined'
+  && process.env?.BABEL_REPLAY_STRUCTURAL_RANK === '1' ? structuralChildRank : getDerivationalChildRankForOrdering;
+
+export const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>, rank = getDerivationalChildRankForOrdering): HierNode[] => {
   const sequence: HierNode[] = [];
   const visit = (node: HierNode) => {
     const syntheticWorkspaceRoot = isSyntheticWorkspaceRootNode(node);
@@ -156,8 +186,8 @@ export const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>): 
       .filter((child) => visibleIds.has(getNodeId(child)))
       .map((child, index) => ({ child, index }))
       .sort((left, right) => {
-        const leftRank = getDerivationalChildRankForOrdering(node, left.child, left.index);
-        const rightRank = getDerivationalChildRankForOrdering(node, right.child, right.index);
+        const leftRank = rank(node, left.child, left.index);
+        const rightRank = rank(node, right.child, right.index);
         return leftRank === rightRank ? left.index - right.index : leftRank - rightRank;
       })
       .map(({ child }) => child);
