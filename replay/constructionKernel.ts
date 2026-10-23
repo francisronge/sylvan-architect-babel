@@ -928,13 +928,14 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       for (let parent = cur.get(id)?.parent; parent; parent = cur.get(parent)?.parent) named.add(parent);
       return pending(owner, candidate => Boolean(candidate.pronunciationNodeIds?.some(named.has, named)));
     };
-    // A phrasal landing arrives with its current labels and its preceding words until those relations.
+    // A phrasal landing that keeps its occurrences arrives with its current labels and their preceding
+    // words until those relations; a new landing occurrence arrives with its own words.
     frameRelationSteps.forEach((relation, movementIndex) => (relation.recoveredMovements ?? [relation.recoveredMovement]).forEach(movement => {
       if (!movement?.transition || movement.trajectoryKind !== 'phrasal' || !active.has(movementIndex)) return;
       const walk = (node: SyntaxNode, prior: SyntaxNode | undefined): void => {
         if (!prior) return;
         if (!node.children?.length) {
-          if (!prior.children?.length && (prior.word !== node.word || prior.tokenIndex !== node.tokenIndex) && pronouncedLater(movementIndex, node.id))
+          if (prev.has(node.id) && !prior.children?.length && (prior.word !== node.word || prior.tokenIndex !== node.tokenIndex) && pronouncedLater(movementIndex, node.id))
             patches.set(node.id, { ...patches.get(node.id), word: prior.word, tokenIndex: prior.tokenIndex });
           return;
         }
