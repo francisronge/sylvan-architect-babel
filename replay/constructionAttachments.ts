@@ -154,3 +154,55 @@ export function restoreRegroupedConstituents(
   };
   return currentForest.map(clone);
 }
+
+const subtreeIds = (node: SyntaxNode | undefined): string[] =>
+  node ? [node.id || '', ...(node.children || []).flatMap(subtreeIds)] : [];
+
+/** A retained parent can replace one daughter by a new one in the same slot:
+ * the replaced daughter leaves with its whole subtree and the replacement is
+ * new to the stage. The replaced daughter stays until the replacement's own
+ * construction step swaps it in. Maps each replacement to its parent and the
+ * daughter it replaces. */
+export function replacedChildren(
+  previousForest: readonly SyntaxNode[],
+  currentForest: readonly SyntaxNode[]
+): Map<string, { parentId: string; replacedId: string }> {
+  const previous = indexForest(previousForest), current = indexForest(currentForest);
+  const replacements = new Map<string, { parentId: string; replacedId: string }>();
+  for (const [parentId, node] of current) {
+    const before = childIds(previous.get(parentId)), after = childIds(node);
+    if (!before.length || before.length !== after.length) continue;
+    after.forEach((childId, slot) => {
+      const replacedId = before[slot];
+      if (!childId || childId === replacedId || after.includes(replacedId) || before.includes(childId) || previous.has(childId)) return;
+      if (subtreeIds(previous.get(replacedId)).some(id => current.has(id))) return;
+      replacements.set(childId, { parentId, replacedId });
+    });
+  }
+  return replacements;
+}
+
+/** Until a replacement is built, its parent shows the replaced daughter in
+ * that slot, and the replacement's subtree stands as its own workspace. */
+export function restoreReplacedChildren(
+  currentForest: readonly SyntaxNode[],
+  previousForest: readonly SyntaxNode[],
+  pending: ReadonlyMap<string, { parentId: string; replacedId: string }>
+): SyntaxNode[] {
+  if (!pending.size) return currentForest as SyntaxNode[];
+  const previous = indexForest(previousForest);
+  const waiting: SyntaxNode[] = [];
+  const copy = (node: SyntaxNode): SyntaxNode => node.children ? { ...node, children: node.children.map(copy) } : { ...node };
+  const clone = (node: SyntaxNode): SyntaxNode => {
+    if (!node.children) return { ...node };
+    return { ...node, children: node.children.map(child => {
+      const replacement = pending.get(child.id || '');
+      const replaced = replacement?.parentId === node.id ? previous.get(replacement.replacedId) : undefined;
+      if (!replaced) return clone(child);
+      waiting.push(clone(child));
+      return copy(replaced);
+    }) };
+  };
+  const roots = currentForest.map(clone);
+  return [...roots, ...waiting];
+}
