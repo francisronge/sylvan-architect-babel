@@ -24,7 +24,7 @@
 import * as d3 from 'd3';
 import type { DerivationOperation, SyntaxNode } from '../types.ts';
 import type { ResolvedRelationLink } from '../relationLinks.ts';
-import { isPronouncedLeaf } from '../server/babelParser/nodePronunciation.js';
+import { authoredWord, isPronouncedLeaf } from '../server/babelParser/nodePronunciation.js';
 import { getFrameStageRecordText } from './authoredFrames.ts';
 import type { ReplayCompilation } from './compilationContext.ts';
 import { constructionAttachmentUpdates, hasConstructionWrapperInsertions } from './constructionAttachments.ts';
@@ -45,7 +45,7 @@ import type { ReplayStageContext } from './stageContext.ts';
 import { forestCanUseCurrentMaterialLayoutScaffold } from './stageLayout.ts';
 import { planStageRelations, type RelationPlacement } from './stageRelationPlan.ts';
 import { cloneSyntaxTree, collectPronouncedLeafNodeIdsInOrder, collectSyntaxSubtreeNodeIds, findExactNodeByIdInForest, findExactNodesByIdInForest, findNodeByIdInForest,
-  isNotationLeaf, resolvedRelationLinkKey, resolveNodeLabel } from './syntaxForest.ts';
+  isNotationLeaf, normalizeToken, resolvedRelationLinkKey, resolveNodeLabel } from './syntaxForest.ts';
 import { registeredTrajectoryDisplayKind } from './relations/movementIdentities.ts';
 import { buildAnchoredTreeTransitionForest, buildPreMovementStructuralForest, keptIdLandingNodeIds, movementLandingGroups, movementLandingWrapper,
   newReceivingHeadNodeIds, receivingHeadMaterialNodeId, resolveFallbackTreeTransitionOwnership } from './treeTransitions.ts';
@@ -415,8 +415,44 @@ function adjunctionContinuations(previous: readonly SyntaxNode[], current: reado
   return out;
 }
 
+/**
+ * A preceding subtree the stage keeps unchanged under new ids continues as that subtree: same labels, words (up to
+ * case and Unicode form) and silence throughout, at least two pronounced words, the only such subtree in each stage, its preceding root gone
+ * and none of its nodes kept or moved. Each preceding node continues as the node in its place.
+ */
+function renamedSubtreeContinuations(previous: readonly SyntaxNode[], current: readonly SyntaxNode[], moved: ReadonlySet<string>): Map<string, string> {
+  const out = new Map<string, string>(), interned = new Map<string, number>();
+  const shapes = (forest: readonly SyntaxNode[]) => {
+    const byShape = new Map<number, SyntaxNode[]>(), ids = new Set<string>();
+    const visit = (node: SyntaxNode): { shape: number; words: number } => {
+      ids.add(node.id);
+      const kids = (node.children ?? []).map(visit);
+      const words = kids.length ? kids.reduce((sum, kid) => sum + kid.words, 0) : isPronouncedLeaf(node) ? 1 : 0;
+      const text = JSON.stringify([String(node.label ?? '').trim().toUpperCase(), normalizeToken(authoredWord(node)), node.silent === true, kids.map(kid => kid.shape)]);
+      if (!interned.has(text)) interned.set(text, interned.size);
+      const shape = interned.get(text)!;
+      if (words >= 2) byShape.set(shape, [...(byShape.get(shape) ?? []), node]);
+      return { shape, words };
+    };
+    forest.forEach(visit);
+    return { byShape, ids };
+  };
+  const before = shapes(previous), after = shapes(current);
+  const pair = (from: SyntaxNode, to: SyntaxNode) => { out.set(from.id, to.id); (from.children ?? []).forEach((child, i) => pair(child, to.children![i])); };
+  const subtreeIds = (node: SyntaxNode): string[] => [node.id, ...(node.children ?? []).flatMap(subtreeIds)];
+  for (const [shape, [from, ...others]] of before.byShape) {
+    const matches = after.byShape.get(shape) ?? [];
+    if (others.length || matches.length !== 1) continue;
+    const fromIds = subtreeIds(from), toIds = subtreeIds(matches[0]);
+    if (fromIds.some(id => after.ids.has(id) || moved.has(id)) || toIds.some(id => before.ids.has(id) || moved.has(id))) continue;
+    if (fromIds.some(id => out.has(id))) continue;
+    pair(from, matches[0]);
+  }
+  return out;
+}
+
 const continuationCache = new WeakMap<object, Map<number, Map<string, string>>>();
-/** The stage's continuations of its preceding stage, `previous id -> current id`: renamed nodes and adjunction segments. */
+/** The stage's continuations of its preceding stage, `previous id -> current id`: renamed subtrees and nodes, and adjunction segments. */
 export function kernelContinuations(compilation: ReplayCompilation, index: number): Map<string, string> {
   if (!continuationCache.has(compilation)) continuationCache.set(compilation, new Map());
   const cache = continuationCache.get(compilation)!;
@@ -433,7 +469,8 @@ export function kernelContinuations(compilation: ReplayCompilation, index: numbe
     const moved = new Set(relations.flatMap(relation => (relation.recoveredMovements ?? [relation.recoveredMovement]).flatMap(m => m
       ? [m.priorSourceNodeId, m.sourceNodeId, m.targetNodeId, landingParent(m.targetNodeId) ?? ''] : [])));
     const adjoined = index > 0 ? adjunctionContinuations(compilation.frames[index - 1].workspaceForest ?? [], compilation.frames[index].workspaceForest ?? [], moved) : new Map();
-    cache.set(index, new Map([...adjoined, ...renamed]));
+    const retained = index > 0 ? renamedSubtreeContinuations(compilation.frames[index - 1].workspaceForest ?? [], compilation.frames[index].workspaceForest ?? [], moved) : new Map();
+    cache.set(index, new Map([...retained, ...adjoined, ...renamed]));
   }
   return cache.get(index)!;
 }
