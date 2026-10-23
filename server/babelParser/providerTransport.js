@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
 import { Agent } from 'undici';
 import { ParseApiError } from './error.js';
@@ -74,6 +75,29 @@ export const summarizeErrorForLog = (error) => {
   };
 };
 
+const providerCalls = new AsyncLocalStorage();
+
+/**
+ * Runs `run` and reports, separately from its result, when every provider call
+ * it started through withTimeout under an abort signal has settled. A timeout
+ * or cancellation stops Babel waiting for a call, not the call itself, so
+ * admission waits for `settled` before it frees the request's slot. A call made
+ * without a signal, such as the best-effort remote cancellation after a request
+ * ended, is bounded by its own timeout and is not tracked.
+ */
+export const trackProviderCalls = (run) => {
+  const calls = [];
+  const result = providerCalls.run(calls, async () => run());
+  const settled = (async () => {
+    await Promise.allSettled([result]);
+    for (let waited = -1; waited < calls.length;) {
+      waited = calls.length;
+      await Promise.allSettled(calls);
+    }
+  })();
+  return { result, settled };
+};
+
 export const withTimeout = async (run, timeoutMs, label, abortSignal) => {
   abortSignal?.throwIfAborted();
   const hasTimeout = Number.isFinite(timeoutMs) && timeoutMs > 0;
@@ -94,7 +118,9 @@ export const withTimeout = async (run, timeoutMs, label, abortSignal) => {
   });
   if (hasTimeout) timeoutId = setTimeout(() => controller.abort(timeoutError), timeoutMs);
   try {
-    return await Promise.race([run(controller.signal), aborted]);
+    const call = run(controller.signal);
+    if (abortSignal) providerCalls.getStore()?.push(call);
+    return await Promise.race([call, aborted]);
   } finally {
     if (timeoutId) {
       clearTimeout(timeoutId);

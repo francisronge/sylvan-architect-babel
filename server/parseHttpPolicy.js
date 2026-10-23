@@ -22,12 +22,17 @@ export const parseCsvEnv = (value) => String(value || '')
   .map((entry) => entry.trim())
   .filter(Boolean);
 
-/** Each runtime supplies its own Origin defaults; the variables mean the same everywhere. */
+/**
+ * Each runtime supplies its own Origin defaults; the variables mean the same
+ * everywhere. `localPageOrigin` marks a local runtime, where an Origin that is
+ * present is checked even when one is not required.
+ */
 export const readParseAccessPolicy = (env, defaults) => ({
   apiToken: String(env.BABEL_PARSE_API_TOKEN || '').trim(),
   allowedOrigins: new Set(parseCsvEnv(env.BABEL_ALLOWED_ORIGINS)),
   requireOrigin: parseBooleanEnv(env.BABEL_REQUIRE_ORIGIN, defaults.requireOrigin),
-  allowNoOrigin: parseBooleanEnv(env.BABEL_ALLOW_NO_ORIGIN, defaults.allowNoOrigin)
+  allowNoOrigin: parseBooleanEnv(env.BABEL_ALLOW_NO_ORIGIN, defaults.allowNoOrigin),
+  localPageOrigin: Boolean(defaults.localPageOrigin)
 });
 
 const constantTimeTokenMatch = (providedToken, expectedToken) => {
@@ -66,6 +71,23 @@ const isAllowedRequestOrigin = (origin, policy, { host, protocol }) => {
     && parsedOrigin.protocol.replace(':', '').toLowerCase() === expectedProtocol;
 };
 
+/**
+ * A local runtime's page is the app on the host this request names. A TLS
+ * tunnel's page is https while its local hop is plain HTTP, so either scheme
+ * is accepted; a configured allow-list stays exclusive.
+ */
+const isLocalPageOrigin = (origin, policy, host) => {
+  let parsedOrigin;
+  try {
+    parsedOrigin = new URL(origin);
+  } catch {
+    return false;
+  }
+  if (policy.allowedOrigins.size > 0) return policy.allowedOrigins.has(parsedOrigin.origin);
+  return (parsedOrigin.protocol === 'http:' || parsedOrigin.protocol === 'https:')
+    && parsedOrigin.host === String(host || '').trim().toLowerCase();
+};
+
 const isJsonMediaType = (contentType) =>
   String(contentType || '').split(';')[0].trim().toLowerCase() === 'application/json';
 
@@ -75,15 +97,19 @@ export const METHOD_NOT_ALLOWED = rejection(405, 'METHOD_NOT_ALLOWED', 'Use POST
 export const MALFORMED_JSON = rejection(400, 'INVALID_REQUEST', 'Malformed JSON request body.');
 export const MAX_PARSE_BODY_BYTES = 16 * 1024;
 export const PAYLOAD_TOO_LARGE = rejection(413, 'PAYLOAD_TOO_LARGE', 'Request body exceeds 16kb.');
+const FORBIDDEN_ORIGIN = rejection(403, 'FORBIDDEN_ORIGIN', 'Request origin is not allowed for parse API access.');
 
 /** Returns the first rejection for a POST, or null when the request may be parsed. */
 export const checkParseRequestAccess = (policy, { token, origin, contentType, host, protocol }) => {
   if (policy.apiToken && !constantTimeTokenMatch(String(token || '').trim(), policy.apiToken)) {
     return rejection(401, 'UNAUTHORIZED', 'Missing or invalid parse API token.');
   }
-  if (policy.requireOrigin
-    && !isAllowedRequestOrigin(String(origin || '').trim(), policy, { host, protocol })) {
-    return rejection(403, 'FORBIDDEN_ORIGIN', 'Request origin is not allowed for parse API access.');
+  const presentedOrigin = String(origin || '').trim();
+  if (policy.requireOrigin && !isAllowedRequestOrigin(presentedOrigin, policy, { host, protocol })) {
+    return FORBIDDEN_ORIGIN;
+  }
+  if (policy.localPageOrigin && presentedOrigin && !isLocalPageOrigin(presentedOrigin, policy, host)) {
+    return FORBIDDEN_ORIGIN;
   }
   if (!isJsonMediaType(contentType)) {
     return rejection(415, 'UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/json.');

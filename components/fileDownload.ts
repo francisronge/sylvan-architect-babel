@@ -1,3 +1,5 @@
+import type { RawOutputArtifact } from '../types.ts';
+
 /** How long a downloaded Blob's object URL stays readable. Safari can fail a
  * download whose URL is revoked as soon as the click returns. */
 export const DOWNLOAD_URL_LIFETIME_MS = 30_000;
@@ -29,3 +31,12 @@ export function createFileDownloads(lifetimeMs = DOWNLOAD_URL_LIFETIME_MS) {
     }
   };
 }
+
+/** The retained model output as the `.txt` file the failure panel offers. The
+ * type is fixed rather than taken from the response's `mediaType`, so a saved
+ * output never opens as HTML or SVG. */
+export const rawOutputBlob = (artifact: Pick<RawOutputArtifact, 'data'>) => {
+  const binary = atob(artifact.data);
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return new Blob([bytes], { type: 'text/plain;charset=utf-8' });
+};

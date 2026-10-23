@@ -41,7 +41,10 @@ export function treeLabelIndexAttributes(kind: TreeLabelRuns['kind'], mode: Tree
     'font-family': 'Crimson Pro, Georgia, serif', 'font-style': 'italic',
     ...(mode === 'identity' ? {'baseline-shift': 'sub'} : {dy: String(index.thetaDy)}) };
 }
-export type TreeLabelBounds = { x: number; y: number; width: number; height: number };
+/** A label's ink envelope relative to its node. `cell` is the native SVG text
+ * box, without stroke: the box the painter measures to attach a connector. */
+export type TreeLabelBounds = { x: number; y: number; width: number; height: number;
+  cell?: { x: number; y: number; width: number; height: number } };
 export type TreeLabelMeasure = (runs: TreeLabelRuns) => TreeLabelBounds | undefined;
 export type PreparedTreeLabelRuns = ReadonlyMap<SyntaxNode, ReadonlyMap<string, readonly TreeLabelRuns[]>>;
 export type StagedTerminalContext = {
