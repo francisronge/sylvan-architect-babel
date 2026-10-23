@@ -44,7 +44,7 @@ import { extractMovementIndex, formatTraceSurfaceForDisplayValue, isTraceLike, r
 import type { ReplayStageContext } from './stageContext.ts';
 import { forestCanUseCurrentMaterialLayoutScaffold } from './stageLayout.ts';
 import { planStageRelations, type RelationPlacement } from './stageRelationPlan.ts';
-import { buildBottomUpSequence, constructionChildRank } from './structuralPlayback.ts';
+import { buildBottomUpSequence, constructionChildRank, justInTimeChildRank } from './structuralPlayback.ts';
 import { cloneSyntaxTree, collectPronouncedLeafNodeIdsInOrder, collectSyntaxSubtreeNodeIds, findExactNodeByIdInForest, findExactNodesByIdInForest, findNodeByIdInForest,
   isNotationLeaf, resolvedRelationLinkKey, resolveNodeLabel } from './syntaxForest.ts';
 import { registeredTrajectoryDisplayKind } from './relations/movementIdentities.ts';
@@ -621,7 +621,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const waiting = new Map<d3.HierarchyNode<SyntaxNode>, number>();
     hierarchy.eachAfter(node => waiting.set(node, (node.children ?? []).reduce((sum, child) => sum + waiting.get(child)!, 0)
       + (prev.get(authoredOf(node))?.parent === null && cur.get(authoredOf(node))?.parent ? 1 : 0)));
-    const rank = typeof process !== 'undefined' && process.env?.BABEL_REPLAY_STRUCTURAL_RANK === '2'
+    const rank = constructionChildRank() === justInTimeChildRank
       ? (parent: d3.HierarchyNode<SyntaxNode>, child: d3.HierarchyNode<SyntaxNode>, childIndex: number) => {
         if (parent.data.replayOrigin?.kind === 'workspace') return childIndex;
         const p = work.get(child)!, w = waiting.get(child)!;
