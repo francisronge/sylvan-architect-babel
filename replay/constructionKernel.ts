@@ -491,6 +491,11 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const lineages = new Set(named.filter(id => !authoredPrev.has(id)).map(id => authoredCur.get(id)?.node.lineageId).filter(Boolean));
     return [...authoredPrev].some(([id, info]) => lineages.has(info.node.lineageId) && displaced(id));
   };
+  // A head-adjunction complex: the landing's parent holds, beside it, host heads only (no phrase).
+  const hostedComplex = (landing: string): boolean => {
+    const complex = cur.get(landing)?.parent, kids = complex ? cur.get(complex)!.kids.filter(id => id !== landing) : [];
+    return kids.length > 0 && kids.every(id => cur.get(id)!.kids.every(k => !cur.get(k)!.kids.length));
+  };
   // Each movement's own landing parent, when new in the stage.
   const landingParentOf = new Map<string, number>();
   frameRelationSteps.forEach((relation, relationIndex) => (relation.recoveredMovements ?? [relation.recoveredMovement]).forEach(m => {
@@ -512,7 +517,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     // above a head landing are ordinary construction, which builds them first around the host head.
     // (A complex with a host head of its own, beside the moved head; a complex that is only the moved
     // head's new shell arrives with its parents as before.)
-    const hosted = (m: (typeof movements)[number]) => (cur.get(cur.get(m!.targetNodeId)?.parent ?? '')?.kids.length ?? 0) > 1;
+    const hosted = (m: (typeof movements)[number]) => hostedComplex(m!.targetNodeId);
     const complexes = new Set(movements.filter(m => m!.trajectoryKind === 'head').map(m => cur.get(m!.targetNodeId)?.parent));
     const headOnly = movements.every(m => m!.trajectoryKind === 'head' && hosted(m));
     if (placement && movements.length) [...getMovementCreatedLandingHostNodeIds(placement).filter(id => (landingParentOf.get(id) ?? relationIndex) === relationIndex
@@ -691,8 +696,13 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     // A head moves into a host head already merged with its complement: the host complex's parent,
     // when construction builds it, comes first.
     (placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).filter(m => m?.transition && m.trajectoryKind === 'head'
-      && (cur.get(cur.get(m.targetNodeId)?.parent ?? '')?.kids.length ?? 0) > 1)
-      .map(m => cur.get(cur.get(m!.targetNodeId)?.parent ?? '')?.parent).filter((id): id is string => Boolean(id && unitOf(id)))
+      && hostedComplex(m.targetNodeId))
+      .map(m => {
+        // The host's merge may sit above another movement's landing parent (a clitic's T complex).
+        let at = cur.get(cur.get(m!.targetNodeId)?.parent ?? '')?.parent;
+        while (at && !unitOf(at) && producer(at) !== undefined && producer(at) !== placement.relationIndex) at = cur.get(at)?.parent;
+        return at;
+      }).filter((id): id is string => Boolean(id && unitOf(id)))
       .forEach(id => prerequisites.push(id));
     return [...placement.relationAnchorNodeIds, ...prerequisites].filter(id => producer(id) !== placement.relationIndex);
   };
@@ -913,8 +923,15 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       for (const k of canvasKids.get(id)!) if (attachmentContinuity ? !desired.includes(k) : state.has(k) && !state.get(k)!.word && !desired.includes(k)) detach(k);
       desired.forEach((k, position) => {
         if (canvasParent.get(k) === id) return;
+        // A carried daughter takes the place of the hidden node between: that node waits as a
+        // separate hidden workspace, never hidden beneath a shown parent.
+        let between = canvasParent.get(k);
+        while (between && canvasParent.get(between) !== id && canvasParent.has(between) && !state.has(between)) between = canvasParent.get(between);
+        const replaced = between && canvasParent.get(between) === id && !state.has(between) ? between : undefined;
         detach(k);
-        const list = canvasKids.get(id)!, next = desired.slice(position + 1).find(other => list.includes(other));
+        const list = canvasKids.get(id)!;
+        if (replaced) { list.splice(list.indexOf(replaced), 1, k); canvasParent.delete(replaced); canvasParent.set(k, id); return; }
+        const next = desired.slice(position + 1).find(other => list.includes(other));
         list.splice(next === undefined ? list.length : list.indexOf(next), 0, k);
         canvasParent.set(k, id);
       });
@@ -1055,6 +1072,8 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     if (available0.has(id) && (!unit || unitDone(unit))) return [];
     const owner = producer(id);
     if (owner !== undefined && played.includes(owner)) return [];
+    // Material the moment being prepared brings itself: construction before it carries that slot.
+    if (owner !== undefined && owner === forRelation) return [];
     if (owner !== undefined) {
       if (forRelation !== undefined && !playsAfter(forRelation, owner)) return [id];
       emitMomentsThrough(owner);
