@@ -50,9 +50,9 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/head-movement-ordinary-wrapper.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta external participant in living)@i_v', { desktop: { '28-36': 1.22 }, 'desktop-large': { '28-36': 1.22 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/inserted-adjunction-segment.json#', 'mark-distance', 'plaque',
-    'plaque(0:3 agreement: first-person singular; tense: past)@ri', { desktop: { '25-46': 1.68 }, 'desktop-large': { '25-46': 1.68 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/inserted-adjunction-segment.json#', 'mark-distance', 'plaque',
-    'plaque(1:7 agreement: third-person masculine singular; tens)@mi', { desktop: { '45-50': 1.29 }, 'desktop-large': { '45-50': 1.29 } }),
+    'plaque(1:7 agreement: third-person masculine singular; tens)@mi', { desktop: { '45-50': 1.55 }, 'desktop-large': { '45-50': 1.55 } },
+    { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Move first, then adjoin: the movement now plays before the phrase it lands in is merged into a larger one. Francis reviewed the click-through side-by-side of all seven changed fixtures on 23 Oct in the lead session (\'Looked at the replay page, looks good.\'): the relative clause\'s movements play before the matrix builds, so stage 3 is laid out differently and this plaque sits at 1.55 of its reach instead of 1.29.',
+      accepts: { desktop: { '45-50': 1.55 }, 'desktop-large': { '45-50': 1.55 } } }),
   x(SOURCE_POCKET, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'mark-distance', 'plaque',
     'plaque(0:0 theta Addressee/Agent)@d_v', { desktop: { '17-36': 1.13 }, 'desktop-large': { '17-36': 1.13 } }),
   x(SOURCE_POCKET, 'replay-regressions/later-occupant-source-before-movement.json#', 'mark-distance', 'plaque',
@@ -60,11 +60,12 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/native-plaque-footprints.json#', 'mark-distance', 'plaque',
     'plaque(1:2 theta Agent)@v', { desktop: { '24-29': 1.19 }, 'desktop-large': { '24-29': 1.19 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/ordinary-receiving-width-control.json#', 'mark-distance', 'plaque',
-    'plaque(0:0/0:1/1:2 theta theme)@p_v', { desktop: { '36-41': 1.14 }, 'desktop-large': { '36-41': 1.14 } },
-    { by: 'Francis Ronge', on: '2026-10-21', expires: '2027-01-21', note: 'Accepted on the plaque-gap side-by-side review '
+    'plaque(0:0/0:1/1:2 theta theme)@p_v', { desktop: { '34-41': 1.14 }, 'desktop-large': { '34-41': 1.14 } },
+    { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Accepted 21 Oct on the plaque-gap side-by-side review '
       + '("The plaque changes are fine."): a plaque brought near keeps the full gap from movement arrows, so this theme grid '
-      + 'has no nearer pocket and returns to its spot from before #150.',
-      accepts: { desktop: { '36-41': 1.14 }, 'desktop-large': { '36-41': 1.14 } } }),
+      + 'has no nearer pocket and returns to its spot from before #150. Move first, then adjoin (reviewed 23 Oct: '
+      + '"Looked at the replay page, looks good.") plays the raising two frames earlier, so the same state starts at frame 34.',
+      accepts: { desktop: { '34-41': 1.14 }, 'desktop-large': { '34-41': 1.14 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/receiving-slot-width-control.json#', 'mark-distance', 'plaque',
     'plaque(3:1 clauseType: declarative personal infinitive)@infinitivalC', { desktop: { '33-48': 1.2 }, 'desktop-large': { '33-48': 1.2 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/relocated-plaque-anchor.json#', 'mark-distance', 'plaque',
