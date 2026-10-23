@@ -160,8 +160,11 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
       // Keep the attachment atomic by default. An earlier authored claim
       // can require this independently buildable receiving context first;
       // a pied-piped phrase is not such context, since it moves with the landing.
+      // A parent that construction would show with only one of its daughters
+      // is not independently buildable: it arrives with the movement that fills it.
       return (trajectoryDisplayKind === 'head' && hostIds.length > 0 || trajectoryDisplayKind === 'phrasal') && Boolean(structuralParent)
         && !(structuralParent!.children || []).some(child => child.id === branchNodeId)
+        && (structuralParent!.children || []).length > 1
         && !(trajectoryDisplayKind === 'phrasal' && piedPipedPhrase(workspaceRoots, previousFrameWorkspaceRoots, authoredTargetNodeId, priorSourceIds).hostIds.includes(parentNodeId))
         && earlierRelationNeedsContext(parentNodeId);
     });
