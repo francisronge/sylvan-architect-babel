@@ -1,5 +1,5 @@
 /**
- * Replay construction kernel (experimental, off by default; `BABEL_REPLAY_KERNEL=1`).
+ * Replay construction kernel.
  *
  * Each stage's frames are a pure function of the preceding completed stage P,
  * the current completed stage C, the stage's relations and the movement
@@ -35,7 +35,7 @@ import { isResolvedMovementLink } from './movementLinks.ts';
 import { buildReplayProgressLabel, buildStructuralReplayFallback, getReplayPlanStage } from './playbackFormatting.ts';
 import { getRelationAllAnchorNodeIds, getRelationSourceNodeIds, getRelationTargetNodeId, relationAnchorNodeIds } from './relationAnchors.ts';
 import { orderRelationMoments } from './relationMomentOrder.ts';
-import { buildDerivationReplaySnapshot, buildRenderableDerivationCanvasData, buildVisibleSyntaxSnapshotFromHierarchy } from './replayCanvas.ts';
+import { buildDerivationReplaySnapshot, buildRenderableDerivationCanvasData, buildVisibleSyntaxSnapshotFromHierarchy, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
 import { hasDeterminerNominalComplement, maybeLowercaseSentenceInitialFunctionSurface } from './replayCasing.ts';
 import { getReplayNodeCategoryFromCanvas, getReplayNodeDisplayFromCanvas, getReplayNodeOvertYieldFromCanvas } from './replayNodeDescription.ts';
 import { buildRelationReplayBlocks } from './replayPanel.ts';
@@ -44,7 +44,6 @@ import { extractMovementIndex, formatTraceSurfaceForDisplayValue, isTraceLike, r
 import type { ReplayStageContext } from './stageContext.ts';
 import { forestCanUseCurrentMaterialLayoutScaffold } from './stageLayout.ts';
 import { planStageRelations, type RelationPlacement } from './stageRelationPlan.ts';
-import { buildBottomUpSequence, constructionChildRank, justInTimeChildRank } from './structuralPlayback.ts';
 import { cloneSyntaxTree, collectPronouncedLeafNodeIdsInOrder, collectSyntaxSubtreeNodeIds, findExactNodeByIdInForest, findExactNodesByIdInForest, findNodeByIdInForest,
   isNotationLeaf, resolvedRelationLinkKey, resolveNodeLabel } from './syntaxForest.ts';
 import { registeredTrajectoryDisplayKind } from './relations/movementIdentities.ts';
@@ -52,8 +51,20 @@ import { buildAnchoredTreeTransitionForest, buildPreMovementStructuralForest, ke
   newReceivingHeadNodeIds, receivingHeadMaterialNodeId, resolveFallbackTreeTransitionOwnership } from './treeTransitions.ts';
 import type { PlaybackStep } from './types.ts';
 
-/** The switch is read per compilation, so a test can prepare both paths in one process. */
-export const replayKernelEnabled = (): boolean => typeof process !== 'undefined' && process.env?.BABEL_REPLAY_KERNEL === '1';
+type Rank = (parent: d3.HierarchyNode<SyntaxNode>, child: d3.HierarchyNode<SyntaxNode>, childIndex: number) => number;
+/** Post-order over the visible nodes, sisters by rank (ties by daughter index); workspace roots are not steps. */
+const buildBottomUpSequence = (root: d3.HierarchyNode<SyntaxNode>, visibleIds: Set<string>, rank: Rank): d3.HierarchyNode<SyntaxNode>[] => {
+  const sequence: d3.HierarchyNode<SyntaxNode>[] = [];
+  const visit = (node: d3.HierarchyNode<SyntaxNode>) => {
+    const workspace = isSyntheticWorkspaceRootNode(node);
+    if (!workspace && !visibleIds.has(getNodeId(node))) return;
+    (node.children || []).filter(child => visibleIds.has(getNodeId(child))).map((child, index) => ({ child, index, rank: rank(node, child, index) }))
+      .sort((left, right) => left.rank === right.rank ? left.index - right.index : left.rank - right.rank).forEach(({ child }) => visit(child));
+    if (!workspace) sequence.push(node);
+  };
+  visit(root);
+  return sequence;
+};
 
 type Info = { node: SyntaxNode; kids: string[]; parent: string | null; order: number };
 type Stage = Map<string, Info>;
@@ -77,9 +88,6 @@ const ownKey = (node: SyntaxNode): string => {
   return JSON.stringify(Object.keys(own).sort().map(key => [key, (own as Record<string, unknown>)[key]]));
 };
 const sameList = (left: readonly string[], right: readonly string[]) => left.length === right.length && left.every((id, i) => id === right[i]);
-
-/** Counters for measurement: forced steps, construction absorbed by moments, stages left to the old path. */
-export const kernelDiagnostics = { forcedSteps: 0, absorbed: 0, fallbackStages: 0, heldRoots: 0 };
 
 /** How one C node differs from its P state. */
 type Diff = { node: string; isNew: boolean; content: boolean; slots: number[] | null };
@@ -200,9 +208,9 @@ type Mode = { relation?: number; forced?: boolean; planning?: { seeds: Set<strin
  * cascade forces on it) and may keep a daughter in its preceding state.
  * Planning computes a relation's edit on the stage's first frame.
  */
-function close(edit: StageEdit, frame: Frame, owners: Owners, seeds: Iterable<string>, mode: Mode): { keys: Keys; absorbed: number } | string {
+function close(edit: StageEdit, frame: Frame, owners: Owners, seeds: Iterable<string>, mode: Mode): { keys: Keys } | string {
   const { prev, cur } = edit, parents = edit.parents(frame), keys: Keys = new Set(), queue: string[] = [];
-  let absorbed = 0, blocker = '';
+  let blocker = '';
   const block = (id: string) => { blocker ||= id; return false; };
   const mayTake = (k: string, id: string): boolean => {
     if (mode.forced || mode.planning) return true;
@@ -210,7 +218,7 @@ function close(edit: StageEdit, frame: Frame, owners: Owners, seeds: Iterable<st
     if (mode.relation === undefined) return owner === undefined || block(id);
     if (owner === undefined) {
       if (k.startsWith('w\u0000') && mode.constructionFirst?.(id)) return block(id);
-      absorbed += 1; return true;
+      return true;
     }
     return owner === mode.relation || block(id);
   };
@@ -332,7 +340,7 @@ function close(edit: StageEdit, frame: Frame, owners: Owners, seeds: Iterable<st
     if (!open.length) break;
     for (const k of open) if (!settle(k)) return blocker || k;
   }
-  return { keys, absorbed };
+  return { keys };
 }
 
 type Unit = { id: string; word: boolean };
@@ -347,7 +355,7 @@ const heldCache = new WeakMap<object, Map<number, Set<string>>>();
  * earlier one of the movement's stage, names x. Frames still show only
  * authored shapes; Replay simply reads those stages without the shell.
  */
-export function heldRootProjections(compilation: ReplayCompilation): Map<number, Set<string>> {
+function heldRootProjections(compilation: ReplayCompilation): Map<number, Set<string>> {
   if (heldCache.has(compilation)) return heldCache.get(compilation)!;
   const { frames, replayPlan, resolveFrameRelations } = compilation, held = new Map<number, Set<string>>();
   const relationsOf = (index: number) => getReplayPlanStage(replayPlan, index) ? resolveFrameRelations(index) : [];
@@ -377,7 +385,6 @@ export function heldRootProjections(compilation: ReplayCompilation): Map<number,
         const preceding = [...Array.from({ length: index - first }, (_, i) => relationsOf(first + i)).flat(), ...relations.slice(0, relationIndex)];
         if (preceding.some(candidate => names(candidate, parent.id))) continue;
         for (let stage = first; stage < index; stage += 1) held.set(stage, new Set([...(held.get(stage) ?? []), parent.id]));
-        kernelDiagnostics.heldRoots += 1;
       }
     });
   }
@@ -432,18 +439,29 @@ export function kernelContinuations(compilation: ReplayCompilation, index: numbe
 }
 
 /** Builds one stage's steps, or null when its forests are not comparable by id. */
-export function buildKernelStageSteps(compilation: ReplayCompilation, stage: ReplayStageContext): PlaybackStep[] | null {
+export function buildKernelStageSteps(compilation: ReplayCompilation, stage: ReplayStageContext): PlaybackStep[] {
   const { frames, identity, plannedStageCount, sentenceInitialSurface } = compilation;
   const { index, plannedStage, frameRelationSteps, fallbackTransitionOwnership, workspaceRoots, previousFrameWorkspaceRoots,
     frameHasNonMovementTreeTransition, nonMovementTreeTransitionRelationIndexes, nonMovementTransitionNodeIds,
     authoredPreviousRelationRelationLinks, frameSemanticStep, frameStageRecordBlocks, frame, structuralWorkspaceRoots,
     buildFrameLayoutScaffold, frameReplaySnapshot, futureLayoutScaffold, structuralLayoutScaffold } = stage;
-  if (!plannedStage) return null;
   const continued = kernelContinuations(compilation, index);
   const held = heldRootProjections(compilation);
+  type Snap = { canvasData: SyntaxNode; visibleNodeIds: string[]; relationLinks: PlaybackStep['replayRelationLinks']; usesScaffold?: boolean };
+  const completedSnap: Snap = { canvasData: frameReplaySnapshot.canvasData, visibleNodeIds: frameReplaySnapshot.visibleNodeIds,
+    relationLinks: frameReplaySnapshot.relationLinks, usesScaffold: Boolean(futureLayoutScaffold) };
+  const stageRecord = (snap: Snap, stepCount: number): PlaybackStep => ({
+    ...frameSemanticStep, operation: 'StageRecord' as DerivationOperation, replayKind: 'macro',
+    detailBlocks: mergeReplayDetailBlocks(frameStageRecordBlocks), note: undefined,
+    recipe: String(plannedStage?.statement || '').trim() || frameSemanticStep.recipe || `Stage ${plannedStage?.stageNumber ?? index + 1}`,
+    replayCanvasData: snap.canvasData, replayVisibleNodeIds: snap.visibleNodeIds.filter(id => !held.get(index)?.has(id)), replayRelationLinks: snap.relationLinks,
+    replayUsesFutureLayoutScaffold: snap.usesScaffold,
+    replayProgressLabel: buildReplayProgressLabel(plannedStage, plannedStageCount, stepCount, stepCount)
+  });
   const prev = indexForest(withoutHeld(previousFrameWorkspaceRoots, held.get(index - 1)), continued);
   const cur = indexForest(withoutHeld(workspaceRoots, held.get(index)));
-  if (!prev || !cur) { kernelDiagnostics.fallbackStages += 1; return null; }
+  // An id used at two places leaves no stage edit to derive: the stage shows only as completed.
+  if (!prev || !cur) return [stageRecord(completedSnap, 1)];
   const edit = new StageEdit(prev, cur);
   const placements = planStageRelations(compilation, stage);
   const { relationPlacements, singleRelationLinksByIndex, getMovementCreatedLandingHostNodeIds, getMovementCreatedLandingHostPaths,
@@ -600,9 +618,8 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   const authoredIndex = (placement: RelationPlacement) => Number.isInteger(placement.relation.authoredRelationIndex)
     ? placement.relation.authoredRelationIndex! : placement.relationIndex;
 
-  // Construction: every unowned whole switch, in today's bottom-up order (the shared sister
-  // ranks of structuralPlayback, ties by daughter index). Selection order is free; only Merge
-  // is constrained, so the order Replay already shows is kept.
+  // Construction: every unowned whole switch, bottom-up with just-in-time sister ranks (below),
+  // ties by daughter index. Selection order is free; only Merge is constrained.
   // A node that only loses daughters builds nothing; the Stage Record removes them.
   const onlyLoses = (id: string) => prev.has(id) && cur.get(id)!.kids.length < prev.get(id)!.kids.length
     && cur.get(id)!.kids.every(k => prev.get(id)!.kids.includes(k));
@@ -613,8 +630,8 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const hierarchy = d3.hierarchy<SyntaxNode>(structuralCanvas);
     applyVizIds(hierarchy);
     const all = new Set<string>(hierarchy.descendants().map(node => getNodeId(node)));
-    // Just in time (BABEL_REPLAY_STRUCTURAL_RANK=2): the daughter with more construction still to do is
-    // built first, so the other is built right before the merge that uses it.
+    // Just in time: the daughter with more construction still to do is built first, so the other
+    // is built right before the merge that uses it. Structure alone decides; labels never do.
     const authoredOf = (node: d3.HierarchyNode<SyntaxNode>) => { const origin = node.data.replayOrigin;
       return origin?.kind === 'word' ? String(origin.ownerId) : origin?.kind === 'lexical' ? String(origin.authoredId) : String(node.data.id); };
     const work = new Map<d3.HierarchyNode<SyntaxNode>, number>();
@@ -626,13 +643,11 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const waiting = new Map<d3.HierarchyNode<SyntaxNode>, number>();
     hierarchy.eachAfter(node => waiting.set(node, (node.children ?? []).reduce((sum, child) => sum + waiting.get(child)!, 0)
       + (prev.get(authoredOf(node))?.parent === null && cur.get(authoredOf(node))?.parent ? 1 : 0)));
-    const rank = constructionChildRank() === justInTimeChildRank
-      ? (parent: d3.HierarchyNode<SyntaxNode>, child: d3.HierarchyNode<SyntaxNode>, childIndex: number) => {
-        if (parent.data.replayOrigin?.kind === 'workspace') return childIndex;
-        const p = work.get(child)!, w = waiting.get(child)!;
-        return (w >= 2 ? p / (w - 1) : w === 1 ? 1e6 + p : 2e6 - p) + childIndex / 1000;
-      }
-      : constructionChildRank();
+    const rank = (parent: d3.HierarchyNode<SyntaxNode>, child: d3.HierarchyNode<SyntaxNode>, childIndex: number) => {
+      if (parent.data.replayOrigin?.kind === 'workspace') return childIndex;
+      const p = work.get(child)!, w = waiting.get(child)!;
+      return (w >= 2 ? p / (w - 1) : w === 1 ? 1e6 + p : 2e6 - p) + childIndex / 1000;
+    };
     for (const node of buildBottomUpSequence(hierarchy, all, rank)) {
       const origin = node.data.replayOrigin, word = origin?.kind === 'word';
       const id = word ? String(origin!.ownerId) : origin?.kind === 'lexical' ? String(origin.authoredId) : String(node.data.id);
@@ -719,12 +734,10 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     ? placement.authoredTargetNodeIds.map(id => cur.get(id)?.parent).filter((id): id is string => Boolean(id) && !available0.has(id!))
       .flatMap(id => producer(id) ?? []) : [];
   const momentPlacements = relationPlacements;
-  // A movement's other current anchors are context. Today its moment neither waits for them nor
-  // builds them early; under BABEL_REPLAY_WAIT_CONTEXT=1 (question 4) it also waits for the
-  // moments that introduce them.
+  // A movement's other current anchors are context: its moment neither waits for them nor builds
+  // them early.
   const contextOf = (placement: RelationPlacement) => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
     ? [...new Set(relationAnchorNodeIds(placement.relation.anchors))].filter(id => !placement.relationAnchorNodeIds.includes(id) && cur.has(id)) : [];
-  const waitsForContext = typeof process !== 'undefined' && process.env?.BABEL_REPLAY_WAIT_CONTEXT === '1';
   // A head moves into its host before any phrasal landing above that host: a phrasal movement whose
   // landing joins a parent dominating another movement's head complex waits for that head movement.
   const headComplexOf = new Map<number, string[]>(momentPlacements.map(placement => [placement.relationIndex,
@@ -740,7 +753,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   };
   const momentOrder = orderRelationMoments(momentPlacements.map(placement => placement.relationIndex), new Map(momentPlacements.map(placement =>
     [placement.relationIndex, new Set([...required(placement).flatMap(id => producingRelations(id)), ...landingParentOwners(placement),
-      ...headsBelowLanding(placement), ...(waitsForContext ? contextOf(placement).flatMap(id => producingRelations(id)) : [])])])));
+      ...headsBelowLanding(placement)])])));
   const momentPosition = new Map(momentOrder.map((relationIndex, position) => [relationIndex, position]));
   const playsAfter = (relationIndex: number, ownerIndex: number) => momentPosition.has(relationIndex) && momentPosition.has(ownerIndex)
     ? momentPosition.get(relationIndex)! > momentPosition.get(ownerIndex)! : relationIndex > ownerIndex;
@@ -1141,7 +1154,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
         closed = close(edit, frameState, owners, ownedBy(relation), { relation, constructionFirst });
       }
       if (typeof closed === 'string') closed = close(edit, frameState, owners, ownedBy(relation), { relation });
-      if (typeof closed === 'string') { kernelDiagnostics.forcedSteps += 1; closed = close(edit, frameState, owners, ownedBy(relation), { relation, forced: true }); }
+      if (typeof closed === 'string') closed = close(edit, frameState, owners, ownedBy(relation), { relation, forced: true });
       const next = typeof closed === 'string' ? null : edit.apply(frameState, closed.keys);
       if (next) frameState = next;
       played.push(relation);
@@ -1165,7 +1178,6 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   // Construction a moment held back follows; anything still blocked is forced.
   for (const unit of units) if (!unitDone(unit)) {
     if (emitUnit(unit).length && !unitDone(unit)) {
-      kernelDiagnostics.forcedSteps += 1;
       const closed = close(edit, frameState, owners, [key('w', unit.id)], { forced: true });
       const next = typeof closed === 'string' ? null : edit.apply(frameState, closed.keys);
       if (next) { emitMicro(unit, next, true); frameState = next; }
@@ -1175,20 +1187,12 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   const completed: Frame = new Map([...cur.keys()].map(id => [id, { content: 'C' as const, kids: 'C' as const, slots: new Map<number, string>() }]));
   const same = frameState.size === completed.size && [...completed.keys()].every(id => edit.done(frameState, id));
   const last = steps.at(-1);
-  const finalSnap = fallbackTransitionOwnership.size > 0 || !same || !last
-    ? { canvasData: frameReplaySnapshot.canvasData, visibleNodeIds: frameReplaySnapshot.visibleNodeIds, relationLinks: frameReplaySnapshot.relationLinks, usesScaffold: Boolean(futureLayoutScaffold) }
+  const finalSnap: Snap = fallbackTransitionOwnership.size > 0 || !same || !last ? completedSnap
     : { canvasData: last.replayCanvasData!, visibleNodeIds: last.replayVisibleNodeIds!, relationLinks: last.replayRelationLinks!, usesScaffold: last.replayUsesFutureLayoutScaffold };
   const stepCount = steps.length + 1;
   return [
     ...steps.map((step, position) => ({ ...step, replayProgressLabel: buildReplayProgressLabel(plannedStage, plannedStageCount, position + 1, stepCount) })),
-    {
-      ...frameSemanticStep, operation: 'StageRecord' as DerivationOperation, replayKind: 'macro',
-      detailBlocks: mergeReplayDetailBlocks(frameStageRecordBlocks), note: undefined,
-      recipe: String(plannedStage.statement || '').trim() || frameSemanticStep.recipe || `Stage ${plannedStage.stageNumber}`,
-      replayCanvasData: finalSnap.canvasData, replayVisibleNodeIds: finalSnap.visibleNodeIds.filter(id => !held.get(index)?.has(id)), replayRelationLinks: finalSnap.relationLinks,
-      replayUsesFutureLayoutScaffold: finalSnap.usesScaffold,
-      replayProgressLabel: buildReplayProgressLabel(plannedStage, plannedStageCount, stepCount, stepCount)
-    }
+    stageRecord(finalSnap, stepCount)
   ];
 }
 

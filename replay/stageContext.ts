@@ -1,7 +1,7 @@
 import { getFrameStageRecordText } from './authoredFrames.ts';
 /** Prepare the completed state and the preceding material needed to compile one stage. */
 import { type SyntaxNode } from '../types.ts';
-import { getDerivationFrameChange, getMovementLandingNodeId } from './authoredFrames.ts';
+import { getMovementLandingNodeId } from './authoredFrames.ts';
 import type { ReplayCompilation } from './compilationContext.ts';
 import {
   buildAuthoredRelationLinksForFrames,
@@ -23,8 +23,7 @@ import {
   getRelationAllAnchorNodeIds,
   getRelationSourceNodeIds,
   getRelationTargetNodeId,
-  getResolvedReplayRelationAnchors,
-  relationAnchorNodeIds
+  getResolvedReplayRelationAnchors
 } from './relationAnchors.ts';
 import { isRegisteredTrajectoryRelation } from './relations/movementIdentities.ts';
 import { buildDerivationReplaySnapshot, collectVisibleDerivationNodeIds } from './replayCanvas.ts';
@@ -33,8 +32,6 @@ import { buildFrameReplayBlocks, buildStageRecordReplayBlocks } from './replayPa
 import { mergeReplayDetailBlocks } from './replayPanelFormatting.ts';
 import {
   buildCurrentMaterialLayoutScaffold,
-  buildWorkspaceRootSideHints,
-  collectNextFramePendingRootSubtreeIds,
   forestCanUseCurrentMaterialLayoutScaffold,
   inferFutureLayoutScaffold,
   inferFutureWorkspaceRootOrder,
@@ -42,11 +39,8 @@ import {
 } from './stageLayout.ts';
 import {
   collectExactNodesByIdInForest,
-  collectReplayOvertTokenMultisetKey,
-  collectReplayRootStructuralKey,
   collectSyntaxSubtreeNodeIds,
   findExactNodeByIdInForest,
-  findExactNodesByIdInForest,
   findNodeByIdInForest
 } from './syntaxForest.ts';
 import {
@@ -73,20 +67,15 @@ export const prepareReplayStage = (
     frames,
     replayPlan,
     resolveFrameRelations,
-    plannedRelationsByFrame,
-    pendingProjectionReveals,
-    previousVisibleNodeIds,
     identity
   } = compilation;
   const plannedStage = getReplayPlanStage(replayPlan, index);
   const rawWorkspaceRoots = Array.isArray(frame.workspaceForest) ? frame.workspaceForest : [];
-  const nextFrame = index < frames.length - 1 ? frames[index + 1] : null;
   const fallbackOperation = frame.movement?.operation || frame.operation || 'Other';
   // Anchor detached roots to explicit future daughter order as soon as a later
   // derivation frame makes that merge order unambiguous. This keeps bottom-up
   // workspace assembly visually aligned with the eventual tree without guessing.
   const preferredWorkspaceRootOrder = inferFutureWorkspaceRootOrder(rawWorkspaceRoots, frames, index);
-  const preferredWorkspaceRootSideHints = buildWorkspaceRootSideHints(rawWorkspaceRoots, preferredWorkspaceRootOrder);
   const workspaceRoots = reorderWorkspaceRootsForReplay(rawWorkspaceRoots, preferredWorkspaceRootOrder);
   let futureLayoutScaffold = inferFutureLayoutScaffold(workspaceRoots, frames, index);
   const rootLabels = workspaceRoots
@@ -102,62 +91,6 @@ export const prepareReplayStage = (
   const plannedFrameRelations = plannedStage
     ? resolveFrameRelations(index)
     : [];
-  plannedRelationsByFrame[index] = plannedFrameRelations;
-  plannedFrameRelations.forEach((relation, relationIndex) => {
-    const movement = relation.recoveredMovement;
-    const ownership = movement?.transition ? null : resolveFallbackTreeTransitionOwnership(relation, previousFrameWorkspaceRoots, workspaceRoots);
-    if (!(movement?.transition && movement.trajectoryKind === 'phrasal') && !ownership)
-      return;
-    workspaceRoots.forEach(parent => {
-      const previousParent = previousFrameWorkspaceRoots.find(root => root.id === parent.id);
-      if (!parent.id || parent.word || parent.children?.length !== 2 || previousParent?.children?.length !== 1)
-        return;
-      const carriedChildId = previousParent.children[0].id;
-      if (!parent.children.some(child => child.id === carriedChildId))
-        return;
-      const landing = parent.children.find(child => child.id !== carriedChildId);
-      if (!landing?.id)
-        return;
-      const ownsLanding = movement?.transition
-        ? movement.targetNodeId === landing.id
-        : Boolean(landing.children?.length
-          && ownership?.currentNodeIds.has(landing.id)
-          && ownership.priorNodeIds.has(landing.id)
-          && findExactNodesByIdInForest(previousFrameWorkspaceRoots, landing.id).length === 1
-          && findExactNodesByIdInForest(workspaceRoots, landing.id).length === 1);
-      if (!ownsLanding)
-        return;
-      const owner = relation.authoredRelationIndex ?? relationIndex;
-      const pending = pendingProjectionReveals.find(reveal => reveal.nodeId === parent.id && reveal.stageIndex === index);
-      // Another claim may own the same landing and play first.
-      if (pending) {
-        pending.relationIndexes.push(owner);
-        return;
-      }
-      let firstStageIndex = index - 1;
-      while (firstStageIndex > 0) {
-        const earlier = frames[firstStageIndex - 1].workspaceForest?.find(root => root.id === parent.id);
-        if (earlier?.children?.length !== 1 || earlier.children[0].id !== carriedChildId)
-          break;
-        firstStageIndex -= 1;
-      }
-      const precedingRelations = [
-        ...plannedRelationsByFrame.slice(firstStageIndex, index).flat(),
-        ...plannedFrameRelations.slice(0, relationIndex)
-      ];
-      if (precedingRelations.some(candidate => [
-        ...getRelationAllAnchorNodeIds(candidate),
-        ...relationAnchorNodeIds(candidate.priorAnchors),
-        getRelationTargetNodeId(candidate),
-        ...getRelationSourceNodeIds(candidate)
-      ].includes(parent.id!)))
-        return;
-      // Withhold the saved unary shell until its second child attaches. A
-      // fallback can own an exact node's relocation without proving a
-      // linguistic movement drawing; earlier claims still retain their anchors.
-      pendingProjectionReveals.push({ nodeId: parent.id, firstStageIndex, stageIndex: index, relationIndexes: [owner] });
-    });
-  });
   const plannedStageRelocatesPriorLandingOccurrence = index > 0
     && !plannedFrameRelations.some((relation) => relation?.relation === 'CopyOccurrence')
     && plannedFrameRelations.some((relation) => {
@@ -183,7 +116,6 @@ export const prepareReplayStage = (
     || String(frame.movement?.traceNodeId || '')
     || String(frame.chainId || '')
     || plannedStageRelocatesPriorLandingOccurrence);
-  const frameCarriesAuthoredEffect = Boolean(String(getDerivationFrameChange(frame)?.statement || '').trim());
   const movementRecipe = pickPreferredReplayText(frame.movement?.note);
   const semanticRecipe = (() => {
     if (isMoveLikeOperation(fallbackOperation) || frameHasMovementPayload) {
@@ -191,7 +123,6 @@ export const prepareReplayStage = (
     }
     return structuralFallbackRecipe;
   })();
-  const priorVisibleNodeIds = new Set(previousVisibleNodeIds);
   const frameRelationSteps: IndexedRelationStep[] = plannedStage
     ? plannedFrameRelations
       .map((relation, listIndex) => ({
@@ -226,9 +157,6 @@ export const prepareReplayStage = (
   if (frameHasNonMovementTreeTransition)
     planNeutralTransitionAttachments(frameRelationSteps, fallbackTransitionOwnership, [...nonMovementTreeTransitionRelationIndexes],
       previousFrameWorkspaceRoots, workspaceRoots);
-  const frameIsPureVisualTrajectoryStage = frameHasMovementPayload
-    && collectReplayOvertTokenMultisetKey(previousFrameWorkspaceRoots) === collectReplayOvertTokenMultisetKey(workspaceRoots)
-    && collectReplayRootStructuralKey(previousFrameWorkspaceRoots) === collectReplayRootStructuralKey(workspaceRoots);
   const authoredPreviousRelationRelationLinks = plannedStage
     ? buildAuthoredRelationLinksForFrames({
       frames,
@@ -306,10 +234,6 @@ export const prepareReplayStage = (
         traceNodeId: String(frame.movement?.traceNodeId || '')
       }))
     : '';
-  const currentWorkspaceRootIds = new Set(workspaceRoots
-    .map((node) => String(node?.id || ''))
-    .filter(Boolean));
-  const nextFramePendingRootSubtreeIds = collectNextFramePendingRootSubtreeIds(structuralWorkspaceRoots, nextFrame);
   const moveSourceNodeIds = frameEncodesMovement
     ? Array.from(new Set([
       String(frame.movement?.traceNodeId || ''),
@@ -380,20 +304,10 @@ export const prepareReplayStage = (
     authoredPreviousRelationRelationLinks,
     fallbackTransitionOwnership,
     nonMovementTreeTransitionRelationIndexes,
-    frameIsPureVisualTrajectoryStage,
-    currentFrameVisibleNodeIds,
     buildFrameLayoutScaffold,
     frameSemanticStep,
     plannedStage,
-    frameHasMovementPayload,
-    fallbackOperation,
-    priorVisibleNodeIds,
     structuralLayoutScaffold,
-    currentWorkspaceRootIds,
-    nextFramePendingRootSubtreeIds,
-    nextFrame,
-    preferredWorkspaceRootSideHints,
-    frameCarriesAuthoredEffect,
     nonMovementTransitionNodeIds,
     frameReplaySnapshot,
     frameStageRecordBlocks,

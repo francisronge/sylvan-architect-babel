@@ -109,28 +109,6 @@ export function renameContinuedOccurrences(forest: readonly SyntaxNode[], contin
   return forest.map(rename);
 }
 
-/** Lexical display leaves of `canvas` whose owner continues a preceding
- * occurrence, as `previous display id -> current display id`: the same word
- * under the continued owner, so construction keeps it rather than selecting it
- * again. */
-export function continuedLexicalLeafIds(
-  canvas: SyntaxNode | null | undefined,
-  continuations: ReadonlyMap<string, string>,
-  identity: ReplayIdentityContext
-): Map<string, string> {
-  const leaves = new Map<string, string>();
-  if (!canvas || !continuations.size) return leaves;
-  const continuedFrom = new Map(Array.from(continuations, ([from, to]) => [to, from]));
-  const visit = (node: SyntaxNode) => {
-    const from = node.replayOrigin?.kind === 'lexical' ? continuedFrom.get(node.replayOrigin.ownerId ?? '') : undefined;
-    const previous = from && node.id ? lexicalLeafIdUnderOwner(node, from, identity) : undefined;
-    if (previous && previous !== node.id) leaves.set(previous, node.id!);
-    node.children?.forEach(visit);
-  };
-  visit(canvas);
-  return leaves;
-}
-
 /** Material that a relation of the stage moves, copies or rewrites. Its own
  * rules place it, so no occurrence touching it continues a predecessor. */
 function relationOwnedNodeIds(

@@ -317,10 +317,10 @@ export function checkVisibleInCanvas(replay) {
  *     daughters hung from that parent before, and the target now stands there;
  *   - the target is new and replaces the child's former parent, which is gone:
  *     the dissolved parent's material regroups under the target's parent.
- * These are the attachments construction makes in
- * replay/constructionAttachments.ts: a held attachment completes at its
- * parent's merge, a wrapper takes over the edge it is inserted into, and a
- * regrouping parent's material moves at its first new child. */
+ * These are the attachments construction makes (replay/constructionKernel.ts):
+ * a held attachment completes at its parent's merge, a wrapper takes over the
+ * edge it is inserted into, and a regrouping parent's material moves at its
+ * first new child. */
 function stepOwnsEdge(step, previous, current, child, parent) {
   if (step.replayKind !== 'micro') return false;
   const target = String(step.targetNodeId ?? '');

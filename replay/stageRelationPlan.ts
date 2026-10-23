@@ -266,5 +266,3 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
     transitionHostNodeIds
   };
 };
-
-export type StageRelationPlan = ReturnType<typeof planStageRelations>;

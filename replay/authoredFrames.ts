@@ -17,10 +17,6 @@ export const getMovementLandingNodeId = (movement?: {
   || movement?.toNodeId
   || '');
 
-export const getDerivationFrameChange = (frame?: ReplayDerivationFrame | null): ReplayDerivationChange | null => frame?.change && typeof frame.change === 'object' && !Array.isArray(frame.change)
-  ? frame.change
-  : null;
-
 export const adaptDerivationStagesForReplay = (stages?: DerivationStage[] | null): ReplayDerivationFrame[] => {
   if (!Array.isArray(stages) || stages.length === 0)
     return [];

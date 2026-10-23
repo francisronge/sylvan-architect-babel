@@ -14,12 +14,7 @@ const reorder = (authored, stage, order) => {
   authored.derivationStages[stage].relations = order.map(index => relations[index]);
   return authored;
 };
-const withKernel = prepare => {
-  const before = process.env.BABEL_REPLAY_KERNEL;
-  process.env.BABEL_REPLAY_KERNEL = '1';
-  try { return prepare(); } finally { if (before === undefined) delete process.env.BABEL_REPLAY_KERNEL; else process.env.BABEL_REPLAY_KERNEL = before; }
-};
-const steps = authored => withKernel(() => prepareReplay({ ...authored, includePlayback: true }).playbackSteps);
+const steps = authored => prepareReplay({ ...authored, includePlayback: true }).playbackSteps;
 const stageOrder = (all, stage) => all.filter(step => step.replayFrameIndex === stage)
   .map(step => step.replayKind === 'relation' ? `relation ${step.replayRelationIdentity.relationIndex}` : `${step.operation} ${step.targetNodeId}`);
 /** Every pronounced input word painted at most once in a frame. */

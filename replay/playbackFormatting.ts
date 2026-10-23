@@ -6,7 +6,7 @@ import {
   isGenericReplayStructuralLabel
 } from './replayPanelFormatting.ts';
 import { isNullLike, isTraceLike } from './replaySurfaceNotation.ts';
-import { type DerivationReplayPlan, type DerivationReplayPlanStage, type PlaybackStep } from './types.ts';
+import { type DerivationReplayPlan, type DerivationReplayPlanStage } from './types.ts';
 
 export const STEP_DELAY_MS = 1000;
 
@@ -85,12 +85,3 @@ export const buildReplayProgressLabel = (
   }
   return `Stage ${stage.stageNumber}/${stageCount} \u00b7 Step ${stepNumber}/${stepCount}`;
 };
-
-export const stripSemanticPayloadFromMicrostep = (step: PlaybackStep): PlaybackStep => ({
-  ...step,
-  sourceKind: 'microstep',
-  detailBlocks: undefined,
-  note: undefined,
-  movementSerializationStatus: undefined,
-  movementDiagnostics: undefined
-});

@@ -126,11 +126,6 @@ export const isRegisteredTrajectoryRelation = (
   anchors?: AuthoredTrajectoryAnchors
 ): boolean => Boolean(registeredTrajectoryDisplayKind(label, anchors));
 
-export const isRegisteredFrontingTrajectoryRelation = (
-  label?: string,
-  anchors?: AuthoredTrajectoryAnchors
-): boolean => isRegisteredTrajectoryRelation(label, anchors) && isFrontingMovementIdentity(label);
-
 /**
  * Exact head/phrasal kind per movement identity. Generic labels (move,
  * movement, internalmerge, remerge, achain) carry no kind — structure decides
@@ -183,6 +178,3 @@ export const FRONTING_MOVEMENT_IDENTITIES: ReadonlySet<string> = new Set([
   'acrosstheboardmovement',
   'sidewardmovement'
 ]);
-
-export const isFrontingMovementIdentity = (label?: string): boolean =>
-  FRONTING_MOVEMENT_IDENTITIES.has(foldMovementIdentityKey(label));

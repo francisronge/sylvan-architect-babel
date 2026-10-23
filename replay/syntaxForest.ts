@@ -7,7 +7,6 @@ import {
   isSilentWordLeaf
 } from '../server/babelParser/nodePronunciation.js';
 import { type SyntaxNode } from '../types.ts';
-import { isReplayDisplayChild } from './displayIdentity.ts';
 import { isNotationSurface } from './replaySurfaceNotation.ts';
 import { type HierNode, type PlaybackStep } from './types.ts';
 
@@ -147,7 +146,7 @@ export const getReplayVisibleNodeIdSet = (step?: PlaybackStep | null): Set<strin
   .map((nodeId) => String(nodeId || ''))
   .filter(Boolean));
 
-export const getSyntaxNodeSurface = (node?: SyntaxNode | null): string => {
+const getSyntaxNodeSurface = (node?: SyntaxNode | null): string => {
   if (!node)
     return '';
   return String(node.word || node.label || '').trim();
@@ -198,99 +197,6 @@ export const collectLeafSyntaxNodes = (root?: SyntaxNode | null): SyntaxNode[] =
   visit(root);
   return leaves;
 };
-
-export const countOvertLeafSyntaxNodes = (root?: SyntaxNode | null): number => collectLeafSyntaxNodes(root).filter((leaf) => isLexicalLeaf(leaf)).length;
-
-export const collectReplayOvertTokenMultisetKey = (forest: SyntaxNode[] = []): string => {
-  const tokens = forest
-    .flatMap((root) => collectLeafSyntaxNodes(root))
-    .filter((leaf) => isLexicalLeaf(leaf))
-    .map((leaf) => normalizeToken(authoredWord(leaf)))
-    .filter(Boolean)
-    .sort();
-  return tokens.join('|');
-};
-
-const collectReplayOvertTokenSequence = (root?: SyntaxNode | null): string[] => collectLeafSyntaxNodes(root)
-  .filter((leaf) => (leaf as any)?.replayLayoutOnly !== true && isLexicalLeaf(leaf))
-  .map((leaf) => normalizeToken(authoredWord(leaf)))
-  .filter(Boolean);
-
-export const collectReplayRootStructuralKey = (forest: SyntaxNode[] = []): string => forest
-  .map((root) => {
-    const label = String(root?.label || '').trim().toUpperCase();
-    const tokens = collectReplayOvertTokenSequence(root).join(' ');
-    return label && tokens ? `${label}|${tokens}` : '';
-  })
-  .filter(Boolean)
-  .join('||');
-
-export const collectReplayContinuitySubtreeSignatures = (forest: SyntaxNode[], minimumOvertTokens = 2): Map<SyntaxNode, string> => {
-  const signatures = new Map<SyntaxNode, string>();
-  // Continuity carries already-built structure, not merely its spoken yield.
-  // Display words duplicate their owner's material and do not add syntax.
-  const visit = (node: SyntaxNode): {
-    tokens: string[];
-    shape: unknown;
-  } => {
-    const children = Array.isArray(node.children) ? node.children : [];
-    const descendants = children.map(child => ({ node: child, ...visit(child) }));
-    const tokens = children.length > 0
-      ? descendants.flatMap(child => child.tokens)
-      : (node as any).replayLayoutOnly !== true && isLexicalLeaf(node)
-        ? [normalizeToken(authoredWord(node))].filter(Boolean) : [];
-    const label = String(node.label || '').trim().toUpperCase();
-    const shape = [label, normalizeToken(authoredWord(node)), node.silent === true,
-      descendants.filter(child => !(child.node as any).replayLayoutOnly && !isReplayDisplayChild(child.node, node.id))
-        .map(child => child.shape)];
-    signatures.set(node, label && tokens.length >= minimumOvertTokens ? JSON.stringify(shape) : '');
-    return { tokens, shape };
-  };
-  forest.forEach(visit);
-  return signatures;
-};
-
-export const collectUniqueReplayContinuitySubtrees = (forest: SyntaxNode[] = []): Map<string, SyntaxNode> => {
-  const candidates = new Map<string, SyntaxNode[]>();
-  const signatures = collectReplayContinuitySubtreeSignatures(forest);
-  const visit = (node: SyntaxNode) => {
-    const signature = signatures.get(node);
-    if (signature) {
-      const entries = candidates.get(signature) || [];
-      entries.push(node);
-      candidates.set(signature, entries);
-    }
-    const children = Array.isArray(node.children) ? node.children : [];
-    children.forEach(visit);
-  };
-  forest.forEach(visit);
-  const unique = new Map<string, SyntaxNode>();
-  candidates.forEach((nodes, signature) => {
-    if (nodes.length === 1)
-      unique.set(signature, nodes[0]);
-  });
-  return unique;
-};
-
-export const hasBranchingSyntaxSubtree = (root?: SyntaxNode | null): boolean => {
-  if (!root || typeof root !== 'object')
-    return false;
-  let branching = false;
-  const visit = (node: SyntaxNode) => {
-    if (branching)
-      return;
-    const children = Array.isArray(node?.children) ? node.children : [];
-    if (children.length > 1) {
-      branching = true;
-      return;
-    }
-    children.forEach(visit);
-  };
-  visit(root);
-  return branching;
-};
-
-const pickOvertLeafNode = (root?: SyntaxNode | null): SyntaxNode | null => collectLeafSyntaxNodes(root).find((leaf) => isPronouncedLeaf(leaf)) || null;
 
 export const findNodePathInForest = (forest: SyntaxNode[], targetNodeId: string): number[] | null => {
   const visit = (node: SyntaxNode, path: number[]): number[] | null => {
@@ -409,8 +315,6 @@ export const resolvedRelationLinkKey = (link?: ResolvedRelationLink | null): str
   String(link?.witnessNodeId || ''),
   String(link?.chainId || '')
 ].join('|');
-
-export const subtreeHasOvertYield = (node?: SyntaxNode | null): boolean => Boolean(pickOvertLeafNode(node));
 
 export const resolveNodeLabel = (node: HierNode): string => node.data.label || node.data.word || '';
 

@@ -6,12 +6,7 @@ import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 
 const corpus = loadFixtureAnalyses();
 const record = id => corpus.records.find(entry => entry.id === id).record;
-const withKernel = prepare => {
-  const before = process.env.BABEL_REPLAY_KERNEL;
-  process.env.BABEL_REPLAY_KERNEL = '1';
-  try { return prepare(); } finally { if (before === undefined) delete process.env.BABEL_REPLAY_KERNEL; else process.env.BABEL_REPLAY_KERNEL = before; }
-};
-const prepare = authored => withKernel(() => prepareReplay({ ...structuredClone(authored), includePlayback: true }));
+const prepare = authored => prepareReplay({ ...structuredClone(authored), includePlayback: true });
 
 test('the kernel holds back an authored unary root until the movement that fills it', () => {
   // Stage 1 authors ECP over its one daughter ecbar; stage 2's wh movement adds the landing.

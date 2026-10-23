@@ -11,7 +11,7 @@ import {
   type ReplayIdentityContext
 } from './displayIdentity.ts';
 import { isResolvedMovementLink, resolveDerivationMovementTransitions } from './movementLinks.ts';
-import { resolveLeafSurface, shouldExpandPreterminalLeaf } from './replaySurfaceNotation.ts';
+import { shouldExpandPreterminalLeaf } from './replaySurfaceNotation.ts';
 import { cloneSyntaxTree, findExactNodeByIdInForest, projectAuthoredSyntaxNode } from './syntaxForest.ts';
 import { type HierNode, type ReplayDerivationFrame } from './types.ts';
 
@@ -62,7 +62,7 @@ export const buildDerivationCanvasData = (forest: SyntaxNode[], identity = creat
   };
 };
 
-export const normalizeReplayStableIdPart = (value?: string | number | null): string => String(value ?? '')
+const normalizeReplayStableIdPart = (value?: string | number | null): string => String(value ?? '')
   .trim()
   .toLowerCase()
   .replace(/[^a-z0-9]+/g, '_')
@@ -307,38 +307,6 @@ const collectRenderableVisibleNodeIds = (root: HierNode, rawVisibleNodeIds?: Set
   return visibleIds.size > 0 ? Array.from(visibleIds) : allRenderableNodeIds;
 };
 
-export const extractReplayWorkspaceLabels = (canvasData: SyntaxNode | null): string[] => {
-  if (!canvasData)
-    return [];
-  const roots = canvasData.replayOrigin?.kind === 'workspace'
-    ? (Array.isArray(canvasData.children) ? canvasData.children : [])
-    : [canvasData];
-  return roots
-    .map((node) => String(node?.label || '').trim())
-    .filter(Boolean);
-};
-
-export const getReplayLeafSelectionTarget = (root: SyntaxNode, identity: ReplayIdentityContext): {
-  nodeId: string;
-  surface: string;
-} | null => {
-  const renderableRoot = buildRenderableDerivationCanvasData([cloneSyntaxTree(root) || root], identity);
-  if (!renderableRoot)
-    return null;
-  const hierarchy = d3.hierarchy(renderableRoot);
-  applyVizIds(hierarchy);
-  const leaf = hierarchy.descendants().find((node) => !node.children || node.children.length === 0);
-  if (!leaf)
-    return null;
-  const surface = resolveLeafSurface(leaf);
-  if (!surface)
-    return null;
-  return {
-    nodeId: getNodeId(leaf),
-    surface
-  };
-};
-
 export const materializeReplayPreterminals = (node: SyntaxNode, identity = createReplayIdentityContext([node])): SyntaxNode => {
   const walk = (current: SyntaxNode): SyntaxNode => {
     if (!current || typeof current !== 'object') {
@@ -538,8 +506,6 @@ export const buildDerivationReplaySnapshot = ({
     relationLinks: effectiveRelationLinks
   };
 };
-
-export const EXPLICIT_NULL_TERMINAL = '∅';
 
 const buildSyntheticReplayLeafId = (parent: SyntaxNode, suffix: string, word?: string): string => {
   const parentId = typeof parent?.id === 'string' ? parent.id : '';

@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as d3 from 'd3';
 import { constructionReceivingAttachments } from '../replay/workspaceReceivingHost.ts';
-import { normalizePlaybackSequence } from '../replay/playbackVisibility.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
 import { buildStageLayoutGroups, stageTreeLayoutSize } from '../replay/stageCamera.ts';
@@ -32,27 +31,6 @@ test('an unpainted wrapper grants no attachment, even when future metadata descr
     children: id => { assert.notEqual(id, 'wrapper'); return full.children(id); } };
   assert.deepEqual(constructionReceivingAttachments(step, before, strict, () => true), [], 'reject before querying an absent current node');
 });
-
-for (const operation of ['LexicalSelect', 'Project', 'ExternalMerge']) {
-  test(`${operation} cannot narrate an invisible future target and its progress is recounted`, () => {
-    const pending = tree('root', 'XP', atom('current', 'N', { word: 'ready' }), atom('future', 'X', { replayLayoutOnly: true }));
-    const complete = tree('root', 'XP', atom('current', 'N', { word: 'ready' }), atom('future', 'X'));
-    const steps = [{ replayKind: 'micro', operation, targetNodeId: 'future', targetLabel: 'X', sourceLabels: [], replayFrameIndex: 0,
-      replayCanvasData: pending, replayVisibleNodeIds: ['current'], preserveReplayStep: true, replayProgressLabel: 'Stage 1/1 · Step 1/2' },
-    { replayKind: 'macro', operation: 'StageRecord', targetNodeId: 'root', targetLabel: 'XP', sourceLabels: [], replayFrameIndex: 0,
-      replayCanvasData: complete, replayVisibleNodeIds: ['root', 'current', 'future'], replayProgressLabel: 'Stage 1/1 · Step 2/2' }];
-    const original = structuredClone(steps);
-    const result = normalizePlaybackSequence(steps, [], { stages: [{ stageIndex: 0, stageNumber: 1 }] });
-    assert.equal(result.length, 1);
-    assert.equal(result[0].operation, 'StageRecord');
-    assert.equal(result[0].replayProgressLabel, 'Stage 1/1 · Step 1/1');
-    assert.deepEqual(result[0].replayCanvasData, complete);
-    assert.deepEqual(steps, original);
-    const visible = normalizePlaybackSequence([{ ...original[0], replayCanvasData: complete,
-      replayVisibleNodeIds: ['root', 'current', 'future'] }, original[1]], [], { stages: [{ stageIndex: 0, stageNumber: 1 }] });
-    assert.ok(visible.some(step => step.operation === operation), 'a painted ordinary target keeps its construction step');
-  });
-}
 
 const deferredCopy = () => {
   const lower = atom('lower', 'V descriptive', { word: 'was', tokenIndex: 0, lineageId: 'verbal-chain' });

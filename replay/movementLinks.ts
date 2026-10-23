@@ -2,7 +2,6 @@
 import { type ResolvedRelationLink } from '../relationLinks.ts';
 import { type DerivationOperation, type SyntaxNode } from '../types.ts';
 import {
-  isFrontingMovementIdentity,
   isMovementIdentity,
   isRegisteredTrajectoryRelation,
   movementIdentityKind
@@ -44,8 +43,6 @@ export const normalizeTrajectoryKind = (kind?: ResolvedRelationLink['trajectoryK
 const isHeadLikeOperationLabel = (operation?: string): boolean => movementIdentityKind(operation) === 'head';
 
 export const isPhrasalReplayMovement = (link: ResolvedRelationLink): boolean => normalizeTrajectoryKind(link.trajectoryKind) === 'phrasal';
-
-export const isFrontingLikeOperationLabel = (operation?: string): boolean => isFrontingMovementIdentity(operation);
 
 const isPhrasalTrajectoryOperationLabel = (operation?: string): boolean => movementIdentityKind(operation) === 'phrasal';
 

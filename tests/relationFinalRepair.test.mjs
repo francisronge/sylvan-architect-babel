@@ -898,12 +898,13 @@ test('a relation moment in a node-returning stage survives the overt-material gu
 });
 
 /* ------------------------------------------------------------------ *
- * The adds-overt exemption is exact: only identity-proven authored
- * relation moments qualify; synthetic preserved steps never do.
+ * Relation moments are exact: one per authored relation, carrying its
+ * identity; no other step is a relation moment.
  * ------------------------------------------------------------------ */
 
-test('each authored relation yields exactly one genuine relation moment with its exact identity', async () => {
-  const { isAuthoredRelationReplayMoment } = await import('../replay/playbackVisibility.ts');
+test('each authored relation yields exactly one genuine relation moment with its exact identity', () => {
+  const isAuthoredRelationReplayMoment = step => step.replayKind === 'relation'
+    && Number.isInteger(step.replayRelationIdentity?.stageIndex) && Number.isInteger(step.replayRelationIdentity?.relationIndex);
   const shared = forest();
   const stages = [
     stage([
@@ -929,88 +930,6 @@ test('each authored relation yields exactly one genuine relation moment with its
     assert.notEqual(step.replayKind, 'relation');
     assert.equal(step.replayRelationIdentity, undefined);
   });
-});
-
-test('a synthetic pre-movement landing merge is structurally identified and cannot count as a played relation', async () => {
-  const { insertPreMovementLandingMergeSteps, isAuthoredRelationReplayMoment } = await import('../replay/playbackVisibility.ts');
-  const canvas = node('root_lm', 'TP', [
-    node('land_parent_lm', 'CP', [node('land_lm', 'XP', [leaf('land_lm_l', 'X', 'x')])])
-  ]);
-  // The previous step is a genuine relation moment; the next step's movement
-  // link lands where the parent only now becomes visible — triggering the
-  // synthetic merge, cloned FROM the relation step.
-  const previous = {
-    operation: 'Coreference',
-    replayKind: 'relation',
-    replayRelationIdentity: { stageIndex: 0, relationIndex: 0 },
-    preserveReplayStep: true,
-    targetNodeId: 'land_lm',
-    targetLabel: 'XP',
-    sourceLabels: [],
-    replayCanvasData: canvas,
-    replayVisibleNodeIds: ['root_lm', 'land_lm', 'land_lm_l']
-  };
-  const mover = {
-    operation: 'HeadMovement',
-    replayKind: 'micro',
-    targetNodeId: 'land_lm',
-    targetLabel: 'XP',
-    sourceLabels: [],
-    replayCanvasData: canvas,
-    replayVisibleNodeIds: ['root_lm', 'land_parent_lm', 'land_lm', 'land_lm_l'],
-    replayRelationLinks: [{ operation: 'HeadMovement', targetNodeId: 'land_lm', sourceNodeId: 'root_lm' }]
-  };
-  const expanded = insertPreMovementLandingMergeSteps([previous, mover]);
-  assert.equal(expanded.length, 3, 'the synthetic landing merge was generated');
-  const synthetic = expanded[1];
-  assert.equal(synthetic.operation, 'ExternalMerge');
-  assert.equal(synthetic.replayKind, 'micro', 'generated structural steps are structurally identified');
-  assert.equal(synthetic.replayRelationIdentity, undefined,
-    'the clone inherits no relation identity from the relation step it spread');
-  assert.equal(isAuthoredRelationReplayMoment(synthetic), false);
-  assert.equal(synthetic.preserveReplayStep, true, 'it stays a preserved structural state');
-});
-
-test('a generic preserveReplayStep flag alone cannot authorize an invalid overt-material jump', async () => {
-  const { removeInvalidReplayVisibilityTransitions, isAuthoredRelationReplayMoment } = await import('../replay/playbackVisibility.ts');
-  const canvas = node('root_pg', 'TP', [
-    node('dp_pg', 'DP', [leaf('dp_pg_l', 'D', 'kai')]),
-    node('vp_pg', 'VP', [leaf('vp_pg_l', 'V', 'ran')])
-  ]);
-  const before = {
-    operation: 'Project',
-    replayKind: 'micro',
-    replayProgressLabel: 'Stage 1/1 \u00b7 Step 1/2',
-    targetNodeId: 'dp_pg',
-    targetLabel: 'DP',
-    sourceLabels: [],
-    replayCanvasData: canvas,
-    replayVisibleNodeIds: ['root_pg', 'dp_pg', 'dp_pg_l']
-  };
-  const invalidJump = {
-    operation: 'Other',
-    replayKind: 'micro',
-    preserveReplayStep: true, // generic flag, NOT an authored relation moment
-    targetNodeId: 'vp_pg',
-    targetLabel: 'VP',
-    sourceLabels: [],
-    replayCanvasData: canvas,
-    replayVisibleNodeIds: ['root_pg', 'dp_pg', 'dp_pg_l', 'vp_pg', 'vp_pg_l']
-  };
-  assert.equal(isAuthoredRelationReplayMoment(invalidJump), false);
-  const kept = removeInvalidReplayVisibilityTransitions([before, invalidJump]);
-  assert.deepEqual(kept.map((step) => step.operation), ['Project'],
-    'the flagged-but-unproven overt jump is still rejected');
-
-  // The same jump WITH an exact authored identity is the lawful exemption.
-  const genuineMoment = {
-    ...invalidJump,
-    operation: 'Coreference',
-    replayKind: 'relation',
-    replayRelationIdentity: { stageIndex: 1, relationIndex: 0 }
-  };
-  const keptWithMoment = removeInvalidReplayVisibilityTransitions([before, genuineMoment]);
-  assert.deepEqual(keptWithMoment.map((step) => step.operation), ['Project', 'Coreference']);
 });
 
 /* ------------------------------------------------------------------ *

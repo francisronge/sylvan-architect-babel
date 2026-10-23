@@ -80,8 +80,8 @@ function frameChange(previous, current, initialKey) {
 
 /**
  * Each playback step changes what its operation and target declare. Steps are
- * the kinds the compiler emits (replay/stageScheduling.ts,
- * replay/structuralPlayback.ts): micro LexicalSelect, Project and
+ * the kinds the compiler emits (replay/constructionKernel.ts): micro
+ * LexicalSelect, Project and
  * ExternalMerge; relation moments, whose operation is the authored relation;
  * and the macro StageRecord. Subtypes:
  * - `empty-step`: a structural step whose target is not displayed, a selection
