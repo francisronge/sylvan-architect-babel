@@ -407,7 +407,7 @@ export const pathGeometry = {
       const vinePaths = featureSharingVinePaths(bearerRects.map(entry => ({
         x: entry.rect.x + entry.rect.width / 2,
         y: entry.rect.y + entry.rect.height + 22
-      })), convergence);
+      })), convergence, bearerRects.map(entry => entry.rect));
       vinePaths.forEach(path => {
         primitives.push({
           type: 'shape-path',

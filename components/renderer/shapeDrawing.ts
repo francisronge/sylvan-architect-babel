@@ -370,7 +370,7 @@ export function createShapeDrawing({
         const vinePaths = featureSharingVinePaths(bearerRects.map(({ rect }) => ({
           x: rect.x + rect.width / 2,
           y: rect.y + rect.height + 22
-        })), convergence);
+        })), convergence, bearerRects.map(({ rect }) => rect));
         vinePaths.forEach(path => {
           layer.append('path')
             .attr('class', 'babel-feature-sharing-vine')

@@ -13,6 +13,7 @@ import { boundOverlayBounds, type OverlayBounds } from './relations/geometryBoun
 import { resolveUniqueDisplayTerminal } from './relations/trajectoryAttachment.ts';
 import { type PlanPositionProvider } from './relations/boundGeometry.ts';
 import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
+import { controlPlaqueObstacles } from './relations/controlPlaqueSpace.ts';
 import { predicationPlaqueObstacles } from './relations/predicationPlaqueSpace.ts';
 import { nativePlaqueFootprints, nativePlaqueObstacles } from './relations/nativePlaqueSpace.ts';
 import { prepareLifetimePlaqueSpaces, type LifetimeScene } from './relations/plaqueLifetimeSpace.ts';
@@ -41,6 +42,7 @@ import {
 } from './relations/plaquePlacement.ts';
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
 import {
+  isPlanItemRevealed,
   planItemRelationRefs,
   resolveDisplayedTrajectoryAttachments,
   type RelationRenderPlan
@@ -707,6 +709,11 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
       ...nativePlaqueObstacles(items, currentNodes, {
         measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk,
         labels, measureTreeLabel: input.measureTreeLabel, measurePlaqueText: input.measurePlaqueText
+      }),
+      // A control dependency is reserved only in the scenes that paint it.
+      ...controlPlaqueObstacles(items.filter(item => item.familyId === 'control.dependency'
+        && isPlanItemRevealed(item, input.stageIndex, scene.playedRelations)), currentNodes, {
+        measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk
       })];
     // Use the trajectory binder's actual geometry in each frame's coordinates.
     if (!input.plan) return { nodes: currentNodes, obstacles, labels, playedRelations: scene.playedRelations, ...timing };
