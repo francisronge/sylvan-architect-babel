@@ -36,16 +36,20 @@ test('a movement introduces its landing and path at its own moment when a later 
   assert.deepEqual(checkStepSemantics(replay, fixture), []);
 });
 
-test('a displacement drawn without an arrow is reported, whatever its claim calls its fields', () => {
+test('a displacement is read from structure, whatever its claim calls its fields', () => {
+  // The Hungarian subject topicalization names its occurrences topic,
+  // intermediateTrace and movingNP. No wording proves movement; the stage
+  // difference does: d_pi keeps its id and slot, and its new copy d_ptop lands
+  // in the topic phrase.
   const { cases: [fixture] } = read('unnamed-movement-roles'), replay = prepare(fixture), steps = replay.playbackSteps;
   const moment = momentOf(steps, 2, 0), at = frameStructure(steps[moment]), before = frameStructure(steps[moment - 1]);
   assert.equal(before.displayed.has('d_ptop'), false);
   assert.equal(at.parent.get('d_ptop'), 'd_topp');
   assert.equal(at.nodes.get('d_pi').data.silent, true);
-  assert.deepEqual(planPaths(replay, 2, 0), [], 'the topicalization reads as no movement');
-  assert.deepEqual(steps[moment].movementDiagnostics ?? [], [], 'and Replay itself diagnoses nothing');
-  assert.deepEqual(checkMovementUnrendered(replay, fixture).map(found => [found.frame, found.subtype, found.subject]),
-    [[moment + 1, 'COPY_WITHOUT_PATH', '2:0']]);
+  assert.deepEqual(planPaths(replay, 2, 0), ['d_pi>d_ptop']);
+  assert.deepEqual(paths(steps[moment], '2:0'), ['d_pi>d_ptop']);
+  assert.deepEqual(steps[moment].movementDiagnostics ?? [], []);
+  assert.deepEqual(checkMovementUnrendered(replay, fixture), []);
 });
 
 test('listed landings pair with the listed sources they command, including occurrences of one shared lineage', () => {

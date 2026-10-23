@@ -123,7 +123,9 @@ export const EXCEPTIONS = [
   // unmoved pose at stage 10 on 711ef7d; the final subject raising now first
   // paints part of its landing beyond the canvas.
   x(MOVED_OFF_CANVAS, 'replay-regressions/successive-cyclic-source.json#/cases/0', 'first-paint-continuity', 'off-canvas:moved', 'stage 12',
-    { desktop: { '121>122': 27.71 }, mobile: { '121>122': 56.45 } }),
+    { desktop: { '121>122': 27.83 }, mobile: { '121>122': 56.45 } },
+    { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Structural movement on (fix/structural-movement-live): drawing the movements it recovers carries their slot and landing reservations back into earlier stages, so lifetime plaque pockets shift. Francis, 23 Oct in the lead session, told the change is invisible: \'If I won\'t even see them, then I won\'t waste time worrying about it, merge\': a held movement-slot clearance shifts stage 5 by 3.46 units, so the landing first paints 27.83 px beyond the canvas instead of 27.71.',
+      accepts: { desktop: { '121>122': 27.83 }, mobile: { '121>122': 56.45 } } }),
   x(CONTINUED_RECENTRE, 'replay-regressions/renamed-continuing-nominal.json#', 'first-paint-continuity', 'jump:stage-coordinates',
     'stage 2', { desktop: { '18>19': 26.08 } },
     { by: 'Francis Ronge', on: '2026-10-21', expires: '2027-01-21', note: 'there-insertion: D and Num re-centre over the wider rebuilt N (~26 px) instead of D separating; accepted for now until a layout reserves N\'s final width (approved 21 Oct in the lead session)',

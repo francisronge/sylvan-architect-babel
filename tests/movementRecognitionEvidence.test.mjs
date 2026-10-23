@@ -161,8 +161,12 @@ test('exact authored structure binds unfamiliar movement roles through both tier
 });
 
 test('structural binding cannot invent movement meaning or choose among conflicting occurrences', () => {
+  // An unregistered title does not stop structure: the stage difference proves
+  // lower -> higher and the claim anchors both ends, so it owns the arrow.
+  const openTitle = relocatedPhrase('CopySpellout');
+  assert.equal(recoverMovementEvidence(openTitle.relation, openTitle.currentForest, openTitle.priorForest).movement, undefined);
+  assert.ok(plan(openTitle).some(item => item.kind === 'trajectory' && item.sourceNodeId === 'lower' && item.targetNodeId === 'higher'));
   for (const change of [
-    input => { input.relation.relation = 'CopySpellout'; },
     input => { input.priorForest = structuredClone(input.currentForest); },
     input => { input.currentForest[0].children[1].children[0].lineageId = 'different'; },
     input => { input.relation.anchors.participantB = ['lower', 'context']; },
@@ -192,8 +196,12 @@ test('explicit prior direction binds arbitrary current roles without a recognize
   const input = relocatedPhrase('A previously unseen description');
   input.relation.priorAnchors = { movementSource: 'higher' };
   assert.equal(plan(input).find(item => item.kind === 'trajectory')?.sourceNodeId, 'lower');
+  // Read from structure, an open prior field naming the preceding source still
+  // marks it; only wording needs the direction word.
+  const observed = structuredClone(input);
+  observed.relation.priorAnchors = { observation: 'higher' };
+  assert.equal(plan(observed).find(item => item.kind === 'trajectory')?.sourceNodeId, 'lower');
   for (const change of [
-    x => { x.relation.priorAnchors = { observation: 'higher' }; },
     x => { x.relation.priorAnchors.movementSource = ['higher', 'higher']; },
     x => { x.priorForest = structuredClone(x.currentForest); },
     x => { x.currentForest[0].children[1].id = 'different-slot'; },
@@ -219,9 +227,12 @@ test('a successive step uses its explicit prior source and preserves the earlier
   const dispatch = dispatchRelationClaims(input);
   assert.equal(dispatch.evidence.movement.sourceNodeId, 'edge');
   assert.ok(dispatch.claims.some(claim => claim.tier === 3 && claim.consumedEvidence.some(ref => ref.key === 'baseCopy')));
+  // Moving base to another lineage leaves wording a conflicting copy; the stage
+  // difference still proves edge -> upper, and base becomes context.
   const conflict = structuredClone(input);
   conflict.currentForest[0].children[1].children[1].lineageId = 'other';
-  assert.ok(!plan(conflict).some(item => item.kind === 'trajectory'));
+  assert.equal(recoverMovementEvidence(conflict.relation, conflict.currentForest, conflict.priorForest).movement, undefined);
+  assert.deepEqual(plan(conflict).filter(item => item.kind === 'trajectory').map(item => [item.sourceNodeId, item.targetNodeId]), [['edge', 'upper']]);
 });
 
 test('the first supported relation owns movement and its pending parent; later inspection does not repeat it', () => {
@@ -260,12 +271,14 @@ test('a landing site describes the parent, not the moved occurrence, across unfa
       x => { x.relation.anchors.observedObject = ['higher', 'higher']; },
       x => { x.currentForest[0].children[0].lineageId = 'unrelated'; },
       x => { x.relation.anchors.landingSite = ['landing-parent', 'landing-parent']; },
-      x => { x.currentForest = [{ id: 'outer', label: 'XP', children: x.currentForest }]; x.relation.anchors.landingSite = 'outer'; },
+      // With the lower occurrence keeping its id, no worded piece is drawn, so
+      // structure reads lower -> higher whatever the outer wrapper is called.
+      x => { x.currentForest = [{ id: 'outer', label: 'XP', children: x.currentForest }]; x.relation.anchors.landingSite = 'outer'; return keepLowerId; },
       x => { x.currentForest[0].children.push({ id: 'rival', label: 'DP', lineageId: 'chain' }); x.relation.anchors.anotherObject = 'rival'; }
     ]) {
       const conflicting = structuredClone(input);
-      change(conflicting);
-      assert.ok(!plan(conflicting).some(item => item.kind === 'trajectory'), JSON.stringify(conflicting.relation));
+      const structural = change(conflicting) === true;
+      assert.equal(plan(conflicting).some(item => item.kind === 'trajectory'), structural, JSON.stringify(conflicting.relation));
     }
   }
 });
@@ -340,9 +353,11 @@ test('successive head movement distinguishes occurrences from their complexes an
 });
 
 test('a source complex cannot conceal conflicting, repeated or misplaced movement evidence', () => {
-  for (const [name, change] of [
-    ['unrelated complex', input => { input.relation.priorAnchors.sourceComplex = 'higher-host'; }],
-    ['enclosing ancestor', input => { input.relation.priorAnchors.sourceComplex = 'root'; }],
+  // A misnamed source complex is context to structure, which reads the
+  // displacement previous -> higher from the stages and still draws it.
+  for (const [name, change, structural = false] of [
+    ['unrelated complex', input => { input.relation.priorAnchors.sourceComplex = 'higher-host'; }, true],
+    ['enclosing ancestor', input => { input.relation.priorAnchors.sourceComplex = 'root'; }, true],
     ['repeated source list', input => { input.relation.priorAnchors.source = ['previous', 'previous']; }],
     ['wrong source identity', input => { input.priorForest[0].children[1].children[0].lineageId = 'other'; }],
     ['different lower slot', input => { input.currentForest[0].children[1].children.reverse(); }],
@@ -354,6 +369,6 @@ test('a source complex cannot conceal conflicting, repeated or misplaced movemen
     const input = successiveHeadExtraction();
     change(input);
     assert.equal(recoverMovementEvidence(input.relation, input.currentForest, input.priorForest).movement, undefined, name);
-    assert.ok(!plan(input).some(item => item.kind === 'trajectory'), name);
+    assert.equal(plan(input).some(item => item.kind === 'trajectory'), structural, name);
   }
 });

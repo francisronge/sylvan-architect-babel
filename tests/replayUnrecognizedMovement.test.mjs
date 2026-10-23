@@ -5,6 +5,7 @@ import test from 'node:test';
 import { getFrameRelations } from '../replay/frameRelations.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { frameStructure } from './helpers/replayInvariants.mjs';
+import { withStructuralMovement } from './helpers/structuralMovementSwitch.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/unrecognized-movement.json', import.meta.url), 'utf8'));
 const prepared = new Map();
@@ -66,11 +67,16 @@ test('a head complex whose claim lists contained heads appears at its moment, no
 test('a pied-piped phrase appears at its claim\'s moment at each edge', () => {
   const steps = play(2);
   assertIntroducedAt(steps, moment(steps, 3, 0), ['pp1', 'p1', 'wh1', 'vEdge']);
-  // The recognized operator-variable movement lands wh2 in pp2, whose other
-  // daughter is new too: it introduces the whole pied-piped PP and the CP it
-  // joins, and the neutral Internal Merge that names wh2 plays after it.
-  assertIntroducedAt(steps, moment(steps, 7, 1), ['pp2', 'p2', 'wh2', 'cpRel']);
-  assert.ok(moment(steps, 7, 1) < moment(steps, 7, 0));
+  // The relative Internal Merge moves pp1 to pp2: it introduces the whole
+  // pied-piped PP and the CP it joins. The operator-variable dependency that
+  // names the carried wh2 is no movement of its own and plays after it.
+  assertIntroducedAt(steps, moment(steps, 7, 0), ['pp2', 'p2', 'wh2', 'cpRel']);
+  assert.ok(moment(steps, 7, 0) < moment(steps, 7, 1));
+  const paths = replay(2).relationRenderPlan.frames[7].items.filter(item => item.kind === 'trajectory')
+    .map(item => `${item.relationRef.stageIndex}:${item.relationRef.relationIndex} ${item.sourceNodeId}->${item.targetNodeId}`);
+  assert.ok(paths.includes('3:0 pp0->pp1'), 'the phase-edge Internal Merge draws its PP path');
+  assert.ok(paths.includes('7:0 pp1->pp2'), 'the relative Internal Merge draws its PP path');
+  assert.ok(!paths.some(path => path.startsWith('7:1 ')), 'the operator-variable dependency draws no movement path');
   [3, 7].forEach(stage => assertStageRecordAddsNothing(steps, stage));
 });
 
@@ -265,7 +271,9 @@ test('a copied phrase keeps its earlier occurrence\'s words until a later claim 
     verbPhrase('high', 'vHigh', 'walked'), branch('base', 'XP', verbPhrase('low', 'vLow', 'walk', { silent: true }), structuredClone(other)))], [
     { relation: 'Opaque occurrence update', anchors: { higher: 'high', lower: 'low' } },
     { relation: 'PFRealization', anchors: { terminal: 'vHigh' }, values: { realization: 'walked' } }]);
-  const { prepared } = compile(record), steps = prepared.playbackSteps;
+  // Structure would read this displacement as movement; the neutral copy is
+  // the path Replay takes whenever structure declines to read one.
+  const { prepared } = withStructuralMovement('0', () => compile(record)), steps = prepared.playbackSteps;
   const copy = steps[moment(steps, 1, 0)], realization = steps[moment(steps, 1, 1)];
   assert.ok(frameStructure(copy).displayed.has('vHigh'));
   assert.equal(node(copy, 'vHigh').word, 'walk', 'the copied terminal shows its counterpart\'s form');
@@ -286,13 +294,18 @@ test('material a surviving parent gains while its old container dissolves attach
   assertStageRecordAddsNothing(steps, 1);
 });
 
-const laterPronunciation = ({ low, high, pf, after = node => node }) => {
+const laterPronunciationRecord = ({ low, high, pf, after = node => node }, relation = 'Opaque occurrence update',
+  anchors = { higher: high.id, lower: low.id }) => {
   const other = { id: 'other', label: 'Adv', word: 'again', children: [] };
-  return compile(twoStages([branch('base', 'XP', low, other)], [branch('root', 'XP', high,
+  return twoStages([branch('base', 'XP', low, other)], [branch('root', 'XP', high,
     branch('base', 'XP', after(structuredClone(low)), structuredClone(other)))], [
-    { relation: 'Opaque occurrence update', anchors: { higher: high.id, lower: low.id } },
-    { relation: 'PFRealization', anchors: { terminal: pf }, values: { realization: 'walked' } }])).prepared.playbackSteps;
+    { relation, anchors },
+    { relation: 'PFRealization', anchors: { terminal: pf }, values: { realization: 'walked' } }]);
 };
+/** The neutral copy's steps. Structure reads each of these displacements as
+ * movement, so the reading is switched off to reach the neutral path that
+ * Replay takes whenever structure declines to read a displacement. */
+const laterPronunciation = shape => withStructuralMovement('0', () => compile(laterPronunciationRecord(shape)).prepared.playbackSteps);
 const silence = node => ({ ...node, silent: true, children: (node.children || []).map(silence) });
 const verb = (id, word, extra = {}) => ({ id, label: 'V', word, lineageId: 'verb', children: [], ...extra });
 
@@ -320,4 +333,18 @@ test('a copy keeps its earlier occurrence\'s pronunciation, silence included, un
   assert.deepEqual([copy.word, copy.silent], ['walk', undefined], 'the copy is pronounced like its source until then');
   assert.equal(realization.silent, true, 'the later claim makes it silent');
   assertStageRecordAddsNothing(steps, 1);
+});
+
+test('read from structure, an opaque occurrence update is a movement whose landing arrives as a worded movement\'s does', () => {
+  const shape = { pf: 'vHigh', low: { id: 'low', label: 'VP', lineageId: 'predicate', children: [verb('vLow', 'walk')] },
+    high: { id: 'high', label: 'VP', lineageId: 'predicate', children: [verb('vHigh', 'walked')] },
+    after: node => ({ ...node, silent: true, children: node.children.map(silence) }) };
+  const observe = record => {
+    const { prepared } = compile(record), steps = prepared.playbackSteps;
+    return { word: node(steps[moment(steps, 1, 0)], 'vHigh').word,
+      paths: prepared.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory').map(item => `${item.sourceNodeId}>${item.targetNodeId}`) };
+  };
+  const opaque = observe(laterPronunciationRecord(shape));
+  assert.deepEqual(opaque, { word: 'walked', paths: ['low>high'] });
+  assert.deepEqual(observe(laterPronunciationRecord(shape, 'Internal Merge', { higherCopy: 'high', lowerCopy: 'low' })), opaque);
 });

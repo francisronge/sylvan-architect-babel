@@ -148,10 +148,17 @@ test('prior container evidence requires unique member identity, exact preceding 
 });
 
 test('head recovery preserves the malformed exact Tier 1 primary guard', () => {
+  // A target that is neither the landing nor its host or complex competes with
+  // the named landing, so the exact claim stays malformed and Tier 2 does not
+  // repair it.
   const input = nestedComplex(); input.relation.relation = 'Head movement';
+  input.relation.anchors.target = 'clause';
   const result = dispatch(input);
   assert.equal(result.primaryClaim.tier, 3);
   assert(!result.facets.some(facet => facet.recipe.id === 'movement.path'));
+  // The C head the complex adjoins to is that landing's host, not a second landing.
+  input.relation.anchors.target = 'host';
+  assert.equal(dispatch(input).primaryClaim.tier, 1);
 });
 
 test('generic Tier 1 landing-head context can name the exact complex without loosening explicit host roles', () => {
