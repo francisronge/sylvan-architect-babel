@@ -55,7 +55,7 @@ const normalizeReplayCategoryKeyForOrdering = (value?: string | null): string =>
   return raw.toUpperCase();
 };
 
-const getDerivationalChildRankForOrdering = (parent: HierNode, child: HierNode, childIndex: number): number => {
+export const getDerivationalChildRankForOrdering = (parent: HierNode, child: HierNode, childIndex: number): number => {
   const parentLabel = String(parent.data?.label || '').trim();
   const childLabel = String(child.data?.label || '').trim();
   const parentKey = normalizeReplayCategoryKeyForOrdering(parent.data?.label);
@@ -146,7 +146,7 @@ const getDerivationalChildRankForOrdering = (parent: HierNode, child: HierNode, 
   return childIndex;
 };
 
-const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>): HierNode[] => {
+export const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>): HierNode[] => {
   const sequence: HierNode[] = [];
   const visit = (node: HierNode) => {
     const syntheticWorkspaceRoot = isSyntheticWorkspaceRootNode(node);

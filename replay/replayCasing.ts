@@ -52,7 +52,53 @@ export const authoredDeterminerHasNominalComplement = (forest: readonly SyntaxNo
   return result;
 };
 
-export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sentenceInitialSurface: string): PlaybackStep[] => {
+/** Optional context for frames that show only built syntax: whether a step shows separate
+ * workspaces (by default, whether its canvas has several roots), and the authored parent and
+ * grandparent of a word whose parent is not in the canvas yet. */
+export interface ReplayCasingContext {
+  detached: (step: PlaybackStep) => boolean;
+  authoredParents: (step: PlaybackStep, leaf: SyntaxNode) => { parent: SyntaxNode | null; grandparent: SyntaxNode | null } | undefined;
+  /** A word's position in its stage's authored order, which decides which shown word comes first. */
+  authoredOrder: (step: PlaybackStep, leaf: SyntaxNode) => number;
+}
+
+/**
+ * The casing context of frames that show only built syntax (the construction kernel's). Main
+ * reads these decisions from a canvas holding the stage's whole layout topology (before the
+ * stage's movement, its pre-movement forest; its future layout scaffold when one exists).
+ * `topologyOf(step)` is that forest for a step.
+ */
+export const stageCasingContext = (topologyOf: (step: PlaybackStep) => readonly SyntaxNode[]): ReplayCasingContext => {
+  const indexes = new WeakMap<readonly SyntaxNode[], Map<string, { node: SyntaxNode; parent: SyntaxNode | null; order: number }>>();
+  const indexOf = (step: PlaybackStep) => {
+    const forest = topologyOf(step);
+    if (!indexes.has(forest)) {
+      const index = new Map<string, { node: SyntaxNode; parent: SyntaxNode | null; order: number }>();
+      const visit = (node: SyntaxNode, parent: SyntaxNode | null) => {
+        const id = String(node.replayOrigin?.authoredId ?? node.id);
+        if (!index.has(id)) index.set(id, { node, parent, order: index.size });
+        node.children?.forEach(child => visit(child, node));
+      };
+      forest.forEach(root => visit(root, null));
+      indexes.set(forest, index);
+    }
+    return indexes.get(forest)!;
+  };
+  const authoredId = (leaf: SyntaxNode) => String(leaf.replayOrigin?.kind === 'lexical' ? leaf.replayOrigin.authoredId
+    : leaf.replayOrigin?.kind === 'word' ? leaf.replayOrigin.ownerId : leaf.id);
+  return {
+    detached: step => topologyOf(step).length > 1,
+    authoredParents: (step, leaf) => {
+      const kind = leaf.replayOrigin?.kind;
+      const owner = kind === 'lexical' || kind === 'word' ? indexOf(step).get(String(leaf.replayOrigin!.ownerId)) : undefined;
+      return owner ? { parent: owner.node, grandparent: owner.parent } : undefined;
+    },
+    authoredOrder: (step, leaf) => indexOf(step).get(authoredId(leaf))?.order ?? Number.MAX_SAFE_INTEGER
+  };
+};
+
+export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sentenceInitialSurface: string,
+  context?: ReplayCasingContext): PlaybackStep[] => {
   const initialKey = normalizeToken(sentenceInitialSurface);
   if (!initialKey)
     return steps;
@@ -68,7 +114,7 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
       return step;
     // Separate workspaces keep the authored form of their first word, but a
     // word preceded by visible pronounced material is never sentence-initial.
-    const detachedForest = clonedCanvas.replayOrigin?.kind === 'workspace';
+    const detachedForest = context ? context.detached(step) : clonedCanvas.replayOrigin?.kind === 'workspace';
     let changed = false;
     // Keep first-preorder lookup semantics, including aliases, while collecting
     // parent and inherited flags once instead of searching a path for every leaf.
@@ -112,6 +158,7 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
         leaf: SyntaxNode;
         silent: boolean;
       } => Boolean(entry));
+    if (context) currentLeaves.sort((left, right) => context.authoredOrder(step, left.leaf) - context.authoredOrder(step, right.leaf));
     const firstPronouncedLeafId = String(currentLeaves.find((entry) => !entry.silent)?.leaf.id || '');
     const casingByLeafId = new Map<string, string>();
     currentLeaves.forEach(({ leaf }) => {
@@ -119,7 +166,13 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
       if (normalizeToken(surface) !== initialKey)
         return;
       const leafId = String(leaf.id || '');
-      const parent = exactNodes.get(leafId)?.parent;
+      // A kernel frame may not show a word's parent or grandparent yet; the context gives the authored ones.
+      const shown = (node: SyntaxNode | null | undefined) => node && node.replayOrigin?.kind !== 'workspace' ? node : null;
+      const canvasParent = exactNodes.get(leafId)?.parent;
+      const authored = context ? context.authoredParents(step, leaf) : undefined;
+      const parent = context ? shown(canvasParent) ?? authored?.parent ?? null : canvasParent;
+      const grandparent = context ? shown(exactNodes.get(String(parent?.id || ''))?.parent) ?? authored?.grandparent ?? null
+        : exactNodes.get(String(parent?.id || ''))?.parent;
       if (!isSentenceInitialCaseAdjustableParent(parent?.label || leaf.label))
         return;
       const authoredSurface = leaf.replayOrigin?.kind === 'word'
@@ -139,7 +192,7 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
           surface,
           sentenceInitialSurface,
           parentLabel: parent?.label || leaf.label,
-          hasNominalComplement: hasDeterminerNominalComplement(parent, exactNodes.get(String(parent?.id || ''))?.parent)
+          hasNominalComplement: hasDeterminerNominalComplement(parent, grandparent)
         });
       casingByLeafId.set(leafId, nextSurface);
       if (leaf.word && leaf.word !== nextSurface) {
@@ -245,10 +298,11 @@ export const maybeLowercaseSentenceInitialFunctionSurface = ({
 export const applyPreFrontingSentenceInitialCasing = (
   steps: PlaybackStep[],
   sentence: string,
-  inputTokens?: string[]
+  inputTokens?: string[],
+  context?: ReplayCasingContext
 ): PlaybackStep[] => {
   const firstSentenceToken = String(resolveSavedInputTokens(sentence, inputTokens)[0] || '').trim();
   return firstSentenceToken
-    ? normalizeReplaySentenceInitialCasing(steps, firstSentenceToken)
+    ? normalizeReplaySentenceInitialCasing(steps, firstSentenceToken, context)
     : steps;
 };

@@ -62,7 +62,7 @@ export const buildDerivationCanvasData = (forest: SyntaxNode[], identity = creat
   };
 };
 
-const normalizeReplayStableIdPart = (value?: string | number | null): string => String(value ?? '')
+export const normalizeReplayStableIdPart = (value?: string | number | null): string => String(value ?? '')
   .trim()
   .toLowerCase()
   .replace(/[^a-z0-9]+/g, '_')

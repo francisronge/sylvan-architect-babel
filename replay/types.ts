@@ -36,6 +36,9 @@ export interface PlaybackStep {
    * reveal and focus plan items from this exact identity.
    */
   replayRelationIdentity?: { stageIndex: number; relationIndex: number };
+  /** Authored relations of the same stage that are true duplicates of this moment's relation
+   * (the same moved phrase, source and landing) and play at this moment too; see `sharedMomentOf`. */
+  replaySharedRelationIdentities?: Array<{ stageIndex: number; relationIndex: number }>;
   /** Exact compiler-owned neutral rewrite witnesses; these do not establish a movement chain. */
   replayTreeTransition?: {
     relationKey: string;
@@ -195,6 +198,9 @@ export interface DerivationReplayPlanStep {
   values?: Record<string, string | string[]>;
   relationContractFailure?: DerivationStageRelation['relationContractFailure'];
   authoredRelationIndex?: number;
+  /** Authored index of the earlier relation of the stage whose proved movement this claim repeats
+   * exactly (moved phrase, source and landing); the two share one Replay moment. */
+  sharedMomentOf?: number;
   resolvedAnchors?: ReplayResolvedRelationAnchor[];
   /** Authored anchors whose exact id is absent from this stage's workspace; reported, never repaired. */
   unresolvedAnchors?: ReplayUnresolvedRelationAnchor[];
