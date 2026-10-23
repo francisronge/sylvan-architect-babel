@@ -1,5 +1,6 @@
 import type { DerivationStageRelation, SyntaxNode } from '../../types.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
+import { type BareProjections, readBareProjections } from '../projectionStructure.ts';
 import { isMovementIdentity, movementIdentityKind } from './movementIdentities.ts';
 import {
   containsOccurrence as contains,
@@ -147,6 +148,26 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
 type MovementOccurrences = ReturnType<typeof indexMovementOccurrences>;
 export type MovementWorkspaces = { current: MovementOccurrences; prior: MovementOccurrences };
 
+const bareReaders = new WeakMap<MovementOccurrences, BareProjections | null>();
+const bareProjectionsOf = (occurrences: MovementOccurrences): BareProjections | undefined => {
+  if (!bareReaders.has(occurrences)) bareReaders.set(occurrences, readBareProjections(
+    [...occurrences.nodes.values()].filter(node => !occurrences.parents.has(node.id))) ?? null);
+  return bareReaders.get(occurrences) ?? undefined;
+};
+/** Bare labels (T for TP, T′ and T) leave the landing's level to structure.
+ * A landing beside a branching projection of its parent's head, a specifier,
+ * moved as a phrase; any other landing is left to the head evidence below.
+ * X-bar notation states the level instead, so this reads nothing there. */
+// A terminal spelling only its word, as X-bar writes under a head ("did").
+const isWordTerminal = (node: SyntaxNode): boolean => !node.children?.length
+  && Boolean(node.word?.trim()) && node.word!.trim() === String(node.label ?? '').trim();
+const isBareSpecifier = (target: SyntaxNode, workspaces?: MovementWorkspaces): boolean => {
+  const bare = workspaces && bareProjectionsOf(workspaces.current), parent = bare?.parent(target);
+  if (!bare || !parent || workspaces!.current.nodes.get(target.id) !== target) return false;
+  const sisters = (parent.children ?? []).filter(child => child !== target);
+  return bare.maximal(target) && sisters.length === 1 && bare.projects(sisters[0], parent) && !bare.minimal(sisters[0]);
+};
+
 const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: SyntaxNode,
   workspaces?: MovementWorkspaces): boolean => {
   const targetCategory = readCategoryLabel(target.label), parentCategory = readCategoryLabel(parent.label);
@@ -157,9 +178,13 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: Syntax
   // Bare labels do not distinguish a projecting node from its lexical head.
   // A new matching parent is a head projection only when its other child is
   // the preceding complement, unchanged except for the proved lower occurrence.
+  // The head carries its word itself or, in a forest written wholly in bare
+  // labels, over a single terminal ("C" over "did").
+  const preterminals = Boolean(workspaces && bareProjectionsOf(workspaces.current) && bareProjectionsOf(workspaces.prior));
+  const lexical = (node: SyntaxNode) => !node.children?.length ? Boolean(node.word?.trim())
+    : preterminals && node.children.length === 1 && isWordTerminal(node.children[0]);
   if (!workspaces || !before || parentCategory.compound || sisters.length !== 1
-    || target.children?.length || !target.word?.trim()
-    || before.children?.length || !before.word?.trim()
+    || !lexical(target) || !lexical(before)
     || readCategoryLabel(before.label)?.kind !== 'head') return false;
   const { current, prior } = workspaces, complement = sisters[0];
   if (current.duplicates.has(parent.id) || current.duplicates.has(complement.id)
@@ -172,8 +197,14 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: Syntax
   collect(complement);
   const pair = sourceOccurrencePair(current, prior, before.id, [target.id, ...complementIds]);
   if (!pair || pair.landing.id !== target.id || !contains(complement, pair.source.id)) return false;
+  // A constituent that left the complement in the same stage, with its lineage
+  // now pronounced outside it, leaves its own lower occurrence in its slot.
+  const movedOut = (node: SyntaxNode, old: SyntaxNode) => Boolean(old.lineageId) && node.lineageId === old.lineageId
+    && !contains(node, pair.source.id)
+    && [...current.nodes.values()].some(other => other.lineageId === old.lineageId && !contains(complement, other.id));
   const retained = (node: SyntaxNode, old: SyntaxNode): boolean => {
     if (node.id === pair.source.id && old.id === before.id) return true;
+    if (movedOut(node, old)) return true;
     if (current.duplicates.has(node.id) || prior.duplicates.has(old.id)) return false;
     const { children = [], ...fields } = node, { children: oldChildren = [], ...oldFields } = old;
     return sameAuthoredValue(fields, oldFields) && children.length === oldChildren.length
@@ -227,6 +258,7 @@ export const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: r
     || Boolean(headContext && priorSource.node?.children?.length && sharesHeadCategory(priorSource.node, target)
       && isHeadAssembly(priorSource.node) && isHeadAssembly(target))
     || HEAD_NOTATION.test(target.label) || projectedSource;
+  if (parent && isBareSpecifier(target, workspaces)) return 'phrasal';
   if (headUnit && parent && (isHeadComplex(parent, target.id, previous)
     || structuralHost && adjoinsHostInPlace(parent, target.id, workspaces)
     || isProjectedHead(parent, target, priorSource.node, workspaces))) return 'head';

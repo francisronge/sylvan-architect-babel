@@ -35,7 +35,7 @@ test('each hop starts at the new trace in the moved operator\'s preceding slot, 
     assert.deepEqual(tough[moment(tough, stageIndex, relationIndex)].movementDiagnostics ?? [], []);
 });
 
-test('a second claim of the same hop shares its arrow and keeps the earlier landing transfer at the hop', () => {
+test('a second claim of the same hop draws no second arrow and keeps the earlier landing transfer at the hop', () => {
   const record = fixture.cases.find(c => c.key === 'object-wh-shared-hop');
   const original = structuredClone(record.derivationStages), plan = compileRelationRenderPlan(structuredClone(record.derivationStages));
   const nodes = stage => {
@@ -47,7 +47,10 @@ test('a second claim of the same hop shares its arrow and keeps the earlier land
   assert.deepEqual(arrowsAt(3).map(item => `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`), ['1:1', '3:0']);
   const shared = arrowsAt(3).find(item => item.relationRef.stageIndex === 3);
   assert.deepEqual([shared.sourceNodeId, shared.targetNodeId], ['npEdgeTrace', 'npWhat']);
-  assert.ok(shared.coalescedRefs?.some(ref => ref.stageIndex === 3 && ref.relationIndex === 1), 'the restating claim shares the hop\'s arrow');
+  // Within its stage the hop's arrow is the earlier claim's alone (Francis, 23 Oct).
+  assert.ok(!shared.coalescedRefs?.some(ref => ref.stageIndex === 3 && ref.relationIndex === 1), 'the restating claim draws no arrow of its own');
+  assert.ok(plan.frames[3].items.some(item => item.relationRef.stageIndex === 3 && item.relationRef.relationIndex === 1),
+    'the restating claim keeps its own marks');
   for (const stage of [3, 4, 5]) {
     const earlier = arrowsAt(stage).find(item => item.relationRef.stageIndex === 1);
     const at = played => resolveDisplayedTrajectoryAttachments(earlier, id => nodes(stage).get(id), { stageIndex: 3, playedRelationIndices: played });

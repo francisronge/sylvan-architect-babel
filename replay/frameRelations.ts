@@ -29,6 +29,7 @@ import {
 } from './relations/renderFamilies.ts';
 import {
   dispatchRelationClaims,
+  movementKey,
   recoveredClaimMovements
 } from './relations/tier2RelationDispatch.ts';
 import { recoveredCovertMovement } from './relations/tier2Transitions.ts';
@@ -240,12 +241,14 @@ export const getFrameRelations = (
       const registeredEntry = findRelationRegistryEntry(productionRelationRegistry, String(step.relation || ''));
       const facet = dispatch.facets.find(f => f.recipe.id === 'movement.path' || f.recipe.id === 'scope.movement');
       const covert = facet?.recipe.id === 'scope.movement';
-      const groupedMovements = recoveredClaimMovements(dispatch);
+      // A restated movement stays in its claim's group, drawn by the earlier claim alone.
+      const groupedMovements = [...new Map([...recoveredClaimMovements(dispatch), ...dispatch.restatedMovements ?? []]
+        .map(movement => [movementKey(movement), movement])).values()];
       if (!registeredEntry && groupedMovements.length > 1) {
         const movements = groupedMovements.map(movement => {
           const owner = dispatch.facets.find(item => item.recipe.id === 'movement.path'
             && item.evidence?.movement === movement);
-          const key = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
+          const key = movementKey(movement);
           const transition = !ownedMovements.has(key)
             && !isCarriedHeadMemberTransition(movement, carriedBy(), previousForest, currentForest)
             && Boolean(owner?.evaluation.earnedTransitions.includes('movement'));
@@ -283,8 +286,8 @@ export const getFrameRelations = (
       // Fallback may reveal the authored landing without rescuing a Tier 1 recipe.
       // Specialized drawing kinds still prove either a head or a phrasal transition.
       const registeredKind = registeredTrajectoryDisplayKind(step.relation);
-      const movementKey = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
-      const transition = !ownedMovements.has(movementKey)
+      const key = movementKey(movement);
+      const transition = !ownedMovements.has(key)
         && !isCarriedHeadMemberTransition(movement, carriedBy(), previousForest, currentForest)
         && (facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition);
       // A kind conflict refuses the movement. When no other claim applies its
@@ -299,13 +302,14 @@ export const getFrameRelations = (
       const primaryMovement = dispatch.primaryClaim?.tier === 1 && registeredKind === movement.trajectoryKind;
       if (dispatch.primaryClaim?.tier === 1 && !primaryMovement)
         return step;
-      const drawingDiagnostics = !facet && !primaryMovement ? [
+      // A restatement of an arrow an earlier claim of the stage draws is not a refused drawing.
+      const drawingDiagnostics = !facet && !primaryMovement && !dispatch.restatedMovements?.some(restated => movementKey(restated) === key) ? [
         `Stage ${input.stageIndex + 1}, relation ${relationIndex + 1} (${step.relation}): movement endpoints ${movement.sourceNodeId} -> ${movement.targetNodeId} are identifiable, but the drawing was not licensed: ${dispatch.primaryClaim && 'reason' in dispatch.primaryClaim ? dispatch.primaryClaim.reason : 'no-movement-facet'}. The authored analysis is unchanged.`,
         ...(dispatch.tier1Dispatch.signatureIssues || []).map(issue => `Tier 1 signature: ${JSON.stringify(issue)}`)
       ] : [];
       // Later claims may inspect the same dependency; its structural change occurs once.
       if (transition) {
-        ownedMovements.add(movementKey);
+        ownedMovements.add(key);
         earlierMovements.push(movement);
       }
       return {
