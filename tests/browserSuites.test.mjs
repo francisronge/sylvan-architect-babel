@@ -11,7 +11,7 @@ import { BROWSER_CI_SHARDS, BROWSER_SPECS, checkBrowserShards, checkShardReceipt
 test('browser ownership keeps the existing fast gate and complete coverage distinct', () => {
   const actual = BROWSER_SPECS.map(spec => spec.file);
   assert.deepEqual(selectBrowserSpecs(actual, 'renderer').map(spec => spec.file), [
-    'movementEndpointAttachment.test.mjs', 'trajectoryLabelClearance.test.mjs',
+    'movementEndpointAttachment.test.mjs', 'trajectoryLabelClearance.test.mjs', 'connectorTextMask.test.mjs',
     'featureComposition.test.mjs', 'plaqueClearance.test.mjs', 'operatorBindingComposition.test.mjs'
   ]);
   assert.deepEqual(selectBrowserSpecs(actual, 'compatibility').map(spec => spec.file), ['reviewCompatibility.test.mjs']);
@@ -84,7 +84,7 @@ test('the receipt check reads the latest attempt of each shard and fails on a mi
     await put('browser-receipt-application-2', passingReceipt('application'));
     const result = run();
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /2 shards ran all 15 required browser specs, each exactly once/);
+    assert.match(result.stdout, /2 shards ran all 16 required browser specs, each exactly once/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

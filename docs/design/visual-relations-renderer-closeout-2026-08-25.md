@@ -487,7 +487,9 @@ large plaques retain their below-subtree placement. A carried plaque keeps its
 offset unless new stage geometry occupies it. Neutral lower connectors retain straight stems and separate lanes. Plaques
 yield to their reserved stems; the lower lanes clear plaque bottoms. They also drop below tree text of
 the stage that their turns or runs would cross, to the nearest gap within one tree row; where unrelated text
-leaves no such gap, they keep their local floor rather than descend beneath it. Role text
+leaves no such gap, they keep their local floor rather than descend beneath it. Visible tree text is
+painted in front of every neutral connector: a mask hides the connector only under the letters and their dark
+outline, as movement curves pass behind labels. Role text
 yields to the connector routes. These allocations precede relation reveal, so revealing a plaque
 does not move existing syntax or annotations.
 
