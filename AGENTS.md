@@ -23,7 +23,7 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 ## Commands
 
 - `npm run dev` — start the Vite development runtime.
-- `npm start` — start the Express runtime and provider routes.
+- `npm start` — start the Express runtime and provider routes. Outside `NODE_ENV=production` it refuses to serve a `dist/` that is not the build of the current checkout; run `npm run build` first.
 - `npm run build` — bundle the frontend; this does not typecheck and is not a completion gate.
 - `npm run verify:all` — run typecheck plus the complete offline verification path. Use this as the default completion gate.
 - `npm run lint` — check React's hook rules (`rules-of-hooks` and `exhaustive-deps`) in the TypeScript sources. It is not yet part of `verify:all`.
