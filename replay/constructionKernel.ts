@@ -1207,7 +1207,12 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       next.set(unit.id, { content: 'C', kids: 'C', slots: new Map(), word: true });
       emitMicro(unit, next, false); frameState = next; emittedUnits.add(unit); return [];
     }
-    const closed = close(edit, frameState, owners, [key('w', unit.id)], {});
+    // A node that replaces a kept parent's daughter swaps into that slot when it is built.
+    const parent = cur.get(unit.id)!.parent, slot = parent ? cur.get(parent)!.kids.indexOf(unit.id) : -1;
+    const swaps = parent && frameState.has(parent) && edit.diffs.get(parent)?.slots?.includes(slot) && !owners.has(key('s', parent, slot))
+      ? [key('s', parent, slot)] : [];
+    let closed = close(edit, frameState, owners, [key('w', unit.id), ...swaps], {});
+    if (typeof closed === 'string' && swaps.length) closed = close(edit, frameState, owners, [key('w', unit.id)], {});
     const next = typeof closed === 'string' ? null : edit.apply(frameState, closed.keys);
     if (!next) return [typeof closed === 'string' ? closed : unit.id];
     emitMicro(unit, next, false); frameState = next; emittedUnits.add(unit);
