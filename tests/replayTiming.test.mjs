@@ -187,27 +187,40 @@ test('owned removal or relocation retires exhausted prior containers at the rela
   }
 });
 
-test('ancestor cleanup preserves authored empty parents and unowned siblings or empty items', () => {
+test('ancestor cleanup preserves authored empty parents and empty items, and never a partial parent', () => {
+  // Frames show only authored daughter counts: a removed parent cannot stand with part of its daughters, so
+  // when the moment takes its inputs it leaves with the unowned sibling it held.
   const inputs = [abstractItem('stem'), abstractItem('tense')];
   const output = realizedItem('output');
   const cases = [
-    { previous: [abstractItem('old', inputs)], current: [abstractItem('old'), output], kept: ['old'] },
-    { previous: [abstractItem('old', [...inputs, abstractItem('sibling')])], current: [output], kept: ['old', 'sibling'] },
-    { previous: [abstractItem('old', inputs), abstractItem('empty')], current: [output], kept: ['empty'] },
-    { previous: [abstractItem('old', inputs)], current: [abstractItem('old'), abstractItem('old'), output], kept: ['old'] }
+    { previous: [abstractItem('old', inputs)], current: [abstractItem('old'), output], kept: ['old'], gone: [] },
+    { previous: [abstractItem('old', [...inputs, abstractItem('sibling')])], current: [output], kept: [], gone: ['old', 'sibling'] },
+    { previous: [abstractItem('old', inputs), abstractItem('empty')], current: [output], kept: ['empty'], gone: ['old'] }
   ];
   for (const item of cases) {
     const record = transitionRecord(item.previous, item.current, [transformation('output', ['stem', 'tense'])]);
     const original = structuredClone(record);
-    const moment = moments(play(record), 1)[0];
+    const steps = play(record), moment = moments(steps, 1)[0], before = steps[steps.indexOf(moment) - 1];
+    for (const id of ['old', 'stem', 'tense']) assert.ok(visible(before, id), `${id} stays until the moment`);
     for (const id of item.kept) assert.ok(visible(moment, id), id);
-    for (const id of ['stem', 'tense']) assert.ok(!visible(moment, id), id);
+    for (const id of ['stem', 'tense', ...item.gone]) assert.ok(!visible(moment, id), id);
     assert.ok(visible(moment, 'output'));
+    const old = nodes(moment.replayCanvasData).find(node => node.id === 'old');
+    if (visible(moment, 'old')) assert.deepEqual((old.children ?? []).map(child => child.id), [], 'old keeps its authored (empty) daughters');
     assert.deepEqual(record, original);
   }
+  // An id used twice in one stage (which the parser rejects) leaves no stage edit to derive: the stage
+  // shows only its completed state.
+  const repeated = transitionRecord([abstractItem('old', inputs)], [abstractItem('old'), abstractItem('old'), output], [transformation('output', ['stem', 'tense'])]);
+  const stage = play(repeated).filter(step => step.replayFrameIndex === 1);
+  assert.deepEqual(stage.map(step => step.replayKind), ['macro']);
+  for (const id of ['old', 'output']) assert.ok(visible(stage[0], id), id);
+  for (const id of ['stem', 'tense']) assert.ok(!visible(stage[0], id), id);
 });
 
-test('overlapping claims retire a removed parent only when its last child has changed', () => {
+// Frames show only authored daughter counts, so the removed parent leaves at the first claim; the input the
+// second claim replaces stays until that replacement swaps in.
+test('overlapping claims retire a removed parent at the first claim and keep the later input until its own claim', () => {
   const record = transitionRecord([abstractItem('old', [abstractItem('stem'), abstractItem('tense')])],
     [realizedItem('first'), realizedItem('second')], [
       transformation('first', 'stem'),
@@ -215,8 +228,8 @@ test('overlapping claims retire a removed parent only when its last child has ch
     ]);
   const original = structuredClone(record);
   const [first, second] = moments(play(record), 1);
-  for (const id of ['old', 'tense', 'first']) assert.ok(visible(first, id), id);
-  for (const id of ['stem', 'second']) assert.ok(!visible(first, id), id);
+  for (const id of ['tense', 'first']) assert.ok(visible(first, id), id);
+  for (const id of ['old', 'stem', 'second']) assert.ok(!visible(first, id), id);
   for (const id of ['old', 'stem', 'tense']) assert.ok(!visible(second, id), id);
   for (const id of ['first', 'second']) assert.ok(visible(second, id), id);
   assert.deepEqual([first, second].map(step => step.replayRelationIdentity.relationIndex), [0, 1]);

@@ -254,17 +254,21 @@ test('a preceding root keeps the attachment the claim\'s moment gives it beneath
   assertStageRecordAddsNothing(steps, 1);
 });
 
-test('material a claim\'s new parent gains outside the claim attaches at that parent\'s own merge', () => {
+// Frames show only authored daughter counts: the claim's new parent arrives with all its daughters, so material
+// it gains outside the claim attaches at that moment, standing alone until then.
+test('material a claim\'s new parent gains outside the claim attaches with that parent at the claim\'s moment', () => {
   const old = { ...phrase('old', 'book', 'book'), lineageId: 'book' }, copy = { ...phrase('new', 'book', 'book'), lineageId: 'book' };
   const extra = leafNode('extra', 'Adv', { word: 'again' });
   const { prepared } = compile(twoStages([old, extra], [branch('root', 'XP', structuredClone(old), copy, structuredClone(extra))],
     [{ relation: 'shared occurrence', anchors: { first: 'old', second: 'new' } }]));
   const steps = prepared.playbackSteps, at = moment(steps, 1, 0), structure = frameStructure(steps[at]);
-  assert.deepEqual(['old', 'new', 'extra'].map(id => structure.parent.get(id)), ['root', 'root', null]);
-  const merge = steps.findIndex((step, index) => index > at && step.replayKind === 'micro' && step.targetNodeId === 'root');
-  assert.ok(merge > at, 'the parent keeps its own merge for the remaining material');
-  assert.equal(frameStructure(steps[merge - 1]).parent.get('extra'), null);
-  assert.equal(frameStructure(steps[merge]).parent.get('extra'), 'root');
+  assert.deepEqual(['old', 'new', 'extra'].map(id => structure.parent.get(id)), ['root', 'root', 'root']);
+  steps.slice(0, at).filter(step => step.replayFrameIndex === 1).forEach(step => {
+    assert.ok(!frameStructure(step).displayed.has('root'), `root waits for the claim at ${step.operation}`);
+    assert.equal(frameStructure(step).parent.get('extra') ?? null, null);
+  });
+  assert.ok(!steps.some(step => step.replayFrameIndex === 1 && step.replayKind === 'micro' && step.targetNodeId === 'root'),
+    'the claim\'s parent is not built a second time');
   assertStageRecordAddsNothing(steps, 1);
 });
 
@@ -286,7 +290,9 @@ test('a copied phrase keeps its earlier occurrence\'s words until a later claim 
   assertStageRecordAddsNothing(steps, 1);
 });
 
-test('material a surviving parent gains while its old container dissolves attaches before the Stage Record', () => {
+// Frames show only authored daughter counts: the claim reshapes the surviving parent, so the parent's new
+// daughters, including material outside the claim, arrive with its current form at the claim's moment.
+test('material a surviving parent gains while its old container dissolves attaches at the claim\'s moment', () => {
   const old = { ...phrase('old', 'book', 'book'), lineageId: 'book' }, extra = leafNode('extra', 'Adv', { word: 'again' });
   const { prepared } = compile(twoStages([branch('base', 'XP', branch('inner', 'YP', old)), extra],
     [branch('base', 'XP', branch('host', 'ZP', { ...phrase('new', 'book', 'book'), lineageId: 'book' }),
@@ -294,8 +300,11 @@ test('material a surviving parent gains while its old container dissolves attach
     [{ relation: 'shared occurrence', anchors: { first: 'old', second: 'new' } }]));
   const steps = prepared.playbackSteps, at = moment(steps, 1, 0);
   const attached = steps.findIndex(step => step.replayFrameIndex === 1 && frameStructure(step).parent.get('extra') === 'base');
-  assert.ok(attached >= 0 && steps[attached].replayKind === 'micro', `extra attaches at ${describeStep(steps, attached)}`);
+  assert.equal(attached, at, `extra attaches at ${describeStep(steps, attached)}`);
+  steps.slice(0, at).filter(step => step.replayFrameIndex === 1).forEach(step =>
+    assert.equal(frameStructure(step).children.get('inner')?.join(), 'old', `the old container stays whole at ${step.operation}`));
   assert.equal(frameStructure(steps[at]).parent.get('new'), 'host');
+  assert.ok(!frameStructure(steps[at]).displayed.has('inner'), 'the old container dissolves at the claim');
   assertStageRecordAddsNothing(steps, 1);
 });
 

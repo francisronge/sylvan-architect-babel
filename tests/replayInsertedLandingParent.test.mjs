@@ -78,11 +78,19 @@ test('an inserted landing parent takes over several consecutive retained childre
   assert.deepEqual(childrenAt(moment, 'wrapper'), ['one', 'two', 'landing']);
 });
 
-test('an inserted landing parent does not pull in an unrelated detached workspace', () => {
-  const moment = relationMoment(synthetic({ unrelated: true }));
+// Frames show only authored daughter counts: the landing parent arrives with all its daughters, so a detached
+// workspace it authors as a daughter attaches at that moment, and stays a separate workspace until then.
+test('an inserted landing parent attaches a detached workspace it holds at its own moment, not before', () => {
+  const p = synthetic({ unrelated: true }), moment = relationMoment(p), before = p.playbackSteps[p.playbackSteps.indexOf(moment) - 1];
+  assert.deepEqual(childrenAt(before, 'host'), ['one', 'head']);
+  assert.ok(!frameStructure(before).displayed.has('wrapper'));
+  assert.equal(frameStructure(before).parent.get('detached') ?? null, null, 'the detached workspace stands alone before the moment');
   assert.deepEqual(childrenAt(moment, 'host'), ['wrapper', 'head']);
-  assert.deepEqual(childrenAt(moment, 'wrapper'), ['one', 'landing']);
-  assert.ok(find(moment.replayCanvasData, 'detached'));
+  assert.deepEqual(childrenAt(moment, 'wrapper'), ['one', 'detached', 'landing']);
+  assert.equal(p.playbackSteps.filter(step => step.replayFrameIndex === 1).filter(step => {
+    const ids = []; const visit = n => { ids.push(n.id); n.children?.forEach(visit); }; visit(step.replayCanvasData);
+    return ids.filter(id => id === 'detached').length !== 1;
+  }).length, 0, 'the detached workspace is painted exactly once in every frame');
 });
 
 // The new parent's moment attaches every sibling in the slot it takes over, so
@@ -106,7 +114,7 @@ test('a sibling whose word a later relation keeps attaches at the new parent\'s 
   assert.equal(find(second.replayCanvasData, 'two').word, 'two');
 });
 
-test('an inserted parent cannot silently reverse existing siblings as part of another output', () => {
+test('existing siblings an inserted parent reorders keep their order until that parent\'s moment', () => {
   const one = leaf('one'), two = leaf('two'), head = leaf('head');
   const source = node('source', [leaf('adv')]);
   const p = compile({ derivationStages: [
@@ -114,9 +122,14 @@ test('an inserted parent cannot silently reverse existing siblings as part of an
     stage([node('root', [{ id: 'trace', label: 'AdvP', silent: true },
       node('host', [node('wrapper', [two, one, node('landing', [leaf('adv')])]), head])])], [localChange])
   ] });
-  const moment = relationMoment(p);
-  assert.deepEqual(childrenAt(moment, 'wrapper'), ['landing']);
-  assert.deepEqual(childrenAt(moment, 'host'), ['wrapper', 'one', 'two', 'head']);
+  // Frames show only authored daughter counts: the existing siblings keep their order until the moment that
+  // introduces the new parent, which shows them in the order it authors.
+  const moment = relationMoment(p), before = p.playbackSteps[p.playbackSteps.indexOf(moment) - 1];
+  assert.deepEqual(childrenAt(before, 'host'), ['one', 'two', 'head']);
+  p.playbackSteps.filter(step => step.replayFrameIndex === 1 && p.playbackSteps.indexOf(step) < p.playbackSteps.indexOf(moment))
+    .forEach(step => assert.deepEqual(childrenAt(step, 'host'), ['one', 'two', 'head'], 'no step before the moment reorders the siblings'));
+  assert.deepEqual(childrenAt(moment, 'wrapper'), ['two', 'one', 'landing']);
+  assert.deepEqual(childrenAt(moment, 'host'), ['wrapper', 'head']);
 });
 
 test('an inserted parent does not reveal unrelated new syntax before its own step', () => {

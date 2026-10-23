@@ -141,17 +141,21 @@ test('an ordinary relation cannot erase the pending attachments of later constru
   assert.deepEqual(childrenAt(merge, 'phrase'), ['one', 'two']);
 });
 
-test('a wrapper can replace retained children before their parent gains a separate new child', () => {
+// A replaced node stays until its replacement swaps in, and frames show only authored daughter counts: the
+// retained parent keeps [one, two] until the wrapper takes them, and then shows both its authored daughters.
+test('a wrapper replacing retained children swaps in with the parent\'s other new child, never leaving a partial parent', () => {
   const one = leaf('one', 'one'), two = leaf('two', 'two'), three = leaf('three', 'three');
   const before = branch('phrase', [one, two]);
   const wrapper = branch('wrapper', [one, two], { label: 'X′' });
   const steps = replay([before, three], [{ ...before, children: [wrapper, three] }]);
-  const wrap = structuralTarget(steps, 'wrapper'), merge = structuralTarget(steps, 'phrase');
-  assert.ok(wrap && merge);
-  assert.ok(steps.indexOf(wrap) < steps.indexOf(merge));
-  assert.deepEqual(childrenAt(wrap, 'phrase'), ['wrapper']);
+  const wrap = structuralTarget(steps, 'wrapper');
+  assert.ok(wrap);
+  assert.equal(structuralTarget(steps, 'phrase'), undefined, 'the retained parent is not merged a second time');
+  steps.slice(0, steps.indexOf(wrap)).forEach(step => assert.deepEqual(childrenAt(step, 'phrase'), ['one', 'two']));
+  assert.deepEqual(childrenAt(wrap, 'phrase'), ['wrapper', 'three']);
   assert.deepEqual(childrenAt(wrap, 'wrapper'), ['one', 'two']);
-  assert.deepEqual(childrenAt(merge, 'phrase'), ['wrapper', 'three']);
+  for (const step of steps) assert.ok([['one', 'two'], ['wrapper', 'three']].some(kids => JSON.stringify(kids) === JSON.stringify(childrenAt(step, 'phrase'))),
+    `${step.operation} shows the retained parent with an authored daughter list`);
 });
 
 
