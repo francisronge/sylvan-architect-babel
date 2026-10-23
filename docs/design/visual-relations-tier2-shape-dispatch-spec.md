@@ -1033,6 +1033,15 @@ prior source must be resolved before this distinction. The same evidence owns dr
 The generic role `head` additionally needs unique source/landing root-lineage
 evidence before Tier 1 can treat it as the moved occurrence rather than its host.
 
+`operator` and `variable` also name the ends of an interpretive dependency. When
+they are a claim's only endpoint words, its name is no movement identity and it
+names no preceding participants, an operator that is new in this stage inside a
+new occurrence of another lineage's phrase, which already contained an
+occurrence of the operator's lineage before, was carried by that phrase's
+movement. The claim then proves no movement of its own: it keeps its binding
+drawing and draws no path from the variable, and the phrase's displacement
+belongs to the claim that names it (for pied-piping, "to whom" moving as one PP).
+
 ## Output-Piece Ownership Audit
 
 Node and lineage IDs are exact strings throughout normalization, inspection,

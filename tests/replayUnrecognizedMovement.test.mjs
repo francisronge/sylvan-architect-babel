@@ -67,11 +67,16 @@ test('a head complex whose claim lists contained heads appears at its moment, no
 test('a pied-piped phrase appears at its claim\'s moment at each edge', () => {
   const steps = play(2);
   assertIntroducedAt(steps, moment(steps, 3, 0), ['pp1', 'p1', 'wh1', 'vEdge']);
-  // The recognized operator-variable movement lands wh2 in pp2, whose other
-  // daughter is new too: it introduces the whole pied-piped PP and the CP it
-  // joins, and the neutral Internal Merge that names wh2 plays after it.
-  assertIntroducedAt(steps, moment(steps, 7, 1), ['pp2', 'p2', 'wh2', 'cpRel']);
-  assert.ok(moment(steps, 7, 1) < moment(steps, 7, 0));
+  // The relative Internal Merge moves pp1 to pp2: it introduces the whole
+  // pied-piped PP and the CP it joins. The operator-variable dependency that
+  // names the carried wh2 is no movement of its own and plays after it.
+  assertIntroducedAt(steps, moment(steps, 7, 0), ['pp2', 'p2', 'wh2', 'cpRel']);
+  assert.ok(moment(steps, 7, 0) < moment(steps, 7, 1));
+  const paths = replay(2).relationRenderPlan.frames[7].items.filter(item => item.kind === 'trajectory')
+    .map(item => `${item.relationRef.stageIndex}:${item.relationRef.relationIndex} ${item.sourceNodeId}->${item.targetNodeId}`);
+  assert.ok(paths.includes('3:0 pp0->pp1'), 'the phase-edge Internal Merge draws its PP path');
+  assert.ok(paths.includes('7:0 pp1->pp2'), 'the relative Internal Merge draws its PP path');
+  assert.ok(!paths.some(path => path.startsWith('7:1 ')), 'the operator-variable dependency draws no movement path');
   [3, 7].forEach(stage => assertStageRecordAddsNothing(steps, stage));
 });
 

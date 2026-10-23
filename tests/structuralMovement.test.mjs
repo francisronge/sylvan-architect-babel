@@ -148,20 +148,28 @@ test('structural movement is on by default; switched off, an unrecognized claim 
   });
 });
 
-test('saved relative pied-piping: a displacement holding a worded movement landing stays neutral', () => {
+test('saved relative pied-piping: the Internal Merge owns the PP, and a displacement holding a worded landing stays neutral', () => {
   // Stage 8 of "This is the man to whom I gave the book.": pp1 -> pp2 is the
-  // displacement, but wh2 inside pp2 is the landing of the recognized
-  // operator-variable movement. Reading pp1 -> pp2 would reveal wh2 before that
-  // movement's own moment, so the Internal Merge keeps today's neutral drawing.
+  // displacement. The operator-variable dependency names wh2, which the PP
+  // carried, and proves no movement of its own, so the relative Internal
+  // Merge owns pp1 -> pp2 from structure.
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/unrecognized-movement.json', import.meta.url))).cases[2];
   const original = structuredClone(record);
-  const plan = withSwitch(undefined, () => prepareReplay({ ...structuredClone(record), includePlayback: true })).relationRenderPlan;
-  const off = withSwitch('0', () => prepareReplay({ ...structuredClone(record), includePlayback: true })).relationRenderPlan;
-  const stage8 = items => items.frames[7].items.filter(item => item.relationRef?.stageIndex === 7);
-  assert.deepEqual(stage8(plan), stage8(off));
-  assert.ok(!stage8(plan).some(item => item.kind === 'trajectory' && item.relationRef.relationIndex === 0));
+  const prepare = input => withSwitch(undefined, () => prepareReplay({ ...structuredClone(input), includePlayback: true })).relationRenderPlan;
+  const paths = (plan, stageIndex) => plan.frames[stageIndex].items.filter(item => item.kind === 'trajectory'
+    && item.relationRef?.stageIndex === stageIndex).map(item => `${item.relationRef.relationIndex}:${item.sourceNodeId}->${item.targetNodeId}`);
+  const plan = prepare(record);
+  assert.deepEqual(paths(plan, 7), ['0:pp1->pp2']);
   // Stage 4's hop pp0 -> pp1 holds no worded landing and is read from structure.
-  assert.ok(plan.frames[3].items.some(item => item.kind === 'trajectory' && item.sourceNodeId === 'pp0' && item.targetNodeId === 'pp1'));
+  assert.deepEqual(paths(plan, 3), ['0:pp0->pp1']);
+  // When wording does recover a movement landing inside the displaced phrase,
+  // that movement keeps its own moment and the displacement stays neutral.
+  const worded = structuredClone(record);
+  worded.derivationStages[7].relations[1].anchors = { lowerCopy: 'wh0', higherCopy: 'wh2' };
+  const off = withSwitch('0', () => prepareReplay({ ...structuredClone(worded), includePlayback: true })).relationRenderPlan;
+  const stage8 = items => items.frames[7].items.filter(item => item.relationRef?.stageIndex === 7);
+  assert.deepEqual(paths(prepare(worded), 7), ['1:wh0->wh2']);
+  assert.deepEqual(stage8(prepare(worded)), stage8(off));
   assert.deepEqual(record, original);
 });
 

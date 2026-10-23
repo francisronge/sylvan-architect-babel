@@ -3080,7 +3080,7 @@
       ]
     },
     "replay-regressions/unrecognized-movement.json#/cases/2": {
-      "frames": "w7dvkGgW xLYLDxF6 VXP1_-6w WMJR8q9R piBsXyfC 4lrA1Mbh DcwZ7_50 b24iaQtF MGdlPHcV EpuZBMki Ozhb12VQ zemD7p3K 6yYLV37e WHg4_5tv zn_xUdZG 3Mcs3QRv 0T2UB4aJ VAAH6X_h ULLFJYbv jD3Gjo7X Eg6vLTEP 3Bgdf1eS 6z_6Y4sx uTZ0KZ82 KTpYBfvc b8LFyUTD 5Rh06pwd UrnGphd_ paR2zK5c Cj3FSotR M7QhztQb fkgSTMWU cGuBCQMe 2qZTJOmu DIN52_AL hFzmXRx9 z4zAlKfj 2-bAvLve 0fOBc2YG j9375zCW Rl17ExjW RWRgLGG4 FfXohHoU g3-uwAel moag8IlB yk4XQHqW 6AjKCEWh 8RUag3OC nPALfsWt taYs4dYy zzlyWUXa eBtJ4gu2 ViaDhTIo g1-GI1bs azfblELf NU3ISJbp 9tPJjBBK X0JjWvYQ 1kWV2A45 9Nb4O-2G YScl-4rT Vn0ZwfO_ cP8JwKhk dEq8tv6a 3GJRUCzo f3-05axH MNXxfE0Q OwH2EVsQ mh3FEwlp K7OkwKid 2I7UV2BB xTBMURTd 6Ney7jzp JHDrG-Cn",
+      "frames": "vEXOHkVF cEWc9y7W PaLZ8iNT 1XEsf2vl gVU2aO4Z RvMUXTHI SC0aMIdK jA4-xds8 _dvp8_9M Os7D0x_s uMQI-8IK ThnuVNJh D4ZUqmTg CGgLcvQB UQqxjuY4 AK4s1cts wAdR2X9t wsGtqYb- Q-4H58SH jtiQR9je I4nLpaV4 hPpLl0Vx 4o9nH5NJ uQLBCIDW nBbUQmgJ pTN3IsbZ vn09IqjP Em3o6Vbr X1-mGN4J w_CzgoQe SvhgYd-S uDMhORRJ HQXj4acO 1UAHzNh2 nPuZKdLK 123aDdQX TpqRd6Vn 1wR-bfW2 hQhZS9RL -CNx65bw PamS6ktR uGtsm4pJ IK-jGdCg WTum8ukR ZXSpC3AO ohRN5KOe xkCg2iyZ XoAjpyne OV8_61fL Dc3YLqmu ejQe89Ne AsNmhRoB 27yGHD3U CUAcmTdh 5eod-gdh 6U9u9VcE nvEJ-Xph SySNmtjK vrHi2iJo QMx1_f5i eZtoL5sF Iu7lr9eA D5BaKPfp ckpGjJGN 2MOSiJnC QG2xt5LI UrM5-uSd gL3NQwnK NKRXXKLo UG2KGAm1 Fwocaz_A n6CSOhNj SpVIDtOU 0O-DwrcL",
       "canopy": "OKsmavmw",
       "tiers": [
         "0:0 T2 directed-path tier2.feature-dependency feature.dependency",
@@ -3114,9 +3114,9 @@
         "5:0 T3 fallback",
         "6:0 T2 node-plaque feature-bundle.plaque plaque.structured",
         "6:0 T3 fallback",
+        "7:0 T2 trajectory tier2.movement-path movement.path",
         "7:0 T3 fallback",
         "7:1 T2 operator-variable-binding scope.operator-variable operator-binding",
-        "7:1 T2 trajectory tier2.movement-path movement.path",
         "7:1 T3 fallback",
         "8:0 T3 fallback",
         "8:1 T3 fallback",

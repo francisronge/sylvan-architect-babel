@@ -33,7 +33,6 @@ const x = (reason, record, rule, subtype, subject, frames, approval) => ({ reaso
   ...(approval && { approval }) });
 
 export const STEP_EXCEPTIONS = [
-  x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/2', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "7:0", '43'),
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/3', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:0", '30'),
   x(CONTEXT_NOT_AWAITED, 'movement/holdout-transitions.json#/1', 'mark-persistence', 'never-paints', "fallback 1:0", '36'),
   x(CONTEXT_NOT_AWAITED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 3:0", '38'),

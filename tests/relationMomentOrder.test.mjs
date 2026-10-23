@@ -121,24 +121,28 @@ test('Replay: relations needing each other\'s syntax keep authored order with th
   assert.deepEqual(record, original);
 });
 
-test('saved relative pied-piping: the movement introduces the phrase it pied-pipes, so the Internal Merge follows it', () => {
-  // "This is the man to whom I gave the book." Stage 8: the neutral relative
-  // Internal Merge names wh2, which the recognized operator-variable movement
-  // introduces. wh2 lands in pp2, whose other daughter p2 is also new, so pp2
-  // is the pied-piped phrase: the movement introduces it whole, with cpRel,
-  // and the Internal Merge plays after it with every anchor present.
+test('saved relative pied-piping: the relative Internal Merge moves the PP, and the operator-variable dependency follows it', () => {
+  // "This is the man to whom I gave the book." Stage 8: the relative Internal
+  // Merge moves pp1 from the vP edge to pp2. "to whom" moves together: pp2's
+  // daughters p2 and wh2 and the CP it joins appear whole at that movement's
+  // moment, with its arrow. The operator-variable dependency names wh2, which
+  // was carried inside the PP, and wh0 in the base position; it is a binding,
+  // not a second movement, so it draws no arrow from the base and plays after
+  // the movement that introduces its operator.
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/unrecognized-movement.json', import.meta.url))).cases[2];
   const original = structuredClone(record);
   const prepared = prepareReplay({ ...structuredClone(record), includePlayback: true }), steps = prepared.playbackSteps;
   assert.deepEqual(checkLandingAttached(prepared), []);
-  const [dependency, merge] = relationMoments(steps, 7);
-  assert.deepEqual([dependency, merge].map(step => step.replayRelationIdentity.relationIndex), [1, 0]);
-  const before = steps[steps.indexOf(dependency) - 1];
+  const [merge, dependency] = relationMoments(steps, 7);
+  assert.deepEqual([merge, dependency].map(step => step.replayRelationIdentity.relationIndex), [0, 1]);
+  const before = steps[steps.indexOf(merge) - 1];
   for (const id of ['pp2', 'p2', 'wh2', 'cpRel']) {
     assert.ok(!visible(before, id), `${id} is not introduced early`);
-    assert.ok(visible(dependency, id), `${id} appears with the landing`);
+    assert.ok(visible(merge, id), `${id} appears with the landing`);
   }
-  for (const id of ['pp2', 'cRel', 'wh2', 'pp1']) assert.ok(visible(merge, id), `the Internal Merge's ${id} is present at its moment`);
+  for (const id of ['wh2', 'wh0', 'cpRel', 'pp0']) assert.ok(visible(dependency, id), `the dependency's ${id} is present at its moment`);
+  const paths = prepared.relationRenderPlan.frames[7].items.filter(item => item.kind === 'trajectory' && item.relationRef.stageIndex === 7);
+  assert.deepEqual(paths.map(item => [item.relationRef.relationIndex, item.sourceNodeId, item.targetNodeId]), [[0, 'pp1', 'pp2']]);
   assert.deepEqual(timingConflicts(steps.filter(step => step.replayFrameIndex === 7)), []);
   assert.deepEqual(record, original);
 });
