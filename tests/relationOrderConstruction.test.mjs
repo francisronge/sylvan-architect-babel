@@ -39,27 +39,42 @@ const node = (id, label, children, extra = {}) => ({ id, label, ...extra, childr
 const stage = (workspaceForest, relations = []) => ({ statement: 'Authored state.', stageRecord: 'Authored state.', relations, workspaceForest });
 const parentOf = (tree, id, parent = null) => tree?.id === id ? parent?.id
   : (tree?.children || []).reduce((found, child) => found ?? parentOf(child, id, tree), undefined);
-const assertProjectionStaysVisible = (record, stage, projectionId, relationIndex, labels) => {
+const conflicts = replay => replay.playbackSteps.flatMap(step => step.movementDiagnostics ?? []).filter(message => message.includes('RELATION_TIMING_CONFLICT'));
+const children = (step, id) => {
+  const find = node => node?.id === id ? node : (node?.children || []).map(find).find(Boolean);
+  return (find(step.replayCanvasData)?.children || []).map(child => child.id);
+};
+/** No one-child shells (decision 1, approved 23 Oct): the projection a landing creates arrives at that movement's
+ * moment with all its daughters, never earlier as a unary projection, and a claim naming it plays after. */
+const assertProjectionArrivesWithMovement = (record, stage, projectionId, movementIndex, claimIndex, labels) => {
   const replay = prepare(record);
   assert.deepEqual(violations(replay, record), []);
-  const steps = stageSteps(replay, stage);
-  const projection = steps.findIndex(step => step.replayKind === 'micro' && step.operation === 'Project' && step.targetNodeId === projectionId);
-  const moment = relationMoment(steps, relationIndex);
-  assert.ok(projection >= 0 && projection < moment, `${projectionId} is projected before relation ${relationIndex}`);
-  steps.slice(projection, moment + 1).forEach(step => assert.ok(step.replayVisibleNodeIds.includes(projectionId),
-    `${projectionId} stays visible at ${step.replayKind} ${step.operation}`));
-  const shape = steps => steps.map(step => [step.replayKind, step.operation, step.targetNodeId, step.replayVisibleNodeIds.includes(projectionId)]);
-  assert.deepEqual(shape(stageSteps(prepare(renameTense(record, labels)), stage)), shape(steps));
+  assert.deepEqual(conflicts(replay), []);
+  const steps = stageSteps(replay, stage), moment = relationMoment(steps, movementIndex);
+  assert.ok(moment >= 0);
+  assert.ok(!steps.some(step => step.replayKind === 'micro' && step.targetNodeId === projectionId), `${projectionId} has no construction step of its own`);
+  steps.slice(0, moment).forEach(step => assert.ok(!step.replayVisibleNodeIds.includes(projectionId),
+    `${projectionId} is not shown before the movement, at ${step.replayKind} ${step.operation}`));
+  const daughters = children(steps[moment], projectionId);
+  assert.ok(daughters.length === 2 && daughters.every(id => steps[moment].replayVisibleNodeIds.includes(id)),
+    `${projectionId} arrives with both daughters: ${daughters}`);
+  steps.slice(moment).forEach(step => assert.ok(step.replayVisibleNodeIds.includes(projectionId), `${projectionId} stays visible`));
+  assert.ok(relationMoment(steps, claimIndex) > moment, `the claim naming ${projectionId} plays after the movement`);
+  if (labels) {
+    // Category names are open: renaming them changes no step and no visibility.
+    const shape = steps => steps.map(step => [step.replayKind, step.operation, step.targetNodeId, step.replayVisibleNodeIds.includes(projectionId)]);
+    assert.deepEqual(shape(stageSteps(prepare(renameTense(record, labels)), stage)), shape(steps));
+  }
+  return steps;
 };
 
-test('a constructed projection stays visible whatever its label when its specifier lands later', () => {
-  // "Mary persuaded John to leave.": the stage builds matrix TP and CP while
-  // the subject lands in TP's specifier. With clause typing authored first,
-  // the subject's movement plays after TP's construction.
-  assertProjectionStaysVisible(reorder(fixture('showcase/movement.json#/cases/6'), 8, [1, 0]), 8, 'matrixTP', 1, ['T', 'TP', "T'"]);
+test('a projection a later specifier landing creates arrives with that landing whatever its label', () => {
+  // "Mary persuaded John to leave.": with clause typing authored first, matrix TP arrives with the subject's
+  // movement and the clause typing plays after it.
+  assertProjectionArrivesWithMovement(reorder(fixture('showcase/movement.json#/cases/6'), 8, [1, 0]), 8, 'matrixTP', 1, 0, ['T', 'TP', "T'"]);
 });
 
-test('a claim on the clause a later raising lands in sees that clause from its construction', () => {
+test('a claim on the clause a later raising lands in plays after the raising that creates that clause', () => {
   // "There seem to be cats.": clause typing names matrix TP before the
   // expletive raises into its specifier.
   const embedded = there => ({ id: 'embeddedTP', label: 'TP', children: [there, { id: 'embeddedTProjection', label: 'TP', children: [
@@ -77,33 +92,27 @@ test('a claim on the clause a later raising lands in sees that clause from its c
       { relation: 'A-raising and copy pronunciation', anchors: { higherOccurrence: 'thereHigher', lowerOccurrence: 'thereLower' } }
     ])
   ] };
-  assertProjectionStaysVisible(record, 1, 'matrixTP', 0, ['TP']);
+  assertProjectionArrivesWithMovement(record, 1, 'matrixTP', 1, 0, ['TP']);
 });
 
-test('a movement waits for the construction of the parent an earlier claim needs before the landing', () => {
-  // A verb-second clause: the V2 claim, authored first, names CP, so ordinary
-  // construction builds CP for it; the subject lands in CP only after that.
+test('a movement whose landing creates the parent an earlier claim names brings that parent at its moment', () => {
+  // A verb-second clause: the V2 claim, authored first, names CP; the subject's landing creates CP, so CP
+  // arrives with the subject, and the V2 claim plays after it.
   const record = reorder(fixture('movement/source-occurrence-ownership.json#/0'), 3, [2, 1, 0]);
-  const replay = prepare(record);
-  assert.deepEqual(violations(replay, record), []);
-  const steps = stageSteps(replay, 3);
-  const projection = steps.findIndex(step => step.replayKind === 'micro' && step.targetNodeId === 'a1_cp');
+  const steps = assertProjectionArrivesWithMovement(record, 3, 'a1_cp', 1, 0);
   const movement = relationMoment(steps, 1);
-  assert.ok(projection >= 0 && projection < movement, 'CP is built before the subject lands in it');
   assert.ok(!steps[movement - 1].replayVisibleNodeIds.includes('a1_npsc'));
   assert.ok(steps[movement].replayVisibleNodeIds.includes('a1_npsc'));
-  assert.ok(!steps.some(step => step.movementDiagnostics?.some(message => message.includes('RELATION_TIMING_CONFLICT'))));
+  assert.deepEqual(children(steps[movement], 'a1_cp'), ['a1_npsc', 'a1_cbar']);
 });
 
-test('a phrase that keeps its id at its landing stays in place until its movement while construction builds the landing parent', () => {
+test('a phrase that keeps its id at its landing stays in place until its movement, which brings the landing parent', () => {
   // The relative complementizer claim, authored first, names the finite TP
-  // that the subject (keeping its id) raises into; construction builds TP
-  // for it, but the subject stays in its vP specifier until it moves.
+  // that the subject (keeping its id) raises into; TP arrives with the subject's
+  // movement, and the subject stays in its vP specifier until it moves.
   const record = reorder(fixture('replay-regressions/successive-cyclic-source.json#/cases/0'), 8, [3, 0, 1, 2]);
-  const replay = prepare(record);
-  assert.deepEqual(violations(replay, record), []);
-  const steps = stageSteps(replay, 8), movement = relationMoment(steps, 2);
-  assert.ok(steps.findIndex(step => step.targetNodeId === 'expectTP') < movement, 'TP is built before the subject moves');
+  const steps = assertProjectionArrivesWithMovement(record, 8, 'expectTP', 2, 0);
+  const movement = relationMoment(steps, 2);
   steps.slice(0, movement).forEach(step => {
     assert.ok(step.replayVisibleNodeIds.includes('teacherDP'), `the subject stays visible at ${step.replayKind} ${step.operation}`);
     assert.equal(parentOf(step.replayCanvasData, 'teacherDP'), 'expectvP');
