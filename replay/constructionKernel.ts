@@ -803,15 +803,39 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   const snapshot = (state: Frame, moment = false) => {
     const topology = indexForest(topologyOf(state)) ?? new Map<string, Info>();
     const shownKids = (id: string) => edit.kidsOf(state, id);
-    const claimedByShown = new Set([...state.keys()].filter(id => !state.get(id)!.word).flatMap(shownKids));
-    const kidsOf = (id: string): string[] => state.has(id) && !state.get(id)!.word ? shownKids(id)
-      : (topology.get(id)?.kids ?? []).filter(k => !claimedByShown.has(k));
+    // The topology, changed only where the frame's own edges differ: a shown daughter stands under
+    // its shown parent, in the frame's order, and keeps no other shown parent. Hidden material stays
+    // where the topology has it, so the layout reserves its place as today.
+    const canvasKids = new Map<string, string[]>([...topology].map(([id, info]) => [id, [...info.kids]]));
+    const canvasParent = new Map<string, string>();
+    canvasKids.forEach((kids, id) => kids.forEach(k => canvasParent.set(k, id)));
+    const detach = (k: string) => {
+      const parent = canvasParent.get(k);
+      if (parent) canvasKids.set(parent, canvasKids.get(parent)!.filter(other => other !== k));
+      canvasParent.delete(k);
+    };
+    for (const [id, shown] of state) {
+      if (!canvasKids.has(id)) canvasKids.set(id, []);
+      if (shown.word) continue;
+      const desired = shownKids(id);
+      // While construction holds attachments, a shown parent keeps exactly its shown daughters (as
+      // today's attachment-preserving canvases do); its other material waits as separate workspaces.
+      for (const k of canvasKids.get(id)!) if (attachmentContinuity ? !desired.includes(k) : state.has(k) && !state.get(k)!.word && !desired.includes(k)) detach(k);
+      desired.forEach((k, position) => {
+        if (canvasParent.get(k) === id) return;
+        detach(k);
+        const list = canvasKids.get(id)!, next = desired.slice(position + 1).find(other => list.includes(other));
+        list.splice(next === undefined ? list.length : list.indexOf(next), 0, k);
+        canvasParent.set(k, id);
+      });
+    }
+    const kidsOf = (id: string): string[] => canvasKids.get(id) ?? [];
     const nodeOf = (id: string): SyntaxNode => {
       const shown = state.get(id);
       return shown && !shown.word ? (shown.content === 'P' ? prev.get(id)! : cur.get(id)!).node : (topology.get(id) ?? cur.get(id) ?? prev.get(id))!.node;
     };
     const ids = new Set([...topology.keys(), ...state.keys()]);
-    const claimed = new Set([...ids].flatMap(kidsOf));
+    const claimed = new Set(canvasParent.keys());
     const rank = (id: string): number => topology.get(id)?.order ?? Math.min(...[id, ...kidsOf(id)].map(at => topology.get(at)?.order ?? 1e6 + (cur.get(at)?.order ?? prev.get(at)?.order ?? 0)));
     const patches = pronunciationPatches();
     const build = (id: string): SyntaxNode => {
