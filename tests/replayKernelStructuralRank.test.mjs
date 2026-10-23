@@ -1,27 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readCategoryLabel } from '../replay/categoryLabel.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { writesProjectionLevels } from '../replay/projectionStructure.ts';
+import { toBareStages } from './helpers/bareLabels.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 
 // The just-in-time sister order reads structure only, so writing the same analysis in bare
 // phrase-structure labels (T, C, D for TP/T′, CP/C′, DP/D′) changes no construction step.
-const bareLabel = label => {
-  const shape = readCategoryLabel(label);
-  if (!shape || shape.compound) return label;
-  const match = /^(\s*)([A-Za-z]+)(?:_[A-Za-z0-9_-]+)?(⁰|°|\^?0|[′’'])?(.*)$/su.exec(label);
-  return match ? `${match[1]}${shape.head}${match[4]}` : label;
-};
-const bare = record => {
-  const copy = structuredClone(record);
-  const visit = node => ({ ...node, ...(node.label ? { label: bareLabel(node.label) } : {}), ...(node.children ? { children: node.children.map(visit) } : {}) });
-  copy.derivationStages.forEach(stage => { stage.workspaceForest = stage.workspaceForest.map(visit); });
-  return copy;
-};
 const order = record => prepareReplay({ ...structuredClone(record), includePlayback: true }).playbackSteps
   .map(step => `${step.replayFrameIndex}:${step.replayKind}:${step.operation}:${step.targetNodeId}`);
+
 test('X-bar fixtures rewritten in bare labels construct in the same order', () => {
-  const differing = loadFixtureAnalyses().records.filter(({ record }) => JSON.stringify(bare(record)) !== JSON.stringify(record))
-    .filter(({ record }) => JSON.stringify(order(record)) !== JSON.stringify(order(bare(record)))).map(({ id }) => id);
+  const xbar = loadFixtureAnalyses().records.filter(({ record }) => record.derivationStages.every(stage => writesProjectionLevels(stage.workspaceForest)));
+  assert(xbar.length >= 150, `${xbar.length} X-bar fixture analyses`);
+  const differing = xbar.filter(({ record }) => JSON.stringify(order(record))
+    !== JSON.stringify(order({ ...record, derivationStages: toBareStages(record.derivationStages) }))).map(({ id }) => id);
   assert.deepEqual(differing, []);
 });
