@@ -973,10 +973,27 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     }
     return unit ? emitUnit(unit, forRelation) : [];
   };
+  // A movement can complete an existing phrase: its landing joins a parent the stage already had,
+  // which contains its source (a specifier landing). A merge taking that phrase as a daughter
+  // builds forward on the completed phrase, so it waits for the movement's moment, unless the
+  // movement needs the merge's output, and only when every relation still to play up to the
+  // movement relates material inside the phrase (authored order holds otherwise).
+  const landingCompletions = new Map<string, number[]>();
+  momentPlacements.filter(placement => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition).forEach(placement =>
+    placement.authoredTargetNodeIds.map(id => cur.get(id)?.parent).forEach(parent => {
+      if (parent && available0.has(parent) && producer(parent) === undefined && placement.sourceNodeIds.some(source => subtree(cur, parent).includes(source)))
+        landingCompletions.set(parent, [...new Set([...(landingCompletions.get(parent) ?? []), placement.relationIndex])]);
+    }));
+  const completingMoments = (unit: Unit, forRelation?: number): number[] => unit.word ? [] : constructionKids(unit.id).flatMap(phrase =>
+    (landingCompletions.get(phrase) ?? []).filter(relation => !required(placementOf.get(relation)!).some(id => subtree(cur, id).includes(unit.id))
+      && (forRelation === undefined || playsAfter(forRelation, relation))
+      && momentOrder.slice(nextMoment, (momentPosition.get(relation) ?? -1) + 1)
+        .every(other => placementOf.get(other)!.relationAnchorNodeIds.every(id => subtree(cur, phrase).includes(id)))));
   const emitUnit = (unit: Unit, forRelation?: number): string[] => {
     if (emittedUnits.has(unit) || unitDone(unit)) { emittedUnits.add(unit); return []; }
     if (visitingUnits.has(unit)) return [unit.id];
     visitingUnits.add(unit);
+    completingMoments(unit, forRelation).forEach(relation => emitMomentsThrough(relation));
     const wordUnit = !unit.word ? units.find(other => other.word && other.id === unit.id) : undefined;
     const missing = [...(wordUnit ? emitUnit(wordUnit, forRelation) : []), ...(unit.word ? [] : constructionKids(unit.id).flatMap(k => ensure(k, forRelation)))];
     visitingUnits.delete(unit);
