@@ -50,8 +50,6 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/head-movement-ordinary-wrapper.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta external participant in living)@i_v', { desktop: { '28-36': 1.22 }, 'desktop-large': { '28-36': 1.22 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/inserted-adjunction-segment.json#', 'mark-distance', 'plaque',
-    'plaque(0:3 agreement: first-person singular; tense: past)@ri', { desktop: { '25-46': 1.68 }, 'desktop-large': { '25-46': 1.68 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/inserted-adjunction-segment.json#', 'mark-distance', 'plaque',
     'plaque(1:7 agreement: third-person masculine singular; tens)@mi', { desktop: { '45-50': 1.29 }, 'desktop-large': { '45-50': 1.29 } }),
   x(SOURCE_POCKET, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'mark-distance', 'plaque',
     'plaque(0:0 theta Addressee/Agent)@d_v', { desktop: { '17-36': 1.13 }, 'desktop-large': { '17-36': 1.13 } }),

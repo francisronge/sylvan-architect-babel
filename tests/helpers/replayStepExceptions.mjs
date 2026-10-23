@@ -34,8 +34,8 @@ const x = (reason, record, rule, subtype, subject, frames, approval) => ({ reaso
 
 export const STEP_EXCEPTIONS = [
   x(UNRESOLVED_ENDPOINTS, 'replay-regressions/unrecognized-movement.json#/cases/3', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "2:0", '30'),
-  x(CONTEXT_NOT_AWAITED, 'movement/holdout-transitions.json#/1', 'mark-persistence', 'never-paints', "fallback 1:0", '36'),
-  x(CONTEXT_NOT_AWAITED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 3:0", '38'),
+  x(CONTEXT_NOT_AWAITED, 'movement/holdout-transitions.json#/1', 'mark-persistence', 'never-paints', "fallback 1:0", '34'),
+  x(CONTEXT_NOT_AWAITED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-persistence', 'never-paints', "fallback 3:0", '37'),
   x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'never-paints', "fallback 2:1", '28'),
   x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'late-start', "trajectory tier2.movement-path 2:1", '29'),
   x(NEEDS_CYCLE, 'replay-regressions/case-source-transfer.json#', 'mark-persistence', 'late-start', "node-plaque theta.grid 2:0", '29'),
