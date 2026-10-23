@@ -2347,6 +2347,52 @@
         "3:3 T3 fallback"
       ]
     },
+    "replay-regressions/reserved-wrapper-fork.json#/cases/0": {
+      "frames": "3wkFWQUC Yu8iPGf0 GJWUo_gY 1vH_S_Qu ad8OnSxC vfvcS7OI ZOVuqHFT GPikMjD_ LkE0VhTW wavkiXSJ Wfc-bYyd bkSEK-r- 8nDxgCr0 G6rjnizU 3gpaiw3j rHEeh0GJ XT1s11he WxcU7ZXL ZeHRopw- 6smDukbt 4p5Ev3wY LKUdHSFi P85jR0CU _W7T9ozT oBo50OHa 7tp2GtF_ mWiPnH5V YxQZH2zn vcZtSci6 Vh5jOZBb Klsh809Z 5ETP5Kyc 7d4tiLv5 x-kNCnl_ XTkZtNe-",
+      "canopy": "QGA7dgPb",
+      "tiers": [
+        "0:0 T2 node-plaque feature-bundle.plaque plaque.structured",
+        "0:0 T3 fallback",
+        "0:1 T2 node-plaque feature-bundle.plaque plaque.structured",
+        "0:1 T3 fallback",
+        "0:2 T2 node-plaque feature-bundle.plaque plaque.structured",
+        "0:2 T3 fallback",
+        "1:0 T3 fallback",
+        "2:0 T2 node-badges theta.grid theta-grid",
+        "2:0 T2 node-plaque theta.grid theta-grid",
+        "2:0 T3 fallback",
+        "2:1 T2 directed-path tier2.feature-dependency feature.dependency",
+        "2:2 T3 fallback",
+        "3:0 T2 trajectory tier2.movement-path movement.path",
+        "3:0 T3 fallback",
+        "4:0 T2 trajectory tier2.movement-path movement.path",
+        "4:0 T3 fallback",
+        "5:0 T2 directed-path tier2.feature-dependency feature.dependency",
+        "5:0 T2 node-plaque feature-bundle.plaque feature.dependency",
+        "5:0 T3 fallback",
+        "5:1 T2 node-plaque pf.realization pf.structured",
+        "5:1 T3 fallback",
+        "5:2 T2 node-plaque feature-bundle.plaque plaque.structured",
+        "5:2 T3 fallback"
+      ]
+    },
+    "replay-regressions/reserved-wrapper-fork.json#/cases/1": {
+      "frames": "5tNSZ2C1 ekNw_1D7 hAtrUC7F LO8SnSEk 5sx1Qgkr MRjum_4H C4DqAYs0 -xpdEsPK AbLlUYQ_ HN6nBvuk eyzOZ_cf 6nvi2hWL 0w7VvAuU 7h7EyxiY pLmmPjp- xPu_ySx0 gHrlYrPg kzmZoCvQ -svsVIRg fHo-PPQD wXaO90fN 8E553jUX 1Q-5uHDo 4Z9s7Ywk tNap-eyo ZVF4fPxw LGGeK_3f Z_Opp5x_ 7x7U1gDr -fzR1Z54 aJUgNFdp 3VLCe_5S H6OQqVNk",
+      "canopy": "wdXeYjag",
+      "tiers": [
+        "0:0 T2 directed-path tier2.feature-dependency feature.dependency",
+        "0:0 T2 node-plaque feature-bundle.plaque feature.dependency",
+        "0:0 T3 fallback",
+        "0:1 T2 node-plaque pf.realization pf.structured",
+        "0:1 T3 fallback",
+        "0:2 T2 node-plaque feature-bundle.plaque plaque.structured",
+        "0:2 T3 fallback",
+        "1:0 T2 trajectory tier2.movement-path movement.path",
+        "1:0 T3 fallback",
+        "1:1 T2 trajectory tier2.movement-path movement.path",
+        "1:1 T3 fallback"
+      ]
+    },
     "replay-regressions/retained-head-attachment.json#": {
       "frames": "ocIeVrG3 wBp_Sqin Tc1mqA9j y0yFJWsG I-tst9Wo 6h2S96zF DViSwB3f czNp9yHR POCYpre4 4jc90u3r INnThJ7R hG4BMGWf WpG57P3F tK9YBaKu 0Jidv_13 v2-XWgla 3PGndHv5 1CdqOo7k J120OFkn mG5xTgKF dL0Jbx8t RH2ewg-7 vrq42bYv BDuESbAE VgknJ-DP vNbr8JB2 ptxdXfiS ryZ3SDtQ HK0aLRU7 l-hd-lXo gJp6PYWq BsDnbZnS dUUV-YE5 zJWbRG44 yBhTdzEw ktNmpd5U MX9AFfDy AO54B0yU zboKc4x2 D6f3Fz3q dEmMQrsr x51rBqVL O-kiIidg ayARrwwn HSq1xv8E hSPsVRAm z6tGgyz4 16KmPsYW MEVG_l-_ 9cCLZ5qB _DKcZFEG _kEebtbb -e-ihrm7 _FJRbvhD 0Z5HHl1w X2wurfL0",
       "canopy": "QFFwbdrT",
