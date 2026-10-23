@@ -292,17 +292,17 @@ test('link-only compatibility callers also retain movement values literally', ()
 
 const saved = JSON.parse(readFileSync(new URL('../fixtures/movement/saved-qualification.json', import.meta.url), 'utf8'));
 test('a saved relation timing conflict remains stored without appearing in the Replay panel', () => {
-  // Continued V-to-I and I-to-C each need syntax the other's moment introduces.
-  const stages = JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/case-source-transfer.json', import.meta.url))).derivationStages;
+  // The raising chain names, as context, the verb trace that the later V-to-I movement introduces.
+  const stages = JSON.parse(readFileSync(new URL('../fixtures/movement/holdout-transitions.json', import.meta.url)))[1].derivationStages;
   const plan = buildDerivationReplayPlan({ derivationStages: stages });
   const steps = buildPlaybackStepsFromDerivationFrames({
     frames: adaptDerivationStagesForReplay(stages),
     replayPlan: plan
   });
-  const continued = steps.find(step => step.replayRelationIdentity?.stageIndex === 2 && step.replayRelationIdentity?.relationIndex === 1);
-  assert.match(continued.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 3, relation 2 .* requires iFeatures3 before relation 3/);
-  const content = buildReplayPanelContent(continued, stages);
-  assert.deepEqual(content, buildReplayPanelContent({ ...continued, movementDiagnostics: [] }, stages));
+  const chain = steps.find(step => step.replayRelationIdentity?.stageIndex === 1 && step.replayRelationIdentity?.relationIndex === 0);
+  assert.match(chain.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 2, relation 1 .* matrixVTrace before relation 2/);
+  const content = buildReplayPanelContent(chain, stages);
+  assert.deepEqual(content, buildReplayPanelContent({ ...chain, movementDiagnostics: [] }, stages));
   assert.ok(!JSON.stringify(content).includes('RELATION_TIMING_CONFLICT'));
 });
 for (const record of saved) {

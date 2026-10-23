@@ -70,9 +70,11 @@ export const createFrameRelationResolver = (
   };
 };
 
-/** A later chain can describe a member already carried inside an earlier
- * head movement. Only an unchanged lower witness and an unchanged, ordered
- * head assembly establish this ownership; containment alone does not. */
+/** A chain can restate a member that a preceding stage already raised and that
+ * another head movement of this stage carries inside its landing; whichever is
+ * authored first, the carrying movement introduces the member. Only an
+ * unchanged lower witness and an unchanged, ordered head assembly establish
+ * this ownership; containment alone does not. */
 const isCarriedHeadMemberTransition = (
   movement: RecoveredMovement,
   earlierMovements: readonly RecoveredMovement[],
@@ -137,179 +139,189 @@ export const getFrameRelations = (
       ]
     };
   });
-  const ownedMovements = new Set<string>();
-  const earlierMovements: RecoveredMovement[] = [];
-  const recovered = authored.map((authoredStep, relationIndex) => {
-    const input = {
-      relation: authoredStep as DerivationStageRelation,
-      currentForest, priorForest: previousForest,
-      currentRealizations: frame?.after?.realizations ?? plannedStage?.realizations,
-      stageIndex: plannedStage?.stageIndex ?? 0, relationIndex
-    };
-    const dispatch = claimDispatches?.[relationIndex] ?? dispatchRelationClaims(input);
-    const evidence = dispatch.evidence;
-    const transitionAnchors = { ...dispatch.primaryRelation.anchors };
-    const transitionPriorAnchors = { ...dispatch.primaryRelation.priorAnchors };
-    // A recovered rewrite consumes its lexical witnesses as drawing evidence.
-    // They still own the corresponding word change in this Replay moment.
-    // The envelope's PF host may instead be a containing head complex.
-    dispatch.facets.filter(facet => facet.recipe.id === 'pf.rewrite' && facet.evidence).forEach(facet => {
-      const scoped = facet.evidence!;
-      for (const [entries, concept, destination] of [
-        [scoped.authoredCurrentAnchors, 'rewrite.output', transitionAnchors],
-        [scoped.authoredPriorAnchors, 'rewrite.input', transitionPriorAnchors]
-      ] as const)
-        entries?.filter(entry => entry.concepts.includes(concept)).forEach(entry => {
-          destination[entry.key] = entry.items.length === 1 ? entry.items[0] : [...entry.items];
-        });
-    });
-    if (dispatch.primaryClaim?.tier === 3 && relationAnchorNodeIds(authoredStep.priorAnchors).length) {
-      const priorLocations = indexExactForestNodeLocations(previousForest);
-      const currentLocations = indexExactForestNodeLocations(currentForest);
-      const priorParticipants = relationAnchorNodeIds(authoredStep.priorAnchors)
-        .map(id => priorLocations.get(id)).filter(location => location != null);
-      // Drawing ownership does not erase a structural witness. An explicit
-      // new result can still own the merge of its authored prior participants,
-      // even when a sibling drawing has consumed their role associations.
-      const resultDescendants = new Set(relationAnchorNodeIds(transitionAnchors).flatMap(id => {
-        const current = currentLocations.get(id);
-        return current && !priorLocations.has(id) ? [...collectExactSubtreeNodeIds(current.node)] : [];
-      }));
-      Object.entries(authoredStep.priorAnchors ?? {}).forEach(([key, value]) => {
-        if (key in transitionPriorAnchors)
-          return;
-        const ids = Array.isArray(value) ? value : [value];
-        if (ids.length && ids.every(id => resultDescendants.has(id) && priorLocations.get(id))) {
-          transitionPriorAnchors[key] = value;
-        }
-      });
-      // A drawing can consume an authored replacement witness. Keep that
-      // exact slot replacement in the transition, without absorbing independent
-      // sibling claims merely because they share this relation moment.
-      Object.entries(input.relation.anchors).forEach(([key, value]) => {
-        if (key in transitionAnchors)
-          return;
-        const ids = (Array.isArray(value) ? value : [value]).filter(id => {
-          const current = currentLocations.get(id);
-          return current && priorParticipants.some(prior => prior.node.id !== id
-            && current.parentId === prior.parentId && current.childIndex === prior.childIndex
-            && current.rootIndex === prior.rootIndex);
-        });
-        if (ids.length)
-          transitionAnchors[key] = Array.isArray(value) ? ids : ids[0];
-      });
-    }
-    const interpretedStep = dispatch.primaryClaim?.tier === 3 ? {
-      ...authoredStep,
-      neutralTransitionEvidence: {
-        anchors: transitionAnchors,
-        priorAnchors: transitionPriorAnchors
-      }
-    } : authoredStep;
-    const boundStep = dispatch.primaryClaim?.tier === 1 ? {
-      ...interpretedStep,
-      registeredEntryId: dispatch.primaryClaim.registryEntryId,
-      resolvedAnchors: authoredStep.resolvedAnchors?.map(anchor => {
-        const binding = dispatch.tier1Dispatch.roleBindings.find(binding => binding.field === 'anchors' && binding.authoredRole === anchor.role);
-        return binding && binding.role !== anchor.role
-          ? { ...anchor, role: binding.role, authoredRole: anchor.role } : anchor;
-      })
-    } : interpretedStep;
-    const pronunciationNodeIds = dispatch.primaryClaim?.tier === 1
-      && PRODUCTION_RENDER_FAMILIES[dispatch.primaryClaim.registryEntryId]?.transitionKinds?.includes('pronunciation')
-      ? relationAnchorNodeIds(dispatch.boundPrimaryRelation.anchors)
-      : [...new Set(dispatch.facets.filter(f => f.recipe.id === 'pf.structured' || f.recipe.id === 'pf.rewrite')
-        .flatMap(f => (f.evidence ?? evidence).currentAnchors['rewrite.output'] || []))];
-    const landingIds = evidence.currentAnchors['movement.landing'] ?? [];
-    const unprovenNewLandingNodeId = evidence.movementFailure === 'MOVEMENT_PRIOR_SOURCE_UNPROVEN'
-      && landingIds.length === 1
-      && findExactNodesByIdInForest(currentForest, landingIds[0]).length === 1
-      && !findExactNodesByIdInForest(previousForest, landingIds[0]).length
-      ? landingIds[0] : undefined;
-    const step = {
-      ...boundStep,
-      ...(pronunciationNodeIds.length ? { pronunciationNodeIds } : {}),
-      ...(unprovenNewLandingNodeId ? { unprovenNewLandingNodeId } : {})
-    };
-    const registeredEntry = findRelationRegistryEntry(productionRelationRegistry, String(step.relation || ''));
-    const facet = dispatch.facets.find(f => f.recipe.id === 'movement.path' || f.recipe.id === 'scope.movement');
-    const covert = facet?.recipe.id === 'scope.movement';
-    const groupedMovements = recoveredClaimMovements(dispatch);
-    if (!registeredEntry && groupedMovements.length > 1) {
-      const movements = groupedMovements.map(movement => {
-        const owner = dispatch.facets.find(item => item.recipe.id === 'movement.path'
-          && item.evidence?.movement === movement);
-        const key = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
-        const transition = !ownedMovements.has(key)
-          && !isCarriedHeadMemberTransition(movement, earlierMovements, previousForest, currentForest)
-          && Boolean(owner?.evaluation.earnedTransitions.includes('movement'));
-        if (transition) {
-          ownedMovements.add(key);
-          earlierMovements.push(movement);
-        }
-        return { ...movement, transition, drawTrajectory: Boolean(owner) };
-      });
-      const diagnostics = dispatch.facets.flatMap(facet => facet.evidence?.movementDiagnostics ?? []);
-      return {
-        ...step, recoveredMovement: movements.find(movement => movement.transition) ?? movements[0], recoveredMovements: movements,
-        ...(diagnostics.length ? { movementDiagnostics: [...new Set(diagnostics)] } : {}),
-        sourceNodeIds: movements.map(movement => movement.sourceNodeId), targetNodeId: movements[0].targetNodeId
+  // `carriers` are the stage's head movements from a first pass, so a chain
+  // restatement authored before the movement carrying its member is found too.
+  const recover = (carriers: readonly RecoveredMovement[]) => {
+    const ownedMovements = new Set<string>();
+    const earlierMovements: RecoveredMovement[] = [];
+    const carriedBy = () => [...earlierMovements, ...carriers];
+    return authored.map((authoredStep, relationIndex) => {
+      const input = {
+        relation: authoredStep as DerivationStageRelation,
+        currentForest, priorForest: previousForest,
+        currentRealizations: frame?.after?.realizations ?? plannedStage?.realizations,
+        stageIndex: plannedStage?.stageIndex ?? 0, relationIndex
       };
-    }
-    if (registeredEntry && !PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind && !facet)
-      return step;
-    const movementDiagnostics = isPriorMovementContextFailure(input.relation, dispatch, earlierMovements)
-      ? [] : evidence.movementDiagnostics;
-    const covertEvidence = facet?.evidence ?? evidence;
-    const movement: RecoveredMovement | undefined = covert ? recoveredCovertMovement(covertEvidence) ?? {
-      priorSourceNodeId: evidence.currentAnchors['scope.source'][0],
-      sourceNodeId: evidence.currentAnchors['scope.source'][0],
-      targetNodeId: evidence.currentAnchors['scope.landing'][0],
-      witnessNodeId: evidence.currentAnchors['scope.source'][0],
-      trajectoryKind: 'phrasal', transition: facet.evaluation.earnedTransitions.includes('movement'), roles: {}
-    } : evidence.movement;
-    const priorDiagnostics = [...(Array.isArray(step.movementDiagnostics) ? step.movementDiagnostics : []),
-    ...(movementDiagnostics || [])];
-    if (!movement) {
-      return priorDiagnostics.length ? { ...step, movementDiagnostics: priorDiagnostics } : step;
-    }
-    // A proved tree transition and permission to draw a trajectory are separate.
-    // Fallback may reveal the authored landing without rescuing a Tier 1 recipe.
-    // Specialized drawing kinds still prove either a head or a phrasal transition.
-    const registeredKind = registeredTrajectoryDisplayKind(step.relation);
-    const movementKey = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
-    const transition = !ownedMovements.has(movementKey)
-      && !isCarriedHeadMemberTransition(movement, earlierMovements, previousForest, currentForest)
-      && (facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition);
-    // A kind conflict refuses the movement. When no other claim applies its
-    // change, that change stays this claim's neutral output.
-    if ((registeredKind === 'head' || registeredKind === 'phrasal') && registeredKind !== movement.trajectoryKind)
+      const dispatch = claimDispatches?.[relationIndex] ?? dispatchRelationClaims(input);
+      const evidence = dispatch.evidence;
+      const transitionAnchors = { ...dispatch.primaryRelation.anchors };
+      const transitionPriorAnchors = { ...dispatch.primaryRelation.priorAnchors };
+      // A recovered rewrite consumes its lexical witnesses as drawing evidence.
+      // They still own the corresponding word change in this Replay moment.
+      // The envelope's PF host may instead be a containing head complex.
+      dispatch.facets.filter(facet => facet.recipe.id === 'pf.rewrite' && facet.evidence).forEach(facet => {
+        const scoped = facet.evidence!;
+        for (const [entries, concept, destination] of [
+          [scoped.authoredCurrentAnchors, 'rewrite.output', transitionAnchors],
+          [scoped.authoredPriorAnchors, 'rewrite.input', transitionPriorAnchors]
+        ] as const)
+          entries?.filter(entry => entry.concepts.includes(concept)).forEach(entry => {
+            destination[entry.key] = entry.items.length === 1 ? entry.items[0] : [...entry.items];
+          });
+      });
+      if (dispatch.primaryClaim?.tier === 3 && relationAnchorNodeIds(authoredStep.priorAnchors).length) {
+        const priorLocations = indexExactForestNodeLocations(previousForest);
+        const currentLocations = indexExactForestNodeLocations(currentForest);
+        const priorParticipants = relationAnchorNodeIds(authoredStep.priorAnchors)
+          .map(id => priorLocations.get(id)).filter(location => location != null);
+        // Drawing ownership does not erase a structural witness. An explicit
+        // new result can still own the merge of its authored prior participants,
+        // even when a sibling drawing has consumed their role associations.
+        const resultDescendants = new Set(relationAnchorNodeIds(transitionAnchors).flatMap(id => {
+          const current = currentLocations.get(id);
+          return current && !priorLocations.has(id) ? [...collectExactSubtreeNodeIds(current.node)] : [];
+        }));
+        Object.entries(authoredStep.priorAnchors ?? {}).forEach(([key, value]) => {
+          if (key in transitionPriorAnchors)
+            return;
+          const ids = Array.isArray(value) ? value : [value];
+          if (ids.length && ids.every(id => resultDescendants.has(id) && priorLocations.get(id))) {
+            transitionPriorAnchors[key] = value;
+          }
+        });
+        // A drawing can consume an authored replacement witness. Keep that
+        // exact slot replacement in the transition, without absorbing independent
+        // sibling claims merely because they share this relation moment.
+        Object.entries(input.relation.anchors).forEach(([key, value]) => {
+          if (key in transitionAnchors)
+            return;
+          const ids = (Array.isArray(value) ? value : [value]).filter(id => {
+            const current = currentLocations.get(id);
+            return current && priorParticipants.some(prior => prior.node.id !== id
+              && current.parentId === prior.parentId && current.childIndex === prior.childIndex
+              && current.rootIndex === prior.rootIndex);
+          });
+          if (ids.length)
+            transitionAnchors[key] = Array.isArray(value) ? ids : ids[0];
+        });
+      }
+      const interpretedStep = dispatch.primaryClaim?.tier === 3 ? {
+        ...authoredStep,
+        neutralTransitionEvidence: {
+          anchors: transitionAnchors,
+          priorAnchors: transitionPriorAnchors
+        }
+      } : authoredStep;
+      const boundStep = dispatch.primaryClaim?.tier === 1 ? {
+        ...interpretedStep,
+        registeredEntryId: dispatch.primaryClaim.registryEntryId,
+        resolvedAnchors: authoredStep.resolvedAnchors?.map(anchor => {
+          const binding = dispatch.tier1Dispatch.roleBindings.find(binding => binding.field === 'anchors' && binding.authoredRole === anchor.role);
+          return binding && binding.role !== anchor.role
+            ? { ...anchor, role: binding.role, authoredRole: anchor.role } : anchor;
+        })
+      } : interpretedStep;
+      const pronunciationNodeIds = dispatch.primaryClaim?.tier === 1
+        && PRODUCTION_RENDER_FAMILIES[dispatch.primaryClaim.registryEntryId]?.transitionKinds?.includes('pronunciation')
+        ? relationAnchorNodeIds(dispatch.boundPrimaryRelation.anchors)
+        : [...new Set(dispatch.facets.filter(f => f.recipe.id === 'pf.structured' || f.recipe.id === 'pf.rewrite')
+          .flatMap(f => (f.evidence ?? evidence).currentAnchors['rewrite.output'] || []))];
+      const landingIds = evidence.currentAnchors['movement.landing'] ?? [];
+      const unprovenNewLandingNodeId = evidence.movementFailure === 'MOVEMENT_PRIOR_SOURCE_UNPROVEN'
+        && landingIds.length === 1
+        && findExactNodesByIdInForest(currentForest, landingIds[0]).length === 1
+        && !findExactNodesByIdInForest(previousForest, landingIds[0]).length
+        ? landingIds[0] : undefined;
+      const step = {
+        ...boundStep,
+        ...(pronunciationNodeIds.length ? { pronunciationNodeIds } : {}),
+        ...(unprovenNewLandingNodeId ? { unprovenNewLandingNodeId } : {})
+      };
+      const registeredEntry = findRelationRegistryEntry(productionRelationRegistry, String(step.relation || ''));
+      const facet = dispatch.facets.find(f => f.recipe.id === 'movement.path' || f.recipe.id === 'scope.movement');
+      const covert = facet?.recipe.id === 'scope.movement';
+      const groupedMovements = recoveredClaimMovements(dispatch);
+      if (!registeredEntry && groupedMovements.length > 1) {
+        const movements = groupedMovements.map(movement => {
+          const owner = dispatch.facets.find(item => item.recipe.id === 'movement.path'
+            && item.evidence?.movement === movement);
+          const key = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
+          const transition = !ownedMovements.has(key)
+            && !isCarriedHeadMemberTransition(movement, carriedBy(), previousForest, currentForest)
+            && Boolean(owner?.evaluation.earnedTransitions.includes('movement'));
+          if (transition) {
+            ownedMovements.add(key);
+            earlierMovements.push(movement);
+          }
+          return { ...movement, transition, drawTrajectory: Boolean(owner) };
+        });
+        const diagnostics = dispatch.facets.flatMap(facet => facet.evidence?.movementDiagnostics ?? []);
+        return {
+          ...step, recoveredMovement: movements.find(movement => movement.transition) ?? movements[0], recoveredMovements: movements,
+          ...(diagnostics.length ? { movementDiagnostics: [...new Set(diagnostics)] } : {}),
+          sourceNodeIds: movements.map(movement => movement.sourceNodeId), targetNodeId: movements[0].targetNodeId
+        };
+      }
+      if (registeredEntry && !PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind && !facet)
+        return step;
+      const movementDiagnostics = isPriorMovementContextFailure(input.relation, dispatch, earlierMovements)
+        ? [] : evidence.movementDiagnostics;
+      const covertEvidence = facet?.evidence ?? evidence;
+      const movement: RecoveredMovement | undefined = covert ? recoveredCovertMovement(covertEvidence) ?? {
+        priorSourceNodeId: evidence.currentAnchors['scope.source'][0],
+        sourceNodeId: evidence.currentAnchors['scope.source'][0],
+        targetNodeId: evidence.currentAnchors['scope.landing'][0],
+        witnessNodeId: evidence.currentAnchors['scope.source'][0],
+        trajectoryKind: 'phrasal', transition: facet.evaluation.earnedTransitions.includes('movement'), roles: {}
+      } : evidence.movement;
+      const priorDiagnostics = [...(Array.isArray(step.movementDiagnostics) ? step.movementDiagnostics : []),
+      ...(movementDiagnostics || [])];
+      if (!movement) {
+        return priorDiagnostics.length ? { ...step, movementDiagnostics: priorDiagnostics } : step;
+      }
+      // A proved tree transition and permission to draw a trajectory are separate.
+      // Fallback may reveal the authored landing without rescuing a Tier 1 recipe.
+      // Specialized drawing kinds still prove either a head or a phrasal transition.
+      const registeredKind = registeredTrajectoryDisplayKind(step.relation);
+      const movementKey = JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
+      const transition = !ownedMovements.has(movementKey)
+        && !isCarriedHeadMemberTransition(movement, carriedBy(), previousForest, currentForest)
+        && (facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition);
+      // A kind conflict refuses the movement. When no other claim applies its
+      // change, that change stays this claim's neutral output.
+      if ((registeredKind === 'head' || registeredKind === 'phrasal') && registeredKind !== movement.trajectoryKind)
+        return {
+          ...step,
+          recoveredMovement: { ...movement, transition: false, drawTrajectory: false },
+          ...(transition ? { refusedMovementTransition: true as const } : {}),
+          movementDiagnostics: [...priorDiagnostics, `MOVEMENT_KIND_CONFLICT: ${step.relation} selects ${registeredKind} movement, but the anchored context was recovered as ${movement.trajectoryKind}. No recovered transition was applied.`]
+        };
+      const primaryMovement = dispatch.primaryClaim?.tier === 1 && registeredKind === movement.trajectoryKind;
+      if (dispatch.primaryClaim?.tier === 1 && !primaryMovement)
+        return step;
+      const drawingDiagnostics = !facet && !primaryMovement ? [
+        `Stage ${input.stageIndex + 1}, relation ${relationIndex + 1} (${step.relation}): movement endpoints ${movement.sourceNodeId} -> ${movement.targetNodeId} are identifiable, but the drawing was not licensed: ${dispatch.primaryClaim && 'reason' in dispatch.primaryClaim ? dispatch.primaryClaim.reason : 'no-movement-facet'}. The authored analysis is unchanged.`,
+        ...(dispatch.tier1Dispatch.signatureIssues || []).map(issue => `Tier 1 signature: ${JSON.stringify(issue)}`)
+      ] : [];
+      // Later claims may inspect the same dependency; its structural change occurs once.
+      if (transition) {
+        ownedMovements.add(movementKey);
+        earlierMovements.push(movement);
+      }
       return {
         ...step,
-        recoveredMovement: { ...movement, transition: false, drawTrajectory: false },
-        ...(transition ? { refusedMovementTransition: true as const } : {}),
-        movementDiagnostics: [...priorDiagnostics, `MOVEMENT_KIND_CONFLICT: ${step.relation} selects ${registeredKind} movement, but the anchored context was recovered as ${movement.trajectoryKind}. No recovered transition was applied.`]
+        ...((priorDiagnostics.length || drawingDiagnostics.length)
+          ? { movementDiagnostics: [...priorDiagnostics, ...drawingDiagnostics] } : {}),
+        recoveredMovement: { ...movement, transition, drawTrajectory: !covert && Boolean(facet || primaryMovement) },
+        sourceNodeIds: [movement.sourceNodeId], targetNodeId: movement.targetNodeId
       };
-    const primaryMovement = dispatch.primaryClaim?.tier === 1 && registeredKind === movement.trajectoryKind;
-    if (dispatch.primaryClaim?.tier === 1 && !primaryMovement)
-      return step;
-    const drawingDiagnostics = !facet && !primaryMovement ? [
-      `Stage ${input.stageIndex + 1}, relation ${relationIndex + 1} (${step.relation}): movement endpoints ${movement.sourceNodeId} -> ${movement.targetNodeId} are identifiable, but the drawing was not licensed: ${dispatch.primaryClaim && 'reason' in dispatch.primaryClaim ? dispatch.primaryClaim.reason : 'no-movement-facet'}. The authored analysis is unchanged.`,
-      ...(dispatch.tier1Dispatch.signatureIssues || []).map(issue => `Tier 1 signature: ${JSON.stringify(issue)}`)
-    ] : [];
-    // Later claims may inspect the same dependency; its structural change occurs once.
-    if (transition) {
-      ownedMovements.add(movementKey);
-      earlierMovements.push(movement);
-    }
-    return {
-      ...step,
-      ...((priorDiagnostics.length || drawingDiagnostics.length)
-        ? { movementDiagnostics: [...priorDiagnostics, ...drawingDiagnostics] } : {}),
-      recoveredMovement: { ...movement, transition, drawTrajectory: !covert && Boolean(facet || primaryMovement) },
-      sourceNodeIds: [movement.sourceNodeId], targetNodeId: movement.targetNodeId
-    };
-  });
+    });
+  };
+  let recovered = recover([]);
+  const stageTransitions = recovered.flatMap(step => step.recoveredMovements ?? (step.recoveredMovement ? [step.recoveredMovement] : []))
+    .filter(movement => movement.transition);
+  if (stageTransitions.some(movement => isCarriedHeadMemberTransition(movement, stageTransitions, previousForest, currentForest)))
+    recovered = recover(stageTransitions);
   // A neutral claim's copy is its displacement only outside every recovered
   // movement of the stage, which owns both of its occurrences, and outside
   // what an earlier claim already establishes.
