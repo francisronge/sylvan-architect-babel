@@ -5,7 +5,7 @@ import { categoryMetricKey } from './categoryMetricKey.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { compactCurrentRootForks } from './currentRootCompaction.ts';
 import { retainCurrentRootFork } from './currentRootFork.ts';
-import { retainCurrentSiblingRanks, retainCurrentUnaryRank } from './currentSiblingRanks.ts';
+import { retainCurrentSiblingRanks, retainCurrentDaughterRanks } from './currentSiblingRanks.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { retainedSubtreeMaterial } from './displayWordMaterial.ts';
 import { reserveMovementSlotClearance } from './movementSlotClearance.ts';
@@ -285,7 +285,7 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
   });
   const resolved = preserved.every(hasValidBranches) ? preserved : reserve(new Map());
   const contours = reserveContours(resolved);
-  for (const scene of contours.slice(1)) retainCurrentUnaryRank(scene, contours[0]);
+  for (const scene of contours.slice(1)) retainCurrentDaughterRanks(scene, contours[0], { lowerSmallerAbove: true });
   let finalScenes = separateWorkspaceContours(contours, measureCategoryText);
   if (frames[0]?.replayKind === 'relation' && previous?.replayCanvasData && precedingCoordinates) {
     const root = d3.hierarchy(previous.replayCanvasData); applyVizIds(root);

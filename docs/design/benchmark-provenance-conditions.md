@@ -7,10 +7,10 @@ Babel records the conditions of each model generation in one bundle-level `gener
 ```json
 {
   "schemaVersion": 2,
-  "provider": "gemini | gpt | claude | local",
+  "provider": "gpt | claude | kimi | grok",
   "promptContract": {
     "framework": "xbar | minimalism",
-    "promptRoute": "gemini | gpt | claude",
+    "promptRoute": "gpt | claude | kimi | grok",
     "systemInstructionSha256": "64 lowercase hex characters",
     "promptSha256": "64 lowercase hex characters",
     "promptTemplateSha256": "64 lowercase hex characters"
@@ -38,7 +38,8 @@ Babel records the conditions of each model generation in one bundle-level `gener
 }
 ```
 
-`systemInstructionSha256` and `promptSha256` identify the exact strings sent for that request without storing their contents. `promptTemplateSha256` identifies the framework, route, input-tokenization version and prompt template using a fixed probe sentence. It remains stable across sentences. The local route records its own prompt route.
+`systemInstructionSha256` and `promptSha256` identify the exact strings sent for that request without storing their contents. `promptTemplateSha256` identifies the framework, route, input-tokenization version and prompt template using a fixed probe sentence. It remains stable across sentences. Records saved before the legacy `modelRoute`
+routes were removed may also name `gemini` or `local`; they stay readable.
 
 The model receives only the sentence. After it responds,
 `server/babelParser/spellout.js` checks that each analysis's final stage spells
@@ -61,7 +62,7 @@ differences across future ICU versions cannot be reconstructed with certainty.
 Saved-output qualification accepts an explicit original token list when it is
 available.
 
-`sentGenerationConfig` is derived from the same pure request-body builder used by the transport. It records resolved provider-shaped scalar settings, including the model and output limit. Gemini and local requests record temperature. GPT and Claude records intentionally omit temperature because their current request bodies do not send it. No API key, header, secret, environment-variable name, raw instruction, or raw prompt belongs in this object.
+`sentGenerationConfig` is derived from the same pure request-body builder used by the transport. It records resolved provider-shaped scalar settings, including the model and output limit. Records intentionally omit temperature because the current request bodies do not send it; older Gemini and local records include it. No API key, header, secret, environment-variable name, raw instruction, or raw prompt belongs in this object.
 
 Timing covers the primary provider generation await only. It excludes JSON parsing, normalization, rendering, and client latency.
 

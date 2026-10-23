@@ -8,8 +8,8 @@ import {
 import { SPELLOUT_CONTRACT_VERSION } from '../server/babelParser/spellout.js';
 import {
   buildAnthropicRequestBody,
-  buildGeminiGenerationRequest,
-  buildLocalRequestBody,
+  buildGrokRequestBody,
+  buildKimiRequestBody,
   buildOpenAIRequestBody
 } from '../server/babelParser/modelRuntime.js';
 import { buildParseContentsPrompt } from '../server/babelParser/prompts.js';
@@ -36,14 +36,6 @@ const recordFor = ({
 });
 
 const requestBodies = () => ({
-  gemini: buildGeminiGenerationRequest({
-    model: 'gemini-test',
-    contents: 'Analyze sentence one.',
-    systemInstruction: SYSTEM_TEXT,
-    temperature: 0.2,
-    maxOutputTokens: 8192,
-    thinkingConfig: { thinkingLevel: 'HIGH' }
-  }),
   gpt: buildOpenAIRequestBody({
     model: 'gpt-test',
     contents: 'Analyze sentence one.',
@@ -60,33 +52,40 @@ const requestBodies = () => ({
     effort: 'max',
     thinking: { type: 'adaptive', display: 'omitted' }
   }),
-  local: buildLocalRequestBody({
-    transport: 'http',
+  kimi: buildKimiRequestBody({
+    model: 'kimi-test',
+    contents: 'Analyze sentence one.',
     systemInstruction: SYSTEM_TEXT,
-    prompt: 'Analyze sentence one.',
-    temperature: 0.2,
-    maxOutputTokens: 4096
+    maxOutputTokens: 8192,
+    reasoningEffort: 'high'
+  }),
+  grok: buildGrokRequestBody({
+    model: 'grok-test',
+    contents: 'Analyze sentence one.',
+    systemInstruction: SYSTEM_TEXT,
+    maxOutputTokens: 8192,
+    reasoningEffort: 'high'
   })
 });
 
 test('generation records hash exact prompt material without embedding it', () => {
   const bodies = requestBodies();
-  const first = recordFor({ provider: 'gemini', sentRequest: bodies.gemini });
-  const secondBody = buildGeminiGenerationRequest({
-    model: 'gemini-test',
+  const first = recordFor({ provider: 'gpt', sentRequest: bodies.gpt });
+  const secondBody = buildOpenAIRequestBody({
+    model: 'gpt-test',
     contents: 'Analyze a different sentence.',
     systemInstruction: SYSTEM_TEXT,
-    temperature: 0.2,
     maxOutputTokens: 8192,
-    thinkingConfig: { thinkingLevel: 'HIGH' }
+    reasoningEffort: 'high',
+    background: true
   });
-  const second = recordFor({ provider: 'gemini', sentRequest: secondBody });
+  const second = recordFor({ provider: 'gpt', sentRequest: secondBody });
   const minimalist = recordFor({
-    provider: 'gemini',
-    sentRequest: bodies.gemini,
+    provider: 'gpt',
+    sentRequest: bodies.gpt,
     framework: 'minimalism'
   });
-  const gpt = recordFor({ provider: 'gpt', sentRequest: bodies.gpt });
+  const claude = recordFor({ provider: 'claude', sentRequest: bodies.claude });
 
   for (const field of ['systemInstructionSha256', 'promptSha256', 'promptTemplateSha256']) {
     assert.match(first.promptContract[field], HASH_RE);
@@ -94,7 +93,7 @@ test('generation records hash exact prompt material without embedding it', () =>
   assert.equal(first.promptContract.promptTemplateSha256, second.promptContract.promptTemplateSha256);
   assert.notEqual(first.promptContract.promptSha256, second.promptContract.promptSha256);
   assert.notEqual(first.promptContract.promptTemplateSha256, minimalist.promptContract.promptTemplateSha256);
-  assert.notEqual(first.promptContract.promptTemplateSha256, gpt.promptContract.promptTemplateSha256);
+  assert.notEqual(first.promptContract.promptTemplateSha256, claude.promptContract.promptTemplateSha256);
   assert.equal(first.timing.requestStartedAt, '2026-07-10T12:00:00.000Z');
   assert.equal(first.timing.durationMs, 321);
   assert.equal(first.schemaVersion, 2);
@@ -111,13 +110,13 @@ test('sent generation config preserves provider asymmetry without key-bearing fi
     ])
   );
 
-  assert.equal(records.gemini.sentGenerationConfig.temperature, 0.2);
-  assert.equal(records.local.sentGenerationConfig.temperature, 0.2);
-  assert.equal(Object.hasOwn(records.gpt.sentGenerationConfig, 'temperature'), false);
-  assert.equal(Object.hasOwn(records.claude.sentGenerationConfig, 'temperature'), false);
+  for (const record of Object.values(records)) {
+    assert.equal(Object.hasOwn(record.sentGenerationConfig, 'temperature'), false);
+  }
   assert.equal(records.gpt.sentGenerationConfig.background, true);
   assert.equal(records.claude.sentGenerationConfig.effort, 'max');
-  assert.equal(records.local.sentGenerationConfig.transport, 'http');
+  assert.equal(records.kimi.sentGenerationConfig.maxCompletionTokens, 8192);
+  assert.equal(records.grok.sentGenerationConfig.store, false);
 
   const forbiddenKeys = new Set(['apiKey', 'Authorization', 'x-api-key', 'headers']);
   const visit = (value) => {
@@ -135,22 +134,20 @@ test('sent generation config preserves provider asymmetry without key-bearing fi
 
 test('pure request builders retain the current provider wire shapes', () => {
   const bodies = requestBodies();
-  assert.deepEqual(bodies.gemini.config.thinkingConfig, { thinkingLevel: 'HIGH' });
-  assert.equal(bodies.gemini.config.responseMimeType, 'application/json');
   assert.equal(bodies.gpt.reasoning.effort, 'high');
   assert.equal(bodies.gpt.max_output_tokens, 8192);
   assert.equal(Object.hasOwn(bodies.gpt, 'temperature'), false);
   assert.equal(bodies.claude.system, SYSTEM_TEXT);
   assert.equal(bodies.claude.output_config.effort, 'max');
   assert.equal(Object.hasOwn(bodies.claude, 'temperature'), false);
-  assert.equal(bodies.local.options.num_predict, 4096);
-  assert.equal(bodies.local.options.num_ctx > 0, true);
+  assert.equal(bodies.kimi.max_completion_tokens, 8192);
+  assert.equal(bodies.grok.max_output_tokens, 8192);
 });
 
 test('Tree Bank snapshots preserve generationRecord as bundle metadata', () => {
   const generationRecord = recordFor({
-    provider: 'gemini',
-    sentRequest: requestBodies().gemini
+    provider: 'gpt',
+    sentRequest: requestBodies().gpt
   });
   const snapshot = createTreeBankBundleSnapshot({
     analyses: [{

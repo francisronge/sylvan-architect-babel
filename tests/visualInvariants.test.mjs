@@ -242,6 +242,20 @@ test('control: branch-geometry reports a branch stretched over two rows and sist
     .some(found => found.subtype === 'span' && found.subject === lowered.id));
 });
 
+test('a fork whose daughters all wait for one later wrapper keeps one-row branches until the wrapper arrives', () => {
+  // GPT-6.1 Sol pt-enclisis.B: VP0 = [V0 D0] waits for the clitic complex VH across stages, and at the first
+  // moment of the last stage TP0 = [TH vA] waits for T′. Reserved rows drew those branches two rows long.
+  const cases = [['clitic-wrapper-across-stages', 0, 'VP0', 'VH'], ['finite-wrapper-within-stage', 1, 'TP0', 'TI']];
+  for (const [name, index, parent, wrapper] of cases) {
+    const visual = prepareVisualRecord(recordOf(`replay-regressions/reserved-wrapper-fork.json#/cases/${index}`));
+    const frames = layoutVisualFrames(visual, [VIEWPORTS[0]]);
+    const waiting = frames.filter(frame => frame.lines.some(line => line.kind === 'branch' && line.nodes[0] === parent)
+      && !frame.texts.some(text => text.nodes.includes(wrapper)));
+    assert(waiting.length, `${name}: ${parent} is drawn before ${wrapper} exists`);
+    assert.deepEqual(frames.flatMap(frame => checkBranchGeometry(frame).map(found => `${frame.frame} ${found.subject}`)), [], name);
+  }
+});
+
 test('control: layout-width compares every viewport with the first, in Replay and the Canopy, and reports text that follows the window', () => {
   // verify:visual-offline audits the desktop sizes only; this covers the mobile comparison. The fixture is the
   // reference-canvas regression's (tests/plaqueLayoutJob.test.mjs).
