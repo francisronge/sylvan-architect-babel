@@ -317,7 +317,13 @@ already allocated claims. A control dependency is painted after fitting as a
 dashed orthogonal elbow between measured labels; allocation reserves the same
 elbow (`controlDependencyRoute`) from estimated labels in every scene that
 paints it, and its runs keep the full plaque gap, as trajectories do. The nearest clear pocket search has no arbitrary radius
-cutoff that sends an otherwise local plaque beneath the tree. Later spelling
+cutoff that sends an otherwise local plaque beneath the tree. The fixed nearby pockets usually keep slack, but
+that search slides a plaque flush against what blocks it, and at the plain gap such plaques hugged their labels and
+words (Francis, 23 October 2026: "some plaques are sitting / hugging very tightly to its terminal/node"). A pocket the
+search finds is nudged, by up to twice `PLAQUE_SCAN_TEXT_EXTRA` (10 units) on each axis, to the nearest clear pocket
+keeping that much more than the gap from category labels and words, if one is nearby and nearer than the prior pocket;
+otherwise it stays. The second look's search keeps the same extra beyond its half margin. Fixed pockets, pocket
+validity and carrying keep the plain gap, so no accepted pocket moves for the wider one. Later spelling
 changes reserve the largest required box at first appearance. The planner is
 memoized across Replay steps; it does not move branches, reveal future syntax or
 alter relation timing. Transparent hulls are not obstacles.
