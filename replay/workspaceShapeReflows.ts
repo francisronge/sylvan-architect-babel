@@ -1,6 +1,7 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import { getNodeId } from './displayIdentity.ts';
+import { carriedShift } from './cameraCarry.ts';
 import { authoredDisplayWord } from './displayWordMaterial.ts';
 import type { TreeCoordinateReservation } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
@@ -129,9 +130,13 @@ function detectWorkspaceReflows<S extends Scene>(
       });
       if (stationary.length) {
         const oldPositions = positions(index - 1), newPositions = positions(index);
+        // Across a stage boundary the camera carries the shared syntax (carriedShift); only motion
+        // beyond that carry is seen, so only that motion is unowned.
+        const carry = scenes[index].step.replayFrameIndex !== scenes[index - 1].step.replayFrameIndex
+          ? carriedShift(oldPositions, newPositions) : { x: 0, y: 0 };
         for (const id of stationary) {
           const prior = oldPositions.get(id), next = newPositions.get(id);
-          if (prior && next && Math.hypot(next.x - prior.x, next.y - prior.y) > 1e-6)
+          if (prior && next && Math.hypot(next.x - carry.x - prior.x, next.y - carry.y - prior.y) > 1e-6)
             result.push({ index, rootId: id, kind: 'unowned-component-motion' });
         }
       }
