@@ -8,10 +8,7 @@ import { ParseApiError } from '../server/babelParser/error.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { attachGenerationFailureEvidence } from '../server/babelParser/routeErrors.js';
 import { assertGenerationComplete, buildGenerationOutcome, summarizeGeneration } from '../server/babelParser/generationOutcome.js';
-import {
-  PROVIDER_OUTPUT_ALLOWANCE_POLICIES,
-  resolveRouteMaxOutputTokens
-} from '../server/babelParser/routeConfig.js';
+import { GENERATION_MODEL_IDS, getResearchModel } from '../server/babelParser/researchModelCatalog.js';
 import {
   formatApiError,
   projectPublicGenerationRecord,
@@ -51,7 +48,7 @@ const normalize = (payload, sentence = 'Mia') => normalizeParseBundle(
   payload,
   'xbar',
   sentence,
-  'gemini',
+  'gpt',
   true,
   { payloadIntegrityFlags: [] }
 );
@@ -402,7 +399,7 @@ test('provider route failures retain a request receipt without calling another m
     });
 
     await assert.rejects(
-      () => routes.parseSentenceWithOpenAI('Mia'),
+      () => routes.parseSentenceWithResearchModel('Mia', 'xbar', 'openai:gpt-6-astra'),
       (error) => {
         assert.equal(error instanceof ParseApiError, true);
         assert.equal(error.code, 'INVALID_REQUEST');
@@ -444,7 +441,7 @@ test('native OpenAI quota failures reach the public error without a replacement 
             parseModelJsonDetailed: () => assert.fail('Quota failures must not be parsed as analyses')
           });
 
-          await assert.rejects(() => routes.parseSentenceWithOpenAI('Mia'), (error) => {
+          await assert.rejects(() => routes.parseSentenceWithResearchModel('Mia', 'xbar', 'openai:gpt-6-astra'), (error) => {
             assert.equal(error.details.providerErrorCode, code);
             const { status, body } = formatApiError(error);
             assert.equal(status, 429);
@@ -493,7 +490,7 @@ test('native OpenAI generic failed and cancelled responses remain incomplete gen
           parseModelJsonDetailed: () => assert.fail('Stopped responses must not be parsed as analyses')
         });
 
-        await assert.rejects(() => routes.parseSentenceWithOpenAI('Mia'), (error) => {
+        await assert.rejects(() => routes.parseSentenceWithResearchModel('Mia', 'xbar', 'openai:gpt-6-astra'), (error) => {
           const result = formatApiError(error);
           assert.equal(result.status, 502);
           assert.equal(result.body.error.code, 'INCOMPLETE_GENERATION');
@@ -532,7 +529,7 @@ test('unexpected normalization crashes remain deterministic engine failures', as
     });
 
     await assert.rejects(
-      () => routes.parseSentenceWithOpenAI('Mia'),
+      () => routes.parseSentenceWithResearchModel('Mia', 'xbar', 'openai:gpt-6-astra'),
       (error) => {
         assert.equal(error.code, 'PARSE_ENGINE_FAILED');
         assert.equal(error.status, 500);
@@ -563,7 +560,7 @@ test('a response nested too deeply is a typed contract failure on the parse rout
       parseModelJsonDetailed,
       generateOpenAI: async () => ({ text: rawText, status: 'completed', candidates: [{ finishReason: 'COMPLETED' }] })
     });
-    await assert.rejects(() => routes.parseSentenceWithOpenAI('Mia'), (error) => {
+    await assert.rejects(() => routes.parseSentenceWithResearchModel('Mia', 'xbar', 'openai:gpt-6-astra'), (error) => {
       const { status, body } = formatApiError(error);
       assert.equal(status, 502);
       assert.equal(body.error.code, 'BAD_MODEL_RESPONSE');
@@ -580,71 +577,55 @@ test('a response nested too deeply is a typed contract failure on the parse rout
   }
 });
 
-test('Gemini timeout overrides do not leak into other provider routes', () => {
+test('the shared provider timeout applies to every route and legacy Gemini overrides are ignored', () => {
   const routeConfigUrl = new URL('../server/babelParser/routeConfig.js', import.meta.url).href;
-  const script = `
-    const { resolveModelTimeoutMs } = await import(${JSON.stringify(routeConfigUrl)});
-    process.stdout.write(JSON.stringify({
-      gemini: resolveModelTimeoutMs('gemini-model', 'gemini'),
-      gpt: resolveModelTimeoutMs('gpt-model', 'gpt'),
-      claude: resolveModelTimeoutMs('claude-model', 'claude')
-    }));
-  `;
-  const child = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      GEMINI_ROUTE_TIMEOUT_MS: '1111',
-      GEMINI_MODEL_TIMEOUT_MS: '2222',
-      BABEL_PROVIDER_MODEL_TIMEOUT_MS: '3333'
-    }
-  });
-
-  assert.equal(child.status, 0, child.stderr);
-  assert.deepEqual(JSON.parse(child.stdout), {
-    gemini: 1111,
-    gpt: 3333,
-    claude: 3333
-  });
+  const run = (env) => {
+    const child = spawnSync(process.execPath, ['--input-type=module', '-e', `
+      const { resolveModelTimeoutMs } = await import(${JSON.stringify(routeConfigUrl)});
+      process.stdout.write(JSON.stringify(resolveModelTimeoutMs()));
+    `], {
+      encoding: 'utf8',
+      env: { ...process.env, NODE_ENV: 'production', GEMINI_ROUTE_TIMEOUT_MS: '1111', GEMINI_MODEL_TIMEOUT_MS: '2222', ...env }
+    });
+    assert.equal(child.status, 0, child.stderr);
+    return JSON.parse(child.stdout);
+  };
+  assert.equal(run({ BABEL_PROVIDER_MODEL_TIMEOUT_MS: '3333' }), 3333);
+  assert.equal(run({ BABEL_PROVIDER_MODEL_TIMEOUT_MS: '' }), 900000);
 });
 
-test('legacy Gemini model timeout still applies only to Gemini', () => {
-  const routeConfigUrl = new URL('../server/babelParser/routeConfig.js', import.meta.url).href;
-  const script = `
-    const { resolveModelTimeoutMs } = await import(${JSON.stringify(routeConfigUrl)});
-    process.stdout.write(JSON.stringify({
-      gemini: resolveModelTimeoutMs('gemini-model', 'gemini'),
-      gpt: resolveModelTimeoutMs('gpt-model', 'gpt')
-    }));
-  `;
-  const child = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      GEMINI_ROUTE_TIMEOUT_MS: '',
-      GEMINI_MODEL_TIMEOUT_MS: '2222',
-      BABEL_PROVIDER_MODEL_TIMEOUT_MS: '3333'
+test('provider allowances are catalog policy, never sentence-derived', async () => {
+  const keys = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'MOONSHOT_API_KEY', 'XAI_API_KEY'];
+  const previous = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  keys.forEach((key) => { process.env[key] = 'provider-free-test-key'; });
+  try {
+    const sent = [];
+    const generate = async ({ maxOutputTokens }) => {
+      sent.push(maxOutputTokens);
+      throw Object.assign(new Error('stop after the request is built'), { status: 400 });
+    };
+    const routes = createParseRoutes({
+      ParseApiError,
+      normalizeParseBundle: () => assert.fail('No generation is completed'),
+      parseModelJsonDetailed: () => assert.fail('No generation is completed'),
+      generateOpenAI: generate, generateClaude: generate, generateKimi: generate, generateGrok: generate
+    });
+    for (const modelId of GENERATION_MODEL_IDS) {
+      const { requestPolicy } = getResearchModel(modelId);
+      const expected = requestPolicy.maxOutputTokens ?? requestPolicy.maxCompletionTokens;
+      assert.equal(Number.isInteger(expected), true, modelId);
+      for (const sentence of ['x', 'x '.repeat(5000)]) {
+        sent.length = 0;
+        await assert.rejects(() => routes.parseSentenceWithResearchModel(sentence, 'xbar', modelId));
+        assert.deepEqual(sent, [expected], modelId);
+      }
     }
-  });
-
-  assert.equal(child.status, 0, child.stderr);
-  assert.deepEqual(JSON.parse(child.stdout), {
-    gemini: 2222,
-    gpt: 3333
-  });
-});
-
-test('provider allowances are route/model policy, never sentence-derived', () => {
-  assert.equal(resolveRouteMaxOutputTokens('gemini', 'x'), 65536);
-  assert.equal(resolveRouteMaxOutputTokens('gemini', 'x '.repeat(5000)), 65536);
-  assert.equal(resolveRouteMaxOutputTokens('gpt', 'x'), 128000);
-  assert.equal(resolveRouteMaxOutputTokens('gpt', 'x '.repeat(5000)), 128000);
-  assert.equal(PROVIDER_OUTPUT_ALLOWANCE_POLICIES.gemini.documentedMaximum, 65536);
-  assert.equal(PROVIDER_OUTPUT_ALLOWANCE_POLICIES.gpt.documentedMaximum, 128000);
-  assert.equal(PROVIDER_OUTPUT_ALLOWANCE_POLICIES.claude.documentedMaximum, null);
-  assert.equal(PROVIDER_OUTPUT_ALLOWANCE_POLICIES.claude.admissionProbeConfirmed, false);
+  } finally {
+    for (const key of keys) {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    }
+  }
 });
 
 test('generation outcome records finish status and reasoning tokens', () => {
@@ -674,7 +655,7 @@ test('generation outcome records finish status and reasoning tokens', () => {
 
 test('API errors expose typed failure while raw output is capped and hash-bound', () => {
   assert.throws(
-    () => validateParseBody({ sentence: 'Mia', framework: 'other', modelRoute: 'gemini' }),
+    () => validateParseBody({ sentence: 'Mia', framework: 'other', modelId: 'openai:gpt-6-astra' }),
     (error) => {
       const formatted = formatApiError(error);
       assert.equal(formatted.body.error.failure.ruleId, 'REQUEST_FRAMEWORK_SUPPORTED');

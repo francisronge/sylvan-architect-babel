@@ -46,18 +46,6 @@ export const buildPromptContract = ({
 };
 
 export const describeSentRequest = (provider, body = {}) => {
-  if (provider === 'gemini') {
-    const config = body.config || {};
-    return compactScalars({
-      model: body.model,
-      responseMimeType: config.responseMimeType,
-      maxOutputTokens: config.maxOutputTokens,
-      temperature: config.temperature,
-      thinkingLevel: config.thinkingConfig?.thinkingLevel,
-      hasResponseJsonSchema: Boolean(config.responseJsonSchema)
-    });
-  }
-
   if (provider === 'gpt' || provider === 'grok') {
     return compactScalars({
       model: body.model,
@@ -89,17 +77,7 @@ export const describeSentRequest = (provider, body = {}) => {
     });
   }
 
-  const commandTransport = Object.prototype.hasOwnProperty.call(body, 'systemInstruction');
-  return compactScalars({
-    transport: commandTransport ? 'command' : 'http',
-    model: body.model,
-    temperature: commandTransport ? body.temperature : body.options?.temperature,
-    maxOutputTokens: commandTransport ? body.maxOutputTokens : body.options?.num_predict,
-    numCtx: commandTransport ? body.numCtx : body.options?.num_ctx,
-    format: body.format,
-    think: body.think,
-    stream: commandTransport ? undefined : body.stream
-  });
+  return compactScalars({ model: body.model });
 };
 
 const extractPromptMaterial = (provider, body = {}) => {
@@ -108,12 +86,6 @@ const extractPromptMaterial = (provider, body = {}) => {
     return {
       systemInstruction: messages?.find((message) => message.role === 'system')?.content,
       prompt: messages?.find((message) => message.role === 'user')?.content
-    };
-  }
-  if (provider === 'gemini') {
-    return {
-      systemInstruction: body.config?.systemInstruction,
-      prompt: body.contents
     };
   }
   if (provider === 'gpt') {
@@ -128,10 +100,7 @@ const extractPromptMaterial = (provider, body = {}) => {
       prompt: body.messages?.[0]?.content
     };
   }
-  return {
-    systemInstruction: body.systemInstruction ?? body.system,
-    prompt: body.prompt
-  };
+  return {};
 };
 
 export const buildGenerationRecord = ({

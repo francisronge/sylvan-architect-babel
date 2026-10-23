@@ -43,7 +43,7 @@ test('every external provider reports timeout precisely without retrying or norm
   }
 });
 
-test('a provider server error that outlasts the retry policy is a transport failure', async t => {
+test('a provider server error is a transport failure after one request', async t => {
   isolate(t);
   let calls = 0;
   const overloaded = async () => {
@@ -58,8 +58,8 @@ test('a provider server error that outlasts the retry policy is a transport fail
     const before = calls;
     await assert.rejects(routes.parseSentenceWithResearchModel('Mia laughed.', 'xbar', modelId), error => {
       assert.equal(error.code, 'PROVIDER_UNAVAILABLE', modelId);
-      assert.equal(error.details.providerAttempts.length, 3, modelId);
-      assert.equal(error.details.providerAttempts.at(-1).retryStopReason, 'attempt_limit', modelId);
+      assert.equal(error.details.providerAttempts.length, 1, modelId);
+      assert.equal(error.details.providerAttempts[0].retryStopReason, 'no_automatic_retry', modelId);
       const { status, body } = formatApiError(error);
       assert.equal(status, 503, modelId);
       assert.match(body.error.message, /returned HTTP 529 before a result was received/);
@@ -67,6 +67,6 @@ test('a provider server error that outlasts the retry policy is a transport fail
       assert.equal(body.error.generationRecord.outcome.finishStatus, 'TRANSPORT_FAILURE', modelId);
       return true;
     });
-    assert.equal(calls, before + 3, modelId);
+    assert.equal(calls, before + 1, modelId);
   }
 });

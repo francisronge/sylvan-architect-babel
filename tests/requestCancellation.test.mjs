@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { EventEmitter, getEventListeners } from 'node:events';
 import test from 'node:test';
 import { parseFromBodyWithProviders, parseFromRequest } from '../server/parseApi.js';
-import { runWithTransportRetries, withTimeout } from '../server/babelParser/providerTransport.js';
+import { runProviderAttempt, withTimeout } from '../server/babelParser/providerTransport.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { ParseApiError } from '../server/babelParser/error.js';
 
@@ -54,14 +54,13 @@ test('body routing forwards cancellation separately from model-authored input', 
     assert.equal(args.at(-1).abortSignal, controller.signal);
     return { analyses: [], ambiguityDetected: false };
   };
-  const providers = { gemini: provider, gpt: provider, claude: provider, research: provider };
-  for (const selection of [{ modelRoute: 'gemini' }, { modelRoute: 'gpt' }, { modelRoute: 'claude' }, { modelId: 'openai:gpt-6-astra' }]) {
-    await parseFromBodyWithProviders({ sentence: 'Mia laughed.', ...selection }, providers,
+  for (const modelId of ['openai:gpt-6-astra', 'anthropic:claude-opus-5']) {
+    await parseFromBodyWithProviders({ sentence: 'Mia laughed.', modelId }, { research: provider },
       { abortSignal: controller.signal });
   }
   controller.abort();
-  await assert.rejects(parseFromBodyWithProviders({ sentence: 'Mia laughed.' },
-    { gemini: () => assert.fail('No generation after cancellation') }, { abortSignal: controller.signal }), { name: 'AbortError' });
+  await assert.rejects(parseFromBodyWithProviders({ sentence: 'Mia laughed.', modelId: 'openai:gpt-6-astra' },
+    { research: () => assert.fail('No generation after cancellation') }, { abortSignal: controller.signal }), { name: 'AbortError' });
 });
 
 test('cancellation stops bounded or unbounded transport even when the transport ignores its signal', async () => {
@@ -91,30 +90,22 @@ test('finished transport removes its cancellation listener and cancellation prev
     error => error === controller.signal.reason);
 });
 
-test('disconnect during retry backoff clears the wait and does not submit another generation', async () => {
+test('a request cancelled before its attempt starts makes no provider call', async () => {
   const controller = new AbortController();
-  let calls = 0;
-  const pending = runWithTransportRetries({
+  controller.abort();
+  await assert.rejects(runProviderAttempt({
     abortSignal: controller.signal,
-    backoffBaseMs: 10000,
-    run: async () => {
-      calls++;
-      // The retry loop schedules its wait before the following task runs.
-      setImmediate(() => controller.abort());
-      throw Object.assign(new Error('Temporary server failure'), { status: 503 });
-    }
-  });
-  await assert.rejects(pending, error => {
-    assert.equal(error.providerAttempts.length, 1);
+    run: async () => assert.fail('No generation after cancellation')
+  }), error => {
+    assert.deepEqual(error.providerAttempts, []);
     assert.equal(error.providerRetryStopReason, 'cancelled');
     return true;
   });
-  assert.equal(calls, 1);
   assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
 });
 
-test('legacy Gemini, OpenAI and Claude routes propagate cancellation without normalizing or retrying', async t => {
-  for (const key of ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY']) {
+test('every generation route propagates cancellation without normalizing or retrying', async t => {
+  for (const key of ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'MOONSHOT_API_KEY', 'XAI_API_KEY']) {
     const previous = process.env[key]; process.env[key] = 'test-only';
     t.after(() => { if (previous === undefined) delete process.env[key]; else process.env[key] = previous; });
   }
@@ -123,10 +114,10 @@ test('legacy Gemini, OpenAI and Claude routes propagate cancellation without nor
   const generate = ({ abortSignal }) => { calls++; attemptSignal = abortSignal; return new Promise(() => {}); };
   const unexpected = () => assert.fail('Cancelled work must not be normalized');
   const routes = createParseRoutes({ ParseApiError, normalizeParseBundle: unexpected, parseModelJsonDetailed: unexpected,
-    generateGemini: generate, generateOpenAI: generate, generateClaude: generate });
-  for (const [method, route] of [['parseSentenceWithGemini', 'gemini'], ['parseSentenceWithOpenAI', 'gpt'], ['parseSentenceWithClaude', 'claude']]) {
+    generateOpenAI: generate, generateClaude: generate, generateKimi: generate, generateGrok: generate });
+  for (const modelId of ['openai:gpt-6-astra', 'anthropic:claude-opus-5', 'moonshot:kimi-k3', 'xai:grok-4.6']) {
     const controller = new AbortController(), before = calls;
-    const pending = routes[method]('Mia laughed.', 'xbar', route, { abortSignal: controller.signal });
+    const pending = routes.parseSentenceWithResearchModel('Mia laughed.', 'xbar', modelId, { abortSignal: controller.signal });
     assert.equal(calls, before + 1);
     controller.abort();
     await assert.rejects(pending);

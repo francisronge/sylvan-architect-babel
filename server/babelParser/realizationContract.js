@@ -1,5 +1,5 @@
 import { authoredWord } from './nodePronunciation.js';
-import { normalizeSurfaceToken } from './surfaceTokens.js';
+import { alignWordsToTokens, normalizeSurfaceToken } from './surfaceTokens.js';
 
 export const createRealizationHelpers = ({ createFailure }) => {
   const reporter = (diagnostics, { stageIndex = null, fieldPath = '$' }) =>
@@ -140,14 +140,13 @@ export const createRealizationHelpers = ({ createFailure }) => {
     const ordinaryLeaves = leaves.filter(({ node, silent }) => !silent && authoredWord(node) && !coveredLeafIds.has(node.id));
     if (options.complete && hasInput) {
       const remaining = sentenceTokens.map((token, index) => ({ token, index })).filter(({ index }) => !claimedTokens.has(index));
-      const matches = ordinaryLeaves.length === remaining.length && ordinaryLeaves.every(({ node }, index) =>
-        normalizeSurfaceToken(authoredWord(node)) === normalizeSurfaceToken(remaining[index].token));
-      if (!matches) report('.workspaceForest', {
+      const positions = alignWordsToTokens(ordinaryLeaves.map(({ node }) => authoredWord(node)), remaining.map(({ token }) => token));
+      if (!positions) report('.workspaceForest', {
         expectedRemainingTokens: remaining.map(({ token }) => token),
         observedRemainingWords: ordinaryLeaves.map(({ node }) => authoredWord(node))
       }, 'exact input coverage by realization groups and remaining ordinary leaves in tree order', 'DERIVATION_REALIZATION_COVERAGE');
       else ordinaryLeaves.forEach(({ node, path }, index) => {
-        const tokenIndex = remaining[index].index;
+        const tokenIndex = remaining[positions[index]].index;
         if (Object.hasOwn(node, 'tokenIndex') && node.tokenIndex !== tokenIndex) report(`${path}.tokenIndex`, node.tokenIndex,
           `the input-token index ${tokenIndex}`, 'DERIVATION_REALIZATION_DIRECT_INDEX');
         tokenAssignments.set(node.id, tokenIndex);

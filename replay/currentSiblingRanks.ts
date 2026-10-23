@@ -69,38 +69,65 @@ type PointNode = d3.HierarchyPointNode<SyntaxNode>;
 const visibleChildren = (node: PointNode, scene: Scene) => (node.children ?? []).filter(child =>
   !child.data.replayLayoutOnly && scene.visible.has(getNodeId(child)));
 
-/** Current unary edges whose child will later receive an unseen wrapper
- * between it and its current parent. */
-const unaryEdgesAwaitingInsertion = (current: Scene, future: Scene): Array<{ parent: PointNode; child: PointNode }> => {
+/** Current edges whose parent's visible daughters will each later receive an
+ * unseen wrapper between them and that parent: a unary edge, or every edge of
+ * a fork that no daughter keeps as its own parent (a fork with such a daughter
+ * belongs to retainCurrentSiblingRanks). `unary` limits the result to the
+ * former. */
+const edgesAwaitingInsertion = (current: Scene, future: Scene, unary = false): Array<{ parent: PointNode; child: PointNode }> => {
   const edges: Array<{ parent: PointNode; child: PointNode }> = [];
   current.nodes.forEach(parent => {
     if (parent.data.replayLayoutOnly || parent.data.replayOrigin?.kind === 'workspace'
       || !current.visible.has(getNodeId(parent))) return;
     const children = visibleChildren(parent, current);
-    if (children.length !== 1) return;
-    const child = children[0], other = future.nodes.get(getNodeId(child));
-    if (!other) return;
-    if (!awaitsUnseenWrapper(other, getNodeId(parent), current.visible)) return;
-    edges.push({ parent, child });
+    if (!children.length || unary && children.length !== 1) return;
+    if (!children.every(child => {
+      const other = future.nodes.get(getNodeId(child));
+      return other && awaitsUnseenWrapper(other, getNodeId(parent), current.visible);
+    })) return;
+    for (const child of children) edges.push({ parent, child });
   });
   return edges;
 };
 
-/** A unary edge keeps its current rank until an unseen wrapper is inserted.
+/** A current parent's daughters stand one native row below it until the unseen
+ * wrapper above them is inserted; the wrapper's row is reserved but never
+ * drawn as a longer branch. By default the daughters keep the current rank and
+ * drop a row at the insertion. With `lowerSmallerAbove` (for the steps of one
+ * stage, whose final layout is fixed), a fork whose waiting daughters carry
+ * more visible syntax than the rest of their tree instead lowers that rest:
+ * the smaller side rises at the insertion and the larger keeps its final row.
  * Apply this after contour reservation: changing a rank must not change the
  * contour solver's coordinate lifetimes or the completed tree's width. */
-export function retainCurrentUnaryRank(current: CurrentScene, future: Scene): void {
+export function retainCurrentDaughterRanks(current: CurrentScene, future: Scene,
+  { lowerSmallerAbove = false }: { lowerSmallerAbove?: boolean } = {}): void {
   const { coordinates } = current;
   const visibleNodes = new Map([...current.nodes].filter(([id]) => current.visible.has(id)));
-  unaryEdgesAwaitingInsertion(current, future).forEach(({ parent, child }) => {
-    const parentPoint = coordinates.get(getNodeId(parent))!, childPoint = coordinates.get(getNodeId(child))!;
-    const gap = child.y - parent.y;
-    const delta = parentPoint.y + gap - childPoint.y;
-    if (!Number.isFinite(gap) || gap <= 0 || delta >= -1e-8) return;
-    for (const descendant of visibleComponentNodes(child, visibleNodes)) {
-      const id = getNodeId(descendant), point = coordinates.get(id);
+  const shift = (nodes: Iterable<PointNode>, delta: number) => {
+    for (const node of nodes) {
+      const id = getNodeId(node), point = coordinates.get(id);
       if (point) coordinates.set(id, { ...point, y: point.y + delta });
     }
+  };
+  const forks = new Map<PointNode, PointNode[]>();
+  for (const { parent, child } of edgesAwaitingInsertion(current, future))
+    forks.set(parent, [...(forks.get(parent) ?? []), child]);
+  forks.forEach((children, parent) => {
+    const deltas = children.map(child => {
+      const gap = child.y - parent.y;
+      return Number.isFinite(gap) && gap > 0
+        ? coordinates.get(getNodeId(parent))!.y + gap - coordinates.get(getNodeId(child))!.y : 0;
+    });
+    if (lowerSmallerAbove && children.length > 1 && deltas.every(delta => Math.abs(delta - deltas[0]) < 1e-8 && delta < -1e-8)) {
+      const below = new Set(children.flatMap(child => visibleComponentNodes(child, visibleNodes)));
+      let top = parent;
+      for (let up = syntaxParent(top); up && current.visible.has(getNodeId(up)); up = syntaxParent(up)) top = up;
+      const above = visibleComponentNodes(top, visibleNodes).filter(node => !below.has(node));
+      if (above.length < below.size) { shift(above, -deltas[0]); return; }
+    }
+    children.forEach((child, index) => {
+      if (deltas[index] < -1e-8) shift(visibleComponentNodes(child, visibleNodes), deltas[index]);
+    });
   });
 }
 
@@ -110,14 +137,15 @@ export function retainCurrentUnaryRank(current: CurrentScene, future: Scene): vo
  * and every visible ancestor above it are unary, lower the whole spine to one
  * native row above its child: lexical material keeps its reserved slot and the
  * spine rises one row at each authored insertion. A spine with a fork above it
- * cannot move, so its child keeps the current rank instead. */
+ * cannot move, nor can a fork itself, so their daughters keep the current rank
+ * instead. */
 export function retainCurrentUnaryRows(current: CurrentScene, future: Scene): void {
   const { coordinates } = current;
   const visibleParent = (node: PointNode) => {
     const parent = syntaxParent(node);
     return parent && current.visible.has(getNodeId(parent)) ? parent : undefined;
   };
-  unaryEdgesAwaitingInsertion(current, future).reverse().forEach(({ parent, child }) => {
+  edgesAwaitingInsertion(current, future, true).reverse().forEach(({ parent, child }) => {
     const spine = [parent];
     for (let up = visibleParent(parent); up; up = visibleParent(up)) {
       if (visibleChildren(up, current).length !== 1) return;
@@ -132,5 +160,5 @@ export function retainCurrentUnaryRows(current: CurrentScene, future: Scene): vo
       if (point) coordinates.set(getNodeId(node), { ...point, y: point.y + delta });
     }
   });
-  retainCurrentUnaryRank(current, future);
+  retainCurrentDaughterRanks(current, future);
 }
