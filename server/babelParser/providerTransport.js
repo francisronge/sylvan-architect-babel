@@ -163,20 +163,22 @@ const providerFailureReason = (error) => {
   return 'unclassified_failure';
 };
 
-export const runWithTransportRetries = async ({
+/**
+ * Makes the one provider request for a parse and records it as the run's only
+ * attempt. Babel never retries automatically: a connection reset or a 5xx can
+ * arrive after the provider accepted and billed the generation, so a second
+ * request could be billed again. `retryReason` still classifies the failure;
+ * a transient one is returned as an ordinary error the user may retry.
+ */
+export const runProviderAttempt = async ({
   run,
-  maxAttempts = 3,
-  backoffBaseMs = 250,
-  // Absolute epoch milliseconds; the caller still bounds each in-flight call.
+  // Absolute epoch milliseconds; the caller still bounds the in-flight call.
   deadlineAt = Number.POSITIVE_INFINITY,
   abortSignal,
-  delay = delayWithAbort,
   now = () => new Date(),
   runId = randomUUID()
 }) => {
-  const boundedMaxAttempts = Math.max(1, Math.min(3, Math.floor(Number(maxAttempts)) || 1));
   const attempts = [];
-  let lastFailure;
   const terminalFailure = (error, retryStopReason) => {
     const terminalError = mutableProviderError(error);
     if (attempts.length) attempts.at(-1).retryStopReason = retryStopReason;
@@ -192,57 +194,40 @@ export const runWithTransportRetries = async ({
     return terminalError;
   };
 
-  for (let attemptNumber = 1; attemptNumber <= boundedMaxAttempts; attemptNumber += 1) {
-    if (abortSignal?.aborted) throw terminalFailure(abortSignal.reason, 'cancelled');
-    const startedAt = now();
-    if (Number.isFinite(deadlineAt) && startedAt.getTime() >= deadlineAt) {
-      const error = lastFailure || Object.assign(new Error('Provider request deadline exhausted.'), {
-        code: 'PROVIDER_DEADLINE_EXCEEDED'
-      });
-      throw terminalFailure(error, 'deadline_exhausted');
-    }
-    let receivedAnswer = false;
-    try {
-      const value = await run({ attemptNumber, runId });
-      receivedAnswer = true;
-      const generationMeta = summarizeGeneration(value);
-      attempts.push({
-        attemptNumber,
-        startedAt: startedAt.toISOString(),
-        completedAt: now().toISOString(),
-        outcome: 'completed',
-        finishReason: generationMeta.finishReason,
-        finishStatus: generationMeta.status
-      });
-      return { value, runId, attempts };
-    } catch (error) {
-      lastFailure = error;
-      const retryReason = receivedAnswer ? 'received_answer' : providerFailureReason(error);
-      const retryable = ['transient_transport_failure', 'transient_server_failure'].includes(retryReason);
-      attempts.push({
-        attemptNumber,
-        startedAt: startedAt.toISOString(),
-        completedAt: now().toISOString(),
-        outcome: retryable ? 'retryable_transport_failure' : 'terminal_failure',
-        retryReason,
-        ...summarizeErrorForLog(error)
-      });
-      if (!retryable || attemptNumber >= boundedMaxAttempts) {
-        throw terminalFailure(error, retryable ? 'attempt_limit' : 'not_retryable');
-      }
-      const backoffMs = backoffBaseMs * (2 ** (attemptNumber - 1));
-      if (Number.isFinite(deadlineAt) && now().getTime() + backoffMs >= deadlineAt) {
-        throw terminalFailure(error, 'deadline_exhausted');
-      }
-      try {
-        await delay(backoffMs, abortSignal);
-      } catch (delayError) {
-        throw terminalFailure(delayError, abortSignal?.aborted ? 'cancelled' : 'backoff_failed');
-      }
-    }
+  if (abortSignal?.aborted) throw terminalFailure(abortSignal.reason, 'cancelled');
+  const startedAt = now();
+  if (Number.isFinite(deadlineAt) && startedAt.getTime() >= deadlineAt) {
+    throw terminalFailure(Object.assign(new Error('Provider request deadline exhausted.'), {
+      code: 'PROVIDER_DEADLINE_EXCEEDED'
+    }), 'deadline_exhausted');
   }
-
-  throw new Error('Provider retry loop exhausted unexpectedly.');
+  let receivedAnswer = false;
+  try {
+    const value = await run({ attemptNumber: 1, runId });
+    receivedAnswer = true;
+    const generationMeta = summarizeGeneration(value);
+    attempts.push({
+      attemptNumber: 1,
+      startedAt: startedAt.toISOString(),
+      completedAt: now().toISOString(),
+      outcome: 'completed',
+      finishReason: generationMeta.finishReason,
+      finishStatus: generationMeta.status
+    });
+    return { value, runId, attempts };
+  } catch (error) {
+    const retryReason = receivedAnswer ? 'received_answer' : providerFailureReason(error);
+    const retryable = ['transient_transport_failure', 'transient_server_failure'].includes(retryReason);
+    attempts.push({
+      attemptNumber: 1,
+      startedAt: startedAt.toISOString(),
+      completedAt: now().toISOString(),
+      outcome: retryable ? 'retryable_transport_failure' : 'terminal_failure',
+      retryReason,
+      ...summarizeErrorForLog(error)
+    });
+    throw terminalFailure(error, retryable ? 'no_automatic_retry' : 'not_retryable');
+  }
 };
 
 export const readResponseText = async (response, abortSignal) => {

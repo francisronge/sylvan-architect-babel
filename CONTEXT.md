@@ -106,11 +106,12 @@ become ordinary interface settings.
 - Keep the model-facing contract provider-neutral, with no worked language
   examples, role menus, hidden provider-specific linguistic patches or closed
   relation ontology.
-- Production generation never retries an explicit rate limit or replaces a
-  received answer that fails downstream. Genuine temporary network or server
-  failures get at most three total attempts within the deadline. An uncertain
-  timeout does not prove that a generation stopped; recovering an existing
-  response is distinct from creating a new one.
+- One parse request makes at most one provider generation request. Babel never
+  retries automatically: a connection reset or server error can arrive after
+  the provider accepted, and billed, the generation. The failure returns to the
+  user as an ordinary error they may retry (decided 2026-10-23, Francis). An
+  uncertain timeout does not prove that a generation stopped; recovering an
+  existing response is distinct from creating a new one.
 - The derivational database never supplies benchmark answers or held-out
   material. A released benchmark bundle may enter it only afterward, through an
   explicit one-way import marked with its benchmark origin.

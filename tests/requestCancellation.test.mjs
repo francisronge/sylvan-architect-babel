@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { EventEmitter, getEventListeners } from 'node:events';
 import test from 'node:test';
 import { parseFromBodyWithProviders, parseFromRequest } from '../server/parseApi.js';
-import { runWithTransportRetries, withTimeout } from '../server/babelParser/providerTransport.js';
+import { runProviderAttempt, withTimeout } from '../server/babelParser/providerTransport.js';
 import { createParseRoutes } from '../server/babelParser/parseRoutes.js';
 import { ParseApiError } from '../server/babelParser/error.js';
 
@@ -91,25 +91,17 @@ test('finished transport removes its cancellation listener and cancellation prev
     error => error === controller.signal.reason);
 });
 
-test('disconnect during retry backoff clears the wait and does not submit another generation', async () => {
+test('a request cancelled before its attempt starts makes no provider call', async () => {
   const controller = new AbortController();
-  let calls = 0;
-  const pending = runWithTransportRetries({
+  controller.abort();
+  await assert.rejects(runProviderAttempt({
     abortSignal: controller.signal,
-    backoffBaseMs: 10000,
-    run: async () => {
-      calls++;
-      // The retry loop schedules its wait before the following task runs.
-      setImmediate(() => controller.abort());
-      throw Object.assign(new Error('Temporary server failure'), { status: 503 });
-    }
-  });
-  await assert.rejects(pending, error => {
-    assert.equal(error.providerAttempts.length, 1);
+    run: async () => assert.fail('No generation after cancellation')
+  }), error => {
+    assert.deepEqual(error.providerAttempts, []);
     assert.equal(error.providerRetryStopReason, 'cancelled');
     return true;
   });
-  assert.equal(calls, 1);
   assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
 });
 

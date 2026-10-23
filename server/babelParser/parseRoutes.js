@@ -38,7 +38,7 @@ import {
   resolveLocalMaxOutputTokens,
   writeDebugModelPayload
 } from './modelRuntime.js';
-import { getErrorMeta, isNetworkTransportError, runWithTransportRetries, summarizeErrorForLog, withTimeout } from './providerTransport.js';
+import { getErrorMeta, isNetworkTransportError, runProviderAttempt, summarizeErrorForLog, withTimeout } from './providerTransport.js';
 import { assertGenerationComplete, buildGenerationOutcome, summarizeGeneration } from './generationOutcome.js';
 import {
   createRawOutputArtifact,
@@ -454,7 +454,7 @@ export const createParseRoutes = ({
       }
 
       generationStartedAt = Date.now();
-      const generationReceipt = await runWithTransportRetries({
+      const generationReceipt = await runProviderAttempt({
         abortSignal: options.abortSignal,
         deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
         run: async () => {
@@ -624,7 +624,7 @@ export const createParseRoutes = ({
       }
 
       generationStartedAt = Date.now();
-      const generationReceipt = await runWithTransportRetries({
+      const generationReceipt = await runProviderAttempt({
         abortSignal,
         deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
         run: async () => {
