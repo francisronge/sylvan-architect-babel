@@ -45,7 +45,7 @@ import type { ReplayStageContext } from './stageContext.ts';
 import { forestCanUseCurrentMaterialLayoutScaffold } from './stageLayout.ts';
 import { planStageRelations, type RelationPlacement } from './stageRelationPlan.ts';
 import { cloneSyntaxTree, collectPronouncedLeafNodeIdsInOrder, collectSyntaxSubtreeNodeIds, findExactNodeByIdInForest, findExactNodesByIdInForest, findNodeByIdInForest,
-  isNotationLeaf, normalizeToken, resolvedRelationLinkKey, resolveNodeLabel } from './syntaxForest.ts';
+  isNotationLeaf, normalizeToken, replayEffectiveSilence, resolvedRelationLinkKey, resolveNodeLabel } from './syntaxForest.ts';
 import { registeredTrajectoryDisplayKind } from './relations/movementIdentities.ts';
 import { buildAnchoredTreeTransitionForest, buildPreMovementStructuralForest, keptIdLandingNodeIds, movementLandingGroups, movementLandingWrapper,
   newReceivingHeadNodeIds, receivingHeadMaterialNodeId, resolveFallbackTreeTransitionOwnership } from './treeTransitions.ts';
@@ -998,7 +998,16 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const claimed = new Set(canvasParent.keys());
     const rank = (id: string): number => topology.get(id)?.order ?? Math.min(...[id, ...kidsOf(id)].map(at => topology.get(at)?.order ?? 1e6 + (cur.get(at)?.order ?? prev.get(at)?.order ?? 0)));
     const patches = pronunciationPatches();
-    const build = (id: string): SyntaxNode => {
+    // Before its movement a source keeps its preceding pronunciation, including the silence it
+    // inherited there, under an ancestor the stage has already given its current silence.
+    const pendingSources = new Set(frameRelationSteps.flatMap((relation, relationIndex) => played.includes(relationIndex) ? []
+      : (relation.recoveredMovements ?? [relation.recoveredMovement]).flatMap(m => m?.transition ? [prevId(m.priorSourceNodeId)] : [])));
+    const precedingSilence = (id: string): boolean => {
+      const path: SyntaxNode[] = [];
+      for (let at = prev.get(id)?.parent; at; at = prev.get(at)?.parent ?? null) path.push(prev.get(at)!.node);
+      return path.reverse().reduce((silent, node) => replayEffectiveSilence(node, silent), false);
+    };
+    const build = (id: string, inherited = false): SyntaxNode => {
       const { children: _children, ...own } = nodeOf(id);
       const node: SyntaxNode = { ...own, id } as SyntaxNode;
       const patch = patches.get(id);
@@ -1006,11 +1015,13 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
         if (value === undefined) delete (node as unknown as Record<string, unknown>)[field];
         else (node as unknown as Record<string, unknown>)[field] = value;
       }
-      const kids = kidsOf(id);
-      if (kids.length) node.children = kids.map(build);
+      if (pendingSources.has(id) && state.get(id)?.content === 'P' && precedingSilence(id) !== inherited)
+        (node as SyntaxNode & { replayPriorInheritedSilence?: boolean }).replayPriorInheritedSilence = precedingSilence(id);
+      const kids = kidsOf(id), silent = replayEffectiveSilence(node, inherited);
+      if (kids.length) node.children = kids.map(kid => build(kid, silent));
       return node;
     };
-    const canvasForest = [...ids].filter(id => !claimed.has(id)).sort((a, b) => rank(a) - rank(b)).map(build);
+    const canvasForest = [...ids].filter(id => !claimed.has(id)).sort((a, b) => rank(a) - rank(b)).map(id => build(id));
     const pending = pendingAttachments(state, moment);
     // As today: a stage without relation transitions reuses its construction scaffold where the
     // frame fits it; otherwise the scaffold is grafted from the frame's own material.
