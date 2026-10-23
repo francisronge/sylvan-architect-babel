@@ -104,20 +104,26 @@ test('Replay: claims waiting for the same movement keep authored order', () => {
   assert.deepEqual(timingConflicts(steps), []);
 });
 
-test('Replay: relations needing each other\'s syntax keep authored order with the timing diagnostic', () => {
-  // Icelandic stage 3: continued V-to-I needs iFeatures3, which I-to-C
-  // introduces, and I-to-C needs iComplex3, which continued V-to-I introduces.
-  // The theta-role claim before them needs v3 from that cycle.
+test('Replay: a restated head movement authored before the movement carrying it plays after that movement', () => {
+  // Icelandic stage 3: "continued V-to-I" restates stage 2's V-to-I under
+  // renamed ids; the verb stays inside the I complex and tV is unchanged. Only
+  // I-to-C introduces the complex, so the restatement and the theta-role claim
+  // naming v3 play right after it, with no timing cycle.
   const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/case-source-transfer.json', import.meta.url)));
   const original = structuredClone(record);
   const steps = buildReplayPlayback({ sentence: record.sentence, inputTokens: record.inputTokens, analyses: [record] }).steps;
   const stage = relationMoments(steps, 2);
-  assert.deepEqual(stage.slice(0, 3).map(step => step.replayRelationIdentity.relationIndex), [0, 1, 2]);
-  const [theta, continued, raising] = stage;
-  for (const step of [theta, continued]) assert.ok(!visible(step, 'iFeatures3'), 'no syntax is introduced early');
-  assert.ok(visible(raising, 'iFeatures3'));
-  assert.match(theta.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 3, relation 1 \(theta-role assignment\) requires v3 before relation 2/);
-  assert.match(continued.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 3, relation 2 .* requires iFeatures3 before relation 3/);
+  assert.deepEqual(stage.slice(0, 3).map(step => step.replayRelationIdentity.relationIndex), [2, 0, 1]);
+  const [raising, theta, continued] = stage;
+  const before = steps[steps.indexOf(raising) - 1];
+  for (const id of ['cComplex', 'iComplex3', 'v3', 'iFeatures3', 'tI']) {
+    assert.ok(!visible(before, id), `${id} is not introduced early`);
+    assert.ok(visible(raising, id), `${id} appears with I-to-C`);
+  }
+  for (const step of [theta, continued]) assert.ok(visible(step, 'v3'));
+  assert.ok(continued.replayRelationLinks.some(link => link.relation === continued.operation
+    && link.sourceNodeId === 'tV' && link.targetNodeId === 'v3' && link.trajectoryKind === 'head'), 'the restatement keeps its path');
+  assert.deepEqual(timingConflicts(steps), []);
   assert.deepEqual(record, original);
 });
 

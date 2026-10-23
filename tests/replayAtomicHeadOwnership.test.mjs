@@ -68,6 +68,28 @@ test('saved complex-head movement carries its member before the later chain rest
   assert.deepEqual(record, original);
 });
 
+test('a chain restatement authored before the movement carrying its member still plays after it', () => {
+  // Authored order alone does not make a restatement of an earlier stage's
+  // movement a new displacement: the carrying movement introduces the complex.
+  const record = load('complex-head-chain-restatement');
+  const relations = record.derivationStages[2].relations;
+  [relations[0], relations[1]] = [relations[1], relations[0]];
+  const original = structuredClone(record);
+  const frames = adaptDerivationStagesForReplay(record.derivationStages);
+  const recovered = getFrameRelations(frames[2], null, frames[1].workspaceForest);
+  assert.equal(recovered[0].recoveredMovement.transition, false);
+  assert.equal(recovered[0].recoveredMovement.drawTrajectory, true, 'its own drawing is retained');
+  assert.equal(recovered[1].recoveredMovement.transition, true);
+  const steps = play(record);
+  const stage = steps.filter(step => step.replayFrameIndex === 2);
+  const movement = stage.find(step => step.operation === 'I-to-C head movement');
+  const restatement = stage.find(step => step.operation === 'Updated lexical-verb head chain');
+  assert.ok(stage.indexOf(movement) < stage.indexOf(restatement));
+  for (const id of ['ti', 'i2', 'v2', 'ibase2', 'c1', 'c0', 'tv']) assert.ok(visible(movement, id), id);
+  assert.ok(!stage.some(step => step.movementDiagnostics?.some(message => message.includes('TIMING_CONFLICT'))));
+  assert.deepEqual(record, original);
+});
+
 for (const change of ['member pronunciation', 'member order', 'lower witness']) {
   test(`a later head relation retains its transition when it changes ${change}`, () => {
     const record = load('complex-head-chain-restatement');
