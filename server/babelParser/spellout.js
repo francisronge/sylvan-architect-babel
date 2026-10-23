@@ -172,13 +172,31 @@ const graphemeBoundaries = (text) => {
   return boundaries;
 };
 
-/** The sentence's code points with their lower case and character classes, read once per response. */
+/**
+ * A code point's caseless form, so a word matches the sentence whatever its
+ * letter case. Upper- then lowercasing applies the full case mappings that one
+ * lowering misses (ß and ẞ are ss, final ς is σ, ſ is s, ﬁ is fi); İ is i, as
+ * Turkish lowers it, and dotless ı stays its own letter. Forms are decomposed
+ * (NFD), so a precomposed letter and its uppercase spelled with a combining
+ * mark agree. A form may be longer than one code point; matching reads it
+ * whole, so a sentence character is never split. Only case is ignored: accents
+ * and other character variants still count, and punctuation is classified
+ * before folding.
+ */
+const foldCharacter = (character) => {
+  if (character === 'İ') return 'i';
+  if (character === 'ı') return character;
+  return character.toUpperCase().toLowerCase().replace(/ß/gu, 'ss').normalize('NFD');
+};
+const foldText = (characters) => characters.map(foldCharacter).join('');
+
+/** The sentence's code points with their caseless forms and character classes, read once per response. */
 const readSentence = (sentence) => {
   const text = sentence.normalize('NFC');
   const chars = codePoints(text);
   return {
     chars,
-    lower: chars.map(character => character.toLowerCase()),
+    fold: chars.map(foldCharacter),
     ignored: chars.map(character => IGNORED.test(character)),
     space: chars.map(character => SPACE.test(character)),
     boundaries: graphemeBoundaries(text)
@@ -204,7 +222,29 @@ const spellingOf = (text) => {
   // A word made only of punctuation spells that punctuation literally.
   const literal = wanted.length === 0;
   const target = literal ? codePoints(text) : wanted;
-  return { literal, target, lower: target.map(character => character.toLowerCase()), ...edgePunctuation(text) };
+  return { literal, target, folded: literal ? '' : foldText(target), ...edgePunctuation(text) };
+};
+
+/**
+ * Reads a spelling from position. A literal spelling matches code point for
+ * code point; any other skips punctuation and whitespace and matches caseless
+ * forms, each sentence character whole. Returns where reading stopped.
+ */
+const readSpelling = ({ chars, fold, ignored }, position, { literal, target, folded }) => {
+  if (literal) {
+    let matched = 0;
+    while (matched < target.length && position < chars.length && chars[position] === target[matched]) {
+      position += 1; matched += 1;
+    }
+    return { position, complete: matched === target.length };
+  }
+  let offset = 0;
+  while (offset < folded.length && position < chars.length) {
+    if (ignored[position]) { position += 1; continue; }
+    if (!folded.startsWith(fold[position], offset)) break;
+    offset += fold[position].length; position += 1;
+  }
+  return { position, complete: offset === folded.length };
 };
 
 /**
@@ -213,19 +253,15 @@ const spellingOf = (text) => {
  * joins its span when the sentence has punctuation there.
  */
 const spellAt = (sentence, position, spelling, meter) => {
-  const { chars, lower, ignored, space } = sentence;
+  const { chars, ignored, space } = sentence;
   const { literal, target } = spelling;
   const from = position;
   const separator = literal ? space : ignored;
   while (position < chars.length && separator[position]) position += 1;
   let start = position;
-  let matched = 0;
-  while (matched < target.length && position < chars.length) {
-    if (!literal && ignored[position]) { position += 1; continue; }
-    if (chars[position] !== target[matched] && lower[position] !== spelling.lower[matched]) break;
-    position += 1; matched += 1;
-  }
-  const complete = matched === target.length;
+  const read = readSpelling(sentence, position, spelling);
+  position = read.position;
+  const { complete } = read;
   if (complete && !literal) {
     const mark = index => ignored[index] && !space[index];
     let { lead, trail } = spelling;
@@ -364,9 +400,9 @@ const alignFinalStage = (reading, groups, sentence, meter) => {
   return { units, diagnostics, observations };
 };
 
-/** Runs of whole final words that spell text; tokens holds each word's significant spelling. */
+/** Runs of whole final words that spell text; tokens holds each word's caseless significant spelling. */
 const wholeWordRuns = (text, tokens, meter) => {
-  const wanted = significant(text).join('').toLowerCase();
+  const wanted = foldText(significant(text));
   const runs = [];
   for (let first = 0; first < tokens.length; first += 1) {
     let spelled = '';
@@ -380,18 +416,14 @@ const wholeWordRuns = (text, tokens, meter) => {
 };
 
 /** Spans where a spelling occurs in the sentence, matched as final words are. */
-const occurrences = ({ chars, lower, ignored }, { literal, target, lower: wanted }, meter) => {
+const occurrences = (sentence, spelling, meter) => {
+  const { chars, ignored } = sentence;
   const spans = [];
-  for (let start = 0; !literal && start < chars.length; start += 1) {
+  for (let start = 0; !spelling.literal && start < chars.length; start += 1) {
     if (ignored[start]) continue;
-    let position = start, matched = 0;
-    while (matched < target.length && position < chars.length) {
-      if (ignored[position]) { position += 1; continue; }
-      if (chars[position] !== target[matched] && lower[position] !== wanted[matched]) break;
-      position += 1; matched += 1;
-    }
+    const { position, complete } = readSpelling(sentence, start, spelling);
     meter.charge(1 + position - start);
-    if (matched === target.length) spans.push([start, position]);
+    if (complete) spans.push([start, position]);
   }
   return spans;
 };
@@ -488,7 +520,7 @@ const alignAnalysis = (analysis, sentence, meter) => {
       if (unit.group === undefined) assign(unit.nodeId, index);
       else finalGroups[unit.group].nodeIds.forEach(id => eachPronounced(finalReading, id, meter, leaf => assign(leaf.id, index)));
     });
-    const final = { units, positionByLeafId, tokens: units.map(unit => significant(unit.token).join('').toLowerCase()) };
+    const final = { units, positionByLeafId, tokens: units.map(unit => foldText(significant(unit.token))) };
     earlierGroups.forEach(({ group, stageIndex, groupIndex }) => {
       const located = locateEarlierGroup(group, readings[stageIndex], final, sentence, meter);
       if (located.spans) earlier.push({ stageIndex, groupIndex, spans: located.spans });
