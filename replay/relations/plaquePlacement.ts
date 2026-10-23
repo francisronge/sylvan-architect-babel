@@ -100,6 +100,22 @@ export const DETACHED_PLAQUE_GAP = PLAQUE_GAP / 2;
 /** Allocated plaques and fixed native plaques; everything else is syntax or a connector. */
 const isPlaqueShell = (obstacle: PlaqueRect) => Boolean(obstacle.plaqueShell
   || obstacle.blocksConnectors && obstacle.connectorAttachment === undefined && !obstacle.curve);
+/** A category label or word box (plaqueTreeObstacles). */
+const isTreeText = (obstacle: PlaqueRect) => obstacle.connectorAttachment !== undefined && !obstacle.curve;
+/** The nearest-pocket scan slides a plaque flush against its blockers, where the
+ * fixed nearby pockets usually keep slack. A scanned pocket keeps this much more
+ * than PLAQUE_GAP from tree text where a small nudge allows it. */
+export const PLAQUE_SCAN_TEXT_EXTRA = 10;
+const NUDGES = [-2, -1, 0, 1, 2].map(step => step * PLAQUE_SCAN_TEXT_EXTRA);
+const grownObstacles = new WeakMap<PlaqueRect, Map<number, PlaqueRect>>();
+/** `obstacle` grown by `by` on every side, one shared box per obstacle and amount. */
+function grownObstacle(obstacle: PlaqueRect, by: number): PlaqueRect {
+  let sizes = grownObstacles.get(obstacle);
+  if (!sizes) grownObstacles.set(obstacle, sizes = new Map());
+  let box = sizes.get(by);
+  if (!box) sizes.set(by, box = { ...obstacle, x: obstacle.x - by, y: obstacle.y - by, width: obstacle.width + 2 * by, height: obstacle.height + 2 * by });
+  return box;
+}
 /** Distances are measured from a word-bearing leaf's word, else from the anchor's label. */
 export function plaqueAnchorPoint(anchor: Pick<Node, 'x' | 'y' | 'data' | 'children'>) {
   return { x: anchor.x, y: anchor.y + (!anchor.children?.length && anchor.data.word ? TERMINAL_ATTACHMENT_Y : 0) };
@@ -1023,8 +1039,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const accepts = (box: PlaqueRect) => space ? space.acceptsConnector(box)
         : (!caseClears || caseClears(box))
           && collectionPlaqueClears(box, nodes, occupied);
-    const clear = (candidate: PlaqueRect) => {
-      if (overlaps(candidate)) return undefined;
+    const clear = (candidate: PlaqueRect, blocked = overlaps) => {
+      if (blocked(candidate)) return undefined;
       // Ports never move a Case arrow: every attachment tried below draws the
       // same one. A pocket whose arrow is blocked is rejected before choosing them.
       if (request.caseAssignment) {
@@ -1086,8 +1102,29 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     // A genuine participant relocation can make a valid old pocket unnecessarily
     // remote. Keep it as an incumbent; unchanged geometry takes the carry path.
     if (placement && priorCandidate && priorDistance <= placementDistance(placement)) placement = priorCandidate;
-    if (!placement && local) {
-      placement = priorCandidate;
+    /** A scanned pocket slides flush against what blocks it. Nudged by up to
+     * twice PLAQUE_SCAN_TEXT_EXTRA, it keeps that much more than the gap from tree
+     * text, when such a pocket is clear, nearby and nearer than the prior pocket. */
+    const roomier = (box: PlaqueRect) => {
+      // Every obstacle that can block a nudge also blocks the area they cover, at the wider gap.
+      const reach = NUDGES[NUDGES.length - 1], area = { x: box.x - reach, y: box.y - reach, width: width + 2 * reach, height: height + 2 * reach };
+      const roomy = searched.filter(obstacle => plaquesOverlap(area, obstacle, gap + PLAQUE_SCAN_TEXT_EXTRA))
+        .map(obstacle => isTreeText(obstacle) ? grownObstacle(obstacle, PLAQUE_SCAN_TEXT_EXTRA) : obstacle);
+      const blocked = (candidate: PlaqueRect) => roomy.some(obstacle => plaquesOverlap(candidate, obstacle, gap));
+      if (!blocked(box)) return box;
+      let best: PlaqueRect | undefined, bestDistance = priorDistance;
+      for (const dx of NUDGES) for (const dy of NUDGES) {
+        if (!dx && !dy) continue;
+        const nudged = clear({ x: box.x + dx, y: box.y + dy, width, height }, blocked), distance = nudged && placementDistance(nudged);
+        if (nudged && distance! < bestDistance && !beyondNearbyReach(Math.sqrt(distance!), request)) {
+          best = nudged; bestDistance = distance!;
+        }
+      }
+      return best ?? box;
+    };
+    /** The nearest clear pocket beyond the fixed candidates. */
+    const scan = () => {
+      let placement: PlaqueRect | undefined = priorCandidate;
       // Search the nearest clear pocket, including one just beyond the initial
       // candidates. A radius cutoff would send a local claim below its subtree.
       const scanGap = gap + 1e-6;
@@ -1243,6 +1280,11 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         else continue;
         columns.push(column);
       }
+      return placement;
+    };
+    if (!placement && local) {
+      const scanned = scan();
+      placement = scanned && scanned !== priorCandidate ? roomier(scanned) : scanned;
     }
     placement ??= priorCandidate;
     // Leaving an incumbent needs a clearly nearer pocket: a nearby one when the
