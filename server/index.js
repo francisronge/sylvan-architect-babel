@@ -19,12 +19,14 @@ import {
   describeParseServerFailure,
   readParseAccessPolicy
 } from './parseHttpPolicy.js';
+import { describeStaleDist } from './distFreshness.js';
 import { checkLocalRuntimeHost, readLocalHostPolicy } from './localHostPolicy.js';
 import { PERMISSIONS_POLICY, helmetOptions } from './securityHeaders.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const distPath = path.resolve(__dirname, '../dist');
+const checkoutRoot = path.resolve(__dirname, '..');
+const distPath = path.join(checkoutRoot, 'dist');
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -162,6 +164,15 @@ app.use((error, _, res, next) => {
   }
   return next();
 });
+
+// A production host serves the dist/ its deploy built and may have no git
+// checkout to compare it with; the local runtime refuses a build of other sources.
+const staleDist = isLocalRuntime && fs.existsSync(distPath)
+  ? describeStaleDist({ root: checkoutRoot, distPath }) : null;
+if (staleDist) {
+  console.error(`[secure-server] refusing to start: ${staleDist}`);
+  process.exit(1);
+}
 
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath, { extensions: ['html'] }));

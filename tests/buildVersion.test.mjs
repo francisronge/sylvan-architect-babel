@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { buildVersionPlugin, readBuildId } from '../scripts/buildVersionPlugin.mjs';
+import { buildVersionPlugin, readBuildId, readWorktreeDigest } from '../scripts/buildVersionPlugin.mjs';
 
 const checkout = t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-build-version-'));
@@ -38,6 +38,25 @@ test('the build id reaches app code and the page head', t => {
   const plugin = buildVersionPlugin({ root: checkout(t), env: { VERCEL_GIT_COMMIT_SHA: 'abc123' } });
   assert.deepEqual(plugin.config(), { define: { __BABEL_BUILD__: '"1.2.3+abc123"' } });
   assert.deepEqual(plugin.transformIndexHtml(), [
-    { tag: 'meta', attrs: { name: 'babel-build', content: '1.2.3+abc123' }, injectTo: 'head' }
+    { tag: 'meta', attrs: { name: 'babel-build', content: '1.2.3+abc123' }, injectTo: 'head' },
+    { tag: 'meta', attrs: { name: 'babel-worktree', content: 'unknown' }, injectTo: 'head' }
   ]);
+});
+
+test('the worktree digest changes with each uncommitted change, not only the first', t => {
+  const root = checkout(t);
+  git(root, 'init', '--quiet');
+  git(root, 'add', '.');
+  git(root, '-c', 'user.name=Build test', '-c', 'user.email=build@example.invalid',
+    '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Build version baseline');
+  assert.equal(readWorktreeDigest({ root }), 'clean');
+  const digests = new Set();
+  for (const version of ['1.2.4', '1.2.5']) {
+    fs.writeFileSync(path.join(root, 'package.json'), `{"version":"${version}"}\n`);
+    digests.add(readWorktreeDigest({ root }));
+  }
+  fs.writeFileSync(path.join(root, 'untracked.txt'), 'new file\n');
+  digests.add(readWorktreeDigest({ root }));
+  assert.equal(digests.size, 3);
+  for (const digest of digests) assert.match(digest, /^[0-9a-f]{64}$/);
 });
