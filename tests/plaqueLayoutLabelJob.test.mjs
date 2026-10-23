@@ -101,7 +101,7 @@ test('plain glyph bounds for exact displayed text are captured before worker exe
  const expected=buildReplayPlaqueSchedule(input),job=capture(input);
  assert(glyphRequests.some(([text,font])=>text==='Book₁₀'&&font==='italic 900 56px Quicksand, sans-serif'));
  assert(!glyphRequests.some(([text])=>text==='Book'),'the raw node word cannot replace the displayed string');
- assert.deepEqual(job.treeLabels.get(treeLabelRunKey(run)),{x:-126,y:55,width:252,height:95});
+ assert.deepEqual(job.treeLabels.get(treeLabelRunKey(run)),{x:-126,y:55,width:252,height:95,cell:{x:-110,y:59,width:220,height:70}});
  assert.equal(job.treeInk,undefined,'worker consumes the complete measured label bounds, not an uncollected DOM request');
  assert.deepEqual(runPlaqueLayoutJob(job).schedule,expected);
  const worker=new Worker(new URL('./support/plaqueLayoutWorkerBridge.mjs',import.meta.url));

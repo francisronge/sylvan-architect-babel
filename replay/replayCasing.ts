@@ -21,6 +21,16 @@ const SENTENCE_INITIAL_CASE_ADJUSTABLE_PARENT_LABELS = new Set([
 
 const isSentenceInitialCaseAdjustableParent = (label?: string): boolean => SENTENCE_INITIAL_CASE_ADJUSTABLE_PARENT_LABELS.has(categoryLabel(String(label || '')).toUpperCase());
 
+// Structure cannot tell a pronoun from a name under a bare D, so only these
+// closed-class English forms may lose sentence casing there. Names keep their
+// authored form, and so does I, which is capitalised everywhere.
+const BARE_D_SENTENCE_CASED_FORMS = new Set([
+  'there', 'it', 'he', 'she', 'we', 'they', 'you', 'me', 'him', 'her', 'us', 'them',
+  'this', 'that', 'these', 'those', 'who', 'whom', 'whose', 'what', 'which',
+  'someone', 'somebody', 'something', 'everyone', 'everybody', 'everything',
+  'anyone', 'anybody', 'anything', 'no one', 'nobody', 'nothing', 'each', 'both', 'all', 'none'
+]);
+
 // Atomic D also represents names and pronouns; a nominal complement supplies
 // the structural evidence for determiner-specific sentence casing.
 export const hasDeterminerNominalComplement = (head: SyntaxNode | null | undefined, projection: SyntaxNode | null | undefined): boolean => categoryLabel(head?.label).toUpperCase() === 'D'
@@ -217,10 +227,12 @@ export const maybeLowercaseSentenceInitialFunctionSurface = ({
     || !/^\p{Lu}\p{Ll}/u.test(normalizedSentenceInitialSurface)) {
     return trimmed;
   }
-  // A bare D can also be a pronoun or proper name. A nominal complement or
-  // explicit wh feature supplies lexical evidence; token position alone does not.
+  // A bare D can also be a pronoun or proper name. A nominal complement,
+  // explicit wh feature or closed-class form supplies lexical evidence; token
+  // position alone does not.
   const hasWhFeature = /\[[^\]]*\bwh\b[^\]]*\]/iu.test(String(parentLabel || ''));
-  if (normalizedParentLabel === 'D' && !hasNominalComplement && !hasWhFeature)
+  if (normalizedParentLabel === 'D' && !hasNominalComplement && !hasWhFeature
+    && !BARE_D_SENTENCE_CASED_FORMS.has(normalizeToken(trimmed)))
     return trimmed;
   const visibleIds = Array.isArray(visibleOvertLeafIds) ? visibleOvertLeafIds.map((id) => String(id || '')).filter(Boolean) : [];
   const firstVisibleOvertLeafId = visibleIds[0] || '';

@@ -40,6 +40,9 @@ const { body, selection } = buildAnthropicQualificationRequest(values);
 if (!values.out) throw new Error('--out must name a new artifact directory.');
 const keychainService = values['keychain-service'] || DEFAULT_ANTHROPIC_KEYCHAIN_SERVICE;
 const outputPath = path.resolve(values.out);
+// Artifacts hold sentences, exact requests and model output. Everything this run and its
+// fingerprint child create, including new parent directories, is readable only by the owner.
+process.umask(0o077);
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.mkdirSync(outputPath, { mode: 0o700 }); // Refuse reuse before any generation can occur.
 const writeJson = (name, value) => fs.writeFileSync(path.join(outputPath, name), stableQualificationJson(value));

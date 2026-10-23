@@ -211,27 +211,28 @@ export const generateStructuredLocalContent = async ({
   });
 };
 
+// Debug payloads hold user sentences and raw model output, so only the owner may read them.
+const writePrivateDebugFile = (fileName, contents) => {
+  const dir = path.resolve(process.cwd(), '.artifacts', 'debug-model-payloads');
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const file = path.join(dir, fileName);
+  fs.writeFileSync(file, contents, { encoding: 'utf8', mode: 0o600 });
+  return file;
+};
+
 export const writeDebugModelPayload = ({ stage = 'unknown', model = 'unknown', sentence = '', rawText = '' }) => {
   if (process.env.NODE_ENV === 'production') return null;
   try {
-    const dir = path.resolve(process.cwd(), '.artifacts', 'debug-model-payloads');
-    fs.mkdirSync(dir, { recursive: true });
     const safeStage = String(stage || 'unknown').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
     const safeModel = String(model || 'unknown').replace(/[^a-z0-9._-]+/gi, '-').toLowerCase();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const file = path.join(dir, `${timestamp}-${safeStage}-${safeModel}.txt`);
-    fs.writeFileSync(
-      file,
-      [
-        `sentence: ${sentence}`,
-        `model: ${model}`,
-        `stage: ${stage}`,
-        '',
-        String(rawText || '')
-      ].join('\n'),
-      'utf8'
-    );
-    return file;
+    return writePrivateDebugFile(`${timestamp}-${safeStage}-${safeModel}.txt`, [
+      `sentence: ${sentence}`,
+      `model: ${model}`,
+      `stage: ${stage}`,
+      '',
+      String(rawText || '')
+    ].join('\n'));
   } catch {
     return null;
   }
@@ -331,15 +332,12 @@ const cancelOpenAIBackgroundResponse = async ({ apiKey, responseId }) => {
 const writeOpenAIDebugResponseState = ({ model, responseId, stage, payload }) => {
   if (process.env.NODE_ENV === 'production') return null;
   try {
-    const dir = path.resolve(process.cwd(), '.artifacts', 'debug-model-payloads');
-    fs.mkdirSync(dir, { recursive: true });
     const safeModel = String(model || 'unknown').replace(/[^a-z0-9._-]+/gi, '-').toLowerCase();
     const safeId = String(responseId || 'no-id').replace(/[^a-z0-9._-]+/gi, '-').toLowerCase();
     const safeStage = String(stage || 'state').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const file = path.join(dir, `${timestamp}-openai-${safeStage}-${safeModel}-${safeId}.json`);
-    fs.writeFileSync(file, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
-    return file;
+    return writePrivateDebugFile(`${timestamp}-openai-${safeStage}-${safeModel}-${safeId}.json`,
+      `${JSON.stringify(payload, null, 2)}\n`);
   } catch {
     return null;
   }

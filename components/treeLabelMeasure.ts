@@ -49,7 +49,8 @@ export function createTreeLabelMeasure(doc: Document | undefined): TreeLabelMeas
         // Native getBBox excludes stroke. The painter's default miter limit is
         // 4, so a join may reach four half-widths beyond the glyph contour.
         const strokeReach = (terminal ? TERMINAL_LABEL : CATEGORY_LABEL).strokeWidth / 2 * 4;
-        result = {x:box.x-strokeReach,y:box.y-strokeReach,width:box.width+2*strokeReach,height:box.height+2*strokeReach};
+        result = {x:box.x-strokeReach,y:box.y-strokeReach,width:box.width+2*strokeReach,height:box.height+2*strokeReach,
+          cell:{x:box.x,y:box.y,width:box.width,height:box.height}};
         // SVG text boxes include the whole font cell. For a single-font label,
         // Canvas supplies actual glyph bounds at each exact painted baseline.
         // Styled indices retain the complete native SVG envelope instead.

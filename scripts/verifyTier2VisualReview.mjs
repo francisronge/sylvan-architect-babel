@@ -5,6 +5,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
+import { createReviewFileHandler } from './reviewFileServer.mjs';
+
 const repoRoot = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const reviewHtml = path.join(repoRoot, 'docs/design/visual-relations-tier2-review.html');
 const reviewBundle = path.join(repoRoot, 'docs/design/visual-relations-tier2-review.bundle.js');
@@ -17,34 +19,7 @@ if (!fs.existsSync(reviewBundle)) {
 fs.mkdirSync(outDir, { recursive: true });
 
 const sha256 = (buffer) => createHash('sha256').update(buffer).digest('hex');
-const mimeTypes = new Map([
-  ['.css', 'text/css; charset=utf-8'],
-  ['.html', 'text/html; charset=utf-8'],
-  ['.js', 'text/javascript; charset=utf-8'],
-  ['.png', 'image/png'],
-  ['.svg', 'image/svg+xml'],
-  ['.woff', 'font/woff'],
-  ['.woff2', 'font/woff2']
-]);
-const server = http.createServer((request, response) => {
-  const requestPath = decodeURIComponent(new URL(request.url || '/', 'http://localhost').pathname);
-  const candidates = [
-    path.resolve(repoRoot, `.${requestPath}`),
-    path.resolve(repoRoot, `./public${requestPath}`),
-    path.resolve(repoRoot, `./node_modules${requestPath}`)
-  ];
-  const filePath = candidates.find((candidate) => (
-    candidate.startsWith(`${repoRoot}${path.sep}`)
-      && fs.existsSync(candidate)
-      && fs.statSync(candidate).isFile()
-  ));
-  if (!filePath) {
-    response.writeHead(404).end('Not found');
-    return;
-  }
-  response.writeHead(200, { 'content-type': mimeTypes.get(path.extname(filePath)) || 'application/octet-stream' });
-  fs.createReadStream(filePath).pipe(response);
-});
+const server = http.createServer(createReviewFileHandler({ root: repoRoot }));
 await new Promise((resolve, reject) => {
   server.once('error', reject);
   server.listen(0, '127.0.0.1', resolve);

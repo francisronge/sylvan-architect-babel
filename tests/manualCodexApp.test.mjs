@@ -109,10 +109,33 @@ test('the adapter calls the existing CLI with literal arguments and returns its 
   });
   assert.equal(invocation.executable, process.execPath);
   assert.ok(invocation.args[0].endsWith('/scripts/runCodexQualification.mjs'));
-  assert.deepEqual(invocation.args.slice(1), ['--sentence', sentence, '--framework', 'minimalism',
+  assert.deepEqual(invocation.args.slice(1), [`--sentence=${sentence}`, '--framework', 'minimalism',
     '--model', body.modelId, '--effort', 'high', '--out', outputPath, '--working-tree', '--run']);
   assert.equal(invocation.options.shell, undefined);
   assert.deepEqual(result, { status: 200, payload: { ...bundle, requestedModelId: body.modelId } });
+});
+
+test('a sentence beginning with a dash reaches the CLI as the literal sentence', async t => {
+  const dashSentence = '-5 degrees is --cold.';
+  const outputPath = path.join(directory(t), 'prepared');
+  let args;
+  await runManualQualification({
+    request: { sentence: dashSentence, framework: 'xbar', model: body.modelId, effort: 'high' },
+    outputPath, signal: new AbortController().signal,
+    spawnImpl: (executable, spawnArgs) => {
+      args = spawnArgs;
+      const child = new EventEmitter();
+      queueMicrotask(() => child.emit('close', 0));
+      return child;
+    }
+  });
+  // The real CLI parses the adapter's arguments; omitting --run keeps it offline.
+  const result = spawnSync(process.execPath, args.filter(arg => arg !== '--run'),
+    { cwd: path.resolve(import.meta.dirname, '..'), encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const receipt = JSON.parse(fs.readFileSync(path.join(outputPath, 'run-receipt.json')));
+  assert.equal(receipt.request.sentence, dashSentence);
+  assert.equal(receipt.providerCallsMade, false);
 });
 
 test('failed processing retains the exact downloadable output and cannot become a successful parse', async t => {

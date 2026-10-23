@@ -116,6 +116,8 @@ export const relationStagesFromFrames = (
   };
 });
 
+/** `options.plaqueHosts` tells structure-only plaques where later drawings put
+ * their plaques; replay/relations/renderPlanCompiler.ts supplies it from the plan. */
 export const dispatchRelationStages = (
   stages: RelationStage[],
   options: Parameters<typeof dispatchStageRelations>[1] = {}

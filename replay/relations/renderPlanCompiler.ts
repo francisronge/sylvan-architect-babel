@@ -91,7 +91,30 @@ export const compileRelationRenderPlan = (
 ): RelationRenderPlan => {
   const registry = options.registry ?? productionRelationRegistry;
   return compileDispatchedRelationRenderPlan(
-    dispatchRelationStages(projectRelationStages(stages), { registry, activeLens: options.activeLens }), options);
+    dispatchRelationStagesForPlan(projectRelationStages(stages), { registry, activeLens: options.activeLens }), options);
+};
+
+/** Dispatches stages as the plan and Replay read them: a structure-only plaque
+ * learns from a first compiled plan where later drawings put their plaques. */
+export const dispatchRelationStagesForPlan = (
+  stages: DispatchedRelationStages['stages'],
+  options: Parameters<typeof dispatchRelationStages>[1] = {}
+): DispatchedRelationStages => dispatchRelationStages(stages, {
+  plaqueHosts: dispatches => nodePlaqueHosts(compileDispatchedRelationRenderPlan({ stages, dispatches },
+    options.registry ? { registry: options.registry } : {})), ...options });
+
+/** The nodes on which each relation's node plaques are drawn, keyed `stageIndex:relationIndex`. */
+const nodePlaqueHosts = (plan: RelationRenderPlan) => {
+  const hosts = new Map<string, Set<string>>();
+  for (const frame of plan.frames)
+    for (const item of frame.items) {
+      if (item.kind !== 'node-plaque' || item.claimTier === 3) continue;
+      for (const ref of [item.relationRef, ...(item.coalescedRefs ?? [])]) {
+        const key = `${ref.stageIndex}:${ref.relationIndex}`;
+        hosts.set(key, new Set([...(hosts.get(key) ?? []), ...item.anchorNodeIds.map(String)]));
+      }
+    }
+  return hosts;
 };
 
 /** Compiles stages already dispatched with the same registry, as Replay

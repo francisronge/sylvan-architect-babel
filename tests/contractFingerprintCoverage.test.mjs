@@ -25,6 +25,7 @@ test('qualification fingerprints include Replay inspection, regression inputs an
     ['requestBoundary', 'services/generationState.ts'],
     ['requestBoundary', 'server/parseHttpPolicy.js'],
     ['requestBoundary', 'server/devParseMiddleware.js'],
+    ['requestBoundary', 'server/localHostPolicy.js'],
     ['qualificationHarness', 'contractQualification/diagnosticReplay.ts'],
     ['qualificationHarness', 'contractQualification/workspaceInspection.css'],
     ['providerFreeFixtures', 'fixtures/replay-regressions/coordination-and-ellipsis.json'],

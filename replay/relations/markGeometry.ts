@@ -245,9 +245,25 @@ export const vineConvergence = (bearerRects: Rect[]): Point => ({
 });
 
 /** Native plaque footprints are shared by painting and the stage camera reservation. */
+/** A measure represents one immutable font state, so a label's plaque size is
+ * laid out once per measure; allocation and the camera ask for it in every scene. */
+const sharedFeatureSizes = new WeakMap<PlaqueTextMeasure | typeof unmeasured, Map<string, { width: number; height: number }>>();
+const unmeasured = {};
+const sharedFeatureSize = (label: string, measureText?: PlaqueTextMeasure) => {
+  const key = measureText ?? unmeasured;
+  let sizes = sharedFeatureSizes.get(key);
+  if (!sizes) sharedFeatureSizes.set(key, sizes = new Map());
+  let size = sizes.get(label);
+  if (!size) {
+    const { width, height } = prepareSharedFeatureTextLayout(label, measureText);
+    sizes.set(label, size = { width, height });
+  }
+  return size;
+};
+
 export const featureSharingPlaqueRect = (bearerRects: Rect[], label = '', measureText?: PlaqueTextMeasure): Rect => {
   const convergence = vineConvergence(bearerRects);
-  const { width, height } = prepareSharedFeatureTextLayout(label, measureText);
+  const { width, height } = sharedFeatureSize(label, measureText);
   return { x: convergence.x - width / 2, y: convergence.y + 10, width, height };
 };
 

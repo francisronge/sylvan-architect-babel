@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createFileDownloads, DOWNLOAD_URL_LIFETIME_MS } from '../components/fileDownload.ts';
+import { createFileDownloads, DOWNLOAD_URL_LIFETIME_MS, rawOutputBlob } from '../components/fileDownload.ts';
 
 const browser = (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
@@ -44,4 +44,14 @@ test('unmounting releases each live download URL once, and later downloads still
   downloads.download(new Blob(['c']), 'c.txt');
   t.mock.timers.tick(DOWNLOAD_URL_LIFETIME_MS);
   assert.deepEqual(events.at(-1), ['revoke', 'blob:download-3']);
+});
+
+test('raw model output downloads as plain text whatever media type the response names', async () => {
+  const text = 'not <b>html</b> — ü';
+  const data = Buffer.from(text, 'utf8').toString('base64');
+  for (const mediaType of ['text/html', 'image/svg+xml', 'text/plain']) {
+    const blob = rawOutputBlob({ mediaType, encoding: 'base64', data });
+    assert.equal(blob.type, 'text/plain;charset=utf-8');
+    assert.equal(await blob.text(), text);
+  }
 });
