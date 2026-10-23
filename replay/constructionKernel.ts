@@ -461,6 +461,11 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       newReceivingHeadNodeIds(m, previousFrameWorkspaceRoots, workspaceRoots).forEach(whole);
     }
     if (placement && movements.length) [...getMovementCreatedLandingHostNodeIds(placement), ...getMovementPiedPipedNodeIds(placement)].forEach(whole);
+    // An unproven landing (its source not in the preceding stage) still appears at its own moment.
+    if (!movements.length && relation.unprovenNewLandingNodeId && cur.has(relation.unprovenNewLandingNodeId)) {
+      subtree(cur, relation.unprovenNewLandingNodeId).flatMap(changedKeys).forEach(k => seeds.add(k));
+      place(relation.unprovenNewLandingNodeId, true).forEach(k => seeds.add(k));
+    }
     const ownership = movements.length ? undefined : fallbackTransitionOwnership.get(relationIndex);
     const displaces = (id: string) => prev.has(prevId(id)) && (!cur.has(prevId(id)) || edit.diffs.has(prevId(id)) || cur.get(prevId(id))!.parent !== prev.get(prevId(id))!.parent);
     if (ownership && [...ownership.priorNodeIds].some(displaces)) {
@@ -897,12 +902,17 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   let nextMoment = 0, latestAuthored = -1;
   const unitDone = (unit: Unit) => unit.word ? frameState.has(unit.id) : edit.built(frameState, unit.id);
   /** Makes `id` available, or returns it when it cannot be yet. */
+  const isAvailable = (id: string) => {
+    const unit = unitOf(id), owner = producer(id);
+    return owner !== undefined ? played.includes(owner) : unit ? unitDone(unit) : true;
+  };
   const ensure = (id: string, forRelation?: number): string[] => {
     if (!cur.has(id)) return [];
     const unit = unitOf(id);
     // Retaining an occurrence does not establish its new daughters: those wait for its construction.
     if (available0.has(id) && (!unit || unitDone(unit))) return [];
     const owner = producer(id);
+    if (owner !== undefined && played.includes(owner)) return [];
     if (owner !== undefined) {
       if (forRelation !== undefined && !playsAfter(forRelation, owner)) return [id];
       emitMomentsThrough(owner);
@@ -948,6 +958,16 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       if (next) frameState = next;
       const duplicates = (sharing.get(relation) ?? []).map(other => placementOf.get(other)!);
       played.push(relation, ...duplicates.map(duplicate => duplicate.relationIndex));
+      // A proved movement stands independently of its contextual anchors: context no moment has
+      // introduced yet is reported, not waited for or built early.
+      const context = placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
+        ? [...new Set(relationAnchorNodeIds(placement.relation.anchors))].filter(id => !placement.relationAnchorNodeIds.includes(id) && cur.has(id)) : [];
+      const absent = context.filter(id => !missing.includes(id) && !isAvailable(id));
+      if (absent.length) diagnose(relation, `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${authoredIndex(placement) + 1} (${placement.relationLabel}) has unavailable authored context: ${absent.map(id => {
+        const owner = producer(id);
+        return owner === undefined ? `${id} before its structural prerequisites are available`
+          : `${id} before relation ${(frameRelationSteps[owner].authoredRelationIndex ?? owner) + 1} (${frameRelationSteps[owner].relation}) introduces it`;
+      }).join('; ')}. Its proven movement keeps its moment; unavailable context is not introduced early.`);
       emitRelation(placement, duplicates);
     }
   };
