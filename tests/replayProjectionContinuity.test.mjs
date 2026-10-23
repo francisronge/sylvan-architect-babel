@@ -164,7 +164,7 @@ const assertCompleteLandingParent = (step, landingId) => {
     `${parent.id} must have every current branch at the landing`);
 };
 
-test('saved German subject landing has its independently constructed I-bar before later head movement', () => {
+test('saved German I-bar is constructed before the verb moves into it and the subject lands above it', () => {
   const saved = JSON.parse(readFileSync(new URL('../fixtures/movement/independent-infl-context.json', import.meta.url)));
   const steps = buildPlaybackStepsFromDerivationFrames({
     frames: adaptDerivationStagesForReplay(saved.derivationStages),
@@ -174,17 +174,19 @@ test('saved German subject landing has its independently constructed I-bar befor
   const subject = steps.findIndex(step => step.operation === 'A-movement');
   const head = steps.findIndex(step => step.operation === 'V-to-I head movement');
   const projection = steps.findIndex(step => step.replayKind === 'micro' && step.targetNodeId === 'ibar');
-  assert.ok(projection >= 0 && projection < subject && subject < head);
-  assertCompleteLandingParent(steps[subject], 'subjectIP');
-  assert.deepEqual(findNode(steps[subject].replayCanvasData, 'ibar').children.map(child => child.id), ['vp', 'inflFeatures']);
-  assert.equal(findNode(steps[subject].replayCanvasData, 'verbBase').word, 'gefallen');
-  assert.ok(!steps[subject].replayVisibleNodeIds.includes('verbI'));
+  // I merges with VP, the verb moves into I, and the subject then lands above that host.
+  assert.ok(projection >= 0 && projection === head - 1 && head < subject);
+  assert.deepEqual(findNode(steps[projection].replayCanvasData, 'ibar').children.map(child => child.id), ['vp', 'inflFeatures']);
+  assert.equal(findNode(steps[projection].replayCanvasData, 'verbBase').word, 'gefallen');
+  assert.ok(!steps[projection].replayVisibleNodeIds.includes('verbI'));
   assertCompleteLandingParent(steps[head], 'verbI');
+  assert.ok(!steps[head].replayVisibleNodeIds.includes('subjectIP'));
+  assertCompleteLandingParent(steps[subject], 'subjectIP');
   assert.ok(steps.every(step => step.replayKind !== 'micro' || step.replayVisibleNodeIds.includes(step.targetNodeId)));
 });
 
 for (const firstMovement of ['subject', 'head']) {
-  test(`${firstMovement} movement first: receiving context respects the earlier authored relation`, () => {
+  test(`${firstMovement} movement authored first: the head moves into its merged host before the subject lands`, () => {
     const subject = leaf('subject', 'DP', 'Ada', { lineageId: 'argument' });
     const verb = leaf('verb', 'V', 'reads', { lineageId: 'predicate' });
     const lower = node('predicate', 'VP', [subject, verb]);
@@ -204,16 +206,12 @@ for (const firstMovement of ['subject', 'head']) {
       replayPlan: buildDerivationReplayPlan({ derivationStages: stages })
     });
     const relationSteps = steps.filter(step => step.replayKind === 'relation');
-    assert.deepEqual(relationSteps.map(step => step.operation), ordered.map(relation => relation.relation));
+    // In either authored order the head moves into its merged host before the subject lands above it.
+    assert.deepEqual(relationSteps.map(step => step.operation), [relations.head.relation, relations.subject.relation]);
     const first = steps.indexOf(relationSteps[0]);
     assert.ok(steps.slice(0, first).some(step => step.replayKind === 'micro' && step.targetNodeId === 'tense'));
-    if (firstMovement === 'subject') {
-      assert.ok(steps.slice(0, first).some(step => step.replayKind === 'micro' && step.targetNodeId === 'bar'));
-    } else {
-      assert.ok(steps.slice(0, first).every(step => !step.replayVisibleNodeIds.includes('bar')),
-        'without an earlier claim needing its context, the new attachment belongs to head movement');
-      assert.ok(relationSteps[0].replayVisibleNodeIds.includes('bar'));
-    }
+    assert.deepEqual([steps[first - 1].replayKind, steps[first - 1].operation, steps[first - 1].targetNodeId], ['micro', 'ExternalMerge', 'bar']);
+    assert.deepEqual(findNode(steps[first - 1].replayCanvasData, 'bar').children.map(child => child.id), ['tense', 'predicate']);
     assertCompleteLandingParent(relationSteps.find(step => step.operation === relations.subject.relation), 'raisedSubject');
     assertCompleteLandingParent(relationSteps.find(step => step.operation === relations.head.relation), 'raisedVerb');
     assert.ok(steps.every(step => step.replayKind !== 'micro' || step.replayVisibleNodeIds.includes(step.targetNodeId)));

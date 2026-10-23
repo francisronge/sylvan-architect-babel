@@ -75,8 +75,8 @@ test('Icelandic Case stays at the old I until transfer; the later claim waits fo
   const later = indices.find(index => plan.frames[2].items[index].relationRef.stageIndex === 2);
   assert.notEqual(carried, undefined);
   assert.notEqual(later, undefined);
-  // Frame 27 is I-to-C, whose moment introduces tI.
-  for (const frame of [26]) {
+  // Frame 29 is I-to-C, whose moment introduces tI, after C is selected (27) and merged with IP (28).
+  for (const frame of [27, 28]) {
     const layout = selectReplayPlaqueLayout(schedule, 2, frame - 1);
     const box = layout.get(carried);
     assert.equal(box?.attachmentNodeId, 'iComplex2', `frame ${frame}: the earlier Case remains at its displayed I`);
@@ -86,7 +86,7 @@ test('Icelandic Case stays at the old I until transfer; the later claim waits fo
     assert(anchor);
     assert(caseAssignmentClears(anchor, box, scene.obstacles), `frame ${frame}: the retained Case curve stays clear`);
   }
-  for (const frame of [27, 28, 29, 30, 31, 36]) {
+  for (const frame of [29, 30, 31, 32, 33, 38]) {
     const scene = space.scenes.find(scene => scene.stepIndices.includes(frame - 1));
     const anchor = scene.nodes.find(node => node.data.id === 'tI');
     assert(anchor);

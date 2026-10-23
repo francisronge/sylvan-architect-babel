@@ -11,7 +11,8 @@ const find = (step, id) => nodes(step.replayCanvasData).find(node => node.id ===
 const visible = (step, id) => step.replayVisibleNodeIds?.includes(id);
 const play = record => buildReplayPlayback({ sentence: record.sentence, analyses: [{ derivationStages: record.derivationStages }] }).steps;
 
-test('saved subject movement constructs its receiving projection before later head adjunction', () => {
+// A head moves into its host before a phrase lands above that host: V-to-I, then the subject builds IP.
+test('saved head movement into its merged host precedes the subject landing that builds its projection', () => {
   const saved = load('astra-spanish-qr');
   for (const analysis of saved.analyses) {
     const record = { sentence: saved.sentence, derivationStages: analysis.derivationStages.slice(0, 2) };
@@ -22,15 +23,14 @@ test('saved subject movement constructs its receiving projection before later he
     const prefix = analysis.derivationStages[0].workspaceForest[0].id[0];
     const id = suffix => `${prefix}${suffix}`;
     assert.ok(subject && head);
-    assert.ok(steps.indexOf(subject) < steps.indexOf(head));
-    assert.ok(!subject.movementDiagnostics?.some(message => message.includes('TIMING_CONFLICT')));
-    assert.deepEqual(find(subject, id('IP')).children.map(node => node.id), [id('S1'), id('Ibar')]);
-    assert.deepEqual(find(subject, id('Ibar')).children.map(node => node.id), [id('I0'), id('VP')]);
-    for (const suffix of ['IP', 'Ibar', 'I0', 'VP', 'S1', 'ST', 'V0']) assert.ok(visible(subject, id(suffix)), id(suffix));
-    for (const suffix of ['Icomplex', 'V1', 'VT']) assert.ok(!visible(subject, id(suffix)), id(suffix));
-    assert.equal(find(subject, id('V0')).word, 'revisó');
+    assert.ok(steps.indexOf(head) < steps.indexOf(subject));
+    for (const step of [head, subject]) assert.ok(!step.movementDiagnostics?.some(message => message.includes('TIMING_CONFLICT')));
     assert.deepEqual(find(head, id('Ibar')).children.map(node => node.id), [id('Icomplex'), id('VP')]);
-    for (const suffix of ['Icomplex', 'V1', 'VT']) assert.ok(visible(head, id(suffix)), id(suffix));
+    for (const suffix of ['Ibar', 'I0', 'VP', 'Icomplex', 'V1', 'VT']) assert.ok(visible(head, id(suffix)), id(suffix));
+    for (const suffix of ['IP', 'S1', 'V0']) assert.ok(!visible(head, id(suffix)), id(suffix));
+    assert.equal(find(head, id('V1')).word, 'revisó');
+    assert.deepEqual(find(subject, id('IP')).children.map(node => node.id), [id('S1'), id('Ibar')]);
+    for (const suffix of ['IP', 'S1', 'ST', 'Icomplex', 'V1', 'VT']) assert.ok(visible(subject, id(suffix)), id(suffix));
     assert.deepEqual(record, original);
   }
 });

@@ -147,7 +147,7 @@ test('the saved sideward copy retains one phrase-owned moment without head-only 
   const original = structuredClone(record);
   const replay = prepareReplay({ ...record, includePlayback: true });
   const steps = replay.playbackSteps;
-  assert.equal(steps.length, 47);
+  assert.equal(steps.length, 48);
   for (const frame of [20, 21]) {
     const step = steps[frame - 1];
     assert(!step.replayVisibleNodeIds.includes('a_fvp'));
@@ -167,8 +167,8 @@ test('the saved sideward copy retains one phrase-owned moment without head-only 
 });
 
 for (const [name, path, select, frames, stageIndex, relationIndex] of [
-  ['Spanish intransitive v-to-T', '../fixtures/replay-regressions/workspace-spanish-continuity.json', value => value, 40, 2, 0],
-  ['Hungarian nested T-to-Foc', '../fixtures/replay-regressions/workspace-component-lifetime.json', value => value.cases.find(c => c.key === 'hungarian-dative/1'), 48, 5, 1]
+  ['Spanish intransitive v-to-T', '../fixtures/replay-regressions/workspace-spanish-continuity.json', value => value, 42, 2, 0],
+  ['Hungarian nested T-to-Foc', '../fixtures/replay-regressions/workspace-component-lifetime.json', value => value.cases.find(c => c.key === 'hungarian-dative/1'), 49, 5, 1]
 ]) test(`${name} preserves its genuine head movement and saved Replay schedule`, () => {
   const record = select(JSON.parse(fs.readFileSync(new URL(path, import.meta.url))));
   const original = structuredClone(record);

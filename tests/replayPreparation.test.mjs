@@ -86,7 +86,8 @@ test('worker preparation preserves all archived frames, decorations and render p
       assert.deepEqual(input, original);
       frames += prepared.playbackSteps.length;
     }
-    assert.equal(frames, 137);
+    // Each analysis's receiving head merges with its complement before the head moves into it.
+    assert.equal(frames, 141);
   } finally {
     await worker.terminate();
   }

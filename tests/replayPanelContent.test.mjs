@@ -299,8 +299,13 @@ test('a saved relation timing conflict remains stored without appearing in the R
     frames: adaptDerivationStagesForReplay(stages),
     replayPlan: plan
   });
-  const chain = steps.find(step => step.replayRelationIdentity?.stageIndex === 1 && step.replayRelationIdentity?.relationIndex === 0);
-  assert.match(chain.movementDiagnostics.join('\n'), /RELATION_TIMING_CONFLICT: Stage 2, relation 1 .* matrixVTrace before relation 2/);
+  const moment = relation => steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1 && step.replayRelationIdentity?.relationIndex === relation);
+  // V-to-I moves into its host before the raising lands above it, so this order no longer conflicts.
+  assert.ok(moment(1) < moment(0));
+  const played = steps[moment(0)];
+  assert.ok(!(played.movementDiagnostics ?? []).some(message => message.includes('RELATION_TIMING_CONFLICT')));
+  // A conflict saved with an earlier record stays on its step and out of the panel.
+  const chain = { ...played, movementDiagnostics: ['RELATION_TIMING_CONFLICT: Stage 2, relation 1 (Extended raising A-chain) has unavailable authored context: matrixVTrace before relation 2 (V-to-I head movement) introduces it.'] };
   const content = buildReplayPanelContent(chain, stages);
   assert.deepEqual(content, buildReplayPanelContent({ ...chain, movementDiagnostics: [] }, stages));
   assert.ok(!JSON.stringify(content).includes('RELATION_TIMING_CONFLICT'));

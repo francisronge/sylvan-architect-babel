@@ -36,5 +36,7 @@ test('which relocating plaque keeps its pocket at a movement does not depend on 
   const moved = authored.findIndex(frame => frame.stage === 3 && frame.small);
   assert(moved > 0 && authored[moved - 1].small, 'both plaques are shown across the final movement');
   authored.forEach((frame, index) => assert.deepEqual(swapped[index], frame, `frame ${index + 1}`));
-  assert.deepEqual(authored[moved].small, authored[moved - 1].small, 'the small plaque keeps its incumbent pocket');
+  // The same pocket, within floating-point precision.
+  const [anchor, x, y] = authored[moved].small, [priorAnchor, priorX, priorY] = authored[moved - 1].small;
+  assert.ok(anchor === priorAnchor && Math.abs(x - priorX) < 1e-6 && Math.abs(y - priorY) < 1e-6, 'the small plaque keeps its incumbent pocket');
 });

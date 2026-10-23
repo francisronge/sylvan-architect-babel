@@ -120,8 +120,9 @@ for (const viewport of viewports) for (const direction of directions) {
       assert.ok(word && juan && word.y === juan.y, 'the edge word leaf shares the row of the lower specifier');
       assert.ok((juan.x - word.x) * sign >= TREE_SIBLING_GAP, `${scene.step.replayFrameIndex}: ${word.x} vs ${juan.x}`);
     }
-    // In this record the repaired plan adds no motion: only the V-to-v moment moves v.
-    assert.deepEqual(movers(scenes, direction), { 'f18 relation:verb1': { v0: [187.5, 220] } });
+    // In this record the repaired plan adds no motion: only the V-to-v moment moves v, and the v-to-T
+    // moment lowers T, already merged with vP, into the head complex built above it.
+    assert.deepEqual(movers(scenes, direction), { 'f18 relation:verb1': { v0: [187.5, 220] }, 'f24 relation:complexV2': { tense: [187.5, 220] } });
     for (const id of ['juan', 'subjectDomain']) {
       const points = scenes.flatMap(scene => scene.nodes.has(id) ? [`${scene.nodes.get(id).x},${scene.nodes.get(id).y}`] : []);
       assert.equal(new Set(points).size, 1, `${id} keeps one position from its first frame`);

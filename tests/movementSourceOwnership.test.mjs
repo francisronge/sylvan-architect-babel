@@ -46,8 +46,12 @@ for (const c of cases) test(`${c.id}: movement owns its root occurrence and reta
   assert.ok(moment.replayVisibleNodeIds.includes(c.witness));
   if (c.witness !== c.source) assert.ok(!before.replayVisibleNodeIds.includes(c.witness));
   if (c.host) {
-    assert.ok(!before.replayVisibleNodeIds.includes(c.host));
-    assert.ok(moment.replayVisibleNodeIds.includes(c.host), 'smallest attachment parent appears with movement');
+    // The host head merges with its complement (its own step) before the head moves into it.
+    assert.equal(before.replayKind, 'micro');
+    assert.equal(before.operation, 'ExternalMerge');
+    assert.equal(before.targetNodeId, c.host);
+    assert.ok(!steps[index - 2].replayVisibleNodeIds.includes(c.host), 'the host appears at its own merge');
+    assert.ok(moment.replayVisibleNodeIds.includes(c.host), 'the host stays as the head moves into it');
     assert.ok(!moment.replayVisibleNodeIds.includes('a1_npsc'), 'the independent later subject movement waits');
   }
   assert.equal(moment.replayRelationLinks.filter(link => link.authoredRelationKey === `${c.stageIndex}:0`

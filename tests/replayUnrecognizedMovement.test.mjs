@@ -59,8 +59,13 @@ test('a copy related to its earlier occurrence by a claim with unfamiliar names 
 
 test('a head complex whose claim lists contained heads appears at its moment, not at an unrelated selection', () => {
   const steps = play(1), at = moment(steps, 8, 1);
-  assertIntroducedAt(steps, at, ['mTHeadAtC', 'mvHeadAtC', 'mVAtC', 'mvAtC', 'mTAtC', 'mCHead', 'mCP']);
+  assertIntroducedAt(steps, at, ['mTHeadAtC', 'mvHeadAtC', 'mVAtC', 'mvAtC', 'mTAtC', 'mCHead']);
   assertBuiltByOwnStep(steps, 'mC');
+  // The host head merges with its complement first; the head complex then replaces it there.
+  assertBuiltByOwnStep(steps, 'mCP');
+  assert.equal(firstShown(steps, 'mCP'), at - 1);
+  assert.deepEqual(frameStructure(steps[at - 1]).children.get('mCP'), ['mC', 'mTPHigh']);
+  assert.deepEqual(frameStructure(steps[at]).children.get('mCP'), ['mCHead', 'mTPHigh']);
   assertStageRecordAddsNothing(steps, 8);
 });
 

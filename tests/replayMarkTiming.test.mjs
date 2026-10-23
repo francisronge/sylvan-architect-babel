@@ -144,6 +144,8 @@ test('a waiting occurrence keeps its derived word, or its lack of one, until the
     const agrees = moment(steps, 1, 0), broken = { ...replay, playbackSteps: structuredClone(steps) }, word = 'v::__leaf';
     const visible = broken.playbackSteps[agrees].replayVisibleNodeIds;
     broken.playbackSteps[agrees].replayVisibleNodeIds = before.word ? visible.filter(id => id !== word) : [...visible, word];
+    // A word not yet established has no node in the canvas; paint the realized one there.
+    if (!before.word) broken.playbackSteps[agrees].replayCanvasData = structuredClone(steps[realizes].replayCanvasData);
     const findings = before.word ? checkStepSemantics(broken, record) : checkNoEarlyReveal(broken);
     assert(findings.some(found => found.frame === agrees + 1 && found.detail.startsWith(`${word} ${before.word ? 'disappears' : 'appears'}`)));
   }

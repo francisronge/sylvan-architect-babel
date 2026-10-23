@@ -906,7 +906,7 @@ test('head movement starts with the auxiliary in T and creates its C occurrence 
   assert.equal(movementLink?.trajectoryKind, 'head');
 });
 
-test('ordered phrase and head movements do not leak the later head trace into earlier moments', () => {
+test('ordered head and phrase movements do not leak a later trace into earlier moments', () => {
   const finalTree = node('cp_ordered', 'CP', [
     node('dp_what_high', 'DP', [
       leaf('d_what_high', 'D', 'What', { lineageId: 'what-terminal', tokenIndex: 0 })
@@ -968,48 +968,37 @@ test('ordered phrase and head movements do not leak the later head trace into ea
     replayPlan
   }
   );
+  // A head moves into its host before a phrasal landing above that host.
   const phraseMoveIndex = steps.findIndex((step) => step.operation === 'AbarMove');
   const headMoveIndex = steps.findIndex((step) => step.operation === 'HeadMove');
-  assert.ok(phraseMoveIndex > 0);
-  assert.equal(headMoveIndex, phraseMoveIndex + 1);
+  assert.ok(headMoveIndex > 0);
+  assert.equal(phraseMoveIndex, headMoveIndex + 1);
+  const word = (step, id) => findNode(step.replayCanvasData, id)?.word || findNode(step.replayCanvasData, id)?.label;
 
-  for (const step of steps.slice(0, phraseMoveIndex).filter((step) => step.replayFrameIndex === 1)) {
+  for (const step of steps.slice(0, headMoveIndex).filter((step) => step.replayFrameIndex === 1)) {
     assert.notEqual(findNode(step.replayCanvasData, 'did_high')?.replayLayoutOnly, false);
     assert.equal(step.replayVisibleNodeIds?.includes('dp_what_high'), false);
     assert.equal(step.replayVisibleNodeIds?.includes('did_high'), false);
-    assert.equal(
-      findNode(step.replayCanvasData, 'd_what_low')?.word
-        || findNode(step.replayCanvasData, 'd_what_low')?.label,
-      'what'
-    );
+    assert.equal(word(step, 'd_what_low'), 'what');
     assert.notEqual(findNode(step.replayCanvasData, 'd_what_low')?.silent, true);
-    assert.equal(
-      findNode(step.replayCanvasData, 'did_low')?.word
-        || findNode(step.replayCanvasData, 'did_low')?.label,
-      'did'
-    );
+    assert.equal(word(step, 'did_low'), 'did');
     assert.notEqual(findNode(step.replayCanvasData, 'did_low')?.silent, true);
   }
 
-  const phraseMove = steps[phraseMoveIndex];
-  assert.ok(findNode(phraseMove.replayCanvasData, 'dp_what_high'));
-  assert.equal(findNode(phraseMove.replayCanvasData, 'd_what_low')?.silent, true);
-  assert.equal(findNode(phraseMove.replayCanvasData, 'did_high'), null);
-  assert.equal(
-    findNode(phraseMove.replayCanvasData, 'did_low')?.word
-      || findNode(phraseMove.replayCanvasData, 'did_low')?.label,
-    'did'
-  );
-  assert.notEqual(findNode(phraseMove.replayCanvasData, 'did_low')?.silent, true);
-
   const headMove = steps[headMoveIndex];
-  assert.ok(findNode(headMove.replayCanvasData, 'dp_what_high'));
-  assert.equal(
-    findNode(headMove.replayCanvasData, 'c_ordered')?.children?.[0]?.word
-      || findNode(headMove.replayCanvasData, 'c_ordered')?.children?.[0]?.label,
-    'did'
-  );
+  assert.equal(findNode(headMove.replayCanvasData, 'c_ordered')?.children?.[0]?.word
+    || findNode(headMove.replayCanvasData, 'c_ordered')?.children?.[0]?.label, 'did');
   assert.equal(findNode(headMove.replayCanvasData, 'did_low')?.silent, true);
+  assert.equal(headMove.replayVisibleNodeIds?.includes('dp_what_high'), false, 'the later phrasal landing waits for its own moment');
+  assert.equal(word(headMove, 'd_what_low'), 'what');
+  assert.notEqual(findNode(headMove.replayCanvasData, 'd_what_low')?.silent, true);
+
+  const phraseMove = steps[phraseMoveIndex];
+  assert.ok(phraseMove.replayVisibleNodeIds?.includes('dp_what_high'));
+  assert.equal(findNode(phraseMove.replayCanvasData, 'd_what_low')?.silent, true);
+  assert.equal(findNode(phraseMove.replayCanvasData, 'did_low')?.silent, true);
+  assert.equal(findNode(phraseMove.replayCanvasData, 'c_ordered')?.children?.[0]?.word
+    || findNode(phraseMove.replayCanvasData, 'c_ordered')?.children?.[0]?.label, 'did');
 });
 
 test('a non-movement relation waits for its exact new anchor and never reveals syntax', () => {
@@ -1744,7 +1733,7 @@ test('relation-owned PF and Fission outputs appear in their relation frames, nev
   assert.ok(findNode(fissionStageTwo[0].replayCanvasData, 'clitic_fission_transition_plural'));
 });
 
-test('head movement owns the new path back to its source workspace, not an unrelated higher projection', () => {
+test('head movement lands in its merged host, not an unrelated higher projection', () => {
   const base = node('tp', 'TP', [
     leaf('tLow', 'T', 'did', { lineageId: 'tense' }),
     node('vp', 'VP', [leaf('v', 'V', 'buy')])
@@ -1766,10 +1755,15 @@ test('head movement owns the new path back to its source workspace, not an unrel
   const movementIndex = steps.findIndex(step => step.replayRelationIdentity?.stageIndex === 1);
   assert(movementIndex > 0);
   const before = steps[movementIndex - 1], movement = steps[movementIndex];
-  for (const id of ['cComplex', 'cPrime', 'tHigh']) {
+  // The host head merges with its complement first; the head then moves into it.
+  assert.deepEqual([before.replayKind, before.operation, before.targetNodeId], ['micro', 'ExternalMerge', 'cPrime']);
+  assert.deepEqual(findNode(before.replayCanvasData, 'cPrime').children.map(n => n.id), ['cQ', 'tp']);
+  assert(!steps.slice(0, movementIndex - 1).some(step => step.replayVisibleNodeIds.includes('cPrime')), 'cPrime appears at its own merge');
+  for (const id of ['cComplex', 'tHigh']) {
     assert(!before.replayVisibleNodeIds.includes(id), `${id} must wait for movement`);
     assert(movement.replayVisibleNodeIds.includes(id), `${id} belongs in the movement moment`);
   }
+  assert.deepEqual(findNode(movement.replayCanvasData, 'cPrime').children.map(n => n.id), ['cComplex', 'tp']);
   for (const id of ['tp', 'vp', 'v', 'tLow', 'cQ']) assert(movement.replayVisibleNodeIds.includes(id));
   assert(!movement.replayVisibleNodeIds.includes('higher'), 'unrelated higher projection retains its own step');
   assert(steps.slice(movementIndex + 1).some(step => step.replayKind === 'micro'
