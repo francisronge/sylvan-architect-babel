@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useEffect, useId, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Download, Eye } from 'lucide-react';
 import { GenerationRecord, ParseFailure, RawOutputArtifact } from '../types';
-import { createFileDownloads } from './fileDownload';
+import { createFileDownloads, rawOutputBlob } from './fileDownload';
 import ViewErrorBoundary from './ViewErrorBoundary';
 
 const FailedOutputInspection = lazy(() => import('./FailedOutputInspection'));
@@ -47,12 +47,6 @@ const formatOffendingValue = (value: unknown): string => {
   } catch {
     return String(value);
   }
-};
-
-const rawOutputBlob = (artifact: RawOutputArtifact) => {
-  const binary = window.atob(artifact.data);
-  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-  return new Blob([bytes], { type: artifact.mediaType });
 };
 
 const FailurePanel: React.FC<FailurePanelProps> = ({

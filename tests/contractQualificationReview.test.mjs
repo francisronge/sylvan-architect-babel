@@ -135,3 +135,36 @@ test('the provider-free review preserves success, repair, and failure evidence',
     fs.rmSync(runRoot, { recursive: true, force: true });
   }
 });
+
+test('review manifests cannot read files outside the run or write captures outside the review', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-qualification-containment-'));
+  try {
+    const outside = path.join(root, 'outside');
+    fs.mkdirSync(outside);
+    fs.writeFileSync(path.join(outside, 'private.json'), JSON.stringify({ rawOutput: { sha256: 'private' } }));
+    const entry = { attemptId: 'parse', sentence: 'Mia laughed.', framework: 'xbar', model: {},
+      outcome: { status: 'failed' }, receipt: 'attempt-receipt.json', rawOutput: 'raw-output.txt', analyses: [] };
+    const cases = [
+      ['relative traversal', { ...entry, receipt: '../outside/private.json' }, /leaves the run/u],
+      ['absolute path', { ...entry, receipt: path.join(outside, 'private.json') }, /relative to the run/u],
+      ['traversing analysis', { ...entry, analyses: [{ analysisIndex: 0, replay: '../../outside/private.json',
+        evidence: 'evidence.json' }] }, /leaves the run/u],
+      ['traversing attempt ID', { ...entry, attemptId: '../../outside' }, /one path segment/u]
+    ];
+    for (const [name, manifestEntry, message] of cases) {
+      const runRoot = path.join(root, name.replaceAll(' ', '-'));
+      fs.mkdirSync(runRoot);
+      fs.writeFileSync(path.join(runRoot, 'run-receipt.json'), '{}');
+      fs.writeFileSync(path.join(runRoot, 'attempt-receipt.json'), JSON.stringify({ rawOutput: { sha256: 'run' } }));
+      fs.writeFileSync(path.join(runRoot, 'raw-output.txt'), 'raw');
+      fs.writeFileSync(path.join(runRoot, 'review-manifest.json'), JSON.stringify({ entries: [manifestEntry] }));
+      const result = spawnSync(process.execPath, ['scripts/buildContractQualificationReview.mjs', '--run', runRoot],
+        { cwd: repoRoot, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
+      assert.notEqual(result.status, 0, `${name} must be refused`);
+      assert.match(result.stderr, message, name);
+      assert.equal(fs.existsSync(path.join(runRoot, 'review')), false, `${name} must fail before writing a review`);
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
