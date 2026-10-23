@@ -65,7 +65,8 @@ for (const [name, make, stageIndex, parent, oldChild, wrapper, adjunct] of [
   }
 });
 
-test('unrelated sibling replacement does not restore a removed branch', () => {
+// A replaced node stays until its replacement swaps in at the replacement's own step.
+test('a sibling replacement swaps in at its own step, and the replaced branch never stands beside it', () => {
   const retained = node('retained', 'N', [], { word: 'word' });
   const gone = node('gone', 'Adj', [], { word: 'old' });
   const replacement = node('replacement', 'AP', [node('new', 'Adj', [], { word: 'new' })]);
@@ -74,9 +75,14 @@ test('unrelated sibling replacement does not restore a removed branch', () => {
     stage([node('parent', 'NP', [replacement, retained])])
   ] };
   const { playbackSteps } = prepareReplay({ ...record, includePlayback: true });
-  for (const step of playbackSteps.filter(step => step.replayFrameIndex === 1)) {
-    assert(!find(step.replayCanvasData, 'gone'), 'continuity must not revive material removed from the authored stage');
-  }
+  const steps = playbackSteps.filter(step => step.replayFrameIndex === 1);
+  const own = steps.findLastIndex(step => step.replayKind === 'micro' && step.targetNodeId === 'replacement');
+  const shownChildren = step => children(step, 'parent').filter(id => step.replayVisibleNodeIds.includes(id));
+  assert(own >= 0, 'the replacement has its own construction step');
+  steps.slice(0, own).forEach(step => assert.deepEqual(shownChildren(step), ['gone', 'retained'], `${step.targetNodeId}: the replaced branch stays`));
+  steps.slice(own).forEach(step => assert.deepEqual(shownChildren(step), ['replacement', 'retained'], `${step.targetNodeId}: the replacement has swapped in`));
+  for (const step of steps) assert(!(step.replayVisibleNodeIds.includes('gone') && step.replayVisibleNodeIds.includes('replacement')),
+    `${step.targetNodeId}: the replaced branch and its replacement are never shown together`);
 });
 
 for (const numberOfChildren of [1, 2]) test(`nested wrappers preserve ${numberOfChildren} earlier child attachments as each parent is built`, () => {
