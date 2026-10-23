@@ -5,13 +5,7 @@ import { createParseRoutes } from './babelParser/parseRoutes.js';
 
 export { ParseApiError } from './babelParser/error.js';
 
-export const {
-  parseSentenceWithLocalModel,
-  parseSentenceWithGemini,
-  parseSentenceWithOpenAI,
-  parseSentenceWithClaude,
-  parseSentenceWithResearchModel
-} = createParseRoutes({
+export const { parseSentenceWithResearchModel } = createParseRoutes({
   ParseApiError,
   normalizeParseBundle,
   parseModelJsonDetailed

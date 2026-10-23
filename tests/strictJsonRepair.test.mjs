@@ -13,12 +13,20 @@ import { restateAsSpellout } from './helpers/spelloutPayload.mjs';
 // repair on 22 Oct 2026. These tests pin that unbalanced brackets now fail.
 const fixturesDirectory = new URL('../fixtures/raw/', import.meta.url);
 
-const createLocalRoutes = (rawText) => createParseRoutes({
-  ParseApiError,
-  normalizeParseBundle: normalizeParseBundle,
-  parseModelJsonDetailed: parseModelJsonDetailed,
-  generateLocal: async () => rawText
-});
+const parseRawOutput = async (t, rawText, sentence, framework) => {
+  const previous = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = 'offline-test-only';
+  t.after(() => {
+    if (previous === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = previous;
+  });
+  return createParseRoutes({
+    ParseApiError,
+    normalizeParseBundle: normalizeParseBundle,
+    parseModelJsonDetailed: parseModelJsonDetailed,
+    generateOpenAI: async () => ({ text: rawText, status: 'completed', candidates: [{ finishReason: 'COMPLETED' }] })
+  }).parseSentenceWithResearchModel(sentence, framework, 'openai:gpt-6-astra');
+};
 
 const assertUnbalanced = (error, raw, { candidateByteOffset, message }) => {
   assert.equal(error instanceof ParseApiError, true);
@@ -115,14 +123,14 @@ test('other syntax errors stay ordinary JSON failures with no attempted edits', 
   }
 });
 
-test('a stray closer inside a tree fails with the raw output instead of splitting the tree', async () => {
+test('a stray closer inside a tree fails with the raw output instead of splitting the tree', async (t) => {
   const fixture = JSON.parse(await readFile(new URL('what-did-mia-see.xbar.json', fixturesDirectory), 'utf8'));
   const text = JSON.stringify(restateAsSpellout(fixture.payload, fixture.sentence));
   // Rebalancing this stray "]" used to close cp_question early: two roots, no tree.
   const at = text.indexOf('"children":[]', text.lastIndexOf('"id":"what_high"')) + '"children":[]'.length;
   const damaged = `${text.slice(0, at)}]${text.slice(at)}`;
   await assert.rejects(
-    createLocalRoutes(damaged).parseSentenceWithLocalModel(fixture.sentence, fixture.framework),
+    parseRawOutput(t, damaged, fixture.sentence, fixture.framework),
     (error) => assertUnbalanced(error, damaged, {
       candidateByteOffset: Buffer.byteLength(text.slice(0, at)),
       message: /does not match/
@@ -130,11 +138,11 @@ test('a stray closer inside a tree fails with the raw output instead of splittin
   );
 });
 
-test('the local route fails a response with an unclosed end', async () => {
+test('the parse route fails a response with an unclosed end', async (t) => {
   const fixture = JSON.parse(await readFile(new URL('mia-laughed.xbar.json', fixturesDirectory), 'utf8'));
   const raw = JSON.stringify(restateAsSpellout(fixture.payload, fixture.sentence)).slice(0, -1);
   await assert.rejects(
-    createLocalRoutes(raw).parseSentenceWithLocalModel(fixture.sentence, fixture.framework),
+    parseRawOutput(t, raw, fixture.sentence, fixture.framework),
     (error) => assertUnbalanced(error, raw, { candidateByteOffset: Buffer.byteLength(raw), message: /1 bracket still open/ })
   );
 });

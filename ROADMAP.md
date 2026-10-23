@@ -53,10 +53,7 @@ syntactic rules. Desktop remains the primary experience.
      relations: measure the wrong-picture rate where Babel already draws, and
      decide whether each further measured rule can claim its whole envelope.
    - Later, consider Jev as a fallback.
-4. Remove the legacy server model-route picker (Gemini default, stale model names,
-   legacy environment variables) and the `.artifacts` harnesses that depend on it.
-   Treat this as an explicit endpoint-contract change.
-5. Merge duplicated layout checks without changing a pixel, proving identical
+4. Merge duplicated layout checks without changing a pixel, proving identical
    output with the fixture layout fingerprint (`npm run verify:visual-offline`)
    and `npm run verify:corpus`, and fix the one remaining stretched branch in
    Indonesian control analysis 2.

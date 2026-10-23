@@ -1,31 +1,16 @@
-import { attachGenerationFailureEvidence, classifyGeminiRouteError, classifyProviderRouteError } from './routeErrors.js';
-import { GoogleGenAI } from '@google/genai';
+import { attachGenerationFailureEvidence, classifyProviderRouteError } from './routeErrors.js';
 import { attachAggregateParseTokenCounts } from './provenance.js';
 import { buildGenerationRecord } from './generationRecord.js';
 import { buildSystemInstruction } from './systemInstruction.js';
 import { buildParseContentsPrompt } from './prompts.js';
 import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './researchModelCatalog.js';
 import {
-  buildGeminiThinkingConfig,
-  GEMINI_MODEL,
-  LOCAL_MODEL_COMMAND,
-  LOCAL_MODEL_NAME,
-  LOCAL_MODEL_URL,
-  ANTHROPIC_MODEL,
-  OPENAI_MODEL,
   getRemainingRequestBudgetMs,
-  localRouteUnavailableMessage,
-  routeUnavailableMessage,
   resolveModelTimeoutMs,
-  resolveRequestTimeoutMs,
-  resolveRouteMaxOutputTokens,
-  resolveRouteTemperature,
-  normalizeProviderReasoningEffort
+  resolveRequestTimeoutMs
 } from './routeConfig.js';
 import {
   buildAnthropicRequestBody,
-  buildGeminiGenerationRequest,
-  buildLocalRequestBody,
   buildOpenAIRequestBody,
   buildKimiRequestBody,
   buildGrokRequestBody,
@@ -33,12 +18,9 @@ import {
   generateOpenAIStructuredContent,
   generateKimiStructuredContent,
   generateGrokStructuredContent,
-  generateStructuredContent,
-  generateStructuredLocalContent,
-  resolveLocalMaxOutputTokens,
   writeDebugModelPayload
 } from './modelRuntime.js';
-import { getErrorMeta, isNetworkTransportError, runWithTransportRetries, summarizeErrorForLog, withTimeout } from './providerTransport.js';
+import { runWithTransportRetries, withTimeout } from './providerTransport.js';
 import { assertGenerationComplete, buildGenerationOutcome, summarizeGeneration } from './generationOutcome.js';
 import {
   createRawOutputArtifact,
@@ -49,8 +31,6 @@ export const createParseRoutes = ({
   ParseApiError,
   normalizeParseBundle,
   parseModelJsonDetailed,
-  generateLocal = generateStructuredLocalContent,
-  generateGemini = generateStructuredContent,
   generateOpenAI = generateOpenAIStructuredContent,
   generateClaude = generateAnthropicStructuredContent,
   generateKimi = generateKimiStructuredContent,
@@ -226,14 +206,12 @@ export const createParseRoutes = ({
       payload = parseModelJsonDetailed(generationMeta.rawText).payload;
     } catch (error) {
       if (error.details?.jsonDiagnostic) jsonProcessing.diagnostic = error.details.jsonDiagnostic;
-      const debugPayloadPath = modelRoute !== 'gemini' || (error instanceof ParseApiError && error.code === 'BAD_MODEL_RESPONSE')
-        ? writeDebugModelPayload({
-            stage: modelRoute === 'gemini' ? 'json-parse' : `${modelRoute}-json-parse`,
-            model,
-            sentence,
-            rawText: generationMeta.rawText
-          })
-        : null;
+      const debugPayloadPath = writeDebugModelPayload({
+        stage: `${modelRoute}-json-parse`,
+        model,
+        sentence,
+        rawText: generationMeta.rawText
+      });
       throw augmentModelPayloadFailure({
         error,
         stage: 'json-parse',
@@ -272,7 +250,7 @@ export const createParseRoutes = ({
     } catch (error) {
       if (error.failure) normalizationProcessing.failure = error.failure;
       const debugPayloadPath = writeDebugModelPayload({
-        stage: modelRoute === 'gemini' ? 'normalization' : `${modelRoute}-normalization`,
+        stage: `${modelRoute}-normalization`,
         model,
         sentence,
         rawText: generationMeta.rawText
@@ -297,275 +275,6 @@ export const createParseRoutes = ({
     return normalized;
   };
 
-  const parseSentenceWithLocalModel = async (sentence, framework = 'xbar') => {
-    // The local runtime is its own route; provenance must not claim Gemini.
-    const promptRoute = 'local';
-    const systemInstruction = buildSystemInstruction(framework, promptRoute);
-    const prompt = buildParseContentsPrompt(sentence);
-    const temperature = resolveRouteTemperature(promptRoute);
-    const maxOutputTokens = resolveLocalMaxOutputTokens(resolveRouteMaxOutputTokens(promptRoute));
-    const modelUsed = `local:${LOCAL_MODEL_NAME}`;
-    const sentRequest = buildLocalRequestBody({
-      transport: LOCAL_MODEL_COMMAND ? 'command' : 'http',
-      sentence,
-      framework,
-      systemInstruction,
-      prompt,
-      temperature,
-      maxOutputTokens
-    });
-
-    let generationFailureEvidence = null;
-    let generationStartedAt = null;
-    try {
-      generationStartedAt = Date.now();
-      const rawText = await generateLocal({
-        sentence,
-        framework,
-        systemInstruction,
-        prompt,
-        temperature,
-        maxOutputTokens,
-        timeoutMs: undefined
-      });
-      const generationRecord = createGenerationRecord({
-        provider: 'local',
-        framework,
-        promptRoute,
-        sentRequest,
-        generationStartedAt
-      });
-      generationFailureEvidence = { generationRecord, rawText };
-
-      if (!rawText) {
-        throw new ParseApiError('BAD_MODEL_RESPONSE', 'Local model returned no text.', 502, {
-          stage: 'local-transport',
-          model: modelUsed
-        });
-      }
-
-      let normalized = normalizeParseBundle(
-        parseModelJsonDetailed(rawText).payload,
-        framework,
-        sentence,
-        promptRoute,
-        true,
-        { spellout: true }
-      );
-      if (normalized?.analyses?.[0]) {
-        normalized = mapBundleAnalyses(normalized, (analysis) => ({
-          ...analysis,
-          provenance: attachAggregateParseTokenCounts({
-            ...(analysis.provenance || {}),
-            modelRoute: 'local'
-          })
-        }));
-      }
-
-      return {
-        ...normalized,
-        requestedModelRoute: 'local',
-        modelUsed,
-        generationRecord
-      };
-    } catch (error) {
-      if (error instanceof ParseApiError) {
-        throw attachGenerationFailureEvidence({
-          error,
-          ParseApiError,
-          generationRecord: generationFailureEvidence?.generationRecord,
-          rawText: generationFailureEvidence?.rawText
-        });
-      }
-      const { msg, haystack, statusCode } = getErrorMeta(error);
-      if (
-        isNetworkTransportError(error) ||
-        haystack.includes('econnrefused') ||
-        haystack.includes('connection refused') ||
-        haystack.includes('failed to fetch') ||
-        statusCode === 404 ||
-        statusCode === 503
-      ) {
-        const classified = new ParseApiError('LOCAL_MODEL_UNAVAILABLE', localRouteUnavailableMessage(), 503, {
-          model: modelUsed,
-          endpoint: LOCAL_MODEL_COMMAND ? 'command' : LOCAL_MODEL_URL,
-          transportMessage: msg || null
-        });
-        throw attachGenerationFailureEvidence({
-          error: classified,
-          ParseApiError,
-          generationRecord: generationFailureEvidence?.generationRecord,
-          rawText: generationFailureEvidence?.rawText
-        });
-      }
-      const classified = createDeterministicParseFailure({
-        message: 'Babel could not complete the local parse.',
-        details: {
-          model: modelUsed,
-          endpoint: LOCAL_MODEL_COMMAND ? 'command' : LOCAL_MODEL_URL
-        },
-        rawText: generationFailureEvidence?.rawText
-      });
-      throw attachGenerationFailureEvidence({
-        error: classified,
-        ParseApiError,
-        generationRecord: generationFailureEvidence?.generationRecord,
-        rawText: generationFailureEvidence?.rawText,
-        providerErrorBody: generationFailureEvidence?.providerErrorBody
-      });
-    }
-  };
-
-  const parseSentenceWithGemini = async (sentence, framework = 'xbar', modelRoute = 'gemini', options = {}) => {
-    const apiKey = String(process.env.GEMINI_API_KEY || '').trim();
-    if (!apiKey) {
-      throw new ParseApiError('API_KEY_MISSING', 'Gemini API key is not configured on the server.', 500);
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
-    const normalizedModelRoute = 'gemini';
-    const systemInstruction = buildSystemInstruction(framework, normalizedModelRoute);
-    const fullContents = buildParseContentsPrompt(sentence);
-    const routeTemperature = resolveRouteTemperature(normalizedModelRoute);
-    const routeMaxOutputTokens = resolveRouteMaxOutputTokens(normalizedModelRoute);
-    const selectedModel = GEMINI_MODEL;
-    const requestStartedAt = Date.now();
-    const reasoningEffort = normalizeProviderReasoningEffort(normalizedModelRoute, options.reasoningEffort);
-    const thinkingConfig = buildGeminiThinkingConfig(reasoningEffort);
-    const sentRequest = buildGeminiGenerationRequest({
-      model: selectedModel,
-      contents: fullContents,
-      systemInstruction,
-      temperature: routeTemperature,
-      maxOutputTokens: routeMaxOutputTokens,
-      thinkingConfig
-    });
-
-    let generationFailureEvidence = null;
-    let generationStartedAt = null;
-    try {
-      const remainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, normalizedModelRoute);
-      if (remainingBudgetMs <= 1200) {
-        throw new ParseApiError(
-          'GEMINI_UNAVAILABLE',
-          routeUnavailableMessage(normalizedModelRoute),
-          503
-        );
-      }
-
-      generationStartedAt = Date.now();
-      const generationReceipt = await runWithTransportRetries({
-        abortSignal: options.abortSignal,
-        deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
-        run: async () => {
-          const attemptRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, normalizedModelRoute);
-          if (attemptRemainingBudgetMs <= 1200) {
-            throw new ParseApiError(
-              'GEMINI_UNAVAILABLE',
-              routeUnavailableMessage(normalizedModelRoute),
-              503
-            );
-          }
-          return withTimeout(
-            (abortSignal) => generateGemini({
-              ai,
-              model: selectedModel,
-              contents: fullContents,
-              systemInstruction,
-              temperature: routeTemperature,
-              maxOutputTokens: routeMaxOutputTokens,
-              thinkingConfig,
-              abortSignal
-            }),
-            resolveRequestTimeoutMs({
-              baseTimeoutMs: resolveModelTimeoutMs(selectedModel, normalizedModelRoute),
-              remainingBudgetMs: attemptRemainingBudgetMs
-            }),
-            `Model generation (${selectedModel})`,
-            options.abortSignal
-          );
-        }
-      });
-      const generation = generationReceipt.value;
-      const generationMeta = summarizeGeneration(generation);
-      const generationRecord = {
-        ...createGenerationRecord({
-          provider: normalizedModelRoute,
-          framework,
-          promptRoute: normalizedModelRoute,
-          sentRequest,
-          generationStartedAt
-        }),
-        outcome: buildGenerationOutcome({
-          generationMeta,
-          sentMaxOutputTokens: routeMaxOutputTokens,
-          runId: generationReceipt.runId,
-          attempts: generationReceipt.attempts
-        })
-      };
-      generationFailureEvidence = {
-        generationRecord,
-        rawText: generationMeta.rawText
-      };
-      assertGenerationComplete({
-        generation,
-        provider: normalizedModelRoute,
-        model: selectedModel,
-        sentMaxOutputTokens: routeMaxOutputTokens,
-        runId: generationReceipt.runId,
-        attempts: generationReceipt.attempts
-      });
-      const primaryDebugPayloadPath = maybeWritePrimaryDebugPayload({
-        modelRoute: normalizedModelRoute,
-        model: selectedModel,
-        sentence,
-        rawText: generationMeta.rawText
-      });
-
-      const normalized = processGeneratedPayload({
-        generationMeta,
-        generationRecord,
-        framework,
-        sentence,
-        modelRoute: normalizedModelRoute,
-        model: selectedModel,
-        primaryDebugPayloadPath
-      });
-
-      return {
-        ...normalized,
-        requestedModelRoute: normalizedModelRoute,
-        requestedReasoningEffort: reasoningEffort,
-        modelUsed: selectedModel,
-        generationRecord
-      };
-    } catch (error) {
-      generationFailureEvidence = createTerminalFailureEvidence({
-        existingEvidence: generationFailureEvidence,
-        error,
-        provider: normalizedModelRoute,
-        framework,
-        promptRoute: normalizedModelRoute,
-        sentRequest,
-        generationStartedAt,
-        sentMaxOutputTokens: routeMaxOutputTokens
-      });
-      const classified = classifyGeminiRouteError({
-        error,
-        ParseApiError,
-        modelRoute: normalizedModelRoute,
-        model: selectedModel
-      });
-      throw attachGenerationFailureEvidence({
-        error: classified,
-        ParseApiError,
-        generationRecord: generationFailureEvidence?.generationRecord,
-        rawText: generationFailureEvidence?.rawText,
-        providerErrorBody: generationFailureEvidence?.providerErrorBody
-      });
-    }
-  };
-
   const parseSentenceWithExternalProvider = async ({
     sentence,
     framework,
@@ -575,22 +284,17 @@ export const createParseRoutes = ({
     providerLabel,
     generate,
     selection,
-    abortSignal,
-    reasoningEffort: requestedReasoningEffort
+    abortSignal
   }) => {
     if (!apiKey) {
       throw new ParseApiError('API_KEY_MISSING', `${providerLabel} API key is not configured on the server.`, 500);
     }
 
-    const systemInstruction = buildSystemInstruction(framework, modelRoute);
+    const systemInstruction = buildSystemInstruction(framework);
     const fullContents = buildParseContentsPrompt(sentence);
-    const routeMaxOutputTokens = selection
-      ? selection.requestPolicy.maxOutputTokens ?? selection.requestPolicy.maxCompletionTokens
-      : resolveRouteMaxOutputTokens(modelRoute);
+    const routeMaxOutputTokens = selection.requestPolicy.maxOutputTokens ?? selection.requestPolicy.maxCompletionTokens;
     const requestStartedAt = Date.now();
-    const reasoningEffort = selection
-      ? Object.values(selection.nativeSettings)[0]
-      : normalizeProviderReasoningEffort(modelRoute, requestedReasoningEffort);
+    const reasoningEffort = Object.values(selection.nativeSettings)[0];
     const generationOptions = {
       model: selectedModel,
       contents: fullContents,
@@ -598,8 +302,8 @@ export const createParseRoutes = ({
       maxOutputTokens: routeMaxOutputTokens,
       reasoningEffort,
       effort: reasoningEffort,
-      ...(selection?.provider === 'openai' ? { background: selection.requestPolicy.background } : {}),
-      ...(selection?.provider === 'anthropic' ? {
+      ...(selection.provider === 'openai' ? { background: selection.requestPolicy.background } : {}),
+      ...(selection.provider === 'anthropic' ? {
         thinking: selection.requestPolicy.thinking?.value ?? null
       } : {})
     };
@@ -614,7 +318,7 @@ export const createParseRoutes = ({
     let generationFailureEvidence = null;
     let generationStartedAt = null;
     try {
-      const remainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, modelRoute);
+      const remainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt);
       if (remainingBudgetMs <= 1200) {
         throw new ParseApiError(
           'PROVIDER_UNAVAILABLE',
@@ -628,7 +332,7 @@ export const createParseRoutes = ({
         abortSignal,
         deadlineAt: generationStartedAt + remainingBudgetMs - 1200,
         run: async () => {
-          const attemptRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt, modelRoute);
+          const attemptRemainingBudgetMs = getRemainingRequestBudgetMs(requestStartedAt);
           if (attemptRemainingBudgetMs <= 1200) {
             throw new ParseApiError(
               'PROVIDER_UNAVAILABLE',
@@ -643,7 +347,7 @@ export const createParseRoutes = ({
               abortSignal: attemptSignal
             }),
             resolveRequestTimeoutMs({
-              baseTimeoutMs: resolveModelTimeoutMs(selectedModel, modelRoute),
+              baseTimeoutMs: resolveModelTimeoutMs(),
               remainingBudgetMs: attemptRemainingBudgetMs
             }),
             `Model generation (${selectedModel})`,
@@ -661,7 +365,7 @@ export const createParseRoutes = ({
           sentRequest,
           generationStartedAt
         }),
-        ...(selection ? { modelSelection: selection } : {}),
+        modelSelection: selection,
         ...(generation.returnedModel ? { returnedModel: generation.returnedModel } : {}),
         ...(typeof generation.rawProviderResponse === 'string' ? {
           rawProviderResponse: createRawOutputArtifact(generation.rawProviderResponse)
@@ -704,10 +408,10 @@ export const createParseRoutes = ({
       return {
         ...normalized,
         requestedModelRoute: modelRoute,
-        ...(selection ? { requestedModelId: selection.catalogId } : {}),
+        requestedModelId: selection.catalogId,
         requestedReasoningEffort: reasoningEffort,
         modelUsed: generation.returnedModel || selectedModel,
-        ...(selection ? { rawModelOutput: createRawOutputArtifact(generationMeta.rawText) } : {}),
+        rawModelOutput: createRawOutputArtifact(generationMeta.rawText),
         generationRecord
       };
     } catch (error) {
@@ -721,7 +425,7 @@ export const createParseRoutes = ({
         generationStartedAt,
         sentMaxOutputTokens: routeMaxOutputTokens
       });
-      if (selection && generationFailureEvidence) {
+      if (generationFailureEvidence) {
         generationFailureEvidence.generationRecord.modelSelection = selection;
       }
       const classified = classifyProviderRouteError({
@@ -739,32 +443,6 @@ export const createParseRoutes = ({
       });
     }
   };
-
-  const parseSentenceWithOpenAI = async (sentence, framework = 'xbar', modelRoute = 'gpt', options = {}) =>
-    parseSentenceWithExternalProvider({
-      sentence,
-      framework,
-      modelRoute,
-      apiKey: String(process.env.OPENAI_API_KEY || '').trim(),
-      selectedModel: OPENAI_MODEL,
-      providerLabel: 'OpenAI',
-      generate: generateOpenAI,
-      abortSignal: options.abortSignal,
-      reasoningEffort: options.reasoningEffort
-    });
-
-  const parseSentenceWithClaude = async (sentence, framework = 'xbar', modelRoute = 'claude', options = {}) =>
-    parseSentenceWithExternalProvider({
-      sentence,
-      framework,
-      modelRoute,
-      apiKey: String(process.env.ANTHROPIC_API_KEY || '').trim(),
-      selectedModel: ANTHROPIC_MODEL,
-      providerLabel: 'Claude',
-      generate: generateClaude,
-      abortSignal: options.abortSignal,
-      reasoningEffort: options.reasoningEffort
-    });
 
   const parseSentenceWithResearchModel = async (sentence, framework, modelId, options = {}) => {
     if (!GENERATION_MODEL_IDS.includes(modelId)) {
@@ -790,11 +468,5 @@ export const createParseRoutes = ({
     });
   };
 
-  return {
-    parseSentenceWithLocalModel,
-    parseSentenceWithGemini,
-    parseSentenceWithOpenAI,
-    parseSentenceWithClaude,
-    parseSentenceWithResearchModel
-  };
+  return { parseSentenceWithResearchModel };
 };
