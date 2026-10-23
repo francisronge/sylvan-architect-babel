@@ -109,6 +109,8 @@ export type RelationClaimDispatch = ClaimDispatchBase & {
   structuralRules?: import('./structuralRecognition.ts').StructuralRuleId[];
   /** The structural movement a wholly neutral claim was upgraded with; see structuralMovement.ts. */
   structuralMovement?: RecoveredMovement;
+  /** Movements this claim names that an earlier claim of its stage already draws; it draws no arrow for them. */
+  restatedMovements?: RecoveredMovement[];
 };
 
 export type ExclusiveRelationDispatchInput = {
@@ -128,6 +130,8 @@ export type ExclusiveRelationDispatchInput = {
   structuralRules?: ReadonlySet<import('./structuralRecognition.ts').StructuralRuleId>;
   /** Structural movement for this claim; see structuralMovement.ts. */
   structuralMovement?: RecoveredMovement;
+  /** Keys (`movementKey`) of movements an earlier claim of this stage already draws. */
+  drawnMovements?: ReadonlySet<string>;
 };
 
 export type RelationClaimDispatchEntry = {

@@ -1731,6 +1731,19 @@ bookkeeping remains on each contributing relation reference; both Replay moments
 and explanations survive. Different intermediate and final landings never merge.
 This shares the trajectory only, not the complete authored claims.
 
+Within one stage the arrow belongs to the earlier claim alone. An unregistered
+claim that names a movement an earlier claim of its stage already draws (the
+same preceding position, lower occurrence and landing), as A-trace licensing,
+chain interpretation or empty-category licensing claims restate a raising or
+head movement, restates it (`restatedMovements` on its dispatch). It keeps its
+own Replay moment and its other marks: role labels and gap notation, plaques
+and links, and a neutral fallback for the anchors the arrow would have
+consumed. Its moment adds no trajectory and no refused-drawing diagnostic; the
+earlier claim's arrow persists. A claim that is the only one of its stage
+naming the movement keeps it, an exact Tier-1 claim keeps its validation and
+drawing, and a later stage's restatement still shares the curve as above.
+Francis chose this on 23 Oct 2026.
+
 Theta grids may combine overlapping inventories for the same exact predicate
 occurrence and lineage, provided shared recipients have identical role labels and
 indices. Each displayed row retains every contributing relation reference. Only
