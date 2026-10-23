@@ -17,51 +17,69 @@ const plaques = (relation, currentForest) => items(relation, currentForest)
 const recipes = (relation, currentForest) => dispatch(relation, currentForest).claims
   .filter(claim => claim.tier === 2).map(claim => claim.facet.recipe.id);
 
-test('explicit same-key Case properties survive a malformed exact assignment without rescuing its path', () => {
+test('a malformed exact Case assignment keeps its declared bearer values; only undeclared same-key properties survive', () => {
   const relation = { relation: 'Case assignment',
     anchors: { assigners: ['finite', 'verb'], recipients: ['subject', 'recipient'] },
     values: { recipients: ['nominative', 'an unfamiliar Case literal'] } };
   const before = structuredClone(relation), result = dispatch(relation), drawn = items(relation);
   assert.equal(result.primaryClaim.tier, 3);
   assert.equal(result.primaryClaim.reason, 'registered-signature-incomplete');
-  assert.deepEqual(recipes(relation), ['plaque.structured', 'plaque.structured']);
-  assert(!drawn.some(item => item.kind === 'directed-path'));
-  assert.deepEqual(drawn.filter(item => item.tier2FacetId === 'plaque.structured')
+  // `recipients` fills the primary's declared bearer role, so its Case values
+  // belong to the malformed claim: Tier 2 neither repairs nor disguises them.
+  assert.deepEqual(recipes(relation), []);
+  assert(!drawn.some(item => item.kind === 'directed-path' || item.tier2FacetId === 'plaque.structured'));
+  assert.deepEqual(result.primaryRelation, relation);
+  for (const malformed of [
+    { relation: 'CaseAssignment', anchors: { bearer: 'subject' }, values: { bearer: 'nominative' } },
+    { relation: 'CaseAssignment', anchors: { assigner: ['finite', 'verb'], bearer: ['subject', 'recipient'] },
+      values: { bearer: ['nominative', 'accusative'] } }
+  ]) {
+    assert.equal(dispatch(malformed).primaryClaim.tier, 3, JSON.stringify(malformed));
+    assert.deepEqual(items(malformed).map(item => [item.kind, item.claimTier]), [['fallback', 3]], JSON.stringify(malformed));
+  }
+  const independent = { relation: 'Case assignment',
+    anchors: { assigners: ['finite', 'verb'], DPs: ['subject', 'recipient'] },
+    values: { DPs: ['nominative', 'an unfamiliar Case literal'] } };
+  const survived = dispatch(independent);
+  assert.equal(survived.primaryClaim.tier, 3);
+  assert.deepEqual(recipes(independent), ['plaque.structured', 'plaque.structured']);
+  assert(!items(independent).some(item => item.kind === 'directed-path'));
+  assert.deepEqual(items(independent).filter(item => item.tier2FacetId === 'plaque.structured')
     .map(item => [item.anchorNodeIds, item.rows]), [
-    [['subject'], [{ label: 'recipients', value: 'nominative' }]],
-    [['recipient'], [{ label: 'recipients', value: 'an unfamiliar Case literal' }]]
+    [['subject'], [{ label: 'DPs', value: 'nominative' }]],
+    [['recipient'], [{ label: 'DPs', value: 'an unfamiliar Case literal' }]]
   ]);
-  assert.deepEqual(result.claims.filter(claim => claim.tier === 2).map(claim => claim.consumedEvidence), [
-    [{ field: 'anchors', key: 'recipients', itemIndices: [0] }, { field: 'values', key: 'recipients', itemIndices: [0] }],
-    [{ field: 'anchors', key: 'recipients', itemIndices: [1] }, { field: 'values', key: 'recipients', itemIndices: [1] }]
+  assert.deepEqual(survived.claims.filter(claim => claim.tier === 2).map(claim => claim.consumedEvidence), [
+    [{ field: 'anchors', key: 'DPs', itemIndices: [0] }, { field: 'values', key: 'DPs', itemIndices: [0] }],
+    [{ field: 'anchors', key: 'DPs', itemIndices: [1] }, { field: 'values', key: 'DPs', itemIndices: [1] }]
   ]);
-  assert.deepEqual(result.primaryRelation.anchors, { assigners: relation.anchors.assigners });
-  assert.deepEqual(result.relationInstance, { stageIndex: 3, relationIndex: 2 });
+  assert.deepEqual(survived.primaryRelation.anchors, { assigners: independent.anchors.assigners });
+  assert.deepEqual(survived.relationInstance, { stageIndex: 3, relationIndex: 2 });
   assert.deepEqual(relation, before);
 });
 
 test('paired Case properties require exact keys, complete lists, distinct owners and asserted Case', () => {
   const relation = { relation: 'Case assignment',
-    anchors: { assigners: ['finite', 'verb'], recipients: ['subject', 'recipient'] },
-    values: { recipients: ['nominative', 'opaque Case'] } };
+    anchors: { assigners: ['finite', 'verb'], DPs: ['subject', 'recipient'] },
+    values: { DPs: ['nominative', 'opaque Case'] } };
   for (const changed of [
-    { ...relation, values: { recipients: ['nominative'] } },
-    { ...relation, values: { recipient: ['nominative', 'opaque Case'] } },
-    { ...relation, values: { recipients: ['nominative', ''] } },
-    { ...relation, anchors: { ...relation.anchors, recipients: ['subject', 'subject'] } },
+    { ...relation, values: { DPs: ['nominative'] } },
+    { ...relation, values: { DP: ['nominative', 'opaque Case'] } },
+    { ...relation, values: { DPs: ['nominative', ''] } },
+    { ...relation, anchors: { ...relation.anchors, DPs: ['subject', 'subject'] } },
     { ...relation, values: { ...relation.values, status: 'pending' } },
     ...['No', 'Not', 'Denied', 'Possible', 'Failed', 'Pending'].map(prefix => ({ ...relation, relation: `${prefix} Case assignment` })),
     { ...relation, relation: 'Case assignment if licensed' },
     { ...relation, relation: 'Case assignment unless blocked' },
     { ...relation, relation: 'An observation about participants' },
-    { ...relation, anchors: { recipients: relation.anchors.assigners }, values: { recipients: relation.values.recipients },
+    { ...relation, anchors: { DPs: relation.anchors.assigners }, values: { DPs: relation.values.DPs },
       relation: 'Case assignment', relationContractFailure: { code: 'malformed-relation' } }
   ]) assert.equal(plaques(changed).length, 0, JSON.stringify(changed));
   const duplicateOwner = [...forest, leaf('subject', 'DP')];
   assert(!plaques(relation, duplicateOwner).some(plaque => plaque.anchorNodeIds.includes('subject')));
   const missingOwner = forest.filter(node => node.id !== 'recipient');
   assert(!plaques(relation, missingOwner).some(plaque => plaque.anchorNodeIds.includes('recipient')));
-  const differentOrder = { ...relation, anchors: { ...relation.anchors, recipients: ['recipient', 'subject'] } };
+  const differentOrder = { ...relation, anchors: { ...relation.anchors, DPs: ['recipient', 'subject'] } };
   assert.deepEqual(plaques(differentOrder).map(plaque => [plaque.anchorNodeIds[0], plaque.rows[0].value]),
     [['recipient', 'nominative'], ['subject', 'opaque Case']]);
 });

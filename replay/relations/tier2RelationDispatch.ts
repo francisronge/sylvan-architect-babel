@@ -100,13 +100,18 @@ const resolveClaimCollisions = (
   const selected = new Map<string, Tier2EvaluatedFacet>(initial);
   const diagnostics: Tier2CollisionDiagnostic[] = [];
 
-  const participants = (id: string): Set<string> => new Set(initial.get(id)?.evaluation.consumedEvidence
-    .filter(ref => ref.field === 'anchors')
-    .flatMap(ref => {
-      const entry = evidence.authoredCurrentAnchors?.find(entry => entry.key === ref.key);
-      return (ref.itemIndices ?? entry?.items.map((_, index) => index) ?? [])
-        .flatMap(index => entry?.items[index] === undefined ? [] : [entry.items[index]]);
-    }));
+  const participants = (id: string, coreOnly = false): Set<string> => {
+    const facet = initial.get(id);
+    const core = new Set(facet?.recipe.anchors.filter(requirement => !requirement.optional).map(({ role }) => role));
+    return new Set(facet?.evaluation.consumedEvidence
+      .filter(ref => ref.field === 'anchors')
+      .flatMap(ref => {
+        const entry = evidence.authoredCurrentAnchors?.find(entry => entry.key === ref.key);
+        if (coreOnly && !entry?.concepts.some(concept => core.has(concept))) return [];
+        return (ref.itemIndices ?? entry?.items.map((_, index) => index) ?? [])
+          .flatMap(index => entry?.items[index] === undefined ? [] : [entry.items[index]]);
+      }));
+  };
   const covers = (owner: string, other: string): boolean => {
     const owned = participants(owner);
     const compared = participants(other);
@@ -119,9 +124,16 @@ const resolveClaimCollisions = (
     return compared.size > 0 && [...compared].every(id => owned.has(id));
   };
 
+  // Tied readings are one claim when they name the same endpoints. An optional
+  // domain or scope that only one reading consumes is context, not another claim.
+  const sameEndpoints = (left: string, right: string): boolean => {
+    const a = participants(left, true), b = participants(right, true);
+    return a.size > 0 && a.size === b.size && [...a].every(id => b.has(id));
+  };
   const failClosed = (collision: string, facetIds: readonly string[]) => {
     const tied = facetIds.filter((id) => initial.has(id));
-    if (tied.length < 2 || !tied.every(id => covers(id, tied[0]) && covers(tied[0], id))) return;
+    if (tied.length < 2 || !tied.every(id => covers(id, tied[0]) && covers(tied[0], id)
+      || sameEndpoints(id, tied[0]))) return;
     tied.forEach((id) => selected.delete(id));
     diagnostics.push({ kind: 'ambiguous-facets', collision, facets: [...tied] });
   };
@@ -380,6 +392,11 @@ export const dispatchRelationClaims = (
         : lookupTier2SynonymCandidates(synonymIndex, 'role', role))
     : []);
   const primaryAcceptsAdditionalAnchors = registryEntry?.signature.anchors.allowAdditional === true;
+  // A claim of a registered envelope is independent of its primary only when
+  // none of its current anchors fills a role that primary declares.
+  const fillsDeclaredPrimaryRole = (key: string): boolean => declaredPrimaryAnchorKeys.has(normalizeTier2Synonym(key))
+    || [...(evidence.authoredCurrentAnchors?.find(entry => entry.key === key)?.concepts ?? []),
+      ...lookupTier2SynonymCandidates(synonymIndex, 'role', key)].some(concept => declaredPrimaryAnchorConcepts.has(concept));
   const indexes = indexTier2Forests(evidence);
   const evaluations = evaluateClaims(evidence, indexes);
   const thematic = typedThematicAssignment(evidence);
@@ -409,15 +426,7 @@ export const dispatchRelationClaims = (
       const currentAnchorEvidence = evaluation.consumedEvidence.filter(
         ({ field }) => field === 'anchors'
       );
-      return currentAnchorEvidence.length > 0 && currentAnchorEvidence.every(
-        ({ key }) => (
-          !declaredPrimaryAnchorKeys.has(normalizeTier2Synonym(key))
-          && [...(evidence.authoredCurrentAnchors?.find(entry => entry.key === key)?.concepts ?? []),
-          ...lookupTier2SynonymCandidates(synonymIndex, 'role', key)].every(
-            (concept) => !declaredPrimaryAnchorConcepts.has(concept)
-          )
-        )
-      );
+      return currentAnchorEvidence.length > 0 && currentAnchorEvidence.every(({ key }) => !fillsDeclaredPrimaryRole(key));
     })
     : completeClaims;
   const { selected, diagnostics } = resolveClaimCollisions(eligibleClaims, evidence);
@@ -583,7 +592,8 @@ export const dispatchRelationClaims = (
     if (covered) selected.splice(index, 1);
   }
   const properties = !registryEntry ? [...recoverParticipantProperties(evidence), ...recoverNamedArgumentProperties(evidence)]
-    : authoredTier1Dispatch.outcome !== 'resolved' ? recoverPairedCaseProperties(evidence) : [];
+    : authoredTier1Dispatch.outcome !== 'resolved' ? recoverPairedCaseProperties(evidence)
+      .filter(scope => !Object.keys(scope.origins.anchors).some(fillsDeclaredPrimaryRole)) : [];
   // An explicitly named abstract tense head owns a checked tense property.
   // A generic PF reading of that same lone row is weaker carrier evidence.
   if (relationLabelClauses(evidence.relationName).includes('tense feature checking')) {
@@ -663,8 +673,10 @@ export const dispatchRelationClaims = (
       priorForest
     })
     : authoredTier1Dispatch;
+  // A theta grid's predicate context and a movement witness are not arguments.
   const thetaContext = registryEntry?.id === 'theta.grid'
-    ? new Set(evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('predicate.context')).map(entry => entry.key))
+    ? new Set(evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('predicate.context')
+      || entry.concepts.includes('movement.witness')).map(entry => entry.key))
     : new Set<string>();
   const unownedAnchors = tier1Dispatch.outcome === 'resolved'
     ? Object.keys(primaryRelation.anchors ?? {}).filter(key => thetaContext.has(key)
@@ -874,27 +886,37 @@ export const dispatchRelationClaimBatch = (
   }));
 };
 
-/** Earlier claims can clarify later restatements; later relations never justify earlier ones. */
+/** Where each drawing relation puts a node plaque, keyed `stageIndex:relationIndex`,
+ * as the render plan compiled from a set of dispatches draws it. */
+export type NodePlaqueHosts = (dispatches: RelationClaimDispatch[][]) => ReadonlyMap<string, ReadonlySet<string>>;
+
+/** Earlier claims can clarify later restatements; later relations never justify earlier ones.
+ * `plaqueHosts` lets a later stage's drawing keep an earlier structure-only
+ * plaque when it puts no plaque on that plaque's node; without it, any later
+ * drawing on the node withdraws the plaque. */
 export function dispatchStageRelations(stages: readonly { workspaceForest: SyntaxNode[]; relations: DerivationStageRelation[]; realizations?: SurfaceRealization[] }[],
-  options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens' | 'structuralRules'> = {}): RelationClaimDispatch[][] {
-  const structuralRules = options.structuralRules ?? structuralRecognitionRules();
-  const dispatches = dispatchStagesInOrder(stages, structuralRules.size ? { ...options, structuralRules } : options);
+  options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens' | 'structuralRules'> & { plaqueHosts?: NodePlaqueHosts } = {}): RelationClaimDispatch[][] {
+  const { plaqueHosts, ...dispatchOptions } = options;
+  const structuralRules = dispatchOptions.structuralRules ?? structuralRecognitionRules();
+  const dispatches = dispatchStagesInOrder(stages, structuralRules.size ? { ...dispatchOptions, structuralRules } : dispatchOptions);
   if (!structuralRules.has('plaque.single-host')) return dispatches;
-  // A structure-only plaque yields to any other relation that anchors its host
-  // and draws: two plaques on one node crowd each other out of reach.
-  const drawsAt = new Map<string, Set<string>>();
-  dispatches.forEach((stage, stageIndex) => stage.forEach((dispatch, relationIndex) => {
-    if (!dispatch.claims.some(claim => claim.tier !== 3)) return;
-    Object.values(stages[stageIndex].relations[relationIndex].anchors ?? {}).flat().forEach(id =>
-      drawsAt.set(String(id), new Set([...(drawsAt.get(String(id)) ?? []), `${stageIndex}:${relationIndex}`])));
-  }));
-  const yielding = new Set(dispatches.flatMap((stage, stageIndex) => stage.flatMap((dispatch, relationIndex) => {
-    const key = `${stageIndex}:${relationIndex}`;
-    const hosts = Object.values(stages[stageIndex].relations[relationIndex].anchors ?? {}).flat().map(String);
-    return dispatch.structuralRules?.includes('plaque.single-host')
-      && hosts.some(id => [...(drawsAt.get(id) ?? [])].some(other => other !== key)) ? [key] : [];
-  })));
-  return yielding.size ? dispatchStagesInOrder(stages, { ...options, structuralRules }, yielding) : dispatches;
+  // A structure-only plaque yields to another relation that anchors its host
+  // and draws: two plaques on one node crowd each other out of reach. A later
+  // stage's drawing withdraws it only by putting a plaque on that node; a later
+  // line, arrow or connector ending there leaves the plaque in place.
+  const drawings = dispatches.flatMap((stage, stageIndex) => stage.flatMap((dispatch, relationIndex) =>
+    dispatch.claims.some(claim => claim.tier !== 3) ? [{
+      stageIndex, key: `${stageIndex}:${relationIndex}`,
+      hosts: new Set(Object.values(stages[stageIndex].relations[relationIndex].anchors ?? {}).flat().map(String)),
+      structureOnly: Boolean(dispatch.structuralRules?.includes('plaque.single-host'))
+    }] : []));
+  const contested = drawings.filter(plaque => plaque.structureOnly).map(plaque => ({ plaque,
+    others: drawings.filter(other => other !== plaque && [...plaque.hosts].some(id => other.hosts.has(id))) }));
+  const hostsOf = plaqueHosts && contested.some(({ plaque, others }) => others.some(other => other.stageIndex > plaque.stageIndex))
+    ? plaqueHosts(dispatches) : undefined;
+  const yielding = new Set(contested.filter(({ plaque, others }) => others.some(other => other.stageIndex <= plaque.stageIndex
+    || !hostsOf || [...plaque.hosts].some(id => hostsOf.get(other.key)?.has(id)))).map(({ plaque }) => plaque.key));
+  return yielding.size ? dispatchStagesInOrder(stages, { ...dispatchOptions, structuralRules }, yielding) : dispatches;
 }
 
 /** One ordered pass over the stages. Earlier claims inform later ones through

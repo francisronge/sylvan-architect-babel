@@ -1,4 +1,4 @@
-import type { DerivationStage } from '../../types.ts';
+import type { DerivationStage, SyntaxNode } from '../../types.ts';
 import { dispatchRelationStages, projectRelationStages, type DispatchedRelationStages } from '../relationStages.ts';
 import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
 import { findRelationRegistryEntry } from '../relationDispatch/relationRegistry.js';
@@ -91,7 +91,30 @@ export const compileRelationRenderPlan = (
 ): RelationRenderPlan => {
   const registry = options.registry ?? productionRelationRegistry;
   return compileDispatchedRelationRenderPlan(
-    dispatchRelationStages(projectRelationStages(stages), { registry, activeLens: options.activeLens }), options);
+    dispatchRelationStagesForPlan(projectRelationStages(stages), { registry, activeLens: options.activeLens }), options);
+};
+
+/** Dispatches stages as the plan and Replay read them: a structure-only plaque
+ * learns from a first compiled plan where later drawings put their plaques. */
+export const dispatchRelationStagesForPlan = (
+  stages: DispatchedRelationStages['stages'],
+  options: Parameters<typeof dispatchRelationStages>[1] = {}
+): DispatchedRelationStages => dispatchRelationStages(stages, {
+  plaqueHosts: dispatches => nodePlaqueHosts(compileDispatchedRelationRenderPlan({ stages, dispatches },
+    options.registry ? { registry: options.registry } : {})), ...options });
+
+/** The nodes on which each relation's node plaques are drawn, keyed `stageIndex:relationIndex`. */
+const nodePlaqueHosts = (plan: RelationRenderPlan) => {
+  const hosts = new Map<string, Set<string>>();
+  for (const frame of plan.frames)
+    for (const item of frame.items) {
+      if (item.kind !== 'node-plaque' || item.claimTier === 3) continue;
+      for (const ref of [item.relationRef, ...(item.coalescedRefs ?? [])]) {
+        const key = `${ref.stageIndex}:${ref.relationIndex}`;
+        hosts.set(key, new Set([...(hosts.get(key) ?? []), ...item.anchorNodeIds.map(String)]));
+      }
+    }
+  return hosts;
 };
 
 /** Compiles stages already dispatched with the same registry, as Replay
@@ -701,6 +724,25 @@ export const compileDispatchedRelationRenderPlan = (
   const chainIndexByLineage = new Map([...dependencyPlaceholders.keys()]
     .map((key, ordinal) => [key, dependencyLetters[ordinal]] as const)
     .filter(([key]) => key.startsWith('lineage:')));
+  // A phrasal chain's key lists every lineage its occurrences share, the
+  // copied descendants' too (stableChainKey). An argument belongs to such a
+  // chain when its own lineage is listed and its subtree carries all of them.
+  const chainIndexOf = (stageIndex: number, nodeId: string, key: string): string | undefined => {
+    if (chainIndexByLineage.has(key)) return chainIndexByLineage.get(key);
+    const subtree = new Set<string>();
+    const walk = (node: SyntaxNode) => {
+      if (node.lineageId) subtree.add(String(node.lineageId));
+      node.children?.forEach(walk);
+    };
+    const argument = stageNodeMaps[stageIndex].get(nodeId);
+    if (argument) walk(argument);
+    const own = key.slice('lineage:'.length);
+    const letters = new Set([...chainIndexByLineage].flatMap(([chain, letter]) => {
+      const shared = chain.slice('lineage:'.length).split('|');
+      return shared.includes(own) && shared.every(lineage => subtree.has(lineage)) ? [letter] : [];
+    }));
+    return letters.size === 1 ? [...letters][0] : undefined;
+  };
   let nextArgumentIndex = 0;
   // Theta notation identifies the exact argument, or its explicit root lineage.
   // Shared descendants and similarly spelled labels cannot merge arguments.
@@ -710,7 +752,7 @@ export const compileDispatchedRelationRenderPlan = (
     const key = lineage ? `lineage:${lineage}` : `theta:${nodeId}`;
     if (!argumentIndexByKey.has(key)) {
       const authored = authoredIndicesByIdentity.get(key);
-      let index = authored?.size === 1 ? [...authored][0] : chainIndexByLineage.get(key) ?? '';
+      let index = authored?.size === 1 ? [...authored][0] : (lineage && chainIndexOf(stageIndex, nodeId, key)) || '';
       while (!index) {
         const candidate = conventionalIndex(nextArgumentIndex++);
         if (!usedIndices.has(candidate)) index = candidate;
