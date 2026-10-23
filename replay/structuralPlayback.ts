@@ -172,9 +172,19 @@ export const structuralChildRank = (parent: HierNode, child: HierNode, childInde
   return childIndex;
 };
 
-/** The child rank Replay construction uses: today's table, or `structuralChildRank` under BABEL_REPLAY_STRUCTURAL_RANK=1. */
-export const constructionChildRank = (): typeof getDerivationalChildRankForOrdering => typeof process !== 'undefined'
-  && process.env?.BABEL_REPLAY_STRUCTURAL_RANK === '1' ? structuralChildRank : getDerivationalChildRankForOrdering;
+/**
+ * Just-in-time sister order from structure alone: the daughter with the larger subtree is built
+ * first, so the smaller pieces (a head, a specifier, an adjunct) are selected and built right
+ * before the merge that uses them. Ties, and separate workspaces, keep authored order.
+ */
+export const justInTimeChildRank = (parent: HierNode, child: HierNode, childIndex: number): number =>
+  isSyntheticWorkspaceRootNode(parent) ? childIndex : -child.descendants().length + childIndex / 1000;
+
+/** The child rank Replay construction uses: today's table, or a structural one under BABEL_REPLAY_STRUCTURAL_RANK (1, 2). */
+export const constructionChildRank = (): typeof getDerivationalChildRankForOrdering => {
+  const mode = typeof process !== 'undefined' ? process.env?.BABEL_REPLAY_STRUCTURAL_RANK : undefined;
+  return mode === '2' ? justInTimeChildRank : mode === '1' ? structuralChildRank : getDerivationalChildRankForOrdering;
+};
 
 export const buildBottomUpSequence = (root: HierNode, visibleIds: Set<string>, rank = getDerivationalChildRankForOrdering): HierNode[] => {
   const sequence: HierNode[] = [];

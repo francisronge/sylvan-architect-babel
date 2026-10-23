@@ -1,5 +1,4 @@
 import * as d3 from 'd3';
-import { momentRelationIdentities } from './momentRelations.ts';
 import type { SyntaxNode } from '../types.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds, getNodeId, isReplayDisplayChild } from './displayIdentity.ts';
@@ -153,8 +152,8 @@ export function treeLabelRunsForStep(
   }
   const played = new Set<number>();
   for (let i = 0; i <= stepIndex; i++) {
-    for (const identity of momentRelationIdentities(prepared.playbackSteps[i]))
-      if (identity.stageIndex === stage) played.add(identity.relationIndex);
+    const prior = prepared.playbackSteps[i], identity = prior.replayRelationIdentity;
+    if (prior.replayKind === 'relation' && identity?.stageIndex === stage) played.add(identity.relationIndex);
   }
   const activeRelation = step.replayKind === 'relation' ? step.replayRelationIdentity?.relationIndex ?? null : null;
   const items = options.includeRelationIndices !== false && prepared.relationRenderPlan ? visiblePlanFrameItems(prepared.relationRenderPlan, stage, played,

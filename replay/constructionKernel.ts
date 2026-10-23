@@ -592,17 +592,8 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     if (owner !== undefined) owners.set(key('c', id), owner);
     else frameState = edit.apply(frameState, new Set([key('c', id)])) ?? frameState;
   }
-  // A true duplicate claim (`sharedMomentOf`) plays at its original's moment: one moment, both relations.
   const authoredIndex = (placement: RelationPlacement) => Number.isInteger(placement.relation.authoredRelationIndex)
     ? placement.relation.authoredRelationIndex! : placement.relationIndex;
-  const sharing = new Map<number, number[]>();
-  for (const placement of relationPlacements) {
-    const original = relationPlacements.find(candidate => candidate !== placement && authoredIndex(candidate) === placement.relation.sharedMomentOf);
-    if (!original) continue;
-    sharing.set(original.relationIndex, [...(sharing.get(original.relationIndex) ?? []), placement.relationIndex]);
-    owners.forEach((owner, k) => { if (owner === placement.relationIndex) owners.set(k, original.relationIndex); });
-  }
-  const shared = new Set([...sharing.values()].flat());
 
   // Construction: every unowned whole switch, in today's bottom-up order (the shared sister
   // ranks of structuralPlayback, ties by daughter index). Selection order is free; only Merge
@@ -697,7 +688,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   const landingParentOwners = (placement: RelationPlacement): number[] => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
     ? placement.authoredTargetNodeIds.map(id => cur.get(id)?.parent).filter((id): id is string => Boolean(id) && !available0.has(id!))
       .flatMap(id => producer(id) ?? []) : [];
-  const momentPlacements = relationPlacements.filter(placement => !shared.has(placement.relationIndex));
+  const momentPlacements = relationPlacements;
   // A movement's other current anchors are context. Today its moment neither waits for them nor
   // builds them early; under BABEL_REPLAY_WAIT_CONTEXT=1 (question 4) it also waits for the
   // moments that introduce them.
@@ -994,13 +985,13 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       ...(forced ? { movementDiagnostics: ['REPLAY_KERNEL_FORCED: this construction step needed more than its own target'] } : {})
     });
   };
-  const emitRelation = (placement: RelationPlacement, duplicates: RelationPlacement[]) => {
+  const emitRelation = (placement: RelationPlacement) => {
     const snap = snapshot(frameState, true), neutral = fallbackTransitionOwnership.get(placement.relationIndex);
     const canvas = snap.canvasData;
     const describe = (id: string) => getReplayNodeOvertYieldFromCanvas(canvas, id) || getReplayNodeDisplayFromCanvas(canvas, id) || getReplayNodeCategoryFromCanvas(canvas, id);
     const target = placement.authoredTargetNodeIds[0] || placement.relationAnchorNodeIds[0] || frameSemanticStep.targetNodeId;
     const sources = placement.renderableTrajectory ? placement.sourceNodeIds : placement.relationAnchorNodeIds.filter(id => id !== target);
-    const relations = [placement, ...duplicates];
+    const relations = [placement];
     const relationDiagnostics = relations.flatMap(entry => [...(entry.relation.movementDiagnostics ?? []), ...(diagnostics.get(entry.relationIndex) ?? [])]);
     steps.push({
       ...frameSemanticStep,
@@ -1016,7 +1007,6 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       recipe: placement.relationLabel,
       movementDiagnostics: relationDiagnostics.length || placement.relation.movementDiagnostics ? relationDiagnostics : undefined,
       note: undefined, preserveReplayStep: true, stageRecord: getFrameStageRecordText(frame, plannedStage),
-      ...(duplicates.length ? { replaySharedRelationIdentities: duplicates.map(duplicate => ({ stageIndex: index, relationIndex: authoredIndex(duplicate) })) } : {}),
       detailBlocks: mergeReplayDetailBlocks(buildRelationReplayBlocks(relations.map(entry => entry.relation), canvas),
         relations.some(entry => entry.relation.relationContractFailure) ? [{ title: 'Relation diagnostic', lines: relations
           .flatMap(entry => entry.relation.relationContractFailure?.issues.map(issue => issue.message) ?? []) }] : undefined),
@@ -1110,8 +1100,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       if (typeof closed === 'string') { kernelDiagnostics.forcedSteps += 1; closed = close(edit, frameState, owners, ownedBy(relation), { relation, forced: true }); }
       const next = typeof closed === 'string' ? null : edit.apply(frameState, closed.keys);
       if (next) frameState = next;
-      const duplicates = (sharing.get(relation) ?? []).map(other => placementOf.get(other)!);
-      played.push(relation, ...duplicates.map(duplicate => duplicate.relationIndex));
+      played.push(relation);
       // A proved movement stands independently of its contextual anchors: context no moment has
       // introduced yet is reported, not waited for or built early.
       const absent = contextOf(placement).filter(id => !missing.includes(id) && !isAvailable(id));
@@ -1120,7 +1109,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
         return owner === undefined ? `${id} before its structural prerequisites are available`
           : `${id} before relation ${(frameRelationSteps[owner].authoredRelationIndex ?? owner) + 1} (${frameRelationSteps[owner].relation}) introduces it`;
       }).join('; ')}. Its proven movement keeps its moment; unavailable context is not introduced early.`);
-      emitRelation(placement, duplicates);
+      emitRelation(placement);
     }
   };
   for (let at = 0; at <= units.length; at += 1) {

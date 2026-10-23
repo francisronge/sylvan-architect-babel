@@ -1,5 +1,4 @@
 import * as d3 from 'd3';
-import { momentRelationIdentities } from './momentRelations.ts';
 import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '../types.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { recoverMovementEvidence, type RecoveredMovement } from './relations/movementEvidence.ts';
@@ -485,7 +484,8 @@ export const attachReplayRealizations = (
   inputTokens?: readonly string[]
 ): PlaybackStep[] => {
   if (!frames.some(frame => frame.after?.realizations !== undefined)) return steps;
-  const moments = new Set(steps.flatMap(step => momentRelationIdentities(step).map(identity => `${identity.stageIndex}:${identity.relationIndex}`)));
+  const moments = new Set(steps.filter(step => step.replayKind === 'relation' && step.replayRelationIdentity)
+    .map(step => `${step.replayRelationIdentity!.stageIndex}:${step.replayRelationIdentity!.relationIndex}`));
   const changesByStage = new Map<number, RealizationChange[]>();
   const structural = structuralMovementUpgrades(frames.map(frame => ({ workspaceForest: frame.workspaceForest ?? [],
     relations: frame.relations ?? [], realizations: frame.after?.realizations })));
@@ -511,7 +511,7 @@ export const attachReplayRealizations = (
     if (step.replayKind === 'macro') {
       active = cloneRealizations(frame.after?.realizations || []);
     } else if (step.replayKind === 'relation' && step.replayRelationIdentity?.stageIndex === stageIndex) {
-      changesByStage.get(stageIndex)!.filter(change => momentRelationIdentities(step).some(identity => identity.relationIndex === change.relationIndex))
+      changesByStage.get(stageIndex)!.filter(change => change.relationIndex === step.replayRelationIdentity!.relationIndex)
         .forEach(change => {
           const missing = missingSourceDomainIds(change.after, frame.workspaceForest, step);
           if (missing.length) {

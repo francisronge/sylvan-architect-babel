@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { buildReplayPanelContent } from '../replay/replayPanel.ts';
-import { checkRelationMoments, checkStageCompletion, frameStructure } from './helpers/replayInvariants.mjs';
+import { checkStageCompletion, frameStructure } from './helpers/replayInvariants.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 
 const corpus = loadFixtureAnalyses();
@@ -23,16 +22,4 @@ test('the kernel holds back an authored unary root until the movement that fills
   assert.equal(moment.replayFrameIndex, 1);
   assert.deepEqual(frameStructure(moment).children.get('ecp'), ['whNP', 'ecbar'], 'with its landing, never unary');
   assert.deepEqual(checkStageCompletion(replay, authored), [], 'the held stage still completes as authored, waiting for the movement');
-});
-
-test('a true duplicate movement claim shares its original moment and stays listed in the panel', () => {
-  // Stage 2: raising (relation 0) and A-trace licensing (relation 3) claim the same moved phrase, source and landing.
-  const authored = record('movement/clause-context.json#/cases/0'), replay = prepare(authored);
-  const moments = replay.playbackSteps.filter(step => step.replayKind === 'relation' && step.replayFrameIndex === 1);
-  const shared = moments.find(step => step.replayRelationIdentity.relationIndex === 0);
-  assert.deepEqual(shared.replaySharedRelationIdentities, [{ stageIndex: 1, relationIndex: 3 }]);
-  assert(!moments.some(step => step.replayRelationIdentity.relationIndex === 3), 'no second moment for the duplicate');
-  assert.deepEqual(buildReplayPanelContent(shared, authored.derivationStages).supportLines
-    .filter(line => line.label === 'Same moment').map(line => line.value), ['A-trace licensing']);
-  assert.deepEqual(checkRelationMoments(replay, authored), []);
 });

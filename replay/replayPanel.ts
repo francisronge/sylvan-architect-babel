@@ -463,13 +463,6 @@ export const buildReplayPanelContent = (step: PlaybackStep | null | undefined, d
   const priorForest = identity && identity.stageIndex > 0
     ? derivationStages?.[identity.stageIndex - 1]?.workspaceForest ?? [] : [];
   const supportLines = buildReplaySupportLines(step ?? null, authoredRelation, priorForest);
-  // A true duplicate that shares this moment is listed with its own evidence.
-  for (const shared of (identity ? step?.replaySharedRelationIdentities ?? [] : [])) {
-    const relation = derivationStages?.[shared.stageIndex]?.relations?.[shared.relationIndex];
-    if (!relation) continue;
-    supportLines.push({ label: 'Same moment', value: spaceAuthoredName(relation.relation) },
-      ...buildReplaySupportLines(step ?? null, relation, priorForest));
-  }
   const stageIndex = step?.replayKind === 'macro' ? step.replayFrameIndex : undefined;
   const statement = typeof stageIndex === 'number' && Number.isInteger(stageIndex) && stageIndex >= 0
     ? derivationStages?.[stageIndex]?.statement : undefined;

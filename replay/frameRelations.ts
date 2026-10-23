@@ -142,9 +142,7 @@ export const getFrameRelations = (
   // `carriers` are the stage's head movements from a first pass, so a chain
   // restatement authored before the movement carrying its member is found too.
   const recover = (carriers: readonly RecoveredMovement[]) => {
-    // Each proved movement's key, with the authored relation whose moment makes it. A later claim
-    // of the same moved phrase, source and landing is a true duplicate and shares that moment.
-    const ownedMovements = new Map<string, number>();
+    const ownedMovements = new Set<string>();
     const earlierMovements: RecoveredMovement[] = [];
     const carriedBy = () => [...earlierMovements, ...carriers];
     return authored.map((authoredStep, relationIndex) => {
@@ -252,17 +250,14 @@ export const getFrameRelations = (
             && !isCarriedHeadMemberTransition(movement, carriedBy(), previousForest, currentForest)
             && Boolean(owner?.evaluation.earnedTransitions.includes('movement'));
           if (transition) {
-            ownedMovements.set(key, relationIndex);
+            ownedMovements.add(key);
             earlierMovements.push(movement);
           }
           return { ...movement, transition, drawTrajectory: Boolean(owner) };
         });
-        const sharedOwners = new Set(groupedMovements.map(movement => ownedMovements.get(JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]))));
-        const sharedMomentOf = movements.every(movement => !movement.transition) && sharedOwners.size === 1 ? [...sharedOwners][0] : undefined;
         const diagnostics = dispatch.facets.flatMap(facet => facet.evidence?.movementDiagnostics ?? []);
         return {
           ...step, recoveredMovement: movements.find(movement => movement.transition) ?? movements[0], recoveredMovements: movements,
-          ...(sharedMomentOf !== undefined && sharedMomentOf !== relationIndex ? { sharedMomentOf } : {}),
           ...(diagnostics.length ? { movementDiagnostics: [...new Set(diagnostics)] } : {}),
           sourceNodeIds: movements.map(movement => movement.sourceNodeId), targetNodeId: movements[0].targetNodeId
         };
@@ -309,14 +304,12 @@ export const getFrameRelations = (
         ...(dispatch.tier1Dispatch.signatureIssues || []).map(issue => `Tier 1 signature: ${JSON.stringify(issue)}`)
       ] : [];
       // Later claims may inspect the same dependency; its structural change occurs once.
-      const sharedMomentOf = transition ? undefined : ownedMovements.get(movementKey);
       if (transition) {
-        ownedMovements.set(movementKey, relationIndex);
+        ownedMovements.add(movementKey);
         earlierMovements.push(movement);
       }
       return {
         ...step,
-        ...(sharedMomentOf !== undefined ? { sharedMomentOf } : {}),
         ...((priorDiagnostics.length || drawingDiagnostics.length)
           ? { movementDiagnostics: [...priorDiagnostics, ...drawingDiagnostics] } : {}),
         recoveredMovement: { ...movement, transition, drawTrajectory: !covert && Boolean(facet || primaryMovement) },
