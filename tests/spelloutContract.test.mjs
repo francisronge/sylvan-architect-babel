@@ -37,7 +37,7 @@ test('the prompt sends only the sentence and asks the model to spell it', () => 
       assert.doesNotMatch(instruction, /tokenIndex|tokenIndices|input token|written word/i);
       assert.match(instruction, /- text: the exact text of the input sentence .* or a nonempty array of nonblank strings, in sentence order, for stretches that are not adjacent\./);
       assert.match(instruction, /including its spacing, does not prescribe word, syntactic or morpheme boundaries/);
-      assert.match(instruction, /Omit realizations when the pronounced terminals' own words, in tree order, spell the sentence\./);
+      assert.match(instruction, /Use realizations only when the analysis retains syntax whose collective realization differs from its terminals' own words\./);
       assert.match(instruction, /each group's text claims its own stretches of the sentence; set aside their covered lexical leaves/);
     }
   }
