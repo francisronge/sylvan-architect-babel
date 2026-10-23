@@ -703,7 +703,10 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   const headsBelowLanding = (placement: RelationPlacement): number[] => {
     const phrasal = (placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).filter(m => m?.transition && m.trajectoryKind === 'phrasal');
     const above = new Set(phrasal.flatMap(m => subtree(cur, cur.get(m!.targetNodeId)?.parent ?? '')));
-    return [...headComplexOf].filter(([other, complexes]) => other !== placement.relationIndex && complexes.some(id => above.has(id))).map(([other]) => other);
+    // Unless the head movement itself names this movement's landing, which it then needs on screen.
+    const landings = new Set(phrasal.flatMap(m => subtree(cur, m!.targetNodeId)));
+    return [...headComplexOf].filter(([other, complexes]) => other !== placement.relationIndex && complexes.some(id => above.has(id))
+      && !relationAnchorNodeIds(placementOf.get(other)!.relation.anchors as Record<string, string | string[]>).some(id => landings.has(id))).map(([other]) => other);
   };
   const momentOrder = orderRelationMoments(momentPlacements.map(placement => placement.relationIndex), new Map(momentPlacements.map(placement =>
     [placement.relationIndex, new Set([...required(placement).flatMap(id => producingRelations(id)), ...landingParentOwners(placement),
