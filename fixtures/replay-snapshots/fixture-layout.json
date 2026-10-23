@@ -730,7 +730,7 @@
       ]
     },
     "performance/french-relative.json#": {
-      "frames": "oXxYy46o oblYxLJP udW_MmL4 JkVtryjN q41llOfb Gugyy8tk sMflvXqa VPkMAiUy OiJJV9i8 FgOQPGij HJl1CpNF LEFlXiV9 _W9YbgjD fmlPI6xg lZT6Tjco QiLXdqjY fMi-bhr_ o0fwc6s6 GAMofjsa cVyz0Ghb BL-tGGrm rMXxb41k QzbetVEq QOEBJiuM xDziYYHx BsJrO00w pYiuI1Tr Jaszw0dC wrpphoqm 7TXn5gcP l3hlirin -6SQU4oo rgupLrTq AnwdnCgq xLazRrb8 QisoEWsA Mb8cCGzT NleDn-oR p6zb3P0i 0k7PXtf6 GsQ1qkld jufbTsyQ y17H9kzj i8CmkBse O9KzdhrX 5sInZj5S qly9XFVJ 6cWhSTYo VdCghTIw kp5j5HwT YNKUpFQ3 x6RXbkix RiHsmcgI sUNuT7Wr as0lwFA1 2dB_uMsU v3Nw0V_U 9rLtLOSZ 92Iw6tOQ dox4A9PS tCoMEAMa gyXbqnX1 iObi667l LJJiMN8N 1WSFDMxg q_cWLjnC -Gr6tHVi ZgLN8JhH CeqswGVu vw9S6PHi 8JjZdBIm VXvGhvZB Tjk9FphY Gy2Ny27d r3jol-Vc _yw2kfhl SSFDksyP Y6hnlx0d 6wWpqf1q lE3rnwwr HRm0xihE 1ySewyO- R8BoWz72 MxM4QMqe 1PWbgyIb WpJC0hNI r-V6j1hF hvSOtX2q 0lrueeDv grgiQBN_ DR7hi1um vLy7B80n Sizyzq4z HZ9fo1EL qn13XBvL QV0xWpaQ JUyfOEVV AzyIn9Lk JuzFKKCJ DF0j-_fI ts40pQKG CxBIu2cu KOKPSGHQ Khnx7_Ly pkWTXK_j 0OqvcJ9J",
+      "frames": "oXxYy46o oblYxLJP udW_MmL4 JkVtryjN q41llOfb Gugyy8tk sMflvXqa VPkMAiUy OiJJV9i8 FgOQPGij HJl1CpNF LEFlXiV9 _W9YbgjD fmlPI6xg lZT6Tjco QiLXdqjY fMi-bhr_ o0fwc6s6 GAMofjsa cVyz0Ghb BL-tGGrm rMXxb41k QzbetVEq QOEBJiuM xDziYYHx BsJrO00w pYiuI1Tr ZGUmfSXC 5YE7ubOm -zLMCBWe t89f5ST3 ouaxJ1Yj _O_pfXBy U5U0Ct6J 0qSprh0b CtVqNVuc RcGuGabn Hm_N3MxP R_gUf1Pa MyuDpM7g GUFpYzna h3l5bwJh 7skuOeW_ 4XWWup-V QViVSd0G byZ6084X Xx--Yi9w MBWtje1d kGS0bucP xd1Eh_hS uHvQpiUa j7WvGfWK FGeg8ELZ oghyMlFB Uf4mGhrd W0xE85yp bG_q3Sbb Ajcgov56 XhXxb7dg VumsYcQC baCikzcp McGVzQZp 3RmDFoUH _PskGccx HUSJ6ePq cWK8q5ze j2XK3wu1 -cPFDG_0 WJXGf4Mj L69ld87f AqhaFj26 xNi8EcId jyb7oUtP WJUicGAd ld0jhruS XZ1NLdK2 DUUbbn1p cx6FjxeE jcT-k0tR p_I143eI BZ0YbSy5 eEgNvldu dOe5rfx4 1NStGy7h QndkSIHQ lgYpek-R XPgkRwx2 RbHGHsqz twlLhBEP 9P_xCJGF dNdaOxFh AbKhnHWn HEfvckvJ HO4bULae 9rkixfrC RU6XcdtA TJNwRMN2 QYraeHQe TLAG4Mzv mxLF2R6N Xc7Ju3rQ BvFfvudH wlvICHa4 ZH2hfIGn 5kSMQW7X kO4xaEb3",
       "canopy": "XaMFNiqq",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -779,6 +779,7 @@
         "8:1 T3 fallback",
         "8:2 T2 trajectory tier2.movement-path movement.path",
         "8:2 T3 fallback",
+        "9:0 T2 trajectory tier2.movement-path movement.path",
         "9:0 T3 fallback",
         "9:1 T2 node-plaque feature-bundle.plaque plaque.structured",
         "9:1 T3 fallback"
@@ -1772,7 +1773,7 @@
       ]
     },
     "replay-regressions/kept-id-landing.json#": {
-      "frames": "lAQ8tJkg lnP3Mlft XlDqjVk5 vKk6siFj K3PDw9BC HVlwOaA9 sPjdRq_W hZyuw38z XTtG_rUC hmDAvrFr QOvOsmQf mfflbQw6 atGMHNDe m6CUaIH1 _IDBoe9f rarnD20D d1Uur4Lt e-XUHyrP jiRXhgal N-Ewd-jL EWV6a4nO YYg7CVSI JxcQQIBS yaZbJzUS UBzOEVkp cVrB7L67 ZqquewPT RaobCBCP 7e4R2KY0 CdLoh2Tb xBL2g5oo 4lZS4sq7 xhUXdgSp JiI9SFdh LJh15ukw BmgObsjt M9sDC7cE v8w1dsMo qej6TUsy 8INKjw_F Ml4aZ6-J 9OmIpUd2 MyIFqvod YDxLUuNn P5XVEcE4 64t5hKkw dsolkiJ7 qfJQmfz7",
+      "frames": "lAQ8tJkg lnP3Mlft XlDqjVk5 vKk6siFj K3PDw9BC HVlwOaA9 sPjdRq_W hZyuw38z XTtG_rUC hmDAvrFr QOvOsmQf mfflbQw6 atGMHNDe m6CUaIH1 _IDBoe9f rarnD20D d1Uur4Lt e-XUHyrP jiRXhgal N-Ewd-jL EWV6a4nO YYg7CVSI JxcQQIBS yaZbJzUS UBzOEVkp cVrB7L67 ZqquewPT RaobCBCP 7e4R2KY0 CdLoh2Tb xBL2g5oo 4lZS4sq7 eUGetgrT ZamLkzc2 THArkPKi ziEUtbaV aaJ_UCkI zmHQXt1m rjDXorqJ aAJIC4Lf YQu4zVuM N2wMWUQn rnqTt5k- sSzxnZFt kCL3diZr f5P25HYD a_qIHnZG 8boozUFH",
       "canopy": "apc-kzQ_",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -1782,6 +1783,7 @@
         "0:3 T3 fallback",
         "1:0 T2 trajectory tier2.movement-path movement.path",
         "1:0 T3 fallback",
+        "2:0 T2 trajectory tier2.movement-path movement.path",
         "2:0 T3 fallback",
         "2:1 T2 node-plaque feature-bundle.plaque plaque.structured",
         "3:0 T2 trajectory tier2.movement-path movement.path",
@@ -1876,7 +1878,7 @@
       ]
     },
     "replay-regressions/later-occupant-source-before-movement.json#": {
-      "frames": "swkqgoaj CbrRsPS4 yqpbXted zd9V-DVb sBXbZfai GPRsALsF DF_Ltmnk BFIwkTTc DS5hYwMk 6ceTXrO9 rLr83ul3 fEbhvr07 rX36bCYl v81ugEZ- APaQ5cHq cwVdk9Rg 7H6MK5I_ GJqt6nL7 _dvWH_Pe ufRqh9XD oDyH6grb bXwemBKh rX6VqGyX phW_2lzE XQWOSbeQ zjZz5sTh 5jN9rLm8 nctxdtXC jEevPv21 ojYFhZCY 7P15cR7h UiawiSHx _J2KVeWQ eKyU0qv2 u6MBRn9e hBZFCECr",
+      "frames": "swkqgoaj CbrRsPS4 yqpbXted zd9V-DVb sBXbZfai GPRsALsF DF_Ltmnk BFIwkTTc DS5hYwMk 6ceTXrO9 rLr83ul3 fEbhvr07 rX36bCYl v81ugEZ- APaQ5cHq cwVdk9Rg 7H6MK5I_ GJqt6nL7 _dvWH_Pe ufRqh9XD oDyH6grb bXwemBKh rX6VqGyX phW_2lzE XQWOSbeQ zjZz5sTh 5jN9rLm8 nctxdtXC jEevPv21 DNeS2u-g b2MS79d7 -ciwa1c4 sJk7dE9i rMibqpeY yxIgFLrB FoP-eiAh",
       "canopy": "JRtIiAKI",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -1889,6 +1891,7 @@
         "1:1 T2 trajectory tier2.movement-path movement.path",
         "1:1 T3 fallback",
         "1:2 T3 fallback",
+        "2:0 T2 trajectory tier2.movement-path movement.path",
         "2:0 T3 fallback",
         "2:1 T3 fallback",
         "2:2 T3 fallback"
@@ -2038,20 +2041,24 @@
       ]
     },
     "replay-regressions/object-language-metalanguage.json#": {
-      "frames": "c_mPUqyH xStGF-pQ rvKuesDS s54yI8Ft 8YJ-CvYh oyzU0MpL TggU9I03 km9wmaSR ysjHSTU0 0I5CJfQQ Gz5_QFVu RnelyD5S AbJpG6dz dIA0e-EX RUTb76ug UmVfaoA9 giM8YqjQ wIZoU4UA VEQO4jK2 ArCaws7J mSy5RE_o Go0kPBde dN1nutXl 3FY7ZORC dBA5QUy2 ui1GVQKP WNzlk8hw YlLd8ZRI rVFHUG5y 4SaSvjLh ER4RciBi 4MApYmuG nQYVtsIU UIu_T0K2 uh9p8f6u YhuOFx9i RaD3tgNN 6RYT0jJy k6o-hVFZ -uzW_13c 4-1psukq yrI6CR1Z FT4qLqwL NrM4gzvW Vn3Vsy2z dNRQfpOS e_IGlETE 5HjoSaYE s2twXC_- RcOVDDxp Y5GP9i4- peBQZ0GM l7Bm1E6j Gm3soAbb cRZP19f9 Ce6UMfHw 595dCOXQ VLKpiJn8 X8npTWVm B9lAuMN0 itGrRATa",
+      "frames": "c_mPUqyH xStGF-pQ rvKuesDS s54yI8Ft 8YJ-CvYh oyzU0MpL aX3tyhKn sOxWWWBn IUamJq7R S92Nn6SB hhXZOZbs lp63FPbv m09CoEvI 5VBH6D0m s7heMw1y 1AUtu8TP _oAB_nH7 dl4Pd9gC yNW2tQS8 Cy2L4_hG uUHLVB1W n_5i7GMK yTF7Q6jG VuhRqtrG gmyqZ-m8 7uF5hPNh Yx0HvYzE MwcBIn3e 3SquLD5a aJAUUm-e QlfrmEMe fcMep-Ld pJQjLQzZ goKqWWFx ZCkFnQpr SVh9J8IE fXgvpAXc 29MQbEfv 0XA7yC6C Al_0-AFe IJ76u7ln uvZkjhkA gm0x29Io H1qIYfrs ba7U2Qge qNXnlefR 3n_JZP9c BBwkrNtR m8AjlRXp 43FTqthL m_z6bbmb NIuXC90O gU-_yr6V n_SxEmph CMGXTfl3 qT0taNGW Bxl_1AOE ylLcA_kp jB2kcxq6 -pxNYDbo MkpAORbw",
       "canopy": "YWcArOFb",
       "tiers": [
         "0:0 T3 fallback",
         "1:0 T3 fallback",
+        "1:1 T2 trajectory tier2.movement-path movement.path",
         "1:1 T3 fallback",
         "1:2 T3 fallback",
+        "2:0 T2 trajectory tier2.movement-path movement.path",
         "2:0 T3 fallback",
         "3:0 T3 fallback",
+        "3:1 T2 trajectory tier2.movement-path movement.path",
         "3:1 T3 fallback",
         "4:0 T3 fallback",
         "4:1 T3 fallback",
         "4:2 T3 fallback",
         "4:3 T3 fallback",
+        "5:0 T2 trajectory tier2.movement-path movement.path",
         "5:0 T3 fallback",
         "6:0 T3 fallback"
       ]
@@ -2341,7 +2348,7 @@
       ]
     },
     "replay-regressions/retained-head-attachment.json#": {
-      "frames": "ocIeVrG3 wBp_Sqin Tc1mqA9j y0yFJWsG I-tst9Wo 6h2S96zF DViSwB3f czNp9yHR POCYpre4 4jc90u3r INnThJ7R hG4BMGWf WpG57P3F tK9YBaKu 0Jidv_13 v2-XWgla 3PGndHv5 1CdqOo7k J120OFkn mG5xTgKF dL0Jbx8t RH2ewg-7 vrq42bYv BDuESbAE VgknJ-DP vNbr8JB2 ptxdXfiS ryZ3SDtQ HK0aLRU7 l-hd-lXo gJp6PYWq BsDnbZnS dUUV-YE5 zJWbRG44 yBhTdzEw ktNmpd5U MX9AFfDy AO54B0yU zboKc4x2 D6f3Fz3q dEmMQrsr x51rBqVL O-kiIidg Xer0TjHv ClV12PeL bKF8hTAb ESAQRj84 gURjdoQT TGfork_H tKdXke78 r8lRwXHE dYYzEqHe W1YxYGfS 2nUubvX_ TV87yd2- RZlDf8uI",
+      "frames": "ocIeVrG3 wBp_Sqin Tc1mqA9j y0yFJWsG I-tst9Wo 6h2S96zF DViSwB3f czNp9yHR POCYpre4 4jc90u3r INnThJ7R hG4BMGWf WpG57P3F tK9YBaKu 0Jidv_13 v2-XWgla 3PGndHv5 1CdqOo7k J120OFkn mG5xTgKF dL0Jbx8t RH2ewg-7 vrq42bYv BDuESbAE VgknJ-DP vNbr8JB2 ptxdXfiS ryZ3SDtQ HK0aLRU7 l-hd-lXo gJp6PYWq BsDnbZnS dUUV-YE5 zJWbRG44 yBhTdzEw ktNmpd5U MX9AFfDy AO54B0yU zboKc4x2 D6f3Fz3q dEmMQrsr x51rBqVL O-kiIidg ayARrwwn HSq1xv8E hSPsVRAm z6tGgyz4 16KmPsYW MEVG_l-_ 9cCLZ5qB _DKcZFEG _kEebtbb -e-ihrm7 _FJRbvhD 0Z5HHl1w X2wurfL0",
       "canopy": "QFFwbdrT",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -2359,6 +2366,7 @@
         "1:1 T2 node-plaque pf.realization pf.structured",
         "1:2 T2 node-plaque feature-bundle.plaque plaque.structured",
         "1:2 T3 fallback",
+        "2:0 T2 trajectory tier2.movement-path movement.path",
         "2:0 T3 fallback",
         "2:1 T2 node-plaque pf.realization pf.structured",
         "3:0 T2 trajectory tier2.movement-path movement.path",
@@ -2832,7 +2840,7 @@
       ]
     },
     "replay-regressions/successive-cyclic-source.json#/cases/0": {
-      "frames": "RIcYCl98 LKhrA9-I EiJvycKv ELN1qjlj AUSM_kZ5 0CgQ3nuV uKiMSEqT 6X9OCHvu e7yM2s1R QPfOeonm 17J4BoPk rJ86EPi5 _0_M7jCx n4f1bg22 hUeZvkPP fchLUFbo mQ4fB83_ 12fmwFwz -VWjY0Qh IGpo7r9o FeO0w2dQ qUtGSEPQ wxlsLBDs RKws9QWP iJVLKtLw vAya2CxT aOdM0DXD Sw9vUybq zFTOzpgZ hosz82dh XRJy8O-x 5_wVZ1tT jXp2d9xe _YsQA7p6 CeVoil6V PuYgOJ2e hX6vHfQ- UAjCDY7B 4AxyDMLl EissGyj_ KL7rZxGL JSRlapVu LICUucLb hJjX-1gr R6dFt_Ui 4XDDWRed ShZI7U9w zl_yJ_ry tVE4V_8e tQ-qtcRD ROgElTs5 WRQv_yCY h8Iy9EQ4 jc_AUedY FWtZSR-N 8MPHTDnn PGydItDh lj4uCUrI n7yNRtzJ UA8gVPpJ WF3bzpE1 3o8Fw4eX _WdCYY6M fK2twsuV gIz0jPWE L1IYdEXQ TkJCTG3p 445_CJEz _jkPdlS7 A4UcTPUg fQwMaFIx aEiz_a1o dblqihui GXmFPvcn O6qYgQsz NQPJ6SZw 4cD7S_4w TYNoBe-c XF7kHTrj ZaqX8Si3 opShssM7 bfBin4_E 5R7vh9Nz jUnlV8yD 6AtnOS4K OAL-18m5 pEgZJzgu BrCsgAt3 nRuNs71v iLryiyEL p90xKrjU jsWMwiHj g6JVKhmh IJjQySIB _0sGj-uQ PVYHQQcb Fv48BWZD 6OUCbmT8 nXRp-Cxe _rP3wtJ- eaDEHiOd VipGvCyP rSuTbLXU tba3FXIh gzoprtcS YmCVVJPp JwMCgTb9 05tyeHs4 mu_6i11g 80SGeiJg l4gXz7D- 3j62x8fX g8nGQBzz gVFkt8-Q x-557D8L dkAqebyg FXzGHbgb 3ovRJER- g5OnC-Jg WWEvBvqd kFDL8GT_ UPxwn0gI qpcPLYjh 5ClpJu4H lMtfuspG e8SWyNiC",
+      "frames": "RIcYCl98 LKhrA9-I EiJvycKv ELN1qjlj AUSM_kZ5 0CgQ3nuV uKiMSEqT 6X9OCHvu e7yM2s1R QPfOeonm 17J4BoPk rJ86EPi5 _0_M7jCx n4f1bg22 hUeZvkPP fchLUFbo mQ4fB83_ 12fmwFwz -VWjY0Qh IGpo7r9o FeO0w2dQ qUtGSEPQ wxlsLBDs RKws9QWP iJVLKtLw vAya2CxT aOdM0DXD Sw9vUybq zFTOzpgZ hosz82dh XRJy8O-x 5_wVZ1tT jXp2d9xe _YsQA7p6 CeVoil6V PuYgOJ2e hX6vHfQ- UAjCDY7B 4AxyDMLl EissGyj_ KL7rZxGL JSRlapVu LICUucLb hJjX-1gr R6dFt_Ui 4XDDWRed ShZI7U9w zl_yJ_ry tVE4V_8e tQ-qtcRD ROgElTs5 WRQv_yCY h8Iy9EQ4 jc_AUedY FWtZSR-N 8MPHTDnn PGydItDh lj4uCUrI n7yNRtzJ qC-_M-NP CNrp7onn AzPy8TLt pEGRF8g1 JWKQuYaw f2o01lnk dtnktceQ EOOwMDoD H3nGZnkk -b4CMbew YQO9W9c7 L0wHthHk gSNgzsAm 5IAqFLUr GNxCeNLD rVKxTOSR CJnbDMvl YuoTDw6y EmbBNuQI J_PyoKP8 oImp41h9 3vwJdOv6 I9F3Zn74 r2-zv1M5 _BGOTgkQ rLONEq9w 8tRn8z3z -q8_0VtS 9RYaT-iq cxZpfMd3 Uip1HiNE VX1uO-G4 3-UWYU1J yLGUKX_r Bh_Gml5x FybqMm5d NFsUyKj2 BJXw3s27 fbhAJy63 818N2VoE flyLPRte Ua-FV30P 2cVin8iC S2yU_ESq rgXtPkDS ItU80tDy u9AIpFsI XJs3oH0Q 14Y8HcF8 s_6K5o7Z ZkRiNQjW 7nxTjgPh lhjrUN2H s-KnjM3V VV3rEu-y C_7VhnHe UoEyMOnf nLwP2-7R jGfmHB5Q nGUFcQyo F6JzRJR9 dri-A7nr ALgChtRC rPg0QfgV LQR7Ycq5 LGbC6QWN jcNdpjoX",
       "canopy": "L596vKOI",
       "tiers": [
         "0:0 T3 fallback",
@@ -2880,6 +2888,7 @@
         "7:0 T3 fallback",
         "7:1 T2 directed-path tier2.feature-dependency feature.dependency",
         "7:1 T3 fallback",
+        "8:0 T2 trajectory tier2.movement-path movement.path",
         "8:0 T3 fallback",
         "8:1 T2 directed-path tier2.feature-dependency feature.dependency",
         "8:1 T2 node-plaque feature-bundle.plaque feature.dependency",
@@ -2950,7 +2959,7 @@
       ]
     },
     "replay-regressions/unnamed-movement-roles.json#/cases/0": {
-      "frames": "swkqgoaj CbrRsPS4 yqpbXted zd9V-DVb sBXbZfai GPRsALsF DF_Ltmnk BFIwkTTc DS5hYwMk 6ceTXrO9 rLr83ul3 fEbhvr07 rX36bCYl v81ugEZ- APaQ5cHq cwVdk9Rg 7H6MK5I_ GJqt6nL7 _dvWH_Pe ufRqh9XD oDyH6grb bXwemBKh rX6VqGyX phW_2lzE XQWOSbeQ zjZz5sTh 5jN9rLm8 nctxdtXC jEevPv21 ojYFhZCY 7P15cR7h UiawiSHx _J2KVeWQ eKyU0qv2 u6MBRn9e hBZFCECr",
+      "frames": "swkqgoaj CbrRsPS4 yqpbXted zd9V-DVb sBXbZfai GPRsALsF DF_Ltmnk BFIwkTTc DS5hYwMk 6ceTXrO9 rLr83ul3 fEbhvr07 rX36bCYl v81ugEZ- APaQ5cHq cwVdk9Rg 7H6MK5I_ GJqt6nL7 _dvWH_Pe ufRqh9XD oDyH6grb bXwemBKh rX6VqGyX phW_2lzE XQWOSbeQ zjZz5sTh 5jN9rLm8 nctxdtXC jEevPv21 DNeS2u-g b2MS79d7 -ciwa1c4 sJk7dE9i rMibqpeY yxIgFLrB FoP-eiAh",
       "canopy": "JRtIiAKI",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -2963,6 +2972,7 @@
         "1:1 T2 trajectory tier2.movement-path movement.path",
         "1:1 T3 fallback",
         "1:2 T3 fallback",
+        "2:0 T2 trajectory tier2.movement-path movement.path",
         "2:0 T3 fallback",
         "2:1 T3 fallback",
         "2:2 T3 fallback"
@@ -3009,26 +3019,30 @@
       ]
     },
     "replay-regressions/unrecognized-movement.json#/cases/0": {
-      "frames": "c_mPUqyH xStGF-pQ rvKuesDS s54yI8Ft 8YJ-CvYh oyzU0MpL TggU9I03 km9wmaSR ysjHSTU0 0I5CJfQQ Gz5_QFVu RnelyD5S AbJpG6dz dIA0e-EX RUTb76ug UmVfaoA9 giM8YqjQ wIZoU4UA VEQO4jK2 ArCaws7J mSy5RE_o Go0kPBde dN1nutXl 3FY7ZORC dBA5QUy2 ui1GVQKP WNzlk8hw YlLd8ZRI rVFHUG5y 4SaSvjLh ER4RciBi 4MApYmuG nQYVtsIU UIu_T0K2 uh9p8f6u YhuOFx9i RaD3tgNN 6RYT0jJy k6o-hVFZ -uzW_13c 4-1psukq yrI6CR1Z FT4qLqwL NrM4gzvW Vn3Vsy2z dNRQfpOS e_IGlETE 5HjoSaYE s2twXC_- RcOVDDxp Y5GP9i4- peBQZ0GM l7Bm1E6j Gm3soAbb cRZP19f9 Ce6UMfHw 595dCOXQ VLKpiJn8 X8npTWVm B9lAuMN0 itGrRATa",
+      "frames": "c_mPUqyH xStGF-pQ rvKuesDS s54yI8Ft 8YJ-CvYh oyzU0MpL aX3tyhKn sOxWWWBn IUamJq7R S92Nn6SB hhXZOZbs lp63FPbv m09CoEvI 5VBH6D0m s7heMw1y 1AUtu8TP _oAB_nH7 dl4Pd9gC yNW2tQS8 Cy2L4_hG uUHLVB1W n_5i7GMK yTF7Q6jG VuhRqtrG gmyqZ-m8 7uF5hPNh Yx0HvYzE MwcBIn3e 3SquLD5a aJAUUm-e QlfrmEMe fcMep-Ld pJQjLQzZ goKqWWFx ZCkFnQpr SVh9J8IE fXgvpAXc 29MQbEfv 0XA7yC6C Al_0-AFe IJ76u7ln uvZkjhkA gm0x29Io H1qIYfrs ba7U2Qge qNXnlefR 3n_JZP9c BBwkrNtR m8AjlRXp 43FTqthL m_z6bbmb NIuXC90O gU-_yr6V n_SxEmph CMGXTfl3 qT0taNGW Bxl_1AOE ylLcA_kp jB2kcxq6 -pxNYDbo MkpAORbw",
       "canopy": "YWcArOFb",
       "tiers": [
         "0:0 T3 fallback",
         "1:0 T3 fallback",
+        "1:1 T2 trajectory tier2.movement-path movement.path",
         "1:1 T3 fallback",
         "1:2 T3 fallback",
+        "2:0 T2 trajectory tier2.movement-path movement.path",
         "2:0 T3 fallback",
         "3:0 T3 fallback",
+        "3:1 T2 trajectory tier2.movement-path movement.path",
         "3:1 T3 fallback",
         "4:0 T3 fallback",
         "4:1 T3 fallback",
         "4:2 T3 fallback",
         "4:3 T3 fallback",
+        "5:0 T2 trajectory tier2.movement-path movement.path",
         "5:0 T3 fallback",
         "6:0 T3 fallback"
       ]
     },
     "replay-regressions/unrecognized-movement.json#/cases/1": {
-      "frames": "6I1mu16B udhJnIck jt-2zSCW UwID2_SC HpTGdPiK IXuSXRvD eU5G_yhN MaSyk3RQ A0xDc1sg wMVwdKYz 5AGhuCoh 1BfiNkFr WQjROjxd sNmp9j80 EafbniN2 tQHAfiCi _kCzvCx9 DBMdVMjG 70xtFCB- BnT3LsJ0 S189zKbI EgNEZa6K oMg_ld21 btiBGXlQ ismmdoIh GUJ-KtJO diwjJCd6 EzMW73mp jYG9k2K9 VSST6H0E 9kENKX2F 00p9L_FW crJiHAru DjhPJmW1 BkEvtfF5 VtdWdmtD A9wzuF4K rAPIG-74 wH30XgbI QfcoJKe8 kc2N7x3L i1K2GuMQ tjACXpMk mv95AwPx zXx-BqSq gIkn6MXz GcE83Xzo yQa4V7kB DvDNaATR dEu0ZAGe -YQSujMF MSIPVqD3 8OLMhelI",
+      "frames": "6I1mu16B udhJnIck jt-2zSCW UwID2_SC HpTGdPiK IXuSXRvD eU5G_yhN MaSyk3RQ A0xDc1sg wMVwdKYz 5AGhuCoh 1BfiNkFr WQjROjxd sNmp9j80 EafbniN2 tQHAfiCi _kCzvCx9 DBMdVMjG 70xtFCB- BnT3LsJ0 S189zKbI EgNEZa6K oMg_ld21 btiBGXlQ ismmdoIh GUJ-KtJO diwjJCd6 EzMW73mp jYG9k2K9 VSST6H0E 9kENKX2F 00p9L_FW crJiHAru DjhPJmW1 BkEvtfF5 VtdWdmtD A9wzuF4K rAPIG-74 wH30XgbI QfcoJKe8 kc2N7x3L i1K2GuMQ tjACXpMk mv95AwPx zXx-BqSq gIkn6MXz GcE83Xzo yQa4V7kB pdH1-z2Y 0TegQoCy Nqili9BV jjImqM16 _q15it75",
       "canopy": "WFBfy967",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -3059,13 +3073,14 @@
         "7:1 T3 fallback",
         "8:0 T2 node-plaque feature-bundle.plaque plaque.structured",
         "8:0 T3 fallback",
+        "8:1 T2 trajectory tier2.movement-path movement.path",
         "8:1 T3 fallback",
         "8:2 T2 trajectory tier2.movement-path movement.path",
         "8:2 T3 fallback"
       ]
     },
     "replay-regressions/unrecognized-movement.json#/cases/2": {
-      "frames": "w7dvkGgW xLYLDxF6 VXP1_-6w WMJR8q9R piBsXyfC 4lrA1Mbh DcwZ7_50 b24iaQtF MGdlPHcV EpuZBMki Ozhb12VQ zemD7p3K 6yYLV37e WHg4_5tv zn_xUdZG 3Mcs3QRv 0T2UB4aJ VAAH6X_h ULLFJYbv jD3Gjo7X Eg6vLTEP 3Bgdf1eS 6z_6Y4sx uTZ0KZ82 KTpYBfvc eY3Is1IV hbJOdy61 DfFpg-9M n8NwWBGg I1ugH85u xU51T5J4 DYqayLXF 2XcATCB1 wbwyrQzV au3KrXkn I63VafM_ U68x-TBa -VHLqp_O 4WPigtlU rqEiwn-R negphvU6 M1TPyQEC N7kzfbbP VGtWpveg 3OXXdcse 9nvLynHW AQGpsAcq dvhJP1T6 yJKJyBVE ax2F05EI kR_4j2tG TMxB_qUb FiYu-_nh asizg6PS CBq_qG-l vV_HcEPg chtposiZ DF9wz8Ii 1YI5Z0G6 uLOSZpGK VqTBikz4 JROqtROe -WdyTo5s tLkQHij2 F_xOOpSc 00x90jHy 9E3z_USt ao6DuNCY azMz1AUN v_4pm2py a088KXoU n-xMGNFd m-Cfq_Jo 9M8U5-1N",
+      "frames": "w7dvkGgW xLYLDxF6 VXP1_-6w WMJR8q9R piBsXyfC 4lrA1Mbh DcwZ7_50 b24iaQtF MGdlPHcV EpuZBMki Ozhb12VQ zemD7p3K 6yYLV37e WHg4_5tv zn_xUdZG 3Mcs3QRv 0T2UB4aJ VAAH6X_h ULLFJYbv jD3Gjo7X Eg6vLTEP 3Bgdf1eS 6z_6Y4sx uTZ0KZ82 KTpYBfvc b8LFyUTD 5Rh06pwd UrnGphd_ paR2zK5c Cj3FSotR M7QhztQb fkgSTMWU cGuBCQMe 2qZTJOmu DIN52_AL hFzmXRx9 z4zAlKfj 2-bAvLve 0fOBc2YG j9375zCW Rl17ExjW RWRgLGG4 FfXohHoU g3-uwAel moag8IlB yk4XQHqW 6AjKCEWh 8RUag3OC nPALfsWt taYs4dYy zzlyWUXa eBtJ4gu2 ViaDhTIo g1-GI1bs azfblELf NU3ISJbp 9tPJjBBK X0JjWvYQ 1kWV2A45 9Nb4O-2G YScl-4rT Vn0ZwfO_ cP8JwKhk dEq8tv6a 3GJRUCzo f3-05axH MNXxfE0Q OwH2EVsQ mh3FEwlp K7OkwKid 2I7UV2BB xTBMURTd 6Ney7jzp JHDrG-Cn",
       "canopy": "OKsmavmw",
       "tiers": [
         "0:0 T2 directed-path tier2.feature-dependency feature.dependency",
@@ -3088,6 +3103,8 @@
         "2:0 T2 node-plaque theta.grid theta-grid",
         "2:0 T3 fallback",
         "2:1 T2 directed-path tier2.feature-dependency feature.dependency",
+        "3:0 T2 domain-mark transfer.domain phase.edge",
+        "3:0 T2 trajectory tier2.movement-path movement.path",
         "3:0 T3 fallback",
         "4:0 T2 directed-path tier2.feature-dependency feature.dependency",
         "4:0 T2 node-plaque feature-bundle.plaque feature.dependency",
@@ -3167,14 +3184,16 @@
       ]
     },
     "replay-regressions/unrecognized-movement.json#/cases/5": {
-      "frames": "M9jbpu-p qYZUXS1e 6zOYUl48 Lce2Iznk 4M5tQT7f VyCXMJRX d6JpGdtc H29FD1xw LiYalnTN RZK86gGt Mc_GaMzr NgqRS3TG vgNpWE-Y aSTy21JI wXSYMmIu Jnv4CA_T Snin88hY 6RjkJD8Y _wTmtb2f xWczLmlf sA6O9kOe v8cuQUrx bFiXK0WO EfAd73j8 y9lxscXK _kXpsxN- CmHuZvfC BfNW-B6v UMmTH42d b9BNgWB7 fHqovjva V8eKsahC 9Yex4Bb3 3dpqqXQt",
+      "frames": "2q77rr-F klToANqw aeJWRgzn XfldPdWq t5K-M3aS WVzLoypC jMMtiHk7 6_ap2liJ pLMEKlrC G2QQQOou C0RfDQ4i hU1j4RMm Sj0A8WRf MXJ1oHzR 4smhpeXh 74Kk3tj7 4nDGkhlI iTNzk8bh fmXa1cfv VSA1W1gD t7DovWjJ dy6e6BgQ K20wySmM GxbCnwdS yDz-sF6k gUHcnWb4 WFkToLfr cz5PQAYn 5xp1CDqx mweZEfpN nkPF5wGi 8BIPSdJc Yi2s4gyh qhojmEBF zTjHRRr1 Ll0MZGzf WDYciMJG",
       "canopy": "UjaD4CDs",
       "tiers": [
         "0:0 T3 fallback",
         "0:1 T3 fallback",
         "1:0 T3 fallback",
+        "1:1 T2 trajectory tier2.movement-path movement.path",
         "1:1 T3 fallback",
         "1:2 T3 fallback",
+        "2:0 T2 trajectory tier2.movement-path movement.path",
         "2:0 T3 fallback",
         "2:1 T3 fallback",
         "2:2 T3 fallback",
