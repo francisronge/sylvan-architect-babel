@@ -17,9 +17,6 @@ const MOVED_OFF_CANVAS = 'Open (camera, low severity): the moved constituent\'s 
   + 'unmoved syntax stays in place; the camera then travels to it.';
 
 
-const CONTINUED_RECENTRE = 'Open (layout): the stage builds a new N above the continued nominal\'s noun (N + P -> N), and the '
-  + 'continued D and Num, which keep their slot and daughters, re-centre over the wider N as the stage begins. D stays attached, '
-  + 'but the preceding layout reserved only the noun\'s width, so they shift sideways.';
 const LOWERED_SUBTREE = 'Accepted (camera, fixes A+B): at a stage crossing whose movement inserts a parent above an existing '
   + 'subtree, the camera holds the syntax that did not move still, so the lowered subtree slides to its new place instead of the '
   + 'rest of the tree jumping.';
@@ -41,6 +38,8 @@ export const EXCEPTIONS = [
     { mobile: { '25>26': 83.23 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/diverse-recovery.json#/examples/3/analysis', 'first-paint-continuity', 'off-canvas:moved', 'stage 6',
     { mobile: { '58>59': 38.7 } }),
+  x(MOVED_OFF_CANVAS, 'replay-regressions/nested-premovement-width.json#', 'first-paint-continuity', 'off-canvas:moved', 'stage 4',
+    { mobile: { '59>60': 28.17 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/relative-clause-waiting-clearance.json#', 'first-paint-continuity', 'off-canvas:moved', 'stage 5',
     { mobile: { '60>61': 147.98 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/reviewed-construction.json#/cases/0', 'first-paint-continuity', 'off-canvas:moved', 'stage 12',
@@ -116,10 +115,6 @@ export const EXCEPTIONS = [
     { desktop: { '121>122': 27.83 }, mobile: { '121>122': 56.45 } },
     { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Structural movement on (fix/structural-movement-live): drawing the movements it recovers carries their slot and landing reservations back into earlier stages, so lifetime plaque pockets shift. Francis, 23 Oct in the lead session, told the change is invisible: \'If I won\'t even see them, then I won\'t waste time worrying about it, merge\': a held movement-slot clearance shifts stage 5 by 3.46 units, so the landing first paints 27.83 px beyond the canvas instead of 27.71.',
       accepts: { desktop: { '121>122': 27.83 }, mobile: { '121>122': 56.45 } } }),
-  x(CONTINUED_RECENTRE, 'replay-regressions/renamed-continuing-nominal.json#', 'first-paint-continuity', 'jump:stage-coordinates',
-    'stage 2', { desktop: { '18>19': 26.08 } },
-    { by: 'Francis Ronge', on: '2026-10-21', expires: '2027-01-21', note: 'there-insertion: D and Num re-centre over the wider rebuilt N (~26 px) instead of D separating; accepted for now until a layout reserves N\'s final width (approved 21 Oct in the lead session)',
-      accepts: { desktop: { '18>19': 26.08 } } }),
   x(LOWERED_SUBTREE, 'movement/holdout-transitions.json#/3', 'first-paint-continuity', 'jump:stage-coordinates', 'stage 2',
     { desktop: { '47>48': 74.06 } },
     { by: 'Francis Ronge', on: '2026-10-22', expires: '2027-01-22', note: 'Camera fixes A+B accepted on the side-by-side reviews ("fix A seems good. B looks good too"; on the three largest slides: "1-3 looks good"), 22 Oct in the lead session',
