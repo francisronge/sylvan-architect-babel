@@ -8,6 +8,7 @@ import {
   prepareConnectorScene,
   prepareUniquePlaqueObstacles,
   projectPlaqueContent,
+  type CaseSourceRects,
   type ConnectorScene,
   type PlaqueRect,
   type PlaqueRequest,
@@ -27,8 +28,9 @@ export type LifetimeScene = {
 };
 
 /** Lifetime spaces for one schedule. Scene nodes and obstacles must stay unchanged
- * while it allocates: their connector structures are shared by every plaque. */
-export function prepareLifetimePlaqueSpaces() {
+ * while it allocates: their connector structures are shared by every plaque.
+ * `caseSources` supplies each scene's measured Case source boxes. */
+export function prepareLifetimePlaqueSpaces(caseSources?: CaseSourceRects) {
   const translate = prepareImmutableObstacleTranslations();
   const connectorScenes = new WeakMap<readonly PlaqueRect[], ConnectorScene>();
   const connectorScene = ({ nodes, obstacles }: LifetimeScene) => {
@@ -79,7 +81,7 @@ export function prepareLifetimePlaqueSpaces() {
       let caseClears: ReturnType<typeof casePlaqueSpace> | undefined;
       return { scene, fixed,
         get collection() { return collection ??= collectionPlaqueSpace(fixed, scene.added); },
-        get caseClears() { return caseClears ??= casePlaqueSpace(fixed, scene.anchor, scene.added); } };
+        get caseClears() { return caseClears ??= casePlaqueSpace(fixed, scene.anchor, scene.added, caseSources); } };
     });
     // Scenes with the same offset and source ink draw identical routes, whose
     // equal blockers give equal hints. Within such a group each scene adds only
