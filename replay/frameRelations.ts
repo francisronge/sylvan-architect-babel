@@ -12,7 +12,6 @@ import {
 import { productionRelationRegistry } from './relationDispatch/productionRegistry.js';
 import { findRelationRegistryEntry } from './relationDispatch/relationRegistry.js';
 import {
-  dispatchRelationStages,
   getAuthoredFrameRelations,
   relationStagesFromFrames,
   type DispatchedRelationStages
@@ -21,6 +20,7 @@ import { isPriorMovementContextFailure } from './relations/movementDiagnosticOwn
 import { type RecoveredMovement } from './relations/movementEvidence.ts';
 import { registeredTrajectoryDisplayKind } from './relations/movementIdentities.ts';
 import { type RelationClaimDispatch } from './relations/relationClaims.ts';
+import { dispatchRelationStagesForPlan } from './relations/renderPlanCompiler.ts';
 import {
   PRODUCTION_RENDER_FAMILIES,
   TRAJECTORY_SOURCE_ROLES,
@@ -59,7 +59,7 @@ import {
 export const createFrameRelationResolver = (
   frames: ReplayDerivationFrame[],
   replayPlan?: DerivationReplayPlan | null,
-  relationClaims: DispatchedRelationStages = dispatchRelationStages(relationStagesFromFrames(frames, replayPlan))
+  relationClaims: DispatchedRelationStages = dispatchRelationStagesForPlan(relationStagesFromFrames(frames, replayPlan))
 ) => {
   const { dispatches } = relationClaims;
   const resolved = new Map<number, DerivationReplayPlanStep[]>();

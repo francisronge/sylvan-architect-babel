@@ -244,7 +244,8 @@ inspection evidence. Transport telemetry records connection events, byte/event
 timings, known socket-failure reasons, and OpenAI/edge request IDs for diagnosis.
 It excludes credentials, cookies, socket addresses and arbitrary error messages.
 An interruption remains a failed transport observation; no replacement request
-or invented usage is added.
+or invented usage is added. Both runners create the output directory, any new
+parent directories and every artifact readable only by the owner.
 
 `transport-diagnostics.ndjson` is appended during the request, with five-second
 checkpoints, provider/request IDs, HTTP/TLS lifecycle events, known socket-error

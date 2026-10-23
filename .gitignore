@@ -77,6 +77,10 @@ docs/design/visual-relations-assets/
 !docs/design/visual-relations-current-lab.tsx
 !docs/design/visual-relations-current-lab.production-only-audit.r96.bundle.js
 
+# Local Claude Code permissions and nested agent checkouts.
+.claude/settings.local.json
+.claude/worktrees/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

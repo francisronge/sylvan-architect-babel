@@ -62,7 +62,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.markdown-only != 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
@@ -97,12 +97,30 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-ubuntu-24.04-${{ steps.playwright.outputs.version }}-chromium-webkit
 
+      # The system packages come from a mirror that can download at a few
+      # hundred kB/s, too slow to fetch WebKit's dependencies within a job.
+      # Keep the downloaded .deb files between runs so apt installs them locally.
+      - name: Restore browser system packages
+        id: debs
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/browser-debs
+          key: browser-debs-ubuntu-24.04-${{ steps.playwright.outputs.version }}-chromium-webkit
+
+      - name: Offer the kept packages to apt
+        run: |
+          echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/99keep-downloaded-packages
+          if compgen -G "$HOME/browser-debs/*.deb" > /dev/null; then
+            sudo cp "$HOME"/browser-debs/*.deb /var/cache/apt/archives/
+          fi
+
       # A stalled package mirror once held this step for the job's whole 30
-      # minutes. Bound each attempt and retry, so a stall costs minutes.
+      # minutes. Bound each attempt and retry, so a stall costs minutes; apt
+      # keeps the packages a killed attempt finished downloading.
       - name: Install pinned browser runtimes
         run: |
           for attempt in 1 2 3; do
-            timeout --kill-after=30s 10m npx --no-install playwright install --with-deps chromium webkit && exit 0
+            timeout --kill-after=30s 15m npx --no-install playwright install --with-deps chromium webkit && exit 0
             echo "::warning::browser install attempt $attempt failed or stalled; retrying"
             # A killed attempt can leave apt holding its locks; clear them so the retry can run.
             sudo pkill -9 -f 'apt-get|dpkg' || true
@@ -110,6 +128,19 @@ jobs:
             sudo dpkg --configure -a || true
           done
           exit 1
+
+      - name: Keep the browser system packages for later runs
+        if: steps.debs.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/browser-debs"
+          cp /var/cache/apt/archives/*.deb "$HOME/browser-debs/"
+
+      - name: Save browser system packages
+        if: steps.debs.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/browser-debs
+          key: ${{ steps.debs.outputs.cache-primary-key }}
 
       - name: Verify this shard's required browser suites
         run: npm run verify:browser -- --suite "ci:${{ matrix.shard }}" --evidence "$RUNNER_TEMP/browser-evidence"
