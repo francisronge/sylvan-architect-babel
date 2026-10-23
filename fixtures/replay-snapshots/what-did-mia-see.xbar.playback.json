@@ -22,8 +22,8 @@
       ],
       "replayProgressLabel": "Stage 1/4 · Step 2/3",
       "replayVisibleNodeIds": [
-        "dp_what_low::__lex_tok_0_what",
-        "dp_what_low"
+        "dp_what_low",
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -33,8 +33,8 @@
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 1/4 · Step 3/3",
       "replayVisibleNodeIds": [
-        "dp_what_low::__lex_tok_0_what",
-        "dp_what_low"
+        "dp_what_low",
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -44,9 +44,9 @@
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 2/4 · Step 1/4",
       "replayVisibleNodeIds": [
+        "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "v_see::__lex_tok_3_see"
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -58,10 +58,10 @@
       ],
       "replayProgressLabel": "Stage 2/4 · Step 2/4",
       "replayVisibleNodeIds": [
-        "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
+        "v_see",
         "v_see::__lex_tok_3_see",
-        "v_see"
+        "dp_what_low",
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -74,11 +74,11 @@
       ],
       "replayProgressLabel": "Stage 2/4 · Step 3/4",
       "replayVisibleNodeIds": [
-        "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "v_see::__lex_tok_3_see",
+        "vp_see",
         "v_see",
-        "vp_see"
+        "v_see::__lex_tok_3_see",
+        "dp_what_low",
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -88,11 +88,11 @@
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 2/4 · Step 4/4",
       "replayVisibleNodeIds": [
-        "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "v_see::__lex_tok_3_see",
+        "vp_see",
         "v_see",
-        "vp_see"
+        "v_see::__lex_tok_3_see",
+        "dp_what_low",
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -102,12 +102,12 @@
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 3/4 · Step 1/7",
       "replayVisibleNodeIds": [
+        "t_did::__lex_tok_1_did",
         "vp_see",
         "v_see",
         "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did"
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -119,13 +119,13 @@
       ],
       "replayProgressLabel": "Stage 3/4 · Step 2/7",
       "replayVisibleNodeIds": [
+        "t_did",
+        "t_did::__lex_tok_1_did",
         "vp_see",
         "v_see",
         "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did",
-        "t_did"
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -138,14 +138,14 @@
       ],
       "replayProgressLabel": "Stage 3/4 · Step 3/7",
       "replayVisibleNodeIds": [
+        "tbar_question",
+        "t_did",
+        "t_did::__lex_tok_1_did",
         "vp_see",
         "v_see",
         "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did",
-        "t_did",
-        "tbar_question"
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -155,15 +155,15 @@
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 3/4 · Step 4/7",
       "replayVisibleNodeIds": [
+        "np_mia_question::__lex_tok_2_mia",
+        "tbar_question",
+        "t_did",
+        "t_did::__lex_tok_1_did",
         "vp_see",
         "v_see",
         "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did",
-        "t_did",
-        "tbar_question",
-        "np_mia_question::__lex_tok_2_mia"
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -175,16 +175,16 @@
       ],
       "replayProgressLabel": "Stage 3/4 · Step 5/7",
       "replayVisibleNodeIds": [
+        "np_mia_question",
+        "np_mia_question::__lex_tok_2_mia",
+        "tbar_question",
+        "t_did",
+        "t_did::__lex_tok_1_did",
         "vp_see",
         "v_see",
         "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did",
-        "t_did",
-        "tbar_question",
-        "np_mia_question::__lex_tok_2_mia",
-        "np_mia_question"
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -197,17 +197,17 @@
       ],
       "replayProgressLabel": "Stage 3/4 · Step 6/7",
       "replayVisibleNodeIds": [
+        "tp_question",
+        "np_mia_question",
+        "np_mia_question::__lex_tok_2_mia",
+        "tbar_question",
+        "t_did",
+        "t_did::__lex_tok_1_did",
         "vp_see",
         "v_see",
         "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did",
-        "t_did",
-        "tbar_question",
-        "np_mia_question::__lex_tok_2_mia",
-        "np_mia_question",
-        "tp_question"
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -217,17 +217,17 @@
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 3/4 · Step 7/7",
       "replayVisibleNodeIds": [
+        "tp_question",
+        "np_mia_question",
+        "np_mia_question::__lex_tok_2_mia",
+        "tbar_question",
+        "t_did",
+        "t_did::__lex_tok_1_did",
         "vp_see",
         "v_see",
         "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did",
-        "t_did",
-        "tbar_question",
-        "np_mia_question::__lex_tok_2_mia",
-        "np_mia_question",
-        "tp_question"
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -239,6 +239,9 @@
       ],
       "replayProgressLabel": "Stage 4/4 · Step 1/3",
       "replayVisibleNodeIds": [
+        "cbar_question",
+        "c_question",
+        "c_question::__lex_tok_1_did",
         "tp_question",
         "np_mia_question",
         "np_mia_question::__lex_tok_2_mia",
@@ -249,10 +252,7 @@
         "v_see",
         "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "c_question",
-        "c_question::__lex_tok_1_did",
-        "cbar_question"
+        "dp_what_low::__lex_tok_0_what"
       ]
     },
     {
@@ -264,6 +264,12 @@
       ],
       "replayProgressLabel": "Stage 4/4 · Step 2/3",
       "replayVisibleNodeIds": [
+        "cp_question",
+        "dp_what_high",
+        "dp_what_high::__lex_tok_0_what",
+        "cbar_question",
+        "c_question",
+        "c_question::__lex_tok_1_did",
         "tp_question",
         "np_mia_question",
         "np_mia_question::__lex_tok_2_mia",
@@ -274,12 +280,6 @@
         "v_see",
         "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "c_question",
-        "c_question::__lex_tok_1_did",
-        "cbar_question",
-        "cp_question",
-        "dp_what_high",
-        "dp_what_high::__lex_tok_0_what",
         "what_low"
       ]
     },
@@ -290,6 +290,12 @@
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 4/4 · Step 3/3",
       "replayVisibleNodeIds": [
+        "cp_question",
+        "dp_what_high",
+        "dp_what_high::__lex_tok_0_what",
+        "cbar_question",
+        "c_question",
+        "c_question::__lex_tok_1_did",
         "tp_question",
         "np_mia_question",
         "np_mia_question::__lex_tok_2_mia",
@@ -300,12 +306,6 @@
         "v_see",
         "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "c_question",
-        "c_question::__lex_tok_1_did",
-        "cbar_question",
-        "cp_question",
-        "dp_what_high",
-        "dp_what_high::__lex_tok_0_what",
         "what_low"
       ]
     }
