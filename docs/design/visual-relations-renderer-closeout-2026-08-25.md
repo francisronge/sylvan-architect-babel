@@ -295,7 +295,10 @@ every remote run covering it has been decided; a requested stage that such a
 run covers can therefore wait for later phases.
 
 Reservations account for tree ink, trajectories, neutral connector stems and
-already allocated claims. The nearest clear pocket search has no arbitrary radius
+already allocated claims. A control dependency is painted after fitting as a
+dashed orthogonal elbow between measured labels; allocation reserves the same
+elbow (`controlDependencyRoute`) from estimated labels in every scene that
+paints it, and its runs keep the full plaque gap, as trajectories do. The nearest clear pocket search has no arbitrary radius
 cutoff that sends an otherwise local plaque beneath the tree. Later spelling
 changes reserve the largest required box at first appearance. The planner is
 memoized across Replay steps; it does not move branches, reveal future syntax or

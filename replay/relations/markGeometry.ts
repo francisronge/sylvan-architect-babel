@@ -365,6 +365,28 @@ export const dependentCaseStatePlaques = (
   return probeFirst ? { probe: first, goal: second } : { probe: second, goal: first };
 };
 
+/** The control domain's dashed box around the domain's measured words. */
+export const controlDomainBox = (domainWords: Rect): Rect => ({
+  x: domainWords.x - 34, y: domainWords.y - 26, width: domainWords.width + 68, height: domainWords.height + 52
+});
+
+/** The painted control dependency, an orthogonal elbow: up from the top of the
+ * control domain (or just above the controllee's label), across at the elbow,
+ * then up to its arrowhead just below the controller's label. The renderer
+ * draws it from measured labels; plaque allocation reserves it from estimated ones. */
+export const controlDependencyRoute = (controller: Rect, controllee: Rect, domain: Rect | null): Point[] => {
+  const controllerCentre = { x: controller.x + controller.width / 2, y: controller.y + controller.height / 2 };
+  const controlleeCentre = { x: controllee.x + controllee.width / 2, y: controllee.y + controllee.height / 2 };
+  const source = {
+    x: domain ? clamp(controlleeCentre.x, domain.x + 12, domain.x + domain.width - 12) : controlleeCentre.x,
+    y: domain ? domain.y : controllee.y - 12
+  };
+  const elbowY = Math.max(controllerCentre.y + 128, Math.min(controlleeCentre.y - 92,
+    controllerCentre.y + Math.abs(controlleeCentre.y - controllerCentre.y) * 0.58));
+  return [source, { x: source.x, y: elbowY }, { x: controllerCentre.x, y: elbowY },
+    { x: controllerCentre.x, y: controller.y + controller.height + 40 }];
+};
+
 /**
  * The solid Case-assignment path: the accepted cubic from beneath the
  * assigner toward the bearer-side target, bowing with the direction of
