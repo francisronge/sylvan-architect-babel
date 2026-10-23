@@ -2,6 +2,7 @@
 import { authoredWord } from '../server/babelParser/nodePronunciation.js';
 import { type SyntaxNode } from '../types.ts';
 import { categoryLabel } from './categoryLabel.ts';
+import { readBareProjections } from './projectionStructure.ts';
 import { formatReplaySupportValue, normalizeReplayTargetLabel } from './replayPanelFormatting.ts';
 import { findNodeByIdInForest, isNotationLeaf, replayEffectiveSilence } from './syntaxForest.ts';
 
@@ -54,9 +55,22 @@ export const describeReplayNodePosition = (root: SyntaxNode | null | undefined, 
       : category.endsWith('P') ? { head: category.slice(0, -1), level: 2 }
         : { head: category, level: 0 };
   };
+  const sibling = children.length === 2 ? children.find(child => child !== node) : undefined;
+  // Bare labels name the same positions from structure, with the authored label.
+  const bare = readBareProjections([root]);
+  if (bare) {
+    if (sibling && bare.maximal(node) && bare.projects(sibling, parent)) {
+      if (bare.maximal(parent) && !bare.minimal(sibling))
+        return `Spec,${parentLabel}`;
+      if (!bare.maximal(parent) && !bare.minimal(parent) && bare.minimal(sibling))
+        return `complement of ${categoryLabel(parentLabel)}`;
+    }
+    // A head names its own projection, as X-bar's T in T′ does.
+    const distinct = parentLabel !== nodeLabel || bare.minimal(node) && !bare.minimal(parent);
+    return parentLabel && distinct ? `${nodeLabel || 'node'} in ${parentLabel}` : nodeLabel;
+  }
   const parentProjection = projection(parentLabel);
   const nodeProjection = projection(nodeLabel);
-  const sibling = children.length === 2 ? children.find(child => child !== node) : undefined;
   const siblingProjection = sibling ? projection(sibling.label) : undefined;
   if (nodeProjection.level === 2 && siblingProjection?.head === parentProjection.head) {
     if (parentProjection.level === 2 && siblingProjection.level === 1)
