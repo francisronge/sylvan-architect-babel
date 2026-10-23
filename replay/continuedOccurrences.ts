@@ -224,7 +224,8 @@ export function displayContinuedOccurrences(
     }
     const successorOf = (id: string) => {
       const location = here.get(id);
-      return !location ? undefined : next.get(id) ? id : next.has(id) ? undefined : continued.get(id);
+      // A continuation names the occurrence's successor even when its id stays on a new segment above it.
+      return !location ? undefined : continued.has(id) ? continued.get(id) : next.get(id) ? id : undefined;
     };
     const display = (id: string, successor: string | undefined) => {
       const shown = successor && (displays[stage + 1].get(successor) ?? successor);

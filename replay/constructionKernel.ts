@@ -454,6 +454,25 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   // occurrence, the new parents attaching the landing to existing syntax, the phrase it
   // pied-pipes and a receiving head's new inner head; a neutral claim owns a rewrite only
   // when it displaces preceding material, with the new parents it attaches.
+  // Whether a claim displaces material the stage had: it names an earlier occurrence the stage
+  // removes, changes or re-parents, or a new occurrence whose lineage's earlier one is displaced.
+  // Only such a claim may introduce new syntax at its own moment; otherwise construction builds it.
+  const authoredPrev = indexForest(previousFrameWorkspaceRoots), authoredCur = indexForest(workspaceRoots);
+  const subtreeKey = (forest: Stage, id: string): string => {
+    const info = forest.get(id);
+    return info ? `${ownKey(info.node)}(${info.kids.map(k => subtreeKey(forest, k)).join(',')})` : '';
+  };
+  const claimDisplaces = (relation: (typeof frameRelationSteps)[number]): boolean => {
+    if (!authoredPrev || !authoredCur) return true;
+    const named = [...relationAnchorNodeIds(relation.anchors as Record<string, string | string[]>), ...relationAnchorNodeIds(relation.priorAnchors)];
+    const displaced = (id: string) => {
+      const was = authoredPrev.get(id), now = authoredCur.get(id);
+      return !now || subtreeKey(authoredPrev, id) !== subtreeKey(authoredCur, id) || Boolean(was!.parent) && was!.parent !== now.parent;
+    };
+    if (named.some(id => authoredPrev.has(id) && displaced(id))) return true;
+    const lineages = new Set(named.filter(id => !authoredPrev.has(id)).map(id => authoredCur.get(id)?.node.lineageId).filter(Boolean));
+    return [...authoredPrev].some(([id, info]) => lineages.has(info.node.lineageId) && displaced(id));
+  };
   const relationSeeds = frameRelationSteps.flatMap((relation, relationIndex) => {
     const seeds = new Set<string>(), placement = placementOf.get(relationIndex);
     const whole = (id: string) => { changedKeys(id).forEach(k => seeds.add(k)); place(id).forEach(k => seeds.add(k)); };
@@ -466,20 +485,20 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     if (placement && movements.length) [...getMovementCreatedLandingHostNodeIds(placement), ...getMovementPiedPipedNodeIds(placement)].forEach(whole);
     // A trajectory claim without a proved movement still introduces, at its moment, the new material at its
     // endpoints that the stage's construction forest lacks, with its landing's new parents (as today).
-    if (!movements.length && placement && (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)) {
+    if (!movements.length && placement && (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition) && claimDisplaces(relation)) {
       const constructionIds = new Set(structuralIndex ? structuralIndex.keys() : []);
       [...placement.authoredTargetNodeIds, ...placement.sourceNodeIds].flatMap(id => subtree(cur, id)).filter(id => !constructionIds.has(id) && !prev.has(id))
         .forEach(id => { changedKeys(id).forEach(k => seeds.add(k)); place(id, true).forEach(k => seeds.add(k)); });
       [...getMovementCreatedLandingHostNodeIds(placement), ...getMovementPiedPipedNodeIds(placement)].forEach(whole);
     }
     // An unproven landing (its source not in the preceding stage) still appears at its own moment.
-    if (!movements.length && relation.unprovenNewLandingNodeId && cur.has(relation.unprovenNewLandingNodeId)) {
+    if (!movements.length && relation.unprovenNewLandingNodeId && cur.has(relation.unprovenNewLandingNodeId) && claimDisplaces(relation)) {
       subtree(cur, relation.unprovenNewLandingNodeId).flatMap(changedKeys).forEach(k => seeds.add(k));
       place(relation.unprovenNewLandingNodeId, true).forEach(k => seeds.add(k));
     }
     const ownership = movements.length ? undefined : fallbackTransitionOwnership.get(relationIndex);
     const displaces = (id: string) => prev.has(prevId(id)) && (!cur.has(prevId(id)) || edit.diffs.has(prevId(id)) || cur.get(prevId(id))!.parent !== prev.get(prevId(id))!.parent);
-    const transitionOwned = frameHasNonMovementTreeTransition && nonMovementTreeTransitionRelationIndexes.has(relationIndex);
+    const transitionOwned = frameHasNonMovementTreeTransition && nonMovementTreeTransitionRelationIndexes.has(relationIndex) && claimDisplaces(relation);
     if (!ownership && transitionOwned && !movements.length)
       [...(nonMovementTransitionNodeIds.get(relationIndex) ?? [])].filter(id => cur.has(id) && !prev.has(id)).forEach(whole);
     if (ownership && ([...ownership.priorNodeIds].some(displaces) || transitionOwned)) {
@@ -639,8 +658,15 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     ? placement.authoredTargetNodeIds.map(id => cur.get(id)?.parent).filter((id): id is string => Boolean(id) && !available0.has(id!))
       .flatMap(id => producer(id) ?? []) : [];
   const momentPlacements = relationPlacements.filter(placement => !shared.has(placement.relationIndex));
+  // A movement's other current anchors are context. Today its moment neither waits for them nor
+  // builds them early; under BABEL_REPLAY_WAIT_CONTEXT=1 (question 4) it also waits for the
+  // moments that introduce them.
+  const contextOf = (placement: RelationPlacement) => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
+    ? [...new Set(relationAnchorNodeIds(placement.relation.anchors))].filter(id => !placement.relationAnchorNodeIds.includes(id) && cur.has(id)) : [];
+  const waitsForContext = typeof process !== 'undefined' && process.env?.BABEL_REPLAY_WAIT_CONTEXT === '1';
   const momentOrder = orderRelationMoments(momentPlacements.map(placement => placement.relationIndex), new Map(momentPlacements.map(placement =>
-    [placement.relationIndex, new Set([...required(placement).flatMap(id => producingRelations(id)), ...landingParentOwners(placement)])])));
+    [placement.relationIndex, new Set([...required(placement).flatMap(id => producingRelations(id)), ...landingParentOwners(placement),
+      ...(waitsForContext ? contextOf(placement).flatMap(id => producingRelations(id)) : [])])])));
   const momentPosition = new Map(momentOrder.map((relationIndex, position) => [relationIndex, position]));
   const playsAfter = (relationIndex: number, ownerIndex: number) => momentPosition.has(relationIndex) && momentPosition.has(ownerIndex)
     ? momentPosition.get(relationIndex)! > momentPosition.get(ownerIndex)! : relationIndex > ownerIndex;
@@ -1030,9 +1056,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       played.push(relation, ...duplicates.map(duplicate => duplicate.relationIndex));
       // A proved movement stands independently of its contextual anchors: context no moment has
       // introduced yet is reported, not waited for or built early.
-      const context = placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
-        ? [...new Set(relationAnchorNodeIds(placement.relation.anchors))].filter(id => !placement.relationAnchorNodeIds.includes(id) && cur.has(id)) : [];
-      const absent = context.filter(id => !missing.includes(id) && !isAvailable(id));
+      const absent = contextOf(placement).filter(id => !missing.includes(id) && !isAvailable(id));
       if (absent.length) diagnose(relation, `RELATION_TIMING_CONFLICT: Stage ${index + 1}, relation ${authoredIndex(placement) + 1} (${placement.relationLabel}) has unavailable authored context: ${absent.map(id => {
         const owner = producer(id);
         return owner === undefined ? `${id} before its structural prerequisites are available`
