@@ -249,7 +249,7 @@ function close(edit: StageEdit, frame: Frame, owners: Owners, seeds: Iterable<st
       }
       if (mode.forced || (mode.relation !== undefined && owners.get(key('w', k)) === mode.relation)) return switchWhole(k);
       // A daughter a later moment completes may be carried by the one present node of it that moment encloses.
-      const carrier = owners.has(key('w', k)) ? carrierOf(k) : undefined;
+      const carrier = owners.has(key('w', k)) ? carrierOf(k, parent) : undefined;
       const slot = cur.get(parent)!.kids.indexOf(k);
       return carrier && whole(parent) ? add(carrierKey(parent, slot, carrier), parent) && release(carrier, parent) : block(k);
     }
@@ -259,11 +259,13 @@ function close(edit: StageEdit, frame: Frame, owners: Owners, seeds: Iterable<st
     return release(k, parent);
   };
   /** The single highest present node under `k` in C, if `k` itself is not shown. */
-  const carrierOf = (k: string): string | undefined => {
+  const carrierOf = (k: string, parent: string): string | undefined => {
     const tops: string[] = [];
     const visit = (id: string) => { const shown = frame.get(id); if (shown && !shown.word) tops.push(id); else cur.get(id)?.kids.forEach(visit); };
     cur.get(k)?.kids.forEach(visit);
-    return tops.length === 1 ? tops[0] : undefined;
+    // A node still standing elsewhere (a head that the later moment moves in) cannot carry the slot.
+    const free = tops.length > 1 ? tops.filter(top => !parents.has(top) || parents.get(top) === parent) : tops;
+    return free.length === 1 ? free[0] : undefined;
   };
   const takesOver = (k: string, parent: string): boolean => {
     const before = prev.get(parent);
@@ -1000,7 +1002,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       ...frameSemanticStep, operation: 'StageRecord' as DerivationOperation, replayKind: 'macro',
       detailBlocks: mergeReplayDetailBlocks(frameStageRecordBlocks), note: undefined,
       recipe: String(plannedStage.statement || '').trim() || frameSemanticStep.recipe || `Stage ${plannedStage.stageNumber}`,
-      replayCanvasData: finalSnap.canvasData, replayVisibleNodeIds: finalSnap.visibleNodeIds, replayRelationLinks: finalSnap.relationLinks,
+      replayCanvasData: finalSnap.canvasData, replayVisibleNodeIds: finalSnap.visibleNodeIds.filter(id => !held.get(index)?.has(id)), replayRelationLinks: finalSnap.relationLinks,
       replayUsesFutureLayoutScaffold: finalSnap.usesScaffold,
       replayProgressLabel: buildReplayProgressLabel(plannedStage, plannedStageCount, stepCount, stepCount)
     }
