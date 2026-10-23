@@ -65,7 +65,7 @@ for (const [width, height] of [[1600, 1100], [390, 844]]) for (const direction o
   for (const [key, before, after] of [
     ['fresh/portuguese-relative/0', 36, 37],
     ['fresh/korean-particles/0', 41, 42],
-    ['fresh/korean-particles/0', 54, 55],
+    ['fresh/korean-particles/0', 55, 56],
     ['fresh/mandarin-topic/1', 30, 31],
     ['fresh/mandarin-topic/3', 33, 34]
   ]) if (runs(key, direction)) test(`${width}px ${direction}: ${key} reserves every existing node across ${before} → ${after}`, () => {

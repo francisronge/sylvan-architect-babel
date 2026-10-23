@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { buildStageCoordinateReservations } from '../replay/stageCoordinates.ts';
-import { retainCurrentSiblingRanks, retainCurrentUnaryRank } from '../replay/currentSiblingRanks.ts';
+import { retainCurrentSiblingRanks, retainCurrentDaughterRanks } from '../replay/currentSiblingRanks.ts';
 import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
 import { buildStageCameraBounds, buildReplayPlaqueLayouts, measureStagePlaqueSpace, stageTreeLayoutSize } from '../replay/stageCamera.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
@@ -129,7 +129,7 @@ test('unary rank correction leaves completed coordinates and horizontal reservat
   const future = scene(branch('parent', [branch('wrapper', [core, leaf('adjunct', 'today')])]));
   for (const [id, point] of current.coordinates) current.coordinates.set(id, { x: point.x + 23, y: future.coordinates.get(id).y + 37 });
   const completed = structuredClone(future.coordinates), prior = structuredClone(current.coordinates);
-  retainCurrentUnaryRank(current, future);
+  retainCurrentDaughterRanks(current, future);
   assert.equal(current.coordinates.get('core').y - current.coordinates.get('parent').y, 100);
   for (const [id, point] of current.coordinates) assert.equal(point.x, prior.get(id).x, `${id} keeps its horizontal reservation`);
   assert.deepEqual(future.coordinates, completed, 'the completed drawing is unchanged');
@@ -149,7 +149,7 @@ test('unary rank correction leaves a visible island below an unavailable parent 
   current.coordinates.set('core', { x: 0, y: 200 });
   const detached = { ...current.coordinates.get('loose') };
   const unavailable = { ...current.coordinates.get('unbuilt') };
-  retainCurrentUnaryRank(current, future);
+  retainCurrentDaughterRanks(current, future);
   assert.equal(current.coordinates.get('core').y, 100, 'the connected unary edge is corrected');
   assert.deepEqual(current.coordinates.get('loose'), detached, 'a disconnected visible object keeps its own position');
   assert.deepEqual(current.coordinates.get('unbuilt'), unavailable, 'the unavailable scaffold is not current syntax');
@@ -189,7 +189,7 @@ for (const existingWrapper of [false, true]) test(`unary ranks are untouched ${e
     return { nodes, visible: new Set(nodes.keys()), coordinates };
   };
   const current = scene(currentRoot), future = scene(futureRoot), before = structuredClone(current.coordinates);
-  retainCurrentUnaryRank(current, future);
+  retainCurrentDaughterRanks(current, future);
   assert.deepEqual(current.coordinates, before, 'a current branch cannot be shortened merely because it is long');
 });
 
@@ -396,4 +396,40 @@ test('a projection that later receives inserted layers is not stretched in advan
         `${getNodeId(parent)} → ${getNodeId(child)} spans more than one row`);
     }
   }
+});
+
+const pointScene = canvas => {
+  const root = d3.hierarchy(canvas); applyVizIds(root);
+  const tree = d3.tree().nodeSize([100, 100])(root), nodes = new Map(tree.descendants().map(node => [getNodeId(node), node]));
+  return { nodes, visible: new Set(nodes.keys()), coordinates: positions(tree) };
+};
+
+for (const lowerSmallerAbove of [false, true]) test(`a fork whose daughters all wait for one wrapper stands one row above them${lowerSmallerAbove ? ', lowering the smaller side above' : ''}`, () => {
+  const daughters = () => [branch('left', [leaf('left-word', 'vi')]), branch('right', [leaf('right-word', 'o')])];
+  const current = pointScene(branch('root', [branch('fork', daughters())]));
+  const future = pointScene(branch('root', [branch('fork', [branch('wrapper', daughters()), leaf('copy', 'o')])]));
+  // The reserved rows: the fork keeps its own, and its daughters wait one row lower, under the wrapper.
+  for (const [id, point] of current.coordinates) current.coordinates.set(id, { x: point.x + 11, y: future.coordinates.get(id).y });
+  const prior = structuredClone(current.coordinates), completed = structuredClone(future.coordinates);
+  retainCurrentDaughterRanks(current, future, { lowerSmallerAbove });
+  const y = id => current.coordinates.get(id).y;
+  for (const daughter of ['left', 'right']) assert.equal(y(daughter) - y('fork'), 100, `fork → ${daughter} spans one row`);
+  assert.equal(y('fork') - y('root'), 100, 'the branch above the fork keeps one row');
+  // Two nodes stand above four waiting ones: within one stage the smaller side moves at the insertion.
+  const moved = lowerSmallerAbove ? ['root', 'fork'] : ['left', 'left-word', 'right', 'right-word'];
+  for (const [id, point] of current.coordinates) {
+    assert.equal(point.x, prior.get(id).x, `${id} keeps its horizontal reservation`);
+    assert.equal(point.y, prior.get(id).y + (moved.includes(id) ? (lowerSmallerAbove ? 100 : -100) : 0), `${id} row`);
+  }
+  assert.deepEqual(future.coordinates, completed, 'the completed drawing is unchanged');
+});
+
+test('a fork with a daughter that keeps it as parent is left to the sister rank rule', () => {
+  const core = branch('core', [leaf('word', 'books')]), sister = leaf('sister', 'old');
+  const current = pointScene(branch('fork', [sister, core]));
+  const future = pointScene(branch('fork', [sister, branch('wrapper', [core])]));
+  current.coordinates.set('core', { ...current.coordinates.get('core'), y: 200 });
+  const before = structuredClone(current.coordinates);
+  for (const lowerSmallerAbove of [false, true]) retainCurrentDaughterRanks(current, future, { lowerSmallerAbove });
+  assert.deepEqual(current.coordinates, before);
 });

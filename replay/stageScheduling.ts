@@ -346,6 +346,26 @@ export const finalizeStageReplay = (
         .filter(parentId => parentId && !initiallyAvailableNodeIds.has(parentId))
         .flatMap(parentId => relationProducers.get(parentId) ?? [])
       : [];
+    // A movement can complete an existing phrase: its landing joins a parent the stage already
+    // had, and that parent contains the movement's source, as a specifier landing does (a head
+    // landing's parent is the head, which does not). A merge that takes the phrase as a daughter
+    // builds forward on the completed phrase, so it waits for the movement's moment (cyclic
+    // order), unless the movement itself needs the merge's output.
+    const subtreeIds = (nodeId: string) => collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId));
+    const landingCompletions = new Map<string, number[]>();
+    relationPlacements.filter(placement => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition).forEach(placement => {
+      placement.authoredTargetNodeIds.map(nodeId => findParentNodeIdInForest(workspaceRoots, nodeId))
+        .filter(parentId => parentId && initiallyAvailableNodeIds.has(parentId) && !relationProducers.has(parentId)
+          && placement.sourceNodeIds.some(sourceId => subtreeIds(parentId).includes(sourceId)))
+        .forEach(parentId => landingCompletions.set(parentId, [...new Set([...(landingCompletions.get(parentId) ?? []), placement.relationIndex])]));
+    });
+    const completingMovements = (step: PlaybackStep): { relationIndex: number; phraseId: string }[] => {
+      const targetNodeId = replayOwnerId(step.replayCanvasData, String(step.targetNodeId || ''));
+      return (step.sourceNodeIds || []).filter(nodeId => nodeId !== step.targetNodeId)
+        .flatMap(phraseId => (landingCompletions.get(phraseId) ?? []).map(relationIndex => ({ relationIndex, phraseId })))
+        .filter(({ relationIndex }) => !requiredNodeIds(relationPlacements.find(placement => placement.relationIndex === relationIndex)!, initiallyAvailableNodeIds)
+          .some(nodeId => subtreeIds(nodeId).includes(targetNodeId)));
+    };
     const momentOrder = orderRelationMoments(relationPlacements.map(placement => placement.relationIndex), new Map(relationPlacements.map(placement => [
       placement.relationIndex,
       new Set([
@@ -448,6 +468,13 @@ export const finalizeStageReplay = (
       if (visitingStructuralSteps.has(stepIndex))
         return [step.targetNodeId];
       visitingStructuralSteps.add(stepIndex);
+      // Authored order still holds: the movement plays first only when every relation still to
+      // play up to it concerns the completed phrase alone, so no earlier claim moves ahead of
+      // the structure it relates.
+      completingMovements(step).filter(({ relationIndex }) => forRelation === undefined || playsAfter(forRelation, relationIndex))
+        .filter(({ relationIndex, phraseId }) => orderedPlacements.slice(nextRelation, (momentPosition.get(relationIndex) ?? -1) + 1)
+          .every(placement => placement.relationAnchorNodeIds.every(nodeId => subtreeIds(phraseId).includes(nodeId))))
+        .forEach(({ relationIndex }) => emitRelationsThrough(relationIndex));
       const missing = (step.sourceNodeIds || [])
         .filter(nodeId => nodeId !== step.targetNodeId)
         .flatMap(nodeId => ensureNodeAvailable(nodeId, forRelation));
