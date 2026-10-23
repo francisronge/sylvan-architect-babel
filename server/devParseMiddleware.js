@@ -9,6 +9,7 @@ import {
   describeParseServerFailure,
   readParseAccessPolicy
 } from './parseHttpPolicy.js';
+import { checkLocalRuntimeHost, readLocalHostPolicy } from './localHostPolicy.js';
 
 const RATE_WINDOW_MS = 60 * 1000;
 const RATE_MAX_REQUESTS = 30;
@@ -31,13 +32,18 @@ const readBody = async (req) => {
  * Connect middleware serving /api/parse on the Vite development server. It
  * applies the shared request policy and the deployed runtimes' disconnect
  * cancellation; body reading and the per-minute limiter are local transport.
- * Origin checks are on only when requested or when an allow-list is set.
+ * Vite installs its own host check after this middleware, so the local host
+ * policy is applied here; a page's Origin must then be that host's app or, when
+ * BABEL_ALLOWED_ORIGINS is set, one of its origins. A caller without Origin is
+ * refused only when an allow-list is set or BABEL_REQUIRE_ORIGIN asks.
  */
 export const createDevParseMiddleware = ({ env, parse = parseFromBody }) => {
   const accessPolicy = readParseAccessPolicy(env, {
     requireOrigin: Boolean(String(env.BABEL_ALLOWED_ORIGINS || '').trim()),
-    allowNoOrigin: false
+    allowNoOrigin: false,
+    localPageOrigin: true
   });
+  const hostPolicy = readLocalHostPolicy(env);
   const rateMap = new Map();
 
   return async (req, res, next) => {
@@ -52,6 +58,8 @@ export const createDevParseMiddleware = ({ env, parse = parseFromBody }) => {
       res.end(JSON.stringify(body));
     };
 
+    const wrongHost = checkLocalRuntimeHost(hostPolicy, req.headers.host);
+    if (wrongHost) return send(wrongHost);
     if (req.method !== 'POST') return send(METHOD_NOT_ALLOWED);
 
     const rejected = checkParseRequestAccess(accessPolicy, {

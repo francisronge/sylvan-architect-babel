@@ -160,6 +160,25 @@ test('a structure-only plaque yields to another relation that anchors its host a
     withSwitch('0', () => plan([note, caseClaim])).filter(item => item.relationRef.relationIndex === 1), 'the drawing claim is unchanged');
 });
 
+test('a later stage withdraws a structure-only plaque only by drawing a plaque on its node', () => {
+  const forest = [node('vp', 'VP', [leaf('v', 'V'), leaf('obj', 'DP')])];
+  const frames = stages => compileRelationRenderPlan(stages.map(relations => stage(forest, relations))).frames;
+  const kinds = items => items.map(item => `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}:${item.kind}`);
+  const note = host => ({ relation: 'An open note', anchors: { host }, values: { note: 'opaque' } });
+  const theta = { relation: 'theta assignment', anchors: { assigner: 'v', argument: 'obj' }, values: { role: 'theme' } };
+  const caseClaim = { relation: 'CaseAssignment', anchors: { assigner: 'v', bearer: 'obj' }, values: { feature: 'Case', value: 'ACC' } };
+  // A later line ending on the node leaves the plaque, which persists beside it.
+  assert.deepEqual(kinds(frames([[note('obj')], [caseClaim]])[1].items), ['1:0:directed-path', '0:0:node-plaque']);
+  // A later drawing whose plaque is on another node leaves it too.
+  assert.ok(frames([[note('obj')], [theta]])[0].items.some(item => item.kind === 'node-plaque'));
+  // A later plaque on the same node withdraws it, and the later drawing is unchanged.
+  assert.deepEqual(kinds(frames([[note('v')], [theta]])[0].items), ['0:0:fallback']);
+  assert.deepEqual(frames([[note('v')], [theta]])[1].items, withSwitch('0', () => frames([[note('v')], [theta]]))[1].items);
+  // Earlier and same-stage drawings on the node still take precedence.
+  assert.deepEqual(kinds(frames([[caseClaim], [note('obj')]])[1].items), ['0:0:directed-path', '1:0:fallback']);
+  assert.deepEqual(kinds(frames([[note('v'), { ...note('v'), relation: 'Another open note' }]])[0].items), ['0:0:fallback', '0:1:fallback']);
+});
+
 test('identity needs separate occurrences, and a fork needs each daughter in its own entry', () => {
   // One occurrence of the lineage inside another is a part of it, not a second occurrence.
   const nested = [node('cp', 'CP', [node('outer', 'DP', [leaf('inner', 'DP', { lineageId: 'w' })], { lineageId: 'w' }), leaf('c', 'C')])];

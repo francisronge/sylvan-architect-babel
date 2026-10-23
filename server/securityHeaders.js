@@ -9,6 +9,7 @@ export const CONTENT_SECURITY_DIRECTIVES = Object.freeze({
   imgSrc: ["'self'", 'data:'],
   fontSrc: ["'self'", 'data:'],
   connectSrc: ["'self'"],
+  workerSrc: ["'self'"],
   objectSrc: ["'none'"],
   baseUri: ["'self'"],
   frameAncestors: ["'none'"],
@@ -21,5 +22,6 @@ export const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=()';
 export const helmetOptions = ({ hsts }) => ({
   contentSecurityPolicy: { useDefaults: false, directives: CONTENT_SECURITY_DIRECTIVES },
   referrerPolicy: { policy: 'no-referrer' },
+  xFrameOptions: { action: 'deny' },
   hsts: hsts ? undefined : false
 });
