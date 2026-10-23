@@ -235,6 +235,8 @@ must choose another position. Reservations cover retained label/index variants,
 including variants that reverse the vertical order of dependent-case bearers.
 The worker probes native plaque text using the same authored-occurrence alias
 index as allocation. A missing metric fails instead of substituting different ink.
+The stage camera fits that same measured footprint, not one derived from
+nominal word and category boxes.
 
 Vines are routed as a group. If staggered bearer heights make the independent
 curves cross, their inward bends begin later so their horizontal order remains
@@ -259,14 +261,18 @@ stage-wide union still reserves its later visible placement before reveal.
 The worker, painter and camera consume the same stage and step maps.
 
 A plaque without its own Case arrow or collector shows its owner only by
-proximity. One anchor-relative pocket clear at every position of a moving anchor
+proximity. Among compact plaques placed together, such plaques choose their
+pockets before Case and collection plaques, whose connectors still join them to
+their owners from a farther pocket. One anchor-relative pocket clear at every position of a moving anchor
 can lie beyond all of the plaque's nearby pockets. Such a remote plaque instead
 takes a pocket for each position that an authored movement carries its anchor to,
 inside the moved phrase or the complex head that movement forms. Reflow, merges
 and other phrases' movement do not count. At each such movement it keeps its
 pocket unless a clear pocket is at least a quarter nearer, or nearby while its own
-is not. Between those movements it keeps one offset, and plaques placed later
-avoid its pocket as they avoid any other.
+is not. Until it is placed at that movement its old pocket stays reserved, so
+allocation order cannot hand the pocket to another plaque first. Between those
+movements it keeps one offset, and plaques placed later avoid its pocket as they
+avoid any other.
 
 A proximity plaque still beyond its nearby reach once every phase is allocated
 gets a second look for each run of consecutive phases in which it keeps one
@@ -372,6 +378,9 @@ D6's Number and Gender paths. Curve handles, dash styling, ownership and reveal
 timing remain shared with the existing drawing. Case plaques also reserve at least
 two category-line heights between the arrow's source and target; collision
 clearance alone must not reduce the shaft to an almost invisible fragment.
+Allocation measures the arrow's source as the painter does: the native text box
+of the source's word or category label in that scene, the union of its retained
+label variants. Without label measurements it keeps the estimated box.
 
 Allocation runs in a worker after chunked browser text measurement.
 

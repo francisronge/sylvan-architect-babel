@@ -3,6 +3,7 @@ import { Server } from 'node:http';
 
 let replies = [];
 let server;
+const heldCalls = [];
 const listen = Server.prototype.listen;
 // Keep the real public HTTP middleware and handler; expose only the ephemeral
 // test port and shutdown receipt. Every outgoing request is intercepted below.
@@ -30,6 +31,12 @@ globalThis.fetch = async (url, options) => {
       else options.signal.addEventListener('abort', abort, { once: true });
     });
   }
+  // A held call ignores cancellation, like a provider still generating after
+  // Babel stopped waiting, until the test settles it.
+  if (reply.holdUntilSettled) {
+    options.signal?.addEventListener('abort', () => process.send({ type: 'provider-abort-ignored', url: String(url) }), { once: true });
+    await new Promise(resolve => heldCalls.push(resolve));
+  }
   if (reply.waitInBody) {
     return new Response(new ReadableStream({
       start(controller) {
@@ -50,6 +57,9 @@ process.on('message', message => {
     assert.equal(replies.length, 0, 'The previous public request must consume its whole script');
     replies = message.replies;
     process.send({ type: 'configured' });
+  } else if (message.type === 'settle') {
+    heldCalls.splice(0).forEach(resolve => resolve());
+    process.send({ type: 'settled' });
   } else if (message.type === 'stop') {
     server.close(() => process.disconnect());
     server.closeAllConnections();

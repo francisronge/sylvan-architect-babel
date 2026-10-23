@@ -27,6 +27,7 @@ const explicitSections = {
     'server/devParseMiddleware.js',
     'server/localHostPolicy.js',
     'server/index.js',
+    'server/dailyParseQuota.js',
     'services/parseService.ts',
     'types.ts',
     'vite.config.ts'

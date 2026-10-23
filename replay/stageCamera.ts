@@ -14,11 +14,11 @@ import { resolveUniqueDisplayTerminal } from './relations/trajectoryAttachment.t
 import { type PlanPositionProvider } from './relations/boundGeometry.ts';
 import { sampleCubic, sampleQuadratic } from './relations/markGeometry.ts';
 import { predicationPlaqueObstacles } from './relations/predicationPlaqueSpace.ts';
-import { nativePlaqueObstacles } from './relations/nativePlaqueSpace.ts';
+import { nativePlaqueFootprints, nativePlaqueObstacles } from './relations/nativePlaqueSpace.ts';
 import { prepareLifetimePlaqueSpaces, type LifetimeScene } from './relations/plaqueLifetimeSpace.ts';
 import {
   caseAssignmentSource,
-  nativeRelationPlaqueRects,
+  measuredCaseSourceRect,
   beyondNearbyReach,
   DETACHED_PLAQUE_GAP,
   MIN_RELOCATION_GAIN,
@@ -35,11 +35,11 @@ import {
   projectPlaqueContent,
   projectPlaqueLayout,
   reflectPlaquePlacement,
+  type CaseSourceRects,
   type PlaquePlacement,
   type PlaqueRect
 } from './relations/plaquePlacement.ts';
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
-import { boundingRect } from './relations/rectGeometry.ts';
 import {
   planItemRelationRefs,
   resolveDisplayedTrajectoryAttachments,
@@ -50,7 +50,7 @@ import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from 
 import { isUnderTriangulation, markTriangulatedNodes } from './triangulation.ts';
 import { isDisplayTerminalNode, resolveLeafSurface } from './replaySurfaceNotation.ts';
 import {
-  LEAF_INK_EXTENT_Y, nominalLabelWidth, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE,
+  LEAF_INK_EXTENT_Y, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE,
   SHELL_ATTACHMENT_CLEARANCE, TERMINAL_ATTACHMENT_Y, TRAJECTORY_ROUTES
 } from './rendererMetrics.ts';
 import { buildStageCoordinateReservations, leftToRightReservations, rightToLeftAxis } from './stageCoordinates.ts';
@@ -266,9 +266,20 @@ export function selectReplayPlaqueLayout(schedule: ReplayPlaqueSchedule, stageIn
 export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?: MeasuredStageCoordinates,
   stageReady?: (schedule: ReplayPlaqueSchedule, stageIndex: number) => void): ReplayPlaqueSchedule {
   if (input.direction === 'rtl') return reflectedPlaqueSchedule(input, coordinates, stageReady);
-  const lifetimeSpaceOf = prepareLifetimePlaqueSpaces(), curveRects = prepareCurveObstacleRects();
+  const curveRects = prepareCurveObstacleRects();
   const frames = input.plan?.frames ?? [];
   const spaces = frames.map((_, stageIndex) => measureStagePlaqueSpace({ ...input, stageIndex }, { reservations: coordinates?.get(stageIndex) }));
+  // A Case arrow leaves its source label as its own scene paints it.
+  const sceneLabels = new WeakMap<d3.HierarchyPointNode<SyntaxNode>, ReadonlyMap<string, readonly TreeLabelRuns[]>>();
+  spaces.forEach(space => space.scenes.forEach(scene => scene.nodes.forEach(node => sceneLabels.set(node, scene.labels))));
+  const measuredSources = new WeakMap<d3.HierarchyPointNode<SyntaxNode>, PlaqueRect>();
+  const caseSources: CaseSourceRects = source => {
+    let rect = measuredSources.get(source);
+    if (!rect) measuredSources.set(source, rect = measuredCaseSourceRect(source,
+      sceneLabels.get(source)?.get(String((source as any).__vizId ?? source.data.id)), input.measureTreeLabel, input.measureCategoryText));
+    return rect;
+  };
+  const lifetimeSpaceOf = prepareLifetimePlaqueSpaces(caseSources);
   const phases = spaces.flatMap((space, stageIndex) => {
     const groups = new Map<number, typeof space.scenes>();
     space.scenes.forEach(scene => groups.set(scene.phase, [...(groups.get(scene.phase) ?? []), scene]));
@@ -428,7 +439,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
           blockingPlaques.set(index, blocking);
           return blocking;
         });
-        let added: PlaqueRect[] = [...plaques, ...plaqueCaseConnectorObstacles(items, scene.nodes, projected, curveRects),
+        let added: PlaqueRect[] = [...plaques, ...plaqueCaseConnectorObstacles(items, scene.nodes, projected, curveRects, caseSources),
           ...plaqueCollectionConnectorObstacles(scene.nodes, projected, curveRects)];
         if (previousAdded?.length === added.length && previousAdded.every((box, i) => box === added[i])) added = previousAdded;
         previousAdded = added;
@@ -486,7 +497,9 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       if (invalid) remembered.delete(key);
     });
     // A relocated plaque starts a new lifetime when an authored movement carries its
-    // anchor. Its old pocket no longer reserves space; it is only an incumbent.
+    // anchor; its old pocket becomes its incumbent. That pocket stays reserved like any
+    // other until the plaque itself is placed, so whichever plaque is allocated first
+    // cannot take it before its owner decides whether to leave it.
     const relocating = new Set(phaseRequests[phaseIndex].filter(request => relocatedKeys.has(keyOf(request.index))
       && anchorMoved(phaseIndex, request.ids[0])).map(request => request.index));
     const reconsider = new Set(phaseRequests[phaseIndex].filter(request =>
@@ -497,7 +510,6 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       untilMovement: boolean) => {
       const key = keyOf(index);
       const known = new Map(remembered);
-      relocating.forEach(other => known.delete(keyOf(other)));
       allocated.forEach((placement, itemIndex) => known.set(keyOf(itemIndex), placement));
       const extent = lifetimeExtent(phaseIndex, phaseRequests[phaseIndex].find(request => request.index === index)!);
       const end = untilMovement ? extent.movement ?? extent.end : extent.end;
@@ -509,7 +521,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
         }))));
     };
     const layout = placeStagePlaques(phase.items, nodes, obstacles, remembered, input.measurePlaqueText, {
-      sizes, collectionsOnly, reconsider, relocating,
+      sizes, collectionsOnly, reconsider, relocating, caseSources,
       spaceFor: (index, anchor, allocated) => lifetimeSpace(index, anchor, allocated, relocatedKeys.has(keyOf(index))),
       relocate: (index, anchor, allocated, box) => {
         const request = phaseRequests[phaseIndex].find(request => request.index === index)!;
@@ -549,7 +561,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     if (!anchor || !request) return;
     const space = lifetimeSpaceOf(pocketScenes(run.key, anchor, run.phases, phaseIndex => layouts[phaseIndex]));
     const near = placeStagePlaques(phases[first].items, phases[first].nodes, phases[first].obstacles, new Map(), input.measurePlaqueText, {
-      sizes, includes: index => index === run.indices[0], syntaxGap: DETACHED_PLAQUE_GAP, spaceFor: () => space }).get(run.indices[0]);
+      sizes, includes: index => index === run.indices[0], syntaxGap: DETACHED_PLAQUE_GAP, spaceFor: () => space, caseSources }).get(run.indices[0]);
     if (near?.location !== 'local') return;
     const fresh = anchorDistance(anchor, near);
     if (fresh > MIN_RELOCATION_GAIN * anchorDistance(anchor, placement) || beyondNearbyReach(fresh, reachOf(placement, request))) return;
@@ -647,6 +659,21 @@ export function buildStagePlaqueLayout(input: StageLayoutInput): Map<number, Pla
   return buildReplayPlaqueLayouts(input)[input.stageIndex] ?? new Map();
 }
 
+/** Every label variant a scene paints. Equal forests can share a scene while later
+ * relation moments add indices; prepared labels are keyed by canvas identity, so
+ * retain every canvas's map. */
+function sceneLabelRuns({ steps, completedCanvas, treeLabelRuns }: Pick<StageLayoutInput, 'steps' | 'completedCanvas' | 'treeLabelRuns'>,
+  stepIndices: readonly number[]) {
+  const labels = new Map<string, TreeLabelRuns[]>();
+  if (!treeLabelRuns) return labels;
+  const canvases = new Set<SyntaxNode>(stepIndices.map(index => steps[index].replayCanvasData ?? completedCanvas));
+  if (!canvases.size) canvases.add(completedCanvas);
+  for (const canvas of canvases) for (const [id, variants] of treeLabelRuns.get(canvas) ?? []) {
+    labels.set(id, [...(labels.get(id) ?? []), ...variants]);
+  }
+  return labels;
+}
+
 /** Shared reservation for placement and verification, including unrevealed stage trajectories. */
 export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: StageGeometry) {
   const { scenes, completedTree } = stageLayouts(input, geometry);
@@ -667,18 +694,10 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
     const byId = indexHierarchyNodesByIdAndAliases(currentNodes);
     const items = authoredItems.map(item => resolveDisplayedTrajectoryAttachments(item,
       id => byId.get(id)?.data, { stageIndex: input.stageIndex, playedRelationIndices: scene.playedRelations }));
-    const labels = new Map<string, TreeLabelRuns[]>();
-    if (input.treeLabelRuns && items.some(item => item.kind === 'undirected-link'
+    const labels = input.treeLabelRuns && items.some(item => item.kind === 'undirected-link'
       && ['predication', 'feature-sharing'].includes(item.linkStyle)
-      || item.kind === 'directed-path' && item.pathStyle === 'dependent-case')) {
-      // Equal forests can share a scene while later relation moments add indices.
-      // Their prepared labels are keyed by canvas identity, so retain every map.
-      const canvases = new Set<SyntaxNode>(scene.stepIndices.map(index => input.steps[index].replayCanvasData ?? input.completedCanvas));
-      if (!canvases.size) canvases.add(input.completedCanvas);
-      for (const canvas of canvases) for (const [id, variants] of input.treeLabelRuns.get(canvas) ?? []) {
-        labels.set(id, [...(labels.get(id) ?? []), ...variants]);
-      }
-    }
+      || item.kind === 'directed-path' && ['dependent-case', 'case-assignment'].includes(item.pathStyle))
+      ? sceneLabelRuns(input, scene.stepIndices) : new Map<string, TreeLabelRuns[]>();
     const obstacles: PlaqueRect[] = [...plaqueTreeObstacles(currentNodes, input.measureCategoryText), ...plaqueConnectorObstacles(items, currentNodes),
       ...predicationPlaqueObstacles(items, currentNodes, {
         measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk,
@@ -690,9 +709,9 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
         labels, measureTreeLabel: input.measureTreeLabel, measurePlaqueText: input.measurePlaqueText
       })];
     // Use the trajectory binder's actual geometry in each frame's coordinates.
-    if (!input.plan) return { nodes: currentNodes, obstacles, playedRelations: scene.playedRelations, ...timing };
+    if (!input.plan) return { nodes: currentNodes, obstacles, labels, playedRelations: scene.playedRelations, ...timing };
     const trajectories = items.filter(item => item.kind === 'trajectory');
-    if (!trajectories.length) return { nodes: currentNodes, obstacles, playedRelations: scene.playedRelations, ...timing };
+    if (!trajectories.length) return { nodes: currentNodes, obstacles, labels, playedRelations: scene.playedRelations, ...timing };
     const plan = { ...input.plan, frames: input.plan.frames.map((frame, index) =>
       index === input.stageIndex ? { ...frame, items: trajectories } : frame) };
     const bound = bindRelationPlanFrame(plan, input.stageIndex, stagePositionProvider(byId), {
@@ -711,7 +730,7 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
         width: Math.abs(point.x - points[i].x) + 10, height: Math.abs(point.y - points[i].y) + 10, trajectory: true
       }));
     }
-    return { nodes: currentNodes, obstacles, playedRelations: scene.playedRelations, ...timing };
+    return { nodes: currentNodes, obstacles, labels, playedRelations: scene.playedRelations, ...timing };
   });
   return { nodes, obstacles: measured.flatMap(scene => scene.obstacles), scenes: measured };
 }
@@ -896,20 +915,12 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
         }
       }
     }
-    if (includePlaques && plan) {
-      const rectFor = (id: string, terminal: boolean) => {
-        const node = byId.get(id);
-        if (!node) return null;
-        const leaves = terminal ? node.descendants().filter(child =>
-          isDisplayTerminalNode(child.data)) : [];
-        const rects = (leaves.length ? leaves : [node]).map(child => {
-          const word = leaves.length ? resolveLeafSurface(child) : '';
-          const width = nominalLabelWidth(String(word || child.data.label || ''));
-          return { x: child.x - width / 2, y: child.y + (word ? 85 : -42), width, height: word ? 90 : 84 };
-        });
-        return boundingRect(rects);
-      };
-      nativeRelationPlaqueRects(plan.frames[stageIndex]?.items ?? [], rectFor, measurePlaqueText).forEach(rect => include({
+    const items = plan?.frames[stageIndex]?.items ?? [];
+    if (includePlaques && items.some(item => item.kind === 'undirected-link' && item.linkStyle === 'feature-sharing'
+      || item.kind === 'directed-path' && item.pathStyle === 'dependent-case')) {
+      // Fixed native plaques: the measured footprint allocation reserves for them.
+      nativePlaqueFootprints(items, fitNodes, { measureCategoryText, measureTreeInk,
+        labels: sceneLabelRuns({ steps, completedCanvas, treeLabelRuns }, stepIndices), measureTreeLabel, measurePlaqueText }).forEach(rect => include({
         minX: rect.x - PLAQUE_FIT_MARGIN, maxX: rect.x + rect.width + PLAQUE_FIT_MARGIN,
         minY: rect.y - PLAQUE_FIT_MARGIN, maxY: rect.y + rect.height + PLAQUE_FIT_MARGIN
       }));

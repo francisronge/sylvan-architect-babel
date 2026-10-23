@@ -25,8 +25,9 @@ test('native styled measurement preserves complete text, ordered mixed indices a
   return {x:-102,y:58,width:208,height:80};
  });
  const measure=createTreeLabelMeasure(fixture.doc),run={kind:'terminal',text:'Book₁₀',indices:[{text:'猫٢',mode:'identity'},{text:'j',mode:'theta'}]};
- assert.deepEqual(measure(run),{x:-118,y:42,width:240,height:112});
- assert.deepEqual(measure({...run}),{x:-118,y:42,width:240,height:112});
+ const cell={x:-102,y:58,width:208,height:80};
+ assert.deepEqual(measure(run),{x:-118,y:42,width:240,height:112,cell},'the cell keeps the native text box connectors attach to');
+ assert.deepEqual(measure({...run}),{x:-118,y:42,width:240,height:112,cell});
  assert.equal(fixture.roots.length,1);assert.equal(fixture.removed.length,1);
 });
 test('wrapped category measurement uses the painted line baselines and category stroke',()=>{
@@ -36,7 +37,7 @@ test('wrapped category measurement uses the painted line baselines and category 
    ['DP ',{x:'0',y:'-58'}],['[trace]',{x:'0',y:'-10'}],['χ',{dx:'5','font-size':'22px','font-family':'Crimson Pro, Georgia, serif','font-style':'italic','baseline-shift':'sub'}]
   ]);return {x:-100,y:-99,width:215,height:100};
  });
- assert.deepEqual(createTreeLabelMeasure(fixture.doc)({kind:'category',text:'DP [trace]',lines:['DP ','[trace]'],indices:[{text:'χ',mode:'identity'}]}),{x:-120,y:-119,width:255,height:140});
+ assert.deepEqual(createTreeLabelMeasure(fixture.doc)({kind:'category',text:'DP [trace]',lines:['DP ','[trace]'],indices:[{text:'χ',mode:'identity'}]}),{x:-120,y:-119,width:255,height:140,cell:{x:-100,y:-99,width:215,height:100}});
  assert.equal(fixture.removed.length,1);
 });
 test('failed or invalid native bounds are cached as unavailable and hidden measurement nodes are removed',()=>{
@@ -72,8 +73,9 @@ test('plain terminal uses its exact glyph height plus the full miter reach',()=>
   assert.equal(context.textAlign,'left');assert.equal(context.textBaseline,'alphabetic');return glyph(41,0);
  });
  const measure=createTreeLabelMeasure(fixture.doc),run={kind:'terminal',text:'think',indices:[]};
- assert.deepEqual(measure(run),{x:-83,y:58,width:170,height:73});
- assert.deepEqual(measure(run),{x:-83,y:58,width:170,height:73});
+ const cell={x:-67,y:59,width:138,height:70};
+ assert.deepEqual(measure(run),{x:-83,y:58,width:170,height:73,cell},'glyph bounds refine the envelope, not the text box');
+ assert.deepEqual(measure(run),{x:-83,y:58,width:170,height:73,cell});
  assert.deepEqual(requests,['think']);assert.equal(fixture.removed.length,1);
 });
 test('plain wrapped category uses each painted line baseline and keeps its full horizontal envelope',()=>{
@@ -83,32 +85,32 @@ test('plain wrapped category uses each painted line baseline and keeps its full 
   return text==='Á' ? glyph(52,0) : glyph(31,14);
  });
  const run={kind:'category',text:'Ágj',lines:['Á','gj'],indices:[]};
- assert.deepEqual(createTreeLabelMeasure(fixture.doc)(run),{x:-120,y:-130,width:255,height:154});
+ assert.deepEqual(createTreeLabelMeasure(fixture.doc)(run),{x:-120,y:-130,width:255,height:154,cell:{x:-100,y:-100,width:215,height:101}});
  assert.deepEqual(requests,['Á','gj']);
 });
 test('generated inline indices and Unicode are measured as the complete actual single-font text',()=>{
  const requests=[];
  const fixture=documentFixture(()=>({x:-110,y:59,width:220,height:75}),text=>{requests.push(text);return glyph(44,19);});
  assert.deepEqual(createTreeLabelMeasure(fixture.doc)({kind:'terminal',text:'Book₁₀猫𝒾',indices:[]}),
-  {x:-126,y:55,width:252,height:95});
+  {x:-126,y:55,width:252,height:95,cell:{x:-110,y:59,width:220,height:75}});
  assert.deepEqual(requests,['Book₁₀猫𝒾']);
 });
 test('styled index runs retain the SVG envelope even when plain glyph metrics are available',()=>{
  for(const mode of ['identity','theta']){
   const fixture=documentFixture(()=>({x:-100,y:50,width:205,height:90}),()=>{throw Error('styled runs must not use plain bounds');});
   assert.deepEqual(createTreeLabelMeasure(fixture.doc)({kind:'terminal',text:'Book₁₀',indices:[{text:'χ作者',mode}]}),
-   {x:-116,y:34,width:237,height:122});
+   {x:-116,y:34,width:237,height:122,cell:{x:-100,y:50,width:205,height:90}});
  }
 });
 test('unavailable, incomplete or empty glyph bounds keep the complete previous envelope',()=>{
  for(const result of [undefined,{},glyph(NaN,0),glyph(0,0),{...glyph(30,0),actualBoundingBoxDescent:undefined}]){
   const fixture=documentFixture(()=>({x:-30,y:-52,width:60,height:53}),()=>result);
   assert.deepEqual(createTreeLabelMeasure(fixture.doc)({kind:'category',text:'DetP',lines:['DetP'],indices:[]}),
-   {x:-50,y:-72,width:100,height:93});
+   {x:-50,y:-72,width:100,height:93,cell:{x:-30,y:-52,width:60,height:53}});
  }
  const fixture=documentFixture(()=>({x:-100,y:-100,width:200,height:101}),text=>text==='ok'?glyph(30,0):glyph(NaN,0));
  assert.deepEqual(createTreeLabelMeasure(fixture.doc)({kind:'category',text:'okbad',lines:['ok','bad'],indices:[]}),
-  {x:-120,y:-120,width:240,height:141});
+  {x:-120,y:-120,width:240,height:141,cell:{x:-100,y:-100,width:200,height:101}});
 });
 test('plain glyph refinement still contains an acute join allowed by the actual miter limit',()=>{
  const fixture=documentFixture(()=>({x:-50,y:-52,width:100,height:53}),()=>glyph(30,0));

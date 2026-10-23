@@ -112,7 +112,7 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(frameworkInstruction, framework === 'xbar'
       ? /X-bar Theory and Government and Binding Theory/
       : /Minimalist Program using Bare Phrase Structure/);
-    assert.match(frameworkInstruction, /Explain the sentence-specific structural choices and derivational commitments/);
+    assert.match(frameworkInstruction, /^Analyze the exact input within [^.]+\.$/);
     assert.doesNotMatch(frameworkInstruction, /endocentric|binary|one or two children|Attach overt words|bar-level prime|X-bar shells/);
     assert.equal(instruction.slice(frameworkInstruction.length + 2), DERIVATION_STAGES_BASE_INSTRUCTION);
     assert.match(instruction, /An unchanged workspace needs a sentence-specific reason within the analysis for the new stage\./);
@@ -120,11 +120,19 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(instruction, /Do not add a relation solely to announce one of these construction events\./);
     assert.match(instruction, /Record every additional relational claim introduced or changed in the analysis, including claims established through those construction events\./);
     assert.doesNotMatch(instruction, /construction steps recoverable from workspace changes|not fully expressed by the forest's ordinary mother-daughter or sisterhood branching/);
-    assert.match(instruction, /- relations: an array of relations introduced or changed in this stage\./);
+    assert.match(instruction, /- stageRecord: .* Explain the choices specific to this sentence, not the framework's general conventions\. Do not mention node ids, field names or how the JSON encodes the analysis\./);
+    assert.match(instruction, /- relations: an array of relations introduced or changed in this stage\. Record each relation once, in the stage where it is established; list it again in a later stage only if the analysis changes it\./);
+    assert.match(instruction, /Babel replays a stage's relations in the order they are listed; if the analysis needs an order that this cannot show, record the intermediate workspace as a separate stage rather than describing it only in prose\./);
+    assert.match(instruction, /An occurrence keeps its id in every later stage, including when it is rewritten\. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id\./);
+    assert.match(instruction, /Rewrite a node when any of its authored fields changes; unchanged descendant subtrees may still use refId\./);
+    assert.match(instruction, /Unlike relations, groups record the complete current state: repeat every association that still holds in each later stage, even when its nodes are unchanged\./);
+    assert.match(instruction, /Record the operation that establishes or changes an association as a relation of that stage, anchored to the group's current nodes, with priorAnchors for the nodes of any association it replaces, and explain it in stageRecord\./);
+    assert.match(instruction, /When the sentence has readings that need different structures, return one analysis for each reading\. Then the only top-level field is analyses, a nonempty array of analysis objects, each containing only derivationStages\./);
+    assert.match(instruction, /Record the relation's literal content here even when it also appears in its name; explanations belong in stageRecord\./);
+    assert.doesNotMatch(instruction, /Include every distinct structurally supported reading|recoverable from the workspace changes|stays in force|Keep the authored tree and lexical forms|An unchanged subtree may be referenced|Retained lexical content on silent terminals|choose one presentation order|derivational commitments/);
     assert.match(instruction, /Explain every relation introduced or changed in this stage within stageRecord, stating what it establishes and which participants it connects\./);
     assert.match(instruction, /Present these explanations in establishment order and list relations in the same order\./);
     assert.match(instruction, /One relation entry contains claims established together; claims established at different points need separate entries\./);
-    assert.match(instruction, /For independent relations with no required relative order, choose one presentation order and use it consistently in both fields\./);
     assert.doesNotMatch(instruction, /Explain them in stageRecord\.|List relations in the order their establishing operations occur/);
     assert.doesNotMatch(instruction, /with prerequisites before dependent relations/);
     assert.doesNotMatch(instruction, /their sequence is represented by the ordered relations/);
@@ -150,7 +158,8 @@ test('both frameworks select the theory and share the open derivation contract w
 test('the model-facing contract specifies the framework and exact input without prompting for verdicts', () => {
   for (const framework of ['xbar', 'minimalism']) {
     const instruction = buildSystemInstruction(framework);
-    assert.match(instruction, /Analyze the exact input\./);
+    assert.match(instruction, /^Analyze the exact input within /);
+    assert.equal(instruction.split('Analyze').length - 1, 1);
     assert.match(instruction, /The last stage contains the completed analysis of the input\./);
     const relationsInstruction = instruction.split('\nRelations\n')[1].split('\nInput words\n')[0];
     assert.match(relationsInstruction, /Relation names, anchor roles, and value-entry names are open; choose them to describe this analysis\./);

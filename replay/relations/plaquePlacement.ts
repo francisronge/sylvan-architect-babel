@@ -36,6 +36,7 @@ import {
 } from './plaqueTextLayout.ts';
 import { boundingRect } from './rectGeometry.ts';
 import { planItemRelationRefs, type RelationPlanItem } from './renderPlan.ts';
+import type { TreeLabelMeasure, TreeLabelRuns } from '../treeLabelRuns.ts';
 export { plaquesOverlap } from './plaqueObstacleIndex.ts';
 
 export type PlaqueRect = ObstacleRect & {
@@ -307,12 +308,35 @@ export function caseAssignmentSource(node: Node): Node {
   return terminals.length === 1 ? terminals[0] : node;
 }
 
-const caseSourceRect = (anchor: Node): PlaqueRect => {
-  const source = caseAssignmentSource(anchor);
+/** The box a Case arrow leaves, in tree coordinates, for a source returned by
+ * caseAssignmentSource. The painter measures that label's SVG text box; an
+ * allocation passes the same measured box so it tests the curve it paints. */
+export type CaseSourceRects = (source: Node) => PlaqueRect | undefined;
+
+/** Without a measured label: the category layout and a nominal word box. */
+function estimatedCaseSourceRect(source: Node, measureCategoryText?: CategoryTextMeasure): PlaqueRect {
   const word = !source.children?.length && source.data.word;
-  const label = categoryTextLayout(source.data.label || '');
+  const label = categoryTextLayout(source.data.label || '', measureCategoryText);
   return { x: source.x - (word ? 75 : label.width / 2), y: source.y + (word ? 65 : label.y),
     width: word ? 150 : label.width, height: word ? 60 : label.height };
+}
+
+/** The painted box of a Case source: its word for a word-bearing leaf, else its
+ * category, measured as the native text box. Retained label variants share their
+ * union, the largest box any of its moments paints. */
+export function measuredCaseSourceRect(source: Node, runs: readonly TreeLabelRuns[] | undefined,
+  measureTreeLabel?: TreeLabelMeasure, measureCategoryText?: CategoryTextMeasure): PlaqueRect {
+  const kind = !source.children?.length && source.data.word ? 'terminal' : 'category';
+  const cells = (runs ?? []).filter(run => run.kind === kind).map(run => measureTreeLabel?.(run)?.cell);
+  if (!cells.length || !cells.every(cell => cell && [cell.x, cell.y, cell.width, cell.height].every(Number.isFinite)
+    && cell.width > 0 && cell.height > 0)) return estimatedCaseSourceRect(source, measureCategoryText);
+  const box = boundingRect(cells as NonNullable<(typeof cells)[number]>[]);
+  return { x: source.x + box.x, y: source.y + box.y, width: box.width, height: box.height };
+}
+
+const caseSourceRect = (anchor: Node, sources?: CaseSourceRects): PlaqueRect => {
+  const source = caseAssignmentSource(anchor);
+  return sources?.(source) ?? estimatedCaseSourceRect(source);
 };
 
 type CurveRects = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, padding: number) => PlaqueRect[];
@@ -320,8 +344,8 @@ const caseRouteRectsFrom = (sourceRect: PlaqueRect, box: PlaqueRect, rects: Curv
   const curve = caseAssignmentPlaqueCurve(sourceRect, drawnPlaque(box), box.y + (box.caseRowY ?? 93));
   return rects(curve, 8);
 };
-const caseRouteRects = (anchor: Node, box: PlaqueRect, rects?: CurveRects): PlaqueRect[] =>
-  caseRouteRectsFrom(caseSourceRect(anchor), box, rects);
+const caseRouteRects = (anchor: Node, box: PlaqueRect, rects?: CurveRects, sources?: CaseSourceRects): PlaqueRect[] =>
+  caseRouteRectsFrom(caseSourceRect(anchor, sources), box, rects);
 
 const curveBounds = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, padding: number): PlaqueRect => {
   const { source, control1, control2, target } = curve;
@@ -356,8 +380,8 @@ const curveObstacleRects = (curve: ReturnType<typeof featureCollectionPlaqueCurv
 };
 
 /** Test the drawn approach against opaque ink, leaving its own attachment available. */
-export function caseAssignmentClears(anchor: Node, box: PlaqueRect, obstacles: PlaqueRect[]): boolean {
-  return prepareCasePlaqueSpace(anchor, obstacles)(box);
+export function caseAssignmentClears(anchor: Node, box: PlaqueRect, obstacles: PlaqueRect[], sources?: CaseSourceRects): boolean {
+  return prepareCasePlaqueSpace(anchor, obstacles, sources)(box);
 }
 
 const finiteRect = (rect: ObstacleRect) => Number.isFinite(rect.x) && Number.isFinite(rect.y)
@@ -483,17 +507,17 @@ const sharesConnectorScene = (scene: ConnectorScene, added: readonly PlaqueRect[
   && added.every(rect => rect.connectorAttachment === undefined && !rect.connectorInk && finiteRect(rect));
 
 /** Source ink and blockers stay fixed while the allocator searches candidate pockets. */
-export function prepareCasePlaqueSpace(anchor: Node, obstacles: PlaqueRect[]) {
-  return casePlaqueSpace(prepareConnectorScene([], obstacles), anchor);
+export function prepareCasePlaqueSpace(anchor: Node, obstacles: PlaqueRect[], sources?: CaseSourceRects) {
+  return casePlaqueSpace(prepareConnectorScene([], obstacles), anchor, [], sources);
 }
 
 /** The Case space of `scene` with `added` blockers, as if they ended its obstacles. */
-export function casePlaqueSpace(scene: ConnectorScene, anchor: Node, added: readonly PlaqueRect[] = []) {
+export function casePlaqueSpace(scene: ConnectorScene, anchor: Node, added: readonly PlaqueRect[] = [], sources?: CaseSourceRects) {
   const addedBlockers = added.filter(rect => rect.blocksConnectors);
   if (addedBlockers.length && !sharesConnectorScene(scene, addedBlockers))
-    return casePlaqueSpace(prepareConnectorScene(scene.nodes, [...scene.obstacles, ...added]), anchor);
+    return casePlaqueSpace(prepareConnectorScene(scene.nodes, [...scene.obstacles, ...added]), anchor, [], sources);
   const source = caseAssignmentSource(anchor);
-  const rect = caseSourceRect(anchor);
+  const rect = caseSourceRect(anchor, sources);
   const attachment = `${idOf(source)}:${!source.children?.length && source.data.word ? 'terminal' : 'category'}`;
   const index = scene.caseIndex(attachment);
   let previousX = NaN, previousY = NaN, previousWidth = NaN, previousHeight = NaN, previousRowY = NaN;
@@ -783,12 +807,12 @@ export function plaqueCollectionConnectorObstacles(nodes: Node[], layout: Map<nu
 
 /** Reserve the same curved approach as the painter, including carried claims. */
 export function plaqueCaseConnectorObstacles(items: RelationPlanItem[], nodes: Node[], layout: Map<number, PlaquePlacement>,
-  rects?: CurveRects): PlaqueRect[] {
+  rects?: CurveRects, sources?: CaseSourceRects): PlaqueRect[] {
   const byId = new Map(nodes.map(node => [idOf(node), node]));
   return [...layout].flatMap(([index, box]) => {
     const item = items[index];
     const anchor = item?.kind === 'directed-path' && item.pathStyle === 'case-assignment' && byId.get(item.fromNodeId);
-    return anchor ? caseRouteRects(anchor, box, rects) : [];
+    return anchor ? caseRouteRects(anchor, box, rects, sources) : [];
   });
 }
 
@@ -879,6 +903,8 @@ type PlaqueLifetime = {
   relocate?: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>, box: PlaqueRect) => PlaqueSpace | undefined;
   /** Search pockets at this narrower gap from everything but plaques. */
   syntaxGap?: number;
+  /** Measured Case source boxes; without them Case arrows leave estimated labels. */
+  caseSources?: CaseSourceRects;
 };
 
 /** A binary heap: `pop` returns the item `before` orders first. */
@@ -915,7 +941,7 @@ function createMinQueue<T>(before: (a: T, b: T) => number) {
 /** Geometry only: a common enclosing subtree locates a plaque, never establishes a linguistic domain. */
 export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obstacles = plaqueTreeObstacles(nodes),
   previous = new Map<string, PlaquePlacement>(), measureText?: PlaqueTextMeasure, lifetime?: PlaqueLifetime) {
-  const result = new Map<number, PlaquePlacement>();
+  const result = new Map<number, PlaquePlacement>(), caseSources = lifetime?.caseSources;
   const priorCandidates = new Map<number, PlaquePlacement>(), incumbentPriors = new Map<number, PlaquePlacement>();
   const byId = new Map(nodes.map(node => [idOf(node), node]));
   const placed: PlaqueRect[] = [];
@@ -945,7 +971,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const space = lifetime?.spaceFor(request.index, attachment, result);
     const occupied = [...(space?.obstacles ?? obstacles), ...placed];
     const connectorsClear = space ? space.acceptsConnector(placement)
-      : (!request.caseAssignment || caseAssignmentClears(attachment, placement, occupied))
+      : (!request.caseAssignment || caseAssignmentClears(attachment, placement, occupied, caseSources))
         && collectionPlaqueClears(placement, nodes, occupied);
     if (occupied.some(obstacle => plaquesOverlap(placement, obstacle)) || !connectorsClear) continue;
     if (lifetime?.reconsider?.has(request.index)) {
@@ -954,10 +980,14 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     }
     result.set(request.index, placement);
     placed.push({ ...placement, blocksConnectors: true },
-      ...(request.caseAssignment ? caseRouteRects(attachment, placement) : []));
+      ...(request.caseAssignment ? caseRouteRects(attachment, placement, undefined, caseSources) : []));
   }
   // Compact boxes keep first choice of nearby pockets, even when a wider grid can also fit locally.
-  requests.sort((a, b) => Number(!fitsLocalPocket(a)) - Number(!fitsLocalPocket(b)) || a.index - b.index);
+  // Among them, a plaque that shows its owner only by proximity chooses before one that a
+  // Case arrow or collector joins to its owner, which can still reach a farther pocket.
+  const joined = (request: PlaqueRequest) => Number(Boolean(request.caseAssignment || request.collectionRows?.length));
+  requests.sort((a, b) => Number(!fitsLocalPocket(a)) - Number(!fitsLocalPocket(b)) || joined(a) - joined(b)
+    || a.index - b.index);
   for (const request of requests) {
     if (result.has(request.index)) continue;
     const anchors = request.ids.map(id => byId.get(id)).filter((node): node is Node => Boolean(node));
@@ -980,8 +1010,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       }
       return (obstacleIndex ??= preparePlaqueOverlapIndex(searched)).overlaps(box, gap);
     };
-    const caseClears = request.caseAssignment && !space ? prepareCasePlaqueSpace(anchor, occupied) : undefined;
-    const sourceRect = request.caseAssignment ? caseSourceRect(anchor) : undefined;
+    const caseClears = request.caseAssignment && !space ? prepareCasePlaqueSpace(anchor, occupied, caseSources) : undefined;
+    const sourceRect = request.caseAssignment ? caseSourceRect(anchor, caseSources) : undefined;
     const accepts = (box: PlaqueRect) => space ? space.acceptsConnector(box)
         : (!caseClears || caseClears(box))
           && collectionPlaqueClears(box, nodes, occupied);
@@ -1254,12 +1284,12 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     if (shorter) {
       chosen = placeStagePlaques(items, nodes, obstacles, new Map(), measureText, { sizes: lifetime!.sizes,
         includes: index => index === request.index, incumbents: new Map([[request.index, chosen]]),
-        spaceFor: () => shorter }).get(request.index) ?? chosen;
+        spaceFor: () => shorter, caseSources }).get(request.index) ?? chosen;
       placement = chosen;
     }
     result.set(request.index, chosen);
     placed.push({ ...placement, blocksConnectors: true },
-      ...(request.caseAssignment ? caseRouteRects(anchor, placement) : []));
+      ...(request.caseAssignment ? caseRouteRects(anchor, placement, undefined, caseSources) : []));
   }
   return result;
 }
