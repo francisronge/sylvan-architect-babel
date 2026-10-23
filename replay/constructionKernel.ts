@@ -1106,6 +1106,8 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const missing = [...(wordUnit ? emitUnit(wordUnit, forRelation) : []), ...(unit.word ? [] : constructionKids(unit.id).flatMap(k => ensure(k, forRelation)))];
     visitingUnits.delete(unit);
     if (missing.length) return missing;
+    // A moment its daughters needed may have built it meanwhile.
+    if (unitDone(unit)) { emittedUnits.add(unit); return []; }
     if (unit.word) {
       const next: Frame = new Map(frameState);
       next.set(unit.id, { content: 'C', kids: 'C', slots: new Map(), word: true });

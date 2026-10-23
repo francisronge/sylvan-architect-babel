@@ -20,10 +20,10 @@ const material = (node, nodes) => [getNodeId(node), node.data.label, node.data.w
 const adjunctAttachments = {
   'arabic-relative/4': [30, 31, 'mvb'],
   'arabic-relative/5': [31, 32, 'rvb'],
-  'arabic-relative/6': [42, 43, 'mvb'],
+  'arabic-relative/6': [44, 45, 'mvb'],
   'arabic-relative/7': [31, 32, 'rvb'],
-  'arabic-relative/8': [42, 43, 'mvb'],
-  'arabic-relative/9': [43, 44, 'mvb']
+  'arabic-relative/8': [44, 45, 'mvb'],
+  'arabic-relative/9': [45, 46, 'mvb']
 };
 
 function setup(record, width, height, direction) {

@@ -175,9 +175,13 @@ for (const [width, height, direction] of [[1200, 900, 'ltr'], [390, 844, 'rtl']]
     const steps = replay.playbackSteps;
     const beforeIndex = steps.findIndex(step => step.replayFrameIndex === 0 && step.replayKind === 'macro');
     const selectionIndex = steps.findIndex(step => step.replayFrameIndex === 1 && step.targetNodeId === 'finNull');
+    const mergeIndex = steps.findIndex(step => step.replayFrameIndex === 1 && step.targetNodeId === 'finiteClause');
     const movementIndex = steps.findIndex(step => step.replayFrameIndex === 1 && step.replayKind === 'relation');
     assert.equal(selectionIndex, beforeIndex + 1);
-    assert.equal(movementIndex, selectionIndex + 1, 'Fin selection precedes the authored head movement');
+    // A head moves into its host after the host merges with its complement.
+    assert.equal(mergeIndex, selectionIndex + 1, 'Fin selection precedes its merge with TP');
+    assert.equal(steps[mergeIndex].operation, 'ExternalMerge');
+    assert.equal(movementIndex, mergeIndex + 1, 'the Fin merge precedes the authored head movement');
     const input = { steps, stageIndex: 0, completedCanvas: steps.at(-1).replayCanvasData,
       plan: replay.relationRenderPlan, width, height, direction, layoutGroups: buildStageLayoutGroups(steps, stages),
       ...(measured ? measuredTreeMetrics : {}) };
@@ -186,11 +190,13 @@ for (const [width, height, direction] of [[1200, 900, 'ltr'], [390, 844, 'rtl']]
     const selected = sceneAt(input, selectionIndex);
     const byId = positions(selected);
     assert.ok(byId.has('finNull'));
-    assert.ok(!byId.has('finiteClause'), 'the future Fin parent has not merged');
+    // With captured metrics the selection and the host merge share one plaque scene, so the
+    // selection's own step shows that the Fin parent has not merged.
+    assert.ok(!steps[selectionIndex].replayVisibleNodeIds.includes('finiteClause'), 'the future Fin parent has not merged');
     assert.equal(byId.get('subjectTenseProjection').parent.data.id, 'finiteClause');
     assert.equal(byId.get('subjectTenseProjection').parent.data.replayLayoutOnly, undefined,
       'within-stage future parents must be excluded by availability, not only the scaffold flag');
-    const boxes = [beforeIndex, selectionIndex, movementIndex].map(index => {
+    const boxes = [beforeIndex, selectionIndex, mergeIndex, movementIndex].map(index => {
       const items = input.plan.frames[steps[index].replayFrameIndex].items;
       const itemIndex = items.findIndex(item => item.pathStyle === 'case-assignment');
       assert.equal(items[itemIndex].fromNodeId, 'auxiliaryLower');
@@ -200,23 +206,25 @@ for (const [width, height, direction] of [[1200, 900, 'ltr'], [390, 844, 'rtl']]
       return layoutAt(schedule, input, index).get(itemIndex);
     });
     assertClose(pocket(boxes[1]), pocket(boxes[0]), 'selection keeps the reserved pocket relative to its source');
+    assertClose(pocket(boxes[2]), pocket(boxes[1]), 'the host merge keeps the reserved pocket');
+    const mergedNodes = positions(sceneAt(input, mergeIndex));
     const movingScene = sceneAt(input, movementIndex), movingNodes = positions(movingScene);
     if (measured) {
       for (const id of ['auxiliaryLower', 'auxiliaryLower::__leaf', 'subjectLower']) {
         const initial = positions(sceneAt(input, beforeIndex)).get(id);
-        for (const nodes of [byId, movingNodes]) assertClose([nodes.get(id).x, nodes.get(id).y], [initial.x, initial.y],
-          `${id} stays stationary through selection and the higher occurrence's movement`);
+        for (const nodes of [byId, mergedNodes, movingNodes]) assertClose([nodes.get(id).x, nodes.get(id).y], [initial.x, initial.y],
+          `${id} stays stationary through selection, the host merge and the higher occurrence's movement`);
       }
-      assertClose(pocket(boxes[2]), pocket(boxes[1]), 'movement of a new higher occurrence preserves the lower claim');
+      assertClose(pocket(boxes[3]), pocket(boxes[2]), 'movement of a new higher occurrence preserves the lower claim');
     } else {
       // Missing font metrics use larger ink envelopes. Retain the old pocket
       // whenever it still clears; changed geometry must not retain a collision.
-      const carried = projectPlaqueLayout(new Map([[0, boxes[1]]]), id => movingNodes.get(id) ?? null).get(0);
+      const carried = projectPlaqueLayout(new Map([[0, boxes[2]]]), id => movingNodes.get(id) ?? null).get(0);
       const stillClear = movingScene.obstacles.every(obstacle => !plaquesOverlap(carried, obstacle, 0))
         && caseAssignmentClears(movingNodes.get('auxiliaryLower'), carried, movingScene.obstacles)
         && collectionPlaqueClears(carried, movingScene.nodes, movingScene.obstacles);
-      if (stillClear) assertClose(pocket(boxes[2]), pocket(boxes[1]), 'a safe prior pocket remains reserved');
-      else assert.notDeepEqual(pocket(boxes[2]), pocket(boxes[1]), 'an unsafe prior pocket must be replaced');
+      if (stillClear) assertClose(pocket(boxes[3]), pocket(boxes[2]), 'a safe prior pocket remains reserved');
+      else assert.notDeepEqual(pocket(boxes[3]), pocket(boxes[2]), 'an unsafe prior pocket must be replaced');
     }
     assertClearScenes(input, schedule);
     assert.equal(JSON.stringify(input), original, 'plaque reservation does not change nodes, timing, claims, or canvas geometry');

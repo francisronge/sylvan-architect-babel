@@ -103,6 +103,7 @@ test('future layout keeps the source attached until a retained-ID movement occur
   }
 });
 
+// A replaced node stays until its replacement swaps in, whether or not the movement names it.
 test('movement replaces an authored prior landing witness at its own moment', () => {
   const source = { id: 'source', label: 'NP', word: 'Lee', lineageId: 'person' };
   const slot = { id: 'waiting', label: 'NP', word: 'e', silent: true };
@@ -124,8 +125,7 @@ test('movement replaces an authored prior landing witness at its own moment', ()
     const preceding = steps.slice(0, moment).filter(s => s.sourceFrameIndex === 1);
     assert.ok(preceding.length);
     for (const step of preceding) {
-      assert.equal(step.replayVisibleNodeIds.includes('waiting'), referencesSlot,
-        'only a referenced previous witness belongs to the movement replacement');
+      assert.ok(step.replayVisibleNodeIds.includes('waiting'), 'the previous witness stays until the landing replaces it');
       assert.ok(!step.replayVisibleNodeIds.includes('landing'));
     }
     assert.ok(steps[moment].replayVisibleNodeIds.includes('landing'));
@@ -166,25 +166,33 @@ test('a new sibling built around existing syntax is ready before the movement at
   c.derivationStages[3].relations[0].anchors.complexHead = 'c_complex';
   const { steps } = buildReplayPlayback({ sentence: c.sentence, analyses: [c] });
   const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 3 && s.replayRelationIdentity.relationIndex === 0);
-  assert.ok(steps[moment - 1].replayVisibleNodeIds.includes('new_tp_shell'), 'the independent sibling must be built before attachment');
+  const merge = steps.findIndex(s => s.replayKind === 'micro' && s.operation === 'ExternalMerge' && s.targetNodeId === 'cp1');
+  assert.ok(steps[merge - 1].replayVisibleNodeIds.includes('new_tp_shell'), 'the independent sibling must be built before its merge with the receiving head');
+  assert.equal(merge, moment - 1, 'the receiving head merges with the new sibling before the head moves into it');
+  assert.ok(!steps.slice(0, merge).some(s => s.replayVisibleNodeIds.includes('cp1')), 'early host cp1');
+  assert.ok(!steps.slice(0, moment).some(s => s.replayVisibleNodeIds.includes('c_complex')), 'early host c_complex');
   for (const host of ['c_complex', 'cp1']) {
-    assert.ok(!steps.slice(0, moment).some(s => s.replayVisibleNodeIds.includes(host)), `early host ${host}`);
     assert.ok(steps[moment].replayVisibleNodeIds.includes(host), `missing attachment ${host}`);
     assert.ok(!steps.slice(moment + 1).some(s => s.replayKind === 'micro' && s.targetNodeId === host), `rebuilt host ${host}`);
   }
 });
 
-for (const [name, attachment, complex, complement, landing, higherProjection] of [
-  ['fable-minimalism', 'cp1', 'c_complex', 'tp_full', 't_did_hi'],
-  ['astra-xbar', 'questionCbar', 'complexC', 'clauseIP', 'raisedI', 'questionCP']
+// The receiving head first merges with its complement; the head then moves into that host.
+for (const [name, attachment, host, complex, complement, landing, higherProjection] of [
+  ['fable-minimalism', 'cp1', 'c_q', 'c_complex', 'tp_full', 't_did_hi'],
+  ['astra-xbar', 'questionCbar', 'questionC', 'complexC', 'clauseIP', 'raisedI', 'questionCP']
 ]) {
-  test(`${name}: head movement attaches its new host to existing syntax in the same frame`, () => {
+  test(`${name}: head movement lands in a host already merged with its complement`, () => {
     const steps = playback.get(name);
     const moment = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 3
       && s.replayRelationIdentity.relationIndex === 0);
     assert.ok(moment > 0);
     assert.ok(steps[moment].replayVisibleNodeIds.includes(attachment), 'the landing cannot float separately from its authored attachment');
-    assert.ok(!steps.slice(0, moment).some(s => s.replayVisibleNodeIds.includes(attachment)), 'the attachment must not precede the landing');
+    const merge = steps.findIndex(s => s.replayKind === 'micro' && s.operation === 'ExternalMerge' && s.targetNodeId === attachment);
+    assert.equal(merge, moment - 1, 'the host merges with its complement right before the head moves');
+    assert.ok(!steps.slice(0, merge).some(s => s.replayVisibleNodeIds.includes(attachment)), 'the attachment appears at its own merge');
+    assert.deepEqual(find([steps[merge].replayCanvasData], attachment).children.map(n => n.id), [host, complement]);
+    assert.ok([host, complement].every(id => steps[merge].replayVisibleNodeIds.includes(id)));
     assert.ok(!steps.slice(0, moment).some(s => s.replayVisibleNodeIds.includes(complex) || s.replayVisibleNodeIds.includes(landing)),
       'constructing the receiving head cannot reveal the future complex or landed occurrence');
     assert.deepEqual(find([steps[moment].replayCanvasData], attachment).children.map(n => n.id), [complex, complement]);
