@@ -1,0 +1,3510 @@
+{
+  "description": "Saved analyses where main moved a plaque beside its still anchor although the step newly painted nothing in its pocket's way, or where the offline audit and the Replay schedule disagreed about what blocks a pocket (replay/relations/pocketHold.ts, tests/plaqueHoldPockets.test.mjs).",
+  "cases": [
+    {
+      "description": "The Case plaque of the relative verb kept its pocket through the object operator's movement, which transfers the Case bearer to its trace (frame 26 to 27 on main, 23 October 2026): the claim changed plaque identity there, so the hold pass let the plaque jump 703 units beside its still anchor.",
+      "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run, 18 October 2026 (bughunt2-20261018, 52-ja-relative-topic, analysis 1 of 1). Exact copy of the normalized record $.response.analyses[0] in ~/Library/Application Support/Babel/codex-qualification/bughunt2-20261018/runs/52-ja-relative-topic/attempts/parse/bundle.json.",
+      "framework": "xbar",
+      "sentence": "太郎が読んだ本はおもしろい。",
+      "inputTokens": [
+        "太郎",
+        "が",
+        "読",
+        "ん",
+        "だ",
+        "本",
+        "は",
+        "おもしろい"
+      ],
+      "derivationStages": [
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "relativeVerb"
+              ],
+              "tokenIndices": [
+                2,
+                3,
+                4
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "agent": "taroKP",
+                "predicate": "relativeVerb",
+                "theme": "objectOperatorBase"
+              },
+              "relation": "theta-role assignment",
+              "values": {
+                "agentRole": "Agent",
+                "themeRole": "Theme"
+              }
+            },
+            {
+              "anchors": {
+                "assigner": "relativeVerb",
+                "recipient": "objectOperatorBase"
+              },
+              "relation": "object Case assignment",
+              "values": {
+                "case": "abstract accusative"
+              }
+            },
+            {
+              "anchors": {
+                "caseMarker": "ga",
+                "licenser": "relativeI",
+                "nominal": "taroNP",
+                "subject": "taroKP"
+              },
+              "relation": "finite nominative licensing",
+              "values": {
+                "case": "nominative",
+                "realization": "が"
+              }
+            },
+            {
+              "anchors": {
+                "finiteHead": "relativeI",
+                "inflectedPredicate": "relativeVerb"
+              },
+              "relation": "lexical finite-inflection licensing",
+              "values": {
+                "implementation": "lexically inflected V licenses silent I without syntactic head movement",
+                "tense": "past"
+              }
+            },
+            {
+              "anchors": {
+                "source": "relativeVerb"
+              },
+              "relation": "whole-word input realization",
+              "values": {
+                "inputSegments": [
+                  "読",
+                  "ん",
+                  "だ"
+                ],
+                "lexicalForm": "読んだ",
+                "operation": "associate the single inflected verb terminal with three supplied input tokens"
+              }
+            }
+          ],
+          "stageRecord": "The analysis uses head-final X-bar projections, IP for finite clauses, and KP for particle-marked nominal arguments. 太郎 and nominative が form the subject KP in Spec-IP. The subject is generated there under a classical GB external-subject analysis; no movement from inside VP is assumed. The verb assigns the Agent role to this subject and the Theme role to a silent nominal operator generated as its object complement. The verb also assigns abstract accusative Case to that object. Finite I licenses nominative on the subject, overtly marked by が. The past features of I are licensed by the lexically inflected verb 読んだ; I itself is unpronounced, and this analysis requires neither syntactic verb raising nor affix lowering. The inflected verb is one syntactic terminal, collectively associated with the supplied tokens 読, ん, and だ. Their token boundaries therefore do not require three syntactic heads.",
+          "statement": "Establish the head-final relative-clause IP with its object operator in the underlying argument position.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "taroN",
+                                  "label": "N",
+                                  "tokenIndex": 0,
+                                  "word": "太郎"
+                                }
+                              ],
+                              "id": "taroNBar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "taroNP",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [],
+                          "id": "ga",
+                          "label": "K",
+                          "tokenIndex": 1,
+                          "word": "が"
+                        }
+                      ],
+                      "id": "taroKBar",
+                      "label": "K′"
+                    }
+                  ],
+                  "id": "taroKP",
+                  "label": "KP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "objectOperatorBaseHead",
+                                      "label": "N: Op",
+                                      "lineageId": "relativeOperatorHead",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "objectOperatorBaseNBar",
+                                  "label": "N′",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "objectOperatorBase",
+                              "label": "NP",
+                              "lineageId": "relativeOperator",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "relativeVerb",
+                              "label": "V",
+                              "word": "読んだ"
+                            }
+                          ],
+                          "id": "relativeVBar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "relativeVP",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [],
+                      "id": "relativeI",
+                      "label": "I[finite, past]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "relativeIBar",
+                  "label": "I′"
+                }
+              ],
+              "id": "relativeIP",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "relativeVerb"
+              ],
+              "tokenIndices": [
+                2,
+                3,
+                4
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "landingSite": "relativeCP",
+                "movedOperator": "objectOperatorRaised",
+                "sourceTrace": "objectTrace",
+                "thetaAndCaseGovernor": "relativeVerb"
+              },
+              "priorAnchors": {
+                "sourceOccurrence": "objectOperatorBase"
+              },
+              "relation": "relative-operator A-bar movement",
+              "values": {
+                "chainCase": "abstract accusative",
+                "chainThetaRole": "Theme",
+                "representation": "silent operator with a trace at the extraction site",
+                "sourcePosition": "object complement of V",
+                "targetPosition": "Spec-CP"
+              }
+            },
+            {
+              "anchors": {
+                "binder": "objectOperatorRaised",
+                "boundTrace": "objectTrace",
+                "localDomain": "relativeCP",
+                "properGovernor": "relativeVerb"
+              },
+              "relation": "operator binding and empty-category licensing",
+              "values": {
+                "ECP": "the object trace is lexically properly governed by V",
+                "binding": "the operator c-commands and A-bar binds the object trace",
+                "locality": "movement crosses no intervening island"
+              }
+            }
+          ],
+          "stageRecord": "A silent relative C takes the previously established IP as its complement. The object operator moves from the verb's complement position, shown in the preceding workspace, to Spec-CP and leaves an NP trace. The resulting A-bar chain retains the Theme role and abstract accusative Case assigned at its lowest position; movement does not introduce a second argument. The operator in Spec-CP c-commands and binds its trace, and the lexical verb properly governs that trace, satisfying the ECP in this local, non-island dependency. The trace is not a pronounced copy, and neither the operator nor C contributes a relative pronoun or complementizer to the input. The existing realization of 読んだ is unchanged.",
+          "statement": "Form the relative CP by moving the silent object operator to Spec-CP.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "objectOperatorRaisedHead",
+                          "label": "N: Op",
+                          "lineageId": "relativeOperatorHead",
+                          "silent": true
+                        }
+                      ],
+                      "id": "objectOperatorRaisedNBar",
+                      "label": "N′",
+                      "silent": true
+                    }
+                  ],
+                  "id": "objectOperatorRaised",
+                  "label": "NP",
+                  "lineageId": "relativeOperator",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "taroN",
+                                          "label": "N",
+                                          "tokenIndex": 0,
+                                          "word": "太郎"
+                                        }
+                                      ],
+                                      "id": "taroNBar",
+                                      "label": "N′"
+                                    }
+                                  ],
+                                  "id": "taroNP",
+                                  "label": "NP"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "ga",
+                                  "label": "K",
+                                  "tokenIndex": 1,
+                                  "word": "が"
+                                }
+                              ],
+                              "id": "taroKBar",
+                              "label": "K′"
+                            }
+                          ],
+                          "id": "taroKP",
+                          "label": "KP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "objectTrace",
+                                      "label": "NP: t",
+                                      "lineageId": "relativeOperator",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "relativeVerb",
+                                      "label": "V",
+                                      "word": "読んだ"
+                                    }
+                                  ],
+                                  "id": "relativeVBar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "relativeVP",
+                              "label": "VP"
+                            },
+                            {
+                              "children": [],
+                              "id": "relativeI",
+                              "label": "I[finite, past]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "relativeIBar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "relativeIP",
+                      "label": "IP"
+                    },
+                    {
+                      "children": [],
+                      "id": "relativeC",
+                      "label": "C[relative]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "relativeCBar",
+                  "label": "C′"
+                }
+              ],
+              "id": "relativeCP",
+              "label": "CP[relative]"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "relativeVerb"
+              ],
+              "tokenIndices": [
+                2,
+                3,
+                4
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "nominalHead": "bookN",
+                "relativeOperator": "objectOperatorRaised",
+                "restrictedNominal": "bookNP",
+                "restrictor": "relativeCP"
+              },
+              "relation": "external-head relative predication",
+              "values": {
+                "attachment": "CP is left-adjoined to N′",
+                "headStatus": "externally generated nominal head, not a raised occurrence of the relative object",
+                "interpretation": "book x such that Taro read x"
+              }
+            },
+            {
+              "anchors": {
+                "argument": "bookKP",
+                "predicate": "interestingA"
+              },
+              "relation": "matrix adjectival theta-role assignment",
+              "values": {
+                "property": "interesting",
+                "thetaRole": "bearer of the property"
+              }
+            },
+            {
+              "anchors": {
+                "finiteLicenser": "matrixI",
+                "nominal": "bookNP",
+                "subject": "bookKP",
+                "topicMarker": "wa"
+              },
+              "relation": "topic-marked subject licensing",
+              "values": {
+                "abstractCase": "nominative",
+                "derivationalCommitment": "directly generated subject; no additional topic movement or resumptive subject",
+                "grammaticalPosition": "Spec-IP",
+                "overtMarking": "は marks the thematic subject as topic"
+              }
+            },
+            {
+              "anchors": {
+                "finiteHead": "matrixI",
+                "inflectedPredicate": "interestingA"
+              },
+              "relation": "matrix finite-inflection licensing",
+              "values": {
+                "implementation": "lexically inflected adjective licenses silent I without an overt copula or syntactic head movement",
+                "predicateType": "Japanese i-adjective",
+                "tense": "nonpast"
+              }
+            }
+          ],
+          "stageRecord": "The relative CP is adjoined to the left of the N′ headed by 本, producing the bare Japanese NP meaning 'book that Taro read.' The relative operator is linked to the external nominal head by relative predication: the head supplies the value of the operator's variable, but 本 has not moved out of the relative clause. This distinguishes head–relative interpretation from the operator–trace movement chain. The completed NP combines with は in a topic-marked KP and occupies matrix Spec-IP. The adjective おもしろい assigns this KP the role of bearer of the property 'interesting.' This analysis treats は as marking a thematic subject directly, not as requiring movement to a separate topic projection or an additional resumptive pronoun. Matrix finite I licenses the subject's abstract nominative Case, while は supplies topic marking rather than an overt が. Thus the nominative が inside the relative clause and matrix は belong to different clauses. Silent nonpast I is licensed by the lexically inflected i-adjective; no overt copula is inserted. The completed interpretation is 'The book that Taro read is interesting.' A contrastive use of は would not require a different syntactic structure here. All eight indexed tokens are accounted for; the unindexed sentence-final punctuation is not introduced as a lexical terminal.",
+          "statement": "Complete the nominal restriction and the topic-marked matrix adjectival predication.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "objectOperatorRaisedHead",
+                                              "label": "N: Op",
+                                              "lineageId": "relativeOperatorHead",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "objectOperatorRaisedNBar",
+                                          "label": "N′",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "objectOperatorRaised",
+                                      "label": "NP",
+                                      "lineageId": "relativeOperator",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "taroN",
+                                                              "label": "N",
+                                                              "tokenIndex": 0,
+                                                              "word": "太郎"
+                                                            }
+                                                          ],
+                                                          "id": "taroNBar",
+                                                          "label": "N′"
+                                                        }
+                                                      ],
+                                                      "id": "taroNP",
+                                                      "label": "NP"
+                                                    },
+                                                    {
+                                                      "children": [],
+                                                      "id": "ga",
+                                                      "label": "K",
+                                                      "tokenIndex": 1,
+                                                      "word": "が"
+                                                    }
+                                                  ],
+                                                  "id": "taroKBar",
+                                                  "label": "K′"
+                                                }
+                                              ],
+                                              "id": "taroKP",
+                                              "label": "KP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "objectTrace",
+                                                          "label": "NP: t",
+                                                          "lineageId": "relativeOperator",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "relativeVerb",
+                                                          "label": "V",
+                                                          "word": "読んだ"
+                                                        }
+                                                      ],
+                                                      "id": "relativeVBar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "relativeVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "relativeI",
+                                                  "label": "I[finite, past]",
+                                                  "silent": true
+                                                }
+                                              ],
+                                              "id": "relativeIBar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "relativeIP",
+                                          "label": "IP"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "relativeC",
+                                          "label": "C[relative]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "relativeCBar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "relativeCP",
+                                  "label": "CP[relative]"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "bookN",
+                                      "label": "N",
+                                      "tokenIndex": 5,
+                                      "word": "本"
+                                    }
+                                  ],
+                                  "id": "bookNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "modifiedBookNBar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "bookNP",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [],
+                          "id": "wa",
+                          "label": "K[topic]",
+                          "tokenIndex": 6,
+                          "word": "は"
+                        }
+                      ],
+                      "id": "bookKBar",
+                      "label": "K′"
+                    }
+                  ],
+                  "id": "bookKP",
+                  "label": "KP[topic]"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "interestingA",
+                              "label": "A",
+                              "tokenIndex": 7,
+                              "word": "おもしろい"
+                            }
+                          ],
+                          "id": "interestingABar",
+                          "label": "A′"
+                        }
+                      ],
+                      "id": "interestingAP",
+                      "label": "AP"
+                    },
+                    {
+                      "children": [],
+                      "id": "matrixI",
+                      "label": "I[finite, nonpast]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "matrixIBar",
+                  "label": "I′"
+                }
+              ],
+              "id": "matrixIP",
+              "label": "IP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "The Case plaque of the relative verb moves at frame 48 to 49 for the matrix predication route that passes through its pocket below the tree. The offline audit drew that route unrefined and reported a 70-unit teleport; it now reads the boxes allocation reserves, as the schedule does.",
+      "source": "GPT-6 Astra, high reasoning, Codex OAuth qualification run, 18 October 2026 (bughunt2-20261018, 54-ko-relative, analysis 1 of 1). Exact copy of the normalized record $.response.analyses[0] in ~/Library/Application Support/Babel/codex-qualification/bughunt2-20261018/runs/54-ko-relative/attempts/parse/bundle.json.",
+      "framework": "xbar",
+      "sentence": "철수가 읽은 책이 재미있다.",
+      "inputTokens": [
+        "철수가",
+        "읽은",
+        "책이",
+        "재미있다"
+      ],
+      "derivationStages": [
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "rCheolsu",
+                "rGa"
+              ],
+              "tokenIndices": [
+                0
+              ]
+            },
+            {
+              "nodeIds": [
+                "rV",
+                "rI"
+              ],
+              "tokenIndices": [
+                1
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "agent": "rSubject",
+                "predicate": "rV",
+                "predicateProjection": "rVP",
+                "theme": "rOperator"
+              },
+              "relation": "theta_assignment",
+              "values": {
+                "agentRole": "Agent",
+                "themeRole": "Theme"
+              }
+            },
+            {
+              "anchors": {
+                "caseBearer": "rOperator",
+                "governor": "rV"
+              },
+              "relation": "government_and_object_case",
+              "values": {
+                "case": "abstract accusative",
+                "configuration": "object governed by V"
+              }
+            },
+            {
+              "anchors": {
+                "caseExponent": "rGa",
+                "licenser": "rI",
+                "subject": "rSubject"
+              },
+              "relation": "subject_case_licensing",
+              "values": {
+                "case": "nominative",
+                "licensingDomain": "Korean adnominal IP"
+              }
+            },
+            {
+              "anchors": {
+                "lexicalHead": "rSubjectN",
+                "stem": "rCheolsu",
+                "suffix": "rGa"
+              },
+              "relation": "nominal_morphological_realization",
+              "values": {
+                "suffixFunction": "nominative",
+                "surfaceForm": "철수가"
+              }
+            },
+            {
+              "anchors": {
+                "inflection": "rI",
+                "verb": "rV"
+              },
+              "relation": "relative_inflection_realization",
+              "values": {
+                "implementation": "joint realization without syntactic affix lowering",
+                "inflectionalFeatures": [
+                  "past/perfective",
+                  "adnominal"
+                ],
+                "surfaceForm": "읽은"
+              }
+            }
+          ],
+          "stageRecord": "The relative clause is initially an IP with 철수 in its subject position, an object operator inside VP, and the verb preceding the relative inflection. This analysis uses the GB option of base-generating external subjects in Spec-IP; it therefore does not posit subject raising. The verb 읽 assigns the Agent role to the subject through its VP projection and the Theme role to its object operator. It governs that object and licenses abstract accusative Case, although the silent operator has no pronounced case particle. The relative inflection licenses the overt subject's nominative Case, expressed by 가. Korean adnominal inflection permits such an overt nominative subject; it is not treated as an English-style infinitive. For input association, 철수 and its bound nominative suffix jointly realize 철수가, while 읽 and the past/perfective adnominal inflection 은 jointly realize 읽은. The internal daughters of the nominal head represent lexical morphology, not additional phrasal projections. Collective realization of the verb and inflection does not posit a syntactic lowering operation. At this stage the operator remains in its thematic object position, providing an explicit source for its subsequent movement.",
+          "statement": "Establish the head-final relative clause with an overt nominative subject and an unpronounced object operator.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "rCheolsu",
+                              "label": "N stem",
+                              "word": "철수"
+                            },
+                            {
+                              "children": [],
+                              "id": "rGa",
+                              "label": "Case suffix",
+                              "word": "가"
+                            }
+                          ],
+                          "id": "rSubjectN",
+                          "label": "N⁰"
+                        }
+                      ],
+                      "id": "rSubjectNBar",
+                      "label": "N′"
+                    }
+                  ],
+                  "id": "rSubject",
+                  "label": "NP"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "rOperatorHead",
+                                  "label": "OP",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "rOperator",
+                              "label": "NP",
+                              "lineageId": "relativeOperatorChain",
+                              "silent": true
+                            },
+                            {
+                              "children": [],
+                              "id": "rV",
+                              "label": "V⁰",
+                              "word": "읽"
+                            }
+                          ],
+                          "id": "rVBar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "rVP",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [],
+                      "id": "rI",
+                      "label": "I⁰",
+                      "word": "은"
+                    }
+                  ],
+                  "id": "rIBar",
+                  "label": "I′"
+                }
+              ],
+              "id": "rIP",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "rCheolsu",
+                "rGa"
+              ],
+              "tokenIndices": [
+                0
+              ]
+            },
+            {
+              "nodeIds": [
+                "rV",
+                "rI"
+              ],
+              "tokenIndices": [
+                1
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "landingOccurrence": "rOperator",
+                "landingProjection": "rCP",
+                "sourceTrace": "rObjectTrace"
+              },
+              "priorAnchors": {
+                "sourceOccurrence": "rOperator",
+                "sourceProjection": "rVBar"
+              },
+              "relation": "A_bar_movement",
+              "values": {
+                "landingPosition": "Spec-CP",
+                "locality": "clause-internal movement without an intervening island",
+                "movementType": "null relative operator movement",
+                "sourcePosition": "object complement of V"
+              }
+            },
+            {
+              "anchors": {
+                "binder": "rOperator",
+                "lexicalGovernor": "rV",
+                "trace": "rObjectTrace"
+              },
+              "relation": "operator_binding_and_chain_licensing",
+              "values": {
+                "binding": "the operator c-commands and A-bar-binds its trace",
+                "case": "abstract accusative, licensed at the object position",
+                "properGovernment": "the object trace is lexically governed by V",
+                "thetaRole": "Theme, assigned at the object position"
+              }
+            }
+          ],
+          "stageRecord": "A silent relative C projects a head-final CP over the previously established IP. The object operator moves from the complement of 읽 to Spec-CP, leaving an NP trace in its earlier position. The operator remains unpronounced at its landing site. This is local A-bar movement within one relative clause, with no intervening bounding domain or island. The resulting operator–trace chain receives its Theme role and abstract accusative Case at the lower position; the verb continues to govern that position. The operator c-commands and binds its trace, satisfying the relevant proper-government requirement through the local verbal government of the trace. No movement of the external noun 책 has occurred: this is a null-operator, externally headed relative-clause analysis. The adnominal inflection remains in I, and C is independently silent, so no additional overt material is introduced.",
+          "statement": "Form the relative CP by moving the null object operator to Spec-CP.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "rOperatorHead",
+                      "label": "OP",
+                      "silent": true
+                    }
+                  ],
+                  "id": "rOperator",
+                  "label": "NP",
+                  "lineageId": "relativeOperatorChain",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "rCheolsu",
+                                      "label": "N stem",
+                                      "word": "철수"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "rGa",
+                                      "label": "Case suffix",
+                                      "word": "가"
+                                    }
+                                  ],
+                                  "id": "rSubjectN",
+                                  "label": "N⁰"
+                                }
+                              ],
+                              "id": "rSubjectNBar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "rSubject",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "rTraceHead",
+                                          "label": "t",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "rObjectTrace",
+                                      "label": "NP",
+                                      "lineageId": "relativeOperatorChain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "rV",
+                                      "label": "V⁰",
+                                      "word": "읽"
+                                    }
+                                  ],
+                                  "id": "rVBar",
+                                  "label": "V′"
+                                }
+                              ],
+                              "id": "rVP",
+                              "label": "VP"
+                            },
+                            {
+                              "children": [],
+                              "id": "rI",
+                              "label": "I⁰",
+                              "word": "은"
+                            }
+                          ],
+                          "id": "rIBar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "rIP",
+                      "label": "IP"
+                    },
+                    {
+                      "children": [],
+                      "id": "rC",
+                      "label": "C⁰[relative]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "rCBar",
+                  "label": "C′"
+                }
+              ],
+              "id": "rCP",
+              "label": "CP"
+            }
+          ]
+        },
+        {
+          "realizations": [
+            {
+              "nodeIds": [
+                "rCheolsu",
+                "rGa"
+              ],
+              "tokenIndices": [
+                0
+              ]
+            },
+            {
+              "nodeIds": [
+                "rV",
+                "rI"
+              ],
+              "tokenIndices": [
+                1
+              ]
+            },
+            {
+              "nodeIds": [
+                "mBook",
+                "mNom"
+              ],
+              "tokenIndices": [
+                2
+              ]
+            },
+            {
+              "nodeIds": [
+                "mA",
+                "mI"
+              ],
+              "tokenIndices": [
+                3
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "anchors": {
+                "modifier": "rCP",
+                "nominalHead": "mBookN",
+                "objectTrace": "rObjectTrace",
+                "operator": "rOperator"
+              },
+              "relation": "relative_restriction_and_head_identification",
+              "values": {
+                "dependency": "external-head interpretation through the operator variable, not noun movement",
+                "restriction": "the book is an entity that Cheolsu read",
+                "structuralAttachment": "CP left-adjoined to N′"
+              }
+            },
+            {
+              "anchors": {
+                "predicate": "mA",
+                "predicateProjection": "mAP",
+                "subject": "mSubject"
+              },
+              "relation": "matrix_theta_assignment",
+              "values": {
+                "predication": "the book that Cheolsu read is interesting",
+                "subjectPosition": "base-generated Spec-IP",
+                "subjectRole": "Theme / bearer of the property"
+              }
+            },
+            {
+              "anchors": {
+                "caseExponent": "mNom",
+                "licenser": "mI",
+                "subject": "mSubject"
+              },
+              "relation": "matrix_subject_case_licensing",
+              "values": {
+                "case": "nominative",
+                "caseDomain": "the entire matrix subject NP"
+              }
+            },
+            {
+              "anchors": {
+                "lexicalHead": "mBookN",
+                "stem": "mBook",
+                "suffix": "mNom"
+              },
+              "relation": "nominal_morphological_realization",
+              "values": {
+                "allomorph": "이 after the consonant-final noun 책",
+                "suffixFunction": "nominative",
+                "surfaceForm": "책이"
+              }
+            },
+            {
+              "anchors": {
+                "adjective": "mA",
+                "inflection": "mI"
+              },
+              "relation": "matrix_predicate_inflection_realization",
+              "values": {
+                "implementation": "joint realization without syntactic affix lowering",
+                "inflectionalFeatures": [
+                  "nonpast",
+                  "plain declarative"
+                ],
+                "surfaceForm": "재미있다"
+              }
+            },
+            {
+              "anchors": {
+                "clause": "mCP",
+                "clauseHead": "mC",
+                "inflection": "mI"
+              },
+              "relation": "root_clause_typing",
+              "values": {
+                "clauseType": "declarative",
+                "overtClauseTypeExponent": "다"
+              }
+            }
+          ],
+          "stageRecord": "The relative CP is left-adjoined to the N′ headed by 책, yielding the prenominal modifier order required by the input. Its operator variable is identified with the book denoted by the external head: the restriction is 'book that Cheolsu read.' This interpretive connection is not a movement chain between 책 and the relative object trace. The completed NP is base-generated in matrix Spec-IP, consistently with the external-subject analysis used inside the relative clause. The lexical adjective 재미있 projects AP and assigns the matrix subject the Theme, or bearer-of-property, role. It is analyzed as an inflecting Korean adjective, not as an English-style adjective requiring an unpronounced copular verb. Matrix I licenses nominative Case on the entire subject NP, with 이 realized on its nominal head. The matrix nominative and the relative object's accusative belong to different syntactic occurrences and therefore do not conflict. The noun and nominative suffix jointly realize 책이; the adjective and declarative inflection 다 jointly realize 재미있다 without syntactic affix lowering. A silent declarative C completes the root clause. The resulting interpretation is 'The book that Cheolsu read is interesting.' The supplied four tokens are fully realized in their original order; the sentence-final punctuation in the quoted sentence is not an additional supplied token.",
+          "statement": "Complete the externally headed relative NP and the matrix adjectival predication.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "rOperatorHead",
+                                          "label": "OP",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "rOperator",
+                                      "label": "NP",
+                                      "lineageId": "relativeOperatorChain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [],
+                                                          "id": "rCheolsu",
+                                                          "label": "N stem",
+                                                          "word": "철수"
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "rGa",
+                                                          "label": "Case suffix",
+                                                          "word": "가"
+                                                        }
+                                                      ],
+                                                      "id": "rSubjectN",
+                                                      "label": "N⁰"
+                                                    }
+                                                  ],
+                                                  "id": "rSubjectNBar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "rSubject",
+                                              "label": "NP"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "rTraceHead",
+                                                              "label": "t",
+                                                              "silent": true
+                                                            }
+                                                          ],
+                                                          "id": "rObjectTrace",
+                                                          "label": "NP",
+                                                          "lineageId": "relativeOperatorChain",
+                                                          "silent": true
+                                                        },
+                                                        {
+                                                          "children": [],
+                                                          "id": "rV",
+                                                          "label": "V⁰",
+                                                          "word": "읽"
+                                                        }
+                                                      ],
+                                                      "id": "rVBar",
+                                                      "label": "V′"
+                                                    }
+                                                  ],
+                                                  "id": "rVP",
+                                                  "label": "VP"
+                                                },
+                                                {
+                                                  "children": [],
+                                                  "id": "rI",
+                                                  "label": "I⁰",
+                                                  "word": "은"
+                                                }
+                                              ],
+                                              "id": "rIBar",
+                                              "label": "I′"
+                                            }
+                                          ],
+                                          "id": "rIP",
+                                          "label": "IP"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "rC",
+                                          "label": "C⁰[relative]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "rCBar",
+                                      "label": "C′"
+                                    }
+                                  ],
+                                  "id": "rCP",
+                                  "label": "CP"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "mBook",
+                                          "label": "N stem",
+                                          "word": "책"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "mNom",
+                                          "label": "Case suffix",
+                                          "word": "이"
+                                        }
+                                      ],
+                                      "id": "mBookN",
+                                      "label": "N⁰"
+                                    }
+                                  ],
+                                  "id": "mNBar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "mModifiedNBar",
+                              "label": "N′"
+                            }
+                          ],
+                          "id": "mSubject",
+                          "label": "NP"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "mA",
+                                      "label": "A⁰",
+                                      "word": "재미있"
+                                    }
+                                  ],
+                                  "id": "mABar",
+                                  "label": "A′"
+                                }
+                              ],
+                              "id": "mAP",
+                              "label": "AP"
+                            },
+                            {
+                              "children": [],
+                              "id": "mI",
+                              "label": "I⁰",
+                              "word": "다"
+                            }
+                          ],
+                          "id": "mIBar",
+                          "label": "I′"
+                        }
+                      ],
+                      "id": "mIP",
+                      "label": "IP"
+                    },
+                    {
+                      "children": [],
+                      "id": "mC",
+                      "label": "C⁰[declarative]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "mCBar",
+                  "label": "C′"
+                }
+              ],
+              "id": "mCP",
+              "label": "CP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "The Case plaque of T keeps its pocket at frame 36 to 37: its arrow already passed the negation label before that step, and nothing the step newly paints crosses it. Main moved it 256 units for that old label.",
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, 19 October 2026 (night3-20261019, 15-ru-genitive-negation, analysis 1 of 1). Exact copy of the normalized record $.response.analyses[0] in ~/Library/Application Support/Babel/codex-qualification/night3-20261019/runs/15-ru-genitive-negation/attempts/parse/bundle.json.",
+      "framework": "minimalism",
+      "sentence": "Я не видел никаких книг.",
+      "inputTokens": [
+        "Я",
+        "не",
+        "видел",
+        "никаких",
+        "книг"
+      ],
+      "derivationStages": [
+        {
+          "relations": [],
+          "stageRecord": "The workspace contains the words of the input and silent transitive v, past T, and declarative C. The inflected words enter intact: видел bears past masculine singular morphology, while никаких and книг have genitive plural forms. Their grammatical licensing will be established during the derivation rather than inferred merely from their pronunciation. Я is the first-person singular pronoun. Никаких is analyzed as a negative-concord indefinite determiner, not as a second independent semantic negation. Bare Phrase Structure will use projecting-head labels and binary Merge, without separate bar-level category symbols.",
+          "statement": "Introduce the lexical material and the functional heads for the Russian negative declarative clause.",
+          "workspaceForest": [
+            {
+              "children": [],
+              "id": "subject",
+              "label": "D[pronoun, first person, singular]",
+              "lineageId": "subject-chain",
+              "word": "Я"
+            },
+            {
+              "children": [],
+              "id": "neg",
+              "label": "Neg[interpretable negation]",
+              "word": "не"
+            },
+            {
+              "children": [],
+              "id": "verb",
+              "label": "V[past, masculine, singular]",
+              "lineageId": "verb-chain",
+              "word": "видел"
+            },
+            {
+              "children": [],
+              "id": "negative-determiner",
+              "label": "D[negative concord, genitive, plural]",
+              "word": "никаких"
+            },
+            {
+              "children": [],
+              "id": "noun",
+              "label": "N[genitive, plural]",
+              "word": "книг"
+            },
+            {
+              "children": [],
+              "id": "little-v",
+              "label": "v[transitive]",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "tense",
+              "label": "T[past]",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "complementizer",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "determiner": "negative-determiner",
+                "nominal": "object",
+                "restriction": "noun"
+              },
+              "relation": "nominal restriction and concord",
+              "values": {
+                "concord": [
+                  "genitive",
+                  "plural"
+                ],
+                "interpretation": "negative-concord indefinite with books as its restriction"
+              }
+            },
+            {
+              "anchors": {
+                "complement": "object",
+                "selector": "verb"
+              },
+              "relation": "verbal selection and thematic assignment",
+              "values": {
+                "grammaticalFunction": "direct object",
+                "thetaRole": "Theme"
+              }
+            }
+          ],
+          "stageRecord": "First, никаких merges with книг, yielding a D-labeled object whose nominal restriction is books. The determiner and noun stand in genitive plural concord, although the object's structural Case licensing remains pending. Next, видел merges with this object, projecting V and assigning it the Theme role. This establishes никаких книг as the direct object of seeing, rather than as a nominal modifier elsewhere in the clause.",
+          "statement": "Build the negative indefinite object and merge it with the lexical verb.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "verb",
+                  "label": "V[past, masculine, singular]",
+                  "lineageId": "verb-chain",
+                  "word": "видел"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "negative-determiner",
+                      "label": "D[negative concord, genitive, plural]",
+                      "word": "никаких"
+                    },
+                    {
+                      "children": [],
+                      "id": "noun",
+                      "label": "N[genitive, plural]",
+                      "word": "книг"
+                    }
+                  ],
+                  "id": "object",
+                  "label": "D"
+                }
+              ],
+              "id": "verb-projection",
+              "label": "V"
+            },
+            {
+              "children": [],
+              "id": "subject",
+              "label": "D[pronoun, first person, singular]",
+              "lineageId": "subject-chain",
+              "word": "Я"
+            },
+            {
+              "children": [],
+              "id": "little-v",
+              "label": "v[transitive]",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "neg",
+              "label": "Neg[interpretable negation]",
+              "word": "не"
+            },
+            {
+              "children": [],
+              "id": "tense",
+              "label": "T[past]",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "complementizer",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "head": "little-v",
+                "lexicalPredicate": "verb-projection"
+              },
+              "relation": "transitive event structure",
+              "values": {
+                "valency": "transitive"
+              }
+            },
+            {
+              "anchors": {
+                "argument": "subject",
+                "introducer": "little-v",
+                "predicate": "verb-projection"
+              },
+              "relation": "external argument introduction",
+              "values": {
+                "basePosition": "edge of the transitive v constituent",
+                "thetaRole": "Experiencer or perceiver"
+              }
+            }
+          ],
+          "stageRecord": "Silent transitive v first merges with the V constituent. Я then externally merges at the edge of the resulting v constituent. The first operation establishes the transitive event structure; the second introduces Я as the external argument, interpreted as the perceiver of the seeing event. The pronoun has not yet moved to the finite subject position. Both constituents projected by v are labeled v, as required by the projecting-head implementation of Bare Phrase Structure.",
+          "statement": "Introduce the transitive verbal layer and the subject in its thematic position.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "subject",
+                  "label": "D[pronoun, first person, singular]",
+                  "lineageId": "subject-chain",
+                  "word": "Я"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "little-v",
+                      "label": "v[transitive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb",
+                          "label": "V[past, masculine, singular]",
+                          "lineageId": "verb-chain",
+                          "word": "видел"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "negative-determiner",
+                              "label": "D[negative concord, genitive, plural]",
+                              "word": "никаких"
+                            },
+                            {
+                              "children": [],
+                              "id": "noun",
+                              "label": "N[genitive, plural]",
+                              "word": "книг"
+                            }
+                          ],
+                          "id": "object",
+                          "label": "D"
+                        }
+                      ],
+                      "id": "verb-projection",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "v-complement-layer",
+                  "label": "v"
+                }
+              ],
+              "id": "v-projection",
+              "label": "v"
+            },
+            {
+              "children": [],
+              "id": "neg",
+              "label": "Neg[interpretable negation]",
+              "word": "не"
+            },
+            {
+              "children": [],
+              "id": "tense",
+              "label": "T[past]",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "complementizer",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "complexHead": "complex-v",
+                "host": "little-v",
+                "landingOccurrence": "raised-verb",
+                "source": "verb"
+              },
+              "priorAnchors": {
+                "host": "little-v",
+                "source": "verb"
+              },
+              "relation": "head movement and copy pronunciation",
+              "values": {
+                "operation": "V-to-v",
+                "pronunciation": "pronounce the higher verbal occurrence and silence the lower occurrence"
+              }
+            }
+          ],
+          "stageRecord": "The verb moves from its previously established V position to v, forming a complex v head. The higher occurrence of видел is pronounced, and its lower occurrence is silent. Both retain the same verbal identity. This analysis commits to local V-to-v movement but does not require movement through negation to T. Because the verb entered as an intact inflected word and the light head is silent, this operation requires no special spelling association.",
+          "statement": "Raise the lexical verb to the light verbal head.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "subject",
+                  "label": "D[pronoun, first person, singular]",
+                  "lineageId": "subject-chain",
+                  "word": "Я"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "raised-verb",
+                          "label": "V[past, masculine, singular]",
+                          "lineageId": "verb-chain",
+                          "word": "видел"
+                        },
+                        {
+                          "children": [],
+                          "id": "little-v",
+                          "label": "v[transitive]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "complex-v",
+                      "label": "v"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb",
+                          "label": "V[past, masculine, singular]",
+                          "lineageId": "verb-chain",
+                          "silent": true,
+                          "word": "видел"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "negative-determiner",
+                              "label": "D[negative concord, genitive, plural]",
+                              "word": "никаких"
+                            },
+                            {
+                              "children": [],
+                              "id": "noun",
+                              "label": "N[genitive, plural]",
+                              "word": "книг"
+                            }
+                          ],
+                          "id": "object",
+                          "label": "D"
+                        }
+                      ],
+                      "id": "verb-projection",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "v-complement-layer",
+                  "label": "v"
+                }
+              ],
+              "id": "v-projection",
+              "label": "v"
+            },
+            {
+              "children": [],
+              "id": "neg",
+              "label": "Neg[interpretable negation]",
+              "word": "не"
+            },
+            {
+              "children": [],
+              "id": "tense",
+              "label": "T[past]",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "complementizer",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "operator": "neg",
+                "scope": "v-projection"
+              },
+              "relation": "negative scope",
+              "values": {
+                "interpretation": "negation of the seeing predication"
+              }
+            },
+            {
+              "anchors": {
+                "caseBearer": "object",
+                "caseConcordExponents": [
+                  "negative-determiner",
+                  "noun"
+                ],
+                "licensingNegation": "neg"
+              },
+              "relation": "genitive of negation licensing",
+              "values": {
+                "case": "genitive",
+                "licensingEnvironment": "direct object within the scope of clausal negation"
+              }
+            },
+            {
+              "anchors": {
+                "dependent": "negative-determiner",
+                "indefinite": "object",
+                "licensor": "neg"
+              },
+              "relation": "negative concord",
+              "values": {
+                "indefiniteInterpretation": "any books within the scope of negation",
+                "semanticNegations": "one"
+              }
+            }
+          ],
+          "stageRecord": "Не merges above the transitive v constituent, taking scope over the seeing predicate and its internal argument. In this negative environment, the object's structural Case is licensed as genitive of negation rather than affirmative-clause accusative. The genitive plural forms already present on никаких and книг are therefore licensed without any change in their lexical spelling. Neg also licenses the negative-concord feature of никаких across the transparent v layer. The resulting clause contains one semantic negation: никаких contributes an indefinite within its scope, not an additional negation. The interpretation is that the speaker did not see any books.",
+          "statement": "Introduce clausal negation, license genitive of negation, and establish negative concord.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "neg",
+                  "label": "Neg[interpretable negation]",
+                  "word": "не"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subject",
+                      "label": "D[pronoun, first person, singular]",
+                      "lineageId": "subject-chain",
+                      "word": "Я"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "raised-verb",
+                              "label": "V[past, masculine, singular]",
+                              "lineageId": "verb-chain",
+                              "word": "видел"
+                            },
+                            {
+                              "children": [],
+                              "id": "little-v",
+                              "label": "v[transitive]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "complex-v",
+                          "label": "v"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "verb",
+                              "label": "V[past, masculine, singular]",
+                              "lineageId": "verb-chain",
+                              "silent": true,
+                              "word": "видел"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "negative-determiner",
+                                  "label": "D[negative concord, genitive, plural]",
+                                  "word": "никаких"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "noun",
+                                  "label": "N[genitive, plural]",
+                                  "word": "книг"
+                                }
+                              ],
+                              "id": "object",
+                              "label": "D"
+                            }
+                          ],
+                          "id": "verb-projection",
+                          "label": "V"
+                        }
+                      ],
+                      "id": "v-complement-layer",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "v-projection",
+                  "label": "v"
+                }
+              ],
+              "id": "neg-projection",
+              "label": "Neg"
+            },
+            {
+              "children": [],
+              "id": "tense",
+              "label": "T[past]",
+              "silent": true
+            },
+            {
+              "children": [],
+              "id": "complementizer",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "complement": "neg-projection",
+                "tense": "tense"
+              },
+              "relation": "temporal scope",
+              "values": {
+                "tense": "past"
+              }
+            },
+            {
+              "anchors": {
+                "goal": "subject",
+                "probe": "tense"
+              },
+              "relation": "finite subject agreement and Case licensing",
+              "values": {
+                "agreementGender": "masculine",
+                "agreementNumber": "singular",
+                "case": "nominative",
+                "subjectPerson": "first"
+              }
+            },
+            {
+              "anchors": {
+                "agreementController": "subject",
+                "finiteHead": "tense",
+                "verbalExponent": "raised-verb"
+              },
+              "relation": "past verbal feature licensing",
+              "values": {
+                "licensedFeatures": [
+                  "past",
+                  "masculine",
+                  "singular"
+                ],
+                "personExponence": "none in the Russian past-tense verb"
+              }
+            }
+          ],
+          "stageRecord": "Past T merges above the negative constituent, locating the negated seeing predication in the past. T probes the subject in its v-edge position, licenses nominative Case, and establishes singular agreement. The masculine singular morphology of видел identifies masculine agreement for the speaker in this sentence; Я itself is not morphologically gender-specific. T also licenses the past masculine singular feature bundle on the raised verb. Russian past-tense agreement here expresses gender and number, not first-person verbal agreement. T remains silent, and the lexical verb remains in v.",
+          "statement": "Merge past T and establish finite subject licensing and agreement.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "tense",
+                  "label": "T[past]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "neg",
+                      "label": "Neg[interpretable negation]",
+                      "word": "не"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "subject",
+                          "label": "D[pronoun, first person, singular]",
+                          "lineageId": "subject-chain",
+                          "word": "Я"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "raised-verb",
+                                  "label": "V[past, masculine, singular]",
+                                  "lineageId": "verb-chain",
+                                  "word": "видел"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "little-v",
+                                  "label": "v[transitive]",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "complex-v",
+                              "label": "v"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "verb",
+                                  "label": "V[past, masculine, singular]",
+                                  "lineageId": "verb-chain",
+                                  "silent": true,
+                                  "word": "видел"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "negative-determiner",
+                                      "label": "D[negative concord, genitive, plural]",
+                                      "word": "никаких"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "noun",
+                                      "label": "N[genitive, plural]",
+                                      "word": "книг"
+                                    }
+                                  ],
+                                  "id": "object",
+                                  "label": "D"
+                                }
+                              ],
+                              "id": "verb-projection",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "v-complement-layer",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "v-projection",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "neg-projection",
+                  "label": "Neg"
+                }
+              ],
+              "id": "tense-complement-layer",
+              "label": "T"
+            },
+            {
+              "children": [],
+              "id": "complementizer",
+              "label": "C[declarative]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "attractingHead": "tense",
+                "landingConstituent": "tense-projection",
+                "landingOccurrence": "raised-subject",
+                "source": "subject"
+              },
+              "priorAnchors": {
+                "attractingHead": "tense",
+                "source": "subject"
+              },
+              "relation": "subject movement and copy pronunciation",
+              "values": {
+                "motivation": "finite subject-position requirement",
+                "operation": "internal Merge to the edge of T",
+                "preservedLicensing": [
+                  "nominative",
+                  "singular agreement",
+                  "masculine agreement"
+                ],
+                "pronunciation": "pronounce the higher subject occurrence and silence the lower occurrence"
+              }
+            },
+            {
+              "anchors": {
+                "clauseTyper": "complementizer",
+                "finiteClause": "tense-projection"
+              },
+              "relation": "declarative clause typing",
+              "values": {
+                "clauseType": "declarative"
+              }
+            }
+          ],
+          "stageRecord": "Я internally merges from its previously shown v-edge position to the edge of the T constituent, satisfying T's subject-position requirement. Its higher occurrence is pronounced and its thematic occurrence is silent; nominative licensing and agreement continue along this subject chain. Silent declarative C then merges with the completed T constituent and supplies declarative clause type. The final pronounced order is Я не видел никаких книг. Only the higher subject and verbal copies are pronounced, so the ordinary terminal words spell the exact input without realization groups.",
+          "statement": "Raise the subject and complete the declarative clause.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "complementizer",
+                  "label": "C[declarative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "raised-subject",
+                      "label": "D[pronoun, first person, singular]",
+                      "lineageId": "subject-chain",
+                      "word": "Я"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "tense",
+                          "label": "T[past]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "neg",
+                              "label": "Neg[interpretable negation]",
+                              "word": "не"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "subject",
+                                  "label": "D[pronoun, first person, singular]",
+                                  "lineageId": "subject-chain",
+                                  "silent": true,
+                                  "word": "Я"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "raised-verb",
+                                          "label": "V[past, masculine, singular]",
+                                          "lineageId": "verb-chain",
+                                          "word": "видел"
+                                        },
+                                        {
+                                          "children": [],
+                                          "id": "little-v",
+                                          "label": "v[transitive]",
+                                          "silent": true
+                                        }
+                                      ],
+                                      "id": "complex-v",
+                                      "label": "v"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "verb",
+                                          "label": "V[past, masculine, singular]",
+                                          "lineageId": "verb-chain",
+                                          "silent": true,
+                                          "word": "видел"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "negative-determiner",
+                                              "label": "D[negative concord, genitive, plural]",
+                                              "word": "никаких"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "noun",
+                                              "label": "N[genitive, plural]",
+                                              "word": "книг"
+                                            }
+                                          ],
+                                          "id": "object",
+                                          "label": "D"
+                                        }
+                                      ],
+                                      "id": "verb-projection",
+                                      "label": "V"
+                                    }
+                                  ],
+                                  "id": "v-complement-layer",
+                                  "label": "v"
+                                }
+                              ],
+                              "id": "v-projection",
+                              "label": "v"
+                            }
+                          ],
+                          "id": "neg-projection",
+                          "label": "Neg"
+                        }
+                      ],
+                      "id": "tense-complement-layer",
+                      "label": "T"
+                    }
+                  ],
+                  "id": "tense-projection",
+                  "label": "T"
+                }
+              ],
+              "id": "clause",
+              "label": "C"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "The theta grid of the verb keeps its pocket at frame 30 to 31, when a Case plaque appears whose collector row is not yet shown. Main reserved that unshown collector and moved the grid 123 units.",
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, 22 October 2026 (sol-prompt-batch-20261022, n3-10-bn-classifier, analysis 1 of 1). Exact copy of the normalized record $.response.analyses[0] in ~/Library/Application Support/Babel/codex-qualification/sol-prompt-batch-20261022/runs/n3-10-bn-classifier/attempts/parse/bundle.json.",
+      "framework": "xbar",
+      "sentence": "আমি তিনটে বই কিনেছি।",
+      "inputTokens": [
+        "আমি",
+        "তিনটে",
+        "বই",
+        "কিনেছি"
+      ],
+      "derivationStages": [
+        {
+          "relations": [
+            {
+              "anchors": {
+                "nominal": "book_np",
+                "numeralClassifier": "num"
+              },
+              "relation": "numeral_classifier_quantification",
+              "values": {
+                "cardinality": "3",
+                "classifier": "-টে"
+              }
+            }
+          ],
+          "stageRecord": "আমি is a first-person singular pronominal DP. The object DP contains a null determiner and a NumP in which the prenominal numeral–classifier head তিনটে quantifies the NP বই as three classified units. The numeral and classifier are treated as one lexical head, without imposing a separate syntactic boundary inside the written word. The verb কিনেছি is entered as a single, already inflected lexical V head. A separate abstract I head supplies the finite present-perfect and first-person features that will license that form; it has no independent pronunciation.",
+          "statement": "Construct the two nominal arguments and the verbal and inflectional heads.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "pronoun",
+                      "label": "D⁰ [pronoun, first-person singular]",
+                      "word": "আমি"
+                    }
+                  ],
+                  "id": "subject_dbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "subject",
+              "label": "DP",
+              "lineageId": "subject_chain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "num",
+                              "label": "Num⁰ [numeral–classifier]",
+                              "word": "তিনটে"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "book",
+                                      "label": "N⁰",
+                                      "word": "বই"
+                                    }
+                                  ],
+                                  "id": "book_nbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "book_np",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "object_numbar",
+                          "label": "Num′"
+                        }
+                      ],
+                      "id": "object_nump",
+                      "label": "NumP"
+                    },
+                    {
+                      "children": [],
+                      "id": "object_d",
+                      "label": "D⁰ [null]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "object_dbar",
+                  "label": "D′"
+                }
+              ],
+              "id": "object",
+              "label": "DP"
+            },
+            {
+              "children": [],
+              "id": "verb",
+              "label": "V⁰",
+              "lineageId": "verb_chain",
+              "word": "কিনেছি"
+            },
+            {
+              "children": [],
+              "id": "infl",
+              "label": "I⁰ [finite, present perfect, first person]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "arguments": [
+                  "subject",
+                  "object"
+                ],
+                "predicate": "verb"
+              },
+              "relation": "theta_assignment",
+              "values": {
+                "arguments": [
+                  "Agent",
+                  "Theme"
+                ]
+              }
+            },
+            {
+              "anchors": {
+                "complement": "object",
+                "governor": "verb"
+              },
+              "relation": "government_and_case_assignment",
+              "values": {
+                "case": "abstract accusative",
+                "overtCaseRealization": "unmarked"
+              }
+            }
+          ],
+          "stageRecord": "The object DP is combined as the complement preceding V, and the subject DP is introduced in Spec-VP. This gives the underlying subject–object–verb organization appropriate to the Bengali clause. The verb assigns Agent to আমি and Theme to তিনটে বই. It also governs its object complement and licenses its abstract accusative Case. This inanimate numeral-containing object has no overt accusative suffix; the absence of a suffix does not leave it without abstract Case.",
+          "statement": "Build the head-final VP and establish thematic roles and object Case.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "pronoun",
+                          "label": "D⁰ [pronoun, first-person singular]",
+                          "word": "আমি"
+                        }
+                      ],
+                      "id": "subject_dbar",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "subject",
+                  "label": "DP",
+                  "lineageId": "subject_chain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "num",
+                                      "label": "Num⁰ [numeral–classifier]",
+                                      "word": "তিনটে"
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "book",
+                                              "label": "N⁰",
+                                              "word": "বই"
+                                            }
+                                          ],
+                                          "id": "book_nbar",
+                                          "label": "N′"
+                                        }
+                                      ],
+                                      "id": "book_np",
+                                      "label": "NP"
+                                    }
+                                  ],
+                                  "id": "object_numbar",
+                                  "label": "Num′"
+                                }
+                              ],
+                              "id": "object_nump",
+                              "label": "NumP"
+                            },
+                            {
+                              "children": [],
+                              "id": "object_d",
+                              "label": "D⁰ [null]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "object_dbar",
+                          "label": "D′"
+                        }
+                      ],
+                      "id": "object",
+                      "label": "DP"
+                    },
+                    {
+                      "children": [],
+                      "id": "verb",
+                      "label": "V⁰",
+                      "lineageId": "verb_chain",
+                      "word": "কিনেছি"
+                    }
+                  ],
+                  "id": "vbar",
+                  "label": "V′"
+                }
+              ],
+              "id": "vp",
+              "label": "VP"
+            },
+            {
+              "children": [],
+              "id": "infl",
+              "label": "I⁰ [finite, present perfect, first person]",
+              "silent": true
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landingHead": "infl",
+                "movedHead": "verb",
+                "sourceTrace": "verb_trace"
+              },
+              "priorAnchors": {
+                "sourceHead": "verb"
+              },
+              "relation": "head_movement",
+              "values": {
+                "movement": "V-to-I",
+                "representation": "trace"
+              }
+            },
+            {
+              "anchors": {
+                "inflection": "infl_features",
+                "verbalExponent": "verb"
+              },
+              "relation": "inflectional_licensing",
+              "values": {
+                "aspect": "perfect",
+                "person": "first",
+                "tense": "present"
+              }
+            }
+          ],
+          "stageRecord": "The VP is placed before I under I′, creating the head-final inflectional projection. The verb then moves from its established position inside V′ to I, leaving a silent V trace. The raised verb and an unpronounced inflectional component form the complex I head. The inflectional component licenses the verb's present-perfect and first-person form কিনেছি. Since that form was entered as one lexical exponent, this analysis neither splits its spelling nor introduces an additional pronounced auxiliary. The subject remains in Spec-VP at this stage.",
+          "statement": "Project the inflectional clause and raise V to the final I head.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "pronoun",
+                                  "label": "D⁰ [pronoun, first-person singular]",
+                                  "word": "আমি"
+                                }
+                              ],
+                              "id": "subject_dbar",
+                              "label": "D′"
+                            }
+                          ],
+                          "id": "subject",
+                          "label": "DP",
+                          "lineageId": "subject_chain"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "num",
+                                              "label": "Num⁰ [numeral–classifier]",
+                                              "word": "তিনটে"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "book",
+                                                      "label": "N⁰",
+                                                      "word": "বই"
+                                                    }
+                                                  ],
+                                                  "id": "book_nbar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "book_np",
+                                              "label": "NP"
+                                            }
+                                          ],
+                                          "id": "object_numbar",
+                                          "label": "Num′"
+                                        }
+                                      ],
+                                      "id": "object_nump",
+                                      "label": "NumP"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "object_d",
+                                      "label": "D⁰ [null]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "object_dbar",
+                                  "label": "D′"
+                                }
+                              ],
+                              "id": "object",
+                              "label": "DP"
+                            },
+                            {
+                              "children": [],
+                              "id": "verb_trace",
+                              "label": "V⁰ [tᵥ]",
+                              "lineageId": "verb_chain",
+                              "silent": true
+                            }
+                          ],
+                          "id": "vbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "vp",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb",
+                          "label": "V⁰",
+                          "lineageId": "verb_chain",
+                          "word": "কিনেছি"
+                        },
+                        {
+                          "children": [],
+                          "id": "infl_features",
+                          "label": "I⁰ [finite, present perfect, first person]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "infl",
+                      "label": "I⁰"
+                    }
+                  ],
+                  "id": "ibar",
+                  "label": "I′"
+                }
+              ],
+              "id": "ip",
+              "label": "IP"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "landingProjection": "ip",
+                "raisedSubject": "subject",
+                "sourceTrace": "subject_trace"
+              },
+              "priorAnchors": {
+                "sourceSubject": "subject"
+              },
+              "relation": "subject_A_movement",
+              "values": {
+                "chainType": "A-chain",
+                "landingPosition": "Spec-IP",
+                "motivation": "finite-clause subject requirement",
+                "sourcePosition": "Spec-VP"
+              }
+            },
+            {
+              "anchors": {
+                "licensor": "infl_features",
+                "subject": "subject"
+              },
+              "relation": "nominative_case_licensing",
+              "values": {
+                "case": "nominative"
+              }
+            },
+            {
+              "anchors": {
+                "inflection": "infl_features",
+                "subject": "subject"
+              },
+              "relation": "subject_inflection_agreement",
+              "values": {
+                "person": "first"
+              }
+            },
+            {
+              "anchors": {
+                "localDomain": "ip",
+                "pronoun": "subject"
+              },
+              "relation": "binding_principle_B",
+              "values": {
+                "requirement": "locally free",
+                "status": "satisfied"
+              }
+            }
+          ],
+          "stageRecord": "আমি moves from its established Spec-VP position to Spec-IP, leaving a silent DP trace. The resulting A-chain receives its Agent role at the lower position and satisfies the finite clause's subject requirement at the upper position. Finite I licenses nominative Case on the raised subject. The subject and I stand in first-person agreement; the first-person singular interpretation of আমি does not require a separately pronounced singular marker on কিনেছি. The pronominal subject is locally free in this IP, satisfying Binding Principle B. With the subject trace, verb trace, null determiner, and abstract inflection unpronounced, the completed tree yields আমি তিনটে বই কিনেছি in the input order.",
+          "statement": "Raise the subject to Spec-IP and complete the surface clause.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "pronoun",
+                          "label": "D⁰ [pronoun, first-person singular]",
+                          "word": "আমি"
+                        }
+                      ],
+                      "id": "subject_dbar",
+                      "label": "D′"
+                    }
+                  ],
+                  "id": "subject",
+                  "label": "DP",
+                  "lineageId": "subject_chain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "subject_trace",
+                          "label": "DP [tᵢ]",
+                          "lineageId": "subject_chain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "num",
+                                              "label": "Num⁰ [numeral–classifier]",
+                                              "word": "তিনটে"
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "book",
+                                                      "label": "N⁰",
+                                                      "word": "বই"
+                                                    }
+                                                  ],
+                                                  "id": "book_nbar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "book_np",
+                                              "label": "NP"
+                                            }
+                                          ],
+                                          "id": "object_numbar",
+                                          "label": "Num′"
+                                        }
+                                      ],
+                                      "id": "object_nump",
+                                      "label": "NumP"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "object_d",
+                                      "label": "D⁰ [null]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "object_dbar",
+                                  "label": "D′"
+                                }
+                              ],
+                              "id": "object",
+                              "label": "DP"
+                            },
+                            {
+                              "children": [],
+                              "id": "verb_trace",
+                              "label": "V⁰ [tᵥ]",
+                              "lineageId": "verb_chain",
+                              "silent": true
+                            }
+                          ],
+                          "id": "vbar",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "vp",
+                      "label": "VP"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb",
+                          "label": "V⁰",
+                          "lineageId": "verb_chain",
+                          "word": "কিনেছি"
+                        },
+                        {
+                          "children": [],
+                          "id": "infl_features",
+                          "label": "I⁰ [finite, present perfect, first person]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "infl",
+                      "label": "I⁰"
+                    }
+                  ],
+                  "id": "ibar",
+                  "label": "I′"
+                }
+              ],
+              "id": "ip",
+              "label": "IP"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "The Case plaque of the light verb keeps its pocket at frame 17 to 18: the return within nearby reach applies to plaques that show their owner only by proximity, and a Case arrow joins this one. Main moved it 289 units; the theta grid beside it keeps its pocket once the Case plaque does.",
+      "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, 19 October 2026 (night3-20261019, 13-fi-partitive, analysis 1 of 1). Exact copy of the normalized record $.response.analyses[0] in ~/Library/Application Support/Babel/codex-qualification/night3-20261019/runs/13-fi-partitive/attempts/parse/bundle.json.",
+      "framework": "minimalism",
+      "sentence": "Juon kahvia.",
+      "inputTokens": [
+        "Juon",
+        "kahvia"
+      ],
+      "derivationStages": [
+        {
+          "relations": [],
+          "stageRecord": "The lexical workspace contains Finnish Juon, the first-person singular finite form of juoda ‘drink’, and kahvia, the singular partitive form of kahvi ‘coffee’. Inflection is retained within these whole-word lexical items rather than decomposed into separate pronounced morphemes. The noun is a bare mass nominal; this analysis does not posit an additional silent determiner. The lexical finite form will subsequently be licensed by finite T. No syntactic relation between the two objects has yet been established.",
+          "statement": "Select the verb and the singular partitive mass noun.",
+          "workspaceForest": [
+            {
+              "children": [],
+              "id": "verbBase",
+              "label": "V [juoda; finite form: first-person singular]",
+              "lineageId": "verbChain",
+              "word": "Juon"
+            },
+            {
+              "children": [],
+              "id": "coffee",
+              "label": "N [mass; singular; partitive]",
+              "word": "kahvia"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "argument": "coffee",
+                "selector": "verbBase"
+              },
+              "relation": "selection and internal theta-role",
+              "values": {
+                "interpretation": "coffee as the substance consumed",
+                "thetaRole": "Theme"
+              }
+            }
+          ],
+          "stageRecord": "External Merge combines the verb with kahvia, and the verb supplies the label of the resulting object. The nominal is the selected internal Theme of drinking, not an adjunct. Its mass interpretation allows a non-total quantity of coffee. The projection labels used here identify the heads supplying labels; they do not introduce independent X-bar levels or a phrase-structure template.",
+          "statement": "Merge the coffee nominal as the verb's internal argument.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "verbBase",
+                  "label": "V [juoda; finite form: first-person singular]",
+                  "lineageId": "verbChain",
+                  "word": "Juon"
+                },
+                {
+                  "children": [],
+                  "id": "coffee",
+                  "label": "N [mass; singular; partitive]",
+                  "word": "kahvia"
+                }
+              ],
+              "id": "verbPhrase",
+              "label": "V [projection]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "argument": "subjectBase",
+                "introducer": "lightVerbBase"
+              },
+              "relation": "external theta-role",
+              "values": {
+                "number": "singular",
+                "person": "first",
+                "thetaRole": "Agent"
+              }
+            },
+            {
+              "anchors": {
+                "licensor": "lightVerbBase",
+                "object": "coffee",
+                "predicate": "verbBase"
+              },
+              "relation": "structural partitive licensing",
+              "values": {
+                "case": "partitive",
+                "interpretation": "non-total quantity of the mass substance"
+              }
+            }
+          ],
+          "stageRecord": "A silent transitive light verb first merges with the verbal object. A silent first-person singular pronominal argument then merges at its edge. The light verb introduces that pronoun as the external Agent of drinking. In this analysis, transitive v also licenses the nominal's structural partitive Case. With an affirmative consumption predicate and a mass object, partitive presents the quantity consumed as non-total and does not impose a completed, bounded drinking event. The pronoun is a referential null subject, not an imperative subject; its compatibility with the finite first-person form will be established by T.",
+          "statement": "Introduce the external argument and license the partitive object.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "subjectBase",
+                  "label": "D [pro; first-person singular]",
+                  "lineageId": "subjectChain",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "lightVerbBase",
+                      "label": "v [transitive; external-argument introducer]",
+                      "lineageId": "lightVerbChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verbBase",
+                          "label": "V [juoda; finite form: first-person singular]",
+                          "lineageId": "verbChain",
+                          "word": "Juon"
+                        },
+                        {
+                          "children": [],
+                          "id": "coffee",
+                          "label": "N [mass; singular; partitive]",
+                          "word": "kahvia"
+                        }
+                      ],
+                      "id": "verbPhrase",
+                      "label": "V [projection]"
+                    }
+                  ],
+                  "id": "lightVerbIntermediate",
+                  "label": "v [projection]"
+                }
+              ],
+              "id": "lightVerbPhrase",
+              "label": "v [projection with external argument]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "complexHead": "lightVerbComplex",
+                "host": "lightVerbBase",
+                "landing": "verbAtLightVerb",
+                "source": "verbBase"
+              },
+              "relation": "V-to-v head movement and copy pronunciation",
+              "values": {
+                "operation": "head adjunction",
+                "pronunciation": "pronounce the landing occurrence and silence the source occurrence"
+              }
+            }
+          ],
+          "stageRecord": "The verb moves from its previously displayed complement position to v, forming a complex head. This adopts successive head adjunction for Finnish finite verb raising. The landing occurrence retains the whole lexical form Juon, while the source occurrence becomes unpronounced. Both occurrences remain syntactically represented and share the identity of the continuing lexical verb. The light verb itself has no overt exponent.",
+          "statement": "Raise the lexical verb to the light verb.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "subjectBase",
+                  "label": "D [pro; first-person singular]",
+                  "lineageId": "subjectChain",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verbAtLightVerb",
+                          "label": "V [juoda; finite form: first-person singular]",
+                          "lineageId": "verbChain",
+                          "word": "Juon"
+                        },
+                        {
+                          "children": [],
+                          "id": "lightVerbBase",
+                          "label": "v [transitive; external-argument introducer]",
+                          "lineageId": "lightVerbChain",
+                          "silent": true
+                        }
+                      ],
+                      "id": "lightVerbComplex",
+                      "label": "v [complex head]",
+                      "lineageId": "complexHeadChain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verbBase",
+                          "label": "V [juoda; finite form: first-person singular]",
+                          "lineageId": "verbChain",
+                          "silent": true,
+                          "word": "Juon"
+                        },
+                        {
+                          "children": [],
+                          "id": "coffee",
+                          "label": "N [mass; singular; partitive]",
+                          "word": "kahvia"
+                        }
+                      ],
+                      "id": "verbPhrase",
+                      "label": "V [projection]"
+                    }
+                  ],
+                  "id": "lightVerbIntermediate",
+                  "label": "v [projection]"
+                }
+              ],
+              "id": "lightVerbPhrase",
+              "label": "v [projection with external argument]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "goal": "subjectBase",
+                "probe": "tense"
+              },
+              "relation": "finite Agree and nominative licensing",
+              "values": {
+                "case": "nominative",
+                "number": "singular",
+                "person": "first",
+                "tense": "nonpast"
+              }
+            }
+          ],
+          "stageRecord": "Silent finite T merges with the light-verb projection and probes the accessible pronominal subject. Agree establishes first-person singular features on T and licenses nominative Case on the pronoun. The object is not an intervening subject candidate: it is lower than the external argument and its partitive Case has already been licensed. T carries nonpast tense and an edge requirement that remains to be satisfied by subject movement. Its nonpast value permits the ordinary present interpretation and contextually available future reference without requiring separate syntactic structures.",
+          "statement": "Merge finite T and establish subject agreement.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "tense",
+                  "label": "T [finite; nonpast; first-person singular; edge requirement]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subjectBase",
+                      "label": "D [pro; first-person singular]",
+                      "lineageId": "subjectChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "verbAtLightVerb",
+                              "label": "V [juoda; finite form: first-person singular]",
+                              "lineageId": "verbChain",
+                              "word": "Juon"
+                            },
+                            {
+                              "children": [],
+                              "id": "lightVerbBase",
+                              "label": "v [transitive; external-argument introducer]",
+                              "lineageId": "lightVerbChain",
+                              "silent": true
+                            }
+                          ],
+                          "id": "lightVerbComplex",
+                          "label": "v [complex head]",
+                          "lineageId": "complexHeadChain"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "verbBase",
+                              "label": "V [juoda; finite form: first-person singular]",
+                              "lineageId": "verbChain",
+                              "silent": true,
+                              "word": "Juon"
+                            },
+                            {
+                              "children": [],
+                              "id": "coffee",
+                              "label": "N [mass; singular; partitive]",
+                              "word": "kahvia"
+                            }
+                          ],
+                          "id": "verbPhrase",
+                          "label": "V [projection]"
+                        }
+                      ],
+                      "id": "lightVerbIntermediate",
+                      "label": "v [projection]"
+                    }
+                  ],
+                  "id": "lightVerbPhrase",
+                  "label": "v [projection with external argument]"
+                }
+              ],
+              "id": "tenseProjection",
+              "label": "T [projection]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "complexHead": "finiteComplex",
+                "host": "tense",
+                "landing": "lightVerbAtTense",
+                "pronouncedVerb": "verbAtTense",
+                "source": "lightVerbComplex"
+              },
+              "relation": "v-to-T head movement and copy pronunciation",
+              "values": {
+                "operation": "head adjunction",
+                "pronunciation": "pronounce the highest lexical-verb occurrence and silence the lower verbal complex"
+              }
+            },
+            {
+              "anchors": {
+                "finiteVerb": "verbAtTense",
+                "licensor": "tense"
+              },
+              "relation": "finite lexical-form licensing",
+              "values": {
+                "agreement": "first-person singular",
+                "lexicalForm": "Juon",
+                "morphologicalTreatment": "whole-word inflection",
+                "tense": "nonpast"
+              }
+            }
+          ],
+          "stageRecord": "The complex v head moves from its previously displayed position to T. The landing complex contains new occurrences of the lexical verb and the silent light verb; the lower complex is retained but becomes entirely unpronounced. This completes the successive V-to-v-to-T path rather than moving the lexical verb directly across v. At T, the finite lexical form Juon is licensed by the first-person singular nonpast specification already established through agreement. Because Juon was selected as a whole inflected word, this is feature licensing, not an operation concatenating a separately represented suffix. Only the highest lexical-verb occurrence is pronounced.",
+          "statement": "Raise the verbal complex to finite T.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verbAtTense",
+                          "label": "V [juoda; finite form: first-person singular]",
+                          "lineageId": "verbChain",
+                          "word": "Juon"
+                        },
+                        {
+                          "children": [],
+                          "id": "lightVerbAtTenseTerminal",
+                          "label": "v [transitive; external-argument introducer]",
+                          "lineageId": "lightVerbChain",
+                          "silent": true
+                        }
+                      ],
+                      "id": "lightVerbAtTense",
+                      "label": "v [complex head]",
+                      "lineageId": "complexHeadChain"
+                    },
+                    {
+                      "children": [],
+                      "id": "tense",
+                      "label": "T [finite; nonpast; first-person singular; edge requirement]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "finiteComplex",
+                  "label": "T [complex head]"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subjectBase",
+                      "label": "D [pro; first-person singular]",
+                      "lineageId": "subjectChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "verbAtLightVerb",
+                              "label": "V [juoda; finite form: first-person singular]",
+                              "lineageId": "verbChain",
+                              "silent": true,
+                              "word": "Juon"
+                            },
+                            {
+                              "children": [],
+                              "id": "lightVerbBase",
+                              "label": "v [transitive; external-argument introducer]",
+                              "lineageId": "lightVerbChain",
+                              "silent": true
+                            }
+                          ],
+                          "id": "lightVerbComplex",
+                          "label": "v [complex head]",
+                          "lineageId": "complexHeadChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "verbBase",
+                              "label": "V [juoda; finite form: first-person singular]",
+                              "lineageId": "verbChain",
+                              "silent": true,
+                              "word": "Juon"
+                            },
+                            {
+                              "children": [],
+                              "id": "coffee",
+                              "label": "N [mass; singular; partitive]",
+                              "word": "kahvia"
+                            }
+                          ],
+                          "id": "verbPhrase",
+                          "label": "V [projection]"
+                        }
+                      ],
+                      "id": "lightVerbIntermediate",
+                      "label": "v [projection]"
+                    }
+                  ],
+                  "id": "lightVerbPhrase",
+                  "label": "v [projection with external argument]"
+                }
+              ],
+              "id": "tenseProjection",
+              "label": "T [projection]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "attractor": "tense",
+                "landing": "subjectAtTense",
+                "resultingProjection": "subjectTenseProjection",
+                "source": "subjectBase"
+              },
+              "relation": "subject A-movement and edge satisfaction",
+              "values": {
+                "operation": "Internal Merge",
+                "pronunciation": "both occurrences remain silent",
+                "requirement": "subject edge of T"
+              }
+            },
+            {
+              "anchors": {
+                "agreementHead": "tense",
+                "finiteVerb": "verbAtTense",
+                "nullSubject": "subjectAtTense"
+              },
+              "relation": "referential null-subject licensing",
+              "values": {
+                "number": "singular",
+                "person": "first",
+                "reference": "the speaker"
+              }
+            }
+          ],
+          "stageRecord": "Internal Merge copies the pronoun from the previously displayed external-argument position to the edge of the T projection, satisfying T's subject-edge requirement. The lower occurrence remains in its theta-position. Both occurrences are silent because the moving object is pro, not an overt pronoun whose upper copy must be pronounced. Finnish permits this referential first-person null subject: finite first-person singular agreement identifies it as the speaker. Habitual and ongoing interpretations of drinking are compatible with this same structure and do not motivate duplicate analyses.",
+          "statement": "Move the null subject to the edge of T and license its omission.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "subjectAtTense",
+                  "label": "D [pro; first-person singular]",
+                  "lineageId": "subjectChain",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "verbAtTense",
+                              "label": "V [juoda; finite form: first-person singular]",
+                              "lineageId": "verbChain",
+                              "word": "Juon"
+                            },
+                            {
+                              "children": [],
+                              "id": "lightVerbAtTenseTerminal",
+                              "label": "v [transitive; external-argument introducer]",
+                              "lineageId": "lightVerbChain",
+                              "silent": true
+                            }
+                          ],
+                          "id": "lightVerbAtTense",
+                          "label": "v [complex head]",
+                          "lineageId": "complexHeadChain"
+                        },
+                        {
+                          "children": [],
+                          "id": "tense",
+                          "label": "T [finite; nonpast; first-person singular; edge requirement]",
+                          "silent": true
+                        }
+                      ],
+                      "id": "finiteComplex",
+                      "label": "T [complex head]"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "subjectBase",
+                          "label": "D [pro; first-person singular]",
+                          "lineageId": "subjectChain",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "verbAtLightVerb",
+                                  "label": "V [juoda; finite form: first-person singular]",
+                                  "lineageId": "verbChain",
+                                  "silent": true,
+                                  "word": "Juon"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "lightVerbBase",
+                                  "label": "v [transitive; external-argument introducer]",
+                                  "lineageId": "lightVerbChain",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "lightVerbComplex",
+                              "label": "v [complex head]",
+                              "lineageId": "complexHeadChain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "verbBase",
+                                  "label": "V [juoda; finite form: first-person singular]",
+                                  "lineageId": "verbChain",
+                                  "silent": true,
+                                  "word": "Juon"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "coffee",
+                                  "label": "N [mass; singular; partitive]",
+                                  "word": "kahvia"
+                                }
+                              ],
+                              "id": "verbPhrase",
+                              "label": "V [projection]"
+                            }
+                          ],
+                          "id": "lightVerbIntermediate",
+                          "label": "v [projection]"
+                        }
+                      ],
+                      "id": "lightVerbPhrase",
+                      "label": "v [projection with external argument]"
+                    }
+                  ],
+                  "id": "tenseProjection",
+                  "label": "T [projection]"
+                }
+              ],
+              "id": "subjectTenseProjection",
+              "label": "T [projection with subject edge]"
+            }
+          ]
+        },
+        {
+          "relations": [
+            {
+              "anchors": {
+                "clauseTyper": "declarativeC",
+                "typedComplement": "subjectTenseProjection"
+              },
+              "relation": "declarative clause typing",
+              "values": {
+                "clauseType": "declarative"
+              }
+            }
+          ],
+          "stageRecord": "A silent declarative C merges with the completed T projection and supplies declarative clause type. No question or focus movement is motivated by this input. The resulting structure contains a speaker-denoting null subject, a finite verb raised to T, and an in-situ singular partitive mass object. Its ordinary interpretation is ‘I drink coffee’ or ‘I am drinking coffee’. The only pronounced terminals, in tree order, are Juon and kahvia; punctuation requires no additional syntactic terminal.",
+          "statement": "Complete the declarative clause Juon kahvia.",
+          "workspaceForest": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "declarativeC",
+                  "label": "C [declarative]",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "subjectAtTense",
+                      "label": "D [pro; first-person singular]",
+                      "lineageId": "subjectChain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "verbAtTense",
+                                  "label": "V [juoda; finite form: first-person singular]",
+                                  "lineageId": "verbChain",
+                                  "word": "Juon"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "lightVerbAtTenseTerminal",
+                                  "label": "v [transitive; external-argument introducer]",
+                                  "lineageId": "lightVerbChain",
+                                  "silent": true
+                                }
+                              ],
+                              "id": "lightVerbAtTense",
+                              "label": "v [complex head]",
+                              "lineageId": "complexHeadChain"
+                            },
+                            {
+                              "children": [],
+                              "id": "tense",
+                              "label": "T [finite; nonpast; first-person singular; edge requirement]",
+                              "silent": true
+                            }
+                          ],
+                          "id": "finiteComplex",
+                          "label": "T [complex head]"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "subjectBase",
+                              "label": "D [pro; first-person singular]",
+                              "lineageId": "subjectChain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "verbAtLightVerb",
+                                      "label": "V [juoda; finite form: first-person singular]",
+                                      "lineageId": "verbChain",
+                                      "silent": true,
+                                      "word": "Juon"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "lightVerbBase",
+                                      "label": "v [transitive; external-argument introducer]",
+                                      "lineageId": "lightVerbChain",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "lightVerbComplex",
+                                  "label": "v [complex head]",
+                                  "lineageId": "complexHeadChain",
+                                  "silent": true
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "verbBase",
+                                      "label": "V [juoda; finite form: first-person singular]",
+                                      "lineageId": "verbChain",
+                                      "silent": true,
+                                      "word": "Juon"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "coffee",
+                                      "label": "N [mass; singular; partitive]",
+                                      "word": "kahvia"
+                                    }
+                                  ],
+                                  "id": "verbPhrase",
+                                  "label": "V [projection]"
+                                }
+                              ],
+                              "id": "lightVerbIntermediate",
+                              "label": "v [projection]"
+                            }
+                          ],
+                          "id": "lightVerbPhrase",
+                          "label": "v [projection with external argument]"
+                        }
+                      ],
+                      "id": "tenseProjection",
+                      "label": "T [projection]"
+                    }
+                  ],
+                  "id": "subjectTenseProjection",
+                  "label": "T [projection with subject edge]"
+                }
+              ],
+              "id": "completedClause",
+              "label": "C [declarative projection]"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

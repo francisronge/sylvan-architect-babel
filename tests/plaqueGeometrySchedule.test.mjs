@@ -10,10 +10,11 @@ import {
 } from '../replay/stageCamera.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { persistentCaseMovement } from './helpers/persistentCaseMovement.mjs';
-import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
+import { planItemRelationRefs, resolveDisplayedTrajectoryAttachments } from '../replay/relations/renderPlan.ts';
 import {
   caseAssignmentClears,
   caseAssignmentSource,
+  claimIdentity,
   collectionPlaqueClears,
   plaqueIdentity,
   plaquesOverlap,
@@ -101,6 +102,18 @@ test('persistent Case has a pocket before, during and after an exact occurrence 
     }
     assert.equal(JSON.stringify(input), original);
   }
+});
+
+test('a claim transferred to a lower occurrence keeps one claim identity before, at and after the movement', () => {
+  // On 23 October the hold pass lost such a Case plaque at the movement and let it jump
+  // beside its still anchor (bughunt2 06-en-pseudocleft, 52-ja-relative-topic).
+  const replay = prepareReplay({ ...persistentCaseMovement(true), includePlayback: true });
+  const [authored, carried] = replay.relationRenderPlan.frames.map(frame => frame.items.find(item => item.pathStyle === 'case-assignment'));
+  assert.deepEqual(carried.occurrenceTransfers?.map(transfer => [transfer.fromNodeId, transfer.toNodeId]), [['verb', 'lower']]);
+  const at = played => resolveDisplayedTrajectoryAttachments(carried, () => undefined, { stageIndex: 1, playedRelationIndices: new Set(played) });
+  assert.deepEqual([at([]).fromNodeId, at([0]).fromNodeId], ['verb', 'lower'], 'Replay shows the earlier occurrence until the movement');
+  assert.equal(new Set([authored, at([]), at([0]), carried].map(claimIdentity)).size, 1);
+  assert.equal(new Set([authored, carried].map(plaqueIdentity)).size, 2, 'allocation still ends a lifetime where the occurrence changes');
 });
 
 for (const [width, direction] of [[1600, 'ltr'], [390, 'rtl']]) {

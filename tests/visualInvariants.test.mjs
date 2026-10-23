@@ -213,29 +213,44 @@ test('control: parent-centring reports a parent off the midpoint of its outermos
 });
 
 test('control: mark-motion reports a plaque that leaves a pocket nothing new occupies, beside its still anchor', () => {
+  // Reserves are pocket occupants (replay/relations/pocketHold.ts): allocation's boxes for what a frame paints.
   const word = (id, x, y) => text(id, 'word', box(x, y, 80, 40));
-  const plaque = (x, y, anchor = { x: 0, y: 140 }) => ({ id: 'plaque(0:0 theta Theme)@read', text: 'theta Theme', rect: box(x, y, 430, 126),
-    radius: 14, claims: ['0:0'], anchor });
+  const label = (id, x, y, width = 80, height = 40) => ({ ...box(x, y, width, height), blocksConnectors: true, connectorAttachment: `${id}:terminal` });
+  const key = 'theta Theme';
+  const plaque = (x, y, anchor = { x: 0, y: 140 }, extra = {}) => ({ id: 'plaque(0:0 theta Theme)@read', text: 'theta Theme', rect: box(x, y, 430, 126),
+    radius: 14, claims: ['0:0'], anchor, key, ...extra });
   const still = [word('the', 900, 100), word('book', 1100, 100)];
-  const frame = (number, extra) => ({ ...blank(0.2), frame: number, texts: [word('read', -40, 100), ...still], ...extra });
+  const frame = (number, extra) => ({ ...blank(0.2), frame: number, texts: [word('read', -40, 100), ...still], reserves: [], ...extra });
   const before = frame(29, { plaques: [plaque(-540, 55)] }), after = frame(30, { plaques: [plaque(110, 55)] });
-  assert.deepEqual(checkMarkMotion(before, after).map(found => [found.rule, found.subtype, found.frame, found.subject, found.measure]),
-    [['mark-motion', 'plaque-teleport', '29>30', 'plaque(0:0 theta Theme)@read', 650]]);
+  const found = (earlier, later) => checkMarkMotion(earlier, later).map(item => [item.rule, item.subtype, item.frame, item.subject, item.measure]);
+  assert.deepEqual(found(before, after), [['mark-motion', 'plaque-teleport', '29>30', 'plaque(0:0 theta Theme)@read', 650]]);
   assert.deepEqual(checkMarkMotion(before, frame(30, { plaques: [plaque(-538, 55)] })), [], 'a shift within motionUnits');
-  // New text, a moved word or a newly drawn mark's stroke in the old pocket moves the plaque at that step.
-  assert.deepEqual(checkMarkMotion(before, { ...after, texts: [...after.texts, word('new', -400, 90)] }), []);
-  assert.deepEqual(checkMarkMotion(before, { ...after, texts: [word('read', -40, 100), word('the', 900, 100), word('book', -300, 100)] }), []);
-  const curve = { id: 'trajectory-path(1:0)#1', claims: ['1:0'], halfWidth: 5, paths: [[{ x: -800, y: 30 }, { x: 0, y: 30 }]] };
-  assert.deepEqual(checkMarkMotion(before, { ...after, inks: [curve] }), []);
-  assert.equal(checkMarkMotion({ ...before, inks: [curve] }, { ...after, inks: [curve] }).length, 1, 'a curve already there is not new');
-  // A reserved connector stem appearing above the pocket occupies it; so would another plaque.
-  assert.deepEqual(checkMarkMotion(before, { ...after, reserves: [{ id: 'stem(2:0)#1', claims: ['2:0'], rect: box(-400, -200, 84, 900) }] }), []);
-  // Its anchor moved against the tree, or the far end of its own leader moved.
+  // The old pocket spans x -540..-110 and y 55..181; carrying keeps the plaque gap (24 units) from what the later frame newly paints.
+  assert.deepEqual(checkMarkMotion(before, { ...after, reserves: [label('new', -90, 90)] }), [], 'a new word 20 units away');
+  assert.equal(checkMarkMotion(before, { ...after, reserves: [label('new', -80, 90)] }).length, 1, 'a new word 30 units away');
+  assert.equal(checkMarkMotion({ ...before, reserves: [label('old', -90, 90)] }, { ...after, reserves: [label('old', -90, 90)] }).length, 1,
+    'a word already there is not new');
+  assert.deepEqual(checkMarkMotion({ ...before, reserves: [label('moved', 900, 90)] }, { ...after, reserves: [label('moved', -90, 90)] }), [],
+    'a word that moved into the pocket');
+  // A pocket accepted at half the gap keeps it from syntax, and the full gap from trajectories and plaques.
+  const half = { pocket: { ...box(-540, 55, 430, 126), syntaxGap: 12 } };
+  const trajectory = { ...box(-90, 90, 10, 10), trajectory: true };
+  assert.equal(checkMarkMotion(frame(29, { plaques: [plaque(-540, 55, undefined, half)] }), { ...after, reserves: [label('new', -90, 90)] }).length, 1);
+  assert.deepEqual(checkMarkMotion(frame(29, { plaques: [plaque(-540, 55, undefined, half)] }), { ...after, reserves: [trajectory] }), []);
+  // Its own Case arrow: a new label across the route it drew moves it; so does a route that starts or leaves a moved source.
+  const curve = { source: { x: 300, y: 40 }, control1: { x: 310, y: 40 }, control2: { x: 330, y: 40 }, target: { x: 340, y: 40 } };
+  const route = (far = { x: 900, y: 0 }) => ({ ...box(292, 32, 56, 16), curve, curvePadding: 8, owner: key,
+    route: { key: 'case@93', far, source: 'assigner:terminal' } });
+  const routed = { ...before, reserves: [route()] };
+  assert.equal(checkMarkMotion(routed, { ...after, reserves: [route()] }).length, 1, 'its own unchanged route does not block it');
+  assert.deepEqual(checkMarkMotion(routed, { ...after, reserves: [route(), label('across', 310, 30, 20, 20)] }), [], 'a new label across its route');
+  assert.equal(checkMarkMotion(routed, { ...after, reserves: [route(), label('assigner', 310, 30, 20, 20)] }).length, 1,
+    'the label its route leaves');
+  assert.deepEqual(checkMarkMotion(routed, { ...after, reserves: [route({ x: 960, y: 0 })] }), [], 'its route leaves a moved source');
+  assert.deepEqual(checkMarkMotion(before, { ...after, reserves: [route()] }), [], 'its route starts');
+  // Its anchor moved against the tree.
   const tree = [word('read', 160, 100), ...still];
   assert.deepEqual(checkMarkMotion(before, { ...after, texts: tree, plaques: [plaque(310, 55, { x: 200, y: 140 })] }), []);
-  const leader = (x, end) => ({ id: 'leader(0:0)case', claims: ['0:0'], paths: [[{ x, y: 0 }, { x: end, y: 60 }]] });
-  assert.deepEqual(checkMarkMotion({ ...before, inks: [leader(900, -300)] }, { ...after, inks: [leader(-1200, 300)] }), []);
-  assert.equal(checkMarkMotion({ ...before, inks: [leader(900, -300)] }, { ...after, inks: [leader(900, 300)] }).length, 1);
   // Across a stage boundary a common translation of the whole tree is the camera's
   // carry, not anchor motion; within a stage the camera holds still.
   const carried = { ...after, stage: 1, texts: [word('read', 960, 100), word('the', 1900, 100), word('book', 2100, 100)],
@@ -244,6 +259,12 @@ test('control: mark-motion reports a plaque that leaves a pocket nothing new occ
   assert.deepEqual(checkMarkMotion({ ...before, stage: 0 }, { ...carried, plaques: [plaque(460, 55, { x: 1000, y: 140 })] }), [],
     'carried with the tree');
   assert.deepEqual(checkMarkMotion({ ...before, stage: 1 }, carried), [], 'the same stage: the anchor itself moved');
+  // A proximity plaque beyond its nearby reach returns within it once what the earlier frame had in the nearer pocket is gone.
+  const remote = frame(29, { plaques: [plaque(-1500, 55)], reserves: [label('gone', 150, 80, 50, 40)] });
+  assert.deepEqual(checkMarkMotion(remote, after), []);
+  assert.equal(checkMarkMotion(remote, { ...after, reserves: [label('gone', 150, 80, 50, 40)] }).length, 1, 'what blocked it is still there');
+  assert.equal(checkMarkMotion({ ...remote, plaques: [plaque(-1500, 55, undefined, { joined: true })] },
+    { ...after, plaques: [plaque(110, 55, undefined, { joined: true })] }).length, 1, 'a plaque its own connector joins to syntax');
 });
 
 test('mark-motion: plaques keep their pockets where main moved them beside a still anchor with nothing new in the way', () => {

@@ -193,8 +193,11 @@ export function plaqueLayoutViewportKey(input: Pick<PlaqueLayoutInput, 'steps' |
   return JSON.stringify(widths);
 }
 
-/** Planning and allocation both run here, with strict native-metric lookups. */
-export function runPlaqueLayoutJob(job: PlaqueLayoutJob, onProgress?: (progress: PlaqueLayoutProgress) => void): PlaqueLayoutResult {
+/** Planning and allocation both run here, with strict native-metric lookups. An
+ * in-process audit may ask the schedule to keep its `pocketOccupants`
+ * (stageCamera.ts, replayPocketOccupants). */
+export function runPlaqueLayoutJob(job: PlaqueLayoutJob, onProgress?: (progress: PlaqueLayoutProgress) => void,
+  { pocketOccupants = false }: { pocketOccupants?: boolean } = {}): PlaqueLayoutResult {
   if (job.inputKey !== valueKey(job.input)) throw new Error('Replay layout job input changed.');
   const required = <T>(map: Map<string, T>, key: string): T => {
     if (!map.has(key)) throw new Error('Missing measured text in Replay layout.');
@@ -252,7 +255,7 @@ export function runPlaqueLayoutJob(job: PlaqueLayoutJob, onProgress?: (progress:
   const preparedStages: number[] = [];
   const schedule = buildReplayPlaqueSchedule(input, stages, (schedule, stage) => {
     preparedStages.push(stage); publish(schedule, [...preparedStages]);
-  });
+  }, { pocketOccupants });
   return { requestKey: job.requestKey, measurementKey, schedule, coordinates };
 }
 

@@ -35,9 +35,11 @@ export function panelText({ buildReplayPanelContent, buildReplayDisplayDetailBlo
   });
 }
 
-/** One normalized frame (visualRules' model) and its panel, in a stable form. */
+/** One normalized frame (visualRules' model) and its panel, in a stable form. A
+ * plaque's identity key and allocated pocket describe its allocation, not what it paints. */
 export function canonicalFrame(frame, panel = null) {
-  return JSON.stringify({ zoom: frame.zoom, chrome: frame.chrome, texts: byId(frame.texts), plaques: byId(frame.plaques),
+  const plaques = frame.plaques.map(({ key: _key, pocket: _pocket, ...plaque }) => plaque);
+  return JSON.stringify({ zoom: frame.zoom, chrome: frame.chrome, texts: byId(frame.texts), plaques: byId(plaques),
     lines: byId(frame.lines), marks: byId(frame.marks ?? []), panel }, round);
 }
 

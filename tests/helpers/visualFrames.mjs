@@ -28,13 +28,7 @@ import { prepareTreeLabelRuns } from '../../replay/prepareTreeLabelRuns.ts';
 import { fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations/fallbackGeometry.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { paintedShift } from '../../replay/cameraCarry.ts';
-import { caseAssignmentSource, plaqueConnectorObstacles, plaqueTreeObstacles, projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
-import {
-  caseFeatureComposition, collectionPlaque, featurePlaqueAssignment, featureRowKey, pathFeatureRow
-} from '../../replay/relations/featureComposition.ts';
-import { prepareCasePlaqueRows } from '../../replay/relations/plaqueTextLayout.ts';
-import { caseAssignmentPlaquePath, featureCollectionPlaquePath } from '../../replay/relations/overlayGeometry.ts';
-import { collectionPathAttachment } from '../../components/collectionPaths.ts';
+import { projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
 import { projectVisibleAnchorSetOrganization } from '../../replay/relations/relationFrame.ts';
 import {
   isPlanItemRevealed, planItemDependencyNodeIds, planItemRelationRefs, resolveDisplayedTrajectoryAttachments
@@ -282,7 +276,7 @@ function layoutMeasuredScenesUncached(visual, { width, height }, metrics) {
   const { prepared } = visual;
   return layoutReplayFrames({ steps: prepared.playbackSteps, stages: prepared.replayDerivationFrames, width, height,
     direction: visual.direction, measured: { plan: prepared.relationRenderPlan, protectedNodeIds: visual.protectedNodeIds,
-      treeLabelRuns: visual.treeLabelRuns, ...metrics } }, MODULES);
+      treeLabelRuns: visual.treeLabelRuns, pocketOccupants: true, ...metrics } }, MODULES);
 }
 
 function layoutGroup(visual, viewports, only, Element) {
@@ -303,11 +297,14 @@ function layoutGroup(visual, viewports, only, Element) {
         uiBounds: viewportObstacles(viewport), stageCameraBounds: bounds, stagePlaqueContainmentBounds: containment,
         completedReplayStep: completedStep, g: harness.group, fitFallbackOverlays: (k, view) => { fitted = { k, view }; },
         derivationFrameFitNodes: [...nodes.values()], overlayFitBounds: null, visibleNodes: [...nodes.values()] } }));
-      const marks = relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule: scene.schedule, fitted, runs });
-      return { frame: stepIndex + 1, viewport: viewport.name, zoom: fitted.k, rowHeight: TREE_ROW_HEIGHT, stage, painted: paintedNodes(painted.nodes), texts: [...painted.texts, ...marks.texts],
+      const pockets = camera.replayPocketOccupants(scene.schedule, stepIndex);
+      const marks = relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule: scene.schedule, fitted, runs, pockets });
+      const frame = { frame: stepIndex + 1, viewport: viewport.name, zoom: fitted.k, rowHeight: TREE_ROW_HEIGHT, stage, painted: paintedNodes(painted.nodes), texts: [...painted.texts, ...marks.texts],
         chrome: frameChrome(viewport, harness.session.cameraRuntime.deferred),
-        plaques: marks.plaques, lines: [...painted.lines, ...marks.lines], marks: marks.marks, inks: marks.inks,
-        reserves: [...syntaxReserves(painted.nodes), ...marks.reserves] };
+        plaques: marks.plaques, lines: [...painted.lines, ...marks.lines], marks: marks.marks };
+      // mark-motion alone reads them, for few frames; build them on first read.
+      let reserves;
+      return Object.defineProperty(frame, 'reserves', { enumerable: true, get: () => reserves ??= pockets?.occupants() ?? [] });
     });
   });
 }
@@ -316,8 +313,8 @@ function layoutGroup(visual, viewports, only, Element) {
  * binds them for this step and refit at the Fit as fitFallbackOverlays does,
  * and `marks`: every other revealed relation mark as bound (arrows, badges,
  * lenses, shapes), for the layoutSnapshot.mjs fingerprint. */
-function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule, fitted, runs }) {
-  const stage = step.replayFrameIndex, none = { texts: [], plaques: [], lines: [], marks: [], inks: [], reserves: [] };
+function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule, fitted, runs, pockets }) {
+  const stage = step.replayFrameIndex, none = { texts: [], plaques: [], lines: [], marks: [] };
   if (!plan?.frames[stage]) return none;
   const steps = visual.prepared.playbackSteps, played = new Set();
   for (let index = 0; index <= stepIndex; index++) {
@@ -355,7 +352,8 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
   const revealed = new Set(items.flatMap((item, index) => isPlanItemRevealed(item, stage, played, active) ? [index] : []));
   const shown = index => revealed.has(index) && planItemDependencyNodeIds(items[index]).every(id => Boolean(resolveOverlayAnchor(id)));
   const visiblePlacements = [...placements].filter(([index]) => items[index] && shown(index));
-  const plaques = visiblePlacements.map(([index, box]) => plaqueRecord(items[index], box, laidOut.get(box.attachmentNodeId)));
+  const plaques = visiblePlacements.map(([index, box]) => ({ ...plaqueRecord(items[index], box, laidOut.get(box.attachmentNodeId)),
+    ...pockets ? { key: pockets.owner(index), pocket: pockets.pocket(index) } : {} }));
   const markerScale = markerScaleAtZoom(fitted.k), maxY = d3.max(all, node => node.y) ?? 0;
   const textTop = d3.min(painted.texts, text => text.cell.y) ?? TRAJECTORY_ROUTES.textTopFallbackY;
   const lanes = RELATION_LANES_BELOW_DEEPEST_NODE;
@@ -367,11 +365,7 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
       connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase, direction: visual.direction, ...extra });
   const drawable = createPrimitiveVisibility(items, resolveOverlayAnchor);
   const shownMarks = bound => bound.primitives.filter(primitive => revealed.has(primitive.itemIndex) && drawable(primitive));
-  const leaders = primitives => plaqueLeaderInks({ primitives, items, placements: new Map(visiblePlacements), revealed, laidOut, cells });
-  if (!items.some(item => item.kind === 'fallback')) {
-    const shown = shownMarks(bind({})), marks = boundMarks(shown, items), { inks, composed } = leaders(shown);
-    return { ...none, plaques, marks, inks: [...markInks(marks, composed), ...inks] };
-  }
+  if (!items.some(item => item.kind === 'fallback')) return { ...none, plaques, marks: boundMarks(shownMarks(bind({})), items) };
   // measureFallbackLabels: plain label cells for every laid-out node.
   const labelRects = new Map(all.filter(node => !canvas.isSyntheticWorkspaceRootNode(node) && !isUnderTriangulation(node)).map(node => {
     const run = isCategory(node) ? { kind: 'category', text: node.data.label || '', lines: categoryTextLayout(node.data.label || '', measureCategoryText).lines, indices: [] }
@@ -407,84 +401,7 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
       nodes: primitive.witnessNodeIds.flatMap(id => laidOut.get(id)?.descendants().map(display.getNodeId) ?? [id]),
       paths: pathPolylines(segment.d), halfWidth: (segment.route === 'direct' ? 1.5 : 1.9) * scale / 2 };
   });
-  // Plaque allocation reserves the column below a neutral link's witnesses (plaqueConnectorObstacles).
-  const reserves = [...new Map(marks.filter(primitive => primitive.type === 'segment').map(primitive => [primitive.itemIndex, primitive])).values()]
-    .flatMap(primitive => plaqueConnectorObstacles([items[primitive.itemIndex]], painted.nodes).map((box, index) => ({
-      id: `stem(${refsOf(items[primitive.itemIndex]).join('/')})#${index + 1}`, claims: refsOf(items[primitive.itemIndex]), rect: rect(box.x, box.y, box.width, box.height) })));
-  const shownBound = boundMarks(marks, items), { inks, composed } = leaders(marks);
-  return { texts, plaques, lines, marks: shownBound, inks: [...markInks(shownBound, composed), ...inks], reserves };
-}
-
-/** The strokes of bound marks for the rules' `inks`: a path's polylines, a
- * region's outline or a badge's point. Claims come from the mark's id, `type(claims)#n`.
- * The painter draws a Case or collection path composed into a plaque as that
- * plaque's leader instead (plaqueLeaderInks), so `composed` items are left out. */
-function markInks(marks, composed = new Set()) {
-  return marks.filter(mark => !(mark.type === 'shape-path' && composed.has(mark.itemIndex))).flatMap(mark => {
-    const claims = /\(([^)]*)\)/.exec(mark.id)?.[1].split('/').filter(Boolean) ?? [];
-    let paths = [];
-    try { paths = typeof mark.d === 'string' ? pathPolylines(mark.d) : []; } catch { paths = []; }
-    const { x, y, width, height } = mark;
-    if (!paths.length && Number.isFinite(x) && Number.isFinite(y)) paths = Number.isFinite(width) && Number.isFinite(height)
-      ? [[{ x, y }, { x: x + width, y }, { x: x + width, y: y + height }, { x, y: y + height }, { x, y }]] : [[{ x, y }]];
-    // Plaque allocation reserves five units beside a trajectory's sampled path.
-    return paths.length ? [{ id: mark.id, claims, paths, halfWidth: mark.type === 'trajectory-path' ? 5 : 1.5 }] : [];
-  });
-}
-
-/** The Case arrows and collectors painted with plaques (caseFeatureDrawing.ts and
- * plaqueDrawing.ts) as inks with their plaque's claims, from the frame's label
- * cells, and the indices of the items they compose. */
-function plaqueLeaderInks({ primitives, items, placements, revealed, laidOut, cells }) {
-  const cellsOf = node => [cells.get(`${display.getNodeId(node)}:category`), cells.get(`${display.getNodeId(node)}:word`)].filter(Boolean);
-  const labelRect = id => { const node = laidOut.get(id); return node ? cellsOf(node)[0] ?? null : null; };
-  const subtreeRect = id => {
-    const rects = laidOut.get(id)?.descendants().flatMap(cellsOf) ?? [];
-    return rects.length ? union(rects) : null;
-  };
-  const anchorRect = id => labelRect(id) ?? subtreeRect(id);
-  const inks = [], composed = new Set();
-  const add = (id, claims, d) => {
-    let paths = [];
-    try { paths = pathPolylines(d); } catch { paths = []; }
-    if (paths.length) inks.push({ id, claims, paths, halfWidth: 1.5 });
-  };
-  for (const [index, placement] of placements) {
-    const item = items[index], claims = refsOf(item);
-    if (item?.kind === 'directed-path' && item.pathStyle === 'case-assignment') {
-      const composition = caseFeatureComposition(items, index);
-      if (!composition) continue;
-      const rowLayout = prepareCasePlaqueRows(composition.rows), rowTargets = new Map();
-      const box = { x: placement.x, y: placement.y, width: rowLayout.width, height: rowLayout.height };
-      rowLayout.rows.forEach((row, rowIndex) => composition.rows[rowIndex].ownerIndices.forEach(owner => rowTargets.set(owner, box.y + row.y)));
-      composed.add(index);
-      const assigner = laidOut.get(composition.assignment.fromNodeId), source = assigner ? caseAssignmentSource(assigner) : null;
-      const sourceId = source ? display.getNodeId(source) : composition.assignment.fromNodeId;
-      const sourceRect = source && !source.children?.length && source.data.word ? subtreeRect(sourceId) ?? anchorRect(sourceId) : anchorRect(sourceId);
-      if (revealed.has(index) && sourceRect && anchorRect(composition.assignment.toNodeId))
-        add(`leader(${claims.join('/')})case`, claims, caseAssignmentPlaquePath(sourceRect, box, rowTargets.get(index)));
-      composition.collections.forEach(({ item: path, index: pathIndex }, lane) => {
-        composed.add(pathIndex);
-        const sourceRect = anchorRect(path.toNodeId), attachment = collectionPathAttachment(placement, path);
-        if (revealed.has(pathIndex) && sourceRect && anchorRect(path.fromNodeId)) add(`leader(${claims.join('/')})${refsOf(path).join('/')}`,
-          claims, featureCollectionPlaquePath(box, rowTargets.get(pathIndex), sourceRect, lane, attachment?.edge, attachment?.portX));
-      });
-    } else if (item?.kind === 'node-plaque' && item.plaqueStyle === 'feature' && featurePlaqueAssignment(items, index) === undefined) {
-      const layout = primitives.find(primitive => primitive.type === 'plaque' && primitive.itemIndex === index)?.textLayout;
-      if (!layout) continue;
-      items.forEach((path, pathIndex) => {
-        if (path.kind !== 'directed-path' || path.pathStyle !== 'case-agree' || collectionPlaque(items, path)?.index !== index) return;
-        composed.add(pathIndex);
-        const rowIndex = item.rows.findIndex(row => featureRowKey(row) === featureRowKey(pathFeatureRow(path)));
-        const row = layout.rows.find(candidate => candidate.rowIndex === rowIndex), sourceRect = anchorRect(path.toNodeId);
-        if (!revealed.has(pathIndex) || !row?.lines.length || !sourceRect) return;
-        const first = row.lines[0], last = row.lines.at(-1), attachment = collectionPathAttachment(placement, path);
-        add(`leader(${claims.join('/')})${refsOf(path).join('/')}`, claims, featureCollectionPlaquePath({ ...placement, width: layout.width,
-          height: layout.height }, placement.y + (first.y - first.ascent + last.y + last.descent) / 2, sourceRect, 0, attachment?.edge, attachment?.portX));
-      });
-    }
-  }
-  return { inks, composed };
+  return { texts, plaques, lines, marks: boundMarks(marks, items) };
 }
 
 /** Every bound mark except plaques, neutral role labels and connectors (recorded
@@ -560,17 +477,6 @@ export function layoutWidthFindings(visual, viewports, { canopy = true, metrics 
       }
     });
     return [...worst.values()];
-  });
-}
-
-/** The label and word boxes plaque allocation reserves for painted syntax
- * (plaqueTreeObstacles), which reach past the painted glyphs. */
-function syntaxReserves(nodes) {
-  const counts = new Map();
-  return plaqueTreeObstacles(nodes, measureCategoryText).filter(box => box.connectorAttachment).map(box => {
-    const n = (counts.get(box.connectorAttachment) ?? 0) + 1;
-    counts.set(box.connectorAttachment, n);
-    return { id: `reserve(${box.connectorAttachment})#${n}`, claims: [], rect: rect(box.x, box.y, box.width, box.height) };
   });
 }
 
