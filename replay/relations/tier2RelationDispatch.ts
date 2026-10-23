@@ -361,7 +361,8 @@ export const dispatchRelationClaims = (
     activeLens,
     registry = productionRelationRegistry,
     synonymIndex = DEFAULT_SYNONYM_INDEX,
-    structuralMovement
+    structuralMovement,
+    drawnMovements
   } = input;
   const authoredTier1Dispatch = dispatchRelation({
     registry,
@@ -404,6 +405,16 @@ export const dispatchRelationClaims = (
       ...lookupTier2SynonymCandidates(synonymIndex, 'role', key)].some(concept => declaredPrimaryAnchorConcepts.has(concept));
   const indexes = indexTier2Forests(evidence);
   const evaluations = evaluateClaims(evidence, indexes);
+  // An unregistered claim restating a movement an earlier claim of its stage
+  // already draws keeps its own moment and other marks, but draws no second arrow.
+  const restatedMovements = new Map<string, RecoveredMovement>();
+  const restates = (recipeId: string, facetEvidence: Tier2FacetEvidence | undefined): boolean => {
+    const movement = facetEvidence?.movement;
+    if (registryEntry || !movement || !drawnMovements?.has(movementKey(movement))
+      || !(MOVEMENT_DRAWINGS as readonly string[]).includes(recipeId)) return false;
+    restatedMovements.set(movementKey(movement), movement);
+    return true;
+  };
   const thematic = typedThematicAssignment(evidence);
   const focusAssociation = typedFocusAssociation(evidence);
   const qualifiedDeletion = normalizeTier2Synonym(evidence.relationName) === 'coordinate gapping'
@@ -415,7 +426,8 @@ export const dispatchRelationClaims = (
     && /\b(?:relative|interrogative) operator attraction$/u.test(normalizeTier2Synonym(evidence.relationName));
   const typedSurfaceCombination = evidence.authoredValues?.some(entry => normalizeTier2Synonym(entry.key) === 'surface combination')
     && /\b(?:realization|realisation)\b/u.test(normalizeTier2Synonym(evidence.relationName));
-  const completeClaims = evaluations.filter(({ recipe, evaluation }) => evaluation.complete
+  const completeClaims = evaluations.filter(({ recipe, evaluation, evidence: scoped }) => evaluation.complete
+    && !restates(recipe.id, scoped ?? evidence)
     && !(qualifiedDeletion && ['ellipsis.site', 'correspondence.alignment'].includes(recipe.id))
     && !(recipe.id === 'feature.dependency' && checkedAttraction)
     && !(recipe.id === 'pf.structured' && typedSurfaceCombination)
@@ -471,7 +483,7 @@ export const dispatchRelationClaims = (
       if (alreadyOwned || sharedInventoryOwned || transferOwned) return [];
       const recipe = TIER2_FACET_RECIPES.find(recipe => recipe.id === scope.kind)!;
       const evaluation = evaluateTier2FacetRecipe(recipe, scope.evidence, indexes);
-      return evaluation.complete ? [{
+      return evaluation.complete && !restates(recipe.id, scope.evidence) ? [{
         recipe, evaluation, evidence: scope.evidence, origins: scope.origins,
         ...('restates' in scope ? { restates: scope.restates } : {})
       }] : [];
@@ -851,7 +863,8 @@ export const dispatchRelationClaims = (
     claims,
     evidenceCoverage,
     ...(residualRelation ? { residualRelation } : {}),
-    ...(structuralRulesUsed.length ? { structuralRules: structuralRulesUsed } : {})
+    ...(structuralRulesUsed.length ? { structuralRules: structuralRulesUsed } : {}),
+    ...(restatedMovements.size ? { restatedMovements: [...restatedMovements.values()] } : {})
   };
 };
 
@@ -944,10 +957,11 @@ function dispatchStagesInOrder(stages: Parameters<typeof dispatchStageRelations>
   const structural = readStructuralMovementForStages(stages);
   return stages.map((stage, stageIndex) => {
     beginControlStage(controlContext, stage.workspaceForest);
+    const drawnMovements = new Set<string>();
     return stage.relations.map((relation, relationIndex) => {
       const input = {
         ...options, ...(withoutStructure.has(`${stageIndex}:${relationIndex}`) ? { structuralRules: new Set<StructuralRuleId>() } : {}),
-        relation, stageIndex, relationIndex, assignmentContext, controlContext,
+        relation, stageIndex, relationIndex, assignmentContext, controlContext, drawnMovements: new Set(drawnMovements),
         currentForest: stage.workspaceForest, currentRealizations: stage.realizations,
         priorRealizations: stages[stageIndex - 1]?.realizations, priorForest: stages[stageIndex - 1]?.workspaceForest
       };
@@ -961,6 +975,7 @@ function dispatchStagesInOrder(stages: Parameters<typeof dispatchStageRelations>
         rememberAssignmentMovement(assignmentContext, movement);
         rememberControlMovement(controlContext, stageIndex, movement);
       });
+      drawnClaimMovements(dispatch).forEach(key => drawnMovements.add(key));
       if (dispatch.primaryClaim?.tier === 1) {
         const primary = buildTier2FacetEvidence({ relation: dispatch.boundPrimaryRelation, currentForest: stage.workspaceForest });
         if (dispatch.primaryClaim.registryEntryId === 'theta.grid') {
@@ -985,11 +1000,26 @@ function dispatchStagesInOrder(stages: Parameters<typeof dispatchStageRelations>
   });
 }
 
+/** One movement's identity within a stage: its moved phrase's preceding
+ * position, its lower occurrence and its landing. */
+export const movementKey = (movement: Pick<RecoveredMovement, 'priorSourceNodeId' | 'sourceNodeId' | 'targetNodeId'>): string =>
+  JSON.stringify([movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId]);
+
+/** The Tier-2 recipes that draw a movement's arrow. */
+const MOVEMENT_DRAWINGS = ['movement.path', 'movement.carrier'] as const;
+
+/** The movements whose arrow a dispatched claim draws: its movement facets', or
+ * its exact Tier-1 trajectory's. */
+const drawnClaimMovements = (dispatch: RelationClaimDispatch): string[] => [
+  ...dispatch.facets.filter(facet => (MOVEMENT_DRAWINGS as readonly string[]).includes(facet.recipe.id))
+    .map(facet => (facet.evidence ?? dispatch.evidence).movement),
+  ...(dispatch.primaryClaim?.tier === 1 && PRODUCTION_RENDER_FAMILIES[dispatch.primaryClaim.registryEntryId]?.trajectoryKind
+    ? [dispatch.evidence.movement] : [])
+].flatMap(movement => movement ? [movementKey(movement)] : []);
+
 /** Every exact movement in a simultaneous claim contributes to continuation. */
 export function recoveredClaimMovements(dispatch: Pick<RelationClaimDispatch, 'evidence' | 'facets'>) {
   const movements = [dispatch.evidence.movement, ...dispatch.facets.map(facet => facet.evidence?.movement)]
     .filter((movement): movement is NonNullable<typeof movement> => Boolean(movement));
-  return [...new Map(movements.map(movement => [JSON.stringify([
-    movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId
-  ]), movement])).values()];
+  return [...new Map(movements.map(movement => [movementKey(movement), movement])).values()];
 }
