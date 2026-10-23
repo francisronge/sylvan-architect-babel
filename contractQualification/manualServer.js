@@ -11,8 +11,9 @@ const MAX_BODY_BYTES = 16 * 1024;
 const readJson = file => fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
 
 // Run the existing CLI unchanged so manual and batch generations share requests and provenance.
+// The inline `--sentence=` form keeps a sentence that begins with "-" a literal value for parseArgs.
 export const runManualQualification = async ({ request, outputPath, signal, spawnImpl = spawn }) => {
-  const args = [runnerPath, '--sentence', request.sentence, '--framework', request.framework,
+  const args = [runnerPath, `--sentence=${request.sentence}`, '--framework', request.framework,
     '--model', request.model, '--effort', request.effort, '--out', outputPath, '--working-tree', '--run'];
   const child = spawnImpl(process.execPath, args, { cwd: repoRoot, stdio: 'ignore' });
   let killTimer;
