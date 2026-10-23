@@ -502,8 +502,23 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     for (const { relation } of claimants) {
       const own = new Set([...owners].filter(([, owner]) => owner === relation).map(([k]) => k));
       const closed = close(edit, frame0, owners, own, { relation, planning: { seeds: own, foreign: k => owners.has(k) && owners.get(k) !== relation } });
-      if (typeof closed !== 'string') closed.keys.forEach(k => { if (!owners.has(k)) owners.set(k, relation); });
+      // A carried slot is a step's transient means, not a change any relation owns.
+      if (typeof closed !== 'string') closed.keys.forEach(k => { if (!owners.has(k) && !k.startsWith('k\u0000')) owners.set(k, relation); });
     }
+  }
+  // As today, the other daughters of the parents a landing creates are its prerequisites: ordinary
+  // construction builds them before the moment, and a carrier holds the host's slot meanwhile.
+  for (const placement of relationPlacements) {
+    const hosts = new Set(getMovementCreatedLandingHostNodeIds(placement));
+    const moved = new Set([...placement.authoredTargetNodeIds, ...getMovementPiedPipedNodeIds(placement), ...hosts]);
+    const endpoints = new Set([...placement.authoredTargetNodeIds, ...placement.sourceNodeIds, ...(placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement])
+      .flatMap(m => m ? [m.sourceNodeId, m.targetNodeId] : [])].flatMap(id => subtree(cur, id)));
+    const material = new Set([...hosts].flatMap(id => cur.get(id)?.kids ?? []).filter(id => !moved.has(id))
+      .flatMap(id => subtree(cur, id)).filter(id => !endpoints.has(id)));
+    owners.forEach((owner, k) => {
+      const [kind, id] = k.split('\u0000');
+      if (owner === placement.relationIndex && kind === 'w' && material.has(id) && !prev.has(id)) owners.delete(k);
+    });
   }
   // A content change nothing else owns belongs to the relation voicing the
   // node (pronouncing it or an ancestor, else naming it), or else to the
