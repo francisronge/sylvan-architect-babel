@@ -8,6 +8,7 @@
 import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './babelParser/researchModelCatalog.js';
 import { normalizeProviderReasoningEffort } from './babelParser/routeConfig.js';
 import {
+  FAILURE_CLASSES,
   MAX_RAW_OUTPUT_BODY_BYTES,
   createFailure,
   retainArtifactPrefix,
@@ -228,24 +229,47 @@ const fitFailureBody = (error) => {
   return fitted;
 };
 
+const PROVIDER_REPORT_KEYS = ['providerMessage', 'transportMessage', 'providerErrorBody'];
+
+/**
+ * A failure the provider reported before any generation completed. Its message
+ * and error body are the provider's own text, which can name accounts,
+ * organizations or key fragments; production clients receive only Babel's
+ * classification. A completed generation that stopped badly keeps its response.
+ */
+const isProviderReportedFailure = (error, details) =>
+  error.failure?.class !== FAILURE_CLASSES.INCOMPLETE_GENERATION
+  && PROVIDER_REPORT_KEYS.some((key) => Object.hasOwn(details, key));
+
+const withoutProviderReport = (error, details, generationRecord) => {
+  const errorBody = Boolean(details.providerErrorBody);
+  const { rawProviderResponse: _rawProviderResponse, ...recordWithoutBody } = generationRecord || {};
+  return {
+    failure: error.failure ? { ...error.failure, offendingValue: null } : error.failure,
+    rawOutput: errorBody ? undefined : error.rawOutput,
+    generationRecord: errorBody && generationRecord ? recordWithoutBody : generationRecord
+  };
+};
+
 export const formatApiError = (error) => {
   if (error instanceof ParseApiError) {
+    const details = error.details && typeof error.details === 'object' ? error.details : {};
     const {
       rawOutputArtifact: _rawOutputArtifact,
-      generationRecord,
+      generationRecord: internalGenerationRecord,
       ...safeDetails
-    } =
-      error.details && typeof error.details === 'object'
-        ? error.details
-        : {};
+    } = details;
+    const { failure, rawOutput, generationRecord } = isProduction && isProviderReportedFailure(error, details)
+      ? withoutProviderReport(error, details, internalGenerationRecord)
+      : { failure: error.failure, rawOutput: error.rawOutput, generationRecord: internalGenerationRecord };
     return {
       status: error.status,
       body: {
         error: fitFailureBody({
           code: error.code,
           message: error.message,
-          failure: error.failure,
-          ...(error.rawOutput ? { rawOutput: error.rawOutput } : {}),
+          failure,
+          ...(rawOutput ? { rawOutput } : {}),
           ...(Array.isArray(error.inputTokens) ? { inputTokens: error.inputTokens } : {}),
           ...(generationRecord
             ? { generationRecord: projectPublicGenerationRecord(generationRecord) }

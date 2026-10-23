@@ -171,6 +171,39 @@ test('spelling ignores case and punctuation but keeps the sentence spelling in t
   assert.deepEqual(period.inputTokens, ['Mia', 'laughed', '.']);
 });
 
+test('letter case is ignored for letters whose case forms differ in length or position', () => {
+  const spells = [
+    [['istanbul', 'güzel'], 'İstanbul güzel.', ['İstanbul', 'güzel']],
+    [['İSTANBUL'], 'istanbul', ['istanbul']],
+    [['οδός'], 'ΟΔΌΣ', ['ΟΔΌΣ']],
+    [['ΟΔΌΣ'], 'οδός', ['οδός']],
+    [['STRASSE'], 'Straße', ['Straße']],
+    [['straße'], 'STRASSE', ['STRASSE']],
+    [['Stra', 'SSE'], 'Straße', ['Stra', 'ße']]
+  ];
+  for (const [words, sentence, inputTokens] of spells) {
+    const result = convertOne(flat(...words), sentence);
+    assert.ok(result.ok, `${words} / ${sentence}: ${JSON.stringify(result.diagnostics)}`);
+    assert.deepEqual(result.inputTokens, inputTokens, sentence);
+    assert.equal(normalize(result.analysis, sentence, result.inputTokens).analyses.length, 1, sentence);
+  }
+  // An earlier group's text resolves through the final words caselessly too.
+  const sentence = 'Die STRASSE ist lang.';
+  const payload = { derivationStages: [
+    { statement: 'n', stageRecord: 'n', relations: [], workspaceForest: [leaf('n', 'Straße')], realizations: [{ nodeIds: ['n'], text: 'straße' }] },
+    { statement: 's', stageRecord: 's', relations: [], workspaceForest: [node('s', 'S', leaf('d', 'Die'), leaf('n', 'Straße'), leaf('i', 'ist'), leaf('l', 'lang'))] }
+  ] };
+  const grouped = convertOne(payload, sentence);
+  assert.ok(grouped.ok, JSON.stringify(grouped.diagnostics));
+  assert.deepEqual(grouped.analysis.derivationStages[0].realizations, [{ nodeIds: ['n'], tokenIndices: [1] }]);
+  // Accents, letters and other character variants still count, and one
+  // sentence character is never split.
+  for (const [words, sentence] of [[['cafe'], 'café'], [['kiz'], 'kız'], [['Stras', 'se'], 'Straße'],
+    [['x2'], 'x²'], [['Mia'], 'Ｍｉａ']]) {
+    assert.equal(convertOne(flat(...words), sentence).ok, false, `${words} / ${sentence}`);
+  }
+});
+
 test('misspelled, missing and indexed words fail the spell-out check', () => {
   assert.equal(convertOne(flat('Mia', 'laughs'), 'Mia laughed.').diagnostics[0].rule, 'SPELLOUT_MISMATCH');
   assert.equal(convertOne(flat('Mia'), 'Mia laughed.').diagnostics[0].rule, 'SPELLOUT_INCOMPLETE');
@@ -457,4 +490,31 @@ test('a spell-out response becomes ordinary attempts plus recorded spell-out fai
   const unreadable = write('not json');
   assert.equal(unreadable.record.ingress.status, 'failed');
   assert.deepEqual(unreadable.written.map(item => [item.reviewEntry.attemptId, item.receipt.outcome.status]), [['parse', 'failed']]);
+});
+
+test('a spell-out attempt keeps authored relation role order through its saved payload and bundle', () => {
+  const model = resolveResearchModelSelection('anthropic:claude-opus-5-5', {});
+  const sentence = 'Mia laughed.';
+  const payload = { derivationStages: [
+    { statement: 'Mia and laughed enter.', stageRecord: 'They enter.', relations: [],
+      workspaceForest: [leaf('d', 'Mia'), node('vp', 'VP', leaf('v', 'laughed'))] },
+    { statement: 'T merges.', stageRecord: 'T assigns nominative to Mia.', relations: [
+      { relation: 'Case assignment', anchors: { target: 'd', assigner: 't' }, values: { value: 'nominative', case: 'NOM' } }
+    ], workspaceForest: [node('tp', 'TP', { refId: 'd' }, node('tbar', "T'", node('t', 'T'), { refId: 'vp' }))] }
+  ] };
+  const outputPath = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-spellout-order-'));
+  try {
+    const [written] = writeSpelloutAttempts({ outputPath, sentence, framework: 'xbar', model, text: JSON.stringify(payload) });
+    assert.equal(written.receipt.outcome.status, 'valid-pending-review');
+    const reparsed = JSON.parse(fs.readFileSync(path.join(outputPath, 'attempts/parse/raw-output.txt'), 'utf8'));
+    const bundle = JSON.parse(fs.readFileSync(path.join(outputPath, 'attempts/parse/bundle.json'), 'utf8')).response;
+    for (const relation of [reparsed.derivationStages[1].relations[0], bundle.analyses[0].derivationStages[1].relations[0]]) {
+      assert.deepEqual(Object.keys(relation.anchors), ['target', 'assigner']);
+      assert.deepEqual(Object.keys(relation.values), ['value', 'case']);
+    }
+    const app = normalizeParseBundle(structuredClone(payload), 'xbar', sentence, 'claude', true, { spellout: true });
+    const steps = (record) => buildReplaySnapshotProjection({ ...record, sentence }).steps
+      .map(step => [step.targetNodeId, step.sourceNodeIds]);
+    assert.deepEqual(steps(bundle), steps(app));
+  } finally { fs.rmSync(outputPath, { recursive: true, force: true }); }
 });

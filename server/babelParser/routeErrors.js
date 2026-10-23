@@ -7,11 +7,16 @@ const getProviderAttemptDetails = (error) => ({
   ...(Array.isArray(error?.providerAttempts) ? { providerAttempts: error.providerAttempts } : {})
 });
 
+/**
+ * `providerErrorBody` marks raw text that is the provider's error response
+ * rather than model output; formatApiError withholds it from production clients.
+ */
 export const attachGenerationFailureEvidence = ({
   error,
   ParseApiError,
   generationRecord,
-  rawText
+  rawText,
+  providerErrorBody = false
 }) => {
   if (!generationRecord || !(error instanceof ParseApiError)) return error;
   const details = error.details && typeof error.details === 'object'
@@ -24,7 +29,8 @@ export const attachGenerationFailureEvidence = ({
     {
       ...details,
       generationRecord,
-      rawOutputArtifact: details.rawOutputArtifact || createRawOutputArtifact(rawText)
+      rawOutputArtifact: details.rawOutputArtifact || createRawOutputArtifact(rawText),
+      ...(providerErrorBody ? { providerErrorBody: true } : {})
     }
   );
 };
@@ -111,7 +117,8 @@ export const classifyGeminiRouteError = ({
     );
   }
 
-  return new ParseApiError('PARSE_FAILED', msg || 'Syntactic parsing failed.', 500, providerAttemptDetails);
+  return new ParseApiError('PARSE_FAILED', 'Syntactic parsing failed.', 500,
+    { ...providerAttemptDetails, ...(providerMessage ? { providerMessage } : {}) });
 };
 
 export const classifyProviderRouteError = ({
@@ -236,10 +243,11 @@ export const classifyProviderRouteError = ({
       providerMessage: providerMessage || null
     });
   }
-  return new ParseApiError('PARSE_FAILED', providerMessage || `${providerLabel} parsing failed.`, 500, {
+  return new ParseApiError('PARSE_FAILED', `${providerLabel} parsing failed.`, 500, {
     provider: providerLabel,
     model,
-    ...providerAttemptDetails
+    ...providerAttemptDetails,
+    providerMessage: providerMessage || null
   });
 };
 

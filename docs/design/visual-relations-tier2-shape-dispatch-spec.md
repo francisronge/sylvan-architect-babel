@@ -327,6 +327,88 @@ render plans and Replay those of worded recognition. In Node,
 nothing, `1` the two rules above, `all` every measured rule, and a
 comma-separated list names rules exactly.
 
+## Structural movement recognition
+
+Movement is read from structure first. `replay/relations/structuralMovement.ts`
+compares each completed stage with the one before it and reads only IDs,
+parents, child slots, workspace roots, `lineageId` and category notation.
+Relation names, role names and value literals take no part in finding a
+displacement or its owner. One lineage is displaced across a stage boundary in
+one of three readable ways:
+
+- the landing keeps its ID in a new slot, and the only new occurrence of its
+  lineage holds that ID's old slot;
+- the lower occurrence keeps its ID and slot, and one new occurrence of its
+  lineage either repeats its preceding category and terminal yield or appears
+  while the kept occurrence is rewritten in place;
+- neither keeps its ID: one occurrence is removed, two new occurrences of its
+  lineage appear, one of them in its old slot, and every other occurrence of
+  the lineage is unchanged.
+
+A lineage may be declared by the stage that makes its first copy when the
+persisting ID carries it and no earlier object holds it. Only the outermost
+occurrences of a lineage count; a same-lineage node inside another is its part.
+A chain grows from its newest copy: an older copy that a later one follows
+through earlier displacements, or that another candidate commands, is not a
+source. Head movement is read from a new two-child parent holding only the
+landing and one unchanged head host, none of the three notated as a phrase or
+bar; the host stood in that parent's exact slot, or was a lone object while the
+moving head left the head position of its own projection. A terminal landing
+must have left the head position of its own projection, since a phrase can take
+the same shape beside a bare head; a branching landing needs a member that
+earlier head movement left a lower occurrence of.
+Other landings use the shared landing-context check, then read as phrasal
+inside a phrase or bar projection. A branching landing that is not notated as a
+projection reads as phrasal only inside a projection or merged with an object
+containing its source.
+
+A part of a displaced phrase travels with it: a displacement or refusal inside
+another displacement's landing or lower occurrence is not read as its own. A
+displacement whose landing or lower occurrence holds the landing of a movement
+that wording recovers in the same stage stays neutral, so that movement keeps
+its own moment.
+
+Structure never creates a relation. The earliest authored claim of the stage
+that anchors the landing and either the lower occurrence or, in `priorAnchors`,
+the preceding source owns the displacement. A claim anchoring one end only,
+as Case, agreement and binding claims mention a moved phrase, owns nothing. The
+owning claim stays neutral when it names several displacements, when the copy
+lands in another workspace (sideward movement or parallel construction), when
+the landing context reads neither head nor phrasal, when it is a registered
+non-movement relation, or when its title or values deny the movement or leave
+it unestablished. It also stays neutral when its own anchors read the
+displacement more than one way: an anchor that resolves to no node or to a
+repeated ID, a list that repeats an ID, an anchored object whose lineage changes
+across the boundary, another occurrence of the moving lineage other than an
+older copy unchanged in its slot, a list that holds an endpoint beside an
+unrelated object, or `priorAnchors` that omit the preceding source. Other
+anchors are context and keep their authored meaning, whatever they are called.
+Configurations that read more than one way are refused and stay with worded
+recovery: several moved or new occurrences of one lineage, copies under one
+shared landing (across-the-board movement), duplicate IDs, nested occurrences,
+and a new node of the lineage over different material, which asserts identity
+only.
+
+Structure upgrades only a claim that wording leaves wholly neutral, with every
+recovered claim in Tier 3. A claim that draws anything today, at either tier,
+keeps exactly that drawing, its transitions and its moment. Wording only breaks
+ties: a claim whose wording recovers a movement keeps it, and the structural
+reading stands in only where no claim of the stage recovers the same lower
+occurrence and landing. The proved displacement then enters the
+same movement evidence that worded recovery produces: endpoint fields are the
+authored entries anchoring only those occurrences, a uniquely anchored strict
+descendant of the lower occurrence is the witness, and every other field keeps
+its authored meaning. The Tier-2 movement recipe therefore draws the shared
+arrow, landing, lower occurrence and moment. The final Tier-1 validation of a
+registered relation does not receive the structural reading, so a malformed
+exact Tier-1 claim remains a Tier-3 primary and Tier 2 does not draw it.
+
+`STRUCTURAL_MOVEMENT` in `structuralMovement.ts` is the off-switch for every
+runtime. Set to `false`, Replay, render plans and dispatch are those of worded
+recovery alone. In Node, `BABEL_STRUCTURAL_MOVEMENT=0` or `=1` overrides the
+constant for comparison runs; browsers have no `process` and follow the
+constant.
+
 ## Public records and shared occurrences
 
 Every recipe must work on records accepted by the public derivation contract.
@@ -951,6 +1033,15 @@ prior source must be resolved before this distinction. The same evidence owns dr
 The generic role `head` additionally needs unique source/landing root-lineage
 evidence before Tier 1 can treat it as the moved occurrence rather than its host.
 
+`operator` and `variable` also name the ends of an interpretive dependency. When
+they are a claim's only endpoint words, its name is no movement identity and it
+names no preceding participants, an operator that is new in this stage inside a
+new occurrence of another lineage's phrase, which already contained an
+occurrence of the operator's lineage before, was carried by that phrase's
+movement. The claim then proves no movement of its own: it keeps its binding
+drawing and draws no path from the variable, and the phrase's displacement
+belongs to the claim that names it (for pied-piping, "to whom" moving as one PP).
+
 ## Output-Piece Ownership Audit
 
 Node and lineage IDs are exact strings throughout normalization, inspection,
@@ -995,7 +1086,9 @@ the preceding source parent/child slot, and a changed landing. Conflicting roles
 ambiguous endpoints and repeated endpoint lists do not select a candidate. The
 same verified lower anchor can fill required source and witness slots before
 ordinary Tier-1 validation. Optional decoration slots are not populated merely
-because they exist. Unknown movement meaning cannot be inferred from geometry.
+because they exist. Role binding does not infer movement meaning from
+geometry; a displacement between stages is read separately, as described under
+Structural movement recognition.
 
 An intact head assembly can also establish direction through open endpoint
 fields when an explicit prior anchor names that assembly, its lower occurrence
@@ -1008,6 +1101,14 @@ member remains context for the assembly. Its matching slot inside a renamed
 assembly must not compete with the proved whole source. Explicit competing
 source roles, changed members and additional independent roots still refuse
 recovery. This distinction uses the intact assembly, not anchor spelling.
+
+In head-movement terminology a registered landing word such as `target` can
+name the head the moved head adjoins to. For a registered head movement whose
+other field the tree proves to be the landing, that word binds as the landing's
+`hostHead` when its one node is the host beside the landing in a supported head
+complex, or as `complexHead` when it is that complex, and the ordinary head
+context check then verifies it. Any other node still competes for the landing,
+so the exact claim stays malformed and Tier 2 does not draw it.
 
 For an independently proved phrasal movement, a named target or landing head
 can remain neutral context when it projects beside the landing. The landing

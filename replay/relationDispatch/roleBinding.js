@@ -11,20 +11,28 @@ const items = value => Array.isArray(value) ? value : [value];
 const isRecord = value => value && typeof value === 'object' && !Array.isArray(value);
 const roleVocabulary = buildTier2SynonymIndex();
 const MOVEMENT_ENDPOINTS = new Set(['movement.source', 'movement.witness', 'movement.landing']);
+/** The head-context role a node holds beside a head landing: the host head it
+ * adjoins to, or the complex the adjunction forms. */
+const headContextSlot = (currentForest, priorForest, landingId, nodeId) =>
+  movementContextFailure(currentForest, landingId, nodeId, 'head-host', priorForest) === undefined ? 'hostHead'
+    : movementContextFailure(currentForest, landingId, nodeId, 'head-complex', priorForest) === undefined ? 'complexHead'
+      : undefined;
 
 // Binding changes lookup keys only. Authored text, item order, cardinality and
 // references stay intact; ambiguous meanings never select the first candidate.
-export const bindRelationRoles = (relation, entry, currentForest, priorForest) => {
+export const bindRelationRoles = (relation, entry, currentForest, priorForest, structuralMovement = undefined) => {
   const bindings = [];
   const issues = [];
   const bound = { ...relation };
+  // A structural movement stands in only where wording proves none.
   const movement = entry.id.startsWith('trajectory.') && currentForest
-    ? recoverMovementEvidence(relation, currentForest, priorForest).movement : undefined;
+    ? recoverMovementEvidence(relation, currentForest, priorForest).movement ?? structuralMovement : undefined;
   // Structure, not spelling, decides which of several directional fields names
   // the moving occurrence. When the tree proves another field that reads as the
   // same slot to be that endpoint, an openly named field it verifies as the
   // occurrence's host, complex, site or carried member is context and does not
-  // compete for the slot. Registered role names keep their declared slot.
+  // compete for the slot. Registered role names keep their declared slot,
+  // apart from the head-movement host reading below.
   const structuralContext = new Set((movement?.context ?? [])
     .filter(({ key }) => !movement.roles[normalizeTier2Synonym(key)]?.length).map(({ key }) => key));
   for (const field of ['anchors', 'priorAnchors', 'values']) {
@@ -63,7 +71,17 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest) =
         record[authoredRole] = value;
         continue;
       }
-      let candidates = meanings;
+      // In head-movement terminology a registered landing word such as
+      // `target` can name the head the moved head adjoins to. When the tree
+      // proves another field to be the landing and this field's node to be
+      // that landing's host or head complex, it binds as that context role and
+      // is checked as one below; it never becomes a second landing.
+      const headContextRole = field === 'anchors' && entry.id === 'trajectory.head' && spelled.length
+        && structuralContext.has(authoredRole) && items(value).length === 1
+        && spelled.every(role => rules[role].concept === 'movement.landing')
+        && provenEndpointField(authoredRole, 'movement.landing')
+        ? headContextSlot(currentForest, priorForest, movement.targetNodeId, items(value)[0]) : undefined;
+      let candidates = headContextRole ? [headContextRole] : meanings;
       if (candidates.length > 1) {
         const arityMatches = candidates.filter(role => items(value).length >= rules[role].minItems
           && (rules[role].maxItems === null || items(value).length <= rules[role].maxItems));

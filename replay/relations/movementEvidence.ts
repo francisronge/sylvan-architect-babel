@@ -80,7 +80,7 @@ const memberAtPath = (root: SyntaxNode, path: readonly number[]): SyntaxNode | u
   for (const index of path) member = member?.children?.[index];
   return member;
 };
-const readsAsProjection = (node: SyntaxNode): boolean => ['bar', 'phrase'].includes(readCategoryLabel(node.label)?.kind ?? '');
+export const readsAsProjection = (node: SyntaxNode): boolean => ['bar', 'phrase'].includes(readCategoryLabel(node.label)?.kind ?? '');
 // Explicit zero-level notation, which may be followed by an annotation.
 const HEAD_NOTATION = /^([A-Za-z][A-Za-z]*)(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u;
 const notatedHeads = (label?: string): string[] | undefined => {
@@ -145,7 +145,7 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
 };
 
 type MovementOccurrences = ReturnType<typeof indexMovementOccurrences>;
-type MovementWorkspaces = { current: MovementOccurrences; prior: MovementOccurrences };
+export type MovementWorkspaces = { current: MovementOccurrences; prior: MovementOccurrences };
 
 const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: SyntaxNode,
   workspaces?: MovementWorkspaces): boolean => {
@@ -186,7 +186,7 @@ type PriorSourcePosition = { node?: SyntaxNode; parent?: SyntaxNode };
 
 // A nested head assembly retains a matching head host at each branching level.
 // Merely having bare labels throughout a clause does not satisfy that shape.
-const isHeadAssembly = (node: SyntaxNode): boolean => {
+export const isHeadAssembly = (node: SyntaxNode): boolean => {
   if (readCategoryLabel(node.label)?.kind !== 'head') return false;
   const children = node.children ?? [];
   return children.every(isHeadAssembly) && (children.length < 2
@@ -203,7 +203,7 @@ const hasAssembledMemberWitness = (source: SyntaxNode, sisters: readonly SyntaxN
       && readCategoryLabel(witness.label)?.kind === 'head' && sharesHeadCategory(witness, member)));
 };
 
-const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly SyntaxNode[] = [],
+export const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: readonly SyntaxNode[] = [],
   priorSource: PriorSourcePosition = {}, workspaces?: MovementWorkspaces,
   headContext = false, structuralHost = false): 'head' | 'phrasal' | undefined => {
   const shape = readCategoryLabel(target.label);
@@ -293,6 +293,20 @@ const headContextKind = (key: string): MovementContextKind | undefined => hasRol
   : hasRole(key, 'movement.host') ? ['landing head', 'receiving head'].includes(key) ? 'head-landing' : 'head-host'
   : key === 'host' ? 'head-landing' : undefined;
 const genericRoles = new Set(['source', 'sources', 'origin', 'origins', 'from', 'target', 'targets', 'to', 'destination', 'destinations', 'landing', 'landings', 'landing site', 'landing sites', 'filler', 'fillers', 'operator', 'operators', 'head', 'heads', 'variable', 'variables', 'real gap', 'real gaps']);
+/** Whether an occurrence new in this stage sits inside a new occurrence of a
+ * phrase that existed before under another lineage and already contained an
+ * occurrence of this one: the occurrence moved with that phrase. */
+const carriedInMovedPhrase = (current: MovementOccurrences, prior: MovementOccurrences, id: string): boolean => {
+  const node = current.nodes.get(id);
+  if (!node?.lineageId || prior.nodes.has(id) || current.duplicates.has(id)) return false;
+  let container = current.parents.get(id);
+  while (container && !container.lineageId) container = current.parents.get(container.id);
+  if (!container?.lineageId || container.lineageId === node.lineageId || prior.nodes.has(container.id)
+    || current.duplicates.has(container.id)) return false;
+  const holdsLineage = (phrase: SyntaxNode): boolean => Boolean(phrase.children?.some(child =>
+    child.lineageId === node.lineageId || holdsLineage(child)));
+  return [...prior.nodes.values()].some(before => before.lineageId === container!.lineageId && holdsLineage(before));
+};
 const sourceContainerRole = (key: string): boolean => /^(?:(?:prior|movement) )?(?:source|lower|base|intermediate) (?:[a-z]+ )?(?:clauses?|phrases?|constituents?|objects?|[a-z]+p)$/u.test(normalizeTier2Synonym(key));
 const sourceComplexRole = (key: string): boolean => /^(?:(?:prior|movement) )?(?:source|lower|base|intermediate) (?:head )?complex$/u.test(normalizeTier2Synonym(key));
 const landingContainerRole = (key: string): boolean => /^(?:movement )?(?:landing|target|higher|upper) (?:[a-z]+ )?(?:clauses?|phrases?|domains?)$/u.test(key);
@@ -730,6 +744,18 @@ export function recoverMovementEvidence(
   }));
   if (!occurrenceRoles && !sharedLineage && !(witnesses.length && sources.length && targets.length)
     && !isMovementIdentity(relation.relation) && !explicitPriorSources.length) {
+    return { diagnostics: [] };
+  }
+  // Operator and variable also name the ends of an interpretive dependency.
+  // When they are a claim's only endpoint words and the operator was carried
+  // this stage inside a phrase that moved and contained it before, that
+  // phrase's movement is the stage's displacement; this claim states the
+  // dependency and proves no movement of its own.
+  if (!occurrenceRoles && targets.length === 1 && !isMovementIdentity(relation.relation)
+    && !explicitPriorSources.length && !Object.keys(relation.priorAnchors ?? {}).length
+    && entries.filter(e => ['movement.source', 'movement.witness', 'movement.landing'].some(concept => hasRole(e.key, concept)))
+      .every(e => hasRole(e.key, 'operator') || hasRole(e.key, 'variable'))
+    && carriedInMovedPhrase(current, prior, targets[0])) {
     return { diagnostics: [] };
   }
   if (entries.some(e => e.ids.length !== 1 && ['movement.source', 'movement.witness', 'movement.landing']

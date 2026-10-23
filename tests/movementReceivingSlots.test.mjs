@@ -10,6 +10,7 @@ import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { workspaceContinuityReflows } from '../replay/workspaceShapeReflows.ts';
 import { constructionReceivingAttachments, movementReceivingAttachments, movementReceivingHosts } from '../replay/workspaceReceivingHost.ts';
 import { directionsFor } from './helpers/rtlMirror.mjs';
+import { withStructuralMovement } from './helpers/structuralMovementSwitch.mjs';
 
 const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/receiving-head-slot.json', import.meta.url)));
 const close = (a,b,message) => assert(Math.abs(a-b)<1e-6,`${message}: ${a} vs ${b}`);
@@ -196,7 +197,9 @@ for (const direction of ['ltr','rtl']) test(`${direction}: a receiving slot cann
 // The same Neg-to-I incorporation, authored with neutral role names and with worded
 // movement roles. The receiving head keeps its identity while a new inner I⁰ takes
 // over its auxiliary and tense beside the landing. Read as movement, the claim must
-// reserve exactly the room its neutral reading reserves, in every frame.
+// reserve exactly the room its neutral reading reserves, in every frame. Structure
+// reads the neutral claim as the same movement, so its neutral reading is laid out
+// with structural movement off.
 const retainedHead = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/retained-head-attachment.json', import.meta.url)));
 const retainedHeadAsMovement = structuredClone(retainedHead);
 Object.assign(retainedHeadAsMovement.derivationStages[2].relations[0],
@@ -217,7 +220,7 @@ for (const [width, height] of [[1600, 948], [390, 844]]) for (const direction of
     };
     const playsAsMovement = steps => steps.some(step => (step.replayRelationLinks ?? [])
       .some(link => link.renderFamily === 'trajectory' && link.authoredRelationKey === '2:0'));
-    const neutral = laid(retainedHead), movement = laid(retainedHeadAsMovement);
+    const neutral = withStructuralMovement('0', () => laid(retainedHead)), movement = laid(retainedHeadAsMovement);
     assert(!playsAsMovement(neutral.steps) && playsAsMovement(movement.steps), 'only the worded claim is read as movement');
     assert.equal(movement.scenes.length, neutral.scenes.length);
     neutral.scenes.forEach((nodes, frame) => {

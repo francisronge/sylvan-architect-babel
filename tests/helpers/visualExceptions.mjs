@@ -24,13 +24,15 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta theme)@read', { desktop: { '19-22': 1.15 }, 'desktop-large': { '19-22': 1.15 } }),
   x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
-    'plaque(0:1 theta agent)@embeddedVoice', { desktop: { '20-106': 1.12 }, 'desktop-large': { '20-106': 1.12 } }),
+    'plaque(0:1 theta agent)@embeddedVoice', { desktop: { '20-106': 1.13 }, 'desktop-large': { '20-106': 1.13 } },
+    { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Structural movement on (fix/structural-movement-live): drawing the movements it recovers carries their slot and landing reservations back into earlier stages, so lifetime plaque pockets shift. Francis, 23 Oct in the lead session, told the change is invisible: \'If I won\'t even see them, then I won\'t waste time worrying about it, merge\': the agent plaque sits at 1.13 of its reach instead of 1.12.',
+      accepts: { desktop: { '20-106': 1.13 }, 'desktop-large': { '20-106': 1.13 } } }),
   x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
-    'plaque(7:2 theta theme)@find', { desktop: { '96-98': 1.19, '104-106': 1.16 }, 'desktop-large': { '96-98': 1.19, '104-106': 1.16 } },
-    { by: 'Francis Ronge', on: '2026-10-20', expires: '2027-01-20', note: 'Accepted on the side-by-side review of '
-      + 'T′ arriving at the subject movement: stage 9 loses its T′ merge step, so the tree nearer find takes main\'s '
-      + 'pocket and the theme plaque sits up to 1.19 of its reach in frames 96-98 and 104-106.',
-      accepts: { desktop: { '96-98': 1.19, '104-106': 1.16 }, 'desktop-large': { '96-98': 1.19, '104-106': 1.16 } } }),
+    'plaque(7:2 theta theme)@find', { desktop: { '96-98': 1.19, '102-106': 1.16 }, 'desktop-large': { '96-98': 1.19, '102-106': 1.16 } },
+    { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Accepted 20 Oct on the side-by-side review of '
+      + 'T′ arriving at the subject movement (theme plaque up to 1.19 of its reach in frames 96-98 and 104-106). '
+      + 'Structural movement on (fix/structural-movement-live): drawing the movements it recovers carries their slot and landing reservations back into earlier stages, so lifetime plaque pockets shift. Francis, 23 Oct in the lead session, told the change is invisible: \'If I won\'t even see them, then I won\'t waste time worrying about it, merge\': the movement now plays before C is built, so the accepted 1.16 state also covers frames 102-103.',
+      accepts: { desktop: { '96-98': 1.19, '102-106': 1.16 }, 'desktop-large': { '96-98': 1.19, '102-106': 1.16 } } }),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
     'plaque(1:3 theta Experiencer/Proposition)@vWant', { desktop: { '31-34': 1.3 }, 'desktop-large': { '31-34': 1.3 } }),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
@@ -67,8 +69,6 @@ export const EXCEPTIONS = [
     'plaque(3:1 clauseType: declarative personal infinitive)@infinitivalC', { desktop: { '33-48': 1.2 }, 'desktop-large': { '33-48': 1.2 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/relocated-plaque-anchor.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta Experiencer/Theme)@v', { desktop: { '21-24': 1.53 }, 'desktop-large': { '21-24': 1.53 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/retained-head-attachment.json#', 'mark-distance', 'plaque',
-    'plaque(1:2 auxiliaryForm: did)@tDid', { desktop: { '44-49': 1.16 }, 'desktop-large': { '44-49': 1.16 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/review-workspace-boundaries.json#/cases/0', 'mark-distance', 'plaque',
     'plaque(3:1 agreement: third person singular; case: nominati)@rT', { desktop: { '34-58': 1.59 }, 'desktop-large': { '34-58': 1.59 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/reviewed-construction.json#/cases/2', 'mark-distance', 'plaque',

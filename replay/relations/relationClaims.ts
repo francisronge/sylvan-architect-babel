@@ -3,6 +3,7 @@ import type { productionRelationRegistry } from '../relationDispatch/productionR
 import type { dispatchRelation } from '../relationDispatch/relationDispatch.js';
 import type { AssignmentContext, AssignmentScope } from './assignmentContinuity.ts';
 import type { ControlContext } from './controlEvidence.ts';
+import type { RecoveredMovement } from './movementEvidence.ts';
 import type { Tier2FacetOutputIdentity } from './tier2FacetIdentity.ts';
 import type { Tier2FacetEvaluation, Tier2FacetEvidence, Tier2FacetRecipe } from './tier2FacetTypes.ts';
 import type { Tier2SynonymIndex } from './tier2Synonyms.ts';
@@ -106,6 +107,8 @@ export type RelationClaimDispatch = ClaimDispatchBase & {
   residualRelation?: DerivationStageRelation;
   /** Structure-only rules that earned this relation's claims; see structuralRecognition.ts. */
   structuralRules?: import('./structuralRecognition.ts').StructuralRuleId[];
+  /** The structural movement a wholly neutral claim was upgraded with; see structuralMovement.ts. */
+  structuralMovement?: RecoveredMovement;
 };
 
 export type ExclusiveRelationDispatchInput = {
@@ -123,6 +126,8 @@ export type ExclusiveRelationDispatchInput = {
   synonymIndex?: Tier2SynonymIndex;
   /** Structure-only rules for an unregistered envelope that earned no claim; see structuralRecognition.ts. */
   structuralRules?: ReadonlySet<import('./structuralRecognition.ts').StructuralRuleId>;
+  /** Structural movement for this claim; see structuralMovement.ts. */
+  structuralMovement?: RecoveredMovement;
 };
 
 export type RelationClaimDispatchEntry = {
