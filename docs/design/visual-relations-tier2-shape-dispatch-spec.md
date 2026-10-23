@@ -1093,6 +1093,14 @@ assembly must not compete with the proved whole source. Explicit competing
 source roles, changed members and additional independent roots still refuse
 recovery. This distinction uses the intact assembly, not anchor spelling.
 
+In head-movement terminology a registered landing word such as `target` can
+name the head the moved head adjoins to. For a registered head movement whose
+other field the tree proves to be the landing, that word binds as the landing's
+`hostHead` when its one node is the host beside the landing in a supported head
+complex, or as `complexHead` when it is that complex, and the ordinary head
+context check then verifies it. Any other node still competes for the landing,
+so the exact claim stays malformed and Tier 2 does not draw it.
+
 For an independently proved phrasal movement, a named target or landing head
 can remain neutral context when it projects beside the landing. The landing
 parent must have exactly two children and the same category as that head; its
