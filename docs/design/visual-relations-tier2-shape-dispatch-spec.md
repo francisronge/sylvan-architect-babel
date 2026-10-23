@@ -287,11 +287,13 @@ primitives:
 - `plaque.single-host` (`plaque.structured`): a relation anchoring one node
   carries its values as plaque rows on that node. A lone symbolic value of up
   to three characters on a whole workspace, which could be a verdict, stays
-  neutral. The plaque yields when another relation of the derivation anchors
-  the same host and draws anything, since two plaques on one node crowd each
-  other out of reach; that relation keeps its drawing and this one stays
-  neutral. Two structure-only plaques on one host therefore both yield, and
-  neither draws.
+  neutral. The plaque yields when another relation of the same or an earlier
+  stage anchors the same host and draws anything, or when a relation of a
+  later stage draws a plaque on that node, since two plaques on one node crowd
+  each other out of reach; that relation keeps its drawing and this one stays
+  neutral. A later mark other than a plaque, such as a line, arrow, connector
+  or badge on the node, leaves the plaque in place beside it. Two
+  structure-only plaques on one host therefore both yield, and neither draws.
 
 Structure reads no meaning into names, with two exceptions that only withhold a
 drawing. A relation title earns nothing when one of its label clauses matches
