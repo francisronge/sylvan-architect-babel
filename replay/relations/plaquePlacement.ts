@@ -35,8 +35,9 @@ import {
   type PlaqueTextMeasure
 } from './plaqueTextLayout.ts';
 import { boundingRect } from './rectGeometry.ts';
-import { planItemRelationRefs, type RelationPlanItem } from './renderPlan.ts';
+import { planItemRelationRefs, remapPlanOccurrence, type RelationPlanItem } from './renderPlan.ts';
 import type { TreeLabelMeasure, TreeLabelRuns } from '../treeLabelRuns.ts';
+import type { PocketRoute } from './pocketHold.ts';
 export { plaquesOverlap } from './plaqueObstacleIndex.ts';
 
 export type PlaqueRect = ObstacleRect & {
@@ -60,6 +61,22 @@ export type PlaquePlacement = PlaqueRect & {
   syntaxGap?: number;
   attachmentNodeId: string; attachmentX: number; attachmentY: number;
 };
+const claims = new WeakMap<RelationPlanItem, string>();
+/** One claim's identity across Replay steps, for keeping its pocket (stageCamera.ts,
+ * holdPockets). A later movement can transfer the claim to a lower occurrence
+ * (renderPlan.ts, `occurrenceTransfers`); later frames carry the transfer, and Replay
+ * shows the earlier occurrence until the movement plays. The claim keeps the identity
+ * of the occurrence it was authored on across that movement and those frames.
+ * Allocation keeps `plaqueIdentity`, so a lifetime still ends where an occurrence changes. */
+export function claimIdentity(item: RelationPlanItem): string {
+  let identity = claims.get(item);
+  if (identity === undefined) {
+    const authored = (item.occurrenceTransfers ?? []).reduceRight((claim, transfer) =>
+      remapPlanOccurrence(claim, transfer.toNodeId, transfer.fromNodeId), item);
+    claims.set(item, identity = plaqueIdentity(authored));
+  }
+  return identity;
+}
 /** Identify the same drawn claim across plan frames, never by its changing array position. */
 export function plaqueIdentity(item: RelationPlanItem): string {
   if (item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid') return JSON.stringify(['theta-grid',
@@ -115,6 +132,13 @@ function grownObstacle(obstacle: PlaqueRect, by: number): PlaqueRect {
   let box = sizes.get(by);
   if (!box) sizes.set(by, box = { ...obstacle, x: obstacle.x - by, y: obstacle.y - by, width: obstacle.width + 2 * by, height: obstacle.height + 2 * by });
   return box;
+}
+/** Whether `obstacle` blocks carrying a pocket accepted at `syntaxGap`: the pocket keeps
+ * that gap from syntax and connectors, and the full PLAQUE_GAP from plaques and
+ * trajectories, which grow by the difference. */
+export function blocksCarriedPocket(pocket: PlaqueRect, obstacle: PlaqueRect, syntaxGap = PLAQUE_GAP): boolean {
+  const grow = PLAQUE_GAP - syntaxGap;
+  return plaquesOverlap(pocket, grow && (isPlaqueShell(obstacle) || obstacle.trajectory) ? grownObstacle(obstacle, grow) : obstacle, syntaxGap);
 }
 /** Distances are measured from a word-bearing leaf's word, else from the anchor's label. */
 export function plaqueAnchorPoint(anchor: Pick<Node, 'x' | 'y' | 'data' | 'children'>) {
@@ -742,7 +766,9 @@ export function collectionPlaqueSpace(scene: ConnectorScene, added: readonly Pla
       const rect = source.connectorInk ?? source;
       return `${exactNumber(rect.x)} ${exactNumber(rect.y)} ${exactNumber(rect.width)} ${exactNumber(rect.height)} ${source.connectorAttachment}`;
     },
-    routeRects: (box: PlaqueRect, rects: CurveRects = curveObstacleRects) => curves(box).flatMap(curve => rects(curve, 6))
+    routeRects: (box: PlaqueRect, rects: CurveRects = curveObstacleRects) => curves(box).flatMap(curve => rects(curve, 6)),
+    /** Each collection row's route and the source label it leaves. */
+    routeCurves: (box: PlaqueRect) => curves(box)
   };
 }
 
@@ -832,6 +858,25 @@ export function plaqueCaseConnectorObstacles(items: RelationPlanItem[], nodes: N
     const anchor = item?.kind === 'directed-path' && item.pathStyle === 'case-assignment' && byId.get(item.fromNodeId);
     return anchor ? caseRouteRects(anchor, box, rects, sources) : [];
   });
+}
+
+/** One plaque's own Case arrow and the collector routes of `box`'s rows, as allocation
+ * reserves them (plaqueCaseConnectorObstacles, plaqueCollectionConnectorObstacles), each
+ * piece tagged with the route it belongs to (pocketHold.ts, PocketRoute). */
+export function plaqueRouteObstacles(item: RelationPlanItem, nodes: readonly Node[], box: PlaqueRect,
+  collection: ReturnType<typeof prepareCollectionPlaqueSpace>, rects?: CurveRects, sources?: CaseSourceRects): (PlaqueRect & { route: PocketRoute })[] {
+  const byId = new Map(nodes.map(node => [idOf(node), node]));
+  const tag = (route: PocketRoute, pieces: PlaqueRect[]) => pieces.map(piece => ({ ...piece, route }));
+  const anchor = item.kind === 'directed-path' && item.pathStyle === 'case-assignment' ? byId.get(item.fromNodeId) : undefined;
+  const source = anchor && caseAssignmentSource(anchor);
+  return [...source ? tag({ key: `case@${box.caseRowY ?? 93}`, far: { x: source.x, y: source.y },
+    source: `${idOf(source)}:${!source.children?.length && source.data.word ? 'terminal' : 'category'}` },
+    caseRouteRects(anchor!, box, rects, sources)) : [],
+  ...collection.routeCurves(box).flatMap(({ row, attachment, ...curve }) => {
+    const node = byId.get(row.sourceNodeId);
+    return node ? tag({ key: `row:${row.sourceNodeId}:${row.featureKey ?? ''}@${row.y}`, far: { x: node.x, y: node.y },
+      source: attachment.connectorAttachment, ink: true }, (rects ?? curveObstacleRects)(curve, 6)) : [];
+  })];
 }
 
 /** Measure content independently of allocation so its whole lifetime can reserve one size. */
@@ -991,13 +1036,9 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const connectorsClear = space ? space.acceptsConnector(placement)
       : (!request.caseAssignment || caseAssignmentClears(attachment, placement, occupied, caseSources))
         && collectionPlaqueClears(placement, nodes, occupied);
-    // At a narrower gap, plaques and trajectories grow by the difference: they keep the full gap.
-    const carryGap = lifetime?.syntaxGap ?? PLAQUE_GAP, carryGrow = PLAQUE_GAP - carryGap;
-    const carryBlocks = (obstacle: PlaqueRect) => plaquesOverlap(placement, carryGrow && (isPlaqueShell(obstacle) || obstacle.trajectory)
-      ? { ...obstacle, x: obstacle.x - carryGrow, y: obstacle.y - carryGrow, width: obstacle.width + 2 * carryGrow, height: obstacle.height + 2 * carryGrow }
-      : obstacle, carryGap);
+    const carryGap = lifetime?.syntaxGap ?? PLAQUE_GAP;
     if (lifetime?.syntaxGap === undefined) delete (placement as Partial<PlaquePlacement>).syntaxGap;
-    if (occupied.some(carryBlocks) || !connectorsClear) continue;
+    if (occupied.some(obstacle => blocksCarriedPocket(placement, obstacle, carryGap)) || !connectorsClear) continue;
     if (lifetime?.reconsider?.has(request.index)) {
       (lifetime.relocating?.has(request.index) ? incumbentPriors : priorCandidates).set(request.index, placement);
       continue;

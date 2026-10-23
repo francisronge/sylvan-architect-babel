@@ -12,21 +12,24 @@
  * the stage camera `bounds` and plaque `containment` that TreeVisualizer passes
  * to fitTreeCamera (module `canvas` builds each stage's completed canvas).
  * `measured` = { plan, protectedNodeIds, treeLabelRuns, measurePlaqueText,
- * measureCategoryText, measureTreeInk, measureTreeLabel }. */
+ * measureCategoryText, measureTreeInk, measureTreeLabel, pocketOccupants? }; with
+ * `pocketOccupants` the schedule keeps what its hold pass saw at each step
+ * (stageCamera.ts, replayPocketOccupants). */
 export function layoutReplayFrames({ steps, stages, width, height, direction, measured },
   { coordinates, camera, layout, display, d3, plaqueJob, notation, canvas }) {
   const groups = camera.buildStageLayoutGroups(steps, stages);
   const sizes = new Map(stages.map((_, index) => [index,
     camera.stageTreeLayoutSize(steps, index, width, height, groups)]));
   const completed = stage => canvas.buildRenderableDerivationCanvasData(stages[stage]?.workspaceForest || []);
-  const input = measured && { ...measured, steps, stageIndex: 0, completedCanvas: completed(stages.length - 1),
+  const { pocketOccupants = false, ...measures } = measured ?? {};
+  const input = measured && { ...measures, steps, stageIndex: 0, completedCanvas: completed(stages.length - 1),
     width, height, direction, abstractionMode: false, layoutGroups: groups };
   let positions, schedule = null, stageCoordinates = null;
   if (measured) {
     const measuring = plaqueJob.measurePlaqueLayoutJob(input);
     let next = measuring.next();
     while (!next.done) next = measuring.next();
-    const prepared = plaqueJob.bindPlaqueLayoutResult(input, next.value, plaqueJob.runPlaqueLayoutJob(next.value));
+    const prepared = plaqueJob.bindPlaqueLayoutResult(input, next.value, plaqueJob.runPlaqueLayoutJob(next.value, undefined, { pocketOccupants }));
     ({ schedule, coordinates: stageCoordinates } = prepared);
     positions = new Map([...prepared.coordinates.values()].flatMap(stage => [...stage]));
   } else positions = new Map([...sizes].flatMap(([index, size]) => {

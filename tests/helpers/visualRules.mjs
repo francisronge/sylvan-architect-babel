@@ -1,3 +1,5 @@
+import { newPocketBlocker, ownRoutesChanged, returnsWithinReach } from '../../replay/relations/pocketHold.ts';
+
 /** Static geometry rules for one painted frame, independent of how the frame was
  * measured. An adapter normalizes a frame to the model below and calls
  * `checkFrame`; the offline layout (tests/helpers/visualFrames.mjs) is one
@@ -16,21 +18,22 @@
  *     claims are the relation keys ('stage:relation') whose mark it belongs to;
  *     lines are the wrapped lines of a label; plaque is the plaque holding it;
  *     reach and distance measure a mark's text against its placer's preferred spots.
- *   plaques [{ id, text, rect, radius, claims, anchor?, size?, grid?, joined? }]
+ *   plaques [{ id, text, rect, radius, claims, anchor?, size?, pocket?, key?, grid?, joined? }]
  *     rect is the drawn shell and radius its corner radius; anchor { x, y } is the
  *     point the allocator measures from (below a word-bearing leaf, its word);
- *     size is the allocated box when it differs from rect; grid marks a theta grid;
- *     joined marks a plaque tied to syntax by an arrow or collector of its own.
+ *     size is the allocated box when it differs from rect; pocket is the allocated
+ *     box as the schedule placed it, with the narrower `syntaxGap` it was accepted
+ *     at, if any (by default rect's corner and size); key is the plaque's identity
+ *     among `reserves` owners; grid marks a theta grid; joined marks a plaque tied
+ *     to syntax by an arrow or collector of its own.
  *   lines   [{ id, kind, paths, halfWidth, nodes, claims, masked? }]
  *     paths are polylines of { x, y }; nodes are the tree nodes it may meet (a
  *     branch its parent and child, its path running parent to child; a stem its
  *     word; a connector its witnesses' subtrees); masked lines are painted under
  *     tree text by design.
- *   inks    [{ id, paths, claims, halfWidth }] the other relation marks' strokes
- *     (trajectories, arrows, shapes, badge points) as polylines, and
- *   reserves [{ id, rect, claims }] space plaque allocation keeps clear beyond the
- *     painted ink (nominal label and word boxes, the column below a neutral link's
- *     witness), when the adapter has them; only mark-motion reads these two.
+ *   reserves [PocketOccupant] the boxes plaque allocation reserves for what the
+ *     frame paints (replay/relations/pocketHold.ts), when the adapter has them;
+ *     only mark-motion reads these.
  *   chrome  { canvas, panel?, header? } rects, when the adapter knows the screen.
  * Ids must be stable across frames: node ids, or a mark's claim, text and anchor.
  *
@@ -51,13 +54,10 @@ export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-dis
  * enter text by more than a pixel; a mark may exceed its placer's reach by 10%
  * (a ratio), a mark's text also by 20 pixels; a connector this close to a plaque
  * of its own claim is that plaque's leader. Tree units for mark-motion: a plaque
- * may shift `motionUnits` against its anchor between frames, geometry that moves
- * `stillUnits` or less stays still, and geometry within `pocketUnits` of a pocket
- * occupies it: the allocator's 24-unit gap (plaquePlacement.ts PLAQUE_GAP) and half
- * again, since it reserves trajectories bound to node centres rather than to the
- * painted labels their ink leaves. */
+ * may shift `motionUnits` against its anchor between frames, and an anchor that
+ * moves `stillUnits` or less stays still. What occupies a pocket is pocketHold.ts's. */
 export const THRESHOLDS = Object.freeze({ overlapPx: 2, clearancePx: 1, crossingPx: 1, reachMargin: 0.1, textReachPx: 20,
-  leaderPx: 6, clippedPx: 2, rowUnits: 1, centringPx: 1, motionUnits: 4, stillUnits: 1, pocketUnits: 36 });
+  leaderPx: 6, clippedPx: 2, rowUnits: 1, centringPx: 1, motionUnits: 4, stillUnits: 1 });
 
 const TREE_TEXT = new Set(['category', 'word']);
 const LOCAL_PLAQUE = 480;
@@ -364,21 +364,19 @@ export function checkParentCentring(frame, thresholds = THRESHOLDS) {
 
 const median = values => { const sorted = [...values].sort((a, b) => a - b); return sorted.length ? sorted[sorted.length >> 1] : 0; };
 const firstPoint = item => item.boxes?.[0] ?? item.rect ?? item.paths?.[0]?.[0];
-const lastPoint = item => item.paths?.at(-1)?.at(-1);
 
 /** mark-motion: a plaque shown in two adjacent frames of one viewport keeps its
- * pocket, its offset from its anchor, unless
+ * pocket, its offset from its anchor, unless the rule the Replay schedule moves it by
+ * (replay/relations/pocketHold.ts) lets it go:
  *   - its anchor moves (against the camera's carry across a stage boundary),
- *   - the far end of a connector of its own claims that reaches it moves (a Case
- *     arrow or collector whose source moved),
- *   - new geometry occupies that pocket in the later frame: text, a line or another
- *     mark's stroke, another plaque or a mark's reserve within `pocketUnits` of the
- *     pocket, carried with the anchor, that was absent in the earlier frame or did
- *     not move with the anchor; ink of the plaque's own claims does not count, or
- *   - it returns from beyond its nearby reach (mark-distance) to within it, into a
- *     pocket that what the earlier frame showed there has left.
- * Subtype plaque-teleport; the frame is the transition and the measure the shift
- * in tree units. */
+ *   - its own Case arrow or collectors start, end, meet another row or leave a source
+ *     that moved,
+ *   - the later frame newly paints something in its pocket's way, or
+ *   - it shows its owner only by proximity and returns from beyond its nearby reach
+ *     to within it, into a pocket that what the earlier frame had there has left.
+ * Both frames' `reserves` say what each paints, as the schedule saw it. Subtype
+ * plaque-teleport; the frame is the transition and the measure the shift in tree
+ * units. */
 export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCarry = undefined) {
   if (!before || before.viewport !== after.viewport) return [];
   const textsBefore = new Map(before.texts.map(text => [text.id, text]));
@@ -392,16 +390,12 @@ export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCa
   const crossing = before.stage !== undefined && before.stage !== after.stage;
   const carry = !crossing ? { dx: 0, dy: 0 } : cameraCarry
     ?? { dx: median(offsets.map(offset => offset.dx)), dy: median(offsets.map(offset => offset.dy)) };
-  const earlier = new Map([...before.texts, ...before.plaques, ...before.lines, ...(before.inks ?? []), ...(before.reserves ?? [])]
-    .map(item => [item.id, item]));
-  const occupants = [...after.texts.map(item => ({ item, rects: item.boxes })), ...after.plaques.map(item => ({ item, rects: [item.rect] })),
-    ...(after.reserves ?? []).map(item => ({ item, rects: [item.rect] })),
-    ...[...after.lines, ...(after.inks ?? [])].map(item => ({ item, paths: item.paths }))];
   const shiftOf = (prior, plaque) => Math.hypot(plaque.rect.x - prior.rect.x - plaque.anchor.x + prior.anchor.x,
     plaque.rect.y - prior.rect.y - plaque.anchor.y + prior.anchor.y);
   // Plaques sharing an id pair with their nearest earlier pocket of the same size.
   const unpaired = before.plaques.filter(plaque => plaque.anchor);
-  const out = [], still = thresholds.stillUnits, pad = thresholds.pocketUnits;
+  const earlier = before.reserves ?? [], later = after.reserves ?? [];
+  const out = [];
   for (const plaque of after.plaques) {
     if (!plaque.anchor) continue;
     const candidates = unpaired.filter(prior => prior.id === plaque.id);
@@ -409,55 +403,15 @@ export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCa
     const prior = (sized.length ? sized : candidates).sort((a, b) => shiftOf(a, plaque) - shiftOf(b, plaque))[0];
     if (!prior) continue;
     unpaired.splice(unpaired.indexOf(prior), 1);
-    const move = { dx: plaque.anchor.x - prior.anchor.x, dy: plaque.anchor.y - prior.anchor.y }, shift = shiftOf(prior, plaque);
-    if (shift <= thresholds.motionUnits || Math.hypot(move.dx - carry.dx, move.dy - carry.dy) > still) continue;
-    const pocket = { x: prior.rect.x + move.dx - pad, y: prior.rect.y + move.dy - pad,
-      width: prior.rect.width + 2 * pad, height: prior.rect.height + 2 * pad };
-    const movedWithAnchor = (item, old) => [[firstPoint, firstPoint], [lastPoint, lastPoint]].every(([of]) => {
-      const a = of(old), b = of(item);
-      return !a && !b || a && b && Math.hypot(b.x - a.x - move.dx, b.y - a.y - move.dy) <= still;
-    });
-    // A connector of the plaque's own claims that reaches the plaque (a Case arrow or
-    // collector) starts at another node; when that end moves, the plaque may follow.
-    const atPlaque = (point, rect) => point.x >= rect.x - pad && point.x <= rect.x + rect.width + pad
-      && point.y >= rect.y - pad && point.y <= rect.y + rect.height + pad;
-    const farEnd = (item, rect) => {
-      const ends = item.paths.flatMap(path => [path[0], path.at(-1)]);
-      return ends.some(point => atPlaque(point, rect)) ? ends.find(point => !atPlaque(point, rect)) : undefined;
-    };
-    const connectorMoved = [...after.lines, ...(after.inks ?? [])].some(item => {
-      const old = earlier.get(item.id), from = old && shares(item.claims, plaque.claims) && farEnd(old, prior.rect), to = from && farEnd(item, plaque.rect);
-      return to && Math.hypot(to.x - from.x - move.dx, to.y - from.y - move.dy) > still;
-    });
-    if (connectorMoved) continue;
-    const occupied = occupants.some(({ item, rects, paths }) => {
-      if (item === plaque || item.plaque === plaque.id || shares(item.claims, plaque.claims)) return false;
-      const stroke = item.halfWidth ?? 0, area = { x: pocket.x - stroke, y: pocket.y - stroke,
-        width: pocket.width + 2 * stroke, height: pocket.height + 2 * stroke };
-      const inside = rects ? rects.some(rect => overlap1d(rect.x, rect.x + rect.width, pocket.x, pocket.x + pocket.width) > 0
-        && overlap1d(rect.y, rect.y + rect.height, pocket.y, pocket.y + pocket.height) > 0)
-        : paths.some(path => penetration(path, area) > 0 || path.length === 1 && contains(area, { ...path[0], width: 0, height: 0 }));
-      if (!inside) return false;
-      const old = earlier.get(item.id);
-      return !old || !movedWithAnchor(item, old);
-    });
-    // A plaque beyond its nearby reach may return within it once what the earlier
-    // frame showed in that nearer pocket has gone.
-    const size = plaque.size ?? plaque.rect, reach = plaqueNearbyReach(size);
-    const distance = (rect, anchor) => Math.hypot(rect.x + size.width / 2 - anchor.x, rect.y + size.height / 2 - anchor.y);
-    const freed = () => {
-      const back = { x: plaque.rect.x - move.dx - pad, y: plaque.rect.y - move.dy - pad, width: plaque.rect.width + 2 * pad, height: plaque.rect.height + 2 * pad };
-      const later = new Map([...after.texts, ...after.plaques, ...after.lines, ...(after.inks ?? []), ...(after.reserves ?? [])].map(item => [item.id, item]));
-      return [...before.texts, ...before.plaques, ...before.lines, ...(before.inks ?? []), ...(before.reserves ?? [])].some(item => {
-        if (item === prior || item.plaque === prior.id || shares(item.claims, plaque.claims)) return false;
-        const inside = item.boxes || item.rect ? (item.boxes ?? [item.rect]).some(rect => overlap1d(rect.x, rect.x + rect.width, back.x, back.x + back.width) > 0
-          && overlap1d(rect.y, rect.y + rect.height, back.y, back.y + back.height) > 0) : item.paths.some(path => penetration(path, back) > 0);
-        const now = later.get(item.id);
-        return inside && (!now || !movedWithAnchor(now, item));
-      });
-    };
-    const returning = !plaque.joined && distance(prior.rect, prior.anchor) > reach && distance(plaque.rect, plaque.anchor) <= reach && freed();
-    if (!occupied && !returning) out.push(finding('mark-motion', 'plaque-teleport', after, plaque.id,
+    const move = { x: plaque.anchor.x - prior.anchor.x, y: plaque.anchor.y - prior.anchor.y }, shift = shiftOf(prior, plaque);
+    if (shift <= thresholds.motionUnits || Math.hypot(move.x - carry.dx, move.y - carry.dy) > thresholds.stillUnits) continue;
+    const owner = plaque.key ?? plaque.id;
+    const pocketOf = ({ rect, size = rect, pocket = { x: rect.x, y: rect.y, width: size.width, height: size.height } }) => pocket;
+    const pocket = { ...pocketOf(prior), x: pocketOf(prior).x + move.x, y: pocketOf(prior).y + move.y };
+    if (ownRoutesChanged(owner, move, earlier, later) || newPocketBlocker({ pocket, owner, move }, earlier, later)
+      || !plaque.joined && returnsWithinReach({ before: { pocket, anchor: plaque.anchor }, after: { pocket: pocketOf(plaque),
+        anchor: plaque.anchor }, owner, move, thetaGrid: plaque.grid }, earlier, later)) continue;
+    out.push(finding('mark-motion', 'plaque-teleport', after, plaque.id,
       `${describe(plaque)} jumps ${Math.round(shift)} units from a pocket nothing new occupies, beside its still anchor`, shift));
   }
   return out.map(entry => ({ ...entry, frame: `${before.frame}>${after.frame}` }));

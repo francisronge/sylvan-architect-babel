@@ -267,22 +267,35 @@ stage-wide union still reserves its later visible placement before reveal.
 The worker, painter and camera consume the same stage and step maps.
 
 A plaque shown at consecutive Replay steps keeps its pocket, carried with its
-anchor, unless the anchor moves or the later step paints something in the
+anchor, unless the anchor moves or the later step newly paints something in the
 pocket's way; Francis objected to plaques that "switch position randomly".
 Within a stage the anchor moves on screen; across a stage boundary it moves only
-against the camera's carry (`carryCamera`). The check covers the step's own
-visible syntax, its revealed marks with their reserved stems, the other plaques it
-shows with their connectors, and the plaque's own Case arrow and collectors.
-Syntax, marks and plaques the stage reveals later do not count. The schedule may
-still move a plaque at a phase or stage boundary, because its pocket is blocked
-later in the phase, because a nearer pocket opened, or because a later mark of
-the new stage reserves it. The plaque then waits and moves at the step that
-blocks its pocket or moves its anchor. One exception lets a plaque beyond its
-nearby reach return within it: it takes its nearer scheduled pocket at the step
-where what the previous step painted there has gone. A pocket brought near at half
-the syntax margin is kept at that margin. The camera includes every step's
-placement. The offline visual audit reports any other jump (`mark-motion`,
-`plaque-teleport`).
+against the camera's carry (`carryCamera`). What a step paints is what allocation
+reserves for it: its visible syntax, its revealed marks with their reserved stems
+and routes, the other plaques it shows with their Case arrows and their collectors
+of rows already shown. Syntax, marks, rows and plaques revealed later do not count.
+Something is new when the earlier step had nothing of the same kind at the same
+place, carried with the anchor; what already stood there when the plaque was
+shown does not move it now. A new occupant is in the way when it comes within the
+gap carrying keeps: the plain plaque gap from syntax and connectors, or the
+narrower margin a pocket brought near was accepted at, and always the full gap
+from trajectories and other plaques (half the margin from an arrow is under a
+pixel when a small screen fits a large tree). A new label or plaque across a Case
+arrow or collector the plaque already drew is in the way too. When the plaque's
+own Case arrow or collectors start, end, meet another row or leave a source that
+moved, its pocket is kept only where every allocation rule accepts them. The
+schedule may still move a plaque at a phase or stage boundary, because its pocket
+is blocked later in the phase, because a nearer pocket opened, or because a later
+mark of the new stage reserves it. The plaque then waits and moves at the step that
+blocks its pocket or moves its anchor. One exception lets a plaque that shows its
+owner only by proximity, left beyond its nearby reach, return within it: it takes
+its nearer scheduled pocket at the step where what the previous step painted there
+has gone. A claim a later movement transfers to a lower occurrence keeps one plaque
+identity, its authored occurrence's, across that movement. The camera includes
+every step's placement. `replay/relations/pocketHold.ts` is this rule's one
+definition: the schedule moves a plaque only where it allows, and the offline visual
+audit reads the schedule's own occupants and reports every other jump
+(`mark-motion`, `plaque-teleport`).
 
 A plaque without its own Case arrow or collector shows its owner only by
 proximity. Among compact plaques placed together, such plaques choose their
