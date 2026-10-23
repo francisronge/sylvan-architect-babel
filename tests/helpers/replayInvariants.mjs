@@ -228,6 +228,26 @@ function momentNeeds(steps, index, relation) {
   return needs;
 }
 
+/** Whether the head movement at `headIndex` moves into a host beneath the parent that a phrasal
+ * landing introduced at `phrasalIndex` attaches to: a head moves into its host before any phrasal
+ * landing above that host, so the phrasal movement waits for it. */
+function headMovesBelow(steps, headIndex, phrasalIndex) {
+  const headStep = steps[headIndex], phrasalStep = steps[phrasalIndex];
+  const own = step => [step.replayRelationIdentity, ...(step.replaySharedRelationIdentities ?? [])].filter(Boolean)
+    .map(identity => `${identity.stageIndex}:${identity.relationIndex}`);
+  const landings = (step, kind) => (step.replayRelationLinks ?? []).filter(link => link.renderFamily === 'trajectory'
+    && link.trajectoryKind === kind && own(step).includes(link.authoredRelationKey)).map(link => String(link.targetNodeId));
+  const heads = landings(headStep, 'head'), phrasal = landings(phrasalStep, 'phrasal');
+  if (!heads.length || !phrasal.length) return false;
+  const structure = frameStructure(phrasalStep), byName = new Map();
+  for (const id of structure.displayed) nodeNames(structure.nodes.get(id)).forEach(name => byName.set(name, id));
+  const below = (ancestor, id) => { for (let at = structure.parent.get(id); at; at = structure.parent.get(at)) if (at === ancestor) return true; return false; };
+  return phrasal.some(landing => {
+    const parent = structure.parent.get(byName.get(landing));
+    return parent && heads.some(head => byName.has(head) && below(parent, byName.get(head)));
+  });
+}
+
 /** Whether `id` is one of a relation's authored anchors, or an ancestor or descendant of one in its stage's forest. */
 function coveredByClaim(stage, relation, id) {
   const parent = new Map();
@@ -272,7 +292,8 @@ export function checkRelationMoments(replay, record) {
       const needs = momentNeeds(steps, moment.index, moment.relation), shown = displayedNames(frameStructure(steps[moment.index]));
       const waited = played.slice(played.indexOf(overtaking), position).some(other => {
         const before = other.index ? displayedNames(frameStructure(steps[other.index - 1])) : new Set();
-        return [...needs].some(id => shown.has(id) && !before.has(id) && coveredByClaim(stage, other.relation, id));
+        return [...needs].some(id => shown.has(id) && !before.has(id) && coveredByClaim(stage, other.relation, id))
+          || headMovesBelow(steps, other.index, moment.index);
       });
       if (!waited) out.push(violation('relation-moments', moment.index + 1,
         `relation ${moment.key} plays after later authored relation ${overtaking.key} without waiting for syntax it introduces`));

@@ -508,8 +508,15 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     }
     // A landing path stops being this movement's at another movement's own landing parent: that
     // movement builds it, and this moment carries its slot meanwhile.
-    if (placement && movements.length) [...getMovementCreatedLandingHostNodeIds(placement).filter(id => (landingParentOf.get(id) ?? relationIndex) === relationIndex),
-      ...getMovementPiedPipedNodeIds(placement)].forEach(whole);
+    // A head moves into a host head that is already merged: beyond its own complex, the parents
+    // above a head landing are ordinary construction, which builds them first around the host head.
+    // (A complex with a host head of its own, beside the moved head; a complex that is only the moved
+    // head's new shell arrives with its parents as before.)
+    const hosted = (m: (typeof movements)[number]) => (cur.get(cur.get(m!.targetNodeId)?.parent ?? '')?.kids.length ?? 0) > 1;
+    const complexes = new Set(movements.filter(m => m!.trajectoryKind === 'head').map(m => cur.get(m!.targetNodeId)?.parent));
+    const headOnly = movements.every(m => m!.trajectoryKind === 'head' && hosted(m));
+    if (placement && movements.length) [...getMovementCreatedLandingHostNodeIds(placement).filter(id => (landingParentOf.get(id) ?? relationIndex) === relationIndex
+      && (!headOnly || complexes.has(id))), ...getMovementPiedPipedNodeIds(placement)].forEach(whole);
     // A trajectory claim without a proved movement still introduces, at its moment, the new material at its
     // endpoints that the stage's construction forest lacks, with its landing's new parents (as today).
     if (!movements.length && placement && (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)) {
@@ -670,6 +677,12 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     if (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition)
       placement.authoredTargetNodeIds.map(id => cur.get(id)?.parent).filter((id): id is string => Boolean(id && unitOf(id) && !hostIds.has(id)))
         .forEach(id => prerequisites.push(id));
+    // A head moves into a host head already merged with its complement: the host complex's parent,
+    // when construction builds it, comes first.
+    (placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).filter(m => m?.transition && m.trajectoryKind === 'head'
+      && (cur.get(cur.get(m.targetNodeId)?.parent ?? '')?.kids.length ?? 0) > 1)
+      .map(m => cur.get(cur.get(m!.targetNodeId)?.parent ?? '')?.parent).filter((id): id is string => Boolean(id && unitOf(id)))
+      .forEach(id => prerequisites.push(id));
     return [...placement.relationAnchorNodeIds, ...prerequisites].filter(id => producer(id) !== placement.relationIndex);
   };
   const producingRelations = (id: string, visiting = new Set<string>()): number[] => {
@@ -691,9 +704,19 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   const contextOf = (placement: RelationPlacement) => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
     ? [...new Set(relationAnchorNodeIds(placement.relation.anchors))].filter(id => !placement.relationAnchorNodeIds.includes(id) && cur.has(id)) : [];
   const waitsForContext = typeof process !== 'undefined' && process.env?.BABEL_REPLAY_WAIT_CONTEXT === '1';
+  // A head moves into its host before any phrasal landing above that host: a phrasal movement whose
+  // landing joins a parent dominating another movement's head complex waits for that head movement.
+  const headComplexOf = new Map<number, string[]>(momentPlacements.map(placement => [placement.relationIndex,
+    (placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).filter(m => m?.transition && m.trajectoryKind === 'head')
+      .map(m => cur.get(m!.targetNodeId)?.parent ?? '').filter(Boolean)]));
+  const headsBelowLanding = (placement: RelationPlacement): number[] => {
+    const phrasal = (placement.relation.recoveredMovements ?? [placement.relation.recoveredMovement]).filter(m => m?.transition && m.trajectoryKind === 'phrasal');
+    const above = new Set(phrasal.flatMap(m => subtree(cur, cur.get(m!.targetNodeId)?.parent ?? '')));
+    return [...headComplexOf].filter(([other, complexes]) => other !== placement.relationIndex && complexes.some(id => above.has(id))).map(([other]) => other);
+  };
   const momentOrder = orderRelationMoments(momentPlacements.map(placement => placement.relationIndex), new Map(momentPlacements.map(placement =>
     [placement.relationIndex, new Set([...required(placement).flatMap(id => producingRelations(id)), ...landingParentOwners(placement),
-      ...(waitsForContext ? contextOf(placement).flatMap(id => producingRelations(id)) : [])])])));
+      ...headsBelowLanding(placement), ...(waitsForContext ? contextOf(placement).flatMap(id => producingRelations(id)) : [])])])));
   const momentPosition = new Map(momentOrder.map((relationIndex, position) => [relationIndex, position]));
   const playsAfter = (relationIndex: number, ownerIndex: number) => momentPosition.has(relationIndex) && momentPosition.has(ownerIndex)
     ? momentPosition.get(relationIndex)! > momentPosition.get(ownerIndex)! : relationIndex > ownerIndex;
