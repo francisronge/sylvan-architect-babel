@@ -23,8 +23,39 @@ export const stripEdgePunctuationAndSymbols = (value) => {
   return content;
 };
 
+/**
+ * A token made only of punctuation (and spacing). Each analysis decides whether
+ * such punctuation is a syntactic word, so an analysis may leave it unclaimed.
+ */
+export const isPunctuationOnlyToken = (value) => /^[\p{P}\p{White_Space}\u200B]+$/u.test(String(value).normalize('NFC'));
+
 export const normalizeSurfaceToken = (value) =>
   stripEdgePunctuationAndSymbols(value).toLowerCase().normalize('NFC');
+
+/**
+ * Places words, in order, on the input tokens and returns each word's token
+ * index, or null. A word takes the next token whose surface form it shares; a
+ * punctuation-only token the next word does not take stays unclaimed, because
+ * an analysis may leave out punctuation that another analysis of the response
+ * writes as a word. When the words match the tokens one for one, every word
+ * takes its own token.
+ */
+export const alignWordsToTokens = (words, tokens) => {
+  const indices = [];
+  let index = 0;
+  const skipPunctuation = (form) => {
+    while (index < tokens.length && normalizeSurfaceToken(tokens[index]) !== form && isPunctuationOnlyToken(tokens[index])) index += 1;
+  };
+  for (const word of words) {
+    const form = normalizeSurfaceToken(word);
+    skipPunctuation(form);
+    if (index === tokens.length || normalizeSurfaceToken(tokens[index]) !== form) return null;
+    indices.push(index);
+    index += 1;
+  }
+  skipPunctuation(undefined);
+  return index === tokens.length ? indices : null;
+};
 
 /** Apply Unicode default casing to a complete code point, never half a surrogate pair. */
 export const caseSurfaceInitial = (value, casing) => {
