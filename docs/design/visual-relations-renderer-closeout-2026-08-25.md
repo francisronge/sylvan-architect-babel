@@ -241,7 +241,13 @@ nominal word and category boxes.
 Vines are routed as a group. If staggered bearer heights make the independent
 curves cross, their inward bends begin later so their horizontal order remains
 intact. Endpoints and the shared plaque stay fixed. Noncrossing groups, including
-Orchard D5, retain their original paths.
+Orchard D5, retain their original paths. A vine whose path would run through
+another bearer's word (a determiner above a long adjective) instead sidesteps
+evenly to that word's side, keeping its 22-unit word gap, passes it and then
+takes the accepted curve into the shared point. It passes on the side that keeps
+the group's horizontal order, and keeps its original path when the sidestep
+would be steeper than one across per two down, meet another word or cross
+another vine.
 
 Literal-only PF plates use the measured width of their heading and rows, up to
 the existing 590-unit wrapping width. Short plates can therefore use the shared
