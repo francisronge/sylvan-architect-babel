@@ -97,3 +97,17 @@ test('a shifted bare one-word object is recovered as phrasal movement, as in X-b
   assert.deepEqual(kinds(false), ['phrasal']);
   assert.deepEqual(kinds(true), kinds(false));
 });
+
+test('a one-word head beside a head over its own lower copy keeps the unnamed position', () => {
+  // "mange" adjoined to v, with its lower copy as the complement of the pair:
+  // [v [V v] V]. A complement and an adjoined head look alike here.
+  const clause = node('vp', 'v', [word('je', 'D', 'Je'), node('vInner', 'v', [
+    node('pair', 'v', [word('verbHigh', 'V', 'mange', { lineageId: 'verb' }), node('light', 'v')]),
+    word('verbLow', 'V', 'mange', { lineageId: 'verb', silent: true })])]);
+  assert.equal(describeReplayNodePosition(clause, 'verbHigh'), 'V in v');
+  // A head and its one-word complement still name the complement.
+  const plain = node('vp', 'v', [word('je', 'D', 'Je'), node('vInner', 'v', [node('light', 'v'), word('eat', 'V', 'mange')])]);
+  assert.equal(describeReplayNodePosition(plain, 'eat'), 'complement of v');
+  // The landing of a recovered head movement has adjoined, never a complement.
+  assert.equal(describeReplayNodePosition(plain, 'eat', { headLanding: true }), 'V in v');
+});

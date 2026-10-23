@@ -25,7 +25,10 @@ export const findReplayNodePathById = (
   return null;
 };
 
-export const describeReplayNodePosition = (root: SyntaxNode | null | undefined, nodeId?: string): string => {
+/** `headLanding` marks the landing of a recovered head movement, which has
+ * adjoined to its sister head rather than become its complement. */
+export const describeReplayNodePosition = (root: SyntaxNode | null | undefined, nodeId?: string,
+  { headLanding = false }: { headLanding?: boolean } = {}): string => {
   const normalizedNodeId = String(nodeId || '');
   if (!root || !normalizedNodeId)
     return '';
@@ -62,7 +65,10 @@ export const describeReplayNodePosition = (root: SyntaxNode | null | undefined, 
     if (sibling && bare.maximal(node) && bare.projects(sibling, parent)) {
       if (bare.maximal(parent) && !bare.minimal(sibling))
         return `Spec,${parentLabel}`;
-      if (!bare.maximal(parent) && !bare.minimal(parent) && bare.minimal(sibling))
+      // A one-word head beside a head over its own lower copy may have
+      // adjoined; structure cannot tell, so the position stays unnamed.
+      if (!bare.maximal(parent) && !bare.minimal(parent) && bare.minimal(sibling)
+        && !headLanding && !bare.mayHaveAdjoined(node))
         return `complement of ${categoryLabel(parentLabel)}`;
     }
     // A head names its own projection, as X-bar's T in T′ does.

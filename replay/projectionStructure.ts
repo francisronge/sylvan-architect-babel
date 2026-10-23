@@ -27,6 +27,10 @@ export interface BareProjections<Node extends ProjectionNode = SyntaxNode> {
    * one-word item beside a head may be a complement or an adjoined head, and
    * a pair of heads may be a small phrase or a complex head. */
   positionKind: (node: Node) => 'head' | 'phrasal' | undefined;
+  /** Whether a one-word daughter beside a head may have adjoined to it: its
+   * own occurrence, a head, is the sister of the pair, so the pair may be a complex head
+   * over its lower copy as well as a head and its complement. */
+  mayHaveAdjoined: (node: Node) => boolean;
 }
 
 const childrenOf = <Node extends ProjectionNode>(node: Node): Node[] => (Array.isArray(node.children) ? node.children : []) as Node[];
@@ -93,15 +97,17 @@ export const readBareProjections = <Node extends ProjectionNode>(roots: readonly
   // The domain a head pair c-commands starts at the sisters of the pair, or of
   // the cluster of one-word heads it sits in ([gli [lo T]]). A sister that is
   // itself the occurrence may instead be a phrase moved out of the pair.
-  const lowerOccurrenceBelow = (node: Node, child: Node): boolean => {
+  const occurrenceBeside = (node: Node, child: Node, sisterIsOccurrence?: (sister: Node) => boolean): boolean => {
     const lineage = String(child.lineageId ?? '');
     for (let pair = node, above = parents.get(node); lineage && above; pair = above, above = parents.get(above)) {
       const others = childrenOf(above).filter(sister => sister !== pair);
-      if (others.some(sister => sister.lineageId !== lineage && lineageWithin(sister, lineage))) return true;
+      if (others.some(sister => sisterIsOccurrence ? sister.lineageId === lineage && sisterIsOccurrence(sister)
+        : sister.lineageId !== lineage && lineageWithin(sister, lineage))) return true;
       if (!projects(pair, above) || !others.every(simpleHead) || others.some(sister => childrenOf(sister).length > 1)) return false;
     }
     return false;
   };
+  const lowerOccurrenceBelow = (node: Node, child: Node) => occurrenceBeside(node, child);
   const headShape = (node: Node): boolean => {
     const children = childrenOf(node);
     return simpleHead(node) || children.length > 1 && children.every(headShape)
@@ -142,5 +148,9 @@ export const readBareProjections = <Node extends ProjectionNode>(roots: readonly
     const sister = siblings.length === 2 ? siblings.find(child => child !== node) : undefined;
     return above && sister && projects(sister, above) && !minimal(sister) ? 'phrasal' : undefined;
   };
-  return { category, parent, projects, minimal, maximal, positionKind };
+  const mayHaveAdjoined = (node: Node): boolean => {
+    const above = parents.get(node);
+    return Boolean(above) && minimal(node) && childrenOf(above!).every(minimal) && occurrenceBeside(above!, node, minimal);
+  };
+  return { category, parent, projects, minimal, maximal, positionKind, mayHaveAdjoined };
 };
