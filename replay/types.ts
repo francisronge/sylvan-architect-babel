@@ -171,6 +171,9 @@ export interface DerivationReplayPlanStep {
   recoveredMovements?: Array<RecoveredMovement & { drawTrajectory: boolean }>;
   /** Exact new landing owned by a claim whose preceding source state is unavailable. */
   unprovenNewLandingNodeId?: string;
+  /** Set on a claim without a recovered movement that displaces nothing the preceding stage had (a first-stage
+   * claim, say): ordinary construction builds the material it names, and its moment introduces no syntax. */
+  constructionBuildsClaim?: true;
   /** New occurrences a neutral claim relates to earlier occurrences of the same object; see `anchoredCopyDisplacement`. */
   anchoredCopyDisplacement?: { copies: Array<{ nodeId: string; earlierNodeId?: string }>; earlierNodeIds: string[] };
   /** The new parent a prior-witness claim names that only wrapped its one retained witness; ordinary construction builds it. See `priorWitnessWrapperNodeIds`. */

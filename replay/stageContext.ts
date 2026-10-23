@@ -64,6 +64,43 @@ export type IndexedRelationStep = DerivationReplayPlanStep & {
   authoredRelationIndex: number;
 };
 
+/**
+ * Whether a claim displaces syntax the preceding stage had: a node it names
+ * that the stage removes, rebuilds or re-parents, or a new occurrence it names
+ * whose lineage's earlier occurrence is so displaced. Only such a claim may
+ * introduce syntax at its own moment; otherwise construction builds it.
+ * Forests that repeat an id are not comparable, and count as displacing.
+ */
+const claimDisplacesPrecedingSyntax = (relation: DerivationReplayPlanStep, previousForest: SyntaxNode[], currentForest: SyntaxNode[]): boolean => {
+  const index = (forest: SyntaxNode[]) => {
+    const nodes = new Map<string, { node: SyntaxNode; parent: string | null }>();
+    let unique = true;
+    const visit = (node: SyntaxNode, parent: string | null) => {
+      if (!node?.id || nodes.has(node.id)) { unique = false; return; }
+      nodes.set(node.id, { node, parent });
+      (node.children ?? []).forEach(child => visit(child, node.id));
+    };
+    forest.forEach(root => visit(root, null));
+    return unique ? nodes : null;
+  };
+  const before = index(previousForest), after = index(currentForest);
+  if (!before || !after) return true;
+  const shape = (nodes: NonNullable<typeof before>, id: string): string => {
+    const entry = nodes.get(id);
+    if (!entry) return '';
+    const { children, id: _id, ...own } = entry.node;
+    return `${JSON.stringify(Object.keys(own).sort().map(key => [key, (own as Record<string, unknown>)[key]]))}(${(children ?? []).map(child => shape(nodes, child.id)).join(',')})`;
+  };
+  const displaced = (id: string) => {
+    const was = before.get(id)!, now = after.get(id);
+    return !now || shape(before, id) !== shape(after, id) || Boolean(was.parent) && was.parent !== now.parent;
+  };
+  const named = [...relationAnchorNodeIds(relation.anchors), ...relationAnchorNodeIds(relation.priorAnchors)];
+  if (named.some(id => before.has(id) && displaced(id))) return true;
+  const lineages = new Set(named.filter(id => !before.has(id)).map(id => after.get(id)?.node.lineageId).filter(Boolean));
+  return [...before].some(([id, entry]) => lineages.has(entry.node.lineageId) && displaced(id));
+};
+
 export const prepareReplayStage = (
   compilation: ReplayCompilation,
   frame: ReplayDerivationFrame,
@@ -204,13 +241,22 @@ export const prepareReplayStage = (
           : listIndex
       }))
       .filter(isRenderableReplayRelation)
+      // Only a first-stage claim, or one whose landing's source the preceding stage lacks, can have
+      // nothing to displace. A copy relates its occurrences by its own rules, and a registered
+      // trajectory claim keeps its landing's moment.
+      .map(relation => relation.recoveredMovement?.transition || relation.anchoredCopyDisplacement
+        || isRegisteredTrajectoryRelation(relation.relation, relation.anchors)
+        || !(index === 0 || relation.unprovenNewLandingNodeId)
+        || claimDisplacesPrecedingSyntax(relation, previousFrameWorkspaceRoots, rawWorkspaceRoots)
+        ? relation : { ...relation, constructionBuildsClaim: true as const })
     : [];
   const nonMovementTreeTransitionRelationIndexes = new Set(frameRelationSteps
-    .map((relation, relationIndex) => (relationOwnsNonMovementTreeTransition(relation, previousFrameWorkspaceRoots, workspaceRoots) ? relationIndex : -1))
+    .map((relation, relationIndex) => (!relation.constructionBuildsClaim
+      && relationOwnsNonMovementTreeTransition(relation, previousFrameWorkspaceRoots, workspaceRoots) ? relationIndex : -1))
     .filter((relationIndex) => relationIndex >= 0));
   const fallbackTransitionOwnership = new Map<number, FallbackTreeTransitionOwnership>();
   frameRelationSteps.forEach((relation, relationIndex) => {
-    if (relation.recoveredMovement?.transition)
+    if (relation.recoveredMovement?.transition || relation.constructionBuildsClaim)
       return;
     const ownership = resolveFallbackTreeTransitionOwnership(relation, previousFrameWorkspaceRoots, workspaceRoots);
     if (ownership)
@@ -250,7 +296,8 @@ export const prepareReplayStage = (
     })
     : [];
   const currentFrameVisibleNodeIds = collectVisibleDerivationNodeIds(workspaceRoots, identity);
-  const structuralWorkspaceRoots = buildPreMovementStructuralForest(workspaceRoots, frameRelationSteps, previousFrameWorkspaceRoots);
+  const structuralWorkspaceRoots = buildPreMovementStructuralForest(workspaceRoots,
+    frameRelationSteps.filter(relation => !relation.constructionBuildsClaim), previousFrameWorkspaceRoots);
   const preauthorizedFramePlaceholderIds = new Set(Array.from(collectExactNodesByIdInForest(futureLayoutScaffold || workspaceRoots).values()).flat()
     .flatMap(node => node.replayOrigin?.kind === 'layout' && node.replayOrigin.authoredId ? [node.replayOrigin.authoredId] : []));
   // Ordinary construction needs one layout context before and after movement.

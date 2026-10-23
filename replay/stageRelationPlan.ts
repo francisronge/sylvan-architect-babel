@@ -81,7 +81,7 @@ export const planStageRelations = (compilation: ReplayCompilation, stage: Replay
       && Boolean(rawAuthoredTargetNodeId)
       && rawSourceNodeIds.length > 0;
     const ownsPhrasalTreeTransition = Boolean(relation.recoveredMovement?.transition)
-      || (relationOwnsPhrasalTreeTransition(relation)
+      || (!relation.constructionBuildsClaim && relationOwnsPhrasalTreeTransition(relation)
         && Boolean(rawAuthoredTargetNodeId)
         && rawSourceNodeIds.length > 0);
     const ownsTrajectoryPlacement = isTrajectoryRelation || ownsPhrasalTreeTransition;
