@@ -54,8 +54,9 @@ export const describeReplayNodePosition = (root: SyntaxNode | null | undefined, 
     const plain = label.replace(/(?:\s*\[[^\[\]]*\])+$/u, '').trim();
     const primes = plain.match(/['′’]+$/u)?.[0].length ?? 0;
     const category = categoryLabel(plain);
+    // A plain P is the preposition head, not a phrase of an empty category.
     return primes ? { head: category, level: primes }
-      : category.endsWith('P') ? { head: category.slice(0, -1), level: 2 }
+      : category !== 'P' && category.endsWith('P') ? { head: category.slice(0, -1), level: 2 }
         : { head: category, level: 0 };
   };
   const sibling = children.length === 2 ? children.find(child => child !== node) : undefined;

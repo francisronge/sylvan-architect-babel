@@ -59,6 +59,10 @@ test('panel positions use the X-bar names with the authored bare label', () => {
   const positions = root => ['whHigh', 'mia', 'tp', 'didLow', 'didHigh', 'whLow'].map(id => describeReplayNodePosition(root, id));
   assert.deepEqual(positions(xbar), ['Spec,CP', 'Spec,TP', 'complement of C', 'T⁰ in T′', 'T⁰ in C⁰', 'complement of V']);
   assert.deepEqual(positions(bare), ['Spec,C', 'Spec,T', 'complement of C', 'T in T', 'T in C', 'complement of V']);
+  // X-bar's plain P is the preposition head, so its sister NP is a complement.
+  const pp = node('pp', 'PP', [node('pbar', 'P′', [word('p', 'P', 'with'), node('np', 'NP', [word('n', 'N', 'Mia')])])]);
+  assert.equal(describeReplayNodePosition(pp, 'np'), 'complement of P');
+  assert.equal(describeReplayNodePosition(toBareForest([pp])[0], 'np'), 'complement of P');
 });
 
 test('a word directly under a bare phrase keeps its authored casing, as under an X-bar phrase', () => {

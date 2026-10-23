@@ -4,7 +4,7 @@
  * itself for panel positions, movement kinds, tiers and casing. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { categoryLabel, readCategoryLabel } from '../replay/categoryLabel.ts';
+import { readCategoryLabel } from '../replay/categoryLabel.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { readBareProjections, writesProjectionLevels } from '../replay/projectionStructure.ts';
 import { buildReplayPanelContent } from '../replay/replayPanel.ts';
@@ -41,7 +41,7 @@ test('the rewrite keeps enough X-bar fixtures to compare', () => {
 });
 
 test('every phrase and head position reads the same in bare labels', () => {
-  let compared = 0;
+  let compared = 0, complementsOfP = 0;
   const specifiers = new Set(), complements = new Set(), differences = [];
   for (const { id, xbar: authored, bare } of pairs) {
     const bareEnds = stageEnds(bare.playbackSteps);
@@ -71,17 +71,15 @@ test('every phrase and head position reads the same in bare labels', () => {
         const actual = describeReplayNodePosition(bareCanvas, node.id);
         if (/^Spec,/.test(actual)) specifiers.add(id);
         if (/^complement of /.test(actual)) complements.add(id);
+        if (actual === 'complement of P') complementsOfP++;
         if (toBarePosition(expected) !== actual) differences.push({ id, stage, node: node.id, expected, actual, parent: parent.label });
       }
     }
   }
   assert(compared > 5000, `${compared} positions compared`);
   assert(specifiers.size > 50 && complements.size > 50, `${specifiers.size} analyses with specifiers, ${complements.size} with complements`);
-  // X-bar reads its bare head label P as a phrase (it ends in P), so a PP
-  // complement reads "NP in P′". The bare reading names the complement.
-  const prepositionalComplement = ({ expected, actual, parent }) => categoryLabel(parent) === 'P'
-    && /^.+ in P[′’']/u.test(expected) && actual === 'complement of P';
-  assert.deepEqual(differences.filter(difference => !prepositionalComplement(difference)), []);
+  // A PP complement included: X-bar reads the plain head label P as a head.
+  assert(differences.length === 0 && complementsOfP > 20, JSON.stringify(differences.slice(0, 5)) + ` ${complementsOfP} PP complements`);
 });
 
 test('Source and Landing panel lines name the same positions in bare labels', () => {
