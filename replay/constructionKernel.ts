@@ -608,7 +608,27 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const hierarchy = d3.hierarchy<SyntaxNode>(structuralCanvas);
     applyVizIds(hierarchy);
     const all = new Set<string>(hierarchy.descendants().map(node => getNodeId(node)));
-    for (const node of buildBottomUpSequence(hierarchy, all, constructionChildRank())) {
+    // Just in time (BABEL_REPLAY_STRUCTURAL_RANK=2): the daughter with more construction still to do is
+    // built first, so the other is built right before the merge that uses it.
+    const authoredOf = (node: d3.HierarchyNode<SyntaxNode>) => { const origin = node.data.replayOrigin;
+      return origin?.kind === 'word' ? String(origin.ownerId) : origin?.kind === 'lexical' ? String(origin.authoredId) : String(node.data.id); };
+    const work = new Map<d3.HierarchyNode<SyntaxNode>, number>();
+    hierarchy.eachAfter(node => work.set(node, (node.children ?? []).reduce((sum, child) => sum + work.get(child)!, 0)
+      + (cur.has(authoredOf(node)) && (constructs(authoredOf(node)) || !prev.has(authoredOf(node))) ? 1 : 0)));
+    // Pieces already waiting on screen (preceding roots this stage attaches) wait until every subtree
+    // around them is done, so a subtree holding several of them goes first (shortest per piece first);
+    // otherwise the longer construction goes first. This orders sisters to minimise waiting (Smith's rule).
+    const waiting = new Map<d3.HierarchyNode<SyntaxNode>, number>();
+    hierarchy.eachAfter(node => waiting.set(node, (node.children ?? []).reduce((sum, child) => sum + waiting.get(child)!, 0)
+      + (prev.get(authoredOf(node))?.parent === null && cur.get(authoredOf(node))?.parent ? 1 : 0)));
+    const rank = typeof process !== 'undefined' && process.env?.BABEL_REPLAY_STRUCTURAL_RANK === '2'
+      ? (parent: d3.HierarchyNode<SyntaxNode>, child: d3.HierarchyNode<SyntaxNode>, childIndex: number) => {
+        if (parent.data.replayOrigin?.kind === 'workspace') return childIndex;
+        const p = work.get(child)!, w = waiting.get(child)!;
+        return (w >= 2 ? p / (w - 1) : w === 1 ? 1e6 + p : 2e6 - p) + childIndex / 1000;
+      }
+      : constructionChildRank();
+    for (const node of buildBottomUpSequence(hierarchy, all, rank)) {
       const origin = node.data.replayOrigin, word = origin?.kind === 'word';
       const id = word ? String(origin!.ownerId) : origin?.kind === 'lexical' ? String(origin.authoredId) : String(node.data.id);
       if (!cur.has(id) || !constructs(id)) continue;
