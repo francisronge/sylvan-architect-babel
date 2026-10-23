@@ -17,14 +17,20 @@ export const sameTokenSequence = (leftTokens, rightTokens) => {
 // ancestors; see nodePronunciation.js.
 export const collectOvertTerminalNodes = (tree) => collectPronouncedLeaves(tree);
 
-export const deriveCanonicalSurfaceSpans = (tree, realizedTokenIndices) => {
+/**
+ * Sets each node's surfaceSpan. With realized token indices, unclaimed holds
+ * the punctuation tokens the analysis leaves unclaimed; they do not interrupt
+ * a span.
+ */
+export const deriveCanonicalSurfaceSpans = (tree, realizedTokenIndices, unclaimed = new Set()) => {
   if (realizedTokenIndices) {
     const visit = (node) => {
       const indices = new Set(realizedTokenIndices.get(node.id) || []);
       (node.children || []).forEach((child) => visit(child).forEach((index) => indices.add(index)));
       const ordered = [...indices].sort((a, b) => a - b);
+      const gaps = ordered.length ? [...unclaimed].filter(index => index > ordered[0] && index < ordered.at(-1)).length : 0;
       // A range cannot faithfully describe a discontinuous association.
-      if (ordered.length && ordered.at(-1) - ordered[0] + 1 === ordered.length) {
+      if (ordered.length && ordered.at(-1) - ordered[0] + 1 === ordered.length + gaps) {
         node.surfaceSpan = [ordered[0], ordered.at(-1)];
       } else delete node.surfaceSpan;
       return indices;
