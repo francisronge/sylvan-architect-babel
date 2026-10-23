@@ -31,6 +31,7 @@ interface PreviewWindow extends Window {
   __BABEL_DEV_SET_CAPTURE_MODE__?: (enabled: boolean) => void;
   __BABEL_DEV_GET_REPLAY_STEP_COUNT__?: () => number;
   __BABEL_DEV_SET_REPLAY_STEP__?: (step: number) => void;
+  __BABEL_DEV_GET_REPLAY_STEP_PAYLOAD__?: (index: number) => unknown;
 }
 
 const record = (value: unknown): Record<string, unknown> =>
@@ -168,6 +169,35 @@ function useDevPreviewBridge({
   return captureMode;
 }
 
+/** Let capture tools select and read Replay steps of the mounted tree. */
+function useReplayStepBridge<Step>(
+  playbackSteps: readonly Step[],
+  setActiveStepIndex: (index: number) => void,
+  setIsAutoPlaying: (playing: boolean) => void
+) {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const target = window as PreviewWindow;
+    const bounded = (index: number) => {
+      const requested = Number(index);
+      return Number.isFinite(requested)
+        ? Math.max(0, Math.min(Math.trunc(requested), Math.max(playbackSteps.length - 1, 0)))
+        : 0;
+    };
+    target.__BABEL_DEV_SET_REPLAY_STEP__ = nextStep => {
+      setIsAutoPlaying(false);
+      setActiveStepIndex(bounded(nextStep));
+    };
+    target.__BABEL_DEV_GET_REPLAY_STEP_COUNT__ = () => playbackSteps.length;
+    target.__BABEL_DEV_GET_REPLAY_STEP_PAYLOAD__ = index => playbackSteps[bounded(index)] || null;
+    return () => {
+      delete target.__BABEL_DEV_SET_REPLAY_STEP__;
+      delete target.__BABEL_DEV_GET_REPLAY_STEP_COUNT__;
+      delete target.__BABEL_DEV_GET_REPLAY_STEP_PAYLOAD__;
+    };
+  }, [playbackSteps, setActiveStepIndex, setIsAutoPlaying]);
+}
+
 /**
  * The `devBundle` query and `window.__BABEL_DEV_*__` setters load an analysis
  * without parser or record validation, so they exist only under the Vite dev
@@ -177,3 +207,8 @@ function useDevPreviewBridge({
 export const useDevPreview: typeof useDevPreviewBridge = import.meta.env?.DEV === true
   ? useDevPreviewBridge
   : () => false;
+
+/** Development-only, like `useDevPreview`; production keeps Replay step selection in the UI. */
+export const useReplayStepDevBridge: typeof useReplayStepBridge = import.meta.env?.DEV === true
+  ? useReplayStepBridge
+  : () => {};

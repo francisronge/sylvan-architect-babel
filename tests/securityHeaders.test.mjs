@@ -47,3 +47,14 @@ test('local plain-HTTP Express omits only HSTS', () => {
   assert.ok(hsts);
   assert.deepEqual(headers, rest);
 });
+
+test('framing and worker policies are explicit and agree with each other', () => {
+  const headers = expressHeaders();
+  const csp = Object.fromEntries(headers['Content-Security-Policy'].split(';')
+    .map(directive => directive.trim().split(/\s+/)).map(([name, ...sources]) => [name, sources.join(' ')]));
+  // X-Frame-Options covers browsers without CSP frame-ancestors; both forbid all framing.
+  assert.equal(csp['frame-ancestors'], "'none'");
+  assert.equal(headers['X-Frame-Options'], 'DENY');
+  // Vite emits the Replay and plaque workers as same-origin /assets files, not blob: URLs.
+  assert.equal(csp['worker-src'], "'self'");
+});
