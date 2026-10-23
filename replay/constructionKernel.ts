@@ -299,9 +299,13 @@ function close(edit: StageEdit, frame: Frame, owners: Owners, seeds: Iterable<st
         || [...keys].some(x => x.startsWith(key('s', q!) + '\u0000') || x.startsWith(key('k', q!) + '\u0000')));
     });
   };
-  /** A node that lost its parent goes where C puts it, or leaves with what dissolves. */
+  /** A node that lost its parent goes where C puts it, or leaves with what dissolves; one whose removal
+   * belongs to another relation stays, as its own root, until that relation. */
   const settle = (k: string): boolean => {
-    if (!cur.has(k)) return dissolve(k);
+    if (!cur.has(k)) {
+      const remover = owners.get(key('d', k));
+      return !mode.forced && remover !== undefined && remover !== mode.relation || dissolve(k);
+    }
     const p = cur.get(k)!.parent;
     if (!p) return true;
     if (whole(p)) return true;
