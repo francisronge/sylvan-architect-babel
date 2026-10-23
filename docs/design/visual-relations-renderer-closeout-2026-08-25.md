@@ -605,11 +605,14 @@ another rewrite; its tier does not change the order. Relations waiting for the s
 chain of needs resolves in turn, and every other relation keeps its authored
 position. A construction step already under way, which may build what the
 waiting relation needs, completes first. `replay/relationMomentOrder.ts` computes
-the order once per stage, and `stageScheduling.ts` plays it without introducing
+the order once per stage, and `replay/constructionKernel.ts` plays it without introducing
 syntax early. Needs that form a cycle cannot all be met: the cycle's members keep
 authored order among themselves, a relation needing a member keeps its authored
 position relative to it, and Replay reports the unavailable syntax as
-`RELATION_TIMING_CONFLICT`. A realization that plays after a movement still owns
+`RELATION_TIMING_CONFLICT`. A head moves into a host head already merged with its complement, and before a
+phrasal movement lands above that host, so a phrasal movement authored before
+such a head movement plays after it unless the head movement names its landing.
+A realization that plays after a movement still owns
 the later pronunciation of that movement's landing. The authored record, the
 relation plan and each relation's marks are unchanged; only the order of moments
 within the stage differs.

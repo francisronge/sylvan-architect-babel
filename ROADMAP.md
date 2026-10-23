@@ -30,10 +30,7 @@ syntactic rules. Desktop remains the primary experience.
    - A `RELATION_TIMING_CONFLICT` cycle that no order satisfies: in the
      Icelandic case transfer, continued V-to-I and I-to-C each own part of one
      moving head complex. It needs a decision about which claim introduces the
-     shared head complex. A movement also does not wait for a
-     contextual anchor, so the Icelandic raising chain's verb-trace role lacks
-     its anchor at its moment (waiting would cost the subject landing its
-     reserved slot and shift the matrix IP about 120 px).
+     shared head complex.
    - Movements still drawn as copies without an arrow: the Hungarian verbal
      particle's topicalization (night3 14-hu-verbal-particle), and hop 8:0 of
      the long tough relative (night4 09-en-tough-relative-long), whose claim
