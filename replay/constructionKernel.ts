@@ -732,6 +732,9 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const owner = owners.get(key('w', id));
     return owner === undefined ? undefined : owner;
   };
+  /** The relation whose moment gives a preceding node a daughter it lacked, when one does. */
+  const reshaper = (id: string): number | undefined => available0.has(id) && edit.reshaped(id)
+    && cur.get(id)!.kids.some(k => !prev.get(id)!.kids.includes(k)) ? owners.get(key('w', id)) : undefined;
   const unitOf = (id: string) => units.find(unit => unit.id === id && !unit.word);
   // Construction waits for the daughters a node has before the stage's movements (today's
   // construction forest); a daughter a later moment completes is carried meanwhile.
@@ -762,7 +765,7 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     return [...placement.relationAnchorNodeIds, ...prerequisites].filter(id => producer(id) !== placement.relationIndex);
   };
   const producingRelations = (id: string, visiting = new Set<string>()): number[] => {
-    const owner = producer(id);
+    const owner = producer(id) ?? (visiting.size ? undefined : reshaper(id));
     if (owner !== undefined) return [owner];
     if (!unitOf(id) || visiting.has(id)) return [];
     visiting.add(id);
@@ -1152,7 +1155,13 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
   };
   const ensure = (id: string, forRelation?: number): string[] => {
     if (!cur.has(id)) return [];
-    const unit = unitOf(id);
+    const unit = unitOf(id), reshapedBy = forRelation === undefined ? undefined : reshaper(id);
+    // A relation needing a preceding node a moment reshapes needs that moment's current form.
+    if (reshapedBy !== undefined && reshapedBy !== forRelation && !played.includes(reshapedBy)) {
+      if (!playsAfter(forRelation!, reshapedBy)) return [id];
+      emitMomentsThrough(reshapedBy);
+      return [];
+    }
     // Retaining an occurrence does not establish its new daughters: those wait for its construction.
     if (available0.has(id) && (!unit || unitDone(unit))) return [];
     const owner = producer(id);
