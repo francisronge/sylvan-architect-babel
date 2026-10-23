@@ -125,6 +125,11 @@ class StageEdit {
     for (let at = this.cur.get(k)!.parent; at; at = this.cur.get(at)?.parent ?? null) { if (at === c) below = true; else if (at === q) return below; }
     return false;
   }
+  /** Whether C puts `k` beneath `c`. */
+  within(c: string, k: string): boolean {
+    for (let at = this.cur.get(k)?.parent ?? null; at; at = this.cur.get(at)?.parent ?? null) if (at === c) return true;
+    return false;
+  }
   /** Whether a node needs a whole switch (new, or daughters not slot-replaceable). */
   reshaped(id: string): boolean { const diff = this.diffs.get(id); return Boolean(diff && (diff.isNew || !diff.slots)); }
   base(shown: Shown, id: string): string[] { return (shown.kids === 'P' ? this.prev : this.cur).get(id)!.kids; }
@@ -183,7 +188,9 @@ const key = (kind: string, id: string, slot?: number) => [kind, id, ...(slot ===
 const carrierKey = (id: string, slot: number, carrier: string) => [key('k', id, slot), carrier].join('\u0000');
 
 type Owners = Map<string, number>;
-type Mode = { relation?: number; forced?: boolean; planning?: { seeds: Set<string>; foreign: (k: string) => boolean } };
+type Mode = { relation?: number; forced?: boolean; planning?: { seeds: Set<string>; foreign: (k: string) => boolean };
+  /** A relation moment leaves this unowned construction to its own step, which plays first. */
+  constructionFirst?: (id: string) => boolean };
 
 /**
  * The smallest change containing the seed keys after which the frame is again
@@ -201,7 +208,10 @@ function close(edit: StageEdit, frame: Frame, owners: Owners, seeds: Iterable<st
     if (mode.forced || mode.planning) return true;
     const owner = owners.get(k);
     if (mode.relation === undefined) return owner === undefined || block(id);
-    if (owner === undefined) { absorbed += 1; return true; }
+    if (owner === undefined) {
+      if (k.startsWith('w\u0000') && mode.constructionFirst?.(id)) return block(id);
+      absorbed += 1; return true;
+    }
     return owner === mode.relation || block(id);
   };
   const add = (k: string, id: string): boolean => {
@@ -235,6 +245,10 @@ function close(edit: StageEdit, frame: Frame, owners: Owners, seeds: Iterable<st
       if (edit.between(q, claimer, k) && !cur.get(q)!.kids.includes(claimer)) return add(carrierKey(q, slot, claimer), q);
     }
     if (slot >= 0 && shown?.kids === 'P' && edit.replaces(q, slot)) return add(key('s', q, slot), q);
+    // A new daughter that takes over a preceding daughter can stand in its slot while the parent
+    // keeps its preceding count; the parent's own merge adds its other new daughters.
+    if (slot >= 0 && claimer && shown?.kids === 'P' && cur.get(q)!.kids.includes(claimer) && edit.within(claimer, k))
+      return add(carrierKey(q, slot, claimer), q);
     return switchWhole(q);
   };
   /** `k` must be shown, as a daughter of `parent`, after the change. */
@@ -445,6 +459,10 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const p = cur.get(id)?.parent;
     if (!p || !edit.diffs.has(p) || (!landing && !prev.has(p))) return [];
     const slot = cur.get(p)!.kids.indexOf(id);
+    // A new node taking over a preceding daughter of a kept parent stands in that daughter's slot;
+    // the parent's own merge adds its other new daughters.
+    if (edit.reshaped(p) && prev.has(p) && !prev.has(id) && prev.get(p)!.kids.filter(k => edit.within(id, k)).length === 1
+      && cur.get(p)!.kids.some(k => k !== id && !prev.has(k))) return [];
     return edit.reshaped(p) ? [key('w', p)] : edit.replaces(p, slot) ? [key('s', p, slot)] : [];
   };
   const structuralIndex = indexForest(structuralWorkspaceRoots);
@@ -1057,7 +1075,15 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
         return owner === undefined ? `${id} before its structural prerequisites are available`
           : `${id} before relation ${(frameRelationSteps[owner].authoredRelationIndex ?? owner) + 1} (${frameRelationSteps[owner].relation}) introduces it`;
       }).join('; ')}. No Replay order provides it first, so authored relation order is kept; unavailable structure is not introduced early.`);
-      let closed = close(edit, frameState, owners, ownedBy(relation), { relation });
+      // Construction the moment needs and does not own is built first, never at the moment.
+      const constructionFirst = (id: string) => Boolean(unitOf(id)) && !unitDone(unitOf(id)!);
+      let closed = close(edit, frameState, owners, ownedBy(relation), { relation, constructionFirst });
+      for (let guard = 0; typeof closed === 'string' && guard < units.length; guard += 1) {
+        const blocking = unitOf(closed);
+        if (!blocking || unitDone(blocking) || emitUnit(blocking, relation).length) break;
+        closed = close(edit, frameState, owners, ownedBy(relation), { relation, constructionFirst });
+      }
+      if (typeof closed === 'string') closed = close(edit, frameState, owners, ownedBy(relation), { relation });
       if (typeof closed === 'string') { kernelDiagnostics.forcedSteps += 1; closed = close(edit, frameState, owners, ownedBy(relation), { relation, forced: true }); }
       const next = typeof closed === 'string' ? null : edit.apply(frameState, closed.keys);
       if (next) frameState = next;
