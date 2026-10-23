@@ -1,215 +1,7 @@
 import { delayWithAbort, fetchProvider, mutableProviderError, readResponseText, withTimeout } from './providerTransport.js';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import {
-  ANTHROPIC_EFFORT,
-  ANTHROPIC_THINKING_CONFIG,
-  DEFAULT_MAX_OUTPUT_TOKENS,
-  LOCAL_MODEL_COMMAND,
-  LOCAL_MODEL_MAX_OUTPUT_TOKENS,
-  LOCAL_MODEL_NAME,
-  LOCAL_MODEL_NUM_CTX,
-  LOCAL_MODEL_TIMEOUT_MS,
-  LOCAL_MODEL_URL,
-  MODEL_TEMPERATURE,
-  OPENAI_BACKGROUND_POLL_INTERVAL_MS,
-  OPENAI_BACKGROUND_RESPONSES,
-  OPENAI_REASONING_EFFORT
-} from './routeConfig.js';
-
-export const extractLocalModelResponseText = (payload) => {
-  if (typeof payload === 'string') return payload.trim();
-  if (!payload || typeof payload !== 'object') return '';
-  if (Array.isArray(payload?.analyses)) return JSON.stringify(payload);
-  if (typeof payload.response === 'string') return payload.response.trim();
-  if (typeof payload.output === 'string') return payload.output.trim();
-  if (typeof payload.text === 'string') return payload.text.trim();
-  const firstChoice = Array.isArray(payload.choices) ? payload.choices[0] : null;
-  const content = firstChoice?.message?.content ?? firstChoice?.text;
-  if (typeof content === 'string') return content.trim();
-  if (Array.isArray(content)) {
-    return content
-      .map((part) => (typeof part?.text === 'string' ? part.text : ''))
-      .join('')
-      .trim();
-  }
-  return '';
-};
-
-const normalizeLocalTransportText = (rawText) => {
-  const trimmed = String(rawText || '').trim();
-  if (!trimmed) return '';
-  try {
-    const parsed = JSON.parse(trimmed);
-    return extractLocalModelResponseText(parsed) || trimmed;
-  } catch {
-    return trimmed;
-  }
-};
-
-export const resolveLocalMaxOutputTokens = (requestedMaxOutputTokens) => {
-  const requested = Number(requestedMaxOutputTokens);
-  if (!Number.isFinite(requested) || requested <= 0) {
-    return LOCAL_MODEL_MAX_OUTPUT_TOKENS;
-  }
-  return Math.max(256, Math.min(requested, LOCAL_MODEL_MAX_OUTPUT_TOKENS));
-};
-
-export const buildLocalRequestBody = ({
-  transport = 'http',
-  sentence,
-  framework,
-  systemInstruction,
-  prompt,
-  temperature,
-  maxOutputTokens,
-  format = 'json'
-}) => {
-  const resolvedMaxOutputTokens = resolveLocalMaxOutputTokens(maxOutputTokens);
-  if (transport === 'command') {
-    return {
-      sentence,
-      framework,
-      model: LOCAL_MODEL_NAME,
-      systemInstruction,
-      prompt,
-      temperature,
-      maxOutputTokens: resolvedMaxOutputTokens,
-      format,
-      numCtx: LOCAL_MODEL_NUM_CTX,
-      think: false
-    };
-  }
-  return {
-    model: LOCAL_MODEL_NAME,
-    system: systemInstruction,
-    prompt,
-    format,
-    stream: false,
-    think: false,
-    options: {
-      temperature,
-      num_predict: resolvedMaxOutputTokens,
-      num_ctx: LOCAL_MODEL_NUM_CTX
-    }
-  };
-};
-
-const invokeLocalModelCommand = async ({
-  sentence,
-  framework,
-  systemInstruction,
-  prompt,
-  temperature,
-  maxOutputTokens,
-  format = 'json',
-  timeoutMs
-}) => {
-  const requestBody = buildLocalRequestBody({
-    transport: 'command',
-    sentence,
-    framework,
-    systemInstruction,
-    prompt,
-    temperature,
-    maxOutputTokens,
-    format
-  });
-  const result = spawnSync(LOCAL_MODEL_COMMAND, {
-    shell: true,
-    input: JSON.stringify(requestBody),
-    encoding: 'utf8',
-    timeout: Math.max(0, Number(timeoutMs || LOCAL_MODEL_TIMEOUT_MS)),
-    maxBuffer: 25 * 1024 * 1024
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0) {
-    throw new Error(String(result.stderr || result.stdout || `Local command exited with status ${result.status}`));
-  }
-  return normalizeLocalTransportText(result.stdout || '');
-};
-
-const invokeLocalModelHttp = async ({
-  systemInstruction,
-  prompt,
-  temperature,
-  maxOutputTokens,
-  timeoutMs,
-  format = 'json'
-}) => {
-  const requestBody = buildLocalRequestBody({
-    transport: 'http',
-    systemInstruction,
-    prompt,
-    temperature,
-    maxOutputTokens,
-    format
-  });
-  const abortController = new AbortController();
-  const timeoutHandle = setTimeout(() => abortController.abort(), Math.max(0, Number(timeoutMs || LOCAL_MODEL_TIMEOUT_MS)));
-  try {
-    const response = await fetch(LOCAL_MODEL_URL, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify(requestBody),
-      signal: abortController.signal
-    });
-    const responseText = await response.text();
-    if (!response.ok) {
-      const error = new Error(String(responseText || `Local model HTTP transport failed (${response.status})`));
-      error.status = response.status;
-      throw error;
-    }
-    return normalizeLocalTransportText(responseText || '');
-  } catch (error) {
-    if (error?.name === 'AbortError') {
-      const timeoutError = new Error(`Local model HTTP transport timed out after ${Math.max(0, Number(timeoutMs || LOCAL_MODEL_TIMEOUT_MS))} ms`);
-      timeoutError.status = 408;
-      throw timeoutError;
-    }
-    if (error?.cause?.message) {
-      error.message = `${error.message}: ${error.cause.message}`;
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutHandle);
-  }
-};
-
-export const generateStructuredLocalContent = async ({
-  sentence,
-  framework,
-  systemInstruction,
-  prompt,
-  temperature,
-  maxOutputTokens,
-  timeoutMs = LOCAL_MODEL_TIMEOUT_MS,
-  format = 'json'
-}) => {
-  if (LOCAL_MODEL_COMMAND) {
-    return invokeLocalModelCommand({
-      sentence,
-      framework,
-      systemInstruction,
-      prompt,
-      temperature,
-      maxOutputTokens: resolveLocalMaxOutputTokens(maxOutputTokens),
-      timeoutMs,
-      format
-    });
-  }
-  return invokeLocalModelHttp({
-    systemInstruction,
-    prompt,
-    temperature,
-    maxOutputTokens: resolveLocalMaxOutputTokens(maxOutputTokens),
-    timeoutMs,
-    format
-  });
-};
+import { OPENAI_BACKGROUND_POLL_INTERVAL_MS } from './routeConfig.js';
 
 // Debug payloads hold user sentences and raw model output, so only the owner may read them.
 const writePrivateDebugFile = (fileName, contents) => {
@@ -236,52 +28,6 @@ export const writeDebugModelPayload = ({ stage = 'unknown', model = 'unknown', s
   } catch {
     return null;
   }
-};
-
-export const buildGeminiGenerationRequest = ({
-  model,
-  contents,
-  systemInstruction,
-  temperature = MODEL_TEMPERATURE,
-  maxOutputTokens = DEFAULT_MAX_OUTPUT_TOKENS,
-  responseJsonSchema,
-  abortSignal,
-  thinkingConfig
-}) => ({
-  model,
-  contents,
-  config: {
-    systemInstruction,
-    responseMimeType: 'application/json',
-    maxOutputTokens,
-    temperature,
-    ...(responseJsonSchema ? { responseJsonSchema } : {}),
-    ...(thinkingConfig ? { thinkingConfig } : {}),
-    abortSignal
-  }
-});
-
-export const generateStructuredContent = async ({
-  ai,
-  model,
-  contents,
-  systemInstruction,
-  temperature = MODEL_TEMPERATURE,
-  maxOutputTokens = DEFAULT_MAX_OUTPUT_TOKENS,
-  responseJsonSchema,
-  abortSignal,
-  thinkingConfig
-}) => {
-  return ai.models.generateContent(buildGeminiGenerationRequest({
-    model,
-    contents,
-    systemInstruction,
-    temperature,
-    maxOutputTokens,
-    responseJsonSchema,
-    abortSignal,
-    thinkingConfig
-  }));
 };
 
 const OPENAI_RESPONSE_PENDING_STATUSES = new Set(['queued', 'in_progress']);
@@ -378,9 +124,9 @@ export const buildOpenAIRequestBody = ({
   model,
   contents,
   systemInstruction,
-  maxOutputTokens = DEFAULT_MAX_OUTPUT_TOKENS,
-  reasoningEffort = OPENAI_REASONING_EFFORT,
-  background = OPENAI_BACKGROUND_RESPONSES
+  maxOutputTokens,
+  reasoningEffort,
+  background
 }) => ({
   model,
   instructions: systemInstruction,
@@ -395,10 +141,9 @@ export const generateOpenAIStructuredContent = async ({
   model,
   contents,
   systemInstruction,
-  temperature = MODEL_TEMPERATURE,
-  maxOutputTokens = DEFAULT_MAX_OUTPUT_TOKENS,
-  reasoningEffort = OPENAI_REASONING_EFFORT,
-  background = OPENAI_BACKGROUND_RESPONSES,
+  maxOutputTokens,
+  reasoningEffort,
+  background,
   pollIntervalMs = OPENAI_BACKGROUND_POLL_INTERVAL_MS,
   abortSignal
 }) => {
@@ -491,9 +236,9 @@ export const buildAnthropicRequestBody = ({
   model,
   contents,
   systemInstruction,
-  maxOutputTokens = DEFAULT_MAX_OUTPUT_TOKENS,
-  effort = ANTHROPIC_EFFORT,
-  thinking = ANTHROPIC_THINKING_CONFIG
+  maxOutputTokens,
+  effort,
+  thinking
 }) => ({
   model,
   system: systemInstruction,
@@ -508,10 +253,9 @@ export const generateAnthropicStructuredContent = async ({
   model,
   contents,
   systemInstruction,
-  temperature = MODEL_TEMPERATURE,
-  maxOutputTokens = DEFAULT_MAX_OUTPUT_TOKENS,
-  effort = ANTHROPIC_EFFORT,
-  thinking = ANTHROPIC_THINKING_CONFIG,
+  maxOutputTokens,
+  effort,
+  thinking,
   abortSignal
 }) => {
   const response = await fetchProvider('https://api.anthropic.com/v1/messages', {

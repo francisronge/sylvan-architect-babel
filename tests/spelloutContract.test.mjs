@@ -457,11 +457,31 @@ test('a response nested too deeply fails as a typed contract failure before any 
   assert.equal(normalizeParseBundle(oneStage([deepest]), 'xbar', 'a', 'gpt', true, { spellout: true }).analyses.length, 1);
 });
 
-test('an analysis that does not spell another analysis\'s punctuation word fails', () => {
-  const results = convertSpelloutPayload({ analyses: [flat('Mia', 'laughed', '.'), flat('Mia', 'laughed')] }, 'Mia laughed.');
-  assert.deepEqual(results.map(result => result.ok), [true, false]);
-  assert.deepEqual(results[0].inputTokens, ['Mia', 'laughed', '.']);
-  assert.equal(results[1].diagnostics[0].rule, 'SPELLOUT_SEGMENTATION_CONFLICT');
+test('each analysis decides whether punctuation is a word; one that leaves it out does not claim it', () => {
+  const sentence = 'Mia laughed.';
+  const payload = { analyses: [flat('Mia', 'laughed', '.'), flat('Mia', 'laughed')] };
+  const results = convertSpelloutPayload(payload, sentence);
+  assert.deepEqual(results.map(result => result.ok), [true, true], JSON.stringify(results.map(result => result.diagnostics)));
+  results.forEach(result => assert.deepEqual(result.inputTokens, ['Mia', 'laughed', '.']));
+  assert.deepEqual(results[1].units.map(unit => unit.tokenIndices), [[0], [1]]);
+  const bundle = normalizeParseBundle(structuredClone(payload), 'xbar', sentence, 'gpt', true, { spellout: true });
+  assert.deepEqual(bundle.inputTokens, ['Mia', 'laughed', '.']);
+  assert.deepEqual(bundle.analyses.map(analysis => analysis.tree.surfaceSpan), [[0, 2], [0, 1]]);
+  // A punctuation word the sentence does not have, or a missing real word, still fails.
+  const wrong = convertSpelloutPayload({ analyses: [flat('Mia', 'laughed', '.'), flat('Mia', 'laughed', '!')] }, sentence);
+  assert.deepEqual(wrong.map(result => result.ok), [true, false]);
+  const missing = convertSpelloutPayload({ analyses: [flat('Mia', 'laughed', '.'), flat('Mia')] }, sentence);
+  assert.equal(missing[1].diagnostics[0].rule, 'SPELLOUT_INCOMPLETE');
+  // An analysis that leaves out some punctuation records its own punctuation words with their exact tokens.
+  const marks = 'Wait, Mia laughed.';
+  const both = convertSpelloutPayload({ analyses: [flat('Wait', ',', 'Mia', 'laughed', '.'), flat('Wait', 'Mia', 'laughed', '.')] }, marks);
+  assert.deepEqual(both.map(result => result.ok), [true, true]);
+  assert.deepEqual(both[0].spellingGroups, []);
+  assert.deepEqual(both[1].spellingGroups, [{ nodeIds: ['w3'], tokenIndices: [4] }]);
+  const parsed = normalize({ analyses: both.map(result => result.analysis) }, marks, both[0].inputTokens);
+  assert.deepEqual(parsed.analyses.map(analysis => analysis.tree.surfaceSpan), [[0, 4], [0, 4]]);
+  // The parser leaves out only punctuation: a real word stays required.
+  assert.throws(() => normalize(flat('Mia', 'laughed'), sentence, ['Mia', 'laughed', 'loudly']));
 });
 
 test('a spell-out response becomes ordinary attempts plus recorded spell-out failures', () => {

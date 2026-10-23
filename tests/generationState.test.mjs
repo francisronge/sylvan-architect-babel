@@ -116,8 +116,8 @@ test('a padded draft sends its trimmed sentence, so the echoed bundle saves unde
   const analysis = { derivationStages: [{ statement: 's', stageRecord: 'r', relations: [],
     workspaceForest: [{ id: 'n1', label: 'V', word: 'laughed' }] }] };
   // The server echoes exactly the sentence it received.
-  const server = sentence => parseFromBodyWithProviders({ sentence, framework: 'xbar', modelRoute: 'gemini' },
-    { gemini: async () => ({ analyses: [analysis], ambiguityDetected: false }) });
+  const server = sentence => parseFromBodyWithProviders({ sentence, framework: 'xbar', modelId: 'openai:gpt-6-astra' },
+    { research: async () => ({ analyses: [analysis], ambiguityDetected: false }) });
   const save = (sentence, bundle) => {
     const now = new Date().toISOString();
     return prepareTreeBankSave({ id: 'work', sentence, framework: 'xbar', activeParseIndex: 0, bundle, createdAt: now, updatedAt: now });

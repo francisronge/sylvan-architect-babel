@@ -62,6 +62,6 @@ A group says that these existing syntax objects collectively correspond to this 
 Unlike relations, groups record the complete current state: repeat every association that still holds in each later stage, even when its nodes are unchanged. Omit an association until it is established. Record the operation that establishes or changes an association as a relation of that stage, anchored to the group's current nodes, with priorAnchors for the nodes of any association it replaces, and explain it in stageRecord. If several operations could own the same change, use intermediate stages to make the order explicit. A group itself does not name an operation or create a relation.
 Groups never override silent, including silence inherited from an ancestor; an entirely silent source domain cannot supply an overt realization. Wordless abstract sources are allowed.`;
 
-export const buildSystemInstruction = (framework = 'xbar', modelRoute = 'gemini') =>
+export const buildSystemInstruction = (framework = 'xbar') =>
   (framework === 'xbar' ? XBAR_INSTRUCTION : MINIMALISM_INSTRUCTION) +
   '\n\n' + DERIVATION_STAGES_BASE_INSTRUCTION;

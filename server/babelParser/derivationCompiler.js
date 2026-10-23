@@ -1,10 +1,10 @@
 import { ParseApiError } from './error.js';
 import { createFailure, withFailureDetails } from './validationErrors.js';
 import { resolveRealizations, validateRealizations } from './realizations.js';
-import { tokenizeSentenceSurfaceOrder } from './surfaceTokens.js';
+import { alignWordsToTokens, tokenizeSentenceSurfaceOrder } from './surfaceTokens.js';
 import { collectNodeReferencesById } from './treeBasics.js';
 import { authoredWord } from './nodePronunciation.js';
-import { collectOvertTerminalNodes, sameTokenSequence, deriveCanonicalSurfaceSpans } from './syntaxTree.js';
+import { collectOvertTerminalNodes, deriveCanonicalSurfaceSpans } from './syntaxTree.js';
 import { createAuthoredWorkspaceHelpers } from './authoredWorkspace.js';
 
 const { cloneJson, expandWorkspaceForest, createExpansionBudget, ...authoredWorkspace } =
@@ -105,9 +105,10 @@ const canonicalizeDerivationRootCandidateForSentence = (root, sentenceTokens = [
       .map((token) => String(token || '').trim())
       .filter(Boolean);
     const hasRealizations = options.realizations?.length > 0;
-    if (!hasRealizations && !sameTokenSequence(overtSurfaces, sentenceTokens)) return null;
+    const tokenPositions = hasRealizations ? null : alignWordsToTokens(overtSurfaces, sentenceTokens);
+    if (!hasRealizations && !tokenPositions) return null;
 
-    let realizedTokenIndices;
+    let realizedTokenIndices, unclaimedTokens;
     if (hasRealizations) {
       const exactNodes = new Map(Array.from(nodesById.values(), (node) => [node.id, node]));
       // The candidate must contain every declared source. A single-root
@@ -123,20 +124,23 @@ const canonicalizeDerivationRootCandidateForSentence = (root, sentenceTokens = [
       }
       surface.tokenAssignments.forEach((tokenIndex, id) => { exactNodes.get(id).tokenIndex = tokenIndex; });
       realizedTokenIndices = surface.tokenIndicesByNodeId;
+      const claimed = new Set([...realizedTokenIndices.values()].flatMap(indices => [...indices]));
+      unclaimedTokens = new Set(sentenceTokens.map((_, index) => index).filter(index => !claimed.has(index)));
     } else {
       nodesById.forEach((node, nodeId) => {
         if (!overtTerminalIds.has(nodeId) && Object.hasOwn(node, 'tokenIndex')) {
           alignmentError(node, 'tokenIndex', 'no tokenIndex on a non-overt node');
         }
       });
-      overtTerminals.forEach((node, tokenIndex) => {
+      overtTerminals.forEach((node, position) => {
+        const tokenIndex = tokenPositions[position];
         if (Object.hasOwn(node, 'tokenIndex') && node.tokenIndex !== tokenIndex) {
           alignmentError(node, 'tokenIndex', `the integer ${tokenIndex}`);
         }
         node.tokenIndex = tokenIndex;
       });
     }
-    roots.forEach((item) => deriveCanonicalSurfaceSpans(item, realizedTokenIndices));
+    roots.forEach((item) => deriveCanonicalSurfaceSpans(item, realizedTokenIndices, unclaimedTokens));
     collectNodeReferencesById(candidate).forEach((node, nodeId) => {
       const authored = authoredTechnicalFields.get(nodeId);
       if (!authored) return;
@@ -172,7 +176,7 @@ const canonicalizeDerivationRootCandidateForSentence = (root, sentenceTokens = [
     .map((node) => authoredWord(node))
     .map((token) => String(token || '').trim())
     .filter(Boolean);
-  return options.realizations?.length > 0 || sameTokenSequence(overtTerminals, sentenceTokens) ? candidate : null;
+  return options.realizations?.length > 0 || alignWordsToTokens(overtTerminals, sentenceTokens) ? candidate : null;
 };
 
 export const buildCanonicalDerivationFromDerivationFrames = (
@@ -191,7 +195,7 @@ export const buildCanonicalDerivationFromDerivationFrames = (
   if (!finalForest) return null;
   const rootCandidates = finalForest.filter((root) => {
     const overtTerminals = collectOvertTerminalNodes(root).map((node) => authoredWord(node)).filter(Boolean);
-    return sameTokenSequence(overtTerminals, sentenceTokens);
+    return Boolean(alignWordsToTokens(overtTerminals, sentenceTokens));
   });
   const realizationSources = new Set((frame?.after?.realizations || []).flatMap((group) => group.nodeIds));
   const tree = finalForest.length === 1 ? finalForest[0]
