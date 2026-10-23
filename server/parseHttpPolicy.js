@@ -122,13 +122,29 @@ export const PARSE_RESPONSE_HEADERS = Object.freeze({
   Vary: 'Origin'
 });
 
-/** Log fields for a 5xx response. */
-export const describeParseServerFailure = (error, formatted) => ({
-  code: formatted.body?.error?.code,
-  status: formatted.status,
-  runId: error?.details?.generationRecord?.outcome?.runId,
-  ruleId: error?.failure?.ruleId,
-  processingStep: error?.failure?.processingStep,
-  fieldPath: error?.failure?.fieldPath,
-  ...(error?.details?.engineError ? { engineError: error.details.engineError } : {})
-});
+// Credential-shaped runs (sk-…, key-…, Bearer …) are masked before a provider
+// message is logged; the message is also shortened to one line.
+const CREDENTIAL_PATTERN = /\b(?:Bearer\s+\S+|(?:sk|pk|rk|key|xai|gsk)-[A-Za-z0-9_*.-]{4,}|AIza[A-Za-z0-9_-]{8,})/gu;
+
+export const redactProviderLogText = (value) => {
+  if (typeof value !== 'string' || !value.trim()) return undefined;
+  return value.replace(CREDENTIAL_PATTERN, '[redacted]').replace(/\s+/gu, ' ').trim().slice(0, 220);
+};
+
+/**
+ * Log fields for a 5xx response. A provider's own error message, which
+ * production clients do not receive, is kept here in redacted form.
+ */
+export const describeParseServerFailure = (error, formatted) => {
+  const providerMessage = redactProviderLogText(error?.details?.providerMessage ?? error?.details?.transportMessage);
+  return {
+    code: formatted.body?.error?.code,
+    status: formatted.status,
+    runId: error?.details?.generationRecord?.outcome?.runId,
+    ruleId: error?.failure?.ruleId,
+    processingStep: error?.failure?.processingStep,
+    fieldPath: error?.failure?.fieldPath,
+    ...(providerMessage ? { providerMessage } : {}),
+    ...(error?.details?.engineError ? { engineError: error.details.engineError } : {})
+  };
+};

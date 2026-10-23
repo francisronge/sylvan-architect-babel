@@ -4,7 +4,7 @@ import path from 'node:path';
 import { parseModelJsonDetailed } from '../server/babelParser/modelJson.js';
 import { createFailure } from '../server/babelParser/validationErrors.js';
 import { writeQualificationAttempt } from './artifacts.js';
-import { hashQualificationBytes, stableQualificationJson } from './run.js';
+import { hashQualificationBytes, orderedQualificationJson, stableQualificationJson } from './run.js';
 import { SPELLOUT_CONTRACT_VERSION, convertSpelloutPayload } from '../server/babelParser/spellout.js';
 
 /**
@@ -61,7 +61,7 @@ export const writeSpelloutAttempts = ({ outputPath, sentence, framework, model, 
     outputPath,
     attempt: { id, request: { sentence, framework, inputTokens }, model,
       source: { kind: 'spellout-conversion', path: 'spellout.json', contract: SPELLOUT_CONTRACT_VERSION, analysisIndices } },
-    rawBytes: Buffer.from(stableQualificationJson(payload), 'utf8')
+    rawBytes: Buffer.from(orderedQualificationJson(payload), 'utf8')
   }));
   const failed = plan.failures.map(({ id, analysisIndex, diagnostics }) => {
     const attemptRoot = path.join(outputPath, 'attempts', id);
