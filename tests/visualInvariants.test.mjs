@@ -8,10 +8,12 @@ import { TREE_FIRST_FAMILIES } from '../replay/stageCamera.ts';
 import { formatFrames, frameList, matchFindings, proposeExceptions } from './helpers/findings.mjs';
 import { measurePlaqueText, measureRun } from './helpers/visualFontMetrics.mjs';
 import {
-  auditVisualRecord, branchPoints, layoutVisualFrames, layoutWidthFindings, pathPolylines, plaqueRecord, prepareVisualRecord, TEXT_METRICS, VIEWPORTS
+  auditVisualRecord, branchPoints, layoutVisualFrames, layoutWidthFindings, markMotionFindings, pathPolylines, plaqueRecord, prepareVisualRecord,
+  TEXT_METRICS, VIEWPORTS
 } from './helpers/visualFrames.mjs';
 import {
-  checkBranchGeometry, checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance, checkParentCentring, RULES
+  checkBranchGeometry, checkClipped, checkGlyphOverlap, checkLabelTypography, checkLineClearance, checkMarkDistance, checkMarkMotion,
+  checkParentCentring, RULES
 } from './helpers/visualRules.mjs';
 import { EXCEPTIONS } from './helpers/visualExceptions.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
@@ -208,6 +210,51 @@ test('control: parent-centring reports a parent off the midpoint of its outermos
   assert.deepEqual(checkParentCentring(single), [], 'one visible daughter: the parent stands over it; stems are not daughters');
   assert.deepEqual(checkParentCentring({ ...single, lines: [branch('p', 'a', { x: 11.5, y: 0 }, { x: 10, y: 220 })] })
     .map(found => found.measure), [1.5]);
+});
+
+test('control: mark-motion reports a plaque that leaves a pocket nothing new occupies, beside its still anchor', () => {
+  const word = (id, x, y) => text(id, 'word', box(x, y, 80, 40));
+  const plaque = (x, y, anchor = { x: 0, y: 140 }) => ({ id: 'plaque(0:0 theta Theme)@read', text: 'theta Theme', rect: box(x, y, 430, 126),
+    radius: 14, claims: ['0:0'], anchor });
+  const still = [word('the', 900, 100), word('book', 1100, 100)];
+  const frame = (number, extra) => ({ ...blank(0.2), frame: number, texts: [word('read', -40, 100), ...still], ...extra });
+  const before = frame(29, { plaques: [plaque(-540, 55)] }), after = frame(30, { plaques: [plaque(110, 55)] });
+  assert.deepEqual(checkMarkMotion(before, after).map(found => [found.rule, found.subtype, found.frame, found.subject, found.measure]),
+    [['mark-motion', 'plaque-teleport', '29>30', 'plaque(0:0 theta Theme)@read', 650]]);
+  assert.deepEqual(checkMarkMotion(before, frame(30, { plaques: [plaque(-538, 55)] })), [], 'a shift within motionUnits');
+  // New text, a moved word or a newly drawn mark's stroke in the old pocket moves the plaque at that step.
+  assert.deepEqual(checkMarkMotion(before, { ...after, texts: [...after.texts, word('new', -400, 90)] }), []);
+  assert.deepEqual(checkMarkMotion(before, { ...after, texts: [word('read', -40, 100), word('the', 900, 100), word('book', -300, 100)] }), []);
+  const curve = { id: 'trajectory-path(1:0)#1', claims: ['1:0'], halfWidth: 5, paths: [[{ x: -800, y: 30 }, { x: 0, y: 30 }]] };
+  assert.deepEqual(checkMarkMotion(before, { ...after, inks: [curve] }), []);
+  assert.equal(checkMarkMotion({ ...before, inks: [curve] }, { ...after, inks: [curve] }).length, 1, 'a curve already there is not new');
+  // A reserved connector stem appearing above the pocket occupies it; so would another plaque.
+  assert.deepEqual(checkMarkMotion(before, { ...after, reserves: [{ id: 'stem(2:0)#1', claims: ['2:0'], rect: box(-400, -200, 84, 900) }] }), []);
+  // Its anchor moved against the tree, or the far end of its own leader moved.
+  const tree = [word('read', 160, 100), ...still];
+  assert.deepEqual(checkMarkMotion(before, { ...after, texts: tree, plaques: [plaque(310, 55, { x: 200, y: 140 })] }), []);
+  const leader = (x, end) => ({ id: 'leader(0:0)case', claims: ['0:0'], paths: [[{ x, y: 0 }, { x: end, y: 60 }]] });
+  assert.deepEqual(checkMarkMotion({ ...before, inks: [leader(900, -300)] }, { ...after, inks: [leader(-1200, 300)] }), []);
+  assert.equal(checkMarkMotion({ ...before, inks: [leader(900, -300)] }, { ...after, inks: [leader(900, 300)] }).length, 1);
+  // Across a stage boundary a common translation of the whole tree is the camera's
+  // carry, not anchor motion; within a stage the camera holds still.
+  const carried = { ...after, stage: 1, texts: [word('read', 960, 100), word('the', 1900, 100), word('book', 2100, 100)],
+    plaques: [plaque(1110, 55, { x: 1000, y: 140 })] };
+  assert.equal(checkMarkMotion({ ...before, stage: 0 }, carried).length, 1);
+  assert.deepEqual(checkMarkMotion({ ...before, stage: 0 }, { ...carried, plaques: [plaque(460, 55, { x: 1000, y: 140 })] }), [],
+    'carried with the tree');
+  assert.deepEqual(checkMarkMotion({ ...before, stage: 1 }, carried), [], 'the same stage: the anchor itself moved');
+});
+
+test('mark-motion: plaques keep their pockets where main moved them beside a still anchor with nothing new in the way', () => {
+  // Main moved each of these at the transition named (desktop): a nearer pocket at a
+  // stage boundary, a pocket blocked only later in the stage, a pocket left at a stage
+  // boundary for a mark the stage reveals later.
+  for (const [record, from] of [['showcase/scope-ellipsis-coordination.json#/cases/2/analyses/0', 52],
+    ['replay-regressions/visual-human-catalog.json#/cases/3/analyses/0', 26], ['showcase/agreement-and-case.json#/cases/5', 22]]) {
+    const frames = layoutVisualFrames(prepareVisualRecord(recordOf(record)), [VIEWPORTS[0]], { steps: [from, from + 1] });
+    assert.deepEqual(markMotionFindings(frames).map(found => `${found.frame} ${found.subject}`), [], record);
+  }
 });
 
 test('control: branch-geometry reports a branch stretched over two rows and sisters on different rows', () => {

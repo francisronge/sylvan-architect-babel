@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds } from './displayIdentity.ts';
+import { paintedShift, type PaintedNodes } from './cameraCarry.ts';
 import {
   bindingDomainEllipse,
   bindingDomainPlaques,
@@ -43,6 +44,7 @@ import {
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
 import {
   isPlanItemRevealed,
+  planItemDependencyNodeIds,
   planItemRelationRefs,
   resolveDisplayedTrajectoryAttachments,
   type RelationRenderPlan
@@ -569,7 +571,8 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     if (fresh > MIN_RELOCATION_GAIN * anchorDistance(anchor, placement) || beyondNearbyReach(fresh, reachOf(placement, request))) return;
     const moved = (position: number): PlaquePlacement => {
       const own = placementAt(run, position);
-      return { ...own, x: own.attachmentX + near.x - near.attachmentX, y: own.attachmentY + near.y - near.attachmentY, location: 'local' };
+      return { ...own, x: own.attachmentX + near.x - near.attachmentX, y: own.attachmentY + near.y - near.attachmentY, location: 'local',
+        syntaxGap: DETACHED_PLAQUE_GAP };
     };
     // Where the plaque already changes pocket, the new pocket must not lengthen that change.
     const before = previousRuns.get(run.key), last = run.phases.length - 1;
@@ -584,6 +587,120 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     if (run.remote) bringNear(run);
     previousRuns.set(run.key, run);
   });
+  /** What the previous Replay step showed: each plaque's placement and, when needed,
+   * which plaques it painted, by identity. */
+  let shownBefore: { stageIndex: number; byId: Map<string, d3.HierarchyPointNode<SyntaxNode>>; painted: () => PaintedNodes;
+    placements: Map<string, PlaquePlacement>; shown: () => Set<string>; occupied: (box: PlaqueRect, key: string) => boolean } | undefined;
+  let playedStage = -1, played = new Set<number>();
+  const identities = new WeakMap<object, string>();
+  const identityOf = (item: (typeof phases)[number]['items'][number]) => {
+    let key = identities.get(item);
+    if (key === undefined) identities.set(item, key = plaqueIdentity(item));
+    return key;
+  };
+  const clearAt = (phaseIndex: number, scene: (typeof phases)[number]['scenes'][number], stepIndex: number, index: number,
+    candidate: PlaquePlacement, layout: Map<number, PlaquePlacement>, shown: Set<number>, revealed: number[]) => {
+    const phase = phases[phaseIndex], items = phase.items, requests = requestsByIndex(phaseIndex), request = requests.get(index);
+    const { nodes, obstacles } = scene.paintedSpace(input.steps[stepIndex].replayVisibleNodeIds, revealed);
+    const anchor = sceneNodes({ nodes }).get(candidate.attachmentNodeId);
+    if (!request || !anchor) return undefined;
+    const others = projectPlaqueLayout(new Map([...layout].flatMap(([other, placement]) => {
+      const otherRequest = requests.get(other);
+      return other !== index && shown.has(other) && otherRequest ? [[other, projectPlaqueContent(placement, otherRequest)] as const] : [];
+    })), id => sceneNodes({ nodes }).get(id) ?? null);
+    const rowVisible = (owners: string[] | undefined) => !owners || owners.some(key => {
+      const [stage, relation] = key.split(':').map(Number);
+      return stage < phase.stageIndex || stage === phase.stageIndex && played.has(relation);
+    });
+    const space = lifetimeSpaceOf([{ nodes, obstacles, anchor, request, dx: 0, dy: 0,
+      caseVisible: rowVisible(planItemRelationRefs(items[index]).map(ref => `${ref.stageIndex}:${ref.relationIndex}`)), rowVisible,
+      added: [...[...others.values()].map(box => ({ ...box, blocksConnectors: true })),
+        ...plaqueCaseConnectorObstacles(items, nodes, others, curveRects, caseSources),
+        ...plaqueCollectionConnectorObstacles(nodes, others, curveRects)] }]);
+    const kept = placeStagePlaques(items, nodes, obstacles, new Map([[plaqueIdentity(items[index]), candidate]]), input.measurePlaqueText,
+      { sizes, includes: other => other === index, spaceFor: () => space, caseSources, syntaxGap: candidate.syntaxGap }).get(index);
+    return kept && Math.abs(kept.x - candidate.x) < 1e-6 && Math.abs(kept.y - candidate.y) < 1e-6 ? kept : undefined;
+  };
+  /** A plaque shown at consecutive steps keeps its pocket, carried with its anchor,
+   * while that anchor stays still against the tree and the pocket stays clear of what
+   * the step paints. The schedule may have moved it at a phase boundary because the
+   * pocket is blocked later in the phase, or because a nearer one opened; it then
+   * moves at the step that blocks its pocket, or when its anchor moves. */
+  const holdPockets = (phaseIndex: number, stepIndex: number) => {
+    const phase = phases[phaseIndex], scheduled = layouts[phaseIndex], items = phase.items;
+    const scene = phase.scenes.find(candidate => candidate.stepIndices.includes(stepIndex))!, byId = sceneNodes(scene);
+    const step = input.steps[stepIndex], identity = step.replayRelationIdentity;
+    if (playedStage !== phase.stageIndex) { playedStage = phase.stageIndex; played = new Set(); }
+    if (step.replayKind === 'relation' && identity?.stageIndex === phase.stageIndex) played.add(identity.relationIndex);
+    const active = step.replayKind === 'relation' && identity?.stageIndex === phase.stageIndex ? identity.relationIndex : null;
+    const playedNow = new Set(played);
+    // A mark draws where each of its nodes, or a descendant, is visible (relationScene.ts).
+    let revealedItems: number[] | undefined, shownItems: Set<number> | undefined;
+    const revealed = () => revealedItems ??= (() => {
+      const visibleIds = step.replayVisibleNodeIds && new Set(step.replayVisibleNodeIds);
+      const drawable = (id: string) => byId.get(id)?.descendants().some(node => !visibleIds || visibleIds.has(String((node as any).__vizId ?? node.data.id)));
+      return items.flatMap((item, index) => isPlanItemRevealed(item, phase.stageIndex, playedNow, active)
+        && planItemDependencyNodeIds(item).every(drawable) ? [index] : []);
+    })();
+    const shown = () => shownItems ??= new Set(revealed().filter(index => scheduled.has(index)));
+    let paintedNodes: PaintedNodes | undefined;
+    const painted = () => paintedNodes ??= (() => {
+      const visibleIds = step.replayVisibleNodeIds && new Set(step.replayVisibleNodeIds), nodes = new Map<string, { x: number; y: number; parentId: string | null }>();
+      const idOf = (node: d3.HierarchyPointNode<SyntaxNode>) => String((node as any).__vizId ?? node.data.id);
+      for (const node of scene.nodes) if (!visibleIds || visibleIds.has(idOf(node)))
+        nodes.set(idOf(node), { x: node.x, y: node.y, parentId: node.parent ? idOf(node.parent) : null });
+      return nodes;
+    })();
+    const layout = new Map(scheduled), held = new Set<number>();
+    const before = shownBefore;
+    const moved = before ? [...scheduled].filter(([index, placement]) => {
+      const prior = before.placements.get(identityOf(items[index]));
+      return prior && prior.attachmentNodeId === placement.attachmentNodeId && prior.width === placement.width
+        && prior.height === placement.height && !samePocket(prior, placement);
+    }) : [];
+    if (before && moved.length) {
+      // One camera fit serves a stage; across a stage boundary the camera carries
+      // the syntax the crossing leaves in place (carryCamera).
+      const shift = before.stageIndex === phase.stageIndex ? { x: 0, y: 0 } : paintedShift(before.painted(), painted());
+      const carry = [shift.x, shift.y];
+      const shownThen = before.shown(), candidates = new Map<number, PlaquePlacement>();
+      for (const [index, placement] of moved) {
+        const key = identityOf(items[index]), pocket = before.placements.get(key)!;
+        if (!shown().has(index) || !shownThen.has(key)) continue;
+        const old = before.byId.get(placement.attachmentNodeId), anchor = byId.get(placement.attachmentNodeId);
+        if (!old || !anchor || Math.hypot(anchor.x - old.x - carry[0], anchor.y - old.y - carry[1]) > 1) continue;
+        // A plaque left beyond its nearby reach comes back within it as soon as what
+        // the previous step painted in that nearer pocket has gone.
+        const request = requestsByIndex(phaseIndex).get(index);
+        if (request && remote(anchor, { ...pocket, x: pocket.x - pocket.attachmentX + anchor.x, y: pocket.y - pocket.attachmentY + anchor.y }, request)
+          && !remote(anchor, placement, request) && before.occupied({ ...placement, x: placement.x - placement.attachmentX + old.x,
+            y: placement.y - placement.attachmentY + old.y }, key)) continue;
+        candidates.set(index, { ...pocket, x: pocket.x - pocket.attachmentX + anchor.x, y: pocket.y - pocket.attachmentY + anchor.y,
+          attachmentX: anchor.x, attachmentY: anchor.y });
+      }
+      for (const [index, candidate] of candidates) {
+        const kept = clearAt(phaseIndex, scene, stepIndex, index, candidate, layout, shown(), revealed());
+        if (kept) { layout.set(index, kept); held.add(index); }
+      }
+      // A pocket kept before another plaque kept its own was checked against that
+      // plaque's scheduled pocket; recheck until every kept pocket is clear.
+      for (let changed = held.size > 1; changed;) {
+        changed = false;
+        for (const index of held) if (!clearAt(phaseIndex, scene, stepIndex, index, layout.get(index)!, layout, shown(), revealed())) {
+          layout.set(index, scheduled.get(index)!); held.delete(index); changed = true;
+        }
+      }
+    }
+    const occupied = (box: PlaqueRect, key: string) => {
+      const { obstacles } = scene.paintedSpace(step.replayVisibleNodeIds, revealed());
+      const others = projectPlaqueLayout(new Map([...layout].filter(([index]) => shown().has(index) && identityOf(items[index]) !== key)),
+        id => byId.get(id) ?? null);
+      return [...obstacles, ...others.values()].some(obstacle => plaquesOverlap(box, obstacle));
+    };
+    shownBefore = { stageIndex: phase.stageIndex, byId, painted, occupied, placements: new Map([...layout].map(([index, placement]) => [identityOf(items[index]), placement])),
+      shown: () => new Set([...shown()].map(index => identityOf(items[index]))) };
+    return held.size ? layout : scheduled;
+  };
   let released = 0;
   /** Enter allocated phases into the schedule once no undecided remote run can still
    * change them, and publish each completed stage. */
@@ -592,7 +709,8 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     for (; released <= pending; released++) {
       const phase = phases[released], layout = layouts[released];
       schedule.stages[phase.stageIndex] = layout;
-      phase.scenes.forEach(scene => scene.stepIndices.forEach(index => schedule.steps.set(index, layout)));
+      phase.scenes.flatMap(scene => scene.stepIndices).sort((a, b) => a - b)
+        .forEach(index => schedule.steps.set(index, holdPockets(released, index)));
       if (phases[released + 1]?.stageIndex !== phase.stageIndex) stageReady?.(schedule, phase.stageIndex);
     }
   };
@@ -700,44 +818,63 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
       && ['predication', 'feature-sharing'].includes(item.linkStyle)
       || item.kind === 'directed-path' && ['dependent-case', 'case-assignment'].includes(item.pathStyle))
       ? sceneLabelRuns(input, scene.stepIndices) : new Map<string, TreeLabelRuns[]>();
-    const obstacles: PlaqueRect[] = [...plaqueTreeObstacles(currentNodes, input.measureCategoryText), ...plaqueConnectorObstacles(items, currentNodes),
-      ...predicationPlaqueObstacles(items, currentNodes, {
-        measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk,
-        labels,
-        measureTreeLabel: input.measureTreeLabel
-      }),
-      ...nativePlaqueObstacles(items, currentNodes, {
-        measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk,
-        labels, measureTreeLabel: input.measureTreeLabel, measurePlaqueText: input.measurePlaqueText
-      }),
-      // A control dependency is reserved only in the scenes that paint it.
-      ...controlPlaqueObstacles(items.filter(item => item.familyId === 'control.dependency'
-        && isPlanItemRevealed(item, input.stageIndex, scene.playedRelations)), currentNodes, {
-        measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk
-      })];
-    // Use the trajectory binder's actual geometry in each frame's coordinates.
-    if (!input.plan) return { nodes: currentNodes, obstacles, labels, playedRelations: scene.playedRelations, ...timing };
-    const trajectories = items.filter(item => item.kind === 'trajectory');
-    if (!trajectories.length) return { nodes: currentNodes, obstacles, labels, playedRelations: scene.playedRelations, ...timing };
-    const plan = { ...input.plan, frames: input.plan.frames.map((frame, index) =>
-      index === input.stageIndex ? { ...frame, items: trajectories } : frame) };
-    const bound = bindRelationPlanFrame(plan, input.stageIndex, stagePositionProvider(byId), {
-      trajectoryCeilingY: (d3.min([...byId.values()], node => node.y) ?? 0) - TRAJECTORY_ROUTES.ceilingAboveTopNode,
-      trajectoryFloorY: (d3.max([...byId.values()], node => node.y) ?? 0) + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor
-    });
-    for (const path of bound.primitives) {
-      if (path.type !== 'trajectory-path') continue;
-      const points = path.route === 'cubic' && path.control2
-        ? sampleCubic(path.start, path.control, path.control2, path.end, 32)
-        : path.route === 'orthogonal' ? [path.start, { x: path.start.x, y: path.control.y },
-          { x: path.end.x, y: path.control.y }, path.end]
-          : sampleQuadratic(path.start, path.control, path.end, 32);
-      points.slice(1).forEach((point, i) => obstacles.push({
-        x: Math.min(points[i].x, point.x) - 5, y: Math.min(points[i].y, point.y) - 5,
-        width: Math.abs(point.x - points[i].x) + 10, height: Math.abs(point.y - points[i].y) + 10, trajectory: true
-      }));
-    }
-    return { nodes: currentNodes, obstacles, labels, playedRelations: scene.playedRelations, ...timing };
+    /** The obstacles of these items' marks, with this syntax. */
+    const obstaclesOf = (marks: typeof items, currentNodes: d3.HierarchyPointNode<SyntaxNode>[],
+      treeObstacles = plaqueTreeObstacles(currentNodes, input.measureCategoryText)): PlaqueRect[] => {
+      const obstacles: PlaqueRect[] = [...treeObstacles, ...plaqueConnectorObstacles(marks, currentNodes),
+        ...predicationPlaqueObstacles(marks, currentNodes, {
+          measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk,
+          labels,
+          measureTreeLabel: input.measureTreeLabel
+        }),
+        ...nativePlaqueObstacles(marks, currentNodes, {
+          measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk,
+          labels, measureTreeLabel: input.measureTreeLabel, measurePlaqueText: input.measurePlaqueText
+        }),
+        // A control dependency is reserved only in the scenes that paint it.
+        ...controlPlaqueObstacles(marks.filter(item => item.familyId === 'control.dependency'
+          && isPlanItemRevealed(item, input.stageIndex, scene.playedRelations)), currentNodes, {
+          measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk
+        })];
+      // Use the trajectory binder's actual geometry in each frame's coordinates.
+      const trajectories = marks.filter(item => item.kind === 'trajectory');
+      if (!input.plan || !trajectories.length) return obstacles;
+      const plan = { ...input.plan, frames: input.plan.frames.map((frame, index) =>
+        index === input.stageIndex ? { ...frame, items: trajectories } : frame) };
+      const bound = bindRelationPlanFrame(plan, input.stageIndex, stagePositionProvider(byId), {
+        trajectoryCeilingY: (d3.min([...byId.values()], node => node.y) ?? 0) - TRAJECTORY_ROUTES.ceilingAboveTopNode,
+        trajectoryFloorY: (d3.max([...byId.values()], node => node.y) ?? 0) + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor
+      });
+      for (const path of bound.primitives) {
+        if (path.type !== 'trajectory-path') continue;
+        const points = path.route === 'cubic' && path.control2
+          ? sampleCubic(path.start, path.control, path.control2, path.end, 32)
+          : path.route === 'orthogonal' ? [path.start, { x: path.start.x, y: path.control.y },
+            { x: path.end.x, y: path.control.y }, path.end]
+            : sampleQuadratic(path.start, path.control, path.end, 32);
+        points.slice(1).forEach((point, i) => obstacles.push({
+          x: Math.min(points[i].x, point.x) - 5, y: Math.min(points[i].y, point.y) - 5,
+          width: Math.abs(point.x - points[i].x) + 10, height: Math.abs(point.y - points[i].y) + 10, trajectory: true
+        }));
+      }
+      return obstacles;
+    };
+    // Every stage mark and every node the scene shows at any of its steps reserves its
+    // space; `painted` keeps only the syntax and marks one step shows.
+    const painted = new Map<string, { nodes: typeof currentNodes; obstacles: PlaqueRect[] }>();
+    const paintedSpace = (visibleIds: readonly string[] | undefined, shown: readonly number[]) => {
+      const visible = visibleIds && new Set(visibleIds);
+      const nodes = visible ? currentNodes.filter(node => visible.has(String((node as any).__vizId ?? node.data.id ?? ''))) : currentNodes;
+      const key = `${nodes.length === currentNodes.length ? '' : nodes.map(node => String((node as any).__vizId ?? node.data.id)).join(',')}|${shown.join(',')}`;
+      let space = painted.get(key);
+      if (!space) painted.set(key, space = { nodes, obstacles: obstaclesOf(shown.map(index => items[index]), nodes) });
+      return space;
+    };
+    // A method, not data: measured scenes compare as plain geometry.
+    return Object.defineProperty({ nodes: currentNodes, obstacles: obstaclesOf(items, currentNodes), labels,
+      playedRelations: scene.playedRelations, ...timing }, 'paintedSpace', { value: paintedSpace }) as {
+        nodes: typeof currentNodes; obstacles: PlaqueRect[]; labels: typeof labels; playedRelations: typeof scene.playedRelations;
+        paintedSpace: typeof paintedSpace } & typeof timing;
   });
   return { nodes, obstacles: measured.flatMap(scene => scene.obstacles), scenes: measured };
 }
@@ -884,10 +1021,14 @@ function measureStageCameraBounds({ steps, stageIndex, completedCanvas, plan, wi
     // A hidden anchor's provisional coordinates are not a plaque position.
     // Later scenes reserve its real placement in the same stage-wide fit.
     const projectedPlaques = projectPlaqueLayout(placements, id => byId.get(id) ?? null);
-    projectedPlaques.forEach(rect => include({
-      minX: rect.x - PLAQUE_FIT_MARGIN, maxX: rect.x + rect.width + PLAQUE_FIT_MARGIN,
-      minY: rect.y - PLAQUE_FIT_MARGIN, maxY: rect.y + rect.height + PLAQUE_FIT_MARGIN
-    }));
+    // A plaque that keeps its pocket for some steps of a scene has a layout of its own there.
+    const stepLayouts = includePlaques && schedule ? new Set(stepIndices.map(index => selectReplayPlaqueLayout(schedule, stageIndex, index))) : new Set([placements]);
+    stepLayouts.delete(placements);
+    [projectedPlaques, ...[...stepLayouts].map(layout => projectPlaqueLayout(layout, id => byId.get(id) ?? null))]
+      .forEach(layout => layout.forEach(rect => include({
+        minX: rect.x - PLAQUE_FIT_MARGIN, maxX: rect.x + rect.width + PLAQUE_FIT_MARGIN,
+        minY: rect.y - PLAQUE_FIT_MARGIN, maxY: rect.y + rect.height + PLAQUE_FIT_MARGIN
+      })));
     for (const node of fitNodes) {
       const label = categoryTextLayout(node.data.label || '', measureCategoryText);
       include({ minX: node.x, maxX: node.x, minY: node.y,
