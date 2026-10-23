@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { runQualificationAttempt, stableQualificationJson } from './run.js';
+import { orderedQualificationJson, runQualificationAttempt, stableQualificationJson } from './run.js';
 
 // Both saved-response and subscription runs use the same normalization and review artifacts.
 export const writeQualificationAttempt = ({ outputPath, attempt, rawBytes }) => {
@@ -51,7 +51,7 @@ export const writeQualificationAttempt = ({ outputPath, attempt, rawBytes }) => 
     };
     fs.writeFileSync(
       path.join(attemptRoot, 'bundle.json'),
-      stableQualificationJson(bundleWrapper),
+      orderedQualificationJson(bundleWrapper),
       'utf8'
     );
     result.replayProjections.forEach((projection, analysisIndex) => {

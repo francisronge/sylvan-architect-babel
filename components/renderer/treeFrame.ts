@@ -389,9 +389,41 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
   }
   const deferredRelationFrame = window.requestAnimationFrame(guardViewCallback(() => {
     deferredAcceptedRelationDraws.forEach((draw) => draw());
+    // Neutral connectors pass under visible tree text: the mask hides them only
+    // where the text's letters and their dark outline are painted.
+    const refreshConnectorTextMask = () => {
+      const paths = g.selectAll<SVGPathElement, unknown>('.vr-fallback-connector path');
+      if (paths.empty()) return;
+      const bounds = measureGraphicsElementsInTreeSpace(paths.nodes());
+      if (!bounds) return;
+      const maskId = `${trajectoryLabelMaskId}-connectors`;
+      let mask = g.select<SVGMaskElement>(`#${maskId}`);
+      if (mask.empty()) mask = g.append('defs').append('mask').attr('id', maskId).attr('maskUnits', 'userSpaceOnUse');
+      const area = { x: bounds.x - 40, y: bounds.y - 40, width: bounds.width + 80, height: bounds.height + 80 };
+      mask.attr('x', area.x).attr('y', area.y).attr('width', area.width).attr('height', area.height);
+      mask.selectChildren().remove();
+      mask.append('rect').attr('fill', 'white')
+        .attr('x', area.x).attr('y', area.y).attr('width', area.width).attr('height', area.height);
+      g.selectAll<SVGTextElement, HierNode>('.node-group .category-label, .node-group .terminal-label')
+        .filter(d => getRevealStepForNodeId(getNodeId(d)) <= effectiveRevealThreshold)
+        .each(function () {
+          const holder = this.closest('.node-group');
+          const glyphs = this.cloneNode(true) as SVGTextElement;
+          // A mask copy is not a label: label queries must never find it.
+          glyphs.removeAttribute('id');
+          glyphs.removeAttribute('class');
+          glyphs.style.setProperty('fill', 'black', 'important');
+          glyphs.style.setProperty('stroke', 'black', 'important');
+          glyphs.style.setProperty('opacity', '1');
+          const group = mask.append('g').attr('transform', holder?.getAttribute('transform') ?? null);
+          group.node()!.appendChild(glyphs);
+        });
+      paths.attr('mask', `url(#${maskId})`);
+    };
     // Keep the accepted movement curves, with visible text in front of them.
     // Future reservations never punch holes in a currently visible arrow.
     cameraEffects.refreshTrajectoryClearance = () => {
+      refreshConnectorTextMask();
       const paths = g.selectAll<SVGPathElement, unknown>('.babel-trajectory-path, .babel-trajectory-path-shadow');
       if (paths.empty()) return;
       const bounds = measureGraphicsElementsInTreeSpace(paths.nodes());

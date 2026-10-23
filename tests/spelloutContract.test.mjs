@@ -458,3 +458,30 @@ test('a spell-out response becomes ordinary attempts plus recorded spell-out fai
   assert.equal(unreadable.record.ingress.status, 'failed');
   assert.deepEqual(unreadable.written.map(item => [item.reviewEntry.attemptId, item.receipt.outcome.status]), [['parse', 'failed']]);
 });
+
+test('a spell-out attempt keeps authored relation role order through its saved payload and bundle', () => {
+  const model = resolveResearchModelSelection('anthropic:claude-opus-5-5', {});
+  const sentence = 'Mia laughed.';
+  const payload = { derivationStages: [
+    { statement: 'Mia and laughed enter.', stageRecord: 'They enter.', relations: [],
+      workspaceForest: [leaf('d', 'Mia'), node('vp', 'VP', leaf('v', 'laughed'))] },
+    { statement: 'T merges.', stageRecord: 'T assigns nominative to Mia.', relations: [
+      { relation: 'Case assignment', anchors: { target: 'd', assigner: 't' }, values: { value: 'nominative', case: 'NOM' } }
+    ], workspaceForest: [node('tp', 'TP', { refId: 'd' }, node('tbar', "T'", node('t', 'T'), { refId: 'vp' }))] }
+  ] };
+  const outputPath = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-spellout-order-'));
+  try {
+    const [written] = writeSpelloutAttempts({ outputPath, sentence, framework: 'xbar', model, text: JSON.stringify(payload) });
+    assert.equal(written.receipt.outcome.status, 'valid-pending-review');
+    const reparsed = JSON.parse(fs.readFileSync(path.join(outputPath, 'attempts/parse/raw-output.txt'), 'utf8'));
+    const bundle = JSON.parse(fs.readFileSync(path.join(outputPath, 'attempts/parse/bundle.json'), 'utf8')).response;
+    for (const relation of [reparsed.derivationStages[1].relations[0], bundle.analyses[0].derivationStages[1].relations[0]]) {
+      assert.deepEqual(Object.keys(relation.anchors), ['target', 'assigner']);
+      assert.deepEqual(Object.keys(relation.values), ['value', 'case']);
+    }
+    const app = normalizeParseBundle(structuredClone(payload), 'xbar', sentence, 'claude', true, { spellout: true });
+    const steps = (record) => buildReplaySnapshotProjection({ ...record, sentence }).steps
+      .map(step => [step.targetNodeId, step.sourceNodeIds]);
+    assert.deepEqual(steps(bundle), steps(app));
+  } finally { fs.rmSync(outputPath, { recursive: true, force: true }); }
+});

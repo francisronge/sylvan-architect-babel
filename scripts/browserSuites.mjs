@@ -5,6 +5,7 @@ import { readdir } from 'node:fs/promises';
 export const BROWSER_SPECS = [
   { file: 'movementEndpointAttachment.test.mjs', owner: 'renderer', focused: true },
   { file: 'trajectoryLabelClearance.test.mjs', owner: 'renderer', focused: true },
+  { file: 'connectorTextMask.test.mjs', owner: 'renderer', focused: true },
   { file: 'featureComposition.test.mjs', owner: 'renderer', focused: true },
   { file: 'plaqueClearance.test.mjs', owner: 'renderer', focused: true },
   { file: 'operatorBindingComposition.test.mjs', owner: 'renderer', focused: true },
