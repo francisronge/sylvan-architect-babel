@@ -261,7 +261,7 @@ function close(edit: StageEdit, frame: Frame, owners: Owners, seeds: Iterable<st
   /** The single highest present node under `k` in C, if `k` itself is not shown. */
   const carrierOf = (k: string, parent: string): string | undefined => {
     const tops: string[] = [];
-    const visit = (id: string) => { const shown = frame.get(id); if (shown && !shown.word) tops.push(id); else cur.get(id)?.kids.forEach(visit); };
+    const visit = (id: string) => { const shown = frame.get(id); if (shown && !shown.word || whole(id)) tops.push(id); else cur.get(id)?.kids.forEach(visit); };
     cur.get(k)?.kids.forEach(visit);
     // A node still standing elsewhere (a head that the later moment moves in) cannot carry the slot.
     const free = tops.length > 1 ? tops.filter(top => !parents.has(top) || parents.get(top) === parent) : tops;
@@ -473,6 +473,12 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
     const lineages = new Set(named.filter(id => !authoredPrev.has(id)).map(id => authoredCur.get(id)?.node.lineageId).filter(Boolean));
     return [...authoredPrev].some(([id, info]) => lineages.has(info.node.lineageId) && displaced(id));
   };
+  // Each movement's own landing parent, when new in the stage.
+  const landingParentOf = new Map<string, number>();
+  frameRelationSteps.forEach((relation, relationIndex) => (relation.recoveredMovements ?? [relation.recoveredMovement]).forEach(m => {
+    const parent = m?.transition ? cur.get(m.targetNodeId)?.parent : undefined;
+    if (parent && !prev.has(parent) && !landingParentOf.has(parent)) landingParentOf.set(parent, relationIndex);
+  }));
   const relationSeeds = frameRelationSteps.flatMap((relation, relationIndex) => {
     const seeds = new Set<string>(), placement = placementOf.get(relationIndex);
     const whole = (id: string) => { changedKeys(id).forEach(k => seeds.add(k)); place(id).forEach(k => seeds.add(k)); };
@@ -482,7 +488,10 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       subtree(prev, prevId(m!.priorSourceNodeId)).filter(id => !cur.has(id)).forEach(id => seeds.add(key('d', id)));
       newReceivingHeadNodeIds(m, previousFrameWorkspaceRoots, workspaceRoots).forEach(whole);
     }
-    if (placement && movements.length) [...getMovementCreatedLandingHostNodeIds(placement), ...getMovementPiedPipedNodeIds(placement)].forEach(whole);
+    // A landing path stops being this movement's at another movement's own landing parent: that
+    // movement builds it, and this moment carries its slot meanwhile.
+    if (placement && movements.length) [...getMovementCreatedLandingHostNodeIds(placement).filter(id => (landingParentOf.get(id) ?? relationIndex) === relationIndex),
+      ...getMovementPiedPipedNodeIds(placement)].forEach(whole);
     // A trajectory claim without a proved movement still introduces, at its moment, the new material at its
     // endpoints that the stage's construction forest lacks, with its landing's new parents (as today).
     if (!movements.length && placement && (placement.renderableTrajectory || placement.ownsPhrasalTreeTransition) && claimDisplaces(relation)) {
