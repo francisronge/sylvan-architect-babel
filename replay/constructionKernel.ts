@@ -918,6 +918,27 @@ export function buildKernelStageSteps(compilation: ReplayCompilation, stage: Rep
       const realization = frameRelationSteps.findIndex((relation, relationIndex) => playsAfter(relationIndex, owner) && matches(relation));
       return realization >= 0 && !active.has(realization);
     };
+    // A word a later relation pronounces (the node or an ancestor) waits for it.
+    const pronouncedLater = (owner: number, id: string) => {
+      const named = new Set([id]);
+      for (let parent = cur.get(id)?.parent; parent; parent = cur.get(parent)?.parent) named.add(parent);
+      return pending(owner, candidate => Boolean(candidate.pronunciationNodeIds?.some(named.has, named)));
+    };
+    // A phrasal landing arrives with its current labels and its preceding words until those relations.
+    frameRelationSteps.forEach((relation, movementIndex) => (relation.recoveredMovements ?? [relation.recoveredMovement]).forEach(movement => {
+      if (!movement?.transition || movement.trajectoryKind !== 'phrasal' || !active.has(movementIndex)) return;
+      const walk = (node: SyntaxNode, prior: SyntaxNode | undefined): void => {
+        if (!prior) return;
+        if (!node.children?.length) {
+          if (!prior.children?.length && (prior.word !== node.word || prior.tokenIndex !== node.tokenIndex) && pronouncedLater(movementIndex, node.id))
+            patches.set(node.id, { ...patches.get(node.id), word: prior.word, tokenIndex: prior.tokenIndex });
+          return;
+        }
+        if (prior.children?.length === node.children.length) node.children.forEach((child, i) => walk(child, prior.children![i]));
+      };
+      const landing = findExactNodeByIdInForest(workspaceRoots, movement.targetNodeId);
+      if (landing) walk(landing, findExactNodeByIdInForest(previousFrameWorkspaceRoots, movement.priorSourceNodeId) ?? undefined);
+    }));
     frameRelationSteps.forEach((relation, movementIndex) => (relation.recoveredMovements ?? [relation.recoveredMovement]).forEach(movement => {
       if (!movement?.transition || movement.trajectoryKind !== 'head' || !active.has(movementIndex)) return;
       const receivingId = receivingHeadMaterialNodeId(movement, previousFrameWorkspaceRoots, workspaceRoots);
