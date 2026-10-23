@@ -1,0 +1,860 @@
+{
+  "description": "Stage 2 raises the finite verb to I, so the I⁰ head becomes a complex of V⁰ and the wrapped three-line label \"I⁰ [past, 3sg, definite conjugation]\" (a-infl), one row down beside Spec-VP. Stage 3 raises the subject Péter from Spec-VP to Spec-IP, and the attachments of stages 4 and 5 carry the later layout back over stage 2, where VP stands beside I⁰ at the place it takes once Spec-VP holds only the A-trace. Péter clears its own sister V′, so the held-slot pass left the plan alone, and in frames 24 to 26 the NP label overlapped the I⁰ label and the branch from VP to NP ran into it. VP now keeps the room its complete subject needs beside I⁰, from its construction on.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run with the character spell-out contract, 22 October 2026 (sol-prompt-batch-20261022, n3-14-hu-verbal-particle, analysis 1 of 2), commit 0461166. Exact copy of the analysis stages. Tokens are the spell-out word list of that run.",
+  "sentence": "Péter meg nem hívta Marit.",
+  "framework": "xbar",
+  "inputTokens": [
+    "Péter",
+    "meg",
+    "nem",
+    "hívta",
+    "Marit"
+  ],
+  "derivationStages": [
+    {
+      "relations": [
+        {
+          "anchors": {
+            "agent": "a-peter",
+            "invitee": "a-mari",
+            "predicate": "a-v"
+          },
+          "relation": "theta-role assignment",
+          "values": {
+            "agentRole": "Agent",
+            "inviteeRole": "Invitee"
+          }
+        },
+        {
+          "anchors": {
+            "governor": "a-v",
+            "recipient": "a-mari"
+          },
+          "relation": "government and Case assignment",
+          "values": {
+            "case": "accusative",
+            "exponent": "-t"
+          }
+        },
+        {
+          "anchors": {
+            "particle": "a-prtp",
+            "verb": "a-v"
+          },
+          "relation": "verbal-particle interpretation",
+          "values": {
+            "interpretation": "invite",
+            "predicate": "meghív"
+          }
+        }
+      ],
+      "stageRecord": "On this reading, meg belongs to the predicate meghív ‘invite’, rather than functioning as a discourse connective. Péter is generated as the VP-internal subject, Marit as the complement of hívta, and the particle phrase as a left adjunct to the verbal projection. The verb assigns the Agent role to Péter and the Invitee role to Marit. It also governs Marit and assigns accusative Case, overtly expressed by the final -t. A separate inflectional head supplies the clause's past-tense and agreement features.",
+      "statement": "Construct the predicate with verbal-particle meg.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-peter-n",
+                      "label": "N⁰",
+                      "word": "Péter"
+                    }
+                  ],
+                  "id": "a-peter-nbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "a-peter",
+              "label": "NP",
+              "lineageId": "a-subject-chain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a-prt",
+                          "label": "Prt⁰",
+                          "word": "meg"
+                        }
+                      ],
+                      "id": "a-prtbar",
+                      "label": "Prt′"
+                    }
+                  ],
+                  "id": "a-prtp",
+                  "label": "PrtP",
+                  "lineageId": "a-particle-chain"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-v",
+                      "label": "V⁰",
+                      "lineageId": "a-verb-chain",
+                      "word": "hívta"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a-mari-n",
+                              "label": "N⁰",
+                              "word": "Marit"
+                            }
+                          ],
+                          "id": "a-mari-nbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "a-mari",
+                      "label": "NP"
+                    }
+                  ],
+                  "id": "a-vbar-low",
+                  "label": "V′"
+                }
+              ],
+              "id": "a-vbar-high",
+              "label": "V′"
+            }
+          ],
+          "id": "a-vp",
+          "label": "VP"
+        },
+        {
+          "children": [],
+          "id": "a-i",
+          "label": "I⁰ [past, 3sg, definite conjugation]",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingHead": "a-i",
+            "landingOccurrence": "a-v",
+            "sourceTrace": "a-vtrace"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "a-v",
+            "targetHead": "a-i"
+          },
+          "relation": "V-to-I head movement",
+          "values": {
+            "dependency": "A-bar head chain"
+          }
+        },
+        {
+          "anchors": {
+            "definiteObject": "a-mari",
+            "finiteHead": "a-i",
+            "subject": "a-peter"
+          },
+          "relation": "finite inflection licensing",
+          "values": {
+            "objectConjugation": "definite",
+            "subjectAgreement": "third-person singular",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "The inflectional head takes VP as its complement, and hívta raises from its previously established verbal position to I, leaving a silent verbal trace. The inflected word is retained intact under this lexicalist GB analysis: its tense and agreement morphology is not separately pronounced. The resulting finite head expresses past tense, third-person singular subject agreement, and the definite conjugation appropriate to the proper-name object Marit.",
+      "statement": "Project IP and raise the finite verb to I.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-v",
+                      "label": "V⁰",
+                      "lineageId": "a-verb-chain",
+                      "word": "hívta"
+                    },
+                    {
+                      "children": [],
+                      "id": "a-infl",
+                      "label": "I⁰ [past, 3sg, definite conjugation]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "a-i",
+                  "label": "I⁰"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a-peter-n",
+                              "label": "N⁰",
+                              "word": "Péter"
+                            }
+                          ],
+                          "id": "a-peter-nbar",
+                          "label": "N′"
+                        }
+                      ],
+                      "id": "a-peter",
+                      "label": "NP",
+                      "lineageId": "a-subject-chain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a-prt",
+                                  "label": "Prt⁰",
+                                  "word": "meg"
+                                }
+                              ],
+                              "id": "a-prtbar",
+                              "label": "Prt′"
+                            }
+                          ],
+                          "id": "a-prtp",
+                          "label": "PrtP",
+                          "lineageId": "a-particle-chain"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a-vtrace",
+                              "label": "V⁰ trace",
+                              "lineageId": "a-verb-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a-mari-n",
+                                      "label": "N⁰",
+                                      "word": "Marit"
+                                    }
+                                  ],
+                                  "id": "a-mari-nbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "a-mari",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "a-vbar-low",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "a-vbar-high",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "a-vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "a-ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "a-ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingOccurrence": "a-peter",
+            "landingProjection": "a-ip",
+            "sourceTrace": "a-subject-vp-trace"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "a-peter"
+          },
+          "relation": "subject A-movement",
+          "values": {
+            "landingPosition": "Spec-IP"
+          }
+        },
+        {
+          "anchors": {
+            "licensor": "a-i",
+            "recipient": "a-peter"
+          },
+          "relation": "nominative Case licensing",
+          "values": {
+            "case": "nominative"
+          }
+        }
+      ],
+      "stageRecord": "Péter moves from the VP-internal subject position to Spec-IP, leaving an NP trace in its Agent position. This A-movement preserves its original theta-role while placing the pronounced NP in the position where finite I licenses nominative Case. The particle remains inside VP at this stage.",
+      "statement": "Raise Péter to the inflectional subject position.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-peter-n",
+                      "label": "N⁰",
+                      "word": "Péter"
+                    }
+                  ],
+                  "id": "a-peter-nbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "a-peter",
+              "label": "NP",
+              "lineageId": "a-subject-chain"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-v",
+                      "label": "V⁰",
+                      "lineageId": "a-verb-chain",
+                      "word": "hívta"
+                    },
+                    {
+                      "children": [],
+                      "id": "a-infl",
+                      "label": "I⁰ [past, 3sg, definite conjugation]",
+                      "silent": true
+                    }
+                  ],
+                  "id": "a-i",
+                  "label": "I⁰"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-subject-vp-trace",
+                      "label": "NP trace",
+                      "lineageId": "a-subject-chain",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a-prt",
+                                  "label": "Prt⁰",
+                                  "word": "meg"
+                                }
+                              ],
+                              "id": "a-prtbar",
+                              "label": "Prt′"
+                            }
+                          ],
+                          "id": "a-prtp",
+                          "label": "PrtP",
+                          "lineageId": "a-particle-chain"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a-vtrace",
+                              "label": "V⁰ trace",
+                              "lineageId": "a-verb-chain",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a-mari-n",
+                                      "label": "N⁰",
+                                      "word": "Marit"
+                                    }
+                                  ],
+                                  "id": "a-mari-nbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "a-mari",
+                              "label": "NP"
+                            }
+                          ],
+                          "id": "a-vbar-low",
+                          "label": "V′"
+                        }
+                      ],
+                      "id": "a-vbar-high",
+                      "label": "V′"
+                    }
+                  ],
+                  "id": "a-vp",
+                  "label": "VP"
+                }
+              ],
+              "id": "a-ibar",
+              "label": "I′"
+            }
+          ],
+          "id": "a-ip",
+          "label": "IP"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "negativeHead": "a-neg",
+            "scope": "a-ip"
+          },
+          "relation": "sentential negation",
+          "values": {
+            "interpretation": "negation of the invitation proposition"
+          }
+        },
+        {
+          "anchors": {
+            "landingOccurrence": "a-prtp",
+            "landingProjection": "a-focp",
+            "sourceTrace": "a-particle-trace"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "a-prtp"
+          },
+          "relation": "emphatic particle A-bar movement",
+          "values": {
+            "construction": "marked preverb-before-negation emphasis",
+            "landingPosition": "Spec-FocP"
+          }
+        }
+      ],
+      "stageRecord": "The negative head nem projects NegP above IP and takes scope over the finite proposition. The verbal particle then moves from its established VP-internal position to the specifier of an emphatic focus projection above NegP, leaving a particle trace. This derives the marked meg–nem–finite-verb sequence. It is not the neutral negative arrangement nem hívta meg: here the preverbal particle participates in emphatic or contrastive denial of the invitation.",
+      "statement": "Introduce negation and front the verbal particle in the marked emphatic construction.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-prt",
+                      "label": "Prt⁰",
+                      "word": "meg"
+                    }
+                  ],
+                  "id": "a-prtbar",
+                  "label": "Prt′"
+                }
+              ],
+              "id": "a-prtp",
+              "label": "PrtP",
+              "lineageId": "a-particle-chain"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "a-foc",
+                  "label": "Foc⁰",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a-neg",
+                          "label": "Neg⁰",
+                          "word": "nem"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a-peter-n",
+                                      "label": "N⁰",
+                                      "word": "Péter"
+                                    }
+                                  ],
+                                  "id": "a-peter-nbar",
+                                  "label": "N′"
+                                }
+                              ],
+                              "id": "a-peter",
+                              "label": "NP",
+                              "lineageId": "a-subject-chain"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a-v",
+                                      "label": "V⁰",
+                                      "lineageId": "a-verb-chain",
+                                      "word": "hívta"
+                                    },
+                                    {
+                                      "children": [],
+                                      "id": "a-infl",
+                                      "label": "I⁰ [past, 3sg, definite conjugation]",
+                                      "silent": true
+                                    }
+                                  ],
+                                  "id": "a-i",
+                                  "label": "I⁰"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a-subject-vp-trace",
+                                      "label": "NP trace",
+                                      "lineageId": "a-subject-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [],
+                                          "id": "a-particle-trace",
+                                          "label": "PrtP trace",
+                                          "lineageId": "a-particle-chain",
+                                          "silent": true
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "a-vtrace",
+                                              "label": "V⁰ trace",
+                                              "lineageId": "a-verb-chain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "a-mari-n",
+                                                      "label": "N⁰",
+                                                      "word": "Marit"
+                                                    }
+                                                  ],
+                                                  "id": "a-mari-nbar",
+                                                  "label": "N′"
+                                                }
+                                              ],
+                                              "id": "a-mari",
+                                              "label": "NP"
+                                            }
+                                          ],
+                                          "id": "a-vbar-low",
+                                          "label": "V′"
+                                        }
+                                      ],
+                                      "id": "a-vbar-high",
+                                      "label": "V′"
+                                    }
+                                  ],
+                                  "id": "a-vp",
+                                  "label": "VP"
+                                }
+                              ],
+                              "id": "a-ibar",
+                              "label": "I′"
+                            }
+                          ],
+                          "id": "a-ip",
+                          "label": "IP"
+                        }
+                      ],
+                      "id": "a-negbar",
+                      "label": "Neg′"
+                    }
+                  ],
+                  "id": "a-negp",
+                  "label": "NegP"
+                }
+              ],
+              "id": "a-focbar",
+              "label": "Foc′"
+            }
+          ],
+          "id": "a-focp",
+          "label": "FocP [emphatic preverb]"
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "landingOccurrence": "a-peter",
+            "landingProjection": "a-topp",
+            "sourceTrace": "a-subject-ip-trace"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "a-peter"
+          },
+          "relation": "subject topicalization",
+          "values": {
+            "interpretation": "Péter is the aboutness topic",
+            "landingPosition": "Spec-TopP"
+          }
+        },
+        {
+          "anchors": {
+            "rExpressions": [
+              "a-peter",
+              "a-mari"
+            ]
+          },
+          "relation": "Binding Condition C",
+          "values": {
+            "status": "both R-expressions are free"
+          }
+        }
+      ],
+      "stageRecord": "Péter moves from Spec-IP to the left-peripheral topic position, leaving an intermediate subject trace while retaining the earlier trace in its theta-position. The topic is interpreted as the individual about whom the emphatically negative invitation claim is made. The resulting pronounced order is Péter meg nem hívta Marit. Both proper-name NPs are free R-expressions, satisfying Binding Condition C; the traces belong to their respective movement chains and do not introduce an independent antecedent for either name.",
+      "statement": "Complete the topic–emphatic-particle–negation structure.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "a-peter-n",
+                      "label": "N⁰",
+                      "word": "Péter"
+                    }
+                  ],
+                  "id": "a-peter-nbar",
+                  "label": "N′"
+                }
+              ],
+              "id": "a-peter",
+              "label": "NP",
+              "lineageId": "a-subject-chain"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "a-top",
+                  "label": "Top⁰",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "a-prt",
+                              "label": "Prt⁰",
+                              "word": "meg"
+                            }
+                          ],
+                          "id": "a-prtbar",
+                          "label": "Prt′"
+                        }
+                      ],
+                      "id": "a-prtp",
+                      "label": "PrtP",
+                      "lineageId": "a-particle-chain"
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "a-foc",
+                          "label": "Foc⁰",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "a-neg",
+                                  "label": "Neg⁰",
+                                  "word": "nem"
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "id": "a-subject-ip-trace",
+                                      "label": "NP trace",
+                                      "lineageId": "a-subject-chain",
+                                      "silent": true
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "a-v",
+                                              "label": "V⁰",
+                                              "lineageId": "a-verb-chain",
+                                              "word": "hívta"
+                                            },
+                                            {
+                                              "children": [],
+                                              "id": "a-infl",
+                                              "label": "I⁰ [past, 3sg, definite conjugation]",
+                                              "silent": true
+                                            }
+                                          ],
+                                          "id": "a-i",
+                                          "label": "I⁰"
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [],
+                                              "id": "a-subject-vp-trace",
+                                              "label": "NP trace",
+                                              "lineageId": "a-subject-chain",
+                                              "silent": true
+                                            },
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [],
+                                                  "id": "a-particle-trace",
+                                                  "label": "PrtP trace",
+                                                  "lineageId": "a-particle-chain",
+                                                  "silent": true
+                                                },
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [],
+                                                      "id": "a-vtrace",
+                                                      "label": "V⁰ trace",
+                                                      "lineageId": "a-verb-chain",
+                                                      "silent": true
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "children": [
+                                                            {
+                                                              "children": [],
+                                                              "id": "a-mari-n",
+                                                              "label": "N⁰",
+                                                              "word": "Marit"
+                                                            }
+                                                          ],
+                                                          "id": "a-mari-nbar",
+                                                          "label": "N′"
+                                                        }
+                                                      ],
+                                                      "id": "a-mari",
+                                                      "label": "NP"
+                                                    }
+                                                  ],
+                                                  "id": "a-vbar-low",
+                                                  "label": "V′"
+                                                }
+                                              ],
+                                              "id": "a-vbar-high",
+                                              "label": "V′"
+                                            }
+                                          ],
+                                          "id": "a-vp",
+                                          "label": "VP"
+                                        }
+                                      ],
+                                      "id": "a-ibar",
+                                      "label": "I′"
+                                    }
+                                  ],
+                                  "id": "a-ip",
+                                  "label": "IP"
+                                }
+                              ],
+                              "id": "a-negbar",
+                              "label": "Neg′"
+                            }
+                          ],
+                          "id": "a-negp",
+                          "label": "NegP"
+                        }
+                      ],
+                      "id": "a-focbar",
+                      "label": "Foc′"
+                    }
+                  ],
+                  "id": "a-focp",
+                  "label": "FocP [emphatic preverb]"
+                }
+              ],
+              "id": "a-topbar",
+              "label": "Top′"
+            }
+          ],
+          "id": "a-topp",
+          "label": "TopP"
+        }
+      ]
+    }
+  ]
+}

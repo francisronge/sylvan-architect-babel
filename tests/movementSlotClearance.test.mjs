@@ -11,14 +11,17 @@ import { auditVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
 
 /* A later stage's attachment carries its layout back over earlier frames. Where
  * that layout holds a movement's slot for the compact lower occurrence, the
- * complete source painted there before its movement must still clear its sister. */
+ * complete source painted there before its movement must still clear its sister,
+ * and the sisters of its ancestors. */
 
 const fixture = name => JSON.parse(readFileSync(new URL(`../fixtures/replay-regressions/${name}.json`, import.meta.url), 'utf8'));
 const CASES = [
   // whose car stands in Spec-TP (frames 22-26) beside the T′ that stage 6 holds for the trace.
   ['later-occupant-intermediate-landing', 'car', 'was'],
   // Péter stands in Spec-VP (frame 24) beside the V′ that stage 3 holds for the A-trace.
-  ['later-occupant-source-before-movement', 'd_pbar', 'd_v']
+  ['later-occupant-source-before-movement', 'd_pbar', 'd_v'],
+  // Péter stands in Spec-VP (frames 24-26) beside the I⁰ complex of its parent's sister.
+  ['later-occupant-source-beside-ancestor-sister', 'a-peter', 'a-infl']
 ];
 const viewports = VIEWPORTS.filter(viewport => viewport.name !== 'mobile');
 // Construction order can depend on later stages, so a frame is named by its
