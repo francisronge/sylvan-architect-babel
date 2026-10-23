@@ -25,6 +25,7 @@ const explicitSections = {
     'server/parseApi.js',
     'server/parseHttpPolicy.js',
     'server/devParseMiddleware.js',
+    'server/localHostPolicy.js',
     'server/index.js',
     'services/parseService.ts',
     'types.ts',
