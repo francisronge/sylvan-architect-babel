@@ -165,6 +165,8 @@ export const createParseRoutes = ({
     const finishReason = String(error?.finishReason || 'PROVIDER_ERROR').toUpperCase();
     return {
       rawText,
+      // Without a received generation, the body is the provider's error response.
+      providerErrorBody: Boolean(rawText),
       generationRecord: {
         ...createGenerationRecord({
           provider,
@@ -408,7 +410,8 @@ export const createParseRoutes = ({
         error: classified,
         ParseApiError,
         generationRecord: generationFailureEvidence?.generationRecord,
-        rawText: generationFailureEvidence?.rawText
+        rawText: generationFailureEvidence?.rawText,
+        providerErrorBody: generationFailureEvidence?.providerErrorBody
       });
     }
   };
@@ -557,7 +560,8 @@ export const createParseRoutes = ({
         error: classified,
         ParseApiError,
         generationRecord: generationFailureEvidence?.generationRecord,
-        rawText: generationFailureEvidence?.rawText
+        rawText: generationFailureEvidence?.rawText,
+        providerErrorBody: generationFailureEvidence?.providerErrorBody
       });
     }
   };
@@ -730,7 +734,8 @@ export const createParseRoutes = ({
         error: classified,
         ParseApiError,
         generationRecord: generationFailureEvidence?.generationRecord,
-        rawText: generationFailureEvidence?.rawText
+        rawText: generationFailureEvidence?.rawText,
+        providerErrorBody: generationFailureEvidence?.providerErrorBody
       });
     }
   };
