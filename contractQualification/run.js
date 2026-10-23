@@ -32,8 +32,14 @@ const canonicalize = (value) => {
   );
 };
 
+// Sorted keys give fingerprints and receipts one byte form. Do not use it for
+// a record that is parsed again: authored key order is part of an analysis
+// (Replay reads relation anchor and value roles in order).
 export const stableQualificationJson = (value) =>
   `${JSON.stringify(canonicalize(value), null, 2)}\n`;
+
+// Keeps every object's key order, so a payload or bundle read back is the one written.
+export const orderedQualificationJson = (value) => `${JSON.stringify(value, null, 2)}\n`;
 
 const receiptWithHash = (value) => {
   const stable = canonicalize(value);
