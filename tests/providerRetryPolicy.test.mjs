@@ -3,7 +3,7 @@ import test, { after, before, beforeEach } from 'node:test';
 
 import { ParseApiError } from '../server/babelParser/error.js';
 import { buildAnthropicRequestBody, buildGrokRequestBody, buildKimiRequestBody, buildOpenAIRequestBody, generateAnthropicStructuredContent, generateGrokStructuredContent, generateKimiStructuredContent, generateOpenAIStructuredContent } from '../server/babelParser/modelRuntime.js';
-import { runWithTransportRetries, withTimeout } from '../server/babelParser/providerTransport.js';
+import { runProviderAttempt, withTimeout } from '../server/babelParser/providerTransport.js';
 import { assertGenerationComplete } from '../server/babelParser/generationOutcome.js';
 
 const originalNodeEnv = process.env.NODE_ENV;
@@ -20,7 +20,6 @@ const failure = (message, fields = {}) => Object.assign(new Error(message), fiel
 const completed = (text = '{}', finishReason = 'STOP') => ({
   text, status: 'completed', candidates: [{ finishReason }]
 });
-const noDelay = async () => assert.fail('Terminal failures must not back off');
 const options = {
   apiKey: 'offline-test-key', model: 'offline-model', contents: 'input',
   systemInstruction: 'shared system prompt', reasoningEffort: 'high', effort: 'high',
@@ -53,8 +52,8 @@ test('explicit rate limits override transport/server retry signals', async (t) =
   ]) {
     await t.test(label, async () => {
       let calls = 0;
-      await assert.rejects(runWithTransportRetries({
-        runId: 'rate-limit', delay: noDelay,
+      await assert.rejects(runProviderAttempt({
+        runId: 'rate-limit',
         run: async () => { calls += 1; throw error; }
       }), (actual) => {
         assert.equal(actual, error);
@@ -83,8 +82,7 @@ test('application errors, completed stops, and permanent failures are terminal',
   ]) {
     await t.test(`${error.code || error.name}: ${error.message} (${error.status || 'no status'})`, async () => {
       let calls = 0;
-      await assert.rejects(runWithTransportRetries({
-        delay: noDelay,
+      await assert.rejects(runProviderAttempt({
         run: async () => { calls += 1; throw error; }
       }), (actual) => actual === error && actual.providerAttempts.length === 1);
       assert.equal(calls, 1);
@@ -92,79 +90,62 @@ test('application errors, completed stops, and permanent failures are terminal',
   }
 });
 
-test('only recognized transient failures retry, with one run ID and at most three attempts', async (t) => {
+test('transient failures are classified but never retried automatically', async (t) => {
   for (const error of [
     ...[500, 502, 503, 529].map((status) => failure('provider unavailable', { status })),
     ...['ECONNRESET', 'ECONNREFUSED', 'EAI_AGAIN', 'ENOTFOUND', 'UND_ERR_SOCKET'].map((code) => (
       new Error('fetch failed', { cause: failure('connection failed', { code }) })
-    ))
+    )),
+    Object.assign(new Error('fetch failed', { cause: failure('connection reset', { code: 'ECONNRESET' }) }), {
+      details: { retained: true }
+    })
   ]) {
     await t.test(String(error.status || error.cause.code), async () => {
       let calls = 0;
       let clock = 0;
-      const delays = [];
-      const receipt = await runWithTransportRetries({
-        runId: 'transient', maxAttempts: 99, backoffBaseMs: 10,
-        now: () => new Date(clock++), delay: async (ms) => { delays.push(ms); },
+      await assert.rejects(runProviderAttempt({
+        runId: 'transient', now: () => new Date(clock++),
         run: async ({ runId, attemptNumber }) => {
           assert.equal(runId, 'transient');
-          assert.equal(attemptNumber, ++calls);
-          if (calls < 3) throw error;
-          return completed();
+          assert.equal(attemptNumber, 1);
+          calls += 1;
+          throw error;
         }
-      });
-      assert.equal(receipt.runId, 'transient');
-      assert.equal(calls, 3);
-      assert.deepEqual(delays, [10, 20]);
-      assert.deepEqual(receipt.attempts.map(({ outcome }) => outcome), [
-        'retryable_transport_failure', 'retryable_transport_failure', 'completed'
-      ]);
-      assert.equal(receipt.attempts[0].startedAt, new Date(0).toISOString());
-      assert.equal(receipt.attempts[2].completedAt, new Date(5).toISOString());
-      if (error.cause) {
-        assert.equal(receipt.attempts[0].causeCode, error.cause.code);
-        assert.equal(receipt.attempts[0].causeMessage, 'connection failed');
-      }
-    });
-  }
-});
-
-test('attempt exhaustion preserves the original cause, details, and exact attempt cap', async (t) => {
-  for (const [maxAttempts, expected] of [[99, 3], [2, 2], [1, 1], [0, 1], [2.9, 2]]) {
-    await t.test(String(maxAttempts), async () => {
-      const cause = failure('connection reset', { code: 'ECONNRESET' });
-      const error = Object.assign(new Error('fetch failed', { cause }), { details: { retained: true } });
-      let calls = 0;
-      const delays = [];
-      await assert.rejects(runWithTransportRetries({
-        maxAttempts, delay: async (ms) => { delays.push(ms); },
-        run: async () => { calls += 1; throw error; }
       }), (actual) => {
         assert.equal(actual, error);
-        assert.equal(actual.cause, cause);
-        assert.equal(actual.details.retained, true);
-        assert.equal(actual.providerRetryStopReason, 'attempt_limit');
-        assert.equal(actual.providerAttempts.length, expected);
+        assert.equal(actual.providerRunId, 'transient');
+        assert.equal(actual.providerRetryStopReason, 'no_automatic_retry');
+        assert.equal(actual.providerAttempts.length, 1);
+        const [attempt] = actual.providerAttempts;
+        assert.equal(attempt.outcome, 'retryable_transport_failure');
+        assert.match(attempt.retryReason, /^transient_(transport|server)_failure$/);
+        assert.equal(attempt.retryStopReason, 'no_automatic_retry');
+        assert.equal(attempt.startedAt, new Date(0).toISOString());
+        assert.equal(attempt.completedAt, new Date(1).toISOString());
+        if (error.cause) {
+          assert.equal(actual.cause, error.cause);
+          assert.equal(attempt.causeCode, error.cause.code);
+        }
+        if (error.details?.retained) assert.equal(actual.details.retained, true);
         return true;
       });
-      assert.equal(calls, expected);
-      assert.equal(delays.length, expected - 1);
+      assert.equal(calls, 1);
     });
   }
 });
 
-test('primitive and frozen exceptions retain diagnostics without changing retry policy', async (t) => {
+test('primitive and frozen exceptions retain diagnostics with one attempt', async (t) => {
   for (const [label, error, expectedCalls] of [
     ['null', null, 1],
     ['string', 'provider rejected input', 1],
     ['frozen rate limit', Object.freeze(failure('rate limit', { status: 429 })), 1],
-    ['frozen transient', Object.freeze(failure('server unavailable', { status: 503 })), 3],
+    ['frozen transient', Object.freeze(failure('server unavailable', { status: 503 })), 1],
     ['frozen application error', Object.freeze(new ParseApiError('BAD_MODEL_RESPONSE', 'invalid JSON', 502)), 1]
   ]) {
     await t.test(label, async () => {
       let calls = 0;
-      await assert.rejects(runWithTransportRetries({
-        delay: async () => {}, run: async () => { calls += 1; throw error; }
+      await assert.rejects(runProviderAttempt({
+        run: async () => { calls += 1; throw error; }
       }), (actual) => {
         assert.equal(actual.cause, error);
         assert.equal(actual.providerAttempts.length, expectedCalls);
@@ -175,28 +156,11 @@ test('primitive and frozen exceptions retain diagnostics without changing retry 
   }
 });
 
-test('backoff rejection retains the attempted transport failure without another generation', async () => {
-  const error = failure('backoff interrupted');
-  let calls = 0;
-  await assert.rejects(runWithTransportRetries({
-    delay: async () => { throw error; },
-    run: async () => { calls += 1; throw failure('server unavailable', { status: 503 }); }
-  }), (actual) => {
-    assert.equal(actual, error);
-    assert.equal(actual.providerRetryStopReason, 'backoff_failed');
-    assert.equal(actual.providerAttempts.length, 1);
-    assert.equal(actual.providerAttempts[0].statusCode, 503);
-    return true;
-  });
-  assert.equal(calls, 1);
-});
-
 test('nested and cyclic causes cannot hide a timeout or hang classification', async () => {
   const timeout = failure('headers stalled', { code: 'UND_ERR_HEADERS_TIMEOUT' });
   const wrapped = new Error('fetch failed', { cause: new Error('wrapper', { cause: timeout }) });
   let timeoutCalls = 0;
-  await assert.rejects(runWithTransportRetries({
-    delay: noDelay,
+  await assert.rejects(runProviderAttempt({
     run: async () => { timeoutCalls += 1; throw wrapped; }
   }), (error) => {
     assert.equal(error, wrapped);
@@ -207,15 +171,10 @@ test('nested and cyclic causes cannot hide a timeout or hang classification', as
   const cyclic = failure('connection failed', { code: 'ECONNRESET' });
   cyclic.cause = cyclic;
   let transportCalls = 0;
-  const result = await runWithTransportRetries({
-    delay: async () => {},
-    run: async () => {
-      if (++transportCalls === 1) throw cyclic;
-      return completed();
-    }
-  });
-  assert.equal(transportCalls, 2);
-  assert.equal(result.attempts[0].retryReason, 'transient_transport_failure');
+  await assert.rejects(runProviderAttempt({
+    run: async () => { transportCalls += 1; throw cyclic; }
+  }), (error) => error === cyclic && error.providerAttempts[0].retryReason === 'transient_transport_failure');
+  assert.equal(transportCalls, 1);
 });
 
 test('ambiguous timeout and abort signals never start another generation', async (t) => {
@@ -229,8 +188,7 @@ test('ambiguous timeout and abort signals never start another generation', async
   ]) {
     await t.test(`${error.name}: ${error.message} ${error.status || error.code || ''}`, async () => {
       let calls = 0;
-      await assert.rejects(runWithTransportRetries({
-        delay: noDelay,
+      await assert.rejects(runProviderAttempt({
         run: async () => { calls += 1; throw error; }
       }), (actual) => actual === error && actual.providerAttempts[0].retryReason === 'uncertain_timeout');
       assert.equal(calls, 1);
@@ -243,8 +201,7 @@ test('withTimeout aborts a submitted request without replacing a possibly runnin
   let calls = 0;
   let signal;
   let finish;
-  const result = runWithTransportRetries({
-    delay: noDelay,
+  const result = runProviderAttempt({
     run: () => withTimeout((abortSignal) => {
       calls += 1;
       signal = abortSignal;
@@ -264,8 +221,8 @@ test('withTimeout aborts a submitted request without replacing a possibly runnin
 });
 
 test('deadline prevents even the first attempt when already expired', async () => {
-  await assert.rejects(runWithTransportRetries({
-    deadlineAt: 1000, now: () => new Date(1000), delay: noDelay,
+  await assert.rejects(runProviderAttempt({
+    deadlineAt: 1000, now: () => new Date(1000),
     run: async () => assert.fail('No generation may start after its deadline')
   }), (error) => {
     assert.equal(error.code, 'PROVIDER_DEADLINE_EXCEEDED');
@@ -273,41 +230,6 @@ test('deadline prevents even the first attempt when already expired', async () =
     assert.deepEqual(error.providerAttempts, []);
     return true;
   });
-});
-
-test('backoff never starts when it would reach or cross the deadline', async (t) => {
-  for (const remaining of [0, 10, 11]) {
-    await t.test(String(remaining), async () => {
-      let clock = 0;
-      let calls = 0;
-      const delays = [];
-      const error = failure('temporarily unavailable', { status: 503 });
-      await assert.rejects(runWithTransportRetries({
-        deadlineAt: 100 + remaining, now: () => new Date(clock), backoffBaseMs: 10,
-        delay: async (ms) => { delays.push(ms); clock += ms; },
-        run: async () => { calls += 1; clock = 100 + (calls - 1) * 10; throw error; }
-      }), (actual) => actual === error && actual.providerRetryStopReason === 'deadline_exhausted');
-      assert.equal(calls, remaining > 10 ? 2 : 1);
-      assert.deepEqual(delays, remaining > 10 ? [10] : []);
-    });
-  }
-});
-
-test('deadline is rechecked after an oversleep without recording a phantom attempt', async () => {
-  let clock = 0;
-  let calls = 0;
-  const error = failure('server unavailable', { status: 503 });
-  await assert.rejects(runWithTransportRetries({
-    deadlineAt: 100, now: () => new Date(clock), backoffBaseMs: 10,
-    delay: async () => { clock = 100; },
-    run: async () => { calls += 1; throw error; }
-  }), (actual) => {
-    assert.equal(actual, error);
-    assert.equal(actual.providerAttempts.length, 1);
-    assert.equal(actual.providerAttempts[0].retryStopReason, 'deadline_exhausted');
-    return true;
-  });
-  assert.equal(calls, 1);
 });
 
 test('received answers cannot be replaced by summary, parsing, validation, or stop failures', async (t) => {
@@ -325,8 +247,8 @@ test('received answers cannot be replaced by summary, parsing, validation, or st
     await t.test(label, async () => {
       let calls = 0;
       await assert.rejects(async () => {
-        const receipt = await runWithTransportRetries({
-          delay: noDelay, run: async () => { calls += 1; return value; }
+        const receipt = await runProviderAttempt({
+          run: async () => { calls += 1; return value; }
         });
         assert.equal(receipt.attempts.length, 1);
         consume(receipt);
@@ -347,8 +269,7 @@ test('OpenAI background retrieval never recreates a response on polling failure'
         jsonResponse({ id: 'resp_existing', status: 'queued' }), pollFailure,
         jsonResponse({ status: 'cancelled' })
       ]);
-      await assert.rejects(runWithTransportRetries({
-        delay: noDelay,
+      await assert.rejects(runProviderAttempt({
         run: () => generateOpenAIStructuredContent({ ...options, background: true })
       }), (error) => {
         assert.equal(error.providerResponseId, 'resp_existing');
@@ -372,8 +293,8 @@ test('successful OpenAI polling retrieves one response and counts one generation
     jsonResponse({ id: 'resp_existing', status: 'in_progress' }),
     jsonResponse({ id: 'resp_existing', status: 'completed', output_text: '{}' })
   ]);
-  const receipt = await runWithTransportRetries({
-    delay: noDelay, run: () => generateOpenAIStructuredContent({ ...options, background: true })
+  const receipt = await runProviderAttempt({
+    run: () => generateOpenAIStructuredContent({ ...options, background: true })
   });
   assert.equal(receipt.value.text, '{}');
   assert.equal(receipt.attempts.length, 1);
@@ -391,8 +312,8 @@ test('primitive and frozen polling exceptions cannot prevent cancellation or rec
         if (init.method === 'GET') throw caught;
         return jsonResponse({ id: 'resp_existing', status: 'queued' });
       });
-      await assert.rejects(runWithTransportRetries({
-        delay: noDelay, run: () => generateOpenAIStructuredContent({ ...options, background: true })
+      await assert.rejects(runProviderAttempt({
+        run: () => generateOpenAIStructuredContent({ ...options, background: true })
       }), (error) => {
         assert.equal(error.cause, caught);
         assert.equal(error.providerResponseId, 'resp_existing');
@@ -436,8 +357,7 @@ test('background cancellation bounds both fetch and response-body cleanup to fiv
           ok: true, body: { cancel: hangUntilAborted }
         };
       });
-      await assert.rejects(runWithTransportRetries({
-        delay: noDelay,
+      await assert.rejects(runProviderAttempt({
         run: () => generateOpenAIStructuredContent({
           ...options, background: true, abortSignal: controller.signal
         })
@@ -494,8 +414,8 @@ test('OpenAI completed failure and cancellation never trigger replacement genera
   for (const status of ['failed', 'cancelled']) {
     await t.test(status, async (t) => {
       const calls = stubFetch(t, [jsonResponse({ id: 'resp_stopped', status })]);
-      await assert.rejects(runWithTransportRetries({
-        delay: noDelay, run: () => generateOpenAIStructuredContent(options)
+      await assert.rejects(runProviderAttempt({
+        run: () => generateOpenAIStructuredContent(options)
       }), (error) => error.completedStopState && error.providerAttempts[0].retryReason === 'completed_stop');
       assert.equal(calls.length, 1);
     });
@@ -513,8 +433,8 @@ test('received HTTP bodies and explicit HTTP errors keep their retry classificat
         const calls = stubFetch(t, [new Response(new ReadableStream({
           start(controller) { controller.error(error); }
         }), { status })]);
-        await assert.rejects(runWithTransportRetries({
-          delay: noDelay, run: () => generate(options)
+        await assert.rejects(runProviderAttempt({
+          run: () => generate(options)
         }), (actual) => actual === error && actual.providerAttempts.length === 1);
         assert.equal(calls.length, 1);
         assert.equal(error.status, status);
@@ -528,8 +448,8 @@ test('a frozen response-read exception preserves the received-answer guard', asy
   const calls = stubFetch(t, [new Response(new ReadableStream({
     start(controller) { controller.error(caught); }
   }))]);
-  await assert.rejects(runWithTransportRetries({
-    delay: noDelay, run: () => generateOpenAIStructuredContent(options)
+  await assert.rejects(runProviderAttempt({
+    run: () => generateOpenAIStructuredContent(options)
   }), (error) => {
     assert.equal(error.cause, caught);
     assert.equal(error.providerAttempts[0].retryReason, 'received_answer');

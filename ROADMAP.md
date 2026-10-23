@@ -171,9 +171,10 @@ growing the current monolith and do not build two Babel implementations.
 ### 3D. Product Quality
 
 1. Preserve and characterize the existing loading experience, arbitrary-count
-   parse selection, and provider transport retries. Add route error boundaries
-   with the application split. Decide separately whether user-triggered parse
-   cancellation or additional retry UI is useful.
+   parse selection, and the single provider request per parse (no automatic
+   transport retry; a retry on the public site may come later). Add route error
+   boundaries with the application split. Decide separately whether
+   user-triggered parse cancellation or additional retry UI is useful.
 2. Make desktop and mobile layouts explicit. Verify all key flows with
    screenshots and interaction tests, not only component snapshots.
 3. Preserve local-first operation. Hosted accounts or synchronization remain a
