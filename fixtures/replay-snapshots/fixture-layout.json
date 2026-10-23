@@ -178,7 +178,7 @@
       ]
     },
     "movement/displayed-endpoints.json#/1": {
-      "frames": "477ieAtg 8JqIKc-o VEQSQ1gh F1FQ65MW UtalGomH RqlKmSuV -7feFmZa yQ8uCIbB y6KgFY5C p7pvt5kA zMlmlQKD IhPYQdIE p7x-Gnh_ QuYFnM3Y i8LnA9Da JjNq1WrN RUnM7h2A jhaMwlkr LKniIrFV Bs5NNwzC 6nhJMDx3 VKyDFMzm 1jNyA8U4 5zBxEuAX QTwJlONp S1QY0q0O Gw3ysmeF VYT-zHM1 TAXjenmg YxFeVOSn jsZ5fNTk iFA6E8d7 wbUDGN4y GqWh4H82 iHAGgJaO xrzrESXf JOs_Bc6g nkkCnPbz Vgi1f60j CnVn1Uyc UGfT-eZa m9fXCAoU 3s1bynNo InYfIPWP a5Ti8mnG l3Jp7RTK _ewn4Jcj",
+      "frames": "_NiSk5ah GZBsYa-1 Y_PO87gU oGlZpKXC -GTFgTMk RfzG_oeE p8BYgytx J_1laD0Y GWmk_VOi Nf-w_N_B 5mLjnyZY ASfg_8mS Zrv0k0b3 vvxUSnJI 51QJgv95 fK9eIA33 -5z76mdM S5AId_oV nsDgkeP0 RnKdUSDX -sPzbeQJ MetZarWR -TtzFTLi AWFYaE9R swLDH6A0 eDQdxUA1 9WlF7p-E 6_TBwmzM PE3_KZtt lp8jbnP2 bmEVORon dlBgewWp z30fOBwv _aCzCJko 6CZAjPwL ZLsuJ91r F3bkyv0Z FoVcW5c2 vKXSGQQT 3gm4zPYt CgZsdFiR TsPCUDX3 dLYZ7cQi BjZe18Qm y2CjIEaU XMhkqMVL ldGNISml",
       "canopy": "ggLu2K0n",
       "tiers": [
         "0:0 T2 undirected-link feature-sharing.vines feature-sharing",
@@ -1892,6 +1892,30 @@
         "2:0 T3 fallback",
         "2:1 T3 fallback",
         "2:2 T3 fallback"
+      ]
+    },
+    "replay-regressions/later-occupant-source-beside-ancestor-sister.json#": {
+      "frames": "sgmzB2m6 6wvY5yj2 bewC4Bng qgUW8Pkr dYQQPrKz QDMwcgTO wZnuu_5L VctmhCam 8Xcb4Oln IuT8RpyM oFI9YHIT JTSoZpA- XXIjwm3p w7o2TGED VtpClFgP LtZ8kVjY 1p5sJ1CJ gFko_Nty 0rrfj2S4 avSkS67a c_aS1uU4 Ycjzyghe XfsJrAQ3 Xq1m_WTa tnOoCBk_ gtkQNtZ2 LvV6fGvn TFt3OCQi eQI5FUxQ Kzz_B9FZ K_0eJUTg zrdlzQ-5 p54DMoXp LsB1nGoE T0N4MeIP vKXab5NJ 32Qz5eME MnEnDDxj sT_sCec5 mtYdbibg gLrJ0oAx ru6IcsQO DQqfTEoq",
+      "canopy": "APfgJEbX",
+      "tiers": [
+        "0:0 T1 node-badges theta.grid",
+        "0:0 T1 node-plaque theta.grid",
+        "0:1 T2 directed-path tier2.feature-dependency feature.dependency",
+        "0:1 T3 fallback",
+        "0:2 T3 fallback",
+        "1:0 T2 trajectory tier2.movement-path movement.path",
+        "1:0 T3 fallback",
+        "1:1 T2 node-plaque feature-bundle.plaque plaque.structured",
+        "1:1 T3 fallback",
+        "2:0 T2 trajectory tier2.movement-path movement.path",
+        "2:0 T3 fallback",
+        "2:1 T2 directed-path tier2.feature-dependency feature.dependency",
+        "3:0 T3 fallback",
+        "3:1 T2 trajectory tier2.movement-path movement.path",
+        "3:1 T3 fallback",
+        "4:0 T2 trajectory tier2.movement-path movement.path",
+        "4:0 T3 fallback",
+        "4:1 T3 fallback"
       ]
     },
     "replay-regressions/merged-material-construction.json#/cases/0": {

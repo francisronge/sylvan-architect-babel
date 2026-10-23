@@ -36,7 +36,9 @@ const cache = new WeakMap<Reservations, Reservations>();
  * the largest clearance any of those frames needs. The movement moment keeps the
  * parent's motion, and the source's arrival owns the change. When the occupants
  * would then run into other syntax, they and the sister each take half of the
- * clearance, so their parent keeps its place.
+ * clearance, so their parent keeps its place. When the source clears its own
+ * sister but runs into the sister of an ancestor, that ancestor's slot is sized
+ * the same way.
  *
  * A slot is widened only when its painted branches stay valid, sister contours
  * were and stay ordered, no sister ink overlap is added or enlarged, the occupant
@@ -132,21 +134,31 @@ export function reserveMovementSlotClearance({ steps, sizes, coordinates, direct
       const parentId = paintedParent(before.nodes, source);
       if (!parentId || paintedParent(after.nodes, lower) !== parentId) continue;
       const sisters = paintedChildren(before.nodes.get(parentId)!, before.nodes).map(getNodeId);
-      const slot = sisters.indexOf(movement.priorSourceNodeId);
       const replaced = sisters.map(id => id === movement.priorSourceNodeId ? movement.witnessNodeId : id);
       if (sisters.length < 2 || JSON.stringify(replaced) !== JSON.stringify(paintedChildren(after.nodes.get(parentId)!, after.nodes).map(getNodeId))) continue;
       // An outer slot widens away from its one inner sister; a middle slot cannot.
-      const inner = slot === 0 ? 1 : slot === sisters.length - 1 ? slot - 1 : -1;
-      if (inner < 0) continue;
-      const sisterId = sisters[inner], sister = before.nodes.get(sisterId)!;
-      if (!collides(before.ink(source), before.ink(sister))) continue;
-      const sign = sister.x > source.x ? -1 : 1;
-      const occupantAt = (index: number) => index < moment ? movement.priorSourceNodeId : movement.witnessNodeId;
+      // A source that clears its own sister can still run into syntax beside its
+      // parent. The nearest ancestor in an outer slot whose inner sister it meets
+      // then widens away from that sister instead, from its arrival until it
+      // leaves that parent.
+      let holderId = movement.priorSourceNodeId, forkId = parentId, sisterId: string | undefined;
+      for (let fork: Node | undefined = before.nodes.get(parentId); fork; fork = before.nodes.get(paintedParent(before.nodes, fork) ?? '')) {
+        const daughters = paintedChildren(fork, before.nodes).map(getNodeId), at = daughters.indexOf(holderId);
+        const inner = daughters.length < 2 ? -1 : at === 0 ? 1 : at === daughters.length - 1 ? at - 1 : -1;
+        if (inner < 0) break;
+        if (collides(before.ink(source), before.ink(before.nodes.get(daughters[inner])!))) { sisterId = daughters[inner]; break; }
+        holderId = getNodeId(fork);
+        forkId = paintedParent(before.nodes, fork) ?? '';
+      }
+      if (!sisterId) continue;
+      const ownSlot = holderId === movement.priorSourceNodeId;
+      const sign = before.nodes.get(sisterId)!.x > before.nodes.get(holderId)!.x ? -1 : 1;
+      const occupantAt = (index: number) => !ownSlot ? holderId : index < moment ? movement.priorSourceNodeId : movement.witnessNodeId;
       // The source from its arrival, then its lower occurrence until it leaves the parent.
-      const first = arrival(moment - 1, movement.priorSourceNodeId), last = departure(moment, movement.witnessNodeId, parentId);
+      const first = arrival(moment - 1, holderId), last = ownSlot ? departure(moment, movement.witnessNodeId, parentId) : departure(moment - 1, holderId, forkId);
       const occupied = (index: number, painted = paint(index)) => {
-        const occupant = painted.nodes.get(occupantAt(index)), parent = painted.nodes.get(parentId);
-        if (!occupant || !parent || paintedParent(painted.nodes, occupant) !== parentId) return undefined;
+        const occupant = painted.nodes.get(occupantAt(index)), parent = painted.nodes.get(forkId);
+        if (!occupant || !parent || paintedParent(painted.nodes, occupant) !== forkId) return undefined;
         const daughters = paintedChildren(parent, painted.nodes), at = daughters.indexOf(occupant);
         const neighbour = daughters[at === 0 ? 1 : at - 1];
         return neighbour && daughters.length > 1 && (at === 0 || at === daughters.length - 1)
@@ -188,7 +200,7 @@ export function reserveMovementSlotClearance({ steps, sizes, coordinates, direct
       // Reservations are stored before right-to-left reflection.
       const dx = sign * distance * (direction === 'rtl' ? -1 : 1);
       const occupant: Move = { first, last, root: occupantAt, dx };
-      const sisterMove: Move = { first: arrival(moment - 1, sisterId), last: departure(moment - 1, sisterId, parentId), root: () => sisterId, dx: -dx / 2 };
+      const sisterMove: Move = { first: arrival(moment - 1, sisterId), last: departure(moment - 1, sisterId, forkId), root: () => sisterId!, dx: -dx / 2 };
       for (const moves of [[occupant], [{ ...occupant, dx: dx / 2 }, sisterMove]]) {
         const candidate = translated(moves);
         if (candidate && accepts(candidate, Math.min(...moves.map(move => move.first)), Math.max(...moves.map(move => move.last)))) {
