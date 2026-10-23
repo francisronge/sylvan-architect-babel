@@ -270,10 +270,11 @@ function close(edit: StageEdit, frame: Frame, owners: Owners, seeds: Iterable<st
         return switchWhole(k);
       }
       if (mode.forced || (mode.relation !== undefined && owners.get(key('w', k)) === mode.relation)) return switchWhole(k);
-      // A daughter a later moment completes may be carried by the one present node of it that moment encloses.
-      const carrier = owners.has(key('w', k)) ? carrierOf(k, parent) : undefined;
+      // A daughter a later moment completes may be carried by the one present node of it that moment encloses;
+      // a daughter later construction completes, by the node this step builds inside it.
+      const owned = owners.has(key('w', k)), carrier = owned || mode.relation === undefined ? carrierOf(k, parent) : undefined;
       const slot = cur.get(parent)!.kids.indexOf(k);
-      return carrier && whole(parent) ? add(carrierKey(parent, slot, carrier), parent) && release(carrier, parent) : block(k);
+      return carrier && whole(parent) && (owned || whole(carrier)) ? add(carrierKey(parent, slot, carrier), parent) && release(carrier, parent) : block(k);
     }
     if (mode.relation === undefined && !mode.forced && !mode.planning && edit.reshaped(k) && !edit.built(frame, k) && owners.get(key('w', k)) === undefined)
       return block(k);
