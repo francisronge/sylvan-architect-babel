@@ -192,8 +192,9 @@ export const featureSharingVinePath = (start: Point, convergence: Point): string
 
 /** Keep accepted curves unless staggered bearer heights make them cross.
  * Delay their inward bend together, preserving endpoints and the shared plaque.
- * At full delay the curves share a starting level and retain horizontal order. */
-export const featureSharingVinePaths = (starts: Point[], convergence: Point): string[] => {
+ * At full delay the curves share a starting level and retain horizontal order.
+ * Returns each vine's bend: where its accepted curve begins below its start. */
+const featureSharingVineBends = (starts: Point[], convergence: Point): Point[] => {
   const lowestY = Math.max(...starts.map(start => start.y));
   const ordered = [...starts].sort((a, b) => a.x - b.x);
   const delayed = (start: Point, delay: number): Point => ({ x: start.x, y: start.y + (lowestY - start.y) * delay });
@@ -222,7 +223,7 @@ export const featureSharingVinePaths = (starts: Point[], convergence: Point): st
     }
     return false;
   });
-  if (!crosses(0)) return starts.map(start => featureSharingVinePath(start, convergence));
+  if (!crosses(0)) return starts;
   let low = 0, high = 1;
   for (let iteration = 0; iteration < 10; iteration += 1) {
     const delay = (low + high) / 2;
@@ -230,12 +231,94 @@ export const featureSharingVinePaths = (starts: Point[], convergence: Point): st
   }
   // A small margin avoids a near-tangent double stroke after coordinate rounding.
   const delay = Math.min(1, high + 0.08);
-  return starts.map(start => {
-    const bend = delayed(start, delay);
-    const curve = featureSharingVinePath(bend, convergence);
-    return bend.y === start.y ? curve
-      : `M ${fixed(start.x)} ${fixed(start.y)} L ${fixed(bend.x)} ${fixed(bend.y)} ${curve.slice(curve.indexOf('C'))}`;
+  return starts.map(start => delayed(start, delay));
+};
+
+/** A vine keeps the gap from another bearer's word that it keeps below its own. */
+const VINE_WORD_CLEARANCE = 22;
+
+type VineRoute = { d: string; points: Point[] };
+
+const vineRoute = (start: Point, bend: Point, convergence: Point): VineRoute => {
+  const curve = featureSharingVinePath(bend, convergence);
+  const [c1, c2] = featureSharingVineControls(bend, convergence);
+  return {
+    d: bend.y === start.y ? curve
+      : `M ${fixed(start.x)} ${fixed(start.y)} L ${fixed(bend.x)} ${fixed(bend.y)} ${curve.slice(curve.indexOf('C'))}`,
+    points: [...(bend.y === start.y ? [] : [start]), ...sampleCubic(bend, c1, c2, convergence, 48)]
+  };
+};
+
+/** The same vine passing beside a word in its way: an even sidestep with
+ * vertical tangents to the word's side, straight past it, then the accepted
+ * curve from below the word into the shared point. */
+const vineRouteBeside = (start: Point, word: Rect, left: boolean, convergence: Point): VineRoute | null => {
+  const x = left ? word.x - VINE_WORD_CLEARANCE : word.x + word.width + VINE_WORD_CLEARANCE;
+  const top = word.y - VINE_WORD_CLEARANCE, bottom = word.y + word.height + VINE_WORD_CLEARANCE;
+  const drop = top - start.y;
+  // A sidestep steeper than one unit across per two down would read as a kink.
+  if (drop < 2 * Math.abs(x - start.x) || bottom >= convergence.y) return null;
+  const side = { c1: { x: start.x, y: start.y + drop / 2 }, c2: { x, y: top - drop / 2 }, end: { x, y: top } };
+  const below = { x, y: bottom };
+  const curve = featureSharingVinePath(below, convergence);
+  const [c1, c2] = featureSharingVineControls(below, convergence);
+  return {
+    d: [`M ${fixed(start.x)} ${fixed(start.y)}`,
+      `C ${fixed(side.c1.x)} ${fixed(side.c1.y)}, ${fixed(side.c2.x)} ${fixed(side.c2.y)}, ${fixed(x)} ${fixed(top)}`,
+      `L ${fixed(x)} ${fixed(bottom)}`, curve.slice(curve.indexOf('C'))].join(' '),
+    points: [...sampleCubic(start, side.c1, side.c2, side.end, 32), ...sampleCubic(below, c1, c2, convergence, 48)]
+  };
+};
+
+const pointInRect = (point: Point, rect: Rect) => point.x > rect.x && point.x < rect.x + rect.width
+  && point.y > rect.y && point.y < rect.y + rect.height;
+
+const routeEnters = (points: Point[], rect: Rect): boolean => points.some((point, index) => {
+  const previous = points[index - 1] ?? point;
+  for (let step = 0; step <= 4; step += 1) {
+    const t = step / 4;
+    if (pointInRect({ x: previous.x + (point.x - previous.x) * t, y: previous.y + (point.y - previous.y) * t }, rect)) return true;
+  }
+  return false;
+});
+
+const segmentsCross = (a: Point, b: Point, c: Point, d: Point): boolean => {
+  const side = (p: Point, q: Point, r: Point) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+  return side(a, b, c) * side(a, b, d) < 0 && side(c, d, a) * side(c, d, b) < 0;
+};
+
+/** Vines meet only at their shared point; samples near it are not compared. */
+const routesCross = (a: VineRoute, b: VineRoute, convergence: Point): boolean => {
+  const away = (points: Point[]) => points.filter(point => Math.hypot(point.x - convergence.x, point.y - convergence.y) > 4);
+  const first = away(a.points), second = away(b.points);
+  for (let i = 1; i < first.length; i += 1) for (let j = 1; j < second.length; j += 1) {
+    if (segmentsCross(first[i - 1], first[i], second[j - 1], second[j])) return true;
+  }
+  return false;
+};
+
+/** Vines are routed as a group from each bearer's word (`words`, aligned with
+ * `starts`) to the shared point. A vine whose accepted route would run through
+ * another bearer's word passes beside it instead, on the side that keeps the
+ * group's horizontal order, when that keeps it clear of every word and every
+ * other vine; otherwise it keeps its accepted route. Endpoints, convergence and
+ * the shared plaque never move, and vines clear of words keep their paths. */
+export const featureSharingVinePaths = (starts: Point[], convergence: Point, words: Array<Rect | null> = []): string[] => {
+  const bends = featureSharingVineBends(starts, convergence);
+  const routes = starts.map((start, index) => vineRoute(start, bends[index], convergence));
+  const others = (index: number) => words.filter((word, other): word is Rect => other !== index && Boolean(word));
+  routes.forEach((route, index) => {
+    const blocking = others(index).filter(word => routeEnters(route.points, word));
+    if (!blocking.length) return;
+    const left = Math.min(...blocking.map(rect => rect.x)), top = Math.min(...blocking.map(rect => rect.y));
+    const word = { x: left, y: top, width: Math.max(...blocking.map(rect => rect.x + rect.width)) - left,
+      height: Math.max(...blocking.map(rect => rect.y + rect.height)) - top };
+    const beside = vineRouteBeside(starts[index], word, starts[index].x <= word.x + word.width / 2, convergence);
+    if (!beside || others(index).some(rect => routeEnters(beside.points, rect))
+      || routes.some((other, otherIndex) => otherIndex !== index && routesCross(beside, other, convergence))) return;
+    routes[index] = beside;
   });
+  return routes.map(route => route.d);
 };
 
 /** The convergence point of a vine set: mean bearer x, below the lowest. */
@@ -280,6 +363,28 @@ export const dependentCaseStatePlaques = (
   const second = state(probeFirst ? goal : probe, probeFirst ? goalLabel : probeLabel,
     first.y + (step === '1' ? first.height / 2 + 96 : first.height + 72));
   return probeFirst ? { probe: first, goal: second } : { probe: second, goal: first };
+};
+
+/** The control domain's dashed box around the domain's measured words. */
+export const controlDomainBox = (domainWords: Rect): Rect => ({
+  x: domainWords.x - 34, y: domainWords.y - 26, width: domainWords.width + 68, height: domainWords.height + 52
+});
+
+/** The painted control dependency, an orthogonal elbow: up from the top of the
+ * control domain (or just above the controllee's label), across at the elbow,
+ * then up to its arrowhead just below the controller's label. The renderer
+ * draws it from measured labels; plaque allocation reserves it from estimated ones. */
+export const controlDependencyRoute = (controller: Rect, controllee: Rect, domain: Rect | null): Point[] => {
+  const controllerCentre = { x: controller.x + controller.width / 2, y: controller.y + controller.height / 2 };
+  const controlleeCentre = { x: controllee.x + controllee.width / 2, y: controllee.y + controllee.height / 2 };
+  const source = {
+    x: domain ? clamp(controlleeCentre.x, domain.x + 12, domain.x + domain.width - 12) : controlleeCentre.x,
+    y: domain ? domain.y : controllee.y - 12
+  };
+  const elbowY = Math.max(controllerCentre.y + 128, Math.min(controlleeCentre.y - 92,
+    controllerCentre.y + Math.abs(controlleeCentre.y - controllerCentre.y) * 0.58));
+  return [source, { x: source.x, y: elbowY }, { x: controllerCentre.x, y: elbowY },
+    { x: controllerCentre.x, y: controller.y + controller.height + 40 }];
 };
 
 /**

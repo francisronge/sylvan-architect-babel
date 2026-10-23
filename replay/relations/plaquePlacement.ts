@@ -56,6 +56,8 @@ const drawnPlaque = (box: PlaqueRect): PlaqueRect =>
 export type PlaquePlacement = PlaqueRect & {
   location: 'local' | 'below'; domainId: string;
   scrollHeight?: number;
+  /** The narrower gap from syntax this pocket was accepted at, when not PLAQUE_GAP. */
+  syntaxGap?: number;
   attachmentNodeId: string; attachmentX: number; attachmentY: number;
 };
 /** Identify the same drawn claim across plan frames, never by its changing array position. */
@@ -973,7 +975,13 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const connectorsClear = space ? space.acceptsConnector(placement)
       : (!request.caseAssignment || caseAssignmentClears(attachment, placement, occupied, caseSources))
         && collectionPlaqueClears(placement, nodes, occupied);
-    if (occupied.some(obstacle => plaquesOverlap(placement, obstacle)) || !connectorsClear) continue;
+    // At a narrower gap, plaques and trajectories grow by the difference: they keep the full gap.
+    const carryGap = lifetime?.syntaxGap ?? PLAQUE_GAP, carryGrow = PLAQUE_GAP - carryGap;
+    const carryBlocks = (obstacle: PlaqueRect) => plaquesOverlap(placement, carryGrow && (isPlaqueShell(obstacle) || obstacle.trajectory)
+      ? { ...obstacle, x: obstacle.x - carryGrow, y: obstacle.y - carryGrow, width: obstacle.width + 2 * carryGrow, height: obstacle.height + 2 * carryGrow }
+      : obstacle, carryGap);
+    if (lifetime?.syntaxGap === undefined) delete (placement as Partial<PlaquePlacement>).syntaxGap;
+    if (occupied.some(carryBlocks) || !connectorsClear) continue;
     if (lifetime?.reconsider?.has(request.index)) {
       (lifetime.relocating?.has(request.index) ? incumbentPriors : priorCandidates).set(request.index, placement);
       continue;

@@ -241,7 +241,13 @@ nominal word and category boxes.
 Vines are routed as a group. If staggered bearer heights make the independent
 curves cross, their inward bends begin later so their horizontal order remains
 intact. Endpoints and the shared plaque stay fixed. Noncrossing groups, including
-Orchard D5, retain their original paths.
+Orchard D5, retain their original paths. A vine whose path would run through
+another bearer's word (a determiner above a long adjective) instead sidesteps
+evenly to that word's side, keeping its 22-unit word gap, passes it and then
+takes the accepted curve into the shared point. It passes on the side that keeps
+the group's horizontal order, and keeps its original path when the sidestep
+would be steeper than one across per two down, meet another word or cross
+another vine.
 
 Literal-only PF plates use the measured width of their heading and rows, up to
 the existing 590-unit wrapping width. Short plates can therefore use the shared
@@ -259,6 +265,24 @@ stage. Camera measurement projects a plaque only in scenes where its attachment
 is visible; hidden attachment coordinates do not describe painted content. The
 stage-wide union still reserves its later visible placement before reveal.
 The worker, painter and camera consume the same stage and step maps.
+
+A plaque shown at consecutive Replay steps keeps its pocket, carried with its
+anchor, unless the anchor moves or the later step paints something in the
+pocket's way; Francis objected to plaques that "switch position randomly".
+Within a stage the anchor moves on screen; across a stage boundary it moves only
+against the camera's carry (`carryCamera`). The check covers the step's own
+visible syntax, its revealed marks with their reserved stems, the other plaques it
+shows with their connectors, and the plaque's own Case arrow and collectors.
+Syntax, marks and plaques the stage reveals later do not count. The schedule may
+still move a plaque at a phase or stage boundary, because its pocket is blocked
+later in the phase, because a nearer pocket opened, or because a later mark of
+the new stage reserves it. The plaque then waits and moves at the step that
+blocks its pocket or moves its anchor. One exception lets a plaque beyond its
+nearby reach return within it: it takes its nearer scheduled pocket at the step
+where what the previous step painted there has gone. A pocket brought near at half
+the syntax margin is kept at that margin. The camera includes every step's
+placement. The offline visual audit reports any other jump (`mark-motion`,
+`plaque-teleport`).
 
 A plaque without its own Case arrow or collector shows its owner only by
 proximity. Among compact plaques placed together, such plaques choose their
@@ -289,7 +313,10 @@ every remote run covering it has been decided; a requested stage that such a
 run covers can therefore wait for later phases.
 
 Reservations account for tree ink, trajectories, neutral connector stems and
-already allocated claims. The nearest clear pocket search has no arbitrary radius
+already allocated claims. A control dependency is painted after fitting as a
+dashed orthogonal elbow between measured labels; allocation reserves the same
+elbow (`controlDependencyRoute`) from estimated labels in every scene that
+paints it, and its runs keep the full plaque gap, as trajectories do. The nearest clear pocket search has no arbitrary radius
 cutoff that sends an otherwise local plaque beneath the tree. Later spelling
 changes reserve the largest required box at first appearance. The planner is
 memoized across Replay steps; it does not move branches, reveal future syntax or

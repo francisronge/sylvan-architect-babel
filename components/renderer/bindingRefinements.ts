@@ -6,6 +6,8 @@ import {
   bindingDomainTreeRect
 } from '../../replay/relations/bindingDomainGeometry.ts';
 import {
+  controlDependencyRoute,
+  controlDomainBox,
   idiomDomainBracketPath,
   operatorBindingIndexPoint
 } from '../../replay/relations/markGeometry.ts';
@@ -84,12 +86,7 @@ export function createBindingRefinements({
     const controllerRect = measuredAcceptedAnchorRect(controllerNodeId);
     const controlleeRect = measuredAcceptedAnchorRect(controlleeNodeId);
     if (!controllerRect || !controlleeRect || (domainNodeId && !domainRect)) return;
-    const domainBox = domainRect ? {
-      x: domainRect.x - 34,
-      y: domainRect.y - 26,
-      width: domainRect.width + 68,
-      height: domainRect.height + 52
-    } : null;
+    const domainBox = domainRect ? controlDomainBox(domainRect) : null;
     if (domainBox) domain
       .attr('x', domainBox.x.toFixed(1))
       .attr('y', domainBox.y.toFixed(1))
@@ -97,30 +94,9 @@ export function createBindingRefinements({
       .attr('height', domainBox.height.toFixed(1))
       .attr('rx', 3)
       .attr('data-control-domain', null);
-    const controller = {
-      x: controllerRect.x + controllerRect.width / 2,
-      y: controllerRect.y + controllerRect.height / 2
-    };
-    const controllee = {
-      x: controlleeRect.x + controlleeRect.width / 2,
-      y: controlleeRect.y + controlleeRect.height / 2
-    };
-    const dependencySource = {
-      x: domainBox ? Math.max(domainBox.x + 12, Math.min(domainBox.x + domainBox.width - 12, controllee.x)) : controllee.x,
-      y: domainBox ? domainBox.y : controlleeRect.y - 12
-    };
-    const elbowY = Math.max(
-      controller.y + 128,
-      Math.min(controllee.y - 92, controller.y + Math.abs(controllee.y - controller.y) * 0.58)
-    );
-    const controllerApproach = controllerRect.y + controllerRect.height + 40;
     path
-      .attr('d', [
-        `M ${dependencySource.x.toFixed(1)} ${dependencySource.y.toFixed(1)}`,
-        `L ${dependencySource.x.toFixed(1)} ${elbowY.toFixed(1)}`,
-        `L ${controller.x.toFixed(1)} ${elbowY.toFixed(1)}`,
-        `L ${controller.x.toFixed(1)} ${controllerApproach.toFixed(1)}`
-      ].join(' '))
+      .attr('d', controlDependencyRoute(controllerRect, controlleeRect, domainBox)
+        .map((point, index) => `${index ? 'L' : 'M'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' '))
       .attr('data-control-controller', null)
       .attr('data-control-controllee', null);
     layer.selectAll<SVGTextElement, unknown>('.babel-control-index')

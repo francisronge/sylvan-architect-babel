@@ -5,8 +5,10 @@
  * tests/helpers/findings.mjs; the caller fills `record`.
  *
  * Frame model. Coordinates are tree units; `zoom` converts them to CSS pixels.
- *   { frame, viewport, zoom, rowHeight?, texts, plaques, lines, chrome? }
- *   rowHeight is the layout's row in tree units, when the adapter knows it.
+ *   { frame, viewport, zoom, rowHeight?, stage?, texts, plaques, lines, chrome? }
+ *   rowHeight is the layout's row in tree units, when the adapter knows it; stage
+ *   is the authored stage the frame shows. checkMarkMotion also takes the camera's
+ *   carry between two frames { dx, dy } when the adapter measures it.
  *   texts   [{ id, kind, text, boxes, halo, nodes, claims, lines?, plaque?, reach?, distance? }]
  *     kind 'category' or 'word' is tree text; any other kind is a mark's own text.
  *     boxes are glyph boxes, one per painted line or index run; halo is the width
@@ -24,6 +26,11 @@
  *     branch its parent and child, its path running parent to child; a stem its
  *     word; a connector its witnesses' subtrees); masked lines are painted under
  *     tree text by design.
+ *   inks    [{ id, paths, claims, halfWidth }] the other relation marks' strokes
+ *     (trajectories, arrows, shapes, badge points) as polylines, and
+ *   reserves [{ id, rect, claims }] space plaque allocation keeps clear beyond the
+ *     painted ink (nominal label and word boxes, the column below a neutral link's
+ *     witness), when the adapter has them; only mark-motion reads these two.
  *   chrome  { canvas, panel?, header? } rects, when the adapter knows the screen.
  * Ids must be stable across frames: node ids, or a mark's claim, text and anchor.
  *
@@ -34,17 +41,23 @@
 
 /** Every rule the visual audit reports. checkFrame applies all but layout-width,
  * which compares one record's frames across viewports (visualFrames.mjs,
- * layoutWidthFindings). */
+ * layoutWidthFindings), and mark-motion, which compares adjacent frames
+ * (checkMarkMotion). */
 export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-distance', 'label-typography', 'clipped', 'branch-geometry',
-  'parent-centring', 'layout-width']);
+  'parent-centring', 'layout-width', 'mark-motion']);
 
 /** CSS pixels at the frame's Fit unless noted. Glyph boxes may share a two-pixel
  * sliver of outline; a stroke must keep a pixel from a plaque shell and may not
  * enter text by more than a pixel; a mark may exceed its placer's reach by 10%
  * (a ratio), a mark's text also by 20 pixels; a connector this close to a plaque
- * of its own claim is that plaque's leader. */
+ * of its own claim is that plaque's leader. Tree units for mark-motion: a plaque
+ * may shift `motionUnits` against its anchor between frames, geometry that moves
+ * `stillUnits` or less stays still, and geometry within `pocketUnits` of a pocket
+ * occupies it: the allocator's 24-unit gap (plaquePlacement.ts PLAQUE_GAP) and half
+ * again, since it reserves trajectories bound to node centres rather than to the
+ * painted labels their ink leaves. */
 export const THRESHOLDS = Object.freeze({ overlapPx: 2, clearancePx: 1, crossingPx: 1, reachMargin: 0.1, textReachPx: 20,
-  leaderPx: 6, clippedPx: 2, rowUnits: 1, centringPx: 1 });
+  leaderPx: 6, clippedPx: 2, rowUnits: 1, centringPx: 1, motionUnits: 4, stillUnits: 1, pocketUnits: 36 });
 
 const TREE_TEXT = new Set(['category', 'word']);
 const LOCAL_PLAQUE = 480;
@@ -347,6 +360,107 @@ export function checkParentCentring(frame, thresholds = THRESHOLDS) {
       `${parent} stands ${Math.round(x - middle)} units off the midpoint of ${daughters.map(daughter => daughter.id).join(', ')}`, offset));
   }
   return out;
+}
+
+const median = values => { const sorted = [...values].sort((a, b) => a - b); return sorted.length ? sorted[sorted.length >> 1] : 0; };
+const firstPoint = item => item.boxes?.[0] ?? item.rect ?? item.paths?.[0]?.[0];
+const lastPoint = item => item.paths?.at(-1)?.at(-1);
+
+/** mark-motion: a plaque shown in two adjacent frames of one viewport keeps its
+ * pocket, its offset from its anchor, unless
+ *   - its anchor moves (against the camera's carry across a stage boundary),
+ *   - the far end of a connector of its own claims that reaches it moves (a Case
+ *     arrow or collector whose source moved),
+ *   - new geometry occupies that pocket in the later frame: text, a line or another
+ *     mark's stroke, another plaque or a mark's reserve within `pocketUnits` of the
+ *     pocket, carried with the anchor, that was absent in the earlier frame or did
+ *     not move with the anchor; ink of the plaque's own claims does not count, or
+ *   - it returns from beyond its nearby reach (mark-distance) to within it, into a
+ *     pocket that what the earlier frame showed there has left.
+ * Subtype plaque-teleport; the frame is the transition and the measure the shift
+ * in tree units. */
+export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCarry = undefined) {
+  if (!before || before.viewport !== after.viewport) return [];
+  const textsBefore = new Map(before.texts.map(text => [text.id, text]));
+  const offsets = after.texts.filter(text => TREE_TEXT.has(text.kind) && textsBefore.has(text.id)).map(text => {
+    const from = firstPoint(textsBefore.get(text.id)), to = firstPoint(text);
+    return { dx: to.x - from.x, dy: to.y - from.y };
+  });
+  // One camera fit serves a stage; across a stage boundary the camera carries the
+  // syntax the crossing leaves in place (`cameraCarry`, from carryCamera), or else
+  // the median shift of tree text.
+  const crossing = before.stage !== undefined && before.stage !== after.stage;
+  const carry = !crossing ? { dx: 0, dy: 0 } : cameraCarry
+    ?? { dx: median(offsets.map(offset => offset.dx)), dy: median(offsets.map(offset => offset.dy)) };
+  const earlier = new Map([...before.texts, ...before.plaques, ...before.lines, ...(before.inks ?? []), ...(before.reserves ?? [])]
+    .map(item => [item.id, item]));
+  const occupants = [...after.texts.map(item => ({ item, rects: item.boxes })), ...after.plaques.map(item => ({ item, rects: [item.rect] })),
+    ...(after.reserves ?? []).map(item => ({ item, rects: [item.rect] })),
+    ...[...after.lines, ...(after.inks ?? [])].map(item => ({ item, paths: item.paths }))];
+  const shiftOf = (prior, plaque) => Math.hypot(plaque.rect.x - prior.rect.x - plaque.anchor.x + prior.anchor.x,
+    plaque.rect.y - prior.rect.y - plaque.anchor.y + prior.anchor.y);
+  // Plaques sharing an id pair with their nearest earlier pocket of the same size.
+  const unpaired = before.plaques.filter(plaque => plaque.anchor);
+  const out = [], still = thresholds.stillUnits, pad = thresholds.pocketUnits;
+  for (const plaque of after.plaques) {
+    if (!plaque.anchor) continue;
+    const candidates = unpaired.filter(prior => prior.id === plaque.id);
+    const sized = candidates.filter(prior => prior.rect.width === plaque.rect.width && prior.rect.height === plaque.rect.height);
+    const prior = (sized.length ? sized : candidates).sort((a, b) => shiftOf(a, plaque) - shiftOf(b, plaque))[0];
+    if (!prior) continue;
+    unpaired.splice(unpaired.indexOf(prior), 1);
+    const move = { dx: plaque.anchor.x - prior.anchor.x, dy: plaque.anchor.y - prior.anchor.y }, shift = shiftOf(prior, plaque);
+    if (shift <= thresholds.motionUnits || Math.hypot(move.dx - carry.dx, move.dy - carry.dy) > still) continue;
+    const pocket = { x: prior.rect.x + move.dx - pad, y: prior.rect.y + move.dy - pad,
+      width: prior.rect.width + 2 * pad, height: prior.rect.height + 2 * pad };
+    const movedWithAnchor = (item, old) => [[firstPoint, firstPoint], [lastPoint, lastPoint]].every(([of]) => {
+      const a = of(old), b = of(item);
+      return !a && !b || a && b && Math.hypot(b.x - a.x - move.dx, b.y - a.y - move.dy) <= still;
+    });
+    // A connector of the plaque's own claims that reaches the plaque (a Case arrow or
+    // collector) starts at another node; when that end moves, the plaque may follow.
+    const atPlaque = (point, rect) => point.x >= rect.x - pad && point.x <= rect.x + rect.width + pad
+      && point.y >= rect.y - pad && point.y <= rect.y + rect.height + pad;
+    const farEnd = (item, rect) => {
+      const ends = item.paths.flatMap(path => [path[0], path.at(-1)]);
+      return ends.some(point => atPlaque(point, rect)) ? ends.find(point => !atPlaque(point, rect)) : undefined;
+    };
+    const connectorMoved = [...after.lines, ...(after.inks ?? [])].some(item => {
+      const old = earlier.get(item.id), from = old && shares(item.claims, plaque.claims) && farEnd(old, prior.rect), to = from && farEnd(item, plaque.rect);
+      return to && Math.hypot(to.x - from.x - move.dx, to.y - from.y - move.dy) > still;
+    });
+    if (connectorMoved) continue;
+    const occupied = occupants.some(({ item, rects, paths }) => {
+      if (item === plaque || item.plaque === plaque.id || shares(item.claims, plaque.claims)) return false;
+      const stroke = item.halfWidth ?? 0, area = { x: pocket.x - stroke, y: pocket.y - stroke,
+        width: pocket.width + 2 * stroke, height: pocket.height + 2 * stroke };
+      const inside = rects ? rects.some(rect => overlap1d(rect.x, rect.x + rect.width, pocket.x, pocket.x + pocket.width) > 0
+        && overlap1d(rect.y, rect.y + rect.height, pocket.y, pocket.y + pocket.height) > 0)
+        : paths.some(path => penetration(path, area) > 0 || path.length === 1 && contains(area, { ...path[0], width: 0, height: 0 }));
+      if (!inside) return false;
+      const old = earlier.get(item.id);
+      return !old || !movedWithAnchor(item, old);
+    });
+    // A plaque beyond its nearby reach may return within it once what the earlier
+    // frame showed in that nearer pocket has gone.
+    const size = plaque.size ?? plaque.rect, reach = plaqueNearbyReach(size);
+    const distance = (rect, anchor) => Math.hypot(rect.x + size.width / 2 - anchor.x, rect.y + size.height / 2 - anchor.y);
+    const freed = () => {
+      const back = { x: plaque.rect.x - move.dx - pad, y: plaque.rect.y - move.dy - pad, width: plaque.rect.width + 2 * pad, height: plaque.rect.height + 2 * pad };
+      const later = new Map([...after.texts, ...after.plaques, ...after.lines, ...(after.inks ?? []), ...(after.reserves ?? [])].map(item => [item.id, item]));
+      return [...before.texts, ...before.plaques, ...before.lines, ...(before.inks ?? []), ...(before.reserves ?? [])].some(item => {
+        if (item === prior || item.plaque === prior.id || shares(item.claims, plaque.claims)) return false;
+        const inside = item.boxes || item.rect ? (item.boxes ?? [item.rect]).some(rect => overlap1d(rect.x, rect.x + rect.width, back.x, back.x + back.width) > 0
+          && overlap1d(rect.y, rect.y + rect.height, back.y, back.y + back.height) > 0) : item.paths.some(path => penetration(path, back) > 0);
+        const now = later.get(item.id);
+        return inside && (!now || !movedWithAnchor(now, item));
+      });
+    };
+    const returning = !plaque.joined && distance(prior.rect, prior.anchor) > reach && distance(plaque.rect, plaque.anchor) <= reach && freed();
+    if (!occupied && !returning) out.push(finding('mark-motion', 'plaque-teleport', after, plaque.id,
+      `${describe(plaque)} jumps ${Math.round(shift)} units from a pocket nothing new occupies, beside its still anchor`, shift));
+  }
+  return out.map(entry => ({ ...entry, frame: `${before.frame}>${after.frame}` }));
 }
 
 /** Every rule on one normalized frame. */
