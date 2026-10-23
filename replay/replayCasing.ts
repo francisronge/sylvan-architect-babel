@@ -111,15 +111,19 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
       const leaf = nodesByName.get(leafId);
       const visible = !visibleNodeIds || visibleNodeIds.has(leafId)
         || leaf?.aliasIds?.some(id => visibleNodeIds.has(String(id)));
-      return !info.layout && visible && leaf ? { leaf, silent: info.silent } : null;
+      return !info.layout && leaf ? { leaf, silent: info.silent, visible } : null;
     })
       .filter((entry): entry is {
         leaf: SyntaxNode;
         silent: boolean;
+        visible: boolean;
       } => Boolean(entry));
+    // A word is sentence-initial where it stands in the stage's current structure: pronounced current
+    // material before it there, shown yet or still to be built, makes it noninitial. Layout-only
+    // scaffolding is not current material.
     const firstPronouncedLeafId = String(currentLeaves.find((entry) => !entry.silent)?.leaf.id || '');
     const casingByLeafId = new Map<string, string>();
-    currentLeaves.forEach(({ leaf }) => {
+    currentLeaves.filter(entry => entry.visible).forEach(({ leaf }) => {
       const surface = String(leaf.word || leaf.label || '').trim();
       if (normalizeToken(surface) !== initialKey)
         return;

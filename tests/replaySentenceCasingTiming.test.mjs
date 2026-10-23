@@ -24,7 +24,9 @@ const step = (operation, visibleIds, canvas, extra = {}) => ({
   replayVisibleNodeIds: visibleIds, ...extra
 });
 
-test('future layout words do not recase the first visible word before their selection', () => {
+// A word is sentence-initial where it stands in the stage's current structure, shown yet or not: the subject
+// in its base position after seem is lowercase from its first frame, and does not change case when seem appears.
+test('current words not yet shown still precede a later word, so its case does not change when they appear', () => {
   const canvas = { id: 'root', label: 'VP', children: [
     { id: 'verb', label: 'V', children: [word('seem', 'seem')] }, subject()
   ] };
@@ -34,7 +36,7 @@ test('future layout words do not recase the first visible word before their sele
   const input = freeze([before, selected, relation]);
   const output = applyPreFrontingSentenceInitialCasing(input, 'The sailors seem');
   assert.deepEqual(output.map(item => find(item.replayCanvasData, 'subject-word').word),
-    ['The', 'the', 'the']);
+    ['the', 'the', 'the']);
   assert.equal(find(canvas, 'subject-word').word, 'The', 'the authored word is unchanged');
   output.forEach((item, index) => {
     assert.deepEqual(item.replayVisibleNodeIds, input[index].replayVisibleNodeIds);
@@ -118,7 +120,8 @@ test('a lowercase authored source stays lowercase when it is selected before its
   assert.equal(result.targetLabel, 'the');
 });
 
-test('lexical selection labels use the same current visible casing as the tree', () => {
+// Labels follow the tree's casing; the not-yet-shown verb precedes the subject in the stage structure.
+test('lexical selection labels use the same current casing as the tree', () => {
   const canvas = { id: 'root', label: 'VP', children: [
     { id: 'future', label: 'V', children: [word('future-word', 'seem')] }, subject('the')
   ] };
@@ -126,9 +129,9 @@ test('lexical selection labels use the same current visible casing as the tree',
     step('LexicalSelect', ['subject-word'], canvas,
       { targetNodeId: 'subject-word', targetLabel: 'the', sourceLabels: ['the'] })
   ], 'The sailors seem');
-  assert.equal(find(result.replayCanvasData, 'subject-word').word, 'The');
-  assert.equal(result.targetLabel, 'The');
-  assert.deepEqual(result.sourceLabels, ['The']);
+  assert.equal(find(result.replayCanvasData, 'subject-word').word, 'the');
+  assert.equal(result.targetLabel, 'the');
+  assert.deepEqual(result.sourceLabels, ['the']);
 });
 
 test('a sentence-initial word preceded by pronounced material in a separate workspace is lowercased', () => {

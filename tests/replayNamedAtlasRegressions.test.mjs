@@ -708,8 +708,8 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
   const uppercaseBaseHeadSteps = playback(uppercaseBaseHeadMovement);
   assert.equal(
     uppercaseBaseHeadSteps.find((step) => step.targetNodeId === 't_head_trace::__leaf')?.targetLabel,
-    'Did',
-    'an uppercase authored head stays uppercase while it is the first visible word'
+    'did',
+    'an uppercase authored head in its base position is lowercase there: the subject precedes it in the stage structure'
   );
   const headAfterSubjectSelection = uppercaseBaseHeadSteps.find((step) => (
     step.replayFrameIndex === 0
@@ -720,7 +720,7 @@ test('named Atlas regressions keep traces, movement hosts, casing, and copy stat
   assert.equal(
     findNode([headAfterSubjectSelection.replayCanvasData], 't_head_trace::__leaf')?.word,
     'did',
-    'the head becomes lowercase once the visible subject precedes it'
+    'the head stays lowercase once the subject is visible before it'
   );
   const headMovementMoment = uppercaseBaseHeadSteps.find((step) => step.operation === 'HeadMove');
   assert.ok(headMovementMoment, 'head movement must have its own Replay moment');
