@@ -1,6 +1,5 @@
 import { getErrorMeta, isNetworkTransportError } from './providerTransport.js';
 import { createRawOutputArtifact, withFailureDetails } from './validationErrors.js';
-import { routeUnavailableMessage } from './routeConfig.js';
 
 const getProviderAttemptDetails = (error) => ({
   ...(error?.providerRunId ? { providerRunId: error.providerRunId } : {}),
@@ -33,92 +32,6 @@ export const attachGenerationFailureEvidence = ({
       ...(providerErrorBody ? { providerErrorBody: true } : {})
     }
   );
-};
-
-export const classifyGeminiRouteError = ({
-  error,
-  ParseApiError,
-  modelRoute = 'gemini',
-  model
-}) => {
-  if (error instanceof ParseApiError) {
-    return error;
-  }
-
-  const { msg, haystack, statusCode } = getErrorMeta(error);
-  const providerMessage = String(msg || '').trim() || undefined;
-  const providerAttemptDetails = getProviderAttemptDetails(error);
-
-  if (
-    haystack.includes('api key expired') ||
-    haystack.includes('api_key_expired') ||
-    haystack.includes('invalid api key') ||
-    haystack.includes('api_key_invalid') ||
-    haystack.includes('unauthenticated') ||
-    haystack.includes('permission_denied') ||
-    statusCode === 401 ||
-    statusCode === 403
-  ) {
-    return new ParseApiError('API_KEY_INVALID', 'Server API key is invalid or expired.', 500, providerAttemptDetails);
-  }
-
-  if (haystack.includes('resource_exhausted') || haystack.includes('quota') || statusCode === 429) {
-    return new ParseApiError('GEMINI_QUOTA', 'Rate limit or quota reached for this server key.', 429, providerAttemptDetails);
-  }
-
-  if (
-    statusCode === 404 ||
-    (haystack.includes('model') && (
-      haystack.includes('not found') ||
-      haystack.includes('not available') ||
-      haystack.includes('unsupported')
-    ))
-  ) {
-    return new ParseApiError('MODEL_UNAVAILABLE', 'Requested model is unavailable for this project/key.', 503, providerAttemptDetails);
-  }
-
-  if (haystack.includes('invalid_argument') || statusCode === 400) {
-    return new ParseApiError('INVALID_REQUEST', 'Request was rejected by Gemini (invalid argument).', 400, providerAttemptDetails);
-  }
-
-  if (
-    statusCode === 408 ||
-    haystack.includes('timed out') ||
-    haystack.includes('timeout') ||
-    haystack.includes('aborterror')
-  ) {
-    return new ParseApiError(
-      'GEMINI_TIMEOUT',
-      `Gemini parse timed out before ${model || 'the model'} returned a result.`,
-      504,
-      { ...providerAttemptDetails, ...(providerMessage ? { providerMessage } : {}) }
-    );
-  }
-
-  if (
-    statusCode === 503 ||
-    haystack.includes('service unavailable') ||
-    haystack.includes('backend error')
-  ) {
-    return new ParseApiError(
-      'GEMINI_UNAVAILABLE',
-      routeUnavailableMessage(modelRoute),
-      503,
-      providerAttemptDetails
-    );
-  }
-
-  if (isNetworkTransportError(error)) {
-    return new ParseApiError(
-      'GEMINI_TRANSPORT',
-      `Gemini transport failed before ${model || 'the model'} returned a result.`,
-      502,
-      { ...providerAttemptDetails, ...(providerMessage ? { providerMessage } : {}) }
-    );
-  }
-
-  return new ParseApiError('PARSE_FAILED', 'Syntactic parsing failed.', 500,
-    { ...providerAttemptDetails, ...(providerMessage ? { providerMessage } : {}) });
 };
 
 export const classifyProviderRouteError = ({

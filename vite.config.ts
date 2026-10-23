@@ -11,10 +11,6 @@ import { thirdPartyNoticesPlugins } from './scripts/thirdPartyNoticesPlugin.mjs'
 const secureParseApiPlugin = (mode: string): Plugin => {
   const env = loadEnv(mode, '.', '');
 
-  if (!process.env.GEMINI_API_KEY && env.GEMINI_API_KEY) {
-    process.env.GEMINI_API_KEY = env.GEMINI_API_KEY;
-  }
-
   return {
     name: 'secure-parse-api-dev-middleware',
     configureServer(server) {

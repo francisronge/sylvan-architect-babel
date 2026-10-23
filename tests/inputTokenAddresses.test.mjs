@@ -32,7 +32,7 @@ test('apostrophe-s is not English morphology: the prompt sends no split, and the
   for (const sentence of ["Mia's book", "It's blue", 'Mia’s book', 'It’s blue']) {
     // The tokenizer still reads older records this way.
     assert.deepEqual(tokenizeSentenceSurfaceOrder(sentence), sentence.split(' '));
-    for (const route of ['gpt', 'claude', 'grok', 'kimi', 'gemini', 'local']) {
+    for (const route of ['gpt', 'claude', 'grok', 'kimi']) {
       assert.equal(buildParseContentsPrompt(sentence, 'xbar', route), `Sentence: ${JSON.stringify(sentence)}`);
     }
     const [whole] = convertSpelloutPayload(spelledPayloadFor(sentence.split(' ')), sentence);
@@ -119,30 +119,32 @@ test('written token addresses permit separate morphemes across scripts without d
   }
 });
 
-test('Gemini and local routes send only the sentence and take the word list from the model\'s spelling', async t => {
-  const previous = process.env.GEMINI_API_KEY;
-  process.env.GEMINI_API_KEY = 'offline-test-only';
-  t.after(() => {
-    if (previous === undefined) delete process.env.GEMINI_API_KEY;
-    else process.env.GEMINI_API_KEY = previous;
-  });
+test('every generation route sends only the sentence and takes the word list from the model\'s spelling', async t => {
+  for (const key of ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'MOONSHOT_API_KEY', 'XAI_API_KEY']) {
+    const previous = process.env[key];
+    process.env[key] = 'offline-test-only';
+    t.after(() => {
+      if (previous === undefined) delete process.env[key];
+      else process.env[key] = previous;
+    });
+  }
   const sentence = 'Mia’s book';
   const prompts = [];
-  const raw = prompt => {
-    prompts.push(prompt);
-    return JSON.stringify(spelledPayloadFor(['Mia’s', 'book']));
+  const generate = async ({ contents }) => {
+    prompts.push(contents);
+    return { text: JSON.stringify(spelledPayloadFor(['Mia’s', 'book'])), status: 'completed',
+      candidates: [{ finishReason: 'COMPLETED' }] };
   };
   const routes = createParseRoutes({ ParseApiError,
     normalizeParseBundle: normalizeParseBundle,
     parseModelJsonDetailed: parseModelJsonDetailed,
-    generateLocal: async ({ prompt }) => raw(prompt),
-    generateGemini: async ({ contents }) => ({ text: raw(contents),
-      candidates: [{ finishReason: 'STOP' }] })
+    generateOpenAI: generate, generateClaude: generate, generateKimi: generate, generateGrok: generate
   });
-  for (const method of ['parseSentenceWithLocalModel', 'parseSentenceWithGemini']) {
-    const bundle = await routes[method](sentence, 'xbar');
+  const modelIds = ['openai:gpt-6-astra', 'anthropic:claude-opus-5', 'moonshot:kimi-k3', 'xai:grok-4.6'];
+  for (const modelId of modelIds) {
+    const bundle = await routes.parseSentenceWithResearchModel(sentence, 'xbar', modelId);
     assert.equal(prompts.at(-1), 'Sentence: "Mia’s book"');
     assert.deepEqual(bundle.inputTokens, ['Mia’s', 'book']);
   }
-  assert.equal(prompts.length, 2);
+  assert.equal(prompts.length, modelIds.length);
 });

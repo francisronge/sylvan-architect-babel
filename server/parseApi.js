@@ -1,12 +1,5 @@
-﻿import {
-  ParseApiError,
-  parseSentenceWithClaude,
-  parseSentenceWithGemini,
-  parseSentenceWithOpenAI,
-  parseSentenceWithResearchModel
-} from './babelParser.js';
+﻿import { ParseApiError, parseSentenceWithResearchModel } from './babelParser.js';
 import { GENERATION_MODEL_IDS, resolveResearchModelSelection } from './babelParser/researchModelCatalog.js';
-import { normalizeProviderReasoningEffort } from './babelParser/routeConfig.js';
 import {
   FAILURE_CLASSES,
   MAX_RAW_OUTPUT_BODY_BYTES,
@@ -16,7 +9,6 @@ import {
 } from './babelParser/validationErrors.js';
 
 const FRAMEWORKS = new Set(['xbar', 'minimalism']);
-const MODEL_ROUTES = new Set(['gemini', 'gpt', 'claude']);
 const MAX_SENTENCE_LENGTH = 600;
 
 export const validateParseBody = (body) => {
@@ -36,11 +28,6 @@ export const validateParseBody = (body) => {
 
   const sentence = typeof body.sentence === 'string' ? body.sentence : '';
   const framework = typeof body.framework === 'string' ? body.framework.trim() : 'xbar';
-  const modelRoute = typeof body.modelRoute === 'string' ? body.modelRoute.trim().toLowerCase() : 'gemini';
-  const reasoningEffort = normalizeProviderReasoningEffort(
-    modelRoute,
-    typeof body.reasoningEffort === 'string' ? body.reasoningEffort : undefined
-  );
 
   if (!sentence.trim()) {
     throw new ParseApiError(
@@ -84,54 +71,53 @@ export const validateParseBody = (body) => {
     );
   }
 
-  if (Object.hasOwn(body, 'modelId')) {
-    if (!GENERATION_MODEL_IDS.includes(body.modelId)) {
-      throw new ParseApiError('INVALID_REQUEST', 'This model is not enabled for generation.', 400);
-    }
-    if (Object.hasOwn(body, 'modelRoute') || Object.hasOwn(body, 'reasoningEffort')) {
-      throw new ParseApiError('INVALID_REQUEST', 'Use modelId and native settings, without modelRoute or reasoningEffort.', 400);
-    }
-    try {
-      const selection = resolveResearchModelSelection(body.modelId, body.settings);
-      return { sentence, framework, modelId: selection.catalogId, settings: selection.nativeSettings };
-    } catch (error) {
-      throw new ParseApiError('INVALID_REQUEST', error.message, 400);
-    }
-  }
-
-  if (!MODEL_ROUTES.has(modelRoute)) {
+  // Every request names a catalog model; there is no server default model.
+  if (!Object.hasOwn(body, 'modelId')) {
     throw new ParseApiError(
       'INVALID_REQUEST',
-      'Model route must be "gemini", "gpt", or "claude".',
+      'Name the model with modelId; modelRoute and reasoningEffort are no longer accepted.',
       400,
       withFailureDetails({}, {
         failureClass: 'transport_serialization',
-        ruleId: 'REQUEST_MODEL_ROUTE_SUPPORTED',
-        fieldPath: '$.modelRoute',
-        offendingValue: modelRoute
+        ruleId: 'REQUEST_MODEL_ID_REQUIRED',
+        fieldPath: '$.modelId',
+        offendingValue: null
       })
     );
   }
-
-  return { sentence, framework, modelRoute, reasoningEffort };
+  if (!GENERATION_MODEL_IDS.includes(body.modelId)) {
+    throw new ParseApiError(
+      'INVALID_REQUEST',
+      'This model is not enabled for generation.',
+      400,
+      withFailureDetails({}, {
+        failureClass: 'transport_serialization',
+        ruleId: 'REQUEST_MODEL_ID_SUPPORTED',
+        fieldPath: '$.modelId',
+        offendingValue: body.modelId
+      })
+    );
+  }
+  if (Object.hasOwn(body, 'modelRoute') || Object.hasOwn(body, 'reasoningEffort')) {
+    throw new ParseApiError('INVALID_REQUEST', 'Use modelId and native settings, without modelRoute or reasoningEffort.', 400);
+  }
+  try {
+    const selection = resolveResearchModelSelection(body.modelId, body.settings);
+    return { sentence, framework, modelId: selection.catalogId, settings: selection.nativeSettings };
+  } catch (error) {
+    throw new ParseApiError('INVALID_REQUEST', error.message, 400);
+  }
 };
 
 export const parseFromBodyWithProviders = async (
   body,
-  providers = {
-    gemini: parseSentenceWithGemini,
-    gpt: parseSentenceWithOpenAI,
-    claude: parseSentenceWithClaude,
-    research: parseSentenceWithResearchModel
-  },
+  providers = { research: parseSentenceWithResearchModel },
   { abortSignal } = {}
 ) => {
   abortSignal?.throwIfAborted();
-  const { sentence, framework, modelId, settings, modelRoute, reasoningEffort } = validateParseBody(body);
+  const { sentence, framework, modelId, settings } = validateParseBody(body);
   try {
-    const bundle = await (modelId
-      ? providers.research(sentence, framework, modelId, { settings, abortSignal })
-      : providers[modelRoute](sentence, framework, modelRoute, { reasoningEffort, abortSignal }));
+    const bundle = await providers.research(sentence, framework, modelId, { settings, abortSignal });
     return { ...bundle, sentence };
   } catch (error) {
     // A failure after the spell-out check carries the word list Babel derived
