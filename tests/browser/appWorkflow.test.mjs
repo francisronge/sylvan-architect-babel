@@ -398,7 +398,7 @@ test('app survives failed requests and aborted Tree Bank writes, and reopens the
         assert.equal(await sentenceFocusable(), true);
         await page.getByTitle('Collapse', { exact: true }).click();
         assert.equal(await sentenceFocusable(), false, 'the collapsed panel body is out of the focus order');
-        await page.getByRole('button', { name: 'Expand sentence input', exact: true }).click();
+        await page.getByRole('button', { name: 'Expand Arbor Control', exact: true }).click();
         assert.equal(await sentenceFocusable(), true);
         await page.getByTitle('Hide Control Panel', { exact: true }).click();
         assert.equal(await sentenceFocusable(), false, 'the hidden panel is out of the focus order');

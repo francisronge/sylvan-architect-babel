@@ -442,6 +442,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
 
                       <button
                         onClick={() => setAbstractionMode(!abstractionMode)}
+                        aria-pressed={abstractionMode}
                         className={`flex items-center gap-2 md:gap-2.5 px-3.5 md:px-4 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-[0.18em] md:tracking-widest shadow-inner group whitespace-nowrap ${
                           abstractionMode
                           ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
@@ -602,7 +603,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
           {loading && (
             <div className="loading-overlay absolute inset-0 z-50 bg-[#020806]/95 backdrop-blur-xl flex flex-col items-center justify-center gap-10 animate-in fade-in duration-700">
               <LoadingMark />
-              <div className="text-center z-10 min-h-[88px] flex flex-col justify-start">
+              <div role="status" className="text-center z-10 min-h-[88px] flex flex-col justify-start">
                 <p className="text-white font-black serif italic text-2xl mb-1">Synthesizing Neural Roots...</p>
                 <p className="text-emerald-500/40 font-black uppercase text-[9px] tracking-[0.7em]">Deep Parsing {framework === 'xbar' ? 'X-Bar' : 'Minimalist'} Structures</p>
               </div>
@@ -649,6 +650,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                   key={tab.id}
                   disabled={!activeParse}
                   onClick={() => changeTab(tab.id)}
+                  aria-current={activeTab === tab.id ? 'page' : undefined}
                   className={`group relative w-11 h-11 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all border shadow-2xl disabled:opacity-20 disabled:cursor-not-allowed ${
                     activeTab === tab.id
                     ? 'moss-gradient text-white border-emerald-400/50 shadow-[0_0_20px_rgba(6,78,59,0.4)] scale-110'
@@ -684,6 +686,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                         <button
                           onClick={() => setIsInputExpanded(!isInputExpanded)}
                           title={isInputExpanded ? "Collapse" : "Expand"}
+                          aria-label={isInputExpanded ? "Collapse" : "Expand"}
                           className="p-1.5 hover:bg-white/10 rounded-xl transition-colors text-emerald-500/60"
                         >
                           {isInputExpanded ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
@@ -691,6 +694,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                         <button
                           onClick={() => setIsInputVisible(false)}
                           title="Hide Control Panel"
+                          aria-label="Hide Control Panel"
                           className="p-1.5 hover:bg-rose-500/20 rounded-xl transition-colors text-emerald-500/60 hover:text-rose-400"
                         >
                           <EyeOff size={18} />
@@ -749,7 +753,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                       </form>
                     </div>
                     {!isInputExpanded && (
-                      <button type="button" aria-label="Expand sentence input" className="w-full px-5 md:px-7 py-3 md:py-4 flex items-center justify-between cursor-pointer group hover:bg-white/5 transition-colors" onClick={() => setIsInputExpanded(true)}>
+                      <button type="button" aria-label="Expand Arbor Control" className="w-full px-5 md:px-7 py-3 md:py-4 flex items-center justify-between cursor-pointer group hover:bg-white/5 transition-colors" onClick={() => setIsInputExpanded(true)}>
                         <span className="text-emerald-50/50 serif italic text-xs md:text-sm truncate max-w-[220px] md:max-w-[400px]">"{input}"</span>
                         <span className="text-[8px] font-black text-emerald-500/30 uppercase tracking-[0.4em] group-hover:text-emerald-500 transition-colors">Expand Arbor Control</span>
                       </button>
@@ -765,6 +769,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
                     className="absolute left-1/2 -translate-x-1/2 z-50 w-12 h-12 md:w-14 md:h-14 moss-gradient rounded-full flex items-center justify-center text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:scale-110 active:scale-95 transition-all animate-in fade-in slide-in-from-bottom-4 duration-500"
                     style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
                     title="Restore Arboretum Link"
+                    aria-label="Restore Arboretum Link"
                   >
                     <RootLogo size={34} shape="circle" blend={true} zoom={0.92} className="w-7 h-7 md:w-[34px] md:h-[34px]" />
                   </button>

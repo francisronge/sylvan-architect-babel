@@ -60,3 +60,10 @@ test('the delete confirmation is a labelled native dialog around the unchanged o
   assert.match(dialog, /bg-transparent/);
   assert.match(dialog, /backdrop:bg-transparent/);
 });
+
+test('an in-view Tree Bank error is announced, since the header alert is hidden in this view', () => {
+  const html = renderToStaticMarkup(React.createElement(TreeBankView, {
+    entries: [], loading: false, error: 'Unable to open saved tree.', opening: false, onOpen: async () => {}, onDelete: () => {}
+  }));
+  assert.match(html, /<div role="alert"[^>]*>Unable to open saved tree\.<\/div>/);
+});

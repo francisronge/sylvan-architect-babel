@@ -44,7 +44,7 @@ export function TreeBankView({ entries, loading, error, opening, onOpen, onDelet
           </div>
         </div>
         {error && (
-          <div className="mt-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-rose-300 text-sm">
+          <div role="alert" className="mt-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-rose-300 text-sm">
             {error}
           </div>
         )}
