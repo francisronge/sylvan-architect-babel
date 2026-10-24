@@ -5,6 +5,7 @@ import { nativeRelationPlaqueRects } from '../replay/relations/plaquePlacement.t
 import { buildStageCameraBounds } from '../replay/stageCamera.ts';
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
 import { prepareSharedFeatureTextLayout } from '../replay/relations/plaqueTextLayout.ts';
+import { assertSpells } from './helpers/spelledLines.mjs';
 
 const probe = { x: 100, y: 200, width: 80, height: 60 };
 const goal = { x: 500, y: 200, width: 80, height: 60 };
@@ -44,7 +45,7 @@ test('shared feature boxes fit typed values and reserve their wrapped height', (
     const box = featureSharingPlaqueRect([probe, goal], label, measure);
     assert.equal(box.width, layout.width); assert.equal(box.height, layout.height);
     assert.equal(box.x + box.width / 2, 340);
-    assert.equal(layout.row.lines.map(line => line.text).join(''), `[${label}]`);
+    assertSpells(layout.row.lines.map(line => line.text), `[${label}]`);
     for (const line of layout.row.lines) {
       assert(line.x + line.width <= box.width - 18);
       assert(line.y + line.descent <= box.height - 14);

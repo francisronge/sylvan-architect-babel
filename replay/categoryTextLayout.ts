@@ -84,6 +84,8 @@ const openingBracket = /^\p{Ps}/u, closingBracket = /^\p{Pe}/u;
 // complete the text before them, so no line starts with one.
 const completesPrevious = /^[\p{Pe}\p{Pf},.;:!?、。，．：；！？′″‴'°⁰]/u;
 const punctuationOnly = /^[\p{P}\p{S}\s]+$/u;
+// Plaque text (relations/plaqueTextLayout.ts) breaks at the same characters.
+export { completesPrevious, joiner, openingBracket, wordCharacter };
 
 // Graphemes `from` to `to` are all whitespace, so a line of them would be blank.
 const blank = (segments: string[], from: number, to: number) => {
