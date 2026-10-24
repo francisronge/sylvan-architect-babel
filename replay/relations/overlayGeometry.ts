@@ -15,6 +15,7 @@ export type Rect = { x: number; y: number; width: number; height: number };
  * from the top or bottom, and how far its bend reaches between the plain curve
  * (`bend` 0) and the full bounded bow (`bend` 1). */
 export type CaseArrowExit = 'side' | 'stem';
+const SIDE: CaseArrowExit = 'side', STEM: CaseArrowExit = 'stem';
 export type CaseArrowRoute = { exit: CaseArrowExit; bend: number };
 
 const caseArrowTarget = (assigner: Rect, plaque: Rect, rowY: number) => {
@@ -35,14 +36,14 @@ const caseArrowSideX = (assigner: Rect, side: string) =>
  * bend lies elsewhere, when that exit faces the row and its arrow is no longer. */
 export function caseAssignmentExits(assigner: Rect, plaque: Rect, rowY: number): CaseArrowExit[] {
   const target = caseArrowTarget(assigner, plaque, rowY);
-  if (target.side === 'vertical') return ['stem'];
+  if (target.side === 'vertical') return [STEM];
   const reach = Math.min(76, Math.abs(target.x - caseArrowSideX(assigner, target.side)) / 4);
   const offset = Math.max(assigner.y - rowY, rowY - assigner.y - assigner.height, 0);
-  if (offset <= reach) return ['side'];
-  if (offset > 2 * reach) return ['stem'];
+  if (offset <= reach) return [SIDE];
+  if (offset > 2 * reach) return [STEM];
   const outward = (target.side === 'left' ? 1 : -1) * (target.x - caseArrowSideX(assigner, target.side)) > 0;
   return outward && curveLength(caseAssignmentPlaqueCurve(assigner, plaque, rowY, { exit: 'side', bend: 1 }))
-    <= curveLength(caseAssignmentPlaqueCurve(assigner, plaque, rowY, { exit: 'stem', bend: 1 })) ? ['stem', 'side'] : ['stem'];
+    <= curveLength(caseAssignmentPlaqueCurve(assigner, plaque, rowY, { exit: 'stem', bend: 1 })) ? [STEM, SIDE] : [STEM];
 }
 
 type Cubic = Record<'source' | 'control1' | 'control2' | 'target', Point>;
@@ -73,8 +74,8 @@ export function* caseAssignmentRoutes(assigner: Rect, plaque: Rect, rowY: number
     for (const bend of CASE_ARROW_BENDS) {
       const route = { exit, bend }, curve = caseAssignmentPlaqueCurve(assigner, plaque, rowY, route);
       // Where the plain curve already bends enough, every bend draws the same curve.
-      if (previous && (['control1', 'control2'] as const).every(key =>
-        curve[key].x === previous![key].x && curve[key].y === previous![key].y)) continue;
+      if (previous && curve.control1.x === previous.control1.x && curve.control1.y === previous.control1.y
+        && curve.control2.x === previous.control2.x && curve.control2.y === previous.control2.y) continue;
       previous = curve;
       if (bend === 1 || caseArrowBendsVisibly(curve)) yield route;
     }
