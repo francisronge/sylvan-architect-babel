@@ -8,6 +8,7 @@ import { type RelationClaimDispatch } from './relations/relationClaims.ts';
 import { isRealizationDescription, normalizeTier2Synonym, relationLabelClauses } from './relations/tier2Synonyms.ts';
 import type { PlaybackStep, ReplayDerivationFrame } from './types.ts';
 import { namedInputRealizationGroups } from './realizationGroups.ts';
+import { caselessSpelling } from '../server/babelParser/spellout.js';
 
 export const cloneRealizations = (groups: readonly SurfaceRealization[]): SurfaceRealization[] =>
   groups.map(group => ({ nodeIds: [...group.nodeIds], tokenIndices: [...group.tokenIndices] }));
@@ -415,6 +416,38 @@ export const resolveRealizationChanges = (
       if (owners.length) directCandidates = directCandidates.filter(index => owners.includes(index)
         || !incidentalContext(index, change) && !(explicitAssociation.some(owner => inputAssociationOwns(owner, change.after))
           && spellingRewriteOnly(index, change)));
+    }
+    // Among relations covering the same change, the one relation that states the
+    // realized text of every new group owns it; field names play no part. Its
+    // anchors lie within the groups, its statement is unhedged, spells no other
+    // input and describes no PF output of other syntax, and no other candidate
+    // asserts a realization of its own.
+    if (directCandidates.length > 1 && change.after.length && inputTokens) {
+      const spell = (positions: readonly number[]) => caselessSpelling([...positions].sort((a, b) => a - b)
+        .map(position => inputTokens[position] ?? '').join(''));
+      const own = new Set(change.after.map(group => spell(group.tokenIndices)));
+      const positions = new Set(change.after.flatMap(group => group.tokenIndices));
+      const domain = syntaxIds(change.after.flatMap(group => group.nodeIds.flatMap(id => exactNode(newNodes, id) ?? [])));
+      const otherInput = new Set([...inputTokens.flatMap((_, position) => positions.has(position) ? [] : [spell([position])]),
+        ...(current.after?.realizations ?? []).map(group => spell(group.tokenIndices))].filter(text => text && !own.has(text)));
+      const states = (index: number) => {
+        const dispatch = claimsFor(index), relation = current.relations![index];
+        const literals = Object.values(relation.values ?? {}).flat()
+          .flatMap(value => typeof value === 'string' ? [caselessSpelling(value)] : []);
+        const outputs = pfOutputs(dispatch);
+        return [...relations[index].current].every(id => domain.has(id))
+          && !malformedClaim(dispatch) && establishesAssignment(dispatch.evidence)
+          && !relationLabelClauses(relation.relation).some(clause =>
+            /^(?:no|not|failed|blocked|pending|possible|potential|hypothetical|conditional|unresolved)\b/u.test(clause))
+          && !own.has('') && [...own].every(text => literals.includes(text))
+          && !literals.some(text => otherInput.has(text))
+          && (!outputs.length || change.after.every(group => outputs.some(output => outputCovers(output.ids, group))));
+      };
+      const stating = directCandidates.filter(states);
+      const asserts = (index: number) => unsupportedPFAssertion(index, change) || inputAssociationOwns(index, change.after)
+        || pronunciationOwns(index, change)
+        || pfOutputs(claimsFor(index)).some(output => change.after.some(group => outputCovers(output.ids, group)));
+      if (stating.length === 1 && directCandidates.every(index => stating.includes(index) || !asserts(index))) directCandidates = stating;
     }
     // Explicit coverage owns the association even when movement also proves
     // continuity of its containing phrase. Infer through those domains only

@@ -71,18 +71,37 @@ test('do-support shows "did" from the Stage Record without duplicating the plate
   const prepared = prepareReplay({ derivationStages: fixture.derivationStages, sentence: fixture.sentence,
     inputTokens: fixture.inputTokens, includePlayback: true });
   const steps = platesPerStep(prepared);
-  const final = steps.at(-1);
-  assert.equal(final.step.replayKind, 'macro');
-  const did = final.plates.filter(item => item.realization);
+  // Relation 3 states "did" but also anchors the elided VP outside the group,
+  // so it does not settle the tie with the ellipsis licensing relation 4.
+  const firstShown = steps.findIndex(({ plates }) => plates.some(item => item.realization));
+  assert(firstShown >= 0, 'the realized form is drawn');
+  assert.equal(steps[firstShown].step.replayKind, 'macro');
+  assert.equal(steps[firstShown].step.replayFrameIndex, 2);
+  const did = steps.at(-1).plates.filter(item => item.realization);
   assert.deepEqual(did.map(text), ['do → did']);
   assert.deepEqual(did[0].anchorNodeIds, ['maux']);
-  assert(steps.filter(({ step }) => step.replayFrameIndex === 2 && step.replayKind !== 'macro')
-    .every(({ plates }) => !plates.some(item => item.realization)), 'unresolved ownership waits for the Stage Record');
   // "left" is already drawn by the relation's own PF realization plate: one plate, not two.
   const onLeft = canopyPlates(prepared.relationRenderPlan).filter(item => item.anchorNodeIds.includes('jcomplex'));
   assert.equal(onLeft.length, 1);
   assert.equal(onLeft[0].realization, undefined);
   assert.deepEqual(canopyPlates(prepared.relationRenderPlan).filter(item => item.realization).map(text), ['do → did']);
+});
+
+test('of relations covering one association, the one stating its realized text owns it, whatever its field names', () => {
+  // The s1-11 shape: do-support names the head among many anchors; a separate realization states the text.
+  const support = { relation: 'do-support', anchors: { finiteHead: 'vt', insertedAuxiliary: 'go', inflection: 'past' },
+    values: { operation: 'Insert the supporting verb in finite T.' } };
+  const stating = { relation: 'past-tense realization', anchors: { source: 'vt' }, values: { morphology: 'irregular past', text: 'WENT' } };
+  const steps = platesPerStep(prepareReplay(record([support, stating])));
+  const firstShown = steps.findIndex(({ plates }) => plates.length);
+  assert(firstShown >= 0, 'the realized form is drawn');
+  assert.equal(steps[firstShown].step.replayKind, 'relation');
+  assert.deepEqual(steps[firstShown].step.replayRelationIdentity, { stageIndex: 1, relationIndex: 1 });
+  assert.equal(steps[firstShown].plates[0].relationRef.relationIndex, 1);
+  assert(!steps[firstShown].step.replayRealizationDiagnostics?.some(text => text.includes('AMBIGUOUS')), 'no ambiguity remains');
+  // Two relations stating the text are still ambiguous: the Stage Record keeps it.
+  const both = platesPerStep(prepareReplay(record([{ ...support, values: { form: 'went' } }, stating])));
+  assert.equal(both[both.findIndex(({ plates }) => plates.length)].step.replayKind, 'macro');
 });
 
 test('realized text is the sentence stretch at the word-list positions', async () => {
