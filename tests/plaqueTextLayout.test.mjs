@@ -11,6 +11,7 @@ import {
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { boundOverlayBounds } from '../replay/relations/geometryBounds.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { measurePlaqueText } from './helpers/visualFontMetrics.mjs';
 
 const segments = (text) => Array.from(new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(text),
   ({ segment }) => segment);
@@ -403,4 +404,34 @@ test('native bundle wrapping fits the Orchard column without interpreting comma-
   assert.ok(rows.length > 1);
   assert.ok(rows.every(row => measure(row).width <= 70));
   assert.deepEqual(wrapPlaqueText('−author', 70, measure), ['−author']);
+});
+
+test('feature plaque text breaks between words, never inside one or before a colon', () => {
+  // s1-02-en-yesno ("Has the train left yet?"), analysis 1, Replay steps 22-30,
+  // measured with the bundled fonts the renderer paints.
+  const input = { title: 'T[finite,present,perfect] probe', rows: [{ label: 'selectedVerbForm', value: 'participle' }] };
+  const layout = preparePlaqueTextLayout(input, { variant: 'feature', measureText: measurePlaqueText });
+  assert.deepEqual(layout.title.lines.map(line => line.text), ['T[FINITE,PRESENT,', 'PERFECT] PROBE']);
+  // `[selectedVerbForm` fills a line alone; its colon hangs rather than start the next line.
+  assert.deepEqual(layout.rows[0].lines.map(line => line.text), ['[selectedVerbForm: ', 'participle]']);
+  assertContained(layout);
+});
+
+test('plaque lines end at a space, comma, joining slash or hyphen, or before an opening bracket', () => {
+  const measure = text => ({ width: segments(text).length * 10 });
+  const wrap = (text, characters) => wrapPlaqueText(text, characters * 10, measure);
+  assert.deepEqual(wrap('alpha,beta,gamma', 12), ['alpha,beta,', 'gamma']);
+  assert.deepEqual(wrap('perfect/completive', 12), ['perfect/', 'completive']);
+  assert.deepEqual(wrap('third-person', 8), ['third-', 'person']);
+  assert.deepEqual(wrap('agree[phi]', 8), ['agree', '[phi]']);
+  assert.deepEqual(wrap('ab,cdefgh', 4), ['ab,', 'cdef', 'gh'], 'only a word wider than a line splits');
+  assert.deepEqual(wrap('abcd, efgh', 4), ['abcd, ', 'efgh'], 'a completing mark and its space hang');
+  assert.deepEqual(wrap('ab :cd', 4), ['ab :', 'cd'], 'no line starts with a colon');
+  for (const text of ['x,y,z,w', 'Case: α, βparticipant, −author', '[feature: value]']) {
+    for (let characters = 2; characters < segments(text).length; characters++) {
+      const lines = wrap(text, characters);
+      assert.equal(lines.join(''), text);
+      assert.ok(lines.slice(1).every(line => !/^[,:]/u.test(line)), `${text} at ${characters}: ${lines.join(' | ')}`);
+    }
+  }
 });

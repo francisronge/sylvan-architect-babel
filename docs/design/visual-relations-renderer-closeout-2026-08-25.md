@@ -592,6 +592,13 @@ incoming branch remains visible between and outside the glyphs. Short
 labels preserve their existing bounds and native branches.
 Wrapping does not change child order, tree spacing or the authored notation.
 
+Plaque text wraps within its plaque's width and keeps every character,
+including whitespace. Its lines break where category labels break, after a
+space or comma first, then after a slash or hyphen joining two words or before
+an opening bracket, and never before a colon, comma or closing mark: an
+overflowing one hangs past the width with the space after it, and the plaque
+widens to hold the line. Only a word wider than a whole line splits.
+
 Manual zoom and pan persist across Replay frames. Fit clears that manual choice
 and restores automatic stage framing. Programmatic camera updates never become
 manual input, even while D3 still carries the source event of an unfinished wheel
