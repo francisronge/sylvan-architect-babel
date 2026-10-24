@@ -1050,8 +1050,11 @@ prove ownership; movement and pronunciation remain separate operations.
 
 A realization group whose sentence text its pronounced leaves do not spell, by
 the spelling check's caseless comparison, is drawn with the PF realization
-plate: its contributors' words rewritten as the realized text (`do → did`),
-anchored on the group's occurrences (`replay/realizationDisplay.ts`). The plate
+plate: one literal row, its contributors' words rewritten as the realized text
+(`do → did`), sized to that text (`replay/realizationDisplay.ts`). It is anchored
+on the pronounced contributors (the group's occurrences when none is pronounced)
+and attaches at the word itself when its anchor holds one; it chooses its pocket
+after every relation's plaque, so it never displaces one. The plate
 shows exactly while Replay holds the group active: from its owning relation's
 moment, or from the Stage Record when no single relation owns the change or
 that moment cannot show it, and in the Canopy for the final stage. A relation's

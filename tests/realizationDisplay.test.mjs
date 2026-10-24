@@ -45,7 +45,7 @@ test('a realized form its leaves do not spell is drawn at its owner moment, pers
     && step.replayRelationIdentity.relationIndex === 1);
   assert(owner > 0);
   steps.forEach(({ plates }, index) => assert.deepEqual(plates.map(text), index < owner ? [] : ['go → went'], `step ${index + 1}`));
-  assert.deepEqual(steps[owner].plates[0].anchorNodeIds, ['vt']);
+  assert.deepEqual(steps[owner].plates[0].anchorNodeIds, ['go'], 'anchored on the pronounced contributor, where the word stands');
   assert.equal(steps[owner].plates[0].relationRef.relationIndex, 1, 'the owning relation focuses its plate');
   // The group whose leaves spell its text ("Mia") draws nothing.
   assert.deepEqual(canopyPlates(prepareReplay({ ...record([association('Clause typing', ['tp']),
@@ -79,7 +79,7 @@ test('do-support shows "did" from the Stage Record without duplicating the plate
   assert.equal(steps[firstShown].step.replayFrameIndex, 2);
   const did = steps.at(-1).plates.filter(item => item.realization);
   assert.deepEqual(did.map(text), ['do → did']);
-  assert.deepEqual(did[0].anchorNodeIds, ['maux']);
+  assert.deepEqual(did[0].anchorNodeIds, ['do']);
   // "left" is already drawn by the relation's own PF realization plate: one plate, not two.
   const onLeft = canopyPlates(prepared.relationRenderPlan).filter(item => item.anchorNodeIds.includes('jcomplex'));
   assert.equal(onLeft.length, 1);
@@ -109,4 +109,18 @@ test('realized text is the sentence stretch at the word-list positions', async (
   assert.equal(realizedInputText([4], 'John left, and Mary did too.', ['John', 'left', 'and', 'Mary', 'did', 'too']), 'did');
   assert.equal(realizedInputText([0, 1, 2], '読んだ本', ['読', 'ん', 'だ', '本']), '読んだ');
   assert.equal(realizedInputText([0, 2], 'a b c', ['a', 'b', 'c']), 'a … c');
+});
+
+test('a realized-form plate takes a nearby pocket beside its pronounced word', async () => {
+  const { VIEWPORTS, prepareVisualRecord, layoutVisualFrames } = await import('./helpers/visualFrames.mjs');
+  const { nearbyPlaqueReach } = await import('../replay/relations/plaquePlacement.ts');
+  const { includePlayback, ...input } = record([association('Clause typing', ['tp']), association('Tense realization', ['vt'])]);
+  const frames = layoutVisualFrames(prepareVisualRecord(input), VIEWPORTS.filter(viewport => viewport.name === 'desktop'));
+  const plates = frames.flatMap(frame => frame.plaques.filter(plaque => plaque.text.includes('went')));
+  assert(plates.length > 0);
+  for (const plate of plates) {
+    assert.match(plate.id, /@go::__leaf$/u, "attached at the word go itself");
+    const distance = Math.hypot(plate.rect.x + plate.rect.width / 2 - plate.anchor.x, plate.rect.y + plate.rect.height / 2 - plate.anchor.y);
+    assert(distance <= nearbyPlaqueReach(plate.size), `${plate.id} sits ${Math.round(distance)} from its word`);
+  }
 });

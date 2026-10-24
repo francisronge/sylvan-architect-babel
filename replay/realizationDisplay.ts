@@ -3,9 +3,11 @@
  * current occurrences are pronounced as which stretch of the sentence; when that
  * text is not what its pronounced leaves spell ("do" + silent past = "did"), the
  * tree alone misreads the sentence. Such a group gets the PF realization plate:
- * its contributors' words rewritten as the realized text, anchored on the group's
- * occurrences. Replay's association state (realizationReplay.ts) decides when the
- * plate shows; this module only projects groups into plan items.
+ * its contributors' words rewritten as the realized text, anchored on those
+ * pronounced words, where the realized word stands (on the group's occurrences
+ * when none is pronounced). A literal row keeps the plate sized to its text, so
+ * it can take a nearby pocket. Replay's association state (realizationReplay.ts)
+ * decides when the plate shows; this module only projects groups into plan items.
  */
 import type { SurfaceRealization, SyntaxNode } from '../types.ts';
 import { caselessSpelling } from '../server/babelParser/spellout.js';
@@ -27,6 +29,8 @@ export type RealizationDisplay = {
   text: string;
   /** The words of the group's pronounced leaves, in tree order. */
   contributors: string[];
+  /** Those leaves' occurrence IDs, in the same order. */
+  contributorNodeIds: string[];
 };
 
 const groupKey = (group: SurfaceRealization) => JSON.stringify([
@@ -63,7 +67,7 @@ export const realizationDisplay = (
   sentence: string,
   tokens: readonly string[]
 ): RealizationDisplay | undefined => {
-  const members = new Set(group.nodeIds), contributors: string[] = [];
+  const members = new Set(group.nodeIds), contributors: string[] = [], contributorNodeIds: string[] = [];
   const found = new Set<string>();
   const visit = (node: SyntaxNode, silent: boolean, inGroup: boolean) => {
     const quiet = silent || node.silent === true, inside = inGroup || members.has(node.id);
@@ -71,12 +75,13 @@ export const realizationDisplay = (
     if (node.children?.length) node.children.forEach(child => visit(child, quiet, inside));
     else if (inside && !quiet && typeof node.word === 'string' && node.word.trim() && !isNullLike(node.word)) {
       contributors.push(node.word.trim());
+      contributorNodeIds.push(node.id);
     }
   };
   forest.forEach(root => visit(root, false, false));
   if (found.size !== members.size || !group.tokenIndices.length) return undefined;
   const text = realizedInputText(group.tokenIndices, sentence, tokens);
-  return text && caselessSpelling(text) !== caselessSpelling(contributors.join('')) ? { text, contributors } : undefined;
+  return text && caselessSpelling(text) !== caselessSpelling(contributors.join('')) ? { text, contributors, contributorNodeIds } : undefined;
 };
 
 const subtreeIds = (forest: readonly SyntaxNode[], roots: readonly string[]) => {
@@ -178,7 +183,6 @@ export const withRealizationDisplays = (
     return shown.flatMap(({ entry, retiredAt, forest }): NodePlaquePlanItem[] => {
       const display = realizationDisplay(entry.group, forest, sentence, tokens);
       if (!display || shownByRelation(relationItems, entry.group, forest, display.text)) return [];
-      const rewrite = display.contributors.length > 0;
       return [{
         relationRef: entry.relationRef,
         familyId: 'pf.realization',
@@ -187,10 +191,11 @@ export const withRealizationDisplays = (
         backward: false,
         priorWitnessNodeIds: [],
         kind: 'node-plaque',
-        anchorNodeIds: [...entry.group.nodeIds],
+        anchorNodeIds: display.contributorNodeIds.length ? display.contributorNodeIds : [...entry.group.nodeIds],
         plaqueStyle: 'realization',
-        rows: [{ label: rewrite ? display.contributors.join(' ') : '', value: display.text }],
-        realizationRowKinds: [rewrite ? 'rewrite' : 'literal'],
+        rows: [{ label: '', value: display.contributors.length
+          ? `${display.contributors.join(' ')} \u2192 ${display.text}` : display.text }],
+        realizationRowKinds: ['literal'],
         realization: { nodeIds: [...entry.group.nodeIds], tokenIndices: [...entry.group.tokenIndices],
           activatedAt: entry.activatedAt, ...(retiredAt ? { retiredAt } : {}) }
       }];
