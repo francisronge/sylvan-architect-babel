@@ -417,18 +417,11 @@ export const dispatchRelationClaims = (
   };
   const thematic = typedThematicAssignment(evidence);
   const focusAssociation = typedFocusAssociation(evidence);
-  const targetInventory = evidence.authoredCurrentAnchors?.some(entry => normalizeTier2Synonym(entry.key) === 'agreement targets')
-    && evidence.authoredCurrentAnchors?.some(entry => normalizeTier2Synonym(entry.key) === 'controller');
   const checkedAttraction = evidence.authoredValues?.some(entry => entry.concepts.includes('feature.label'))
     && /\b(?:relative|interrogative) operator attraction$/u.test(normalizeTier2Synonym(evidence.relationName));
-  const typedSurfaceCombination = evidence.authoredValues?.some(entry => normalizeTier2Synonym(entry.key) === 'surface combination')
-    && /\b(?:realization|realisation)\b/u.test(normalizeTier2Synonym(evidence.relationName));
   const completeClaims = evaluations.filter(({ recipe, evaluation, evidence: scoped }) => evaluation.complete
     && !restates(recipe.id, scoped ?? evidence)
     && !(recipe.id === 'feature.dependency' && checkedAttraction)
-    && !(recipe.id === 'pf.structured' && typedSurfaceCombination)
-    && !(recipe.id === 'feature.dependency' && targetInventory && evaluation.consumedEvidence.some(ref => ref.field === 'anchors'
-      && /^(?:controller|agreement targets)$/u.test(normalizeTier2Synonym(ref.key))))
     && !(evidence.movementFailure === 'MOVEMENT_NOT_ESTABLISHED' && ['movement.path', 'movement.carrier', 'scope.movement'].includes(recipe.id))
     && !(recipe.id === 'theta-grid' && (thematic.applies && !thematic.scope || typedInterpretiveRoles(evidence)))
     && !(recipe.id === 'focus.association' && focusAssociation.applies)

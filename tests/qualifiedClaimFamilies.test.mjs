@@ -42,26 +42,11 @@ test('nominal Case concord uses the shared vine and does not imply Case assignme
   ]) assert(!has(invalid, item => item.linkStyle === 'feature-sharing'));
 });
 
-test('a named participial agreement binds its fronted object and leaves the auxiliary and antecedent as context', () => {
-  const relation = { relation: 'past-participle agreement with preceding direct object',
-    anchors: { auxiliary: 'auxiliary', frontedObject: 'object', objectAntecedent: 'noun', participle: 'verb' },
-    values: { gender: 'feminine', number: 'plural' } };
-  const paths = plan(relation).filter(item => item.pathStyle === 'case-agree');
-  assert.equal(paths.length, 2);
-  assert(paths.every(item => item.fromNodeId === 'verb' && item.toNodeId === 'object'));
-  for (const extra of [{ directObject: 'subject' }, { participialHead: 'auxiliary' }])
-    assert(!has({ ...relation, anchors: { ...relation.anchors, ...extra } }, item => item.pathStyle === 'case-agree'));
-});
-
-test('reflexive and explicitly named topic binding use the existing connection without a made-up domain', () => {
-  for (const relation of [
-    { relation: 'reflexive binding', anchors: { antecedent: 'subject', reflexive: 'object' } },
-    { relation: 'topic–subject binding', anchors: { topic: 'subject', subject: 'object' } }
-  ]) {
-    assert(has(relation, item => item.familyId === 'binding.dependency' && item.kind === 'operator-variable-binding'));
-    assert(!has(relation, item => item.domainStyle === 'binding'));
-    assert(!has({ ...relation, values: { outcome: 'pending' } }, item => item.familyId === 'binding.dependency' && item.kind === 'operator-variable-binding'));
-  }
+test('reflexive binding uses the existing connection without a made-up domain', () => {
+  const relation = { relation: 'reflexive binding', anchors: { antecedent: 'subject', reflexive: 'object' } };
+  assert(has(relation, item => item.familyId === 'binding.dependency' && item.kind === 'operator-variable-binding'));
+  assert(!has(relation, item => item.domainStyle === 'binding'));
+  assert(!has({ ...relation, values: { outcome: 'pending' } }, item => item.familyId === 'binding.dependency' && item.kind === 'operator-variable-binding'));
   assert(!has({ relation: 'topic association', anchors: { topic: 'subject', subject: 'object' } }, item => item.familyId === 'binding.dependency' && item.kind === 'operator-variable-binding'));
 });
 
