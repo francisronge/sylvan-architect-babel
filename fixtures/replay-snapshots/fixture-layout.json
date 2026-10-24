@@ -3188,16 +3188,18 @@
       ]
     },
     "replay-regressions/unproven-second-landing.json#": {
-      "frames": "0qiGvulN Z-OmIBiC TEimntqv 4ATIJar2 oiV_PyFI ZrhyzAHk h2g8HCS_ R2JA_PCl uSGWsUUp dtU4dBcN 08jMklxo nnf1Fho6 4BISEFfu TqeiyE6R -oh4S814 -kPUCrUI zjwmeSLj CnoDkZq8 poAr-psG uonOCoCl H2--cDYM l_RVmrLq -3anXQPd vVVfS_jf M_UDVVuU _obv7xcF gvYxqkvc _QUMVMSp Kil7uZIN BxRuUcZI Uf8u_zBo ivgT5xpZ uYunjGdu h0TVscWH ll0kXaTz WePQHzWF",
+      "frames": "vn2P8XP1 zt4sn05p 4Tqw5yLf Kv_uTwgd frV1alzB Nzp88A3j D4Iu5Sqw iyxIkow5 T2Dcdm8L 8FUpkYxU WCbbQ9xj I9v4iXc- JRupH4OI yNdrqoYm tzhGm0Up MfE22n7X aiMEgTw4 c6hfakr3 LeFZTvwu XLVzi2JC JEdD0bD9 N88c1Ex6 9PqWPAuE XFJRFBqw qwlyLpcr f7Hu8g_H yPnGMzMR t8Lu59Bk mowggLAB",
       "canopy": "bFLD_gfY",
       "tiers": [
-        "0:0 T2 coindex identity.occurrences identity.occurrences",
-        "0:0 T3 fallback",
-        "1:0 T2 domain-mark transfer.domain phase.edge",
         "1:0 T2 trajectory tier2.movement-path movement.path",
         "1:0 T3 fallback",
-        "1:1 T3 fallback",
-        "1:2 T3 fallback"
+        "2:0 T2 trajectory tier2.movement-path movement.path",
+        "2:0 T3 fallback",
+        "3:0 T2 domain-mark transfer.domain phase.edge",
+        "3:0 T2 trajectory tier2.movement-path movement.path",
+        "3:0 T3 fallback",
+        "3:1 T3 fallback",
+        "3:2 T3 fallback"
       ]
     },
     "replay-regressions/unrecognized-movement.json#/cases/0": {
