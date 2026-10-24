@@ -14,7 +14,6 @@ import type { EvidenceScope } from './evidenceScopes.ts';
 import { recoverExplicitCoreference, recoverNamedBinding } from './explicitCoreference.ts';
 import { recoverNamedFeatureLicensing } from './featureLicensingEvidence.ts';
 import { recoverFocusAssociation } from './focusAssociationEvidence.ts';
-import { recoverIdiomDomain } from './idiomEvidence.ts';
 import { recoverInterpretedOperatorBinding } from './interpretedBindingEvidence.ts';
 import { recoverInterpretiveCorrespondence } from './interpretiveCorrespondence.ts';
 import { recoverModifierAttachment } from './modifierEvidence.ts';
@@ -24,11 +23,9 @@ import { recoverPhaseEdge } from './phaseEdgeEvidence.ts';
 import { recoverPredication } from './predicationRecovery.ts';
 import {
   recoverCheckedFeatureRows,
-  recoverDirectedAgreementTargets,
   recoverExplicitFeatureSharing,
   recoverFailedFeatureComparison,
   recoverIndependentFeatureOutcomes,
-  recoverInterrogativeAgreement,
   recoverNominalCaseConcord,
   recoverQualifiedAgreement,
   recoverQualifiedNominalConcord,
@@ -65,7 +62,6 @@ export function recoverRelationScopes(
     ...movements,
     ...occurrences,
     ...recoverInterpretiveCorrespondence(evidence),
-    ...recoverIdiomDomain(evidence),
     ...recoverEllipsisCorrespondence(evidence),
     ...recoverNamedEllipsisSite(evidence),
     ...recoverPredication(evidence),
@@ -88,9 +84,7 @@ export function recoverRelationScopes(
     ...recoverExplicitFeatureSharing(evidence),
     ...recoverRelativeConcord(evidence),
     ...recoverQualifiedNominalConcord(evidence),
-    ...recoverDirectedAgreementTargets(evidence),
     ...recoverCheckedFeatureRows(evidence),
-    ...recoverInterrogativeAgreement(evidence),
     ...recoverNominalCaseConcord(evidence),
     ...recoverQualifiedAgreement(evidence),
     ...recoverIndependentFeatureOutcomes(evidence),

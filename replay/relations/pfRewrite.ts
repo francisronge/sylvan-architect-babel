@@ -40,23 +40,21 @@ export function recoverPFRewrite(evidence: Tier2FacetEvidence) {
 }
 
 /** A literal surface combination belongs to the complete exact realization
- * group. Linking material remains a PF row, never a new syntax occurrence. */
+ * group, never a new syntax occurrence. */
 function recoverSurfaceCombination(evidence: Tier2FacetEvidence) {
   const clauses = relationLabelClauses(evidence.relationName);
   const realization = clauses.filter(clause => /\b(?:realization|realisation)\b/u.test(clause));
   const denied = /\b(?:no|not|never|without|denied|rejected|failed|blocked|unlicensed|pending|unresolved|unestablished|required|requested|expected|possible|potential|hypothetical|whether|if|unless)\b/u;
   if (realization.length !== 1 || denied.test(realization[0])) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [], values = evidence.authoredValues ?? [];
-  const surfaces = values.filter(entry => ['surface', 'surface combination'].includes(normalizeTier2Synonym(entry.key)) || entry.concepts.includes('pf.surface'));
+  const surfaces = values.filter(entry => ['surface'].includes(normalizeTier2Synonym(entry.key)) || entry.concepts.includes('pf.surface'));
   const sequence = surfaces.length === 1 && /^(?:surface|orthographic) sequence$/u.test(normalizeTier2Synonym(surfaces[0].key));
   const morphology = sequence ? values.filter(entry => normalizeTier2Synonym(entry.key) === 'morphological sequence') : [];
-  const links = values.filter(entry => normalizeTier2Synonym(entry.key) === 'linking segment');
   const outcomes = values.filter(entry => /^(?:realization|realisation) (?:outcome|status|result)$/u.test(normalizeTier2Synonym(entry.key))
     || clauses.length === 1 && (entry.concepts.includes('outcome')
       || /^(?:status|result|verdict|judgment)$/u.test(normalizeTier2Synonym(entry.key))));
-  if (surfaces.length !== 1 || links.length > 1 || surfaces[0].items.length < 1 || !sequence && surfaces[0].items.length !== 1
+  if (surfaces.length !== 1 || surfaces[0].items.length < 1 || !sequence && surfaces[0].items.length !== 1
     || [...surfaces, ...morphology].some(entry => !entry.items.length || entry.items.some(item => !item.trim()))
-    || links.some(entry => entry.items.length !== 1 || !entry.items[0].trim())
     || outcomes.some(entry => entry.items.some(item => denied.test(normalizeTier2Synonym(item))))
     || anchors.some(entry => entry.concepts.includes('rewrite.input') || entry.concepts.includes('pf.contributors'))) return [];
   const nodes = new Map<string, typeof evidence.currentForest[number]>();
@@ -84,7 +82,7 @@ function recoverSurfaceCombination(evidence: Tier2FacetEvidence) {
   });
   if (groups.length !== 1) return [];
   const scope = scopeEvidence(evidence, 'pf.structured', groups[0].owners.map(entry => ({ entry, concept: 'rewrite.output' })),
-    [...values.filter(entry => surfaces.includes(entry) || morphology.includes(entry)), ...links].map(entry => ({ entry, concept: 'pf.rows' })));
+    values.filter(entry => surfaces.includes(entry) || morphology.includes(entry)).map(entry => ({ entry, concept: 'pf.rows' })));
   scope.evidence.realizationGroupAnchorKeys = groups[0].owners.map(entry => entry.key);
   return [scope];
 }

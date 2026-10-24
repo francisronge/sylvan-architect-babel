@@ -81,13 +81,10 @@ export function recoverExplicitCoreference(evidence: Tier2FacetEvidence) {
  * into participants. An association without a binding assertion earns no path. */
 export function recoverNamedBinding(evidence: Tier2FacetEvidence) {
   const label = normalizeTier2Synonym(evidence.relationName ?? '');
-  const topicBinding = /^topic(?: |[–—])subject binding$/u.test(label);
-  const resumptiveBinding = /^(?:resumptive (?:operator )?|relative operator )binding$/u.test(label);
-  if ((!topicBinding && !resumptiveBinding) || !establishesAssignment(evidence)) return [];
+  if (!/^(?:resumptive (?:operator )?|relative operator )binding$/u.test(label) || !establishesAssignment(evidence)) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [];
-  const binders = anchors.filter(entry => topicBinding ? normalizeTier2Synonym(entry.key) === 'topic' : entry.concepts.includes('binder'));
-  const dependents = anchors.filter(entry => topicBinding ? normalizeTier2Synonym(entry.key) === 'subject'
-    : entry.concepts.includes('dependent') || /^resumptive (?:subject|object|argument|pronoun|nominal|occurrence|clitic)$/u.test(normalizeTier2Synonym(entry.key)));
+  const binders = anchors.filter(entry => entry.concepts.includes('binder'));
+  const dependents = anchors.filter(entry => entry.concepts.includes('dependent') || /^resumptive (?:subject|object|argument|pronoun|nominal|occurrence|clitic)$/u.test(normalizeTier2Synonym(entry.key)));
   const domains = anchors.filter(entry => entry.concepts.includes('domain'));
   const optionalValues = (evidence.authoredValues ?? []).filter(entry => entry.concepts.some(concept => ['index', 'outcome'].includes(concept)));
   if (['index', 'outcome'].some(concept => optionalValues.filter(entry => entry.concepts.includes(concept)).length > 1)
