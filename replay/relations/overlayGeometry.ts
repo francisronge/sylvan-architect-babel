@@ -13,10 +13,13 @@ export type Rect = { x: number; y: number; width: number; height: number };
 
 /** Where a Case arrow leaves its source, the side facing the plaque or a stem
  * from the top or bottom, and how far its bend reaches between the plain curve
- * (`bend` 0) and the full bounded bow (`bend` 1). */
+ * (`bend` 0) and the full bounded bow (`bend` 1). Without an exit the arrow
+ * takes the preferred one; `{ bend: 0 }` alone is the plain curve, which
+ * Babel draws wherever it already bends visibly. */
 export type CaseArrowExit = 'side' | 'stem';
 const SIDE: CaseArrowExit = 'side', STEM: CaseArrowExit = 'stem';
-export type CaseArrowRoute = { exit: CaseArrowExit; bend: number };
+export type CaseArrowRoute = { exit?: CaseArrowExit; bend: number };
+export const PLAIN_CASE_ROUTE: CaseArrowRoute = Object.freeze({ bend: 0 });
 
 const caseArrowTarget = (assigner: Rect, plaque: Rect, rowY: number) => {
   const centerX = assigner.x + assigner.width / 2;
@@ -61,13 +64,14 @@ export function caseArrowBendsVisibly({ source, control1, control2, target }: Cu
     Math.abs((target.x - source.x) * (source.y - point.y) - (source.x - point.x) * (target.y - source.y)) >= needed * length);
 }
 
-const CASE_ARROW_BENDS = [1, 0.75, 0.5, 0.25, 0];
+const CASE_ARROW_BENDS = [0, 1, 0.75, 0.5, 0.25];
 
-/** The routes the allocator may try for a pocket, in order: the preferred exit
- * with its full bend, then shallower bends that still bend visibly, then the
- * other exit likewise. A pocket keeps its plaque when any of them clears, and
- * the placement records the route it took. Later routes are built only when
- * the earlier ones are blocked. */
+/** The visibly bent routes for an arrow whose plain curve runs too straight,
+ * in the order the allocator tries them at a pocket: each exit's plain curve
+ * where it bends visibly, its full bend, then shallower bends that still bend
+ * visibly. A pocket keeps its plaque when any of them clears, and the placement
+ * records the route it took. Later routes are built only when earlier ones are
+ * blocked. */
 export function* caseAssignmentRoutes(assigner: Rect, plaque: Rect, rowY: number): Generator<CaseArrowRoute> {
   for (const exit of caseAssignmentExits(assigner, plaque, rowY)) {
     let previous: Cubic | undefined;
@@ -76,23 +80,27 @@ export function* caseAssignmentRoutes(assigner: Rect, plaque: Rect, rowY: number
       // Where the plain curve already bends enough, every bend draws the same curve.
       if (previous && curve.control1.x === previous.control1.x && curve.control1.y === previous.control1.y
         && curve.control2.x === previous.control2.x && curve.control2.y === previous.control2.y) continue;
+      if (bend !== 1 && !caseArrowBendsVisibly(curve)) continue;
       previous = curve;
-      if (bend === 1 || caseArrowBendsVisibly(curve)) yield route;
+      yield route;
     }
   }
 }
 
-/** The preferred exit's plain curve, the shortest way to the row: the allocator
- * ranks pockets by it, so a pocket keeps its place in the search however far
- * the route it finally takes has to bend. */
-export function caseAssignmentRankingCurve(assigner: Rect, plaque: Rect, rowY: number) {
-  return caseAssignmentPlaqueCurve(assigner, plaque, rowY, { exit: caseAssignmentExits(assigner, plaque, rowY)[0], bend: 0 });
+/** The route Babel draws to an unobstructed pocket: the plain curve where it
+ * bends visibly, otherwise the first bent route. */
+export function caseAssignmentDrawnRoute(assigner: Rect, plaque: Rect, rowY: number): CaseArrowRoute {
+  if (caseArrowBendsVisibly(caseAssignmentPlaqueCurve(assigner, plaque, rowY))) return PLAIN_CASE_ROUTE;
+  for (const route of caseAssignmentRoutes(assigner, plaque, rowY)) return route;
+  return { bend: 1 };
 }
 
 /** Enter the plaque from the assigner's side; the curve stays outside its
- * rectangle. The route defaults to the preferred exit with its full bend. */
+ * rectangle. The route defaults to the plain curve, by which the allocator also
+ * ranks pockets. */
 export function caseAssignmentPlaqueCurve(assigner: Rect, plaque: Rect, rowY: number,
-  route: CaseArrowRoute = { exit: caseAssignmentExits(assigner, plaque, rowY)[0], bend: 1 }) {
+  { exit = caseAssignmentExits(assigner, plaque, rowY)[0], bend }: CaseArrowRoute = PLAIN_CASE_ROUTE) {
+  const route = { exit, bend };
   const centerX = assigner.x + assigner.width / 2;
   const target = caseArrowTarget(assigner, plaque, rowY);
   const direction = target.side === 'left' ? 1 : -1;

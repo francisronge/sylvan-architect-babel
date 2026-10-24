@@ -36,7 +36,7 @@ const paintedCaseArrows = id => {
       if (!run) return [];
       const drawn = { ...box, width: box.drawnWidth ?? box.width, height: box.drawnHeight ?? box.height };
       const curve = caseAssignmentPlaqueCurve(labelGeometry(source, run).cell, drawn, box.y + (box.caseRowY ?? 93), box.caseRoute);
-      return [{ frame: stepIndex + 1, claim: `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`, source, run, curve,
+      return [{ frame: stepIndex + 1, claim: `${item.relationRef.stageIndex}:${item.relationRef.relationIndex}`, source, run, curve, box,
         cell: labelGeometry(source, run).cell, length: Math.hypot(curve.target.x - curve.source.x, curve.target.y - curve.source.y) }];
     });
   });
@@ -79,4 +79,18 @@ test('a blocked bend keeps its pocket by the other exit instead of sending the p
   const sag = Math.max(...sampleCubic(source, arrow.curve.control1, arrow.curve.control2, target, 128)
     .map(point => Math.abs((target.x - source.x) * (source.y - point.y) - (source.x - point.x) * (target.y - source.y)) / arrow.length));
   assert(sag >= Math.min(arrow.length / 10, 30), `the arrow leaves its chord by only ${sag.toFixed(1)}`);
+});
+
+test('an arrow that already bends on main keeps main\'s pocket and curve', () => {
+  // Francis, 24 Oct, of agreement-and-case case 7 step 31: "This was fine? Why did
+  // you change this?" The [Case: inherent objective] plaque sits left of "sent",
+  // and its arrow already bowed on main; a fuller bend must not move it.
+  const arrow = paintedCaseArrows('showcase/agreement-and-case.json#/cases/7')
+    .find(({ frame, claim }) => frame === 31 && claim === '1:1');
+  assert(arrow, 'frame 31 shows claim 1:1');
+  assert.deepEqual([arrow.box.x, arrow.box.y].map(value => Math.round(value * 100) / 100), [5025.86, 2019]);
+  assert.equal(arrow.box.caseRoute, undefined, 'the plaque keeps main\'s plain route');
+  assert.deepEqual([arrow.curve.source, arrow.curve.control1, arrow.curve.control2, arrow.curve.target]
+    .map(point => [Math.round(point.x * 10) / 10, Math.round(point.y * 10) / 10]),
+  [[5921.2, 2074], [5845.2, 1998], [5593.9, 2055], [5517.9, 2131]]);
 });

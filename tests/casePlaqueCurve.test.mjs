@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { caseAssignmentExits, caseAssignmentPlaqueCurve, caseAssignmentRoutes } from '../replay/relations/overlayGeometry.ts';
+import { caseAssignmentDrawnRoute, caseAssignmentExits, caseAssignmentPlaqueCurve, caseAssignmentRoutes }
+  from '../replay/relations/overlayGeometry.ts';
 import { sampleCubic } from '../replay/relations/markGeometry.ts';
 import { cubicIntersectsRect } from '../replay/relations/curveClearance.ts';
 import { CATEGORY_LINE_HEIGHT } from '../replay/rendererMetrics.ts';
@@ -114,7 +115,7 @@ test('a Case row level with the top of its source bends over instead of running 
   const label = rect([1437.3, 340, 305.5, 100.5]), plaque = rect([1016.3, 240, 379, 262]);
   for (const flip of [false, true]) {
     const word = flip ? mirror(label, 1500) : label, box = flip ? mirror(plaque, 1500) : plaque;
-    const curve = caseAssignmentPlaqueCurve(word, box, 333);
+    const curve = caseAssignmentPlaqueCurve(word, box, 333, caseAssignmentDrawnRoute(word, box, 333));
     assertBends(curve, `do-support${flip ? ', mirrored' : ''}`);
     assert.equal(curve.source.y, word.y - 8, 'the stem leaves the top of the label');
     assert(curve.control1.y < curve.source.y, 'the stem rises before it turns');
@@ -140,7 +141,8 @@ test('Case arrows that main drew along their chord bend', () => {
     'row at a tall label\'s foot': [[4538.9, 684, 406, 196.5], [4996.9, 780, 480, 300], 873]
   };
   for (const [name, [label, plaque, rowY]] of Object.entries(measured)) {
-    const word = rect(label), box = rect(plaque), curve = caseAssignmentPlaqueCurve(word, box, rowY);
+    const word = rect(label), box = rect(plaque);
+    const curve = caseAssignmentPlaqueCurve(word, box, rowY, caseAssignmentDrawnRoute(word, box, rowY));
     assertBends(curve, name);
     assert(!cubicIntersectsRect(curve, word, 6), `${name}: the arrow leaves the label clear`);
     assert(!cubicIntersectsRect(curve, box, 0), `${name}: the arrow stays outside the plaque`);
@@ -217,9 +219,8 @@ test('a shallower route keeps the plain curve as its limit and offers only visib
   assert.deepEqual(routes[0], { exit: 'stem', bend: 1 });
   assert(!routes.some(route => route.bend === 0), 'the straight plain curve is not a fallback');
   for (const route of routes) assertBends(caseAssignmentPlaqueCurve(label, plaque, 333, route), `bend ${route.bend}`);
-  // The Orchard side approach already bends: its full route is its plain curve.
+  // The Orchard side approach already bends visibly: Babel draws main's plain curve.
   const word = { x: 225, y: 0, width: 150, height: 60 }, orchard = { x: -200, y: 80, width: 300, height: 200 };
-  assert.deepEqual(caseAssignmentPlaqueCurve(word, orchard, 173, { exit: 'stem', bend: 0 }),
-    caseAssignmentPlaqueCurve(word, orchard, 173));
-  assert.deepEqual([...caseAssignmentRoutes(word, orchard, 173)], [{ exit: 'stem', bend: 1 }]);
+  assert.deepEqual(caseAssignmentDrawnRoute(word, orchard, 173), { bend: 0 });
+  assert.deepEqual([...caseAssignmentRoutes(word, orchard, 173)], [{ exit: 'stem', bend: 0 }]);
 });

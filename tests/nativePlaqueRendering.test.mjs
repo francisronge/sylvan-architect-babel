@@ -341,7 +341,7 @@ test('native Case connector approaches the outside edge for plaques on every sid
     assert.equal(points.length, 8);
     if (points[0] === points[6]) {
       assert.notEqual(points[2], points[0], 'an aligned plaque still receives a curved connector');
-      assert(Math.abs(points[2] - points[0]) <= 76, 'the connector keeps the bounded bow');
+      assert(Math.abs(points[2] - points[0]) <= 32, 'the connector remains short');
       assert.equal(points[4], points[6], 'the arrow approaches the plaque vertically');
       assert.notEqual(points[5], points[7], 'the arrow has a nonzero final tangent');
     }

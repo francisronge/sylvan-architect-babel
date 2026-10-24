@@ -14,10 +14,10 @@ import {
 import { dependentCaseStatePlaques, featureSharingPlaqueRect, sampleCubic } from './markGeometry.ts';
 import {
   caseAssignmentPlaqueCurve,
-  caseAssignmentRankingCurve,
   caseAssignmentRoutes,
   caseArrowBendsVisibly,
   type CaseArrowRoute,
+  PLAIN_CASE_ROUTE,
   featureCollectionEdge,
   featureCollectionPlaqueCurve,
   type CollectionEdge
@@ -1044,8 +1044,10 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     }, request, prior);
     const space = lifetime?.spaceFor(request.index, attachment, result);
     const occupied = [...(space?.obstacles ?? obstacles), ...placed];
-    const connectorsClear = space ? space.acceptsConnector(placement)
-      : (!request.caseAssignment || caseAssignmentClears(attachment, placement, occupied, caseSources))
+    // A carried plain arrow keeps its pocket only while it still bends visibly.
+    const judged = request.caseAssignment && !placement.caseRoute ? { ...placement, caseRoute: PLAIN_CASE_ROUTE } : placement;
+    const connectorsClear = space ? space.acceptsConnector(judged)
+      : (!request.caseAssignment || caseAssignmentClears(attachment, judged, occupied, caseSources))
         && collectionPlaqueClears(placement, nodes, occupied);
     const carryGap = lifetime?.syntaxGap ?? PLAQUE_GAP;
     if (lifetime?.syntaxGap === undefined) delete (placement as Partial<PlaquePlacement>).syntaxGap;
@@ -1091,11 +1093,13 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const accepts = (box: PlaqueRect) => space ? space.acceptsConnector(box)
         : (!caseClears || caseClears(box))
           && collectionPlaqueClears(box, nodes, occupied);
+    // The first pass places the plaque exactly as its plain arrow allows. Only
+    // when that arrow would run too straight does a second pass try bent routes.
+    let bendRoutes = false;
     const clear = (candidate: PlaqueRect, blocked = overlaps): PlaqueRect | undefined => {
       if (blocked(candidate)) return undefined;
-      // A pocket whose preferred Case arrow is blocked keeps its plaque when
-      // a shallower but visible bend, or the other exit, clears.
-      if (request.caseAssignment && sourceRect && candidate.caseRoute === undefined) {
+      // An arrow that would run too straight tries its bent routes at every pocket.
+      if (bendRoutes && request.caseAssignment && sourceRect && candidate.caseRoute === undefined) {
         const drawn = { ...candidate, width: request.drawnWidth ?? width, height: request.drawnHeight ?? height };
         for (const caseRoute of caseAssignmentRoutes(sourceRect, drawn, candidate.y + (request.caseRowY ?? 93))) {
           const box = clear({ ...candidate, caseRoute }, () => false);
@@ -1135,270 +1139,288 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       : anchor.y + (!anchor.children?.length && anchor.data.word ? TERMINAL_ATTACHMENT_Y : 0);
     const placementDistance = (box: PlaqueRect) => {
       if (!sourceRect) return (box.x + width / 2 - anchor.x) ** 2 + (box.y + height / 2 - anchorY) ** 2;
-      const plaque = { x: box.x, y: box.y, width, height }, rowY = box.y + (request.caseRowY ?? 93);
-      const curve = box.caseRoute ? caseAssignmentPlaqueCurve(sourceRect, plaque, rowY, box.caseRoute)
-        : caseAssignmentRankingCurve(sourceRect, plaque, rowY);
+      // Pockets compare by the plain arrow, whatever route one takes, so a bent
+      // route never prefers a different pocket from the one main would keep.
+      const curve = caseAssignmentPlaqueCurve(sourceRect, { x: box.x, y: box.y, width, height },
+        box.y + (request.caseRowY ?? 93));
       const points = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 16);
       return points.slice(1).reduce((length, point, i) =>
         length + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0) ** 2;
     };
-    const clearPrior = (prior?: PlaquePlacement) => prior && !overlaps(prior)
-      && (space ? space.acceptsConnector(prior)
-        : (!caseClears || caseClears(prior)) && collectionPlaqueClears(prior, nodes, occupied)) ? prior : undefined;
-    const prior = clearPrior(priorCandidates.get(request.index));
-    const incumbent = clearPrior(incumbentPriors.get(request.index) ?? lifetime?.incumbents?.get(request.index));
-    const priorCandidate = incumbent && (!prior || placementDistance(incumbent) < placementDistance(prior)) ? incumbent : prior;
-    const priorDistance = priorCandidate ? placementDistance(priorCandidate) : Infinity;
-    const candidates = request.caseAssignment ? [70, 140, -height - 70].flatMap(dy =>
-      [anchor.x + 110, anchor.x - width - 110, anchor.x - width / 2]
-        .map(x => ({ x, y: anchorY + dy - ((request.caseRowY ?? 93) - 93), width, height })))
-      : local ? nearbyPocketTops(height)
-      .flatMap(dy => [anchor.x + nearbyPocketGap, anchor.x - width - nearbyPocketGap, anchor.x - width / 2]
-        .map(x => ({ x, y: anchorY + dy, width, height })))
-      .sort((a, b) => Math.hypot(a.x + width / 2 - anchor.x, a.y + height / 2 - anchorY)
-        - Math.hypot(b.x + width / 2 - anchor.x, b.y + height / 2 - anchorY)) : [];
-    let placement: PlaqueRect | undefined;
-    for (const candidate of candidates) {
-      placement = clear(candidate);
-      if (placement) break;
-    }
-    // A genuine participant relocation can make a valid old pocket unnecessarily
-    // remote. Keep it as an incumbent; unchanged geometry takes the carry path.
-    if (placement && priorCandidate && priorDistance <= placementDistance(placement)) placement = priorCandidate;
-    /** A scanned pocket slides flush against what blocks it. Nudged by up to
-     * twice PLAQUE_SCAN_TEXT_EXTRA, it keeps that much more than the gap from tree
-     * text, when such a pocket is clear, nearby and nearer than the prior pocket. */
-    const roomier = (box: PlaqueRect) => {
-      // Every obstacle that can block a nudge also blocks the area they cover, at the wider gap.
-      const reach = NUDGES[NUDGES.length - 1], area = { x: box.x - reach, y: box.y - reach, width: width + 2 * reach, height: height + 2 * reach };
-      const roomy = searched.filter(obstacle => plaquesOverlap(area, obstacle, gap + PLAQUE_SCAN_TEXT_EXTRA))
-        .map(obstacle => isTreeText(obstacle) ? grownObstacle(obstacle, PLAQUE_SCAN_TEXT_EXTRA) : obstacle);
-      const blocked = (candidate: PlaqueRect) => roomy.some(obstacle => plaquesOverlap(candidate, obstacle, gap));
-      if (!blocked(box)) return box;
-      let best: PlaqueRect | undefined, bestDistance = priorDistance;
-      for (const dx of NUDGES) for (const dy of NUDGES) {
-        if (!dx && !dy) continue;
-        const nudged = clear({ x: box.x + dx, y: box.y + dy, width, height }, blocked), distance = nudged && placementDistance(nudged);
-        if (nudged && distance! < bestDistance && !beyondNearbyReach(Math.sqrt(distance!), request)) {
-          best = nudged; bestDistance = distance!;
-        }
-      }
-      return best ?? box;
-    };
-    /** The nearest clear pocket beyond the fixed candidates. */
-    const scan = () => {
-      let placement: PlaqueRect | undefined = priorCandidate;
-      // Search the nearest clear pocket, including one just beyond the initial
-      // candidates. A radius cutoff would send a local claim below its subtree.
-      const scanGap = gap + 1e-6;
-      const sourceX = sourceRect ? sourceRect.x + sourceRect.width / 2 : anchor.x;
-      const horizontalGap = (x: number) => request.caseAssignment
-        ? Math.max(x - sourceX, sourceX - x - width, 0) : Math.abs(x + width / 2 - anchor.x);
-      const collectionSpace = request.collectionRows?.length && !space ? prepareCollectionPlaqueSpace(nodes, occupied) : undefined;
-      const connectorColumns = request.collectionRows?.length ? candidates.flatMap(box => {
-        const candidate = { ...box, collectionRows: request.collectionRows };
-        return (space?.connectorCandidateXs?.(candidate) ?? collectionSpace?.candidateXs(candidate) ?? [])
-          .flatMap(x => [x, x - 16, x + 16]);
-      }) : [];
-      const xs = [...new Set([...candidates.map(box => box.x), ...connectorColumns, ...searched.flatMap(box =>
-        [box.x - width - scanGap, box.x + box.width + scanGap])])]
-        .sort((a, b) => horizontalGap(a) - horizontalGap(b));
-      const columnIntervals = preparePlaqueColumnIntervals(searched, height, scanGap);
-      const idealY = request.caseAssignment ? anchorY + 163 - (request.caseRowY ?? 93) : anchorY - height / 2;
-      /** A closed range holding every height in column `x` whose squared
-       * distance can be below `bound`: that distance is at least the vertical
-       * part's, after the horizontal part that column fixes. The margin exceeds
-       * the rounding of these coordinates, so the range never excludes a lane. */
-      const improvingRange = (x: number, dx: number, bound: number): [number, number] | undefined => {
-        if (!Number.isFinite(bound)) return undefined;
-        if (!sourceRect) {
-          const reach = Math.sqrt(Math.max(0, bound - dx * dx)) + 1 + 1e-6 * (Math.sqrt(bound) + Math.abs(idealY));
-          return Number.isFinite(reach + idealY) ? [idealY - reach, idealY + reach] : undefined;
-        }
-        // caseAssignmentPlaqueCurve's side choice, target and possible sources.
-        const centerX = sourceRect.x + sourceRect.width / 2;
-        const side = centerX < x ? 'left' : centerX > x + width ? 'right' : 'vertical';
-        const targetX = side === 'left' ? x - 12 : x + width + 12;
-        const horizontal = side === 'vertical' ? 0 : Math.min(Math.abs(targetX - centerX),
-          Math.abs(targetX - (side === 'left' ? sourceRect.x + sourceRect.width + 8 : sourceRect.x - 8)));
-        const sourceYs = [sourceRect.y - 8, sourceRect.y + sourceRect.height / 2, sourceRect.y + sourceRect.height + 8];
-        const targetOffsets = side === 'vertical' ? [-12, height + 12] : [request.caseRowY ?? 93];
-        const scale = Math.sqrt(bound) + Math.abs(x) + width + height + Math.abs(sourceRect.x) + Math.abs(sourceRect.y)
-          + sourceRect.width + sourceRect.height;
-        const reach = Math.sqrt(Math.max(0, bound - horizontal * horizontal)) + 1 + 1e-6 * scale;
-        const low = Math.min(...sourceYs) - Math.max(...targetOffsets) - reach;
-        const high = Math.max(...sourceYs) - Math.min(...targetOffsets) + reach;
-        return Number.isFinite(low) && Number.isFinite(high) ? [low, high] : undefined;
+    const select = () => {
+      const priorClears = (prior: PlaquePlacement) => space ? space.acceptsConnector(prior)
+        : (!caseClears || caseClears(prior)) && collectionPlaqueClears(prior, nodes, occupied);
+      const clearPrior = (prior?: PlaquePlacement): PlaquePlacement | undefined => {
+        if (!prior || overlaps(prior)) return undefined;
+        if (!bendRoutes || !request.caseAssignment || !sourceRect || prior.caseRoute) return priorClears(prior) ? prior : undefined;
+        const drawn = { ...prior, width: request.drawnWidth ?? width, height: request.drawnHeight ?? height };
+        for (const caseRoute of caseAssignmentRoutes(sourceRect, drawn, prior.y + (request.caseRowY ?? 93)))
+          if (priorClears({ ...prior, caseRoute })) return { ...prior, caseRoute };
+        return undefined;
       };
-      // What every list of a column's lanes uses, whatever its bound.
-      type ColumnPrecursor = { x: number; dx: number; merged?: number[][]; hints?: number[]; arrows: Map<number, { chord: number; distance?: number }> };
-      // One column's lanes nearer than `bound`, nearest first, ties in the lane
-      // order of a scan of the columns in gap order. A larger bound only adds
-      // lanes after these, in the same order; `complete` when it adds none.
-      const columnLanes = (column: ColumnPrecursor, bound: number) => {
-        const { x, dx } = column;
-        const merged = column.merged ??= columnIntervals(x, width);
-        // One blocked interval covering every improving height leaves this
-        // column without lanes, so its connector hints need not be computed.
-        const range = improvingRange(x, dx, bound);
-        if (range && plaqueColumnCovers(merged, range[0], range[1])) return { lanes: [], complete: false };
-        let complete = true;
-        // The nearest box-sized gap can still put the curved approach through
-        // another label. Consider the remaining gap edges before falling below.
-        const candidate = { x, y: 0, width, height, collectionRows: request.collectionRows };
-        const rawConnectorLanes = column.hints ??= request.collectionRows?.length ? [
-          ...(space?.connectorCandidateYs?.(candidate) ?? collectionPlaqueCandidateYs(candidate, nodes, occupied)),
-          ...Array.from({ length: 33 }, (_, lane) => idealY + (lane - 16) * 40)
-        ] : [];
-        const lanes = new Set<number>();
-        // A Case arrow's squared chord, then its squared sampled length when first needed.
-        const arrow = (y: number, assigner: PlaqueRect) => {
-          let known = column.arrows.get(y);
-          if (!known) {
-            const route = caseAssignmentRankingCurve(assigner, { x, y, width, height }, y + (request.caseRowY ?? 93));
-            column.arrows.set(y, known = { chord: (route.target.x - route.source.x) ** 2 + (route.target.y - route.source.y) ** 2 });
+      const prior = clearPrior(priorCandidates.get(request.index));
+      const incumbent = clearPrior(incumbentPriors.get(request.index) ?? lifetime?.incumbents?.get(request.index));
+      const priorCandidate = incumbent && (!prior || placementDistance(incumbent) < placementDistance(prior)) ? incumbent : prior;
+      const priorDistance = priorCandidate ? placementDistance(priorCandidate) : Infinity;
+      const candidates = request.caseAssignment ? [70, 140, -height - 70].flatMap(dy =>
+        [anchor.x + 110, anchor.x - width - 110, anchor.x - width / 2]
+          .map(x => ({ x, y: anchorY + dy - ((request.caseRowY ?? 93) - 93), width, height })))
+        : local ? nearbyPocketTops(height)
+        .flatMap(dy => [anchor.x + nearbyPocketGap, anchor.x - width - nearbyPocketGap, anchor.x - width / 2]
+          .map(x => ({ x, y: anchorY + dy, width, height })))
+        .sort((a, b) => Math.hypot(a.x + width / 2 - anchor.x, a.y + height / 2 - anchorY)
+          - Math.hypot(b.x + width / 2 - anchor.x, b.y + height / 2 - anchorY)) : [];
+      let placement: PlaqueRect | undefined;
+      for (const candidate of candidates) {
+        placement = clear(candidate);
+        if (placement) break;
+      }
+      // A genuine participant relocation can make a valid old pocket unnecessarily
+      // remote. Keep it as an incumbent; unchanged geometry takes the carry path.
+      if (placement && priorCandidate && priorDistance <= placementDistance(placement)) placement = priorCandidate;
+      /** A scanned pocket slides flush against what blocks it. Nudged by up to
+       * twice PLAQUE_SCAN_TEXT_EXTRA, it keeps that much more than the gap from tree
+       * text, when such a pocket is clear, nearby and nearer than the prior pocket. */
+      const roomier = (box: PlaqueRect) => {
+        // Every obstacle that can block a nudge also blocks the area they cover, at the wider gap.
+        const reach = NUDGES[NUDGES.length - 1], area = { x: box.x - reach, y: box.y - reach, width: width + 2 * reach, height: height + 2 * reach };
+        const roomy = searched.filter(obstacle => plaquesOverlap(area, obstacle, gap + PLAQUE_SCAN_TEXT_EXTRA))
+          .map(obstacle => isTreeText(obstacle) ? grownObstacle(obstacle, PLAQUE_SCAN_TEXT_EXTRA) : obstacle);
+        const blocked = (candidate: PlaqueRect) => roomy.some(obstacle => plaquesOverlap(candidate, obstacle, gap));
+        if (!blocked(box)) return box;
+        let best: PlaqueRect | undefined, bestDistance = priorDistance;
+        for (const dx of NUDGES) for (const dy of NUDGES) {
+          if (!dx && !dy) continue;
+          const nudged = clear({ x: box.x + dx, y: box.y + dy, width, height }, blocked), distance = nudged && placementDistance(nudged);
+          if (nudged && distance! < bestDistance && !beyondNearbyReach(Math.sqrt(distance!), request)) {
+            best = nudged; bestDistance = distance!;
           }
-          return known;
-        };
-        const withinBound = (y: number) => {
-          if (!Number.isFinite(bound)) return true;
-          const dy = y - idealY;
-          if (!sourceRect) return dx * dx + dy * dy < bound;
-          return arrow(y, sourceRect).chord < bound;
-        };
-        // Heights outside the range, in or between blocked intervals, cannot improve.
-        const addLane = (y: number) => {
-          if (!Number.isFinite(y) || plaqueColumnContains(merged, y)) return;
-          if ((!range || y >= range[0] && y <= range[1]) && withinBound(y)) lanes.add(y); else complete = false;
-        };
-        addLane(idealY);
-        // A hint whose three lanes all fall outside the range cannot add one.
-        const hints = range ? rawConnectorLanes.filter(y => y >= range[0] - 17 && y <= range[1] + 17) : rawConnectorLanes;
-        if (hints.length < rawConnectorLanes.length) complete = false;
-        for (const y of new Set(hints)) {
-          addLane(y); addLane(y - 16); addLane(y + 16);
         }
-        for (const [low, high] of merged) { addLane(low); addLane(high); }
-        // Blocked heights and those not nearer than the bound never enter the
-        // sort. Surviving ties retain insertion order.
-        const ys = [...lanes]
-          .sort((a, b) => Math.abs(a - idealY) - Math.abs(b - idealY));
-        const ranked: Array<{ y: number; distance: number }> = [];
-        for (const y of ys) {
-          const dy = y - idealY;
-          let distance = dx * dx + dy * dy;
-          if (sourceRect) {
-            const known = arrow(y, sourceRect);
-            if (known.chord >= bound) { complete = false; continue; }
-            if (known.distance === undefined) {
-              const route = caseAssignmentRankingCurve(sourceRect, { x, y, width, height }, y + (request.caseRowY ?? 93));
-              const points = sampleCubic(route.source, route.control1, route.control2, route.target, 16);
-              known.distance = points.slice(1).reduce((length, point, i) =>
-                length + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0) ** 2;
+        return best ?? box;
+      };
+      /** The nearest clear pocket beyond the fixed candidates. */
+      const scan = () => {
+        let placement: PlaqueRect | undefined = priorCandidate;
+        // Search the nearest clear pocket, including one just beyond the initial
+        // candidates. A radius cutoff would send a local claim below its subtree.
+        const scanGap = gap + 1e-6;
+        const sourceX = sourceRect ? sourceRect.x + sourceRect.width / 2 : anchor.x;
+        const horizontalGap = (x: number) => request.caseAssignment
+          ? Math.max(x - sourceX, sourceX - x - width, 0) : Math.abs(x + width / 2 - anchor.x);
+        const collectionSpace = request.collectionRows?.length && !space ? prepareCollectionPlaqueSpace(nodes, occupied) : undefined;
+        const connectorColumns = request.collectionRows?.length ? candidates.flatMap(box => {
+          const candidate = { ...box, collectionRows: request.collectionRows };
+          return (space?.connectorCandidateXs?.(candidate) ?? collectionSpace?.candidateXs(candidate) ?? [])
+            .flatMap(x => [x, x - 16, x + 16]);
+        }) : [];
+        const xs = [...new Set([...candidates.map(box => box.x), ...connectorColumns, ...searched.flatMap(box =>
+          [box.x - width - scanGap, box.x + box.width + scanGap])])]
+          .sort((a, b) => horizontalGap(a) - horizontalGap(b));
+        const columnIntervals = preparePlaqueColumnIntervals(searched, height, scanGap);
+        const idealY = request.caseAssignment ? anchorY + 163 - (request.caseRowY ?? 93) : anchorY - height / 2;
+        /** A closed range holding every height in column `x` whose squared
+         * distance can be below `bound`: that distance is at least the vertical
+         * part's, after the horizontal part that column fixes. The margin exceeds
+         * the rounding of these coordinates, so the range never excludes a lane. */
+        const improvingRange = (x: number, dx: number, bound: number): [number, number] | undefined => {
+          if (!Number.isFinite(bound)) return undefined;
+          if (!sourceRect) {
+            const reach = Math.sqrt(Math.max(0, bound - dx * dx)) + 1 + 1e-6 * (Math.sqrt(bound) + Math.abs(idealY));
+            return Number.isFinite(reach + idealY) ? [idealY - reach, idealY + reach] : undefined;
+          }
+          // caseAssignmentPlaqueCurve's side choice, target and possible sources.
+          const centerX = sourceRect.x + sourceRect.width / 2;
+          const side = centerX < x ? 'left' : centerX > x + width ? 'right' : 'vertical';
+          const targetX = side === 'left' ? x - 12 : x + width + 12;
+          const horizontal = side === 'vertical' ? 0 : Math.min(Math.abs(targetX - centerX),
+            Math.abs(targetX - (side === 'left' ? sourceRect.x + sourceRect.width + 8 : sourceRect.x - 8)));
+          const sourceYs = [sourceRect.y - 8, sourceRect.y + sourceRect.height / 2, sourceRect.y + sourceRect.height + 8];
+          const targetOffsets = side === 'vertical' ? [-12, height + 12] : [request.caseRowY ?? 93];
+          const scale = Math.sqrt(bound) + Math.abs(x) + width + height + Math.abs(sourceRect.x) + Math.abs(sourceRect.y)
+            + sourceRect.width + sourceRect.height;
+          const reach = Math.sqrt(Math.max(0, bound - horizontal * horizontal)) + 1 + 1e-6 * scale;
+          const low = Math.min(...sourceYs) - Math.max(...targetOffsets) - reach;
+          const high = Math.max(...sourceYs) - Math.min(...targetOffsets) + reach;
+          return Number.isFinite(low) && Number.isFinite(high) ? [low, high] : undefined;
+        };
+        // What every list of a column's lanes uses, whatever its bound.
+        type ColumnPrecursor = { x: number; dx: number; merged?: number[][]; hints?: number[]; arrows: Map<number, { chord: number; distance?: number }> };
+        // One column's lanes nearer than `bound`, nearest first, ties in the lane
+        // order of a scan of the columns in gap order. A larger bound only adds
+        // lanes after these, in the same order; `complete` when it adds none.
+        const columnLanes = (column: ColumnPrecursor, bound: number) => {
+          const { x, dx } = column;
+          const merged = column.merged ??= columnIntervals(x, width);
+          // One blocked interval covering every improving height leaves this
+          // column without lanes, so its connector hints need not be computed.
+          const range = improvingRange(x, dx, bound);
+          if (range && plaqueColumnCovers(merged, range[0], range[1])) return { lanes: [], complete: false };
+          let complete = true;
+          // The nearest box-sized gap can still put the curved approach through
+          // another label. Consider the remaining gap edges before falling below.
+          const candidate = { x, y: 0, width, height, collectionRows: request.collectionRows };
+          const rawConnectorLanes = column.hints ??= request.collectionRows?.length ? [
+            ...(space?.connectorCandidateYs?.(candidate) ?? collectionPlaqueCandidateYs(candidate, nodes, occupied)),
+            ...Array.from({ length: 33 }, (_, lane) => idealY + (lane - 16) * 40)
+          ] : [];
+          const lanes = new Set<number>();
+          // A Case arrow's squared chord, then its squared sampled length when first needed.
+          const arrow = (y: number, assigner: PlaqueRect) => {
+            let known = column.arrows.get(y);
+            if (!known) {
+              const route = caseAssignmentPlaqueCurve(assigner, { x, y, width, height }, y + (request.caseRowY ?? 93));
+              column.arrows.set(y, known = { chord: (route.target.x - route.source.x) ** 2 + (route.target.y - route.source.y) ** 2 });
             }
-            distance = known.distance;
+            return known;
+          };
+          const withinBound = (y: number) => {
+            if (!Number.isFinite(bound)) return true;
+            const dy = y - idealY;
+            if (!sourceRect) return dx * dx + dy * dy < bound;
+            return arrow(y, sourceRect).chord < bound;
+          };
+          // Heights outside the range, in or between blocked intervals, cannot improve.
+          const addLane = (y: number) => {
+            if (!Number.isFinite(y) || plaqueColumnContains(merged, y)) return;
+            if ((!range || y >= range[0] && y <= range[1]) && withinBound(y)) lanes.add(y); else complete = false;
+          };
+          addLane(idealY);
+          // A hint whose three lanes all fall outside the range cannot add one.
+          const hints = range ? rawConnectorLanes.filter(y => y >= range[0] - 17 && y <= range[1] + 17) : rawConnectorLanes;
+          if (hints.length < rawConnectorLanes.length) complete = false;
+          for (const y of new Set(hints)) {
+            addLane(y); addLane(y - 16); addLane(y + 16);
           }
-          if (distance >= bound) complete = false;
-          if (!request.caseAssignment && distance >= bound) break;
-          if (distance < bound) ranked.push({ y, distance });
-        }
-        // Box distances already ascend with the height offset; arrow lengths need not.
-        return { lanes: sourceRect ? ranked.sort((a, b) => a.distance - b.distance) : ranked, complete };
-      };
-      // The claim keeps the pocket a scan of the columns in gap order keeps:
-      // the nearest accepted before the first column whose squared gap reaches
-      // the best distance so far. That gap bounds every box distance in its
-      // column, but a Case arrow, which can leave the side of its source, can
-      // be shorter. Ranking each pocket by the larger of its squared distance
-      // and its column's squared gap, then by column, distance and lane, makes
-      // the first accepted pocket in that order the scan's, so no farther one
-      // is checked. A column lists only the lanes within a few times its rank
-      // and lists more once those are checked.
-      type PocketColumn = ColumnPrecursor & { index: number; gap: number; key: number; lanes: Array<{ y: number; distance: number }>; listed: number; next: number };
-      const columns = createMinQueue<PocketColumn>((a, b) => a.key - b.key || a.index - b.index);
-      let opened = 0, checks = 0;
-      for (;;) {
-        for (let nearest = columns.peek(); opened < xs.length; opened++) {
-          const dx = horizontalGap(xs[opened]), gap = dx * dx;
-          if (gap >= priorDistance) { opened = xs.length; break; }
-          if (nearest && gap > nearest.key) break;
-          columns.push({ index: opened, x: xs[opened], dx, gap, key: gap, lanes: [], listed: 0, next: 0, arrows: new Map() });
-          nearest = columns.peek();
-        }
-        const column = columns.pop();
-        if (!column || column.key >= priorDistance) break;
-        if (column.next === column.lanes.length) {
-          // A longer list repeats the lanes already checked first.
-          const bound = Math.min(priorDistance, Math.max(4 * column.key, column.key + POCKET_LANE_REACH ** 2));
-          const { lanes, complete } = columnLanes(column, bound);
-          column.lanes = lanes; column.listed = complete ? Infinity : bound;
-        } else {
-          const { y } = column.lanes[column.next++];
-          if (checks++ === LOCAL_POCKET_CHECK_LIMIT) break;
-          const box = clear({ x: column.x, y, width, height });
-          if (box) { placement = box; break; }
-        }
-        if (column.next < column.lanes.length) column.key = Math.max(column.gap, column.lanes[column.next].distance);
-        else if (column.listed < priorDistance) column.key = Math.max(column.gap, column.listed);
-        else continue;
-        columns.push(column);
-      }
-      return placement;
-    };
-    if (!placement && local) {
-      const scanned = scan();
-      placement = scanned && scanned !== priorCandidate ? roomier(scanned) : scanned;
-    }
-    placement ??= priorCandidate;
-    // Leaving an incumbent needs a clearly nearer pocket: a nearby one when the
-    // incumbent is not nearby, or one within MIN_RELOCATION_GAIN of its distance.
-    if (incumbent && placement && placement !== incumbent) {
-      const fresh = Math.sqrt(placementDistance(placement)), kept = Math.sqrt(placementDistance(incumbent));
-      if (fresh > MIN_RELOCATION_GAIN * kept && (beyondNearbyReach(fresh, request) || !beyondNearbyReach(kept, request)))
-        placement = incumbent;
-    }
-    const kept = [priorCandidate, incumbent].find(box => box && box === placement);
-    const location = placement ? kept ? kept.location : 'local' : 'below';
-    if (!placement) {
-      // A connector's lower lane clears all plaques, so its stems extend past
-      // every below-tree plaque. Each column clear of the stems descends past
-      // its own collisions; the landing nearest the subtree's ideal spot wins,
-      // so a blocked column cannot send the plaque down through unrelated syntax.
-      const idealX = domainBounds.x + domainBounds.width / 2 - width / 2;
-      const top = domainBounds.y + domainBounds.height + 60;
-      const stems = occupied.filter(box => box.extendsDownward);
-      const gap = 24 + 1e-6;
-      const descend = (x: number): number => {
-        let y = top;
+          for (const [low, high] of merged) { addLane(low); addLane(high); }
+          // Blocked heights and those not nearer than the bound never enter the
+          // sort. Surviving ties retain insertion order.
+          const ys = [...lanes]
+            .sort((a, b) => Math.abs(a - idealY) - Math.abs(b - idealY));
+          const ranked: Array<{ y: number; distance: number }> = [];
+          for (const y of ys) {
+            const dy = y - idealY;
+            let distance = dx * dx + dy * dy;
+            if (sourceRect) {
+              const known = arrow(y, sourceRect);
+              if (known.chord >= bound) { complete = false; continue; }
+              if (known.distance === undefined) {
+                const route = caseAssignmentPlaqueCurve(sourceRect, { x, y, width, height }, y + (request.caseRowY ?? 93));
+                const points = sampleCubic(route.source, route.control1, route.control2, route.target, 16);
+                known.distance = points.slice(1).reduce((length, point, i) =>
+                  length + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0) ** 2;
+              }
+              distance = known.distance;
+            }
+            if (distance >= bound) complete = false;
+            if (!request.caseAssignment && distance >= bound) break;
+            if (distance < bound) ranked.push({ y, distance });
+          }
+          // Box distances already ascend with the height offset; arrow lengths need not.
+          return { lanes: sourceRect ? ranked.sort((a, b) => a.distance - b.distance) : ranked, complete };
+        };
+        // The claim keeps the pocket a scan of the columns in gap order keeps:
+        // the nearest accepted before the first column whose squared gap reaches
+        // the best distance so far. That gap bounds every box distance in its
+        // column, but a Case arrow, which can leave the side of its source, can
+        // be shorter. Ranking each pocket by the larger of its squared distance
+        // and its column's squared gap, then by column, distance and lane, makes
+        // the first accepted pocket in that order the scan's, so no farther one
+        // is checked. A column lists only the lanes within a few times its rank
+        // and lists more once those are checked.
+        type PocketColumn = ColumnPrecursor & { index: number; gap: number; key: number; lanes: Array<{ y: number; distance: number }>; listed: number; next: number };
+        const columns = createMinQueue<PocketColumn>((a, b) => a.key - b.key || a.index - b.index);
+        let opened = 0, checks = 0;
         for (;;) {
-          const collisions = occupied.filter(obstacle => plaquesOverlap({ x, y, width, height }, obstacle));
-          if (!collisions.length) return y;
-          y = Math.max(...collisions.map(obstacle => obstacle.y + obstacle.height)) + 32;
+          for (let nearest = columns.peek(); opened < xs.length; opened++) {
+            const dx = horizontalGap(xs[opened]), gap = dx * dx;
+            if (gap >= priorDistance) { opened = xs.length; break; }
+            if (nearest && gap > nearest.key) break;
+            columns.push({ index: opened, x: xs[opened], dx, gap, key: gap, lanes: [], listed: 0, next: 0, arrows: new Map() });
+            nearest = columns.peek();
+          }
+          const column = columns.pop();
+          if (!column || column.key >= priorDistance) break;
+          if (column.next === column.lanes.length) {
+            // A longer list repeats the lanes already checked first.
+            const bound = Math.min(priorDistance, Math.max(4 * column.key, column.key + POCKET_LANE_REACH ** 2));
+            const { lanes, complete } = columnLanes(column, bound);
+            column.lanes = lanes; column.listed = complete ? Infinity : bound;
+          } else {
+            const { y } = column.lanes[column.next++];
+            if (checks++ === LOCAL_POCKET_CHECK_LIMIT) break;
+            const box = clear({ x: column.x, y, width, height });
+            if (box) { placement = box; break; }
+          }
+          if (column.next < column.lanes.length) column.key = Math.max(column.gap, column.lanes[column.next].distance);
+          else if (column.listed < priorDistance) column.key = Math.max(column.gap, column.listed);
+          else continue;
+          columns.push(column);
         }
+        return placement;
       };
-      const columns = [idealX, ...stems.flatMap(box => [box.x - width - gap, box.x + box.width + gap])]
-        .filter(x => stems.every(box => x + width + 24 <= box.x || x >= box.x + box.width + 24))
-        .sort((a, b) => Math.abs(a - idealX) - Math.abs(b - idealX) || a - b);
-      let best = { x: columns[0], y: Infinity, distance: Infinity };
-      for (const x of columns) {
-        // Columns are sorted by horizontal distance, a lower bound on the rest.
-        if (Math.abs(x - idealX) >= best.distance) break;
-        const y = descend(x);
-        const distance = Math.hypot(x - idealX, y - top);
-        if (distance < best.distance) best = { x, y, distance };
+      if (!placement && local) {
+        const scanned = scan();
+        placement = scanned && scanned !== priorCandidate ? roomier(scanned) : scanned;
       }
-      placement = attach({ x: best.x, y: best.y, width, height }, request);
-    }
-    const attachment = anchor;
-    let chosen: PlaquePlacement = { ...placement, location, domainId: idOf(domain),
-      ...(request.scrollHeight ? { scrollHeight: request.scrollHeight } : {}),
-      attachmentNodeId: idOf(attachment), attachmentX: attachment.x, attachmentY: attachment.y };
-    const shorter = lifetime?.relocate?.(request.index, anchor, result, chosen);
-    if (shorter) {
-      chosen = placeStagePlaques(items, nodes, obstacles, new Map(), measureText, { sizes: lifetime!.sizes,
-        includes: index => index === request.index, incumbents: new Map([[request.index, chosen]]),
-        spaceFor: () => shorter, caseSources }).get(request.index) ?? chosen;
-      placement = chosen;
+      placement ??= priorCandidate;
+      // Leaving an incumbent needs a clearly nearer pocket: a nearby one when the
+      // incumbent is not nearby, or one within MIN_RELOCATION_GAIN of its distance.
+      if (incumbent && placement && placement !== incumbent) {
+        const fresh = Math.sqrt(placementDistance(placement)), kept = Math.sqrt(placementDistance(incumbent));
+        if (fresh > MIN_RELOCATION_GAIN * kept && (beyondNearbyReach(fresh, request) || !beyondNearbyReach(kept, request)))
+          placement = incumbent;
+      }
+      const kept = [priorCandidate, incumbent].find(box => box && box === placement);
+      const location = placement ? kept ? kept.location : 'local' : 'below';
+      if (!placement) {
+        // A connector's lower lane clears all plaques, so its stems extend past
+        // every below-tree plaque. Each column clear of the stems descends past
+        // its own collisions; the landing nearest the subtree's ideal spot wins,
+        // so a blocked column cannot send the plaque down through unrelated syntax.
+        const idealX = domainBounds.x + domainBounds.width / 2 - width / 2;
+        const top = domainBounds.y + domainBounds.height + 60;
+        const stems = occupied.filter(box => box.extendsDownward);
+        const gap = 24 + 1e-6;
+        const descend = (x: number): number => {
+          let y = top;
+          for (;;) {
+            const collisions = occupied.filter(obstacle => plaquesOverlap({ x, y, width, height }, obstacle));
+            if (!collisions.length) return y;
+            y = Math.max(...collisions.map(obstacle => obstacle.y + obstacle.height)) + 32;
+          }
+        };
+        const columns = [idealX, ...stems.flatMap(box => [box.x - width - gap, box.x + box.width + gap])]
+          .filter(x => stems.every(box => x + width + 24 <= box.x || x >= box.x + box.width + 24))
+          .sort((a, b) => Math.abs(a - idealX) - Math.abs(b - idealX) || a - b);
+        let best = { x: columns[0], y: Infinity, distance: Infinity };
+        for (const x of columns) {
+          // Columns are sorted by horizontal distance, a lower bound on the rest.
+          if (Math.abs(x - idealX) >= best.distance) break;
+          const y = descend(x);
+          const distance = Math.hypot(x - idealX, y - top);
+          if (distance < best.distance) best = { x, y, distance };
+        }
+        placement = attach({ x: best.x, y: best.y, width, height }, request);
+      }
+      const attachment = anchor;
+      let chosen: PlaquePlacement = { ...placement, location, domainId: idOf(domain),
+        ...(request.scrollHeight ? { scrollHeight: request.scrollHeight } : {}),
+        attachmentNodeId: idOf(attachment), attachmentX: attachment.x, attachmentY: attachment.y };
+      const shorter = lifetime?.relocate?.(request.index, anchor, result, chosen);
+      if (shorter) {
+        chosen = placeStagePlaques(items, nodes, obstacles, new Map(), measureText, { sizes: lifetime!.sizes,
+          includes: index => index === request.index, incumbents: new Map([[request.index, chosen]]),
+          spaceFor: () => shorter, caseSources }).get(request.index) ?? chosen;
+        placement = chosen;
+      }
+      return { chosen, placement };
+    };
+    let { chosen, placement } = select();
+    // The plain arrow stays wherever it bends visibly in every scene it is
+    // drawn in; only one that clears there but runs too straight is re-placed.
+    if (request.caseAssignment && !chosen.caseRoute && !accepts({ ...chosen, caseRoute: PLAIN_CASE_ROUTE }) && accepts(chosen)) {
+      bendRoutes = true;
+      ({ chosen, placement } = select());
     }
     result.set(request.index, chosen);
     placed.push({ ...placement, blocksConnectors: true },
