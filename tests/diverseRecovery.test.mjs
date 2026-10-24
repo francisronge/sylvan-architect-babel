@@ -121,7 +121,7 @@ test('focus association uses explicit operators and restrictions without interpr
   }
 });
 
-test('nested phrasal landings attach atomically without an extra authored stage or reordered relations', () => {
+test('nested phrasal landings attach atomically without an extra authored stage, the outer after the inner', () => {
   const example = examples.find(e => e.id === 'astra-hungarian-focus-particle');
   for (const rename of [false, true]) {
     const original = structuredClone(example);
@@ -136,17 +136,19 @@ test('nested phrasal landings attach atomically without an extra authored stage 
       }
     }
     const { playbackSteps: steps } = prepareReplay({ ...example, derivationStages: stages, includePlayback: true });
+    // The topicalization's new parent attaches to the focus phrase the focus movement creates, so it plays after it.
     const moves = steps.filter(s => ['object topicalization', 'subject focus movement'].includes(s.operation));
-    assert.deepEqual(moves.map(s => s.operation), ['object topicalization', 'subject focus movement']);
+    assert.deepEqual(moves.map(s => s.operation), ['subject focus movement', 'object topicalization']);
     assert(!steps.some(s => s.movementDiagnostics?.some(d => d.includes('TIMING_CONFLICT'))));
-    for (const step of moves) {
-      const visible = new Set(step.replayVisibleNodeIds), top = walk(step.replayCanvasData).find(n => n.id === id('topPhrase'));
-      const connected = n => visible.has(n.id) ? [n.id, ...(n.children ?? []).flatMap(connected)] : [];
-      for (const name of ['objectTopic', 'topBar', 'focusPhrase', 'focusBar', 'ip']) assert(connected(top).includes(id(name)), name);
-    }
-    assert(!moves[0].replayVisibleNodeIds.includes(id('subjectFocus')));
-    assert(moves[0].replayVisibleNodeIds.includes(id('subject0')));
-    assert(moves[1].replayVisibleNodeIds.includes(id('subjectFocus')));
+    const connected = (step, rootId) => {
+      const visible = new Set(step.replayVisibleNodeIds), root = walk(step.replayCanvasData).find(n => n.id === id(rootId));
+      const below = n => visible.has(n.id) ? [n.id, ...(n.children ?? []).flatMap(below)] : [];
+      return root ? below(root) : [];
+    };
+    for (const name of ['subjectFocus', 'focusBar', 'ip']) assert(connected(moves[0], 'focusPhrase').includes(id(name)), name);
+    assert(!moves[0].replayVisibleNodeIds.includes(id('topPhrase')), 'the topic phrase waits for its own movement');
+    assert(!moves[0].replayVisibleNodeIds.includes(id('objectTopic')));
+    for (const name of ['objectTopic', 'topBar', 'focusPhrase', 'subjectFocus', 'focusBar', 'ip']) assert(connected(moves[1], 'topPhrase').includes(id(name)), name);
     assert.deepEqual(example, original);
   }
 });
