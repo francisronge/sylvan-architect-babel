@@ -392,6 +392,26 @@ export type NodePlaquePlanItem = PlanItemBase & {
   realizationRowKinds?: Array<'rewrite' | 'literal'>;
   /** Exact authored moment that introduces each row; null means the owner relation. */
   rowRefs?: Array<PlanRelationRef | null>;
+  /** The authored realization group this plate shows (realizationDisplay.ts). It is
+   * revealed while Replay holds the group active, never by its relation reference. */
+  realization?: PlanRealization;
+};
+
+
+/** One moment of a stage: an authored relation's moment, or its Stage Record (`relationIndex: null`). */
+export type PlanStageMoment = { stageIndex: number; relationIndex: number | null };
+
+/** The reference of a mark the Stage Record owns because no single authored relation
+ * does; no authored relation has this index, so no relation moment focuses the mark. */
+export const STAGE_RECORD_RELATION_INDEX = -1;
+
+export type PlanRealization = {
+  nodeIds: string[];
+  tokenIndices: number[];
+  /** Where Replay makes the group active (realizationReplay.ts). */
+  activatedAt: PlanStageMoment;
+  /** Where a later change of the same input replaces or removes it. */
+  retiredAt?: PlanStageMoment;
 };
 
 
@@ -675,14 +695,24 @@ export const planItemDependencyNodeIds = (item: RelationPlanItem): string[] => {
  * identity; callers pass the set of authored relation indices whose moments
  * have actually played in this frame (null = the committed, non-animated
  * view). Neutral marks require the exact current relation moment, including
- * any coalesced owner. All items remain in the plan for stable layout reservation.
+ * any coalesced owner. `stageRecord` is true at the frame's Stage Record step,
+ * where an association no single relation owns becomes active. All items
+ * remain in the plan for stable layout reservation.
  */
 export const isPlanItemRevealed = (
   item: RelationPlanItem,
   frameIndex: number,
   playedRelationIndices: ReadonlySet<number> | null,
-  activeRelationIndex: number | null = null
+  activeRelationIndex: number | null = null,
+  stageRecord = false
 ): boolean => {
+  if (item.kind === 'node-plaque' && item.realization) {
+    const reached = ({ stageIndex, relationIndex }: PlanStageMoment) => stageIndex < frameIndex
+      || stageIndex === frameIndex && (playedRelationIndices === null
+        || (relationIndex === null ? stageRecord : playedRelationIndices.has(relationIndex)));
+    const { activatedAt, retiredAt } = item.realization;
+    return reached(activatedAt) && !(retiredAt && reached(retiredAt));
+  }
   if (playedRelationIndices === null) return !item.supersededAt;
   if (item.supersededAt?.stageIndex === frameIndex
     && playedRelationIndices.has(item.supersededAt.relationIndex)) return false;

@@ -348,8 +348,8 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
   const placements = projectPlaqueLayout(camera.selectReplayPlaqueLayout(schedule, stage, stepIndex), id => laidOut.get(id) ?? null);
   const items = projectVisibleAnchorSetOrganization(plan.frames[stage].items.map(item => resolveDisplayedTrajectoryAttachments(
     projectThetaGrid(item, stage, played), id => overlay.get(id)?.data, { stageIndex: stage, playedRelationIndices: played })),
-  item => isPlanItemRevealed(item, stage, played, active) && planItemDependencyNodeIds(item).every(id => Boolean(resolveOverlayAnchor(id))));
-  const revealed = new Set(items.flatMap((item, index) => isPlanItemRevealed(item, stage, played, active) ? [index] : []));
+  item => isPlanItemRevealed(item, stage, played, active, step.replayKind === 'macro') && planItemDependencyNodeIds(item).every(id => Boolean(resolveOverlayAnchor(id))));
+  const revealed = new Set(items.flatMap((item, index) => isPlanItemRevealed(item, stage, played, active, step.replayKind === 'macro') ? [index] : []));
   const shown = index => revealed.has(index) && planItemDependencyNodeIds(items[index]).every(id => Boolean(resolveOverlayAnchor(id)));
   const visiblePlacements = [...placements].filter(([index]) => items[index] && shown(index));
   const plaques = visiblePlacements.map(([index, box]) => ({ ...plaqueRecord(items[index], box, laidOut.get(box.attachmentNodeId)),

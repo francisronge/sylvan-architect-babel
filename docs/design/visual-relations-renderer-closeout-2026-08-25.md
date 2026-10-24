@@ -1038,6 +1038,18 @@ A pronunciation transfer can have its own later relation moment when
 exact pronounced/unpronounced anchors, lineage and authored pronunciation states
 prove ownership; movement and pronunciation remain separate operations.
 
+A realization group whose sentence text its pronounced leaves do not spell, by
+the spelling check's caseless comparison, is drawn with the PF realization
+plate: its contributors' words rewritten as the realized text (`do → did`),
+anchored on the group's occurrences (`replay/realizationDisplay.ts`). The plate
+shows exactly while Replay holds the group active: from its owning relation's
+moment, or from the Stage Record when no single relation owns the change or
+that moment cannot show it, and in the Canopy for the final stage. A relation's
+own realization, spell-out or correspondence plate on the same syntax that
+already shows the text, in one value or across one label's rows, draws instead.
+When no relation owns the plate, the Stage Record does
+(`STAGE_RECORD_RELATION_INDEX`), and no relation moment focuses it.
+
 An unchanged enclosing rewrite domain is context only when its changed terminals are proved
 rewrite outputs and every other terminal is an explicit unchanged conditioner.
 These proofs do not consume an independent PF or input-association assertion.

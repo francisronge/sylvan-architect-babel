@@ -1,0 +1,93 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+import { prepareReplay } from '../replay/prepareReplay.ts';
+import { isPlanItemRevealed } from '../replay/relations/renderPlan.ts';
+
+/** Every realization-style plate each Replay step reveals, as the renderer selects it. */
+const platesPerStep = prepared => {
+  const played = new Map();
+  return prepared.playbackSteps.map(step => {
+    const stage = step.replayFrameIndex;
+    if (!played.has(stage)) played.set(stage, new Set());
+    const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
+    if (identity?.stageIndex === stage) played.get(stage).add(identity.relationIndex);
+    return { step, plates: (prepared.relationRenderPlan.frames[stage]?.items ?? []).filter(item => item.kind === 'node-plaque'
+      && item.plaqueStyle === 'realization'
+      && isPlanItemRevealed(item, stage, played.get(stage), identity?.relationIndex ?? null, step.replayKind === 'macro')) };
+  });
+};
+const canopyPlates = plan => {
+  const frame = plan.frames.at(-1);
+  return frame.items.filter(item => item.kind === 'node-plaque' && item.plaqueStyle === 'realization'
+    && isPlanItemRevealed(item, frame.stageIndex, null));
+};
+const text = item => item.rows.map(row => row.label ? `${row.label} → ${row.value}` : row.value).join(' / ');
+
+const leaf = (id, label, word, extra = {}) => ({ id, label, word, ...extra });
+const forest = [{ id: 'tp', label: 'TP', children: [
+  { id: 'dp', label: 'DP', children: [leaf('mia', 'N', 'Mia')] },
+  { id: 'tbar', label: "T'", children: [
+    { id: 'vt', label: 'T', children: [leaf('go', 'V', 'go'), leaf('past', 'T', 'past', { silent: true })] },
+    { id: 'np', label: 'NP', children: [leaf('home', 'N', 'home')] }
+  ] }
+] }];
+const stage = (relations, realizations) => ({ statement: 'Authored stage', stageRecord: 'The authored analysis.',
+  workspaceForest: forest, relations, ...(realizations ? { realizations } : {}) });
+const association = (name, ids) => ({ relation: name, anchors: { participants: ids } });
+const record = relations => ({ sentence: 'Mia went home.', inputTokens: ['Mia', 'went', 'home'], includePlayback: true,
+  derivationStages: [stage([]), stage(relations, [{ nodeIds: ['vt'], tokenIndices: [1] }, { nodeIds: ['mia'], tokenIndices: [0] }])] });
+
+test('a realized form its leaves do not spell is drawn at its owner moment, persists and reaches the Canopy', () => {
+  const prepared = prepareReplay(record([association('Clause typing', ['tp']), association('Tense realization', ['vt'])]));
+  const steps = platesPerStep(prepared);
+  const owner = steps.findIndex(({ step }) => step.replayKind === 'relation' && step.replayFrameIndex === 1
+    && step.replayRelationIdentity.relationIndex === 1);
+  assert(owner > 0);
+  steps.forEach(({ plates }, index) => assert.deepEqual(plates.map(text), index < owner ? [] : ['go → went'], `step ${index + 1}`));
+  assert.deepEqual(steps[owner].plates[0].anchorNodeIds, ['vt']);
+  assert.equal(steps[owner].plates[0].relationRef.relationIndex, 1, 'the owning relation focuses its plate');
+  // The group whose leaves spell its text ("Mia") draws nothing.
+  assert.deepEqual(canopyPlates(prepareReplay({ ...record([association('Clause typing', ['tp']),
+    association('Tense realization', ['vt'])]), includePlayback: false }).relationRenderPlan).map(text), ['go → went']);
+});
+
+test('an association no single relation owns is drawn from its Stage Record', () => {
+  const prepared = prepareReplay(record([association('Tense lowering', ['vt']), association('Tense realization', ['vt'])]));
+  const steps = platesPerStep(prepared);
+  const firstShown = steps.findIndex(({ plates }) => plates.length);
+  assert(firstShown >= 0, 'the realized form is drawn');
+  assert.equal(steps[firstShown].step.replayKind, 'macro');
+  assert.equal(steps[firstShown].step.replayFrameIndex, 1);
+  assert.deepEqual(steps[firstShown].plates.map(text), ['go → went']);
+  assert.deepEqual(steps[firstShown].step.replayRealizations.find(group => group.nodeIds.includes('vt')), { nodeIds: ['vt'], tokenIndices: [1] },
+    'the plate shows exactly when Replay makes the association active');
+  assert(steps.slice(0, firstShown).every(({ step }) => !step.replayRealizations?.some(group => group.nodeIds.includes('vt'))));
+});
+
+test('do-support shows "did" from the Stage Record without duplicating the plate a relation draws for "left"', () => {
+  const fixture = JSON.parse(readFileSync(new URL('../fixtures/showcase/scope-ellipsis-coordination.json', import.meta.url), 'utf8')).cases[3];
+  assert.equal(fixture.sentence, 'John left, and Mary did too.');
+  const prepared = prepareReplay({ derivationStages: fixture.derivationStages, sentence: fixture.sentence,
+    inputTokens: fixture.inputTokens, includePlayback: true });
+  const steps = platesPerStep(prepared);
+  const final = steps.at(-1);
+  assert.equal(final.step.replayKind, 'macro');
+  const did = final.plates.filter(item => item.realization);
+  assert.deepEqual(did.map(text), ['do → did']);
+  assert.deepEqual(did[0].anchorNodeIds, ['maux']);
+  assert(steps.filter(({ step }) => step.replayFrameIndex === 2 && step.replayKind !== 'macro')
+    .every(({ plates }) => !plates.some(item => item.realization)), 'unresolved ownership waits for the Stage Record');
+  // "left" is already drawn by the relation's own PF realization plate: one plate, not two.
+  const onLeft = canopyPlates(prepared.relationRenderPlan).filter(item => item.anchorNodeIds.includes('jcomplex'));
+  assert.equal(onLeft.length, 1);
+  assert.equal(onLeft[0].realization, undefined);
+  assert.deepEqual(canopyPlates(prepared.relationRenderPlan).filter(item => item.realization).map(text), ['do → did']);
+});
+
+test('realized text is the sentence stretch at the word-list positions', async () => {
+  const { realizedInputText } = await import('../replay/realizationDisplay.ts');
+  assert.equal(realizedInputText([4], 'John left, and Mary did too.', ['John', 'left', 'and', 'Mary', 'did', 'too']), 'did');
+  assert.equal(realizedInputText([0, 1, 2], '読んだ本', ['読', 'ん', 'だ', '本']), '読んだ');
+  assert.equal(realizedInputText([0, 2], 'a b c', ['a', 'b', 'c']), 'a … c');
+});

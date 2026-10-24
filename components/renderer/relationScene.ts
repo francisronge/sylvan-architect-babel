@@ -63,6 +63,8 @@ interface RelationSceneContext {
   replayVisibleNodeIdSet: Set<string> | null;
   playedRelationIndices: Set<number> | null;
   activeRelationMoment: { stageIndex: number; relationIndex: number } | null;
+  /** The current step is its stage's Stage Record. */
+  stageRecordShown: boolean;
   svgRef: { current: SVGSVGElement | null };
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   animated: boolean;
@@ -92,6 +94,7 @@ export function paintRelationScene({
   replayVisibleNodeIdSet,
   playedRelationIndices,
   activeRelationMoment,
+  stageRecordShown,
   svgRef,
   svg,
   animated,
@@ -204,12 +207,12 @@ export function paintRelationScene({
         resolveDisplayedTrajectoryAttachments(projectThetaGrid(item, activeDerivationFrameIndex, playedRelationIndices), (nodeId) => overlayNodeById.get(nodeId)?.data,
           { stageIndex: activeDerivationFrameIndex, playedRelationIndices })),
       item => isPlanItemRevealed(item, activeDerivationFrameIndex, playedRelationIndices,
-        activeRelationMoment?.relationIndex ?? null)
+        activeRelationMoment?.relationIndex ?? null, stageRecordShown)
         && planItemDependencyNodeIds(item).every(id => Boolean(resolveOverlayAnchor(id))));
     const revealedItemIndices = new Set<number>();
     frameItems.forEach((planItem, planItemIndex) => {
       const revealed = isPlanItemRevealed(planItem, activeDerivationFrameIndex,
-        playedRelationIndices, activeRelationMoment?.relationIndex ?? null);
+        playedRelationIndices, activeRelationMoment?.relationIndex ?? null, stageRecordShown);
       if (revealed) revealedItemIndices.add(planItemIndex);
     });
     const displayedRelationPlan = {

@@ -683,7 +683,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     const revealed = () => revealedItems ??= (() => {
       const visibleIds = step.replayVisibleNodeIds && new Set(step.replayVisibleNodeIds);
       const drawable = (id: string) => byId.get(id)?.descendants().some(node => !visibleIds || visibleIds.has(String((node as any).__vizId ?? node.data.id)));
-      return items.flatMap((item, index) => isPlanItemRevealed(item, phase.stageIndex, playedNow, active)
+      return items.flatMap((item, index) => isPlanItemRevealed(item, phase.stageIndex, playedNow, active, step.replayKind === 'macro')
         && planItemDependencyNodeIds(item).every(drawable) ? [index] : []);
     })();
     const shown = () => shownItems ??= new Set(revealed().filter(index => scheduled.has(index)));

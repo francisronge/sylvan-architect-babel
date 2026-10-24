@@ -71,7 +71,7 @@ const syntaxIds = (forest: readonly SyntaxNode[]): Set<string> => {
   return ids;
 };
 
-interface RealizationChange {
+export interface RealizationChange {
   before: SurfaceRealization[];
   after: SurfaceRealization[];
   relationIndex: number | null;
@@ -477,6 +477,32 @@ const missingSourceDomainIds = (
   return [...missing];
 };
 
+type StageRealizationChanges = (stageIndex: number) => RealizationChange[];
+const resolvedStages = new WeakMap<readonly ReplayDerivationFrame[], { tokens: string; changes: StageRealizationChanges }>();
+
+/** Each stage's realization changes with their owners, resolved once per analysis: Replay's
+ * association state and the drawings of realized forms read the same resolution. */
+export const stageRealizationChanges = (
+  frames: readonly ReplayDerivationFrame[],
+  inputTokens?: readonly string[]
+): StageRealizationChanges => {
+  const tokens = JSON.stringify(inputTokens ?? null), cached = resolvedStages.get(frames);
+  if (cached?.tokens === tokens) return cached.changes;
+  let structural: ReturnType<typeof structuralMovementUpgrades> | undefined;
+  const byStage = new Map<number, RealizationChange[]>();
+  const changes: StageRealizationChanges = stageIndex => {
+    if (!byStage.has(stageIndex)) {
+      structural ??= structuralMovementUpgrades(frames.map(frame => ({ workspaceForest: frame.workspaceForest ?? [],
+        relations: frame.relations ?? [], realizations: frame.after?.realizations })));
+      byStage.set(stageIndex, resolveRealizationChanges(frames[stageIndex - 1], frames[stageIndex], stageIndex,
+        inputTokens, structural?.[stageIndex]));
+    }
+    return byStage.get(stageIndex)!;
+  };
+  resolvedStages.set(frames, { tokens, changes });
+  return changes;
+};
+
 /** Attach authored association state after scheduling; it cannot alter tree geometry or add moments. */
 export const attachReplayRealizations = (
   steps: PlaybackStep[],
@@ -487,8 +513,7 @@ export const attachReplayRealizations = (
   const moments = new Set(steps.filter(step => step.replayKind === 'relation' && step.replayRelationIdentity)
     .map(step => `${step.replayRelationIdentity!.stageIndex}:${step.replayRelationIdentity!.relationIndex}`));
   const changesByStage = new Map<number, RealizationChange[]>();
-  const structural = structuralMovementUpgrades(frames.map(frame => ({ workspaceForest: frame.workspaceForest ?? [],
-    relations: frame.relations ?? [], realizations: frame.after?.realizations })));
+  const resolved = stageRealizationChanges(frames, inputTokens);
   const states = new Map<number, SurfaceRealization[]>();
   const diagnostics = new Map<number, string[]>();
   return steps.map(step => {
@@ -496,7 +521,7 @@ export const attachReplayRealizations = (
     if (stageIndex === undefined || !frames[stageIndex]) return step;
     const frame = frames[stageIndex];
     if (!changesByStage.has(stageIndex)) {
-      const changes = resolveRealizationChanges(frames[stageIndex - 1], frame, stageIndex, inputTokens, structural?.[stageIndex]);
+      const changes = resolved(stageIndex);
       changesByStage.set(stageIndex, changes);
       states.set(stageIndex, cloneRealizations(frames[stageIndex - 1]?.after?.realizations || []));
       diagnostics.set(stageIndex, changes.flatMap(change => {

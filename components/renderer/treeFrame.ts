@@ -76,6 +76,7 @@ type FrameRelations = Pick<Parameters<typeof paintRelationScene>[0],
   | 'relationRenderPlan'
   | 'playedRelationIndices'
   | 'activeRelationMoment'
+  | 'stageRecordShown'
   | 'acceptedCompositionIsTreeFirst'
 >;
 interface FrameCamera extends Pick<CameraSession,
@@ -139,6 +140,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     relationRenderPlan,
     playedRelationIndices,
     activeRelationMoment,
+    stageRecordShown,
     acceptedCompositionIsTreeFirst
   } = relations;
   const { zoomBehavior, cameraAnimationRef, manualCameraRef, data, derivationStagesSignature, autoCameraRef, fitRevision } = camera;
@@ -294,6 +296,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     replayVisibleNodeIdSet,
     playedRelationIndices,
     activeRelationMoment,
+    stageRecordShown,
     svgRef,
     svg,
     animated,
