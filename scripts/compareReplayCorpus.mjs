@@ -34,6 +34,8 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
         fileURLToPath(import.meta.url), worker, fileURLToPath(new URL('./replayCorpusInputs.mjs', import.meta.url)),
         fileURLToPath(new URL('./replayFrameLayout.mjs', import.meta.url)),
         fileURLToPath(new URL('./replayMotionContinuity.mjs', import.meta.url)),
+        // The movement rule judges both checkouts' Replays.
+        fileURLToPath(new URL('../tests/helpers/replayInvariants.mjs', import.meta.url)),
         // The motion rule measures stage crossings through the renderer's camera carry.
         fileURLToPath(new URL('../components/treeViewport.ts', import.meta.url))
       ].map(async filename => ({ filename, sha256: sha256(await readFile(filename)) }))) },

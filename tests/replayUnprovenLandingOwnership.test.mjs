@@ -29,7 +29,8 @@ for (const [name, make, landing, parent, source] of [
   ['fresh GPT-6.1 Sol', () => structuredClone(saved), 'whHigh', 'completedQuestion', 'whEdge']
 ]) test(`${name}: an unproven second hop reveals its exact landing at its own moment`, () => {
   const record = make(), original = structuredClone(record), replay = play(record), steps = replay.playbackSteps;
-  const momentIndex = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === 1 && s.replayRelationIdentity?.relationIndex === 1);
+  const wh = record.derivationStages.length - 1;
+  const momentIndex = steps.findIndex(s => s.replayRelationIdentity?.stageIndex === wh && s.replayRelationIdentity?.relationIndex === 1);
   assert(momentIndex >= 0);
   assert(steps.slice(0, momentIndex).every(s => !visible(s, landing)), 'the later landing must remain hidden');
   assert(steps.slice(0, momentIndex).every(s => !visible(s, parent)), 'a parent requiring the later landing must remain hidden');
@@ -37,16 +38,16 @@ for (const [name, make, landing, parent, source] of [
   assert(visible(moment, landing));
   assert(visible(moment, source));
   assert(moment.movementDiagnostics.some(d => d.startsWith('MOVEMENT_PRIOR_SOURCE_UNPROVEN:')));
-  const items = replay.relationRenderPlan.frames[1].items;
+  const items = replay.relationRenderPlan.frames[wh].items;
   assert(!items.some(item => item.kind === 'trajectory' && item.relationRef.relationIndex === 1), 'timing ownership does not earn movement');
-  const currentLanding = nodes(record.derivationStages[1].workspaceForest).find(n => n.id === landing);
+  const currentLanding = nodes(record.derivationStages[wh].workspaceForest).find(n => n.id === landing);
   const displayed = nodes([moment.replayCanvasData]);
   for (const node of nodes([currentLanding])) {
     const view = displayed.find(n => n.id === node.id || n.replayOrigin?.authoredId === node.id);
     assert(view && visible(moment, view.id), 'the complete authored landing appears together');
     assert.equal(view.silent, node.silent, 'no pronunciation is inferred');
   }
-  assert.deepEqual(steps.filter(s => s.replayKind === 'relation' && s.replayFrameIndex === 1).map(s => s.replayRelationIdentity.relationIndex), [0, 1, ...(name.startsWith('fresh') ? [2] : [])]);
+  assert.deepEqual(steps.filter(s => s.replayKind === 'relation' && s.replayFrameIndex === wh).map(s => s.replayRelationIdentity.relationIndex), [0, 1, ...(name.startsWith('fresh') ? [2] : [])]);
   assert.deepEqual(record, original);
 });
 

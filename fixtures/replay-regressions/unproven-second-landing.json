@@ -7,6 +7,237 @@
   "captureContractSha256": "d9f945837870e0942c7b85ca3da05c2be1a048c78780edc09b5ef9d9ff390a5d",
   "derivationStages": [
     {
+      "statement": "Merge finite T with the transitive vP.",
+      "stageRecord": "Build the transitive vP with praise and its interrogative object, introduce the negative subject no critic in the specifier of v, and merge finite past T, pronounced as the auxiliary did, with the vP.",
+      "relations": [],
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "tenseLow",
+              "label": "T[past]",
+              "lineageId": "finiteAuxiliary",
+              "word": "did"
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "noLow",
+                      "label": "D[negative]",
+                      "lineageId": "negativeDeterminer",
+                      "word": "no"
+                    },
+                    {
+                      "children": [],
+                      "id": "criticLow",
+                      "label": "N",
+                      "lineageId": "criticNoun",
+                      "word": "critic"
+                    }
+                  ],
+                  "id": "subjectLow",
+                  "label": "D",
+                  "lineageId": "subjectNominal"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "littleV",
+                      "label": "v[transitive]",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "praise",
+                          "label": "V",
+                          "tokenIndex": 5,
+                          "word": "praise"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "whichLow",
+                              "label": "D[wh]",
+                              "lineageId": "whichDeterminer",
+                              "tokenIndex": 0,
+                              "word": "Which"
+                            },
+                            {
+                              "children": [],
+                              "id": "violinistLow",
+                              "label": "N",
+                              "lineageId": "violinistNoun",
+                              "tokenIndex": 1,
+                              "word": "violinist"
+                            }
+                          ],
+                          "id": "whLow",
+                          "label": "D",
+                          "lineageId": "interrogativeNominal"
+                        }
+                      ],
+                      "id": "verbObject",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "verbalDomain",
+                  "label": "v"
+                }
+              ],
+              "id": "externalArgument",
+              "label": "v"
+            }
+          ],
+          "id": "tenseDomain",
+          "label": "T"
+        }
+      ]
+    },
+    {
+      "statement": "Raise the negative subject to the specifier of TP.",
+      "stageRecord": "Internally merge the subject no critic from the specifier of vP to the specifier of TP. The upper occurrence is pronounced and the lower occurrence in vP is unpronounced. The auxiliary did remains in T.",
+      "relations": [
+        {
+          "relation": "subject raising to Spec,TP",
+          "anchors": {
+            "sourceOccurrence": "subjectLow",
+            "upperOccurrence": "subjectHigh",
+            "landingHead": "tenseDomain"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "noHigh",
+                  "label": "D[negative]",
+                  "lineageId": "negativeDeterminer",
+                  "tokenIndex": 3,
+                  "word": "no"
+                },
+                {
+                  "children": [],
+                  "id": "criticHigh",
+                  "label": "N",
+                  "lineageId": "criticNoun",
+                  "tokenIndex": 4,
+                  "word": "critic"
+                }
+              ],
+              "id": "subjectHigh",
+              "label": "D",
+              "lineageId": "subjectNominal"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "tenseLow",
+                  "label": "T[past]",
+                  "lineageId": "finiteAuxiliary",
+                  "word": "did"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "noLow",
+                          "label": "D[negative]",
+                          "lineageId": "negativeDeterminer",
+                          "silent": true,
+                          "word": "no"
+                        },
+                        {
+                          "children": [],
+                          "id": "criticLow",
+                          "label": "N",
+                          "lineageId": "criticNoun",
+                          "silent": true,
+                          "word": "critic"
+                        }
+                      ],
+                      "id": "subjectLow",
+                      "label": "D",
+                      "lineageId": "subjectNominal",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "littleV",
+                          "label": "v[transitive]",
+                          "silent": true
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "praise",
+                              "label": "V",
+                              "tokenIndex": 5,
+                              "word": "praise"
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "whichLow",
+                                  "label": "D[wh]",
+                                  "lineageId": "whichDeterminer",
+                                  "tokenIndex": 0,
+                                  "word": "Which"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "violinistLow",
+                                  "label": "N",
+                                  "lineageId": "violinistNoun",
+                                  "tokenIndex": 1,
+                                  "word": "violinist"
+                                }
+                              ],
+                              "id": "whLow",
+                              "label": "D",
+                              "lineageId": "interrogativeNominal"
+                            }
+                          ],
+                          "id": "verbObject",
+                          "label": "V"
+                        }
+                      ],
+                      "id": "verbalDomain",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "externalArgument",
+                  "label": "v"
+                }
+              ],
+              "id": "tenseDomain",
+              "label": "T"
+            }
+          ],
+          "id": "finiteClause",
+          "label": "T"
+        }
+      ]
+    },
+    {
       "relations": [
         {
           "anchors": {
