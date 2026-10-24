@@ -417,9 +417,6 @@ export const dispatchRelationClaims = (
   };
   const thematic = typedThematicAssignment(evidence);
   const focusAssociation = typedFocusAssociation(evidence);
-  const qualifiedDeletion = normalizeTier2Synonym(evidence.relationName) === 'coordinate gapping'
-    && evidence.authoredCurrentAnchors?.some(entry => normalizeTier2Synonym(entry.key) === 'deleted verb')
-    && evidence.authoredPriorAnchors?.some(entry => normalizeTier2Synonym(entry.key) === 'verb before deletion');
   const targetInventory = evidence.authoredCurrentAnchors?.some(entry => normalizeTier2Synonym(entry.key) === 'agreement targets')
     && evidence.authoredCurrentAnchors?.some(entry => normalizeTier2Synonym(entry.key) === 'controller');
   const checkedAttraction = evidence.authoredValues?.some(entry => entry.concepts.includes('feature.label'))
@@ -428,7 +425,6 @@ export const dispatchRelationClaims = (
     && /\b(?:realization|realisation)\b/u.test(normalizeTier2Synonym(evidence.relationName));
   const completeClaims = evaluations.filter(({ recipe, evaluation, evidence: scoped }) => evaluation.complete
     && !restates(recipe.id, scoped ?? evidence)
-    && !(qualifiedDeletion && ['ellipsis.site', 'correspondence.alignment'].includes(recipe.id))
     && !(recipe.id === 'feature.dependency' && checkedAttraction)
     && !(recipe.id === 'pf.structured' && typedSurfaceCombination)
     && !(recipe.id === 'feature.dependency' && targetInventory && evaluation.consumedEvidence.some(ref => ref.field === 'anchors'

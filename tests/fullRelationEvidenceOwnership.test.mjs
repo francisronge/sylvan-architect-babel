@@ -355,22 +355,21 @@ test('qualified theta, focus and modification assertions retain exact existing p
   }
 });
 
-test('topic reference and explicitly licensed topic binding use their own declared pairs', () => {
+test('topic reference and a topic-resumption dependency use their own declared pairs', () => {
   const lower = leaf('low', 'D'), upper = leaf('high', 'D'), topic = leaf('topic', 'DP');
   lower.lineageId = upper.lineageId = 'argument';
   const currentForest = [topic, lower, upper];
   const reference = { relation: 'Hanging-topic discourse coreference',
     anchors: { discourseTopic: 'topic', anaphoricClitic: 'high', argumentOccurrence: 'low' } };
   assert(recipes(reference, currentForest).includes('coreference.coindex'));
-  const binding = { relation: 'Integrated topic-resumption dependency',
+  const resumption = { relation: 'Integrated topic-resumption dependency',
     anchors: { topic: 'topic', resumptiveClitic: 'high', argumentOccurrence: 'low' },
     values: { dependency: 'syntactically licensed topic binding' } };
-  assert(recipes(binding, currentForest).includes('binding.dependency'));
-  assert(!recipes(binding, currentForest).includes('coreference.coindex'));
-  for (const dependency of ['possible syntactically licensed topic binding', 'syntactically licensed topic binding if licensed',
-    'discourse coreference, not obligatory syntactic topic binding'])
-    assert(!recipes({ ...binding, values: { dependency } }, currentForest).includes('binding.dependency'));
-  for (const record of [reference, binding])
+  // A resumption dependency is referential; its prose value does not make it a binding path.
+  assert.deepEqual(dispatch(resumption, currentForest).claims.filter(claim => claim.tier === 2)
+    .map(claim => [claim.facet.recipe.id, claim.facet.evidence.currentAnchors]),
+  [['coreference.coindex', { 'coreference.participants': ['topic', 'high'] }]]);
+  for (const record of [reference, resumption])
     assert(!recipes(record, [...currentForest, structuredClone(upper)]).some(recipe => ['coreference.coindex', 'binding.dependency'].includes(recipe)));
   for (const role of ['topic', 'pronoun']) {
     const declared = { relation: 'topic–pronoun referential dependency', anchors: { topic: 'topic', pronoun: 'high' } };

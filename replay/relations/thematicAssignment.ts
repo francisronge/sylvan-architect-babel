@@ -160,19 +160,15 @@ export function recoverClauseComplementTheta(evidence: Tier2FacetEvidence) {
  * is introduction context. No role is extracted from explanatory prose. */
 export function recoverQualifiedRoleInterpretation(evidence: Tier2FacetEvidence) {
   const name = normalizeTier2Synonym(evidence.relationName);
-  const experiential = name === 'experiencer interpretation';
   const passive = /^(?:passive agent (?:interpretation|identification))$/u.test(name);
-  const recipient = name === 'recipient interpretation and dative licensing';
   const proposition = /^(?:(?:matrix|embedded) )?thematic interpretation$/u.test(name);
-  if (!(experiential || passive || recipient || proposition) || !establishesAssignment(evidence)) return [];
+  if (!(passive || proposition) || !establishesAssignment(evidence)) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [], values = evidence.authoredValues ?? [];
-  const targetName = experiential ? 'experiencer' : passive ? 'agent nominal' : recipient ? 'recipient' : 'propositional content';
+  const targetName = passive ? 'agent nominal' : 'propositional content';
   const targets = anchors.filter(entry => normalizeTier2Synonym(entry.key) === targetName);
   if (targets.length !== 1 || targets[0].items.length !== 1) return [];
-  const sourceName = experiential ? 'adjective' : recipient ? 'licenser' : 'predicate';
-  const sources = anchors.filter(entry => normalizeTier2Synonym(entry.key) === sourceName);
-  const competitors = anchors.filter(entry => entry !== sources[0] && entry.concepts.includes('predicate')
-    && !(recipient && normalizeTier2Synonym(entry.key) === 'predicate'));
+  const sources = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'predicate');
+  const competitors = anchors.filter(entry => entry !== sources[0] && entry.concepts.includes('predicate'));
   if (sources.length !== 1 || sources[0].items.length !== 1 || competitors.length
     || !uniqueCurrentOwners(evidence, [...sources[0].items, ...targets[0].items])) return [];
   const paths = new Map<string, typeof evidence.currentForest>();
@@ -184,14 +180,13 @@ export function recoverQualifiedRoleInterpretation(evidence: Tier2FacetEvidence)
   const sourceNode = sourcePath.at(-1)!, targetNode = targetPath.at(-1)!;
   const shape = readCategoryLabel(sourceNode.label);
   if (sourcePath[0] !== targetPath[0] || shape?.kind !== 'head' || shape.compound || sourceNode.children?.length
-    || !(experiential ? ['A', 'Adj'].includes(shape.head) : recipient ? shape.head === 'Appl' : shape.head === 'V')) return [];
+    || shape.head !== 'V') return [];
   if (proposition && (readCategoryLabel(targetNode.label)?.head !== 'C' || sourcePath.at(-2) !== targetPath.at(-2))) return [];
   const rows = values.filter(entry => entry.concepts.includes('role.label'));
   if (rows.length > 1 || rows.some(entry => entry.items.length !== 1 || !entry.items[0].trim()
     || /\b(?:denied|rejected|required|requested|expected|possible|potential|hypothetical|pending|unresolved|if|unless|whether)\b/u.test(normalizeTier2Synonym(entry.items[0])))) return [];
-  const expected = experiential ? 'experiencer' : passive ? 'agent' : recipient ? 'recipient' : 'propositional content';
+  const expected = passive ? 'agent' : 'propositional content';
   if (rows.length && !normalizeTier2Synonym(rows[0].items[0]).startsWith(expected)) return [];
-  if (experiential && !rows.length || recipient && !rows.length) return [];
   return [scopeEvidence(evidence, 'theta-grid', [{ entry: sources[0], concept: 'predicate' }, { entry: targets[0], concept: 'theta.arguments' }],
     rows.map(entry => ({ entry, concept: 'role.label' })), rows.length ? {} : { 'role.label': [expected] })];
 }

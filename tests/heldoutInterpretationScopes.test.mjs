@@ -40,39 +40,6 @@ test('relative predication uses the explicit nominal and operator while verifyin
     assert(result.evidenceCoverage.fields.find(field => field.key === key).unrecoveredItemIndices.length);
 });
 
-test('interrogative binding uses the question head and wh determiner without inventing a variable or movement', () => {
-  const forest = [{ id: 'clause', label: 'CP', children: [leaf('question', 'C: interrogative'), {
-    id: 'phrase', label: 'KP', children: [{ id: 'determiners', label: 'DetP', children: [leaf('wh', 'Det')] }, leaf('noun', 'N')]
-  }] }, leaf('other', 'D'), leaf('wrong-domain', 'CP')];
-  const relation = { relation: 'interrogative binding', anchors: { questionHead: 'question', whDeterminer: 'wh', whPhrase: 'phrase' },
-    values: { interpretation: 'authored question interpretation', scope: 'matrix question' } };
-  const claims = dispatch(relation, forest).claims.filter(claim => claim.tier === 2);
-  assert.deepEqual(claims.map(claim => claim.facet.recipe.id), ['binding.dependency']);
-  assert.deepEqual(claims[0].facet.evidence.currentAnchors, { binder: ['question'], dependent: ['wh'] });
-  const indexed = { ...relation, anchors: { ...relation.anchors, domain: 'clause' }, values: { ...relation.values, index: 'j' } };
-  assert.deepEqual(by(indexed, forest, 'binding.dependency')[0].facet.evidence.values.index, ['j']);
-  assert.deepEqual(by(indexed, forest, 'binding.dependency')[0].facet.evidence.currentAnchors.domain, ['clause']);
-  for (const extra of [{ binder: 'other' }, { dependent: 'other' }, { variable: 'other' }, { operator: 'other' }, { domain: 'wrong-domain' }])
-    assert.equal(by({ ...relation, anchors: { ...relation.anchors, ...extra } }, forest, 'binding.dependency').length, 0);
-  for (const prefix of ['No', 'Not', 'Pending', 'Possible', 'Required', 'Rejected'])
-    assert.equal(by({ ...relation, relation: `${prefix} interrogative binding` }, forest, 'binding.dependency').length, 0);
-  assert.equal(by({ ...relation, relation: 'interrogative binding if licensed' }, forest, 'binding.dependency').length, 0);
-  assert.equal(by({ ...relation, values: { ...relation.values, status: 'pending' } }, forest, 'binding.dependency').length, 0);
-  assert.equal(by(relation, [...forest, leaf('wh', 'Det')], 'binding.dependency').length, 0);
-  for (const label of ['T[Q]', 'CP[Q]', 'C: declarative', 'C: not interrogative', 'C: possible interrogative']) {
-    const changed = structuredClone(forest); changed[0].children[0].label = label;
-    assert.equal(by(relation, changed, 'binding.dependency').length, 0);
-  }
-  for (const label of ['C[+Q]', 'C[Q]', 'Q']) {
-    const changed = structuredClone(forest); changed[0].children[0].label = label;
-    assert.equal(by(relation, changed, 'binding.dependency').length, 1);
-  }
-  const detached = structuredClone(forest); detached.push(detached[0].children[1].children[0].children.pop());
-  assert.equal(by(relation, detached, 'binding.dependency').length, 0);
-  const residual = dispatch(relation, forest).evidenceCoverage.fields.filter(field => field.unrecoveredItemIndices.length).map(field => field.key);
-  assert.deepEqual(residual, ['whPhrase', 'interpretation', 'scope']);
-});
-
 test('external relative predication preserves its exact NP and operator and the proved sister attachment', () => {
   const forest = [{ id: 'modified', label: 'NP', children: [
     { id: 'relative-clause', label: 'CP: relative adjunct', children: [leaf('relative-operator', 'NP: null relative operator', { silent: true })] },

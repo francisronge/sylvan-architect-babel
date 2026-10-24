@@ -1,5 +1,5 @@
 import type { SyntaxNode } from '../../types.ts';
-import { categoryLabel, readCategoryLabel } from '../categoryLabel.ts';
+import { categoryLabel } from '../categoryLabel.ts';
 import { scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
 import { establishesAssignment } from './outcomeResolver.ts';
 import type { Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetTypes.ts';
@@ -9,16 +9,11 @@ export type ExplicitCoreferenceParticipants = {
   participants: readonly Tier2AuthoredEvidenceEntry[];
   index?: Tier2AuthoredEvidenceEntry;
 };
-const declaredTopicBindingRows = (evidence: Tier2FacetEvidence) =>
-  /^(?:integrated )?topic resumption dependency$/u.test(normalizeTier2Synonym(evidence.relationName ?? ''))
-    ? (evidence.authoredValues ?? []).filter(entry => normalizeTier2Synonym(entry.key) === 'dependency'
-      && entry.items.length === 1 && /^syntactically licensed topic binding$/u.test(normalizeTier2Synonym(entry.items[0]))) : [];
 
 /** Plain co-reference identifies referents, not copies or a syntactic binder.
  * The explicit claim belongs to the complete pair of current nominal anchors;
  * participant names and shared lineage do not supply that interpretation. */
 export function explicitCoreferenceParticipants(evidence: Tier2FacetEvidence): ExplicitCoreferenceParticipants | undefined {
-  if (declaredTopicBindingRows(evidence).length === 1) return;
   const referentialDependency = (clause: string) => /\b(?:anaphoric|referential|resumption|resumptive) dependency$/u.test(clause)
     || /^(?:left|right) dislocation resumption$/u.test(clause)
     || /\btopic resumption$/u.test(clause);
@@ -88,14 +83,10 @@ export function recoverNamedBinding(evidence: Tier2FacetEvidence) {
   const label = normalizeTier2Synonym(evidence.relationName ?? '');
   const topicBinding = /^topic(?: |[–—])subject binding$/u.test(label);
   const resumptiveBinding = /^(?:resumptive (?:operator )?|relative operator )binding$/u.test(label);
-  const questionBinding = label === 'interrogative binding';
-  const bindingRows = declaredTopicBindingRows(evidence);
-  const declaredTopicBinding = bindingRows.length === 1;
-  if ((!topicBinding && !resumptiveBinding && !declaredTopicBinding && !questionBinding) || !establishesAssignment(evidence)) return [];
+  if ((!topicBinding && !resumptiveBinding) || !establishesAssignment(evidence)) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [];
-  const binders = anchors.filter(entry => questionBinding ? normalizeTier2Synonym(entry.key) === 'question head' : topicBinding || declaredTopicBinding
-    ? normalizeTier2Synonym(entry.key) === 'topic' : entry.concepts.includes('binder'));
-  const dependents = anchors.filter(entry => questionBinding ? normalizeTier2Synonym(entry.key) === 'wh determiner' : topicBinding ? normalizeTier2Synonym(entry.key) === 'subject'
+  const binders = anchors.filter(entry => topicBinding ? normalizeTier2Synonym(entry.key) === 'topic' : entry.concepts.includes('binder'));
+  const dependents = anchors.filter(entry => topicBinding ? normalizeTier2Synonym(entry.key) === 'subject'
     : entry.concepts.includes('dependent') || /^resumptive (?:subject|object|argument|pronoun|nominal|occurrence|clitic)$/u.test(normalizeTier2Synonym(entry.key)));
   const domains = anchors.filter(entry => entry.concepts.includes('domain'));
   const optionalValues = (evidence.authoredValues ?? []).filter(entry => entry.concepts.some(concept => ['index', 'outcome'].includes(concept)));
@@ -106,27 +97,8 @@ export function recoverNamedBinding(evidence: Tier2FacetEvidence) {
   const ids = [...binders[0].items, ...dependents[0].items];
   if (ids.length !== 2 || !uniqueCurrentOwners(evidence, ids) || domains.length > 1
     || domains.some(entry => entry.items.length !== 1 || !uniqueCurrentOwners(evidence, entry.items))) return [];
-  if (questionBinding) {
-    const phrases = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'wh phrase');
-    if (phrases.length !== 1 || phrases[0].items.length !== 1 || !uniqueCurrentOwners(evidence, [...ids, ...phrases[0].items])
-      || anchors.some(entry => ![binders[0], dependents[0]].includes(entry)
-        && entry.concepts.some(concept => ['operator', 'variable'].includes(concept)))) return [];
-    const nodes = new Map<string, SyntaxNode>();
-    const visit = (node: SyntaxNode) => { nodes.set(node.id, node); node.children?.forEach(visit); };
-    evidence.currentForest.forEach(visit);
-    const head = nodes.get(ids[0])!, dependent = nodes.get(ids[1])!, phrase = nodes.get(phrases[0].items[0])!;
-    const headShape = readCategoryLabel(head.label), dependentShape = readCategoryLabel(dependent.label);
-    const contains = (node: SyntaxNode, id: string): boolean => node.id === id || Boolean(node.children?.some(child => contains(child, id)));
-    const headLabel = normalizeTier2Synonym(head.label);
-    if (headShape?.kind !== 'head' || headShape.compound || !['C', 'Force', 'Q'].includes(headShape.category)
-      || !/(?:^|[\s\[:;,])(?:\+?q|interrogative)(?:[\s\],;:]|$)/u.test(headLabel)
-      || /\b(?:no|not|non|without|possible|potential|hypothetical|pending|unresolved|required)\b/u.test(headLabel)
-      || dependentShape?.kind !== 'head' || dependentShape.compound || !['D', 'Det'].includes(dependentShape.category)
-      || !['D', 'DP', 'DetP', 'N', 'NP', 'K', 'KP'].includes(categoryLabel(phrase.label)) || !contains(phrase, dependent.id)) return [];
-  }
   return [scopeEvidence(evidence, 'binding.dependency', [
     { entry: binders[0], concept: 'binder' }, { entry: dependents[0], concept: 'dependent' },
     ...domains.map(entry => ({ entry, concept: 'domain' }))
-  ], [...optionalValues.map(entry => ({ entry, concept: entry.concepts.includes('index') ? 'index' : 'outcome' })),
-    ...(declaredTopicBinding ? [{ entry: bindingRows[0], concept: 'interpretation.label' }] : [])])];
+  ], optionalValues.map(entry => ({ entry, concept: entry.concepts.includes('index') ? 'index' : 'outcome' })))];
 }
