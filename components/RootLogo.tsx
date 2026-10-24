@@ -51,7 +51,6 @@ const RootLogo: React.FC<RootLogoProps> = ({
         className="absolute h-full w-full select-none pointer-events-none"
         loading="eager"
         decoding="sync"
-        fetchPriority="high"
         style={{
           position: 'absolute',
           top: `${imageInset}%`,
