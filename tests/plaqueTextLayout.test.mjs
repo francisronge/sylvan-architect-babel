@@ -11,6 +11,8 @@ import {
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { boundOverlayBounds } from '../replay/relations/geometryBounds.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { measurePlaqueText } from './helpers/visualFontMetrics.mjs';
+import { assertSpells } from './helpers/spelledLines.mjs';
 
 const segments = (text) => Array.from(new Intl.Segmenter('en', { granularity: 'grapheme' }).segment(text),
   ({ segment }) => segment);
@@ -32,7 +34,7 @@ test('short literal PF plates fit their measured heading and intact multilingual
     assert(layout.width < 480, 'short text must be eligible for existing nearby placement');
     assert.equal(layout.height, 132);
     assert.equal(layout.rows[0].rowIndex, 3);
-    assert.equal(layout.rows[0].parts[0].block.lines.map(line => line.text).join(''), `surfaceForm: ${value}`);
+    assertSpells(layout.rows[0].parts[0].block.lines.map(line => line.text), `surfaceForm: ${value}`);
     for (const block of [layout.title, ...layout.rows.flatMap(row => row.parts.map(part => part.block))]) {
       for (const line of block.lines) assert(line.x + line.width <= layout.width - 26);
     }
@@ -45,7 +47,7 @@ test('long literal PF content wraps completely and rewrite columns retain their 
   const rows = [{ label: 'form', value: literal, kind: 'literal', rowIndex: 0, isFinal: true }];
   const layout = preparePfPlaqueTextLayout(rows, { measureText });
   assert.equal(layout.width, 590);
-  assert.equal(layout.rows[0].parts[0].block.lines.map(line => line.text).join(''), `form: ${literal}`);
+  assertSpells(layout.rows[0].parts[0].block.lines.map(line => line.text), `form: ${literal}`);
   for (const [value, zero, width, positions] of [['form', false, 590, [26, 314, 370]], ['∅', true, 360, [26, 190, 246]]]) {
     const rewrite = preparePfPlaqueTextLayout([{ label: 'stem', value, kind: 'rewrite', rowIndex: 0, isFinal: true }],
       { measureText, isZeroRealization: zero });
@@ -82,12 +84,12 @@ test('theta grids wrap intact literals and keep all text inside its own column a
       }
     };
     check(layout.predicate, 16, layout.predicateWidth - 16, false);
-    assert.equal(layout.predicate.lines.map(line => line.text).join(''), predicate);
+    assertSpells(layout.predicate.lines.map(line => line.text), predicate);
     layout.columns.forEach((column, index) => {
       check(column.label, column.left + 12, column.left + column.width - 12, true);
       check(column.index, column.left + 12, column.left + column.width - 12, true);
-      assert.equal(column.label.lines.map(line => line.text).join(''), roles[index].label);
-      assert.equal(column.index.lines.map(line => line.text).join(''), roles[index].index || '');
+      assertSpells(column.label.lines.map(line => line.text), roles[index].label);
+      assertSpells(column.index.lines.map(line => line.text), roles[index].index || '');
       const roleBottom = Math.max(...column.label.lines.map(line => line.y + line.descent));
       assert(column.index.lines[0].y - column.index.lines[0].ascent > roleBottom);
     });
@@ -124,7 +126,7 @@ test('feature wrapping measures 30px ink plus letter spacing, not the old 22-cha
   assert.ok(measureText('abcdefghijklmnopqrstuv', row.style).width > 360 - 18 * 2,
     'the old 22-character chunk cannot fit the accepted rectangle');
   assert.ok(row.lines.length > 1);
-  assert.equal(row.lines.map((line) => line.text).join(''), '[value: abcdefghijklmnopqrstuv]');
+  assertSpells(row.lines.map((line) => line.text), '[value: abcdefghijklmnopqrstuv]');
   row.lines.forEach((line) => assert.ok(line.width <= 324));
   assertContained(layout);
 });
@@ -140,7 +142,7 @@ test('feature title wrapping measures the existing uppercase title font and leav
     }
   });
   assert.deepEqual(input, before);
-  assert.equal(layout.title.lines.map((line) => line.text).join(''), input.title.toUpperCase());
+  assertSpells(layout.title.lines.map((line) => line.text), input.title.toUpperCase());
   assert.ok(layout.title.lines.length > 1);
   assert.ok(seen.some(({ text, style }) => text === input.title.toUpperCase()
     && style.fontSize === 20 && style.fontWeight === 800 && style.letterSpacing === 2.4));
@@ -203,7 +205,7 @@ test('generic wrapping uses its measured font, preserves literal case, and keeps
   assert.equal(layout.width, 150);
   assert.equal(layout.title.text, input.title);
   assert.equal(layout.rows[0].text, 'label only');
-  assert.equal(layout.rows[1].lines.map((line) => line.text).join(''), `name: ${input.rows[1].value}`);
+  assertSpells(layout.rows[1].lines.map((line) => line.text), `name: ${input.rows[1].value}`);
   assert.deepEqual(layout.rows[0].style, {
     fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, fontWeight: 400, letterSpacing: 0
   });
@@ -230,13 +232,15 @@ test('measured ascent and descent expand line boxes and plaque height without ov
   assertContained(layout);
 });
 
-test('wrapping preserves whitespace, explicit blank lines, and complete Unicode graphemes', () => {
+test('wrapping consumes only the whitespace at a break and keeps blank lines and complete Unicode graphemes', () => {
   const literal = '  e\u0301\u{1f469}\u200d\u{1f4bb}\u4e2d  '.repeat(8);
   const layout = preparePlaqueTextLayout({ rows: [{ label: literal, value: '' }, { label: 'first\n\nlast', value: '' }] },
     { maxWidth: 60, measureText });
   const lines = layout.rows[0].lines.map((line) => line.text);
-  assert.equal(lines.join(''), literal);
-  assert.deepEqual(lines.flatMap(segments), segments(literal), 'combining marks and joined emoji remain attached');
+  assertSpells(lines, literal);
+  assert.ok(lines.length > 1 && lines[0].startsWith('  ') && lines.at(-1).endsWith('  '), 'whitespace at either end of the text stays');
+  const graphemes = new Set(segments(literal));
+  assert.ok(lines.flatMap(segments).every(grapheme => graphemes.has(grapheme)), 'combining marks and joined emoji remain attached');
   assert.deepEqual(layout.rows[1].lines.map((line) => line.text), ['first', '', 'last']);
   assertContained(layout);
 });
@@ -253,15 +257,27 @@ test('wrapping agrees with a greedy line oracle across varied widths and Unicode
     const expected = literal.split(/\r\n|\r|\n/u).flatMap(paragraph => {
       const remaining = segments(paragraph), lines = [];
       if (!remaining.length) return [''];
+      const space = grapheme => /\s/u.test(grapheme);
       while (remaining.length) {
         let count = 1;
         while (count < remaining.length && measureText(remaining.slice(0, count + 1).join(''), style).width <= maxWidth - 16) count++;
+        // The latest whitespace that fits, or that overflows, is the break; it
+        // stays on neither line. Whitespace opening the text never ends a line.
+        let end = count, next = count;
         if (count < remaining.length) {
-          for (let index = count - 1; index >= 0; index--) {
-            if (/\s/u.test(remaining[index])) { count = index + 1; break; }
+          let ink = 0;
+          while (ink < remaining.length && space(remaining[ink])) ink++;
+          end = Math.min(remaining.length, Math.max(count, ink + 1));
+          for (let index = count; index > ink; index--) {
+            if (space(remaining[index - 1]) || space(remaining[index])) { end = index; break; }
           }
+          next = end;
+          while (next < remaining.length && space(remaining[next])) next++;
+          if (next < remaining.length) while (space(remaining[end - 1])) end--;
+          else end = next;
         }
-        lines.push(remaining.splice(0, count).join(''));
+        lines.push(remaining.slice(0, end).join(''));
+        remaining.splice(0, next);
       }
       return lines;
     });
@@ -284,7 +300,7 @@ test('a long literal does not repeatedly measure distant text to wrap each short
       return { width: text.length * 6, ascent: 8, descent: 2 };
     }
   });
-  assert.equal(layout.rows[0].lines.map(line => line.text).join(''), literal);
+  assertSpells(layout.rows[0].lines.map(line => line.text), literal);
   assert.ok(measuredCharacters < literal.length * 20, `measured ${measuredCharacters} characters`);
   assertContained(layout);
 });
@@ -382,7 +398,7 @@ test('only extreme plaques use a bounded viewport, while every authored row rema
     assert.ok(layout.overflow.contentHeight > layout.height * 2);
     const last = layout.rows.at(-1);
     const blocks = last.parts?.map(part => part.block) ?? [last];
-    assert.ok(blocks.flatMap(block => block.lines).map(line => line.text).join('').includes('exact value 99'));
+    assert.ok(blocks.flatMap(block => block.lines).map(line => line.text).join(' ').includes('exact value 99'));
     for (const block of blocks) for (const line of block.lines) {
       assert.ok(line.y + line.descent <= layout.overflow.contentHeight);
     }
@@ -399,8 +415,42 @@ test('native bundle wrapping fits the Orchard column without interpreting comma-
   const style = { fontFamily: 'monospace', fontSize: 7, fontWeight: 800, letterSpacing: 0 };
   const measure = text => measureText(text, style);
   const rows = wrapPlaqueText(text, 70, measure);
-  assert.equal(rows.join(''), text, 'all literal punctuation and whitespace survive');
+  assertSpells(rows, text);
   assert.ok(rows.length > 1);
   assert.ok(rows.every(row => measure(row).width <= 70));
   assert.deepEqual(wrapPlaqueText('−author', 70, measure), ['−author']);
+});
+
+test('feature plaque text breaks between words, never inside one or before a colon', () => {
+  // s1-02-en-yesno ("Has the train left yet?"), analysis 1, Replay steps 22-30,
+  // measured with the bundled fonts the renderer paints.
+  const input = { title: 'T[finite,present,perfect] probe', rows: [{ label: 'selectedVerbForm', value: 'participle' }] };
+  const layout = preparePlaqueTextLayout(input, { variant: 'feature', measureText: measurePlaqueText });
+  assert.deepEqual(layout.title.lines.map(line => line.text), ['T[FINITE,PRESENT,', 'PERFECT] PROBE']);
+  // `[selectedVerbForm` fills a line alone; its colon hangs rather than start the next line.
+  assert.deepEqual(layout.rows[0].lines.map(line => line.text), ['[selectedVerbForm:', 'participle]']);
+  // The plaque holds the widest visible line, not the space consumed at the break.
+  const widest = Math.max(...[layout.title, ...layout.rows].flatMap(block => block.lines.map(line => line.x + line.width)));
+  assert.equal(layout.width, widest + 18);
+  assertContained(layout);
+});
+
+test('plaque lines end at a space, comma, joining slash or hyphen, or before an opening bracket', () => {
+  const measure = text => ({ width: segments(text).length * 10 });
+  const wrap = (text, characters) => wrapPlaqueText(text, characters * 10, measure);
+  assert.deepEqual(wrap('alpha,beta,gamma', 12), ['alpha,beta,', 'gamma']);
+  assert.deepEqual(wrap('perfect/completive', 12), ['perfect/', 'completive']);
+  assert.deepEqual(wrap('third-person', 8), ['third-', 'person']);
+  assert.deepEqual(wrap('agree[phi]', 8), ['agree', '[phi]']);
+  assert.deepEqual(wrap('ab,cdefgh', 4), ['ab,', 'cdef', 'gh'], 'only a word wider than a line splits');
+  assert.deepEqual(wrap('abcd, efgh', 4), ['abcd,', 'efgh'], 'a completing mark hangs; the space after it is the break');
+  assert.deepEqual(wrap('ab cd ef', 5), ['ab cd', 'ef'], 'an overflowing space is the break');
+  assert.deepEqual(wrap('ab :cd', 4), ['ab :', 'cd'], 'no line starts with a colon');
+  for (const text of ['x,y,z,w', 'Case: α, βparticipant, −author', '[feature: value]']) {
+    for (let characters = 2; characters < segments(text).length; characters++) {
+      const lines = wrap(text, characters);
+      assertSpells(lines, text);
+      assert.ok(lines.slice(1).every(line => !/^[,:]/u.test(line)), `${text} at ${characters}: ${lines.join(' | ')}`);
+    }
+  }
 });
