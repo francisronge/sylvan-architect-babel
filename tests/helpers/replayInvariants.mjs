@@ -11,7 +11,7 @@ import { applyVizIds, getNodeId } from '../../replay/displayIdentity.ts';
 import { createFrameRelationResolver } from '../../replay/frameRelations.ts';
 import { isRegisteredTrajectoryRelation } from '../../replay/relations/movementIdentities.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
-import { planItemDependencyNodeIds, planItemOwnsRelationMoment, planItemRelationRefs, STAGE_RECORD_RELATION_INDEX } from '../../replay/relations/renderPlan.ts';
+import { planItemDependencyNodeIds, planItemOwnsRelationMoment, planItemRelationRefs, UNOWNED_RELATION_INDEX } from '../../replay/relations/renderPlan.ts';
 import { visiblePlanFrameItems } from '../../replay/relations/relationFrame.ts';
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
 import { extractDisplayedSubscriptIndex } from '../../replay/replaySurfaceNotation.ts';
@@ -874,16 +874,18 @@ export function checkMovementShownAsMovement(replay, record) {
 }
 
 /** Uses the renderer's own frame selection: within a stage, the relations played
- * so far and the active moment decide which compiled marks are revealed. A mark
- * the Stage Record owns has that stage's Stage Record step as its moment. */
+ * so far and the active moment decide which compiled marks are revealed. A
+ * realization plate no moment of its stage shows may appear only after that stage. */
 export function checkMarksAtOwningMoment(replay) {
   const steps = replay.playbackSteps, plan = replay.relationRenderPlan, out = [], moments = new Map();
   if (!plan) return out;
   steps.forEach((step, index) => {
-    const key = step.replayKind === 'macro' ? `${step.replayFrameIndex}:${STAGE_RECORD_RELATION_INDEX}`
-      : step.replayKind === 'relation' && step.replayRelationIdentity
-        ? `${step.replayRelationIdentity.stageIndex}:${step.replayRelationIdentity.relationIndex}` : null;
+    const key = step.replayKind === 'relation' && step.replayRelationIdentity
+      ? `${step.replayRelationIdentity.stageIndex}:${step.replayRelationIdentity.relationIndex}`
+      : null;
     if (key && !moments.has(key)) moments.set(key, index);
+    // The bound for a plate no moment shows is the step after its stage's last.
+    if (step.replayFrameIndex !== steps[index + 1]?.replayFrameIndex) moments.set(`${step.replayFrameIndex}:${UNOWNED_RELATION_INDEX}`, index + 1);
   });
   const played = new Map();
   steps.forEach((step, index) => {
@@ -891,8 +893,7 @@ export function checkMarksAtOwningMoment(replay) {
     if (!played.has(stage)) played.set(stage, new Set());
     const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
     if (identity?.stageIndex === stage) played.get(stage).add(identity.relationIndex);
-    for (const item of visiblePlanFrameItems(plan, stage, played.get(stage), identity ? identity.relationIndex : null,
-      step.replayKind === 'macro')) {
+    for (const item of visiblePlanFrameItems(plan, stage, played.get(stage), identity ? identity.relationIndex : null)) {
       const refs = planItemRelationRefs(item);
       if (refs.some(ref => (moments.get(`${ref.stageIndex}:${ref.relationIndex}`) ?? Infinity) <= index)) continue;
       out.push(violation('marks-at-owning-moment', index + 1, `${item.kind}${item.familyId ? ` ${item.familyId}` : ''} for relation `
@@ -940,8 +941,7 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
       if (!played.has(stage)) played.set(stage, new Set());
       const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
       if (identity?.stageIndex === stage) played.get(stage).add(identity.relationIndex);
-      const items = visiblePlanFrameItems(plan, stage, played.get(stage), identity ? identity.relationIndex : null,
-        step.replayKind === 'macro');
+      const items = visiblePlanFrameItems(plan, stage, played.get(stage), identity ? identity.relationIndex : null);
       if (!items.some(item => LETTER_KINDS.has(item.kind))) return;
       const structure = frameStructure(step), nodes = [...structure.nodes.values()];
       const all = indexHierarchyNodesByIdAndAliases(nodes);

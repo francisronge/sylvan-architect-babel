@@ -457,7 +457,8 @@ export const resolveRealizationChanges = (
     return { ...change, relationIndex: null, candidateRelationIndices: candidates,
       diagnostic: `REALIZATION_${reason}: Stage ${stageIndex + 1}, input positions ${[...new Set([...change.before, ...change.after].flatMap(group => group.tokenIndices))].sort((a, b) => a - b).join(', ')}. ${candidates.length
         ? `Relations ${candidates.map(index => index + 1).join(', ')} cover the same change.`
-        : 'No relation covers the complete change.'} The association becomes visible at the Stage Record.` };
+        : 'No relation covers the complete change.'} The association becomes visible at the moment of ${candidates.length
+        ? 'the latest covering relation' : 'the stage\'s last relation'}.` };
   });
 };
 
@@ -534,6 +535,60 @@ export const stageRealizationChanges = (
   return changes;
 };
 
+/** The stage's relation moments, in Replay order. */
+const stageMoments = (steps: readonly PlaybackStep[], stageIndex: number) => steps.flatMap((step, stepIndex) =>
+  step.replayKind === 'relation' && step.replayFrameIndex === stageIndex && step.replayRelationIdentity?.stageIndex === stageIndex
+    ? [{ stepIndex, relationIndex: step.replayRelationIdentity.relationIndex }] : []);
+
+/**
+ * The relation moment at which Replay first tries to show one change: its
+ * owner's; with several covering relations, the latest of theirs, when all of
+ * them have played; with none, the stage's last. A stage without relation
+ * moments has none: its changes show from the next stage, never from the
+ * Stage Record, and no moment is invented. Returns a position in `moments`.
+ */
+const realizationTarget = (change: RealizationChange, moments: ReadonlyArray<{ relationIndex: number }>): number | null => {
+  const position = (relationIndex: number) => moments.findIndex(moment => moment.relationIndex === relationIndex);
+  if (change.relationIndex !== null && position(change.relationIndex) >= 0) return position(change.relationIndex);
+  const covering = (change.candidateRelationIndices ?? []).map(position).filter(index => index >= 0);
+  if (covering.length) return Math.max(...covering);
+  return moments.length ? moments.length - 1 : null;
+};
+
+export type ScheduledRealizationChange = RealizationChange & {
+  /** The Replay step that makes the change active, or null when no moment of its stage can show it. */
+  stepIndex: number | null;
+  diagnostics: string[];
+};
+
+/** Where Replay makes each realization change of a stage active. A change whose
+ * syntax is not displayed at its moment waits for the stage's next moment. */
+export const scheduleRealizationChanges = (
+  steps: readonly PlaybackStep[],
+  frames: readonly ReplayDerivationFrame[],
+  stageIndex: number,
+  inputTokens?: readonly string[]
+): ScheduledRealizationChange[] => {
+  const moments = stageMoments(steps, stageIndex), frame = frames[stageIndex];
+  return stageRealizationChanges(frames, inputTokens)(stageIndex).map(change => {
+    const diagnostics = change.diagnostic ? [change.diagnostic] : [];
+    if (change.relationIndex !== null && !moments.some(moment => moment.relationIndex === change.relationIndex)) {
+      diagnostics.push(`REALIZATION_OWNER_MOMENT_UNAVAILABLE: Stage ${stageIndex + 1}, relation ${change.relationIndex + 1} has no available Replay moment. No realization moment was invented.`);
+    }
+    const target = realizationTarget(change, moments);
+    if (target === null) {
+      diagnostics.push(`REALIZATION_NO_MOMENT: Stage ${stageIndex + 1} has no relation moment. The association is shown from the next stage; no realization moment was invented.`);
+      return { ...change, stepIndex: null, diagnostics };
+    }
+    for (const moment of moments.slice(target)) {
+      const missing = missingSourceDomainIds(change.after, frame.workspaceForest, steps[moment.stepIndex] as PlaybackStep);
+      if (!missing.length) return { ...change, stepIndex: moment.stepIndex, diagnostics };
+      diagnostics.push(`REALIZATION_PARTICIPANT_UNAVAILABLE: Stage ${stageIndex + 1}, relation ${moment.relationIndex + 1} requires unavailable syntax ${missing.join(', ')}. No realization moment was invented.`);
+    }
+    return { ...change, stepIndex: null, diagnostics };
+  });
+};
+
 /** Attach authored association state after scheduling; it cannot alter tree geometry or add moments. */
 export const attachReplayRealizations = (
   steps: PlaybackStep[],
@@ -541,47 +596,26 @@ export const attachReplayRealizations = (
   inputTokens?: readonly string[]
 ): PlaybackStep[] => {
   if (!frames.some(frame => frame.after?.realizations !== undefined)) return steps;
-  const moments = new Set(steps.filter(step => step.replayKind === 'relation' && step.replayRelationIdentity)
-    .map(step => `${step.replayRelationIdentity!.stageIndex}:${step.replayRelationIdentity!.relationIndex}`));
-  const changesByStage = new Map<number, RealizationChange[]>();
-  const resolved = stageRealizationChanges(frames, inputTokens);
+  const scheduled = new Map<number, ScheduledRealizationChange[]>();
   const states = new Map<number, SurfaceRealization[]>();
-  const diagnostics = new Map<number, string[]>();
-  return steps.map(step => {
+  return steps.map((step, stepIndex) => {
     const stageIndex = step.replayFrameIndex ?? step.sourceFrameIndex;
     if (stageIndex === undefined || !frames[stageIndex]) return step;
-    const frame = frames[stageIndex];
-    if (!changesByStage.has(stageIndex)) {
-      const changes = resolved(stageIndex);
-      changesByStage.set(stageIndex, changes);
+    if (!scheduled.has(stageIndex)) {
+      scheduled.set(stageIndex, scheduleRealizationChanges(steps, frames, stageIndex, inputTokens));
       states.set(stageIndex, cloneRealizations(frames[stageIndex - 1]?.after?.realizations || []));
-      diagnostics.set(stageIndex, changes.flatMap(change => {
-        if (change.diagnostic) return [change.diagnostic];
-        return !moments.has(`${stageIndex}:${change.relationIndex}`)
-          ? [`REALIZATION_OWNER_MOMENT_UNAVAILABLE: Stage ${stageIndex + 1}, relation ${change.relationIndex! + 1} has no available Replay moment. No realization moment was invented.`]
-          : [];
-      }));
     }
+    const changes = scheduled.get(stageIndex)!;
     let active = states.get(stageIndex)!;
-    const stageDiagnostics = diagnostics.get(stageIndex)!;
-    if (step.replayKind === 'macro') {
-      active = cloneRealizations(frame.after?.realizations || []);
-    } else if (step.replayKind === 'relation' && step.replayRelationIdentity?.stageIndex === stageIndex) {
-      changesByStage.get(stageIndex)!.filter(change => change.relationIndex === step.replayRelationIdentity!.relationIndex)
-        .forEach(change => {
-          const missing = missingSourceDomainIds(change.after, frame.workspaceForest, step);
-          if (missing.length) {
-            stageDiagnostics.push(`REALIZATION_PARTICIPANT_UNAVAILABLE: Stage ${stageIndex + 1}, relation ${change.relationIndex! + 1} requires unavailable syntax ${missing.join(', ')}. No realization moment was invented.`);
-            return;
-          }
-          const removed = new Set(change.before.map(groupKey));
-          active = [...active.filter(group => !removed.has(groupKey(group))), ...cloneRealizations(change.after)];
-        });
-    }
+    changes.filter(change => change.stepIndex === stepIndex).forEach(change => {
+      const removed = new Set(change.before.map(groupKey));
+      active = [...active.filter(group => !removed.has(groupKey(group))), ...cloneRealizations(change.after)];
+    });
     states.set(stageIndex, active);
+    const stageDiagnostics = changes.flatMap(change => change.diagnostics);
     return { ...step,
       replayRealizations: cloneRealizations(active),
-      ...(stageDiagnostics.length ? { replayRealizationDiagnostics: [...stageDiagnostics] } : {})
+      ...(stageDiagnostics.length ? { replayRealizationDiagnostics: stageDiagnostics } : {})
     };
   });
 };

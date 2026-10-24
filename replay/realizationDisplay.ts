@@ -12,9 +12,9 @@
 import type { SurfaceRealization, SyntaxNode } from '../types.ts';
 import { caselessSpelling } from '../server/babelParser/spellout.js';
 import { resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
-import { stageRealizationChanges, type RealizationChange } from './realizationReplay.ts';
+import { scheduleRealizationChanges, stageRealizationChanges, type ScheduledRealizationChange } from './realizationReplay.ts';
 import {
-  STAGE_RECORD_RELATION_INDEX,
+  UNOWNED_RELATION_INDEX,
   type NodePlaquePlanItem,
   type PlanRelationRef,
   type PlanStageMoment,
@@ -118,10 +118,8 @@ const shownByRelation = (items: readonly RelationPlanItem[], group: SurfaceReali
 /**
  * Adds a realization plate to every plan frame whose stage holds a group whose
  * text its leaves do not spell, unless a relation's plate already shows it. Each
- * plate is revealed at the moment Replay activates its group: the owning
- * relation's moment, or the Stage Record when no single relation owns it or
- * when that moment cannot show it. Without Replay steps only the completed
- * view is drawn, so the owner stands for the moment.
+ * plate is revealed at the relation moment where Replay activates its group
+ * (scheduleRealizationChanges), never first at a Stage Record.
  */
 export const withRealizationDisplays = (
   plan: RelationRenderPlan,
@@ -130,27 +128,24 @@ export const withRealizationDisplays = (
 ): RelationRenderPlan => {
   if (!frames.some(frame => frame.after?.realizations?.length)) return plan;
   const tokens = resolveSavedInputTokens(sentence, inputTokens);
-  const changesOf = stageRealizationChanges(frames, tokens);
-  const groupsOn = (step: PlaybackStep | undefined, positions: ReadonlySet<number>) => JSON.stringify((step?.replayRealizations ?? [])
-    .filter(group => group.tokenIndices.some(position => positions.has(position))).map(groupKey).sort());
-  /** The step attaching a change shows the stage's completed association on its input positions. */
-  const activation = (stageIndex: number, change: RealizationChange): PlanStageMoment => {
-    const relationIndex = change.relationIndex;
-    if (relationIndex === null || !steps?.length) return { stageIndex, relationIndex };
-    const positions = new Set([...change.before, ...change.after].flatMap(group => group.tokenIndices));
-    const moment = steps.find(step => step.replayKind === 'relation' && step.replayFrameIndex === stageIndex
-      && step.replayRelationIdentity?.stageIndex === stageIndex && step.replayRelationIdentity.relationIndex === relationIndex);
-    const record = steps.find(step => step.replayKind === 'macro' && step.replayFrameIndex === stageIndex);
-    return moment && record && groupsOn(moment, positions) === groupsOn(record, positions)
-      ? { stageIndex, relationIndex } : { stageIndex, relationIndex: null };
+  const changesOf = (stageIndex: number): ScheduledRealizationChange[] => steps?.length
+    ? scheduleRealizationChanges(steps, frames, stageIndex, tokens)
+    : stageRealizationChanges(frames, tokens)(stageIndex).map(change => ({ ...change, stepIndex: null, diagnostics: [] }));
+  /** The moment the schedule shows a change at. Without Replay steps only the
+   * completed view is drawn, so its owner or latest covering relation stands for it. */
+  const activation = (stageIndex: number, change: ScheduledRealizationChange): PlanStageMoment => {
+    const identity = change.stepIndex === null ? undefined : steps?.[change.stepIndex]?.replayRelationIdentity;
+    return { stageIndex, relationIndex: identity?.relationIndex
+      ?? (steps?.length ? null : change.relationIndex ?? change.candidateRelationIndices?.at(-1) ?? null) };
   };
-  const ownerRef = (stageIndex: number, owner: number | null, group: SurfaceRealization): PlanRelationRef => {
-    const relation = owner === null ? undefined : frames[stageIndex].relations?.[owner];
+  /** The relation whose moment shows the plate; a plate no moment shows has no relation. */
+  const momentRef = (moment: PlanStageMoment, group: SurfaceRealization): PlanRelationRef => {
+    const relation = moment.relationIndex === null ? undefined : frames[moment.stageIndex].relations?.[moment.relationIndex];
     return relation ? {
-      stageIndex, relationIndex: owner!, relation: relation.relation, anchors: relation.anchors,
+      stageIndex: moment.stageIndex, relationIndex: moment.relationIndex!, relation: relation.relation, anchors: relation.anchors,
       ...(relation.priorAnchors ? { priorAnchors: relation.priorAnchors } : {}),
       ...(relation.values ? { values: relation.values } : {})
-    } : { stageIndex, relationIndex: STAGE_RECORD_RELATION_INDEX, relation: 'Stage Record',
+    } : { stageIndex: moment.stageIndex, relationIndex: UNOWNED_RELATION_INDEX, relation: 'Realization group',
       anchors: { realization: [...group.nodeIds] } };
   };
   type Held = { group: SurfaceRealization; activatedAt: PlanStageMoment; relationRef: PlanRelationRef };
@@ -162,7 +157,7 @@ export const withRealizationDisplays = (
       const moment = activation(stageIndex, change);
       change.before.forEach(group => retired.set(groupKey(group), moment));
       change.after.forEach(group => established.set(groupKey(group), {
-        group, activatedAt: moment, relationRef: ownerRef(stageIndex, change.relationIndex, group)
+        group, activatedAt: moment, relationRef: momentRef(moment, group)
       }));
     }
     const current = frame.after?.realizations ?? [];

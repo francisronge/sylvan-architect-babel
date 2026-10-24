@@ -157,7 +157,7 @@ export function treeLabelRunsForStep(
   }
   const activeRelation = step.replayKind === 'relation' ? step.replayRelationIdentity?.relationIndex ?? null : null;
   const items = options.includeRelationIndices !== false && prepared.relationRenderPlan ? visiblePlanFrameItems(prepared.relationRenderPlan, stage, played,
-    activeRelation, step.replayKind === 'macro').map(item => resolveDisplayedTrajectoryAttachments(item, id => visibleAliases.get(id)?.data,
+    activeRelation).map(item => resolveDisplayedTrajectoryAttachments(item, id => visibleAliases.get(id)?.data,
       { stageIndex: stage, playedRelationIndices: played }))
     .filter(item => planItemDependencyNodeIds(item).every(id => resolve(id))) : [];
   // The binder tests reuse against the base labels, before any synchronous

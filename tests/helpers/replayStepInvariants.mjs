@@ -216,14 +216,14 @@ function anchorResolver(step) {
  * a relation-only mark at its own relation's moment; any other mark from the
  * moment of a relation it represents onward in that stage, or throughout a
  * later stage it persists into, until the later moment that supersedes it.
- * A realized-form plate shows from the moment its group becomes active (a
- * relation's moment or the Stage Record) until the moment that replaces it.
+ * A realized-form plate shows from the relation moment its group becomes active
+ * at (none: from the next stage) until the moment that replaces it.
  * This restates the contract independently of renderPlan.ts's selector, so a
  * broken selector is reported instead of hiding every mark from the rule. */
-export function authoredReveal(item, stage, played, active, stageRecord = false) {
+export function authoredReveal(item, stage, played, active) {
   if (item.realization) {
-    const at = moment => moment.stageIndex < stage || moment.stageIndex === stage
-      && (moment.relationIndex === null ? stageRecord : played.has(moment.relationIndex));
+    const at = moment => moment.stageIndex < stage
+      || moment.stageIndex === stage && moment.relationIndex !== null && played.has(moment.relationIndex);
     return at(item.realization.activatedAt) && !(item.realization.retiredAt && at(item.realization.retiredAt));
   }
   const refs = planItemRelationRefs(item);
@@ -240,13 +240,12 @@ export function authoredReveal(item, stage, played, active, stageRecord = false)
 export function stepMarks(plan, step, played, { select = isPlanItemRevealed, resolver = anchorResolver(step) } = {}) {
   const stage = step.replayFrameIndex, { overlay, resolves } = resolver;
   const active = step.replayKind === 'relation' ? step.replayRelationIdentity?.relationIndex ?? null : null;
-  const record = step.replayKind === 'macro';
   return (plan.frames[stage]?.items ?? []).map(item => {
     const projected = resolveDisplayedTrajectoryAttachments(projectThetaGrid(item, stage, played),
       id => overlay.get(id)?.data, { stageIndex: stage, playedRelationIndices: played });
-    const revealed = authoredReveal(projected, stage, played, active, record);
+    const revealed = authoredReveal(projected, stage, played, active);
     const missing = planItemDependencyNodeIds(projected).filter(id => !resolves(id));
-    return { item: projected, revealed, selected: select(projected, stage, played, active, record), missing, painted: revealed && !missing.length };
+    return { item: projected, revealed, selected: select(projected, stage, played, active), missing, painted: revealed && !missing.length };
   });
 }
 

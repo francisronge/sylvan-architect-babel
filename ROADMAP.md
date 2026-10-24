@@ -86,8 +86,9 @@ through the commands in [AGENTS.md](AGENTS.md#qualification-runs).
    raw/version capture, typed failures and deployed limits.
 2. Prove a single owner for a pronunciation association when movement and a
    separate morphology claim name the same contributors. Until one owner is
-   proved, the association stays at the Stage Record. Do not prescribe model role
-   names or force a drawing to eliminate that conservative fallback.
+   proved, the association becomes visible at the latest covering relation's
+   moment, once every candidate has played. Do not prescribe model role names or
+   force a drawing to eliminate that conservative fallback.
 3. Adjudicate the reading distinctions still open in saved analyses, and decide
    what counts as a distinct reading:
    - the Mandarin and Arabic alternatives. One Arabic alternative assumes a past

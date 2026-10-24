@@ -398,12 +398,13 @@ export type NodePlaquePlanItem = PlanItemBase & {
 };
 
 
-/** One moment of a stage: an authored relation's moment, or its Stage Record (`relationIndex: null`). */
+/** One moment of a stage: an authored relation's moment, or none (`relationIndex: null`) when
+ * no moment of the stage shows it; the mark then appears from the next stage on. */
 export type PlanStageMoment = { stageIndex: number; relationIndex: number | null };
 
-/** The reference of a mark the Stage Record owns because no single authored relation
- * does; no authored relation has this index, so no relation moment focuses the mark. */
-export const STAGE_RECORD_RELATION_INDEX = -1;
+/** The reference of a realization plate no relation moment shows (a stage without relation
+ * moments); no authored relation has this index, so no relation moment focuses it. */
+export const UNOWNED_RELATION_INDEX = -1;
 
 export type PlanRealization = {
   nodeIds: string[];
@@ -695,21 +696,18 @@ export const planItemDependencyNodeIds = (item: RelationPlanItem): string[] => {
  * identity; callers pass the set of authored relation indices whose moments
  * have actually played in this frame (null = the committed, non-animated
  * view). Neutral marks require the exact current relation moment, including
- * any coalesced owner. `stageRecord` is true at the frame's Stage Record step,
- * where an association no single relation owns becomes active. All items
- * remain in the plan for stable layout reservation.
+ * any coalesced owner. All items remain in the plan for stable layout reservation.
  */
 export const isPlanItemRevealed = (
   item: RelationPlanItem,
   frameIndex: number,
   playedRelationIndices: ReadonlySet<number> | null,
-  activeRelationIndex: number | null = null,
-  stageRecord = false
+  activeRelationIndex: number | null = null
 ): boolean => {
   if (item.kind === 'node-plaque' && item.realization) {
     const reached = ({ stageIndex, relationIndex }: PlanStageMoment) => stageIndex < frameIndex
       || stageIndex === frameIndex && (playedRelationIndices === null
-        || (relationIndex === null ? stageRecord : playedRelationIndices.has(relationIndex)));
+        || relationIndex !== null && playedRelationIndices.has(relationIndex));
     const { activatedAt, retiredAt } = item.realization;
     return reached(activatedAt) && !(retiredAt && reached(retiredAt));
   }

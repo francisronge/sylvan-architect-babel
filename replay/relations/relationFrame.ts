@@ -102,8 +102,7 @@ export const visiblePlanFrameItems = (
   plan: RelationRenderPlan,
   frameIndex: number,
   playedRelationIndices: ReadonlySet<number> | null,
-  activeRelationIndex: number | null = null,
-  stageRecord = false
+  activeRelationIndex: number | null = null
 ): RelationPlanItem[] => mergeAnchorSetOrganization((plan.frames[frameIndex]?.items ?? []).filter(item =>
-  isPlanItemRevealed(item, frameIndex, playedRelationIndices, activeRelationIndex, stageRecord))
+  isPlanItemRevealed(item, frameIndex, playedRelationIndices, activeRelationIndex))
   .map(item => projectThetaGrid(item, frameIndex, playedRelationIndices)), true);

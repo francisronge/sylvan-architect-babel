@@ -1064,13 +1064,21 @@ plate: one literal row, its contributors' words rewritten as the realized text
 on the pronounced contributors (the group's occurrences when none is pronounced)
 and attaches at the word itself when its anchor holds one; it chooses its pocket
 after every relation's plaque, so it never displaces one. The plate
-shows exactly while Replay holds the group active: from its owning relation's
-moment, or from the Stage Record when no single relation owns the change or
-that moment cannot show it, and in the Canopy for the final stage. A relation's
-own realization, spell-out or correspondence plate on the same syntax that
-already shows the text, in one value or across one label's rows, draws instead.
-When no relation owns the plate, the Stage Record does
-(`STAGE_RECORD_RELATION_INDEX`), and no relation moment focuses it.
+shows exactly while Replay holds the group active (below), and in the Canopy for
+the final stage; it never first appears at a Stage Record. The relation whose
+moment shows it focuses it. A relation's own realization, spell-out or
+correspondence plate on the same syntax that already shows the text, in one
+value or across one label's rows, draws instead.
+
+Replay makes a realization change active at a relation moment, never at the
+Stage Record (`scheduleRealizationChanges` in `replay/realizationReplay.ts`):
+its owner's moment; with several covering relations and no owner, the latest
+covering relation's moment, when all of them have played; with no covering
+relation, the stage's last relation moment. A change whose syntax is not yet
+displayed at that moment waits for the stage's next one. A stage without
+relation moments has no moment to show its changes: they appear from the next
+stage (`REALIZATION_NO_MOMENT`), and no moment is invented; such a plate has no
+relation (`UNOWNED_RELATION_INDEX`).
 
 An unchanged enclosing rewrite domain is context only when its changed terminals are proved
 rewrite outputs and every other terminal is an explicit unchanged conditioner.
@@ -1103,13 +1111,13 @@ can carry renamed descendant associations through its exact source and landing.
 Their ordered content and topology must be unchanged, with unique correspondence
 and no contradictory lineage. Similar words elsewhere, changed content and
 indistinguishable unproved siblings are insufficient. Unsupported ownership and
-multiple PF owners retain their ambiguity. Replay retains the earlier association through
-ambiguous moments and shows the completed association at the Stage Record. It
-does not guess ownership from open prose, relation names or linguistic expectations.
+multiple PF owners retain their ambiguity. Replay retains the earlier association until
+the latest covering relation's moment and shows the completed association there.
+It does not guess ownership from open prose, relation names or linguistic expectations.
 Diagnostics list the candidate relation numbers. A direct owner waits for the
 moment that introduces its participants; one whose participants are still not
-visible at its moment defers to the Stage Record rather than handing ownership
-to a later movement. The Japanese stem/allomorph and
+visible at its moment waits for the stage's next relation moment without handing
+ownership to it. The Japanese stem/allomorph and
 orthographic-association regression exercises competing direct coverage without
 changing the authored structure or pronunciation.
 
@@ -1160,7 +1168,7 @@ A movement can own a realization change on descendants of its exact source and
 landing when no relation directly covers the complete change. The complete old and new groups must cover the same input tokens,
 and their members must pair uniquely by exact ID or explicit lineage within
 those two movement domains. Apply that group change at the movement moment.
-Competing inferred owners still defer to the Stage Record. Neither silence nor relation
+Competing inferred owners still wait for the latest of their moments. Neither silence nor relation
 prose establishes this association.
 
 An existing empty head position can receive newly introduced source-linked

@@ -72,16 +72,16 @@
       ]
     },
     "movement/clause-context.json#/cases/3": {
-      "frames": "Xr0hCIVn Kfpe6WmY w__k115M CqJ-DT13 C5gWEQfL ru1lbOcI TtsfCS-X Sdk82sHF pMKzDDeY OoeoHoKp ER9jnTT_ cRm9ui6a 0Tuet5fR 34jCjp8j 6pbdijgb mzoXYMZ5 1n7Rio58 nLXjD9kR Cq-1bkwK _04yJeVH n41R-iSY ybh5DxJS pe7Z1OJ5 6iHg9uET _ZRe2kTt SDD5HKOn bVCwjz9P 1AkAUGvp CrSWWlAt lx2R9QPZ hC3QoN08 c62McyLS R-zD3DxQ JPvypkMv Ju6xDDlt bkzkNIYU r9u8JJk7 Hw4es7u1 Bu1-U_Lr KEZXN7Lj NRsmrZ8c QDMSAdio nGymeFXb -WLg9Kuo Iwe0K6gS oSzqmsoe It2hhXxP pMtPVMrG KccDBwhw q7KmKuWU -qRLh-70 oGOraDCp fPJZds9M -hhltsGK FgYGGV-3",
+      "frames": "Xr0hCIVn Kfpe6WmY w__k115M CqJ-DT13 C5gWEQfL ru1lbOcI TtsfCS-X Sdk82sHF pMKzDDeY OoeoHoKp ER9jnTT_ cRm9ui6a 0Tuet5fR 34jCjp8j 6pbdijgb mzoXYMZ5 1n7Rio58 nLXjD9kR Cq-1bkwK _04yJeVH n41R-iSY ybh5DxJS pe7Z1OJ5 6iHg9uET _ZRe2kTt SDD5HKOn bVCwjz9P 1AkAUGvp CrSWWlAt lx2R9QPZ hC3QoN08 c62McyLS R-zD3DxQ JPvypkMv Ju6xDDlt bkzkNIYU r9u8JJk7 Hw4es7u1 Bu1-U_Lr KEZXN7Lj NRsmrZ8c QDMSAdio nGymeFXb -WLg9Kuo Iwe0K6gS oSzqmsoe It2hhXxP pMtPVMrG aoMxn0oy QNlxEF8V il9StrCd i6nkmHC9 EJHVGzrt QJB3COTC 6NXoTDdl",
       "canopy": "tX_9GO5_",
       "tiers": [
-        "0:-1 T- node-plaque pf.realization",
         "0:0 T3 fallback",
         "0:1 T3 fallback",
         "0:2 T2 directed-path tier2.feature-dependency feature.dependency",
         "0:2 T3 fallback",
         "0:3 T2 directed-path tier2.feature-dependency feature.dependency",
         "0:3 T3 fallback",
+        "0:4 T- node-plaque pf.realization",
         "0:4 T2 node-plaque pf.realization pf.structured",
         "0:4 T3 fallback",
         "1:0 T2 trajectory tier2.movement-path movement.path",
@@ -1784,7 +1784,7 @@
       ]
     },
     "replay-regressions/inserted-landing-parent-below-kept-host.json#": {
-      "frames": "j2AHuCme 3tYCHu8v HZzT_Zdz -fb3RlMc ADjTqWxf 9vYNPy_B qrSE63zO ntaWEmAp xpRtw2ZN MNS-TSe6 pxAp8m61 HwwONr10 Gi9sD374 Kd_7lWRN MI30sMyJ KznlWDCb pgQ1yKwO _Be3NaPb Ind9OT3- 1aCX_KAa KngmvqcI kVmGQ8P9 F6E_6ont q0AOJYU6 uFZDLjFj 4S8a7eBD LtAUyO6V kvKBqAVh Vra6e4uX _Fs42PRA",
+      "frames": "j2AHuCme 3tYCHu8v HZzT_Zdz -fb3RlMc ADjTqWxf 9vYNPy_B qrSE63zO ntaWEmAp xpRtw2ZN MNS-TSe6 pxAp8m61 HwwONr10 Gi9sD374 Kd_7lWRN MI30sMyJ KznlWDCb pgQ1yKwO _Be3NaPb Ind9OT3- 1aCX_KAa KngmvqcI kVmGQ8P9 F6E_6ont q0AOJYU6 uFZDLjFj 4S8a7eBD DekWjU0P kvKBqAVh Vra6e4uX _Fs42PRA",
       "canopy": "cYFdkcW8",
       "tiers": [
         "0:-1 T- node-plaque pf.realization",
@@ -2612,10 +2612,9 @@
       ]
     },
     "replay-regressions/retained-root-growth.json#": {
-      "frames": "Vxxt1Sge pl0kcmTG sVR9TeG0 8mTmwJGg F8p8Cauk SONu4ExE oayMPhNq XLzlqYlG zmv0AuTy smjMqsmw hCJVdZIr 7eerATR9 ExvnXqjS 5d6FIGcP E1ODzm5V O4utVSRJ HZHeeeUD Ghl7DPUO tCptqncU hGv-XAO5 eONwpT7G j0uqOG4r mG0VJx_2 4SXjnkcW THERnfDo YG0Y8Ekn mnhrW1jQ jmTjsqDp 8tdBxR5w ZhW18ok6 ceD-f82P BZP8fA-i KsCHhJ_s bA4KnkwC UE26uVDv eE9hT0mX Q7CrSwbv 4omH2OFt tca_zFzG dMwkQVmW M4KFoBGq s5Y77HDN VzYxkbUB CtoGAYB4 UaoRbhfB OHvyduud -0WhYsKF Tp-zQaRJ AE_Jq7a6 _dJBkqEr 9KCk5617 ujOOqc7_ 0vi5SBQW 4A-rxrhZ Lr2jA3yg ONGohanu jNya5egn vdZQ_wDP",
+      "frames": "Vxxt1Sge pl0kcmTG sVR9TeG0 8mTmwJGg F8p8Cauk SONu4ExE oayMPhNq XLzlqYlG zmv0AuTy smjMqsmw hCJVdZIr 7eerATR9 ExvnXqjS 5d6FIGcP E1ODzm5V O4utVSRJ HZHeeeUD Ghl7DPUO tCptqncU hGv-XAO5 eONwpT7G j0uqOG4r mG0VJx_2 4SXjnkcW THERnfDo YG0Y8Ekn mnhrW1jQ jmTjsqDp 8tdBxR5w ZhW18ok6 ceD-f82P BZP8fA-i KsCHhJ_s bA4KnkwC UE26uVDv eE9hT0mX Q7CrSwbv 4omH2OFt tca_zFzG dMwkQVmW M4KFoBGq s5Y77HDN VzYxkbUB CtoGAYB4 8MjXQZgj IftjE-0Q rZ1ANpyR UgwYLP0f YQWtQNja TxLJpbYW r-FbGCji MFcpXbWj tNkBF1ze hwHPH9zz 1OzgKAUu gDFIF89P h11_OJPB fR3I6Yui",
       "canopy": "jEtpwP4t",
       "tiers": [
-        "0:-1 T- node-plaque pf.realization",
         "0:0 T3 fallback",
         "0:1 T3 fallback",
         "0:2 T2 directed-path tier2.feature-dependency feature.dependency",
@@ -2627,6 +2626,7 @@
         "0:5 T2 directed-path tier2.feature-dependency feature.dependency",
         "0:6 T2 node-plaque pf.realization pf.structured",
         "0:6 T3 fallback",
+        "0:7 T- node-plaque pf.realization",
         "0:7 T2 node-plaque pf.realization pf.structured",
         "0:7 T3 fallback",
         "1:0 T2 operator-variable-binding binding.dependency binding.dependency",
@@ -5639,7 +5639,7 @@
       ]
     },
     "showcase/scope-ellipsis-coordination.json#/cases/3": {
-      "frames": "ynBA4xDQ AefYBCG8 ON9pc1be YUgLL1Ci sQdGqR0l -HgsHBRp 4pk1q5ZZ kyxusVgg LFZHCGeh 6fxmE0TK flFCyqUR lDHCunT5 Q72leCUI 0UH3NYV0 eD2KbyoI ENY55o95 Jr6XDOZT JVlD0lck IxoznTXi NKHl_TYm GpqACJDE xdzpZUvh ItB6pHfB gUj9I4Rq IAiv3z6F dka_4rKZ VA45Si2t rf5joDIv WfLhn8kK DcTrU2ZS 77ZRtYcm JXt7PSqh KZzOMmgN xamIuWf2 XJOf6DIH AtTERl5F jljyAUj9 JBmCLfdE WrqtXZSU qgi5j4ek UOApJ3-h MxoP6HnK belyPSyB 1Ca3u75P",
+      "frames": "ynBA4xDQ AefYBCG8 ON9pc1be YUgLL1Ci sQdGqR0l -HgsHBRp 4pk1q5ZZ kyxusVgg LFZHCGeh 6fxmE0TK flFCyqUR lDHCunT5 Q72leCUI 0UH3NYV0 eD2KbyoI ENY55o95 Jr6XDOZT JVlD0lck IxoznTXi NKHl_TYm GpqACJDE xdzpZUvh ItB6pHfB gUj9I4Rq IAiv3z6F dka_4rKZ VA45Si2t rf5joDIv WfLhn8kK DcTrU2ZS 77ZRtYcm JXt7PSqh KZzOMmgN xamIuWf2 XJOf6DIH AtTERl5F jljyAUj9 JBmCLfdE WrqtXZSU qgi5j4ek UOApJ3-h MxoP6HnK hR-RDgF1 BV1JPj8R",
       "canopy": "BHKZGjId",
       "tiers": [
         "0:0 T3 fallback",
@@ -5651,12 +5651,12 @@
         "1:0 T2 ellipsis-site ellipsis.ghosting ellipsis.site",
         "1:0 T2 undirected-link tier2.correspondence-alignment correspondence.alignment",
         "1:0 T3 fallback",
-        "2:-1 T- node-plaque pf.realization",
         "2:0 T2 trajectory tier2.movement-path movement.path",
         "2:0 T3 fallback",
         "2:1 T2 node-plaque pf.realization pf.structured",
         "2:1 T3 fallback",
         "2:2 T3 fallback",
+        "2:3 T- node-plaque pf.realization",
         "2:3 T2 ellipsis-site ellipsis.ghosting ellipsis.site",
         "2:3 T3 fallback"
       ]

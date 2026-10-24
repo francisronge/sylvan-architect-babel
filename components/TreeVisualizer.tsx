@@ -623,7 +623,6 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         relationRenderPlan,
         playedRelationIndices,
         activeRelationMoment,
-        stageRecordShown: animated && currentReplayKind === 'macro',
         acceptedCompositionIsTreeFirst
       }, camera: { zoomBehavior, cameraAnimationRef, manualCameraRef, data, derivationStagesSignature, autoCameraRef, fitRevision }, lifecycle: {
         svgRef,

@@ -14,7 +14,7 @@ const platesPerStep = prepared => {
     if (identity?.stageIndex === stage) played.get(stage).add(identity.relationIndex);
     return { step, plates: (prepared.relationRenderPlan.frames[stage]?.items ?? []).filter(item => item.kind === 'node-plaque'
       && item.plaqueStyle === 'realization'
-      && isPlanItemRevealed(item, stage, played.get(stage), identity?.relationIndex ?? null, step.replayKind === 'macro')) };
+      && isPlanItemRevealed(item, stage, played.get(stage), identity?.relationIndex ?? null)) };
   });
 };
 const canopyPlates = plan => {
@@ -52,31 +52,34 @@ test('a realized form its leaves do not spell is drawn at its owner moment, pers
     association('Tense realization', ['vt'])]), includePlayback: false }).relationRenderPlan).map(text), ['go → went']);
 });
 
-test('an association no single relation owns is drawn from its Stage Record', () => {
-  const prepared = prepareReplay(record([association('Tense lowering', ['vt']), association('Tense realization', ['vt'])]));
+test('an association no single relation owns is drawn at its latest covering relation, never first at a Stage Record', () => {
+  // Relations 1 and 2 both cover vt; relation 3, which follows them, does not.
+  const prepared = prepareReplay(record([association('Tense lowering', ['vt']), association('Tense realization', ['vt']),
+    association('Clause typing', ['tp'])]));
   const steps = platesPerStep(prepared);
   const firstShown = steps.findIndex(({ plates }) => plates.length);
   assert(firstShown >= 0, 'the realized form is drawn');
-  assert.equal(steps[firstShown].step.replayKind, 'macro');
-  assert.equal(steps[firstShown].step.replayFrameIndex, 1);
+  assert.equal(steps[firstShown].step.replayKind, 'relation');
+  assert.deepEqual(steps[firstShown].step.replayRelationIdentity, { stageIndex: 1, relationIndex: 1 });
   assert.deepEqual(steps[firstShown].plates.map(text), ['go → went']);
   assert.deepEqual(steps[firstShown].step.replayRealizations.find(group => group.nodeIds.includes('vt')), { nodeIds: ['vt'], tokenIndices: [1] },
     'the plate shows exactly when Replay makes the association active');
   assert(steps.slice(0, firstShown).every(({ step }) => !step.replayRealizations?.some(group => group.nodeIds.includes('vt'))));
 });
 
-test('do-support shows "did" from the Stage Record without duplicating the plate a relation draws for "left"', () => {
+test('do-support shows "did" at its latest covering relation, never first at the Stage Record, without duplicating "left"', () => {
   const fixture = JSON.parse(readFileSync(new URL('../fixtures/showcase/scope-ellipsis-coordination.json', import.meta.url), 'utf8')).cases[3];
   assert.equal(fixture.sentence, 'John left, and Mary did too.');
   const prepared = prepareReplay({ derivationStages: fixture.derivationStages, sentence: fixture.sentence,
     inputTokens: fixture.inputTokens, includePlayback: true });
   const steps = platesPerStep(prepared);
   // Relation 3 states "did" but also anchors the elided VP outside the group,
-  // so it does not settle the tie with the ellipsis licensing relation 4.
+  // so it does not settle the tie with the ellipsis licensing relation 4: the
+  // plate waits for relation 4, the latest covering relation.
   const firstShown = steps.findIndex(({ plates }) => plates.some(item => item.realization));
   assert(firstShown >= 0, 'the realized form is drawn');
-  assert.equal(steps[firstShown].step.replayKind, 'macro');
-  assert.equal(steps[firstShown].step.replayFrameIndex, 2);
+  assert.equal(steps[firstShown].step.replayKind, 'relation');
+  assert.deepEqual(steps[firstShown].step.replayRelationIdentity, { stageIndex: 2, relationIndex: 3 });
   const did = steps.at(-1).plates.filter(item => item.realization);
   assert.deepEqual(did.map(text), ['do → did']);
   assert.deepEqual(did[0].anchorNodeIds, ['do']);
@@ -99,9 +102,9 @@ test('of relations covering one association, the one stating its realized text o
   assert.deepEqual(steps[firstShown].step.replayRelationIdentity, { stageIndex: 1, relationIndex: 1 });
   assert.equal(steps[firstShown].plates[0].relationRef.relationIndex, 1);
   assert(!steps[firstShown].step.replayRealizationDiagnostics?.some(text => text.includes('AMBIGUOUS')), 'no ambiguity remains');
-  // Two relations stating the text are still ambiguous: the Stage Record keeps it.
-  const both = platesPerStep(prepareReplay(record([{ ...support, values: { form: 'went' } }, stating])));
-  assert.equal(both[both.findIndex(({ plates }) => plates.length)].step.replayKind, 'macro');
+  // Two relations stating the text stay ambiguous: the plate waits for the latter.
+  const both = platesPerStep(prepareReplay(record([stating, { ...support, values: { form: 'went' } }])));
+  assert.deepEqual(both[both.findIndex(({ plates }) => plates.length)].step.replayRelationIdentity, { stageIndex: 1, relationIndex: 1 });
 });
 
 test('realized text is the sentence stretch at the word-list positions', async () => {
