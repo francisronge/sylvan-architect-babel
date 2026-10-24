@@ -190,6 +190,9 @@ const foldCharacter = (character) => {
 };
 const foldText = (characters) => characters.map(foldCharacter).join('');
 
+/** What the spelling check compares of a text: its caseless characters, without spacing or punctuation. */
+export const caselessSpelling = (text) => foldText(significant(text));
+
 /** The sentence's code points with their caseless forms and character classes, read once per response. */
 const readSentence = (sentence) => {
   const text = sentence.normalize('NFC');

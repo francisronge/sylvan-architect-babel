@@ -392,6 +392,27 @@ export type NodePlaquePlanItem = PlanItemBase & {
   realizationRowKinds?: Array<'rewrite' | 'literal'>;
   /** Exact authored moment that introduces each row; null means the owner relation. */
   rowRefs?: Array<PlanRelationRef | null>;
+  /** The authored realization group this plate shows (realizationDisplay.ts). It is
+   * revealed while Replay holds the group active, never by its relation reference. */
+  realization?: PlanRealization;
+};
+
+
+/** One moment of a stage: an authored relation's moment, or none (`relationIndex: null`) when
+ * no moment of the stage shows it; the mark then appears from the next stage on. */
+export type PlanStageMoment = { stageIndex: number; relationIndex: number | null };
+
+/** The reference of a realization plate no relation moment shows (a stage without relation
+ * moments); no authored relation has this index, so no relation moment focuses it. */
+export const UNOWNED_RELATION_INDEX = -1;
+
+export type PlanRealization = {
+  nodeIds: string[];
+  tokenIndices: number[];
+  /** Where Replay makes the group active (realizationReplay.ts). */
+  activatedAt: PlanStageMoment;
+  /** Where a later change of the same input replaces or removes it. */
+  retiredAt?: PlanStageMoment;
 };
 
 
@@ -683,6 +704,13 @@ export const isPlanItemRevealed = (
   playedRelationIndices: ReadonlySet<number> | null,
   activeRelationIndex: number | null = null
 ): boolean => {
+  if (item.kind === 'node-plaque' && item.realization) {
+    const reached = ({ stageIndex, relationIndex }: PlanStageMoment) => stageIndex < frameIndex
+      || stageIndex === frameIndex && (playedRelationIndices === null
+        || relationIndex !== null && playedRelationIndices.has(relationIndex));
+    const { activatedAt, retiredAt } = item.realization;
+    return reached(activatedAt) && !(retiredAt && reached(retiredAt));
+  }
   if (playedRelationIndices === null) return !item.supersededAt;
   if (item.supersededAt?.stageIndex === frameIndex
     && playedRelationIndices.has(item.supersededAt.relationIndex)) return false;

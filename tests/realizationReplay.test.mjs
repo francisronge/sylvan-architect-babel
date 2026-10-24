@@ -81,7 +81,9 @@ test('removed groups and changed input positions respect current or prior exact 
     ])];
     const [moment] = moments(play(stages), 1);
     if (prior) {
-      assert.deepEqual(moment.replayRealizations, [], 'prior witnesses retire the old group but do not establish current output');
+      // Prior witnesses retire the old group but do not establish current output:
+      // with no owner, the change shows at the stage's last relation moment.
+      assert.deepEqual(moment.replayRealizations, stages[1].realizations);
       assert.match(moment.replayRealizationDiagnostics.join('\n'), /REALIZATION_MISSING_OWNER/);
     } else assert.deepEqual(moment.replayRealizations, stages[1].realizations);
     assert.deepEqual(completion(play(stages), 1).replayRealizations, stages[1].realizations);
@@ -91,16 +93,19 @@ test('removed groups and changed input positions respect current or prior exact 
   assert.deepEqual(completion(steps, 1).replayRealizations, []);
 });
 
-test('missing or ambiguous timing remains inspection evidence rather than an invented relation moment', () => {
+test('missing or ambiguous timing shows at the last covering or last relation moment, never inventing one', () => {
   for (const relations of [[], [relation(['other'])], [relation(['root', 'past']), relation(['root', 'past'])]]) {
     const stages = [stage(), stage([group()], relations)];
     const steps = play(stages);
     const current = steps.filter(step => step.replayFrameIndex === 1);
     assert.equal(moments(steps, 1).length, relations.length);
-    current.filter(step => step.replayKind !== 'macro').forEach(step => assert.deepEqual(step.replayRealizations, []));
+    // The latest covering moment, or the stage's last; a stage without moments shows it from the next stage.
+    const shown = relations.length ? steps.indexOf(moments(steps, 1).at(-1)) : Infinity;
+    current.forEach(step => assert.deepEqual(step.replayRealizations, steps.indexOf(step) >= shown ? [group()] : []));
     const macro = completion(steps, 1);
-    assert.deepEqual(macro.replayRealizations, [group()]);
+    assert.deepEqual(macro.replayRealizations, relations.length ? [group()] : []);
     assert.match(macro.replayRealizationDiagnostics.join('\n'), relations.length === 2 ? /AMBIGUOUS_OWNER/ : /MISSING_OWNER/);
+    if (!relations.length) assert.match(macro.replayRealizationDiagnostics.join('\n'), /REALIZATION_NO_MOMENT/);
     for (const step of current) {
       assert.deepEqual(buildReplayPanelContent(step, stages),
         buildReplayPanelContent({ ...step, replayRealizationDiagnostics: undefined }, stages));
@@ -113,7 +118,9 @@ test('ambiguous realization descriptions never win by wording or list order', ()
     const relations = names.map(name => relation(['root', 'past'], undefined, name));
     const stages = [stage(), stage([group()], relations)];
     const original = structuredClone(stages), steps = play(stages);
-    assert(moments(steps, 1).every(step => step.replayRealizations.length === 0));
+    // Neither relation owns it; it shows once both have played, at the latest one's moment.
+    assert.deepEqual(moments(steps, 1).map(step => step.replayRealizations), [[], [group()]]);
+    assert.equal(resolveRealizationChanges(...adaptDerivationStagesForReplay(stages), 1)[0].relationIndex, null);
     assert.deepEqual(completion(steps, 1).replayRealizations, [group()]);
     assert.deepEqual(stages, original);
   }
@@ -315,7 +322,8 @@ test('orthographic sequences do not resolve conflicting, unestablished or mismat
     const [change] = resolveRealizationChanges(undefined, frames[0], 0, ['school', 'child']);
     assert.equal(change.relationIndex, null);
     assert.match(change.diagnostic, /REALIZATION_AMBIGUOUS_OWNER/);
-    assert(moments(play(stages, ['school', 'child']), 0).every(step => !step.replayRealizations.length));
+    // Unresolved, it waits for the latest covering relation's moment.
+    assert.deepEqual(moments(play(stages, ['school', 'child']), 0).map(step => step.replayRealizations), [[], stages[0].realizations]);
     assert.deepEqual(completion(play(stages, ['school', 'child']), 0).replayRealizations, stages[0].realizations);
   }
 });
@@ -343,7 +351,9 @@ test('missing relation moments and unavailable participants cannot introduce a r
   const steps = play(retiring);
   assert.equal(moments(steps, 1).length, 0);
   assert.match(completion(steps, 1).replayRealizationDiagnostics.join('\n'), /OWNER_MOMENT_UNAVAILABLE/);
-  assert.deepEqual(completion(steps, 1).replayRealizations, []);
+  // No moment of the stage can show the retirement: it shows from the next stage, not at the Stage Record.
+  assert.match(completion(steps, 1).replayRealizationDiagnostics.join('\n'), /REALIZATION_NO_MOMENT/);
+  assert.deepEqual(completion(steps, 1).replayRealizations, [group()]);
 
   const stages = [stage(), stage([group()], [relation(['root', 'past'])])];
   const frames = adaptDerivationStagesForReplay(stages);
@@ -416,8 +426,12 @@ test('multiple descriptions of one stem do not fabricate a unique realization mo
   ], stemForest)];
   const original = structuredClone(stages);
   const steps = play(stages);
+  const [change] = resolveRealizationChanges(...adaptDerivationStagesForReplay(stages), 1);
+  assert.equal(change.relationIndex, null);
+  // No description owns it; it shows at the latest covering relation's moment.
+  const latest = Math.max(...change.candidateRelationIndices);
   for (const moment of moments(steps, 1)) {
-    assert.deepEqual(moment.replayRealizations, []);
+    assert.deepEqual(moment.replayRealizations, moment.replayRelationIdentity.relationIndex >= latest ? [association] : []);
     assert(moment.replayRealizationDiagnostics.some(d => d.includes('REALIZATION_AMBIGUOUS_OWNER')));
   }
   assert.deepEqual(completion(steps, 1).replayRealizations, [association]);
@@ -467,7 +481,10 @@ test('collective PF ownership keeps competing or incomplete PF claims ambiguous'
     const [change] = resolveRealizationChanges(frames[0], frames[1], 1);
     assert.equal(change.relationIndex, null, mode);
     assert.match(change.diagnostic, /REALIZATION_AMBIGUOUS_OWNER/, mode);
-    for (const moment of moments(play(stages), 1)) assert.deepEqual(moment.replayRealizations, [], mode);
+    // No claim owns it; it shows only once its latest covering relation has played.
+    const latest = Math.max(...change.candidateRelationIndices);
+    for (const moment of moments(play(stages), 1)) assert.deepEqual(moment.replayRealizations,
+      moment.replayRelationIdentity.relationIndex >= latest ? current.realizations : [], mode);
   }
 });
 
@@ -527,8 +544,16 @@ test('descendant realization ownership rejects competing moments, unmatched memb
   ]) {
     const stages = movedRealizationStages(); change(stages);
     const frames = adaptDerivationStagesForReplay(stages);
-    assert(resolveRealizationChanges(frames[0], frames[1], 1).every(change=>change.relationIndex===null));
-    assert.deepEqual(moments(play(stages),1)[0].replayRealizations,stages[0].realizations);
+    const changes = resolveRealizationChanges(frames[0], frames[1], 1);
+    assert(changes.every(change=>change.relationIndex===null));
+    // Without an owner, nothing changes before the latest covering (or last) relation moment.
+    const stageMoments = moments(play(stages), 1);
+    const target = Math.max(...changes.map(change => change.candidateRelationIndices?.length
+      ? Math.max(...change.candidateRelationIndices) : stageMoments.at(-1).replayRelationIdentity.relationIndex));
+    stageMoments.filter(moment => moment.replayRelationIdentity.relationIndex < target)
+      .forEach(moment => assert.deepEqual(moment.replayRealizations, stages[0].realizations));
+    assert.notDeepEqual(stageMoments.find(moment => moment.replayRelationIdentity.relationIndex === target).replayRealizations,
+      stages[0].realizations);
   }
 });
 
@@ -584,7 +609,9 @@ test('competing direct owners stay ambiguous without including weaker movement c
   assert.deepEqual(change.candidateRelationIndices, [1, 2]);
   assert.match(change.diagnostic, /Relations 2, 3 cover the same change/);
   const steps = play(stages);
-  for (const moment of moments(steps, 1)) assert.deepEqual(moment.replayRealizations, stages[0].realizations);
+  // Neither owner wins; the association shows at relation 3's moment, the latest covering one, not at relation 1's.
+  for (const moment of moments(steps, 1)) assert.deepEqual(moment.replayRealizations,
+    moment.replayRelationIdentity.relationIndex === 2 ? stages[1].realizations : stages[0].realizations);
   assert.deepEqual(completion(steps, 1).replayRealizations, stages[1].realizations);
 });
 

@@ -5,6 +5,7 @@ import { adaptDerivationStagesForReplay } from './authoredFrames.ts';
 import { applyPreFrontingSentenceInitialCasing } from './replayCasing.ts';
 import { buildAuthoredRelationLinksForFrames, buildMovementChainIndexCatalogueForFrames, createFrameRelationResolver } from './frameRelations.ts';
 import { relationStagesFromFrames } from './relationStages.ts';
+import { withRealizationDisplays } from './realizationDisplay.ts';
 import { buildPlaybackStepsFromDerivationFrames } from './replayCompiler.ts';
 import { buildResolvedLinkTraceIndexMap } from './movementIndices.ts';
 import { decoratePlaybackStepsWithTraceIndices } from './movementPresentation.ts';
@@ -28,7 +29,7 @@ export const prepareReplay = ({ derivationStages, sentence, inputTokens, include
     ? buildDerivationReplayPlan({ derivationStages }) as DerivationReplayPlan : null;
   // The plan's drawings and Replay's relation moments share one dispatch of every claim.
   const relationClaims = dispatchRelationStagesForPlan(relationStagesFromFrames(replayDerivationFrames, derivationReplayPlan));
-  const relationRenderPlan = hasStages ? compileDispatchedRelationRenderPlan(relationClaims) : null;
+  const relationPlan = hasStages ? compileDispatchedRelationRenderPlan(relationClaims) : null;
   const finalIndex = replayDerivationFrames.length - 1;
   const finalFrame = replayDerivationFrames[finalIndex];
   const frameRelations = createFrameRelationResolver(replayDerivationFrames, derivationReplayPlan, relationClaims);
@@ -61,6 +62,9 @@ export const prepareReplay = ({ derivationStages, sentence, inputTokens, include
       decoratePlaybackStepsWithTraceIndices(steps, traceIndexByNodeId), sentence, inputTokens
     );
   }
+  // Realized forms join the plan once Replay has decided when each association is active.
+  const relationRenderPlan = relationPlan && withRealizationDisplays(relationPlan, replayDerivationFrames,
+    { sentence, inputTokens, ...(includePlayback ? { steps: playbackSteps } : {}) });
   return { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
     movementChainIndexCatalogue, playbackSteps };
 };

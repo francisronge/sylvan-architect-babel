@@ -11,7 +11,7 @@ import { applyVizIds, getNodeId } from '../../replay/displayIdentity.ts';
 import { createFrameRelationResolver } from '../../replay/frameRelations.ts';
 import { isRegisteredTrajectoryRelation } from '../../replay/relations/movementIdentities.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
-import { planItemDependencyNodeIds, planItemOwnsRelationMoment, planItemRelationRefs } from '../../replay/relations/renderPlan.ts';
+import { planItemDependencyNodeIds, planItemOwnsRelationMoment, planItemRelationRefs, UNOWNED_RELATION_INDEX } from '../../replay/relations/renderPlan.ts';
 import { visiblePlanFrameItems } from '../../replay/relations/relationFrame.ts';
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
 import { extractDisplayedSubscriptIndex } from '../../replay/replaySurfaceNotation.ts';
@@ -874,14 +874,18 @@ export function checkMovementShownAsMovement(replay, record) {
 }
 
 /** Uses the renderer's own frame selection: within a stage, the relations played
- * so far and the active moment decide which compiled marks are revealed. */
+ * so far and the active moment decide which compiled marks are revealed. A
+ * realization plate no moment of its stage shows may appear only after that stage. */
 export function checkMarksAtOwningMoment(replay) {
   const steps = replay.playbackSteps, plan = replay.relationRenderPlan, out = [], moments = new Map();
   if (!plan) return out;
   steps.forEach((step, index) => {
-    if (step.replayKind !== 'relation' || !step.replayRelationIdentity) return;
-    const key = `${step.replayRelationIdentity.stageIndex}:${step.replayRelationIdentity.relationIndex}`;
-    if (!moments.has(key)) moments.set(key, index);
+    const key = step.replayKind === 'relation' && step.replayRelationIdentity
+      ? `${step.replayRelationIdentity.stageIndex}:${step.replayRelationIdentity.relationIndex}`
+      : null;
+    if (key && !moments.has(key)) moments.set(key, index);
+    // The bound for a plate no moment shows is the step after its stage's last.
+    if (step.replayFrameIndex !== steps[index + 1]?.replayFrameIndex) moments.set(`${step.replayFrameIndex}:${UNOWNED_RELATION_INDEX}`, index + 1);
   });
   const played = new Map();
   steps.forEach((step, index) => {

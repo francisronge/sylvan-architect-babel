@@ -216,9 +216,16 @@ function anchorResolver(step) {
  * a relation-only mark at its own relation's moment; any other mark from the
  * moment of a relation it represents onward in that stage, or throughout a
  * later stage it persists into, until the later moment that supersedes it.
+ * A realized-form plate shows from the relation moment its group becomes active
+ * at (none: from the next stage) until the moment that replaces it.
  * This restates the contract independently of renderPlan.ts's selector, so a
  * broken selector is reported instead of hiding every mark from the rule. */
 export function authoredReveal(item, stage, played, active) {
+  if (item.realization) {
+    const at = moment => moment.stageIndex < stage
+      || moment.stageIndex === stage && moment.relationIndex !== null && played.has(moment.relationIndex);
+    return at(item.realization.activatedAt) && !(item.realization.retiredAt && at(item.realization.retiredAt));
+  }
   const refs = planItemRelationRefs(item);
   if (item.supersededAt && item.supersededAt.stageIndex === stage && played.has(item.supersededAt.relationIndex)) return false;
   if (item.persistence === 'relation-only') return active !== null && refs.some(ref => ref.stageIndex === stage && ref.relationIndex === active);

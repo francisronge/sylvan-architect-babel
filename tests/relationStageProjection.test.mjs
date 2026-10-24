@@ -53,6 +53,9 @@ for (const [name, claim, mapStage] of cases) {
     assertMovementAgreement(prepared, claim);
     assert.deepEqual(prepared.relationRenderPlan, original.relationRenderPlan);
     assert.deepEqual(prepared.playbackSteps, original.playbackSteps);
-    assert.deepEqual(compileRelationRenderPlan(stages), original.relationRenderPlan);
+    // Realized-form plates join the prepared plan from Replay's association
+    // state (realizationDisplay.ts); the compiled relation claims are the rest.
+    assert.deepEqual(compileRelationRenderPlan(stages), { ...original.relationRenderPlan,
+      frames: original.relationRenderPlan.frames.map(frame => ({ ...frame, items: frame.items.filter(item => !item.realization) })) });
   });
 }

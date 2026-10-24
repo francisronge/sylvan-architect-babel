@@ -338,7 +338,9 @@ export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[
   });
 }
 
-export type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; thetaGrid?: boolean; scrollHeight?: number; caseAssignment?: boolean; caseRowY?: number; collectionRows?: CollectionRow[]; collectionWidth?: number; drawnWidth?: number; drawnHeight?: number };
+/** `realizedForm`: a realization group's plate (realizationDisplay.ts). It attaches at its word when
+ * its anchor holds exactly one, and chooses after every relation's plaque, so it never takes their pockets. */
+export type PlaqueRequest = { index: number; ids: string[]; width: number; height: number; thetaGrid?: boolean; realizedForm?: boolean; scrollHeight?: number; caseAssignment?: boolean; caseRowY?: number; collectionRows?: CollectionRow[]; collectionWidth?: number; drawnWidth?: number; drawnHeight?: number };
 
 /** Keep the lifetime pocket and ports while checking the content painted in this stage. */
 export function projectPlaqueContent<T extends PlaqueRect>(box: T, request: Pick<PlaqueRequest, 'width' | 'height' | 'caseRowY' | 'collectionRows'>): T {
@@ -352,7 +354,8 @@ export function projectPlaqueContent<T extends PlaqueRect>(box: T, request: Pick
     collectionRows: rows };
 }
 
-/** A single word can carry a head's mark; a complex head retains its own category anchor. */
+/** A single word can carry a head's mark (a Case arrow's source, a realized form's
+ * plate); a complex head retains its own category anchor. */
 export function caseAssignmentSource(node: Node): Node {
   const terminals = node.descendants().filter(child => !child.children?.length && Boolean(child.data.word));
   return terminals.length === 1 ? terminals[0] : node;
@@ -932,6 +935,7 @@ export function prepareStagePlaqueRequests(items: RelationPlanItem[], nodes: Nod
       requests.push({ index, ids: [...item.anchorNodeIds, ...(item.thetaRoles?.map(role => role.nodeId) || [])],
         width: size.width, height: size.height, ...(collectionRows.length ? { collectionRows } : {}),
         ...(item.plaqueStyle === 'theta-grid' ? { thetaGrid: true } : {}),
+        ...(item.realization ? { realizedForm: true } : {}),
         ...(size.overflow ? { scrollHeight: size.height } : {}) });
     } else if (item.kind === 'directed-path' && item.pathStyle === 'case-assignment') {
       // A Case route reserves its exact source; its recipient cannot stand in for an unavailable source.
@@ -1065,14 +1069,16 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
   // Compact boxes keep first choice of nearby pockets, even when a wider grid can also fit locally.
   // Among them, a plaque that shows its owner only by proximity chooses before one that a
   // Case arrow or collector joins to its owner, which can still reach a farther pocket.
+  // A realized-form plate is no relation's claim; it takes what their plaques leave.
   const joined = (request: PlaqueRequest) => Number(Boolean(request.caseAssignment || request.collectionRows?.length));
-  requests.sort((a, b) => Number(!fitsLocalPocket(a)) - Number(!fitsLocalPocket(b)) || joined(a) - joined(b)
+  requests.sort((a, b) => Number(Boolean(a.realizedForm)) - Number(Boolean(b.realizedForm))
+    || Number(!fitsLocalPocket(a)) - Number(!fitsLocalPocket(b)) || joined(a) - joined(b)
     || a.index - b.index);
   for (const request of requests) {
     if (result.has(request.index)) continue;
     const anchors = request.ids.map(id => byId.get(id)).filter((node): node is Node => Boolean(node));
     if (!anchors.length) continue;
-    const anchor = anchors[0];
+    const anchor = request.realizedForm ? caseAssignmentSource(anchors[0]) : anchors[0];
     const space = lifetime?.spaceFor(request.index, anchor, result);
     const occupied = [...(space?.obstacles ?? obstacles), ...placed];
     // At a narrower gap, plaques and trajectories grow by the difference: they keep the full gap.
