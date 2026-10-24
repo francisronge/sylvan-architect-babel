@@ -37,11 +37,6 @@ syntactic rules. Desktop remains the primary experience.
    - After a failed parse in Derivation Replay, the sentence input stays
      visible: the failure panel has no dismiss control.
    - Mobile calibration and a desktop minimum-zoom clamp.
-   - Case plaque allocation checks other plaques only at the steps it places
-     them in, not at transient steps. In 27-sv-embedded-negation, at step 21
-     only, a bent Case arrow passes about 4 units from plaque 2:0#8, and
-     main's straight arrow already passed it inside the 24-unit gap.
-     Francis accepted the current picture on 2026-10-24.
    - Step-order work kept from the October rewrite
      (`refactor/replay-step-order-kernel`): just-in-time order and head
      movement before phrasal movement in one stage were approved, but each
