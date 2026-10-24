@@ -5,9 +5,15 @@ import { objectHash, sha256 } from './replayCorpusInputs.mjs';
 import { layoutReplayFrames } from './replayFrameLayout.mjs';
 import { motionFrame } from './replayMotionContinuity.mjs';
 import { movementPresentations } from '../tests/helpers/replayInvariants.mjs';
+import { createMeasuringDocument, measureCategoryText, measurePlaqueText } from '../tests/helpers/visualFontMetrics.mjs';
 
+// Each checkout's own preparation, planning and measured layout path: the
+// plaque layout job and the renderer's text measures, as the browser paints.
 const entries = ['replay/prepareReplay.ts', 'replay/stageCoordinates.ts', 'replay/stageCamera.ts',
-  'replay/treeLayout.ts', 'replay/displayIdentity.ts', 'replay/workspaceShapeReflows.ts'];
+  'replay/treeLayout.ts', 'replay/displayIdentity.ts', 'replay/workspaceShapeReflows.ts',
+  'replay/plaqueLayoutJob.ts', 'components/renderer/treeNotation.ts', 'replay/replayCanvas.ts',
+  'replay/prepareTreeLabelRuns.ts', 'replay/triangulation.ts', 'components/treeInkTextMeasure.ts',
+  'components/treeLabelMeasure.ts'];
 
 async function sourceIdentity(root) {
   const files = new Map(), pending = [...entries, 'package.json', 'package-lock.json'];
@@ -25,18 +31,27 @@ async function sourceIdentity(root) {
 
 export async function buildCorpusSnapshot(root, records, { width, height, direction }) {
   const identity = await sourceIdentity(root);
-  const [preparation, coordinates, camera, layout, display, continuity, d3] = await Promise.all([
+  const [preparation, coordinates, camera, layout, display, continuity, plaqueJob, notation, canvas, labelRuns,
+    triangulation, treeInk, treeLabel, d3] = await Promise.all([
     ...entries.map(name => import(pathToFileURL(path.join(root, name)).href)),
     import(pathToFileURL(path.join(root, 'node_modules/d3/src/index.js')).href)
   ]);
+  // Text is measured from the bundled fonts (tests/helpers/visualFontMetrics.mjs),
+  // the same for both checkouts, by each checkout's own renderer measures.
+  const measuringDocument = createMeasuringDocument();
+  const metrics = { measurePlaqueText, measureCategoryText, measureTreeInk: treeInk.createTreeInkTextMeasure(measuringDocument),
+    measureTreeLabel: treeLabel.createTreeLabelMeasure(measuringDocument) };
   const results = [];
   for (const record of records) {
     try {
       const input = structuredClone(record.input), authoredBeforeSha256 = objectHash(input.derivationStages);
       const prepared = preparation.prepareReplay(input), steps = prepared.playbackSteps;
       if (!steps.length) throw Error('Preparation produced no Replay frames');
-      const { positions, render, scenes } = layoutReplayFrames({ steps, stages: input.derivationStages, width, height, direction },
-        { coordinates, camera, layout, display, d3 });
+      const measured = { ...metrics, plan: prepared.relationRenderPlan,
+        protectedNodeIds: triangulation.buildMovementProtectedNodeIds(prepared.committedDerivationVisualLinks),
+        treeLabelRuns: labelRuns.prepareTreeLabelRuns(prepared, measureCategoryText, { includeRelationIndices: true }) };
+      const { positions, render, scenes } = layoutReplayFrames({ steps, stages: prepared.replayDerivationFrames, width, height,
+        direction, measured }, { coordinates, camera, layout, display, d3, plaqueJob, notation, canvas });
       const invalid = [];
       const span = nodes => nodes.length ? Math.max(...nodes.map(node => node.x)) - Math.min(...nodes.map(node => node.x)) : 0;
       const frames = scenes.map((scene, index) => {

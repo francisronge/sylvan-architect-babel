@@ -7,7 +7,10 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { loadCorpusManifest, compareCorpusSnapshots, lostMovementPresentations, selectRecord } from '../scripts/replayCorpusInputs.mjs';
 import { buildCorpusSnapshot } from '../scripts/replayCorpusSnapshot.mjs';
+import { motionFrame } from '../scripts/replayMotionContinuity.mjs';
+import { getNodeId } from '../replay/displayIdentity.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { layoutMeasuredScenes, prepareVisualRecord } from './helpers/visualFrames.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 import { movementPresentations } from './helpers/replayInvariants.mjs';
 
@@ -32,6 +35,16 @@ test('the maintained fixture controls exercise a real movement, ordinary constru
   assert(!snapshot.records[1].evidence.planStages[2].facets.includes('identity.occurrences'));
   assert(snapshot.records[2].evidence.planStages[0].fallbackRelations.includes(0));
   assert(snapshot.records[2].evidence.planStages[0].facets.includes('judgment.verdict'));
+});
+
+test('every compared frame is the layout the renderer paints, measured text included', () => {
+  // The unmeasured reservations place a stage's waiting workspaces differently
+  // from the painted plan, so motion the screen shows went unreported there.
+  for (const [index, record] of records.entries()) {
+    const visual = prepareVisualRecord(record.input), { scenes } = layoutMeasuredScenes(visual, { width: 1600, height: 948 });
+    assert.deepEqual(snapshot.records[index].frames.map(frame => frame.points),
+      scenes.map(scene => motionFrame(scene.step, scene.nodes, getNodeId).points), record.id);
+  }
 });
 
 test('a stretched completed branch and displaced final point fail while an earlier corrected point is reviewable', () => {
