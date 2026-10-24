@@ -13,9 +13,11 @@ const indexForest = (forest: readonly SyntaxNode[]): Map<string, SyntaxNode> => 
 const contains = (node: SyntaxNode | undefined, id: string): boolean =>
   Boolean(node && (node.id === id || node.children?.some(child => contains(child, id))));
 
-/** An existing occurrence can acquire a new child without acquiring a new ID.
- * Replacing one child by a fresh wrapper around that child belongs to the
- * wrapper's construction, rather than reconstructing its unchanged context. */
+/** An existing occurrence can acquire a new child without acquiring a new ID,
+ * including a bare head that becomes a head complex. Its new children are built
+ * as their own workspaces and attach at its merge step. Replacing one child by a
+ * fresh wrapper around that child belongs to the wrapper's construction, rather
+ * than reconstructing its unchanged context. */
 export function constructionAttachmentUpdates(
   previousForest: readonly SyntaxNode[],
   currentForest: readonly SyntaxNode[]
@@ -25,7 +27,7 @@ export function constructionAttachmentUpdates(
   for (const [id, current] of indexForest(currentForest)) {
     const old = previous.get(id);
     const oldChildren = childIds(old);
-    if (!old || !oldChildren.length) continue;
+    if (!old) continue;
     const currentChildren = current.children || [];
     const carries = (child: SyntaxNode, oldId: string): boolean =>
       child.id === oldId || (!previous.has(child.id || '') && contains(child, oldId));

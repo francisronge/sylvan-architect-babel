@@ -148,9 +148,13 @@ export function buildStageLayoutGroups(steps: PlaybackStep[], stages: { workspac
 }
 
 /** Exact attachment changes delimit geometric lifetimes, independently of the
- * relation's name or drawing tier. A receiving head may move as a new sibling. */
+ * relation's name or drawing tier. A receiving head may move as a new sibling.
+ * Outside relation moments (`construction`), syntax attaches where the stage
+ * reserved it, so there only a changed Case source, which moves the plaque's own
+ * arrow, ends a lifetime: a bare head's arrow leaves its label, the head complex
+ * it becomes sends it from its one word. */
 function changedPlaqueAttachments(before: d3.HierarchyPointNode<SyntaxNode>[], after: d3.HierarchyPointNode<SyntaxNode>[],
-  items: RelationRenderPlan['frames'][number]['items']) {
+  items: RelationRenderPlan['frames'][number]['items'], construction = false) {
   const idOf = (node: d3.HierarchyPointNode<SyntaxNode>) => String((node as any).__vizId ?? node.data.id);
   const beforeNodes = new Set(before), afterNodes = new Set(after);
   const realParentId = (node: d3.HierarchyPointNode<SyntaxNode>, visibleNodes: Set<d3.HierarchyPointNode<SyntaxNode>>) => {
@@ -162,7 +166,7 @@ function changedPlaqueAttachments(before: d3.HierarchyPointNode<SyntaxNode>[], a
   };
   const prior = indexHierarchyNodesByIdAndAliases(before), current = indexHierarchyNodesByIdAndAliases(after);
   const changed = new Set<string>();
-  after.forEach(node => {
+  if (!construction) after.forEach(node => {
     const old = prior.get(idOf(node));
     if (old && Math.hypot(node.x - old.x, node.y - old.y) > 1e-8
       && realParentId(old, beforeNodes) !== realParentId(node, afterNodes)) {
@@ -218,9 +222,10 @@ function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height,
     const currentTree = layoutSyntaxTree(root,
       stageSize ?? treeLayoutSize(root.descendants().length, root.height), direction,
       coordinates, visibleIds ?? undefined);
-    const movedNodeIds = preceding && step.replayKind === 'relation'
+    const movedNodeIds = preceding
       ? changedPlaqueAttachments(preceding.tree.descendants().filter(node => !preceding!.visibleIds || preceding!.visibleIds.has(nodeId(node))),
-        currentTree.descendants().filter(node => !visibleIds || visibleIds.has(nodeId(node))), plan?.frames[stageIndex]?.items ?? [])
+        currentTree.descendants().filter(node => !visibleIds || visibleIds.has(nodeId(node))), plan?.frames[stageIndex]?.items ?? [],
+        step.replayKind !== 'relation')
       : new Set<string>();
     // Replacing an occurrence changes its plaque attachment even when the
     // lower witness occupies exactly the old coordinates.
