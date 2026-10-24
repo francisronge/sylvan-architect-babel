@@ -132,6 +132,9 @@ keeps its current casing.
 
 Construction diffing includes child-list growth on existing occurrence IDs.
 Attaching a complement beneath a retained parent receives its own merge step.
+Growth from no children counts: a retained bare head that becomes a head complex
+under its own ID stays bare while its new daughters are built as separate
+workspaces, and its own merge step attaches them.
 Replacing an existing child with a new wrapper around it belongs to the wrapper's
 construction; the existing parent and unaffected branches remain visible. Do not
 hide or rebuild a parent that was already merged. Attachments owned by an authored
