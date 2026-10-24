@@ -130,7 +130,7 @@ export function createCaseFeatureDrawing({
         markPreterminalLensNode(assignment.fromNodeId, 'case-assigner');
         assignmentPath = {
           item: assignment,
-          d: caseAssignmentPlaquePath(sourceRect, box, rowTargets.get(assignmentIndex)!)
+          d: caseAssignmentPlaquePath(sourceRect, box, rowTargets.get(assignmentIndex)!, placement.caseRoute)
         };
       }
     }
