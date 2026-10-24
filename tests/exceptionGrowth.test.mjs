@@ -12,10 +12,9 @@ const relayout = { reason: 'Open (construction/layout, not camera): an inserted 
 const copy = frames => ({ reason: 'Open: no field of the claim names a movement direction or occurrence role.',
   record: 'replay-regressions/unrecognized-movement.json#/cases/4', rule: 'movement-unrendered', subtype: 'COPY_WITHOUT_PATH',
   subject: '3:0', at: { '-': { [frames]: null } } });
-const today = '2026-10-21';
-const approval = { by: 'Francis Ronge', on: '2026-10-20', expires: '2026-12-01', note: 'PR review: accepted until the layout rework' };
+const approval = { by: 'Francis Ronge', on: '2026-10-20', note: 'PR review: accepted until the layout rework' };
 const approved = (entry, accepts = entry.at) => ({ ...entry, approval: { ...approval, accepts } });
-const growth = (base, head) => exceptionGrowth({ 'list#EXCEPTIONS': base }, { 'list#EXCEPTIONS': head }, { today });
+const growth = (base, head) => exceptionGrowth({ 'list#EXCEPTIONS': base }, { 'list#EXCEPTIONS': head });
 
 test('a raised bound needs approval: #94 raised the unmoved-syntax bound from 165.57 to 196.88 px', () => {
   assert.deepEqual(growth([unmoved(165.57)], [unmoved(196.88)]).map(({ grown, problem }) => [grown, problem]),
@@ -38,8 +37,7 @@ test('frames renumbered by an inserted step are not growth, but a fault at more 
 
 test('an approval binds to the value it accepts, not to the date of the base: 20 Oct survives main\'s commit after midnight', () => {
   // The base gained an unrelated commit dated after the approval; nothing in the entry changed since it was given.
-  assert.deepEqual(exceptionGrowth({ 'list#EXCEPTIONS': [unmoved(165.57)] }, { 'list#EXCEPTIONS': [approved(unmoved(196.88))] },
-    { today: '2026-11-15' }), []);
+  assert.deepEqual(exceptionGrowth({ 'list#EXCEPTIONS': [unmoved(165.57)] }, { 'list#EXCEPTIONS': [approved(unmoved(196.88))] }), []);
   assert.deepEqual(growth([approved(unmoved(196.88))], [approved(unmoved(196.88))]), [], 'an approved entry carried unchanged stays valid');
   assert.deepEqual(growth([approved(copy('34'))], [approved(copy('40'), copy('34').at)]), [],
     'renumbered frames stay within what was accepted');
@@ -55,20 +53,18 @@ test('growth beyond the approved value needs the owner again', () => {
     'an approval does not cover a viewport it did not accept');
 });
 
-test('an approval names the owner, its dates, where it was given and what it accepts, and does not outlive its expiry', () => {
-  const check = (changes, entry = relayout) => approvalProblem({ ...entry, approval: { ...approval, accepts: entry.at, ...changes } }, { today });
+test('an approval names the owner, its date, where it was given and what it accepts, and does not expire', () => {
+  const check = (changes, entry = relayout) => approvalProblem({ ...entry, approval: { ...approval, accepts: entry.at, ...changes } });
   assert.equal(check({}), null);
-  assert.equal(approvalProblem(relayout, { today }), 'no approval');
+  assert.equal(approvalProblem(relayout), 'no approval');
   assert.deepEqual(growth([relayout], [{ ...relayout, at: { ...relayout.at, mobile: { '20>21,21>20': 40 } } }])
     .map(({ problem }) => problem), ['no approval'], 'a grown entry without an approval is rejected');
   assert.match(check({ by: 'Claude' }), /not Francis Ronge/);
-  assert.match(check({ on: '20 Oct' }), /on and expires dates/);
-  assert.match(check({ expires: '2026-10-19' }), /expires after on/);
+  assert.match(check({ on: '20 Oct' }), /date it was given/);
   assert.match(check({ note: '' }), /note/);
   assert.match(check({ accepts: undefined }), /approval needs accepts/);
   assert.match(check({ accepts: { desktop: { '19>20': '44.44' } } }), /approval needs accepts/);
-  assert.match(check({ on: '2026-10-01', expires: '2026-10-19' }), /approval expired on 2026-10-19/);
-  const expired = approved(relayout); expired.approval.on = '2026-10-01'; expired.approval.expires = '2026-10-19';
-  assert.match(growth([expired], [expired])[0].problem, /expired/, 'an unchanged entry fails once its approval expires');
+  const old = approved(relayout); old.approval.on = '2025-01-01';
+  assert.deepEqual(growth([old], [old]), [], 'an unchanged entry keeps an approval however old it is');
   assert.match(growth([], [{ ...approved(relayout), reason: '' }])[0].problem, /no reason/);
 });
