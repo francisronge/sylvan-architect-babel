@@ -14,6 +14,10 @@ import {
 import { dependentCaseStatePlaques, featureSharingPlaqueRect, sampleCubic } from './markGeometry.ts';
 import {
   caseAssignmentPlaqueCurve,
+  caseAssignmentRankingCurve,
+  caseAssignmentRoutes,
+  caseArrowBendsVisibly,
+  type CaseArrowRoute,
   featureCollectionEdge,
   featureCollectionPlaqueCurve,
   type CollectionEdge
@@ -43,6 +47,8 @@ export { plaquesOverlap } from './plaqueObstacleIndex.ts';
 export type PlaqueRect = ObstacleRect & {
   terminalStemNodeId?: string;
   caseRowY?: number; collectionRows?: CollectionRow[]; collectionWidth?: number; drawnWidth?: number; drawnHeight?: number;
+  /** The route the allocator accepted for this plaque's Case arrow; the painter draws the same curve. */
+  caseRoute?: CaseArrowRoute;
   blocksConnectors?: boolean; connectorAttachment?: string;
   connectorInk?: { x: number; y: number; width: number; height: number };
   /** A fixed native plaque's footprint: a plaque, not syntax or a connector. */
@@ -383,7 +389,7 @@ const caseSourceRect = (anchor: Node, sources?: CaseSourceRects): PlaqueRect => 
 
 type CurveRects = (curve: ReturnType<typeof featureCollectionPlaqueCurve>, padding: number) => PlaqueRect[];
 const caseRouteRectsFrom = (sourceRect: PlaqueRect, box: PlaqueRect, rects: CurveRects = curveObstacleRects): PlaqueRect[] => {
-  const curve = caseAssignmentPlaqueCurve(sourceRect, drawnPlaque(box), box.y + (box.caseRowY ?? 93));
+  const curve = caseAssignmentPlaqueCurve(sourceRect, drawnPlaque(box), box.y + (box.caseRowY ?? 93), box.caseRoute);
   return rects(curve, 8);
 };
 const caseRouteRects = (anchor: Node, box: PlaqueRect, rects?: CurveRects, sources?: CaseSourceRects): PlaqueRect[] =>
@@ -563,20 +569,25 @@ export function casePlaqueSpace(scene: ConnectorScene, anchor: Node, added: read
   const attachment = `${idOf(source)}:${!source.children?.length && source.data.word ? 'terminal' : 'category'}`;
   const index = scene.caseIndex(attachment);
   let previousX = NaN, previousY = NaN, previousWidth = NaN, previousHeight = NaN, previousRowY = NaN;
-  let previousResult = false;
+  let previousRoute: CaseArrowRoute | undefined, previousResult = false;
   return (box: PlaqueRect) => {
     const drawn = drawnPlaque(box), rowY = box.y + (box.caseRowY ?? 93);
     // Trying another collection port leaves the Case curve unchanged. Reuse
     // only that exact last curve against this immutable obstacle space.
     if (drawn.x === previousX && drawn.y === previousY && drawn.width === previousWidth
-      && drawn.height === previousHeight && rowY === previousRowY) return previousResult;
+      && drawn.height === previousHeight && rowY === previousRowY && box.caseRoute?.exit === previousRoute?.exit
+      && box.caseRoute?.bend === previousRoute?.bend) return previousResult;
     previousX = drawn.x; previousY = drawn.y; previousWidth = drawn.width; previousHeight = drawn.height; previousRowY = rowY;
-    const curve = caseAssignmentPlaqueCurve(rect, drawn, rowY);
+    previousRoute = box.caseRoute;
+    const curve = caseAssignmentPlaqueCurve(rect, drawn, rowY, box.caseRoute);
     const bounds = curveBounds(curve, 8);
     const blocks = (blocker: PlaqueRect) => cubicIntersectsRect(curve, blocker, 8);
     // Collision clearance alone can leave an arrow shorter than its head.
     // Reserve a readable shaft in tree coordinates, so zoom keeps its proportion.
+    // A shallower route chosen in one scene must still bend visibly in every
+    // scene it is carried into.
     previousResult = Math.hypot(curve.target.x - curve.source.x, curve.target.y - curve.source.y) >= CATEGORY_LINE_HEIGHT * 2
+      && (!(box.caseRoute && box.caseRoute.bend < 1) || caseArrowBendsVisibly(curve))
       && !index.some(bounds, blocks) && !addedBlockers.some(blocker => plaquesOverlap(bounds, blocker, 0) && blocks(blocker));
     return previousResult;
   };
@@ -1080,8 +1091,18 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const accepts = (box: PlaqueRect) => space ? space.acceptsConnector(box)
         : (!caseClears || caseClears(box))
           && collectionPlaqueClears(box, nodes, occupied);
-    const clear = (candidate: PlaqueRect, blocked = overlaps) => {
+    const clear = (candidate: PlaqueRect, blocked = overlaps): PlaqueRect | undefined => {
       if (blocked(candidate)) return undefined;
+      // A pocket whose preferred Case arrow is blocked keeps its plaque when
+      // a shallower but visible bend, or the other exit, clears.
+      if (request.caseAssignment && sourceRect && candidate.caseRoute === undefined) {
+        const drawn = { ...candidate, width: request.drawnWidth ?? width, height: request.drawnHeight ?? height };
+        for (const caseRoute of caseAssignmentRoutes(sourceRect, drawn, candidate.y + (request.caseRowY ?? 93))) {
+          const box = clear({ ...candidate, caseRoute }, () => false);
+          if (box) return box;
+        }
+        return undefined;
+      }
       // Ports never move a Case arrow: every attachment tried below draws the
       // same one. A pocket whose arrow is blocked is rejected before choosing them.
       if (request.caseAssignment) {
@@ -1114,8 +1135,9 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       : anchor.y + (!anchor.children?.length && anchor.data.word ? TERMINAL_ATTACHMENT_Y : 0);
     const placementDistance = (box: PlaqueRect) => {
       if (!sourceRect) return (box.x + width / 2 - anchor.x) ** 2 + (box.y + height / 2 - anchorY) ** 2;
-      const curve = caseAssignmentPlaqueCurve(sourceRect,
-        { x: box.x, y: box.y, width, height }, box.y + (request.caseRowY ?? 93));
+      const plaque = { x: box.x, y: box.y, width, height }, rowY = box.y + (request.caseRowY ?? 93);
+      const curve = box.caseRoute ? caseAssignmentPlaqueCurve(sourceRect, plaque, rowY, box.caseRoute)
+        : caseAssignmentRankingCurve(sourceRect, plaque, rowY);
       const points = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 16);
       return points.slice(1).reduce((length, point, i) =>
         length + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0) ** 2;
@@ -1233,7 +1255,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         const arrow = (y: number, assigner: PlaqueRect) => {
           let known = column.arrows.get(y);
           if (!known) {
-            const route = caseAssignmentPlaqueCurve(assigner, { x, y, width, height }, y + (request.caseRowY ?? 93));
+            const route = caseAssignmentRankingCurve(assigner, { x, y, width, height }, y + (request.caseRowY ?? 93));
             column.arrows.set(y, known = { chord: (route.target.x - route.source.x) ** 2 + (route.target.y - route.source.y) ** 2 });
           }
           return known;
@@ -1269,7 +1291,7 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
             const known = arrow(y, sourceRect);
             if (known.chord >= bound) { complete = false; continue; }
             if (known.distance === undefined) {
-              const route = caseAssignmentPlaqueCurve(sourceRect, { x, y, width, height }, y + (request.caseRowY ?? 93));
+              const route = caseAssignmentRankingCurve(sourceRect, { x, y, width, height }, y + (request.caseRowY ?? 93));
               const points = sampleCubic(route.source, route.control1, route.control2, route.target, 16);
               known.distance = points.slice(1).reduce((length, point, i) =>
                 length + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0) ** 2;

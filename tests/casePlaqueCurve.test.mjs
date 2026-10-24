@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { caseAssignmentPlaqueCurve } from '../replay/relations/overlayGeometry.ts';
+import { caseAssignmentExits, caseAssignmentPlaqueCurve, caseAssignmentRoutes } from '../replay/relations/overlayGeometry.ts';
 import { sampleCubic } from '../replay/relations/markGeometry.ts';
 import { cubicIntersectsRect } from '../replay/relations/curveClearance.ts';
 import { CATEGORY_LINE_HEIGHT } from '../replay/rendererMetrics.ts';
@@ -168,15 +168,58 @@ test('every allocatable Case arrow bends, clear of its label and plaque', () => 
           const y = below ? word.y + height + gap : word.y - gap - 262;
           cases.push([word, { x: word.x + width / 2 - 190 + shift, y, width: 379, height: 262 }, y + 93]);
         }
-  let checked = 0;
-  for (const [word, box, rowY] of cases) {
-    const curve = caseAssignmentPlaqueCurve(word, box, rowY);
+  // Every route the allocator may fall back on bends too.
+  let checked = 0, alternatives = 0;
+  for (const [word, box, rowY] of cases) for (const route of caseAssignmentRoutes(word, box, rowY)) {
+    const curve = caseAssignmentPlaqueCurve(word, box, rowY, route);
     if (Math.hypot(curve.target.x - curve.source.x, curve.target.y - curve.source.y) < 2 * CATEGORY_LINE_HEIGHT) continue;
     checked++;
-    const where = `label ${JSON.stringify(word)}, plaque ${JSON.stringify(box)}, row ${rowY}`;
+    if (route.bend < 1 || route.exit !== caseAssignmentExits(word, box, rowY)[0]) alternatives++;
+    const where = `label ${JSON.stringify(word)}, plaque ${JSON.stringify(box)}, row ${rowY}, ${route.exit} exit, bend ${route.bend}`;
     assertBends(curve, where);
     assert(!cubicIntersectsRect(curve, word, 6), `${where}: the arrow leaves the label clear`);
     assert(!cubicIntersectsRect(curve, box, 0), `${where}: the arrow stays outside the plaque`);
   }
   assert(checked > 800, `the sweep checks ${checked} allocatable arrows`);
+  assert(alternatives > 20, `the sweep checks ${alternatives} alternative exits`);
+});
+
+test('a row just beyond reach may also take the side exit, never a longer arrow', () => {
+  const word = { x: 1000, y: 1000, width: 150, height: 70 };
+  const plaqueFor = rowY => ({ x: 1500, y: rowY - 93, width: 379, height: 262 });
+  // reach = min(76, (1488 - 1158) / 4) = 76.
+  assert.deepEqual(caseAssignmentExits(word, plaqueFor(1035), 1035), ['side'], 'a row beside the word');
+  assert.deepEqual(caseAssignmentExits(word, plaqueFor(1070 + 76), 1070 + 76), ['side'], 'a row within reach');
+  assert.deepEqual(caseAssignmentExits(word, plaqueFor(1070 + 300), 1070 + 300), ['stem'], 'a row beyond twice the reach');
+  assert.deepEqual(caseAssignmentExits(word, plaqueFor(1070 + 120), 1070 + 120), ['stem', 'side'], 'a row just beyond reach');
+  const length = curve => {
+    const points = sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 16);
+    return points.slice(1).reduce((sum, point, i) => sum + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0);
+  };
+  for (let rowY = 1070 + 77; rowY <= 1070 + 152; rowY += 5) {
+    const exits = caseAssignmentExits(word, plaqueFor(rowY), rowY);
+    if (exits.includes('side')) assert(length(caseAssignmentPlaqueCurve(word, plaqueFor(rowY), rowY, { exit: 'side', bend: 1 }))
+      <= length(caseAssignmentPlaqueCurve(word, plaqueFor(rowY), rowY, { exit: 'stem', bend: 1 })), `row ${rowY}: the side arrow is not longer`);
+  }
+  // A plaque overlapping the word's columns would turn the side exit back on itself.
+  const behind = { x: 690, y: 1190 - 93, width: 379, height: 262 };
+  assert.deepEqual(caseAssignmentExits(word, behind, 1190), ['stem']);
+});
+
+test('a shallower route keeps the plain curve as its limit and offers only visible bends', () => {
+  // Bend 0 is main's curve before every arrow had to bend: here the do-support
+  // stem, which lay along its chord, is never offered.
+  const label = { x: 1437.3, y: 340, width: 305.5, height: 100.5 }, plaque = { x: 1016.3, y: 240, width: 379, height: 262 };
+  assert.deepEqual(caseAssignmentPlaqueCurve(label, plaque, 333, { exit: 'stem', bend: 0 }), {
+    source: { x: 1590.05, y: 332 }, target: { x: 1407.3, y: 333, side: 'right' },
+    control1: { x: 1590.05, y: 332.5 }, control2: { x: 1483.3, y: 333 } });
+  const routes = [...caseAssignmentRoutes(label, plaque, 333)];
+  assert.deepEqual(routes[0], { exit: 'stem', bend: 1 });
+  assert(!routes.some(route => route.bend === 0), 'the straight plain curve is not a fallback');
+  for (const route of routes) assertBends(caseAssignmentPlaqueCurve(label, plaque, 333, route), `bend ${route.bend}`);
+  // The Orchard side approach already bends: its full route is its plain curve.
+  const word = { x: 225, y: 0, width: 150, height: 60 }, orchard = { x: -200, y: 80, width: 300, height: 200 };
+  assert.deepEqual(caseAssignmentPlaqueCurve(word, orchard, 173, { exit: 'stem', bend: 0 }),
+    caseAssignmentPlaqueCurve(word, orchard, 173));
+  assert.deepEqual([...caseAssignmentRoutes(word, orchard, 173)], [{ exit: 'stem', bend: 1 }]);
 });
