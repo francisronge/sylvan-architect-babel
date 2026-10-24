@@ -10,7 +10,7 @@
 
 const SPOKE_ATTACHED = 'Accepted since #76: keeping the gap would cut off the spoke\'s labelled end, so attachment wins '
   + 'and the spoke meets the plaque\'s edge.';
-const PLAQUE_CROWDED = 'Open (catalog #3): no nearby pocket stays clear for the plaque\'s lifetime, so the allocator takes '
+const PLAQUE_CROWDED = 'Accepted (catalog #3; ROADMAP Explicitly Not Active, Francis on 23 and 24 Oct): no nearby pocket stays clear for the plaque\'s lifetime, so the allocator takes '
   + 'the nearest clear pocket beyond its nearby candidates. #74 and #84 relocate plaques whose anchor moves, not these.';
 const SOURCE_POCKET = 'Accepted with the held movement slot: the complete source keeps its sister clearance until its '
   + 'movement, so the plaque pocket beside its anchor, clear for the plaque\'s whole lifetime, lies just beyond its reach.';
@@ -25,25 +25,25 @@ export const EXCEPTIONS = [
     'plaque(0:0 theta theme)@read', { desktop: { '19-22': 1.15 }, 'desktop-large': { '19-22': 1.15 } }),
   x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
     'plaque(0:1 theta agent)@embeddedVoice', { desktop: { '20-106': 1.13 }, 'desktop-large': { '20-106': 1.13 } },
-    { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Structural movement on (fix/structural-movement-live): drawing the movements it recovers carries their slot and landing reservations back into earlier stages, so lifetime plaque pockets shift. Francis, 23 Oct in the lead session, told the change is invisible: \'If I won\'t even see them, then I won\'t waste time worrying about it, merge\': the agent plaque sits at 1.13 of its reach instead of 1.12.',
+    { by: 'Francis Ronge', on: '2026-10-23', note: 'Structural movement on (fix/structural-movement-live): drawing the movements it recovers carries their slot and landing reservations back into earlier stages, so lifetime plaque pockets shift. Francis, 23 Oct in the lead session, told the change is invisible: \'If I won\'t even see them, then I won\'t waste time worrying about it, merge\': the agent plaque sits at 1.13 of its reach instead of 1.12.',
       accepts: { desktop: { '20-106': 1.13 }, 'desktop-large': { '20-106': 1.13 } } }),
   x(PLAQUE_CROWDED, 'performance/french-relative.json#', 'mark-distance', 'plaque',
     'plaque(7:2 theta theme)@find', { desktop: { '96-98': 1.19, '102-106': 1.16 }, 'desktop-large': { '96-98': 1.19, '102-106': 1.16 } },
-    { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Accepted 20 Oct on the side-by-side review of '
+    { by: 'Francis Ronge', on: '2026-10-23', note: 'Accepted 20 Oct on the side-by-side review of '
       + 'T′ arriving at the subject movement (theme plaque up to 1.19 of its reach in frames 96-98 and 104-106). '
       + 'Structural movement on (fix/structural-movement-live): drawing the movements it recovers carries their slot and landing reservations back into earlier stages, so lifetime plaque pockets shift. Francis, 23 Oct in the lead session, told the change is invisible: \'If I won\'t even see them, then I won\'t waste time worrying about it, merge\': the movement now plays before C is built, so the accepted 1.16 state also covers frames 102-103.',
       accepts: { desktop: { '96-98': 1.19, '102-106': 1.16 }, 'desktop-large': { '96-98': 1.19, '102-106': 1.16 } } }),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
     'plaque(1:3 theta Experiencer/Proposition)@vWant', { desktop: { '31-34': 1.34 }, 'desktop-large': { '31-34': 1.34 } },
-    { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Clearing the painted control-dependency elbow (no plaque on its dashed runs) leaves this theta grid no nearer clear pocket: a neutral-link stem below to blocks the left and the elbow the rest, so it sits at 1.34 of its reach instead of 1.30. Francis accepted it on the side-by-side on 23 Oct in the lead session (\'Yes, this is probably fine.\' … \'I think it looks messier\' to have the plaque colliding).',
+    { by: 'Francis Ronge', on: '2026-10-23', note: 'Clearing the painted control-dependency elbow (no plaque on its dashed runs) leaves this theta grid no nearer clear pocket: a neutral-link stem below to blocks the left and the elbow the rest, so it sits at 1.34 of its reach instead of 1.30. Francis accepted it on the side-by-side on 23 Oct in the lead session (\'Yes, this is probably fine.\' … \'I think it looks messier\' to have the plaque colliding).',
       accepts: { desktop: { '31-34': 1.34 }, 'desktop-large': { '31-34': 1.34 } } }),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
     'plaque(1:3/2:3 theta Experiencer/Proposition)@vWant', { desktop: { '35-55': 1.34 }, 'desktop-large': { '35-55': 1.34 } },
-    { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Clearing the painted control-dependency elbow (no plaque on its dashed runs) leaves this theta grid no nearer clear pocket: a neutral-link stem below to blocks the left and the elbow the rest, so it sits at 1.34 of its reach instead of 1.30. Francis accepted it on the side-by-side on 23 Oct in the lead session (\'Yes, this is probably fine.\' … \'I think it looks messier\' to have the plaque colliding).',
+    { by: 'Francis Ronge', on: '2026-10-23', note: 'Clearing the painted control-dependency elbow (no plaque on its dashed runs) leaves this theta grid no nearer clear pocket: a neutral-link stem below to blocks the left and the elbow the rest, so it sits at 1.34 of its reach instead of 1.30. Francis accepted it on the side-by-side on 23 Oct in the lead session (\'Yes, this is probably fine.\' … \'I think it looks messier\' to have the plaque colliding).',
       accepts: { desktop: { '35-55': 1.34 }, 'desktop-large': { '35-55': 1.34 } } }),
   x(PLAQUE_CROWDED, 'movement/restated-chains.json#/0', 'mark-distance', 'plaque',
     'plaque(1:3/2:3/3:3 theta Experiencer/Proposition)@vWant', { desktop: { '56-69': 1.34 }, 'desktop-large': { '56-69': 1.34 } },
-    { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Clearing the painted control-dependency elbow (no plaque on its dashed runs) leaves this theta grid no nearer clear pocket: a neutral-link stem below to blocks the left and the elbow the rest, so it sits at 1.34 of its reach instead of 1.30. Francis accepted it on the side-by-side on 23 Oct in the lead session (\'Yes, this is probably fine.\' … \'I think it looks messier\' to have the plaque colliding).',
+    { by: 'Francis Ronge', on: '2026-10-23', note: 'Clearing the painted control-dependency elbow (no plaque on its dashed runs) leaves this theta grid no nearer clear pocket: a neutral-link stem below to blocks the left and the elbow the rest, so it sits at 1.34 of its reach instead of 1.30. Francis accepted it on the side-by-side on 23 Oct in the lead session (\'Yes, this is probably fine.\' … \'I think it looks messier\' to have the plaque colliding).',
       accepts: { desktop: { '56-69': 1.34 }, 'desktop-large': { '56-69': 1.34 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/case-source-transfer.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta Experiencer/Theme)@v1', { desktop: { '15-18': 1.13 }, 'desktop-large': { '15-18': 1.13 } }),
@@ -57,7 +57,7 @@ export const EXCEPTIONS = [
     'plaque(0:0 theta external participant in living)@i_v', { desktop: { '28-36': 1.22 }, 'desktop-large': { '28-36': 1.22 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/inserted-adjunction-segment.json#', 'mark-distance', 'plaque',
     'plaque(1:7 agreement: third-person masculine singular; tens)@mi', { desktop: { '45-50': 1.55 }, 'desktop-large': { '45-50': 1.55 } },
-    { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Move first, then adjoin: the movement now plays before the phrase it lands in is merged into a larger one. Francis reviewed the click-through side-by-side of all seven changed fixtures on 23 Oct in the lead session (\'Looked at the replay page, looks good.\'): the relative clause\'s movements play before the matrix builds, so stage 3 is laid out differently and this plaque sits at 1.55 of its reach instead of 1.29.',
+    { by: 'Francis Ronge', on: '2026-10-23', note: 'Move first, then adjoin: the movement now plays before the phrase it lands in is merged into a larger one. Francis reviewed the click-through side-by-side of all seven changed fixtures on 23 Oct in the lead session (\'Looked at the replay page, looks good.\'): the relative clause\'s movements play before the matrix builds, so stage 3 is laid out differently and this plaque sits at 1.55 of its reach instead of 1.29.',
       accepts: { desktop: { '45-50': 1.55 }, 'desktop-large': { '45-50': 1.55 } } }),
   x(SOURCE_POCKET, 'replay-regressions/unnamed-movement-roles.json#/cases/0', 'mark-distance', 'plaque',
     'plaque(0:0 theta Addressee/Agent)@d_v', { desktop: { '17-36': 1.13 }, 'desktop-large': { '17-36': 1.13 } }),
@@ -67,7 +67,7 @@ export const EXCEPTIONS = [
     'plaque(1:2 theta Agent)@v', { desktop: { '24-29': 1.19 }, 'desktop-large': { '24-29': 1.19 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/ordinary-receiving-width-control.json#', 'mark-distance', 'plaque',
     'plaque(0:0/0:1/1:2 theta theme)@p_v', { desktop: { '34-41': 1.14 }, 'desktop-large': { '34-41': 1.14 } },
-    { by: 'Francis Ronge', on: '2026-10-23', expires: '2027-01-23', note: 'Accepted 21 Oct on the plaque-gap side-by-side review '
+    { by: 'Francis Ronge', on: '2026-10-23', note: 'Accepted 21 Oct on the plaque-gap side-by-side review '
       + '("The plaque changes are fine."): a plaque brought near keeps the full gap from movement arrows, so this theme grid '
       + 'has no nearer pocket and returns to its spot from before #150. Move first, then adjoin (reviewed 23 Oct: '
       + '"Looked at the replay page, looks good.") plays the raising two frames earlier, so the same state starts at frame 34.',

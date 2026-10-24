@@ -60,7 +60,7 @@ export const STEP_EXCEPTIONS = [
   x(PRIOR_SOURCE, 'replay-regressions/retained-root-growth.json#', 'movement-unrendered', 'MOVEMENT_PRIOR_SOURCE_UNPROVEN', "0:0", '11'),
   x(PRIOR_SOURCE, 'replay-regressions/retained-root-growth.json#', 'movement-unrendered', 'MOVEMENT_PRIOR_SOURCE_UNPROVEN', "0:1", '28'),
   x(PRIOR_SOURCE, 'replay-regressions/unproven-second-landing.json#', 'movement-unrendered', 'MOVEMENT_PRIOR_SOURCE_UNPROVEN', "3:1", '27',
-    { by: 'Francis Ronge', on: '2026-10-24', expires: '2027-01-24', note: 'The existing listed unproven second wh hop (was relation 1:1 at frame 34, the behaviour this fixture tests), renumbered after two stages were restored before T-to-C. Francis on editing this fixture, 24 Oct in the lead session: "do whatever you want with it"; he then reviewed the result ("It looks good.")',
+    { by: 'Francis Ronge', on: '2026-10-24', note: 'The existing listed unproven second wh hop (was relation 1:1 at frame 34, the behaviour this fixture tests), renumbered after two stages were restored before T-to-C. Francis on editing this fixture, 24 Oct in the lead session: "do whatever you want with it"; he then reviewed the result ("It looks good.")',
       accepts: { '-': { '27': null } } }),
   x(CHAIN_ROLES, 'movement/holdout-transitions.json#/0', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "0:1", '32'),
   x(CHAIN_ROLES, 'movement/shared-landing.json#/analyses/0', 'movement-unrendered', 'MOVEMENT_ENDPOINTS_UNRESOLVED', "1:3", '51'),
