@@ -17,14 +17,6 @@ syntactic rules. Desktop remains the primary experience.
    option had not yet appeared in Billing. Spend only those credits.
 2. Renderer follow-ups left after the October renderer pass. Each has saved
    evidence.
-   - Plaques left far from their anchor (catalog #3): a second look after
-     allocation brings 7 of the 63 listed plaques within reach, and an eighth
-     for part of its life, without moving any other plaque. The other 55 need a
-     decision: 11 have no room, 19 lose the near pocket to later syntax while
-     their anchor stands still, 10 to positions their anchor reaches by reflow,
-     7 to a plaque placed earlier, 7 to other plaques' final pockets or the
-     quarter-nearer condition, and 1 whose nearer pocket lies too close to a
-     movement arrow, since a plaque brought near keeps the full gap from arrows.
    - A movement does not wait for a contextual anchor, so the Icelandic
      raising chain's verb-trace role ("Þessum börnum virðist hafa verið
      hjálpað") lacks its anchor at its moment: the model lists the raising
@@ -396,6 +388,14 @@ review authority, and correction path.
 - Deployment target and public product timing.
 
 ## Explicitly Not Active
+
+- Bringing far plaques nearer by moving other marks. On 2026-10-24, 256
+  plaques in 179 of 1,274 saved and committed analyses sat beyond their
+  nearby reach, 197 of them within 1.3 times it and none beyond 1.92; none of
+  them overlaps or crosses syntax on desktop. Every remaining fix moves other
+  plaques or breaks the no-teleport rule (Francis: "Plaques: Ok." on
+  2026-10-23; "if there's no way to solve it easily, then it's probably fine"
+  on 2026-10-24).
 
 - Gliding layout changes between Replay steps. A host steps down one row when
   a parent is inserted above it, instead of keeping a stretched branch
