@@ -13,6 +13,13 @@
         "categories": 19,
         "treeInk": 2,
         "description": "Category wrap probes for Neg[past-oriented, jussive-licensing] after hanging completing marks; every existing category entry reproduced exactly."
+      },
+      {
+        "capturedAt": "2026-10-24T11:42:02.733Z",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+        "categories": 18,
+        "treeInk": 1,
+        "description": "Category wrap probes for the second line of Neg[past-oriented, jussive-licensing] once a wrapped line no longer starts with the overflowing space; every existing category and category/terminal ink entry reproduced exactly."
       }
     ]
   },
@@ -1256,6 +1263,78 @@
     [
       " jussive-licensing]",
       355.15185546875
+    ],
+    [
+      "j",
+      11.54998779296875
+    ],
+    [
+      "ju",
+      36.2039794921875
+    ],
+    [
+      "jus",
+      56.447967529296875
+    ],
+    [
+      "juss",
+      76.69195556640625
+    ],
+    [
+      "jussi",
+      86.60394287109375
+    ],
+    [
+      "jussiv",
+      110.20793151855469
+    ],
+    [
+      "jussive",
+      134.77792358398438
+    ],
+    [
+      "jussive-",
+      151.409912109375
+    ],
+    [
+      "jussive-l",
+      162.74990844726562
+    ],
+    [
+      "jussive-li",
+      172.66189575195312
+    ],
+    [
+      "jussive-lic",
+      194.50189208984375
+    ],
+    [
+      "jussive-lice",
+      219.28189086914062
+    ],
+    [
+      "jussive-licen",
+      244.3138885498047
+    ],
+    [
+      "jussive-licens",
+      264.557861328125
+    ],
+    [
+      "jussive-licensi",
+      274.4698486328125
+    ],
+    [
+      "jussive-licensin",
+      299.5018615722656
+    ],
+    [
+      "jussive-licensing",
+      326.2978515625
+    ],
+    [
+      "jussive-licensing]",
+      343.391845703125
     ]
   ],
   "treeInk": [
@@ -2957,6 +3036,18 @@
         "width": 355.15185546875,
         "left": 10.919994354248047,
         "right": 351.7918395996094,
+        "ascent": 31.079999923706055,
+        "descent": 8.400003433227539,
+        "fontAscent": 42,
+        "fontDescent": 11
+      }
+    ],
+    [
+      "[\"jussive-licensing]\",\"category\"]",
+      {
+        "width": 343.391845703125,
+        "left": -0.8399999737739563,
+        "right": 340.0318603515625,
         "ascent": 31.079999923706055,
         "descent": 8.400003433227539,
         "fontAscent": 42,
