@@ -151,8 +151,10 @@ the visual rules, run it on macOS against the pull request's head. CI and browse
 nightly on main, not after a merge: a pull request must be up to date with main,
 so it has already verified the merged tree. Browser verification skips a pull
 request that changes only Markdown. Native-browser checks and the offline corpus comparator
-prove different things: the comparator checks Replay, plans and unmeasured tree
-reservations; it does not measure fonts, plaques, connector painting or the camera.
+prove different things: the comparator checks Replay, plans and the tree layout the
+renderer paints, laid out by the plaque layout job with text measured from the
+bundled fonts; it does not see native text rendering, plaques, connector painting
+or the camera.
 The visual audit runs the production layout, plaque allocation, camera Fit and
 neutral-label placement with text measured from the bundled fonts, so its
 findings are leads for a native capture, not proof of a pixel. It does not see

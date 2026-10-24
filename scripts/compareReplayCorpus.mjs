@@ -28,7 +28,7 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
     const compared = compareCorpusSnapshots(snapshots[0], snapshots[1], records);
     const failures = compared.filter(record => record.violations.length);
     const report = { schemaVersion: 1, ok: failures.length === 0, layout,
-      scope: 'Offline Replay and unmeasured tree reservations. Native text metrics, SVG painting, plaque/connector geometry, camera and interaction are separate browser gates.',
+      scope: 'Offline Replay and the measured tree layout the renderer paints, with text measured from the bundled fonts. Native text rendering, SVG painting, plaque/connector geometry, camera and interaction are separate browser gates.',
       manifests: manifests.map(({ filename, sha256, coverage }) => ({ filename, sha256, coverage })),
       harness: { node: process.version, sources: await Promise.all([
         fileURLToPath(import.meta.url), worker, fileURLToPath(new URL('./replayCorpusInputs.mjs', import.meta.url)),
@@ -36,6 +36,8 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
         fileURLToPath(new URL('./replayMotionContinuity.mjs', import.meta.url)),
         // The movement rule judges both checkouts' Replays.
         fileURLToPath(new URL('../tests/helpers/replayInvariants.mjs', import.meta.url)),
+        // Both checkouts' text is measured from the bundled fonts.
+        fileURLToPath(new URL('../tests/helpers/visualFontMetrics.mjs', import.meta.url)),
         // The motion rule measures stage crossings through the renderer's camera carry.
         fileURLToPath(new URL('../components/treeViewport.ts', import.meta.url))
       ].map(async filename => ({ filename, sha256: sha256(await readFile(filename)) }))) },
