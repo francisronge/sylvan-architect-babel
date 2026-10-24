@@ -29,3 +29,25 @@ for (const [index, from, subject, keeps, why] of [
     else assert.notDeepEqual(offset(after), offset(before));
   });
 }
+
+// A Case plaque keeps one pocket only while its arrow leaves one source. In the
+// do-support stage the bare I⁰ waits while do and the past I⁰ are built beneath it,
+// then its merge sends the arrow from do. One pocket clear of both arrows and of the
+// waiting daughters lay far right of the tree (5.8 times the nearby reach).
+test('a Case plaque takes a new pocket where the head it leaves becomes a head complex', async () => {
+  const { plaqueNearbyReach } = await import('./helpers/visualRules.mjs');
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/head-rewritten-in-place.json#').record;
+  const subject = 'plaque(1:2 directed-path case-assignment)@iFinite';
+  const frames = layoutVisualFrames(prepareVisualRecord(record), [VIEWPORTS[0]]).filter(frame => frame.frame >= 27 && frame.frame <= 37);
+  assert.deepEqual(markMotionFindings(frames).map(found => `${found.frame} ${found.subject} ${found.measure}`), []);
+  const shown = frames.map(frame => ({ frame: frame.frame, plaque: frame.plaques.find(plaque => plaque.id === subject) }));
+  assert(shown.every(({ plaque }) => plaque), `${subject} shows from its moment on`);
+  const pockets = [...new Set(shown.map(({ plaque }) => JSON.stringify(offset(plaque))))];
+  assert.equal(pockets.length, 2, 'one pocket while the arrow leaves I⁰, one while it leaves do');
+  assert.deepEqual(shown.filter(({ plaque }) => JSON.stringify(offset(plaque)) === pockets[0]).map(({ frame }) => frame), [27, 28, 29, 30, 31, 32, 33]);
+  for (const { frame, plaque } of shown) {
+    const size = plaque.size ?? plaque.rect;
+    const distance = Math.hypot(plaque.rect.x + size.width / 2 - plaque.anchor.x, plaque.rect.y + size.height / 2 - plaque.anchor.y);
+    assert(distance <= 2 * plaqueNearbyReach(size), `frame ${frame}: ${Math.round(distance)} units from its anchor`);
+  }
+});
