@@ -142,6 +142,7 @@ const ReplayPanel: React.FC<ReplayPanelProps> = ({
           min={0}
           max={Math.max(playbackSteps.length - 1, 0)}
           value={activeStepIndex}
+          aria-valuetext={`Replay ${activeStepIndex + 1}/${playbackSteps.length}`}
           onPointerDown={() => {
             onPause();
             onScrubbingChange(true);

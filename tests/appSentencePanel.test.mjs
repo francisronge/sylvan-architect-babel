@@ -37,3 +37,17 @@ test('the hidden sentence panel is inert, so its controls leave the focus order'
   assert.doesNotMatch(panel(shown), /\binert/);
   assert.doesNotMatch(shown, /\binert/, 'an expanded, visible panel leaves the sentence box reachable');
 });
+
+test('icon and toggle controls expose their visible names and states to assistive technology', () => {
+  const shown = render('');
+  const button = text => new RegExp(`<button[^>]*>(?:(?!</button>).)*${text}(?:(?!</button>).)*</button>`, 's').exec(shown)?.[0] ?? '';
+  assert.match(button('Canopy'), /aria-current="page"/, 'the active view tab is marked current');
+  assert.doesNotMatch(button('Notes'), /aria-current/);
+  assert.match(button('Constituent Glyphing'), /aria-pressed="false"/);
+  assert.match(shown, /<button[^>]*title="Collapse"[^>]*aria-label="Collapse"/);
+  assert.match(shown, /<button[^>]*title="Hide Control Panel"[^>]*aria-label="Hide Control Panel"/);
+
+  const hidden = render('?showcase=1');
+  assert.match(hidden, /<button[^>]*title="Restore Arboretum Link"[^>]*aria-label="Restore Arboretum Link"/,
+    'the restore button is named by its title, not by the logo image inside it');
+});

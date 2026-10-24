@@ -58,6 +58,7 @@ test('Replay panel retains one measured root, ownership attributes and frame con
   assert.match(html, />Pause<\/button>/);
   assert.match(html, /aria-label="Replay frame" min="0" max="2"/);
   assert.match(html, /value="1"/);
+  assert.match(html, /<input type="range"[^>]*aria-valuetext="Replay 2\/3"/, 'the slider announces the visible Replay position');
   assert.match(html, /width:50%/);
   assert.match(html, /Replay 2\/3/);
   assert.match(html, /aria-label="Fit tree"/);
