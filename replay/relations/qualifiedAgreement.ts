@@ -35,13 +35,6 @@ function agreementHost(entry: Tier2AuthoredEvidenceEntry, evidence: Tier2FacetEv
   if (entry.concepts.includes('feature.source')) return true;
   const name = featureParticipantName(entry.key);
   if (['inflection', 'auxiliary', 'participle', 'clitic'].includes(name)) return true;
-  if (name === 'raised finite features' && entry.items.length === 1) {
-    const matches: Array<typeof evidence.currentForest[number]> = [];
-    const visit = (node: typeof matches[number]) => { if (node.id === entry.items[0]) matches.push(node); node.children?.forEach(visit); };
-    evidence.currentForest.forEach(visit);
-    return matches.length === 1 && ['T', 'I', 'Infl'].includes(categoryLabel(matches[0].label).replace(/(?:\^?0|⁰)$/u, ''))
-      && !matches[0].children?.length;
-  }
   const category = new Map([['t', 'T'], ['i', 'I'], ['infl', 'Infl'], ['agr', 'Agr'], ['agreement', 'Agr']]).get(name);
   if (!category || entry.items.length !== 1) return false;
   const matches: typeof evidence.currentForest[number][] = [];
@@ -253,20 +246,8 @@ export function recoverQualifiedAgreement(evidence: Tier2FacetEvidence) {
     const contains = (node: typeof matches[number]): boolean => node.children?.some(child => child.id === typedSources[0].items[0] || contains(child)) ?? false;
     return matches.length === 1 && contains(matches[0]);
   };
-  const probes = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'probe');
-  const paths = new Map<string, typeof evidence.currentForest>();
-  const visit = (node: typeof evidence.currentForest[number], path: typeof evidence.currentForest) => {
-    paths.set(node.id, [...path, node]); node.children?.forEach(child => visit(child, [...path, node]));
-  };
-  evidence.currentForest.forEach(node => visit(node, []));
-  const exponentContext = probes.length === 1 && probes[0].items.length === 1
-    ? anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'agreement bearer' && entry.items.length === 1
-      && uniqueCurrentOwners(evidence, [...probes[0].items, ...entry.items])
-      && ['T', 'I', 'Infl', 'Agr'].includes(categoryLabel(paths.get(probes[0].items[0])!.at(-1)!.label))
-      && categoryLabel(paths.get(entry.items[0])!.at(-1)!.label) === 'V'
-      && paths.get(entry.items[0])![0] === paths.get(probes[0].items[0])![0]) : [];
-  const sources = anchors.filter(entry => !exponentContext.includes(entry) && (namedPair ? featureParticipantName(entry.key) === 'participle'
-    : agreementHost(entry, evidence) && !(!entry.concepts.includes('feature.source') && containsTypedSource(entry))));
+  const sources = anchors.filter(entry => namedPair ? featureParticipantName(entry.key) === 'participle'
+    : agreementHost(entry, evidence) && !(!entry.concepts.includes('feature.source') && containsTypedSource(entry)));
   if (sources.length !== 1 || sources[0].items.length !== 1) return [];
   const source = sources[0];
   const witnesses = nestedFeatureWitnesses(evidence);

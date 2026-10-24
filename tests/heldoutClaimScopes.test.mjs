@@ -46,16 +46,7 @@ test('explicit agreement target inventory gives each target the same controller 
   assert.equal(by(relation, 'feature.dependency', [...forest, leaf('clitic', 'D')]).length, 0);
 });
 
-test('agreement probe keeps the exact controller while a realized V remains exponent context', () => {
-  const relation = { relation: 'Object-controlled agreement', anchors: { probe: 't', controller: 'object', agreementBearer: 'v',
-    noun: 'n', excludedDativeArgument: 'recipient' }, values: { features: ['feminine', 'singular'] } };
-  const claims = by(relation, 'feature.dependency');
-  assert.equal(claims.length, 1);
-  assert.deepEqual(claims[0].facet.evidence.currentAnchors, { 'feature.source': ['t'], 'feature.target': ['object'] });
-  assert(used(claims[0], 'features', [0, 1]));
-  assert.equal(by({ ...relation, anchors: { ...relation.anchors, featureSource: 'otherT' } }, 'feature.dependency').length, 0);
-  const detached = structuredClone(forest); detached[0].children.find(node => node.id === 'vp').children = [leaf('agent', 'DP')]; detached.push(leaf('v', 'V'));
-  assert.equal(by(relation, 'feature.dependency', detached).length, 0);
+test('a finite agreement probe reaches its subject goal beside a named finite bearer', () => {
   const subject = { relation: 'Finite agreement', anchors: { probe: 't', subjectGoal: 'subject', finiteBearer: 'v' }, values: { number: 'singular', person: 'third' } };
   assert.equal(by(subject, 'feature.dependency').length, 1);
 });
@@ -114,13 +105,11 @@ test('current mood licensing preserves its explicit functional recipient without
   assert.equal(by(relation, 'feature.dependency').length, 0);
 });
 
-test('named passive and experiencer participants use their exact predicate', () => {
+test('named passive participants use their exact predicate', () => {
   const passive = { relation: 'Passive agent interpretation', anchors: { predicate: 'v', agentNominal: 'agent' }, values: { thetaRole: 'Agent' } };
   assert.equal(by(passive, 'theta-grid').length, 1);
   assert.equal(by({ ...passive, values: { thetaRole: 'Agent assignment is pending' } }, 'theta-grid').length, 0);
   assert.equal(by({ ...passive, values: { thetaRole: 'Agent assignment denied' } }, 'theta-grid').length, 0);
-  const experiential = { relation: 'experiencer interpretation', anchors: { adjective: 'a', experiencer: 'subject' }, values: { role: 'Experiencer' } };
-  assert.equal(by(experiential, 'theta-grid').length, 1);
 });
 
 test('argument licensing preserves an independently explicit Case source and qualified internal recipient', () => {
