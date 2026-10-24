@@ -40,3 +40,14 @@ export const rawOutputBlob = (artifact: Pick<RawOutputArtifact, 'data'>) => {
   const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
   return new Blob([bytes], { type: 'text/plain;charset=utf-8' });
 };
+
+// Vite defines this from scripts/buildVersionPlugin.mjs; Node tests load this
+// module without it.
+declare const __BABEL_BUILD__: string | undefined;
+const appBuild = typeof __BABEL_BUILD__ === 'string' ? __BABEL_BUILD__ : undefined;
+
+/** The failure record the panel offers as JSON, led by the build (version and
+ * commit) of the app that produced it when that build is known. */
+export const failureRecordBlob = (record: object) =>
+  new Blob([JSON.stringify({ ...(appBuild ? { build: appBuild } : {}), ...record }, null, 2)],
+    { type: 'application/json' });

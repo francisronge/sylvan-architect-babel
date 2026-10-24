@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useEffect, useId, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Download, Eye } from 'lucide-react';
 import { GenerationRecord, ParseFailure, RawOutputArtifact } from '../types';
-import { createFileDownloads, rawOutputBlob } from './fileDownload';
+import { createFileDownloads, failureRecordBlob, rawOutputBlob } from './fileDownload';
 import ViewErrorBoundary from './ViewErrorBoundary';
 
 const FailedOutputInspection = lazy(() => import('./FailedOutputInspection'));
@@ -111,9 +111,9 @@ const FailurePanel: React.FC<FailurePanelProps> = ({
           <button
             type="button"
             onClick={() => downloads.download(
-              new Blob([JSON.stringify({ message, failure, rawOutput, generationRecord,
+              failureRecordBlob({ message, failure, rawOutput, generationRecord,
                 ...(sentence !== undefined ? { input: { sentence, ...(inputTokens ? { inputTokens } : {}) } } : {})
-              }, null, 2)], { type: 'application/json' }),
+              }),
               'babel-failed-generation.json'
             )}
             className="flex items-center gap-2 rounded-lg border border-rose-500/30 px-3 py-2 text-[10px] font-bold text-rose-100 hover:bg-rose-500/25"
