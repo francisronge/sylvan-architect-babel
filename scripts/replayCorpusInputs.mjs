@@ -88,6 +88,23 @@ const pointChanges = (before, after) => {
   });
 };
 
+/** Movements the baseline shows as movement that the candidate no longer does
+ * (`movementPresentations` in tests/helpers/replayInvariants.mjs): the landing
+ * must still arrive at the moment of the same relation, with nothing of it
+ * built earlier, and keep the trajectory the baseline draws to it. */
+export function lostMovementPresentations(baseline, candidate) {
+  const current = new Map(candidate.map(movement => [`${movement.stage}:${movement.landing}`, movement]));
+  return baseline.filter(movement => movement.shown).flatMap(movement => {
+    const after = current.get(`${movement.stage}:${movement.landing}`);
+    const fault = reason => [{ stage: movement.stage, landing: movement.landing, reason, baseline: movement, candidate: after ?? null }];
+    if (!after) return fault('the candidate no longer recognizes this movement');
+    if (!after.shown || after.relationKey !== movement.relationKey)
+      return fault(`the landing arrives at ${after.kind ?? 'no'} ${after.operation ?? 'step'}${after.relationKey ? ` (${after.relationKey})` : ''}, `
+        + `not at the moment of ${movement.relationKey}${after.built.length ? `, after construction built ${after.built.join(' ')}` : ''}`);
+    return movement.trajectory && !after.trajectory ? fault(`${movement.relationKey} no longer draws its trajectory`) : [];
+  });
+}
+
 export function compareCorpusSnapshots(baseline, candidate, records) {
   const old = new Map(baseline.records.map(record => [record.id, record]));
   const current = new Map(candidate.records.map(record => [record.id, record]));
@@ -135,6 +152,8 @@ export function compareCorpusSnapshots(baseline, candidate, records) {
     motion.worsened = motion.candidate.filter(fault => fault.distance > (oldMotion.get(motionKey(fault))?.distance ?? Infinity) + MOTION_FAULT_THRESHOLD);
     if (motion.new.length) violations.push({ kind: 'new-motion-fault', faults: motion.new });
     if (motion.worsened.length) violations.push({ kind: 'worsened-motion-fault', faults: motion.worsened });
+    const lostMovements = lostMovementPresentations(before.evidence.movements ?? [], after.evidence.movements ?? []);
+    if (lostMovements.length) violations.push({ kind: 'movement-not-shown', faults: lostMovements });
     if (after.invalid.length) violations.push({ kind: 'invalid-geometry', faults: after.invalid });
     if (after.expectationFailures.length) violations.push({ kind: 'mechanism-control-failed', failures: after.expectationFailures });
     return { ...inputIdentity,

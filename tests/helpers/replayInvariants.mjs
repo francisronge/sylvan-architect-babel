@@ -739,6 +739,140 @@ export function checkMovementLandingParent(replay, record) {
   return out;
 }
 
+const subtreeIds = node => [String(node.id), ...(node.children ?? []).flatMap(subtreeIds)];
+
+/** The movements each stage authors, read from the stages alone so that no
+ * checkout's movement recognition decides which exist. In a stage, an
+ * occurrence lands when it is new there, or when the nearest of its former
+ * ancestors that the stage keeps no longer dominates it; it lands as the
+ * movement of a chain when its parent or grandparent dominates a deeper
+ * occurrence of its lineage (`lower`) in the same workspace. Only the highest
+ * landing of a lineage counts, so an intermediate copy built with it is a lower
+ * occurrence, and a landing inside another counts as that landing's material.
+ * Its claims are the stage's relations that name the landing or its material
+ * and also a lower occurrence, its material, or the landing's earlier position
+ * (a prior anchor naming the landing). A chain no relation claims has no moment
+ * to own and is not listed. `material` is the landing's subtree that is new in
+ * the stage. Stages that repeat an id are not comparable and list nothing. */
+export function authoredMovements(record) {
+  const stages = record.derivationStages ?? [], out = [];
+  const ids = anchors => anchors && typeof anchors === 'object' ? Object.values(anchors).flat().map(String) : [];
+  stages.forEach((stage, stageIndex) => {
+    const now = locateAuthored(stage.workspaceForest), before = stageIndex ? locateAuthored(stages[stageIndex - 1].workspaceForest) : new Map();
+    if ([...now.values(), ...before.values()].includes(null)) return;
+    const dominates = (ancestor, id) => { for (let at = now.get(id)?.parentId; at; at = now.get(at)?.parentId) if (at === ancestor) return true; return false; };
+    const depth = id => { let count = 0; for (let at = now.get(id)?.parentId; at; at = now.get(at)?.parentId) count++; return count; };
+    const lineages = new Map();
+    for (const [id, { node }] of now) {
+      const lineage = trimmed(node.lineageId);
+      if (lineage) lineages.set(lineage, [...lineages.get(lineage) ?? [], id]);
+    }
+    const found = [];
+    for (const [lineage, occurrences] of lineages) for (const landing of occurrences) {
+      const at = now.get(landing), was = before.get(landing);
+      if (was) {
+        let former = was.parentId;
+        while (former && !now.has(former)) former = before.get(former)?.parentId;
+        if (!was.parentId || !former || dominates(former, landing)) continue;
+      }
+      const commands = (id, other) => Boolean(now.get(id).parentId) && dominates(now.get(id).parentId, other);
+      const grandparent = at.parentId && now.get(at.parentId).parentId;
+      const lower = occurrences.filter(other => {
+        if (other === landing || now.get(other).root !== at.root || dominates(landing, other) || dominates(other, landing)) return false;
+        if (commands(landing, other) || commands(other, landing)) return commands(landing, other) && !commands(other, landing);
+        // A head adjoined beside its host: cousins whose grandparents are shared,
+        // so only depth, or else pronunciation, says which occurrence is higher.
+        return Boolean(grandparent) && dominates(grandparent, other) && (depth(other) > depth(landing)
+          || depth(other) === depth(landing) && now.get(other).node.silent === true && at.node.silent !== true);
+      });
+      if (!lower.length) continue;
+      const high = new Set(subtreeIds(at.node)), low = new Set(lower.flatMap(id => subtreeIds(now.get(id).node)));
+      const claims = (stage.relations ?? []).flatMap((relation, relationIndex) => {
+        const named = [...ids(relation?.anchors), ...ids(relation?.priorAnchors)];
+        return named.some(id => high.has(id)) && (named.some(id => low.has(id)) || Boolean(was) && ids(relation?.priorAnchors).includes(landing))
+          ? [relationIndex] : [];
+      });
+      if (claims.length) found.push({ stage: stageIndex, landing, lineage, lower, claims,
+        parentId: at.parentId, material: subtreeIds(at.node).filter(id => id !== landing && !before.has(id)) });
+    }
+    const landings = new Set(found.map(movement => movement.landing));
+    out.push(...found.filter(movement => !found.some(other => other !== movement && other.lineage === movement.lineage && other.lower.includes(movement.landing))
+      && ![...landings].some(other => other !== movement.landing && dominates(other, movement.landing))));
+  });
+  return out;
+}
+
+/** How a Replay shows each movement: every one `authoredMovements` lists, and
+ * every landing a relation moment's own movement transition introduces (the
+ * movements this checkout recognizes). `frame` is the 1-based step where the
+ * landing arrives in its stage: first painted when it is new there, otherwise
+ * first painted under its new parent or detached from its old one. It is
+ * `shown` as movement when that step is the relation moment of one of its
+ * claims and no new material of the landing is painted earlier in the stage;
+ * `built` lists the material painted earlier. `trajectory` is whether that
+ * moment's relation draws a trajectory to the landing. */
+export function movementPresentations(replay, record) {
+  const steps = replay.playbackSteps, stages = record.derivationStages ?? [];
+  const movements = new Map(authoredMovements(record).map(movement => [`${movement.stage}:${movement.landing}`, movement]));
+  steps.forEach(step => {
+    const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
+    if (!identity) return;
+    const key = `${identity.stageIndex}:${identity.relationIndex}`;
+    for (const link of step.replayRelationLinks ?? []) {
+      if (link.authoredRelationKey !== key || link.movementTransition !== true || !link.targetNodeId) continue;
+      const landing = String(link.targetNodeId), entry = `${identity.stageIndex}:${landing}`;
+      if (movements.has(entry)) { movements.get(entry).claims = [...new Set([...movements.get(entry).claims, identity.relationIndex])]; continue; }
+      const now = locateAuthored(stages[identity.stageIndex]?.workspaceForest), before = locateAuthored(stages[identity.stageIndex - 1]?.workspaceForest);
+      const at = now.get(landing);
+      movements.set(entry, { stage: identity.stageIndex, landing, lineage: trimmed(at?.node.lineageId) || null, lower: [], claims: [identity.relationIndex],
+        parentId: at?.parentId ?? null, material: at ? subtreeIds(at.node).filter(id => id !== landing && !before.has(id)) : [] });
+    }
+  });
+  return [...movements.values()].map(movement => {
+    const { stage, landing, parentId, claims } = movement, material = new Set(movement.material);
+    const formerly = locateAuthored(stages[stage - 1]?.workspaceForest).get(landing);
+    const own = stepsOfStage(steps, stage), built = new Set();
+    const arrives = own.find(index => {
+      const structure = frameStructure(steps[index]);
+      for (const id of structure.displayed) {
+        const authored = authoredIdentity(structure.nodes.get(id)).id;
+        if (material.has(authored)) built.add(authored);
+        if (authored !== landing) continue;
+        const parent = structure.parent.get(id), names = parent ? nodeNames(structure.nodes.get(parent)) : [];
+        if (!formerly || !parent || names.includes(parentId) && !names.includes(formerly.parentId)) return true;
+      }
+      return false;
+    });
+    const step = steps[arrives], identity = step?.replayKind === 'relation' ? step.replayRelationIdentity : null;
+    if (arrives !== undefined) {
+      const structure = frameStructure(step), previous = arrives ? frameStructure(steps[arrives - 1]) : EMPTY_FRAME;
+      for (const id of structure.displayed) if (!previous.displayed.has(id)) built.delete(authoredIdentity(structure.nodes.get(id)).id);
+    }
+    const relationKey = identity ? `${identity.stageIndex}:${identity.relationIndex}` : null;
+    const trajectory = Boolean(identity) && (step.replayRelationLinks ?? []).some(link => link.authoredRelationKey === relationKey
+      && link.renderFamily === 'trajectory' && String(link.targetNodeId ?? '') === landing);
+    return { stage, landing, claims, frame: arrives === undefined ? null : arrives + 1, kind: step?.replayKind ?? null,
+      operation: step?.operation ?? null, relationKey, built: [...built].sort(), trajectory,
+      shown: Boolean(identity) && identity.stageIndex === stage && claims.includes(identity.relationIndex) && !built.size };
+  });
+}
+
+/** An authored or recognized movement is shown as movement: its landing
+ * arrives at the relation moment of a claim of it, and construction builds
+ * none of its new material before that moment (`movementPresentations`). A
+ * landing that construction builds, or that arrives at another relation's
+ * moment, looks base-generated. */
+export function checkMovementShownAsMovement(replay, record) {
+  return movementPresentations(replay, record).filter(movement => !movement.shown).map(movement => {
+    const { landing, stage, frame, kind, operation, relationKey, claims, built } = movement;
+    const claimed = relationKey && claims.some(index => `${stage}:${index}` === relationKey);
+    const arrival = frame === null ? `${landing} never arrives in stage ${stage + 1}`
+      : `${landing} arrives at ${kind} ${operation}${relationKey ? ` (${relationKey})` : ''}`
+        + (claimed ? '' : `, not at a moment of its claims ${claims.map(index => `${stage}:${index}`).join(', ')}`);
+    return violation('movement-shown-as-movement', frame, built.length ? `${arrival}, after construction built ${built.join(' ')}` : arrival);
+  });
+}
+
 /** Uses the renderer's own frame selection: within a stage, the relations played
  * so far and the active moment decide which compiled marks are revealed. */
 export function checkMarksAtOwningMoment(replay) {

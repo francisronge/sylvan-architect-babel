@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { objectHash, sha256 } from './replayCorpusInputs.mjs';
 import { layoutReplayFrames } from './replayFrameLayout.mjs';
 import { motionFrame } from './replayMotionContinuity.mjs';
+import { movementPresentations } from '../tests/helpers/replayInvariants.mjs';
 
 const entries = ['replay/prepareReplay.ts', 'replay/stageCoordinates.ts', 'replay/stageCamera.ts',
   'replay/treeLayout.ts', 'replay/displayIdentity.ts', 'replay/workspaceShapeReflows.ts'];
@@ -63,6 +64,8 @@ export async function buildCorpusSnapshot(root, records, { width, height, direct
           && step.replayRelationLinks?.some(link => link.renderFamily === 'trajectory'
             && link.authoredRelationKey === `${step.replayRelationIdentity.stageIndex}:${step.replayRelationIdentity.relationIndex}`)).length,
         merges: steps.filter(step => step.operation === 'ExternalMerge').length,
+        // Judged by this harness, not the measured checkout, so both sides of a comparison share one rule.
+        movements: movementPresentations(prepared, input),
         realizationGroups: input.derivationStages.reduce((count, stage) => count + (stage.realizations?.length ?? 0), 0),
         workspaceRoots: Math.max(...input.derivationStages.map(stage => stage.workspaceForest.length)),
         planStages: prepared.relationRenderPlan?.frames.map(frame => ({ stage: frame.stageIndex,

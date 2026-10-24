@@ -5,8 +5,11 @@ import { cp, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/p
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { loadCorpusManifest, compareCorpusSnapshots, selectRecord } from '../scripts/replayCorpusInputs.mjs';
+import { loadCorpusManifest, compareCorpusSnapshots, lostMovementPresentations, selectRecord } from '../scripts/replayCorpusInputs.mjs';
 import { buildCorpusSnapshot } from '../scripts/replayCorpusSnapshot.mjs';
+import { prepareReplay } from '../replay/prepareReplay.ts';
+import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
+import { movementPresentations } from './helpers/replayInvariants.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const manifestPath = path.join(root, 'fixtures/replay-corpus/manifest.json');
@@ -120,6 +123,32 @@ test('a deformation the baseline already has fails when the candidate makes it l
   const [result] = compareCorpusSnapshots(baseline.copy, candidate.copy, records);
   assert(result.violations.some(violation => violation.kind === 'worsened-motion-fault'
     && violation.faults.some(fault => fault.node === candidate.node && fault.kind === 'shape-motion' && Math.round(fault.distance) === 200)));
+});
+
+test('a movement the baseline shows fails when the candidate drops its moment, builds its landing or loses its trajectory', () => {
+  const [movement] = snapshot.records[0].evidence.movements;
+  assert.deepEqual([movement.landing, movement.relationKey, movement.shown, movement.trajectory], ['i_v', '1:0', true, true]);
+  const lost = edit => {
+    const candidate = structuredClone(snapshot);
+    edit(candidate.records[0].evidence.movements);
+    return compare(candidate)[0].violations.filter(violation => violation.kind === 'movement-not-shown').flatMap(violation => violation.faults);
+  };
+  assert.match(lost(movements => movements.splice(0))[0].reason, /no longer recognizes/);
+  assert.match(lost(movements => Object.assign(movements[0], { shown: false, kind: 'micro', operation: 'ExternalMerge', relationKey: null }))[0].reason,
+    /arrives at micro ExternalMerge, not at the moment of 1:0/);
+  assert.match(lost(movements => { movements[0].trajectory = false; })[0].reason, /1:0 no longer draws its trajectory/);
+});
+
+test('a first-stage chain whose landing construction builds is a lost movement, though the baseline draws no trajectory for it', () => {
+  // The rejected candidate built booksDP bottom-up before the chain's moment (frame 20 on main).
+  const record = loadFixtureAnalyses().records.find(entry => entry.id === 'replay-regressions/receiving-head-material.json#').record;
+  const baseline = prepareReplay({ ...structuredClone(record), includePlayback: true });
+  const built = { ...baseline, playbackSteps: structuredClone(baseline.playbackSteps) };
+  Object.assign(built.playbackSteps[19], { replayKind: 'micro', operation: 'Project', replayRelationIdentity: undefined });
+  const before = movementPresentations(baseline, record), after = movementPresentations(built, record);
+  assert.deepEqual(lostMovementPresentations(before, before), []);
+  assert.deepEqual(lostMovementPresentations(before, after).map(fault => [fault.landing, fault.baseline.trajectory, fault.reason]),
+    [['booksDP', false, 'the landing arrives at micro Project, not at the moment of 0:0']]);
 });
 
 test('semantic, authored, continuity, finite-geometry and witness-control failures cannot become a clean comparison', () => {

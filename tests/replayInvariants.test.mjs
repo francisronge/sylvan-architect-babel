@@ -3,7 +3,7 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  checkAttachAtMerge, checkContinuedOccurrences, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkNoEarlyReveal,
+  checkAttachAtMerge, checkContinuedOccurrences, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
   checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationConstruction, checkRelationMoments,
   checkStableConstruction,
   checkStageCompletion, checkVisibleInCanvas, frameStructure
@@ -318,6 +318,27 @@ test('control: movement-landing-parent reports a new parent below the kept landi
     'tinner is not painted beside landing marieHigh under tp'));
 });
 
+test('control: movement-shown-as-movement reports an authored or recognized movement whose landing construction builds', () => {
+  // Stage 1 authors a first-stage passive chain (booksDP over booksTrace) whose
+  // moment is frame 20; stage 2's V-to-I is a recognized movement at frame 28.
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/receiving-head-material.json#').record;
+  const prepared = prepare(record), moment = 19, headMoment = 27;
+  assert.deepEqual(checkMovementShownAsMovement(prepared, record), []);
+  const broken = edit => {
+    const copy = { ...prepared, playbackSteps: structuredClone(prepared.playbackSteps) };
+    edit(copy.playbackSteps);
+    return checkMovementShownAsMovement(copy, record);
+  };
+  const constructed = broken(steps => Object.assign(steps[moment], { replayKind: 'micro', operation: 'Project', replayRelationIdentity: undefined }));
+  assert(reported(constructed, 'movement-shown-as-movement', moment + 1, 'booksDP arrives at micro Project, not at a moment of its claims 0:0'));
+  const prebuilt = broken(steps => steps[moment - 1].replayVisibleNodeIds.push('booksDbar'));
+  assert(reported(prebuilt, 'movement-shown-as-movement', moment + 1, 'after construction built booksDbar'));
+  const borrowed = broken(steps => { steps[moment].replayRelationIdentity = { stageIndex: 0, relationIndex: 1 }; });
+  assert(reported(borrowed, 'movement-shown-as-movement', moment + 1, 'booksDP arrives at relation Passive A-movement chain (0:1)'));
+  const recognized = broken(steps => Object.assign(steps[headMoment], { replayKind: 'micro', operation: 'ExternalMerge', replayRelationIdentity: undefined }));
+  assert(reported(recognized, 'movement-shown-as-movement', headMoment + 1, 'v arrives at micro ExternalMerge, not at a moment of its claims 1:0, 1:1'));
+});
+
 /* The sweep: every rule on every frame of every committed saved analysis.
  * Real defects stay listed in tests/helpers/replayInvariantExceptions.mjs with
  * the exact subject node of each violation; a new violation fails, and so does
@@ -330,7 +351,7 @@ const subjectOf = violation => violation.detail.split(' ')[0];
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments', 'landing-attached',
   'no-early-reveal', 'relation-construction', 'parent-after-children', 'stable-construction', 'continued-occurrence', 'attach-at-merge',
-  'movement-landing-parent',
+  'movement-landing-parent', 'movement-shown-as-movement',
   'visible-in-canvas',
   'marks-at-owning-moment', 'one-letter-per-label'];
 let sweep;
@@ -344,7 +365,8 @@ before(() => {
         ...checkRelationMoments(prepared, authored), ...checkLandingAttached(prepared), ...checkNoEarlyReveal(prepared),
         ...checkRelationConstruction(prepared, authored), ...checkParentAfterChildren(prepared), ...checkStableConstruction(prepared),
         ...checkContinuedOccurrences(prepared, authored),
-        ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored), ...checkVisibleInCanvas(prepared),
+        ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored),
+        ...checkMovementShownAsMovement(prepared, authored), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),
         ...checkContractWarnings(prepared, authored, { contract })] };
