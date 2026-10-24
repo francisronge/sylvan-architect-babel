@@ -2,7 +2,7 @@ import { categoryLabel, readCategoryLabel } from '../categoryLabel.ts';
 import { featureParticipantName, participantProperties, scopeEvidence, uniqueCurrentOwners } from './evidenceScopes.ts';
 import { explicitCoreferenceParticipants } from './explicitCoreference.ts';
 import { hasIndependentCaseEndpoints } from './featureEvidence.ts';
-import { directedNominalConcordMembers, nominalConcordMembers } from './nominalConcord.ts';
+import { nominalConcordMembers } from './nominalConcord.ts';
 import {
   establishesAssignment,
   relationAssertionFailure,
@@ -35,13 +35,6 @@ function agreementHost(entry: Tier2AuthoredEvidenceEntry, evidence: Tier2FacetEv
   if (entry.concepts.includes('feature.source')) return true;
   const name = featureParticipantName(entry.key);
   if (['inflection', 'auxiliary', 'participle', 'clitic'].includes(name)) return true;
-  if (name === 'raised finite features' && entry.items.length === 1) {
-    const matches: Array<typeof evidence.currentForest[number]> = [];
-    const visit = (node: typeof matches[number]) => { if (node.id === entry.items[0]) matches.push(node); node.children?.forEach(visit); };
-    evidence.currentForest.forEach(visit);
-    return matches.length === 1 && ['T', 'I', 'Infl'].includes(categoryLabel(matches[0].label).replace(/(?:\^?0|⁰)$/u, ''))
-      && !matches[0].children?.length;
-  }
   const category = new Map([['t', 'T'], ['i', 'I'], ['infl', 'Infl'], ['agr', 'Agr'], ['agreement', 'Agr']]).get(name);
   if (!category || entry.items.length !== 1) return false;
   const matches: typeof evidence.currentForest[number][] = [];
@@ -172,48 +165,8 @@ export function recoverQualifiedNominalConcord(evidence: Tier2FacetEvidence) {
   if (!rows.length || rows.some(entry => !entry.items.length || entry.items.some(item => !item.trim()))) return [];
   const typed = rows.map(entry => ({ ...entry, concepts: ['feature.rows'] }));
   const members = nominalConcordMembers({ ...evidence, authoredValues: typed });
-  if (members.length) return [scopeEvidence(evidence, 'feature-sharing', members.map(entry => ({ entry, concept: 'feature.bearers' })),
-    rows.map(entry => ({ entry, concept: 'feature.rows' })))];
-  const anchors = evidence.authoredCurrentAnchors ?? [];
-  const controllers = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'controller');
-  const targets = anchors.filter(entry => /^agreeing (?:adjective|determiner)$/u.test(normalizeTier2Synonym(entry.key)));
-  if (anchors.length !== 2 || controllers.length !== 1 || targets.length !== 1) return [];
-  const targetCategories = new Map([
-    ['agreeing adjective', ['A', 'AP', 'Adj', 'AdjP']], ['agreeing determiner', ['D', 'DP', 'Det', 'DetP']]
-  ]).get(normalizeTier2Synonym(targets[0].key))!;
-  const targetNodes: typeof evidence.currentForest[number][] = [];
-  const visit = (node: typeof evidence.currentForest[number]) => {
-    if (targets[0].items.includes(node.id)) targetNodes.push(node); node.children?.forEach(visit);
-  };
-  evidence.currentForest.forEach(visit);
-  if (targetNodes.length !== targets[0].items.length || targetNodes.some(node =>
-    !targetCategories.includes(categoryLabel(node.label).replace(/(?:\^?0|⁰)$/u, '')))) return [];
-  // The qualified target retains its authored field. The nominal membership
-  // proof checks categories, one shared domain and absence of embedded clauses.
-  const directed = directedNominalConcordMembers({ ...evidence, authoredValues: typed,
-    authoredCurrentAnchors: [controllers[0], { ...targets[0], key: 'targets' }] });
-  if (!directed.length) return [];
-  return [scopeEvidence(evidence, 'feature.dependency', [
-    { entry: controllers[0], concept: 'feature.source' }, { entry: targets[0], concept: 'feature.target' }
-  ], rows.map(entry => ({ entry, concept: 'feature.rows' })))];
-}
-
-/** An explicit controller can supply one bundle to several named agreement
- * targets. Each target keeps its own dependency; list order supplies no pair. */
-export function recoverDirectedAgreementTargets(evidence: Tier2FacetEvidence) {
-  const assertion = agreementAssertion(evidence);
-  if (!assertion) return [];
-  const anchors = evidence.authoredCurrentAnchors ?? [];
-  const controllers = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'controller');
-  const targets = anchors.filter(entry => ['agreement targets', 'agreement bearers'].includes(normalizeTier2Synonym(entry.key)));
-  const rows = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('feature.rows'));
-  if (controllers.length !== 1 || targets.length !== 1 || controllers[0].items.length !== 1 || !targets[0].items.length
-    || anchors.some(entry => ![controllers[0], targets[0]].includes(entry) && entry.concepts.some(concept => ['feature.source', 'feature.target', 'controller'].includes(concept)))
-    || !uniqueCurrentOwners(evidence, [...controllers[0].items, ...targets[0].items]) || !coherentFeatureRows(rows)) return [];
-  return targets[0].items.map((_, index) => scopeEvidence(evidence, 'feature.dependency', [
-    { entry: targets[0], concept: 'feature.source', indices: [index] }, { entry: controllers[0], concept: 'feature.target' }
-  ], [...rows.map(entry => ({ entry, concept: 'feature.rows' })), ...assertion.statuses.map(entry => ({ entry, concept: 'outcome' }))],
-  assertion.outcome && !assertion.statuses.length ? { outcome: [assertion.outcome] } : {}));
+  return members.length ? [scopeEvidence(evidence, 'feature-sharing', members.map(entry => ({ entry, concept: 'feature.bearers' })),
+    rows.map(entry => ({ entry, concept: 'feature.rows' })))] : [];
 }
 
 /** Case concord states a shared nominal property. It does not identify the
@@ -235,14 +188,11 @@ export function recoverQualifiedAgreement(evidence: Tier2FacetEvidence) {
   const assertion = agreementAssertion(evidence);
   if (!assertion) return [];
   const anchors = evidence.authoredCurrentAnchors ?? [];
-  if (anchors.some(entry => ['agreement targets', 'agreement bearers'].includes(normalizeTier2Synonym(entry.key)))) return [];
   if (anchors.some(entry => contextualParticipant(entry.key))) return [];
   const namedController = anchors.find(entry => normalizeTier2Synonym(entry.key) === 'controller');
   const namedTarget = anchors.find(entry => normalizeTier2Synonym(entry.key) === 'target');
   if (namedController && namedTarget && (namedController.items.length !== 1 || namedTarget.items.length !== 1
     || namedController.items[0] === namedTarget.items[0])) return [];
-  const namedPair = /^(?:past )?participle agreement with (?:preceding |fronted )?(?:direct )?object$/u
-    .test(normalizeTier2Synonym(evidence.relationName ?? ''));
   const typedSources = anchors.filter(entry => entry.concepts.includes('feature.source'));
   const containsTypedSource = (entry: Tier2AuthoredEvidenceEntry) => {
     if (typedSources.length !== 1 || typedSources[0].items.length !== 1 || entry.items.length !== 1
@@ -253,30 +203,17 @@ export function recoverQualifiedAgreement(evidence: Tier2FacetEvidence) {
     const contains = (node: typeof matches[number]): boolean => node.children?.some(child => child.id === typedSources[0].items[0] || contains(child)) ?? false;
     return matches.length === 1 && contains(matches[0]);
   };
-  const probes = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'probe');
-  const paths = new Map<string, typeof evidence.currentForest>();
-  const visit = (node: typeof evidence.currentForest[number], path: typeof evidence.currentForest) => {
-    paths.set(node.id, [...path, node]); node.children?.forEach(child => visit(child, [...path, node]));
-  };
-  evidence.currentForest.forEach(node => visit(node, []));
-  const exponentContext = probes.length === 1 && probes[0].items.length === 1
-    ? anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'agreement bearer' && entry.items.length === 1
-      && uniqueCurrentOwners(evidence, [...probes[0].items, ...entry.items])
-      && ['T', 'I', 'Infl', 'Agr'].includes(categoryLabel(paths.get(probes[0].items[0])!.at(-1)!.label))
-      && categoryLabel(paths.get(entry.items[0])!.at(-1)!.label) === 'V'
-      && paths.get(entry.items[0])![0] === paths.get(probes[0].items[0])![0]) : [];
-  const sources = anchors.filter(entry => !exponentContext.includes(entry) && (namedPair ? featureParticipantName(entry.key) === 'participle'
-    : agreementHost(entry, evidence) && !(!entry.concepts.includes('feature.source') && containsTypedSource(entry))));
+  const sources = anchors.filter(entry => agreementHost(entry, evidence)
+    && !(!entry.concepts.includes('feature.source') && containsTypedSource(entry)));
   if (sources.length !== 1 || sources[0].items.length !== 1) return [];
   const source = sources[0];
   const witnesses = nestedFeatureWitnesses(evidence);
-  const targets = anchors.filter(entry => entry !== source && !witnesses.includes(entry) && (namedPair
-    ? /^(?:(?:fronted|preceding|direct) )?object$/u.test(normalizeTier2Synonym(entry.key))
-    : entry.concepts.includes('feature.target') || subjectRole(entry.key) || /^(?:subject|object|interrogative) (?:goal|argument)$/u.test(normalizeTier2Synonym(entry.key))
-      || /^(?:number|person|gender) goal$/u.test(normalizeTier2Synonym(entry.key))
-        && (evidence.authoredValues ?? []).some(row => normalizeTier2Synonym(row.key)
-          === normalizeTier2Synonym(entry.key).replace(/ goal$/u, '') && row.items.length === 1)
-      || normalizeTier2Synonym(entry.key) === 'controller'));
+  const targets = anchors.filter(entry => entry !== source && !witnesses.includes(entry) && (entry.concepts.includes('feature.target')
+    || subjectRole(entry.key) || /^(?:subject|object|interrogative) (?:goal|argument)$/u.test(normalizeTier2Synonym(entry.key))
+    || /^(?:number|person|gender) goal$/u.test(normalizeTier2Synonym(entry.key))
+      && (evidence.authoredValues ?? []).some(row => normalizeTier2Synonym(row.key)
+        === normalizeTier2Synonym(entry.key).replace(/ goal$/u, '') && row.items.length === 1)
+    || normalizeTier2Synonym(entry.key) === 'controller'));
   const properties = participantProperties(evidence).filter(({ anchor, property }) => anchor !== source && featureProperties.has(property));
   const propertyTargets = [...new Set(properties.map(property => property.anchor))];
   // Qualified rows may name several independent goals. Unqualified rows need
@@ -316,39 +253,6 @@ export function recoverCheckedFeatureRows(evidence: Tier2FacetEvidence) {
     || !rows[0].items[0].trim() || !uniqueCurrentOwners(evidence, [...sources[0].items, ...targets[0].items])) return [];
   return [scopeEvidence(evidence, 'feature.dependency', [{ entry: sources[0], concept: 'feature.source' },
     { entry: targets[0], concept: 'feature.target' }], [{ entry: rows[0], concept: 'feature.rows' }])];
-}
-
-/** Interrogative Agree can explicitly name a scope head as its probe. The
- * authored wh-probe annotation and contained wh determiner corroborate the
- * exact argument; neither covert movement nor a separate variable is inferred. */
-export function recoverInterrogativeAgreement(evidence: Tier2FacetEvidence) {
-  const assertion = agreementAssertion(evidence);
-  if (!assertion || !/\binterrogative agree\b/u.test(normalizeTier2Synonym(evidence.relationName))) return [];
-  const anchors = evidence.authoredCurrentAnchors ?? [];
-  const sources = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'scope head');
-  const targets = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'interrogative argument');
-  const determiners = anchors.filter(entry => normalizeTier2Synonym(entry.key) === 'wh determiner');
-  if ([sources, targets, determiners].some(entries => entries.length !== 1 || entries[0].items.length !== 1)
-    || anchors.some(entry => ![sources[0], targets[0]].includes(entry) && entry.concepts.some(concept => ['feature.source', 'feature.target'].includes(concept)))
-    || !uniqueCurrentOwners(evidence, [...sources[0].items, ...targets[0].items, ...determiners[0].items])) return [];
-  const paths = new Map<string, typeof evidence.currentForest>();
-  const visit = (node: typeof evidence.currentForest[number], path: typeof evidence.currentForest) => {
-    paths.set(node.id, [...path, node]); node.children?.forEach(child => visit(child, [...path, node]));
-  };
-  evidence.currentForest.forEach(node => visit(node, []));
-  const source = paths.get(sources[0].items[0])!.at(-1)!, target = paths.get(targets[0].items[0])!.at(-1)!;
-  const annotations = [...source.label.matchAll(/\[([^\[\]]*)\]/gu)].flatMap(match => match[1].split(/[,;]/u)).map(normalizeTier2Synonym);
-  if (categoryLabel(source.label) !== 'C' || source.children?.length || !annotations.includes('wh probe')
-    || !['D', 'DP', 'N', 'NP', 'K', 'KP'].includes(categoryLabel(target.label))
-    || !['D', 'Det'].includes(categoryLabel(paths.get(determiners[0].items[0])!.at(-1)!.label))
-    || !paths.get(determiners[0].items[0])!.includes(target) || paths.get(source.id)![0] !== paths.get(target.id)![0]) return [];
-  const scope = scopeEvidence(evidence, 'feature.dependency', [{ entry: sources[0], concept: 'feature.source' }, { entry: targets[0], concept: 'feature.target' }]);
-  // The native rowless Agree path requires explicit probe and goal authority.
-  scope.evidence.authoredCurrentAnchors![0].concepts = [...scope.evidence.authoredCurrentAnchors![0].concepts, 'probe'];
-  scope.evidence.authoredCurrentAnchors![1].concepts = [...scope.evidence.authoredCurrentAnchors![1].concepts, 'goal'];
-  scope.evidence.associatedAnchorKeys!.probe = [sources[0].key];
-  scope.evidence.associatedAnchorKeys!.goal = [targets[0].key];
-  return [scope];
 }
 
 /** Case assignment and feature collection can have different outcomes even

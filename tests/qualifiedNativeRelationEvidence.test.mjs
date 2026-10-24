@@ -19,33 +19,6 @@ const inspect = (relation, workspaceForest = nominal, realizations) => {
 };
 const recovered = (relation, family, forest) => inspect(relation, forest).items.filter(item => item.familyId === family);
 
-test('a qualified agreeing adjective retains directed concord and morphological rows without Case assignment', () => {
-  const relation = { relation: 'adjectival concord', anchors: { agreeingAdjective: 'a', controller: 'n' },
-    values: { morphologicalCase: 'genitive', number: 'singular' } };
-  const { items, dispatch } = inspect(relation);
-  const paths = items.filter(item => item.pathStyle === 'case-agree');
-  assert.deepEqual(paths.map(item => [item.fromNodeId, item.toNodeId, item.featureRow]), [
-    ['n', 'a', { label: 'morphologicalCase', value: 'genitive' }],
-    ['n', 'a', { label: 'number', value: 'singular' }]
-  ]);
-  assert(!items.some(item => item.pathStyle === 'case-assignment' || item.kind === 'fallback'));
-  assert(dispatch.evidenceCoverage.fields.every(field => field.unrecoveredItemIndices.length === 0));
-  const alternate = { relation: 'determiner concord', anchors: { controller: 'n', 'agreeing determiner': 'd' },
-    values: { number: 'plural', morphologicalCase: 'opaque authored form' } };
-  assert.equal(recovered(alternate, 'tier2.feature-dependency').length, 2);
-  for (const invalid of [
-    { ...relation, relation: 'possible adjectival concord' }, { ...relation, relation: 'adjectival concord denied' },
-    { ...relation, relation: 'Control' }, { ...relation, relation: 'Agree' },
-    { ...relation, values: { ...relation.values, status: 'pending' } },
-    { ...relation, anchors: { ...relation.anchors, agreeingAdjective: 'd' } },
-    { ...relation, anchors: { ...relation.anchors, controller: 'missing' } },
-    { ...relation, anchors: { ...relation.anchors, otherController: 'd' } },
-    { ...relation, values: { morphologicalCase: ['genitive', 'accusative'], number: 'singular' } }
-  ]) assert.equal(recovered(invalid, 'tier2.feature-dependency').length, 0, JSON.stringify(invalid));
-  assert.equal(recovered(relation, 'tier2.feature-dependency', nominal[0].children[1].children).length, 0);
-  assert.equal(recovered(relation, 'tier2.feature-dependency', [...nominal, { id: 'a', label: 'A' }]).length, 0);
-});
-
 test('morphological and orthographic sequences belong to an exact contributor group with different token boundaries', () => {
   const forest = [{ id: 'word', label: 'V', children: [
     { id: 'root', label: 'V', word: 'read' }, { id: 'suffix', label: 'V', word: 'caus' }

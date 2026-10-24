@@ -15,7 +15,6 @@ const dispatch = (relation, workspaceForest = forest, priorForest, currentRealiz
 const by = (relation, id, workspaceForest, priorForest, currentRealizations) => dispatch(relation, workspaceForest, priorForest, currentRealizations)
   .claims.filter(claim => claim.tier === 2 && claim.facet.recipe.id === id);
 const used = (claim, key, indices = [0]) => claim.consumedEvidence.some(ref => ref.key === key && JSON.stringify(ref.itemIndices ?? [0]) === JSON.stringify(indices));
-const plan = (relation, workspaceForest = forest) => compileRelationRenderPlan([{ statement: '', stageRecord: '', workspaceForest, relations: [relation] }]).frames[0].items;
 
 test('nominal concord retains Case and definiteness on one native vine and leaves enclosing nominal contextual', () => {
   const relation = { relation: 'Nominal concord', anchors: { nominal: 'object', noun: 'n', demonstrative: 'd' },
@@ -30,45 +29,9 @@ test('nominal concord retains Case and definiteness on one native vine and leave
   assert.equal(by(relation, 'feature-sharing', [...forest, leaf('n', 'N')]).length, 0);
 });
 
-test('explicit agreement target inventory gives each target the same controller with exact item ownership', () => {
-  const relation = { relation: 'nonhuman-plural agreement', anchors: { controller: 'n', agreementTargets: ['d', 'clitic'] }, values: { agreement: 'feminine singular' } };
-  const claims = by(relation, 'feature.dependency');
-  assert.equal(claims.length, 2);
-  assert.deepEqual(claims.map(claim => claim.facet.evidence.currentAnchors), [
-    { 'feature.source': ['d'], 'feature.target': ['n'] }, { 'feature.source': ['clitic'], 'feature.target': ['n'] }
-  ]);
-  assert(used(claims[0], 'agreementTargets', [0])); assert(used(claims[1], 'agreementTargets', [1]));
-  for (const altered of [
-    { ...relation, relation: 'Possible nonhuman-plural agreement' },
-    { ...relation, anchors: { ...relation.anchors, probe: 'otherT' } },
-    { ...relation, anchors: { ...relation.anchors, agreementTargets: ['d', 'd'] } }
-  ]) assert.equal(by(altered, 'feature.dependency').length, 0);
-  assert.equal(by(relation, 'feature.dependency', [...forest, leaf('clitic', 'D')]).length, 0);
-});
-
-test('agreement probe keeps the exact controller while a realized V remains exponent context', () => {
-  const relation = { relation: 'Object-controlled agreement', anchors: { probe: 't', controller: 'object', agreementBearer: 'v',
-    noun: 'n', excludedDativeArgument: 'recipient' }, values: { features: ['feminine', 'singular'] } };
-  const claims = by(relation, 'feature.dependency');
-  assert.equal(claims.length, 1);
-  assert.deepEqual(claims[0].facet.evidence.currentAnchors, { 'feature.source': ['t'], 'feature.target': ['object'] });
-  assert(used(claims[0], 'features', [0, 1]));
-  assert.equal(by({ ...relation, anchors: { ...relation.anchors, featureSource: 'otherT' } }, 'feature.dependency').length, 0);
-  const detached = structuredClone(forest); detached[0].children.find(node => node.id === 'vp').children = [leaf('agent', 'DP')]; detached.push(leaf('v', 'V'));
-  assert.equal(by(relation, 'feature.dependency', detached).length, 0);
+test('a finite agreement probe reaches its subject goal beside a named finite bearer', () => {
   const subject = { relation: 'Finite agreement', anchors: { probe: 't', subjectGoal: 'subject', finiteBearer: 'v' }, values: { number: 'singular', person: 'third' } };
   assert.equal(by(subject, 'feature.dependency').length, 1);
-});
-
-test('interrogative Agree needs the exact annotated probe and an actual contained wh determiner', () => {
-  const relation = { relation: 'Interrogative Agree and scope', anchors: { scopeHead: 'c', interrogativeArgument: 'qarg', whDeterminer: 'wh' } };
-  assert.equal(by(relation, 'feature.dependency').length, 1);
-  for (const prefix of ['No', 'Possible', 'Required']) assert.equal(by({ ...relation, relation: `${prefix} Interrogative Agree` }, 'feature.dependency').length, 0);
-  assert.equal(by({ ...relation, anchors: { ...relation.anchors, probe: 'otherT' } }, 'feature.dependency').length, 0);
-  const wrong = structuredClone(forest); wrong[0].children.find(node => node.id === 'qarg').children[0].label = 'V';
-  assert.equal(by(relation, 'feature.dependency', wrong).length, 0);
-  assert.equal(by({ ...relation, anchors: { ...relation.anchors, interrogativeArgument: 'object' } }, 'feature.dependency').length, 0);
-  assert(!plan(relation).some(item => item.kind === 'trajectory'));
 });
 
 test('checked feature labels enrich one existing dependency while licensed nominal properties keep the exact goal', () => {
@@ -114,13 +77,11 @@ test('current mood licensing preserves its explicit functional recipient without
   assert.equal(by(relation, 'feature.dependency').length, 0);
 });
 
-test('named passive and experiencer participants use their exact predicate', () => {
+test('named passive participants use their exact predicate', () => {
   const passive = { relation: 'Passive agent interpretation', anchors: { predicate: 'v', agentNominal: 'agent' }, values: { thetaRole: 'Agent' } };
   assert.equal(by(passive, 'theta-grid').length, 1);
   assert.equal(by({ ...passive, values: { thetaRole: 'Agent assignment is pending' } }, 'theta-grid').length, 0);
   assert.equal(by({ ...passive, values: { thetaRole: 'Agent assignment denied' } }, 'theta-grid').length, 0);
-  const experiential = { relation: 'experiencer interpretation', anchors: { adjective: 'a', experiencer: 'subject' }, values: { role: 'Experiencer' } };
-  assert.equal(by(experiential, 'theta-grid').length, 1);
 });
 
 test('argument licensing preserves an independently explicit Case source and qualified internal recipient', () => {
@@ -144,31 +105,6 @@ test('argument licensing preserves an independently explicit Case source and qua
   assert.equal(by(relation, 'feature.dependency', [...forest, leaf('t', 'T')]).length, 0);
   const detached = structuredClone(forest); detached[0].children = detached[0].children.filter(node => node.id !== 't'); detached.push(leaf('t', 'T'));
   assert.equal(by(relation, 'feature.dependency', detached).length, 0);
-});
-
-test('surface combination uses the entire exact realization group without a linker node or rewrite', () => {
-  const objects = [{ id: 'root', label: 'IP', children: [leaf('aux', 'I⁰'), leaf('cl', 'Cl⁰')] }];
-  const group = { nodeIds: ['aux', 'cl'], tokenIndices: [0, 1, 2] };
-  const relation = { relation: 'inversion-linking consonant realization', anchors: { auxiliary: 'aux', enclitic: 'cl' },
-    values: { surfaceCombination: 'a-t-il', linkingSegment: 't', status: 'non-syntactic linking consonant' } };
-  const claims = by(relation, 'pf.structured', objects, undefined, [group]); assert.equal(claims.length, 1);
-  assert.deepEqual(claims[0].facet.evidence.currentAnchors['rewrite.output'], ['aux', 'cl']);
-  assert(used(claims[0], 'surfaceCombination')); assert(used(claims[0], 'linkingSegment'));
-  const stages = [{ statement: '', stageRecord: '', workspaceForest: objects, realizations: [group], relations: [relation] }];
-  const plates = compileRelationRenderPlan(stages).frames[0].items.filter(item => item.tier2FacetId === 'pf.structured');
-  assert.equal(plates.length, 1); assert.deepEqual(plates[0].anchorNodeIds, ['aux', 'cl']);
-  assert.deepEqual(plates[0].realizationRowKinds, ['literal', 'literal']);
-  assert.deepEqual(stages[0].workspaceForest, objects);
-  for (const groups of [[], [group, { ...group }], [group, { nodeIds: ['aux'], tokenIndices: [1] }], [{ ...group, nodeIds: ['aux'] }]])
-    assert.equal(by(relation, 'pf.structured', objects, undefined, groups).length, 0);
-  assert.equal(by(relation, 'pf.structured', [...objects, leaf('aux', 'I')], undefined, [group]).length, 0);
-  for (const altered of [
-    { ...relation, relation: 'Pending consonant realization' },
-    { ...relation, relation: 'consonant realization if licensed' },
-    { ...relation, values: { ...relation.values, status: 'pending' } },
-    { ...relation, values: { ...relation.values, surfaceCombination: ['a', 't', 'il'] } },
-    { ...relation, values: { ...relation.values, surfaceForm: 'competing form' } }
-  ]) assert.equal(by(altered, 'pf.structured', objects, undefined, [group]).length, 0);
 });
 
 test('a collective surface form excludes only its exact enclosing constituent context', () => {
