@@ -144,7 +144,10 @@ Browser receipts, TAP output and failure captures go outside the worktree. Use
 default because no check reads them; add `-- --video` (or set `BABEL_BROWSER_VIDEO=1`)
 to record the app workflow, closeout and feature-composition sessions when reviewing
 motion. Failure screenshots are always kept. CI retains browser
-and timing artifacts. CI and browser verification run on every pull request and
+and timing artifacts. `verify:browser-visual` is not a CI job: Linux Chromium
+paints slightly differently from macOS, where its bounds were measured. Before
+merging a pull request that changes `replay/`, `components/`, styles, fonts or
+the visual rules, run it on macOS against the pull request's head. CI and browser verification run on every pull request and
 nightly on main, not after a merge: a pull request must be up to date with main,
 so it has already verified the merged tree. Browser verification skips a pull
 request that changes only Markdown. Native-browser checks and the offline corpus comparator
