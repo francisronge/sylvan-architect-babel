@@ -1682,7 +1682,7 @@
       ]
     },
     "replay-regressions/head-rewritten-in-place.json#": {
-      "frames": "Cdz8vkR_ rFBriJg7 _eQeGvIE sMEh3evp NybLtN4Z Edi_-Ncx rWKtsNDk KQO-lWWn rHwxSOk- IKA8FRGs R2cmj97i uwrkj-U6 dYTTZrxC 1NZZCSis nu9qy6WD 5HtyHEUt wCmCfYpy 94tulL7O eNAmwpnj ul0A0a1p jYPeLf2M Sb58PYOT XqpX-8l4 95RnJFRD gDKSLoYu uPjIG409 RS00xjuZ yJpZZ-f4 Mf7yqyAt DR_-XvkO WXvm485B Ixkm3SSk 7jwqu8Mo arGfLYQ6 bEvN6mMJ KdiPdGRA AjgE5-r0",
+      "frames": "Cdz8vkR_ rFBriJg7 _eQeGvIE sMEh3evp NybLtN4Z Edi_-Ncx rWKtsNDk KQO-lWWn rHwxSOk- IKA8FRGs R2cmj97i uwrkj-U6 dYTTZrxC 1NZZCSis nu9qy6WD 5HtyHEUt wCmCfYpy 94tulL7O eNAmwpnj ul0A0a1p jYPeLf2M Sb58PYOT XqpX-8l4 95RnJFRD gDKSLoYu uPjIG409 KMYJzAoK Mm6SpO6x moQxbfaR 7u1AzfRg qr_WwmJs 5vJCRgA7 tWSBB4LH QSupV6pU pR3yMR7e xgu6zcEA 7w4FDTJe",
       "canopy": "zqTyihPr",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
