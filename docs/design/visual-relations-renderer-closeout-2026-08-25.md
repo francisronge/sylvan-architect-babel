@@ -132,6 +132,9 @@ keeps its current casing.
 
 Construction diffing includes child-list growth on existing occurrence IDs.
 Attaching a complement beneath a retained parent receives its own merge step.
+Growth from no children counts: a retained bare head that becomes a head complex
+under its own ID stays bare while its new daughters are built as separate
+workspaces, and its own merge step attaches them.
 Replacing an existing child with a new wrapper around it belongs to the wrapper's
 construction; the existing parent and unaffected branches remain visible. Do not
 hide or rebuild a parent that was already merged. Attachments owned by an authored
@@ -259,7 +262,9 @@ Replay reserves a plaque's content size and anchor-relative position across
 compatible participant geometry, including ordinary structural reveals. When an
 authored relation changes an exact participant or effective Case source, allocation
 revalidates the previous pocket against the new geometry and may choose a nearer
-clear pocket. Valid equally near pockets remain stable. Each Replay step selects
+clear pocket. A construction step that changes the effective Case source, as when
+a bare head's merge makes it a head complex whose arrow leaves its one word, does
+the same; its other attachments do not. Valid equally near pockets remain stable. Each Replay step selects
 its scheduled placement, and the camera includes every placement in its authored
 stage. Camera measurement projects a plaque only in scenes where its attachment
 is visible; hidden attachment coordinates do not describe painted content. The

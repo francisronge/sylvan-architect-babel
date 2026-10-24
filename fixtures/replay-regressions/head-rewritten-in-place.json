@@ -1,0 +1,390 @@
+{
+  "description": "Stage 3 makes the bare finite head iFinite of stage 2 a head complex under the same id, [I⁰ [V⁰ do] [I⁰ past]], by do-support. Construction kept iFinite bare only when it already had daughters, so here auxDo and pastInfl hung under iFinite from their own projection and selection, with no merge into iFinite. iFinite now stays bare while do is selected and projected and the past I⁰ is selected as separate workspaces, and its own merge step attaches both.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run at commit 0c3fa3f, 24 October 2026 (batch ship1-20261024, run s1-11-en-do-negation), analysis 1. Its derivationStages are copied unchanged from ~/Library/Application Support/Babel/codex-qualification/ship1-20261024/runs/s1-11-en-do-negation/attempts/parse/bundle.json $.response.analyses[0]; the tree, final forest and provenance are omitted.",
+  "sentence": "She did not answer the question.",
+  "framework": "xbar",
+  "inputTokens": [
+    "She",
+    "did",
+    "not",
+    "answer",
+    "the",
+    "question"
+  ],
+  "derivationStages": [
+    {
+      "statement": "Construct the lexical VP and license its direct object.",
+      "stageRecord": "The determiner the occupies the specifier of the object NP, whose nominal head is question. Answer combines with that NP as its complement inside V′, and V′ projects to VP. Answer assigns the Theme theta-role to the question and, under government, assigns that NP accusative Case. This analysis uses the classical GB placement of the external argument in Spec-IP, so no subject occurrence is introduced inside VP.",
+      "relations": [
+        {
+          "relation": "theta-role assignment",
+          "anchors": {
+            "assigner": "vAnswer",
+            "argument": "npQuestion"
+          },
+          "values": {
+            "thetaRole": "Theme"
+          }
+        },
+        {
+          "relation": "Case assignment under government",
+          "anchors": {
+            "governor": "vAnswer",
+            "recipient": "npQuestion"
+          },
+          "values": {
+            "case": "accusative"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "vp",
+          "label": "VP",
+          "children": [
+            {
+              "id": "vBar",
+              "label": "V′",
+              "children": [
+                {
+                  "id": "vAnswer",
+                  "label": "V⁰",
+                  "children": [],
+                  "word": "answer"
+                },
+                {
+                  "id": "npQuestion",
+                  "label": "NP",
+                  "children": [
+                    {
+                      "id": "detThe",
+                      "label": "Det",
+                      "children": [],
+                      "word": "the"
+                    },
+                    {
+                      "id": "nBarQuestion",
+                      "label": "N′",
+                      "children": [
+                        {
+                          "id": "nQuestion",
+                          "label": "N⁰",
+                          "children": [],
+                          "word": "question"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Establish the negative finite clause and its subject.",
+      "stageRecord": "Not is introduced as the head of NegP, with the existing VP as its complement; its scope is the answering predication. Past finite I is placed above NegP, and She is introduced in Spec-IP. The VP's external Agent theta-role is assigned to She in that position. Finite I assigns nominative Case to the subject and agrees with its third-person singular features. The pronoun She is free within its local binding domain, IP, satisfying Binding Principle B; the sentence supplies no clause-internal antecedent for it. The finite inflection is still abstract at this stage, awaiting an overt verbal host.",
+      "relations": [
+        {
+          "relation": "negation scope",
+          "anchors": {
+            "operator": "negNot",
+            "scope": "vp"
+          },
+          "values": {
+            "interpretation": "negation of the answering predication"
+          }
+        },
+        {
+          "relation": "external theta-role assignment",
+          "anchors": {
+            "predicate": "vp",
+            "argument": "npShe"
+          },
+          "values": {
+            "thetaRole": "Agent"
+          }
+        },
+        {
+          "relation": "Case assignment",
+          "anchors": {
+            "assigner": "iFinite",
+            "recipient": "npShe"
+          },
+          "values": {
+            "case": "nominative"
+          }
+        },
+        {
+          "relation": "subject–I agreement",
+          "anchors": {
+            "subject": "npShe",
+            "finiteHead": "iFinite"
+          },
+          "values": {
+            "person": "third",
+            "number": "singular"
+          }
+        },
+        {
+          "relation": "Binding Principle B",
+          "anchors": {
+            "pronoun": "pronShe",
+            "localDomain": "ip"
+          },
+          "values": {
+            "status": "free in its local binding domain"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "ip",
+          "label": "IP",
+          "children": [
+            {
+              "id": "npShe",
+              "label": "NP",
+              "children": [
+                {
+                  "id": "nBarShe",
+                  "label": "N′",
+                  "children": [
+                    {
+                      "id": "pronShe",
+                      "label": "N⁰ [pronoun]",
+                      "children": [],
+                      "word": "She"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "iBar",
+              "label": "I′",
+              "children": [
+                {
+                  "id": "iFinite",
+                  "label": "I⁰ [finite, past, 3sg]",
+                  "children": []
+                },
+                {
+                  "id": "negp",
+                  "label": "NegP",
+                  "children": [
+                    {
+                      "id": "negBar",
+                      "label": "Neg′",
+                      "children": [
+                        {
+                          "id": "negNot",
+                          "label": "Neg⁰",
+                          "children": [],
+                          "word": "not"
+                        },
+                        {
+                          "id": "vp",
+                          "label": "VP",
+                          "children": [
+                            {
+                              "id": "vBar",
+                              "label": "V′",
+                              "children": [
+                                {
+                                  "id": "vAnswer",
+                                  "label": "V⁰",
+                                  "children": [],
+                                  "word": "answer"
+                                },
+                                {
+                                  "id": "npQuestion",
+                                  "label": "NP",
+                                  "children": [
+                                    {
+                                      "id": "detThe",
+                                      "label": "Det",
+                                      "children": [],
+                                      "word": "the"
+                                    },
+                                    {
+                                      "id": "nBarQuestion",
+                                      "label": "N′",
+                                      "children": [
+                                        {
+                                          "id": "nQuestion",
+                                          "label": "N⁰",
+                                          "children": [],
+                                          "word": "question"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Apply do-support and realize the completed declarative sentence.",
+      "stageRecord": "The intervening negative head not prevents past inflection from attaching to answer by lowering, and English lexical answer does not raise to finite I in this construction. Do-support therefore expands the abstract finite head into a complex I containing inserted auxiliary do and past inflection. This insertion introduces no movement chain and assigns no additional theta-role; answer remains in its original position and in its plain form. The auxiliary and past inflection are then jointly realized as the irregular past form did. The subject remains in Spec-IP, so the resulting structure is a declarative with no subject–auxiliary inversion. Its pronounced sequence is She did not answer the question.",
+      "relations": [
+        {
+          "relation": "do-support",
+          "anchors": {
+            "finiteHead": "iFinite",
+            "insertedAuxiliary": "auxDo",
+            "inflection": "pastInfl",
+            "interveningNegativeHead": "negNot",
+            "lexicalVerb": "vAnswer"
+          },
+          "values": {
+            "motivation": "Past inflection requires a verbal host; intervening Neg blocks lowering to the lexical verb.",
+            "operation": "Insert auxiliary do in finite I without moving the lexical verb."
+          }
+        },
+        {
+          "relation": "past-tense realization",
+          "anchors": {
+            "source": "iFinite"
+          },
+          "values": {
+            "text": "did",
+            "morphology": "irregular past realization of auxiliary do"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "ip",
+          "label": "IP",
+          "children": [
+            {
+              "id": "npShe",
+              "label": "NP",
+              "children": [
+                {
+                  "id": "nBarShe",
+                  "label": "N′",
+                  "children": [
+                    {
+                      "id": "pronShe",
+                      "label": "N⁰ [pronoun]",
+                      "children": [],
+                      "word": "She"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "iBar",
+              "label": "I′",
+              "children": [
+                {
+                  "id": "iFinite",
+                  "label": "I⁰ [finite, past, 3sg]",
+                  "children": [
+                    {
+                      "id": "auxDo",
+                      "label": "V⁰ [auxiliary]",
+                      "children": [],
+                      "word": "do"
+                    },
+                    {
+                      "id": "pastInfl",
+                      "label": "I⁰ [past inflection]",
+                      "children": [],
+                      "silent": true
+                    }
+                  ]
+                },
+                {
+                  "id": "negp",
+                  "label": "NegP",
+                  "children": [
+                    {
+                      "id": "negBar",
+                      "label": "Neg′",
+                      "children": [
+                        {
+                          "id": "negNot",
+                          "label": "Neg⁰",
+                          "children": [],
+                          "word": "not"
+                        },
+                        {
+                          "id": "vp",
+                          "label": "VP",
+                          "children": [
+                            {
+                              "id": "vBar",
+                              "label": "V′",
+                              "children": [
+                                {
+                                  "id": "vAnswer",
+                                  "label": "V⁰",
+                                  "children": [],
+                                  "word": "answer"
+                                },
+                                {
+                                  "id": "npQuestion",
+                                  "label": "NP",
+                                  "children": [
+                                    {
+                                      "id": "detThe",
+                                      "label": "Det",
+                                      "children": [],
+                                      "word": "the"
+                                    },
+                                    {
+                                      "id": "nBarQuestion",
+                                      "label": "N′",
+                                      "children": [
+                                        {
+                                          "id": "nQuestion",
+                                          "label": "N⁰",
+                                          "children": [],
+                                          "word": "question"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "realizations": [
+        {
+          "nodeIds": [
+            "iFinite"
+          ],
+          "tokenIndices": [
+            1
+          ]
+        }
+      ]
+    }
+  ]
+}

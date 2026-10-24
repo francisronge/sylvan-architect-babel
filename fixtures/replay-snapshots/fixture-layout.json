@@ -1681,6 +1681,24 @@
         "1:3 T3 fallback"
       ]
     },
+    "replay-regressions/head-rewritten-in-place.json#": {
+      "frames": "Cdz8vkR_ rFBriJg7 _eQeGvIE sMEh3evp NybLtN4Z Edi_-Ncx rWKtsNDk KQO-lWWn rHwxSOk- IKA8FRGs R2cmj97i uwrkj-U6 dYTTZrxC 1NZZCSis nu9qy6WD 5HtyHEUt wCmCfYpy 94tulL7O eNAmwpnj ul0A0a1p jYPeLf2M Sb58PYOT XqpX-8l4 95RnJFRD gDKSLoYu uPjIG409 KMYJzAoK Mm6SpO6x moQxbfaR 7u1AzfRg qr_WwmJs 5vJCRgA7 tWSBB4LH QSupV6pU pR3yMR7e xgu6zcEA 7w4FDTJe",
+      "canopy": "zqTyihPr",
+      "tiers": [
+        "0:0 T1 node-badges theta.grid",
+        "0:0 T1 node-plaque theta.grid",
+        "0:1 T2 directed-path tier2.feature-dependency feature.dependency",
+        "1:0 T3 fallback",
+        "1:1 T2 node-badges theta.grid theta-grid",
+        "1:1 T2 node-plaque theta.grid theta-grid",
+        "1:2 T1 directed-path case-assignment.path",
+        "1:3 T2 directed-path tier2.feature-dependency feature.dependency",
+        "1:3 T2 node-plaque feature-bundle.plaque feature.dependency",
+        "1:4 T3 fallback",
+        "2:0 T3 fallback",
+        "2:1 T3 fallback"
+      ]
+    },
     "replay-regressions/hi-correlative-landing-contour.json#": {
       "frames": "ghN9DJJo 77L57w_x YNShRdf6 BarDMaZf _IbN7YJd JKGjs0Qn aWUCe5cy Vx9kU5Rl ti2oDyFu Ha0EPAwF igR11FlA VgrPAJcA nEd4h3aZ s_pKs5-A Laa7WLOd a3U-3AVa YLW7z9qT -jHGOWEw Oh-oCycu JGRXYdWL nClAwIJ5 _pt8FBu0 Sq_B6OFC gz-e8b9_ qWwuG7oB 9WXWmHbO 4zb7vtPd sWJnoIS2 1w7u9hGQ vgavx8GO YZPE9nNe iAJT0NX1 Mc7b7pe0 2PLKUm2E MZbKqL8y b2qYXt7q I6l0adSW yVCd8Zr- Vyze4CX1 4zVXwV5M _P9BD5Vj wO1yaJpk TNICGyc5",
       "canopy": "v4et8zDv",
