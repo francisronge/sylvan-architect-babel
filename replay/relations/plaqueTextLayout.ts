@@ -1,4 +1,6 @@
 /** Shared local-SVG text layout; measurement is supplied by the renderer, never a DOM dependency. */
+import { completesPrevious, joiner, openingBracket, wordCharacter } from '../categoryTextLayout.ts';
+
 export type PlaqueTextStyle = Readonly<{
   fontFamily: string;
   fontSize: number;
@@ -90,7 +92,44 @@ export const fallbackPlaqueTextMeasure: PlaqueTextMeasure = (text, style) => ({
 const validMetric = (value: number | undefined, fallback: number): number =>
   Number.isFinite(value) && value! >= 0 ? value! : fallback;
 
-/** Wrap without dropping whitespace, splitting graphemes, or limiting the number of lines. */
+const whitespace = /\s/u;
+
+/** Where a line from grapheme `start` ends when the graphemes before `end` fit
+ * and grapheme `end` overflows, in the order tree category labels use
+ * (categoryTextLayout.ts). Prefer the latest break at whitespace, or after a
+ * comma, unless the next visible grapheme is a completing mark: no line starts
+ * with one, so an overflowing one hangs past the width instead. Otherwise take
+ * the latest break after a slash, hyphen or dash joining two words, or before an
+ * opening bracket. Only a word wider than the line splits, before its
+ * overflowing grapheme. Whitespace that opens the text never ends a line. */
+const plaqueLineEnd = (units: readonly string[], start: number, end: number): number => {
+  let ink = start;
+  while (whitespace.test(units[ink] ?? '')) ink += 1;
+  const latest = (breaks: (before: string, after: string, index: number) => boolean) => {
+    for (let index = end; index > ink; index -= 1) if (breaks(units[index - 1], units[index], index)) return index;
+  };
+  const nextInk = (index: number) => {
+    while (whitespace.test(units[index] ?? '')) index += 1;
+    return units[index] ?? '';
+  };
+  const betweenWords = latest((before, after, index) => (whitespace.test(before) || whitespace.test(after) || before === ',')
+    && !completesPrevious.test(nextInk(index)));
+  if (betweenWords !== undefined) return betweenWords;
+  if (completesPrevious.test(units[end])) {
+    while (end < units.length && completesPrevious.test(units[end])) end += 1;
+    return end;
+  }
+  return latest((before, after, index) => openingBracket.test(after) ? !openingBracket.test(before)
+    : index - 1 > start && joiner.test(before) && wordCharacter.test(units[index - 2]) && wordCharacter.test(after))
+    ?? Math.min(units.length, Math.max(end, ink + 1));
+};
+
+/** Wrap without splitting graphemes or limiting the number of lines;
+ * `plaqueLineEnd` chooses each break. Whitespace at a break is the break
+ * itself: neither line paints or measures it, so the plaque is as wide as its
+ * widest visible line. Whitespace at either end of the text stays. A line
+ * exceeds the width only by hanging marks or a single wider grapheme, and the
+ * plaque grows to contain it. */
 export const wrapPlaqueText = (text: string, width: number, measure: (text: string) => Pick<PlaqueTextMetrics, 'width'>): string[] =>
   text.split(/\r\n|\r|\n/u).flatMap((paragraph) => {
     if (measure(paragraph).width <= width) return [paragraph];
@@ -117,16 +156,15 @@ export const wrapPlaqueText = (text: string, width: number, measure: (text: stri
           high = middle - 1;
         }
       }
+      let next = end;
       if (end < units.length) {
-        for (let boundary = end; boundary > start; boundary -= 1) {
-          if (/\s/u.test(units[boundary - 1])) {
-            end = boundary;
-            break;
-          }
-        }
+        next = end = plaqueLineEnd(units, start, end);
+        while (next < units.length && whitespace.test(units[next])) next += 1;
+        if (next < units.length) while (whitespace.test(units[end - 1])) end -= 1;
+        else end = next;
       }
       lines.push(units.slice(start, end).join(''));
-      start = end;
+      start = next;
     }
     return lines;
   });

@@ -11,6 +11,12 @@ import { startBrowserTestServer } from '../helpers/browserTestServer.mjs';
 import { readTreeBankSnapshot } from '../helpers/browserTreeBank.mjs';
 import { recordVideo } from '../helpers/browserVideo.mjs';
 
+// A plaque paints each wrapped line as its own text run, and the space at a
+// line break is the break itself; read lines as a reader does, one per run.
+const plaqueTexts = locator => locator.evaluateAll(plaques => plaques.map(plaque =>
+  [...plaque.querySelectorAll('text')].map(text => (text.querySelectorAll('tspan').length
+    ? [...text.querySelectorAll('tspan')].map(span => span.textContent) : [text.textContent]).join(' ')).join(' ')));
+
 test('the app preserves multiple roots, revised plaques and malformed relation evidence through save/reopen', async () => {
   const bundle = normalizeParseBundle(closeoutPayload(), 'xbar', closeoutSentence, 'gpt', true);
   const stages = bundle.analyses[0].derivationStages;
@@ -48,7 +54,7 @@ test('the app preserves multiple roots, revised plaques and malformed relation e
         };
         for (const [stage, expected] of [['number: singular'], ['number: plural'], ['number: plural', 'Case: nominative']].entries()) {
           await go(moment(stage));
-          const text = await page.locator('.babel-feature-plaque').allTextContents();
+          const text = await plaqueTexts(page.locator('.babel-feature-plaque'));
           assert.equal(text.length, 1);
           for (const value of expected) assert(text[0].includes(value), text[0]);
           if (stage > 0) assert(!text[0].includes('singular'));
@@ -77,7 +83,7 @@ test('the app preserves multiple roots, revised plaques and malformed relation e
         assert.match(await page.locator('svg[data-babel-tree="true"]').textContent(), /The/);
         await page.getByRole('button', { name: 'Derivation Replay', exact: true }).click();
         await go(moment(2));
-        assert.match(await page.locator('.babel-feature-plaque').textContent(), /Case: nominative/);
+        assert.match((await plaqueTexts(page.locator('.babel-feature-plaque')))[0], /Case: nominative/);
         await go(moment(1, 1));
         assert.match(await page.locator('[data-babel-replay-details]').textContent(), /Malformed value control/);
         assert.equal(calls, 1);

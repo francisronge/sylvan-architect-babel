@@ -23,6 +23,7 @@ import {
   projectPlaqueLayout
 } from '../replay/relations/plaquePlacement.ts';
 import { prepareCasePlaqueRows, preparePfPlaqueTextLayout } from '../replay/relations/plaqueTextLayout.ts';
+import { assertSpells } from './helpers/spelledLines.mjs';
 import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { buildRenderableDerivationCanvasData } from '../replay/replayCanvas.ts';
@@ -471,7 +472,7 @@ test('native PF literal prose uses measured wrapping with all text inside its sh
   const original = structuredClone(rows);
   const rendered = drawPf({ rows, kinds: ['literal'] });
   const text = rendered.texts.find(node => matches(node, '.babel-pf-plate-text'));
-  assert.equal(text.textContent, `realization: ${rows[0].value}`);
+  assertSpells(text.children.map(line => line.textContent), `realization: ${rows[0].value}`);
   assert.ok(text.children.length > 1, 'the production painter must draw wrapped tspans');
   assert.equal(Number(rendered.shell.attrs.width), 590);
   assert.ok(Number(rendered.shell.attrs.height) > 132);
@@ -489,7 +490,8 @@ test('native PF rewrite columns wrap independently and retain inputs, arrows, ou
   const rowGroups = rendered.elements.filter(node => node.attrs['data-plaque-row-index'] !== undefined);
   assert.equal(rowGroups.length, 2);
   rowGroups.forEach((group, index) => {
-    assert.deepEqual(group.children.map(node => node.textContent), [rows[index].label, '\u2192', rows[index].value]);
+    [rows[index].label, '\u2192', rows[index].value].forEach((expected, part) =>
+      assertSpells(group.children[part].children.map(line => line.textContent), expected));
     assert.equal(matches(group.children[0], '.babel-pf-plate-text-final'), index === 1);
     assert.equal(matches(group.children[2], '.babel-pf-plate-text-final'), index === 1);
     assert.ok(matches(group.children[2], '.babel-pf-plate-output'));
@@ -546,15 +548,16 @@ test('PF font size and local text positions do not change with camera scale', ()
   }
 });
 
-test('PF wrapping preserves whitespace, graphemes, empty values and explicit line breaks', () => {
+test('PF wrapping consumes only the whitespace at a break and keeps graphemes, empty values and explicit line breaks', () => {
   const literal = ' e\u0301\u{1f469}\u200d\u{1f4bb}\u4e2d  '.repeat(20);
   const rows = [{ label: '', value: literal, rowIndex: 0, isFinal: false },
     { label: '', value: '', rowIndex: 1, isFinal: false },
     { label: '', value: 'first\n\nlast', rowIndex: 2, isFinal: true }];
   const layout = preparePfPlaqueTextLayout(rows, { measureText });
   const lines = layout.rows[0].parts[0].block.lines.map(line => line.text);
-  assert.equal(lines.join(''), literal);
-  assert.deepEqual(lines.flatMap(graphemes), graphemes(literal));
+  assertSpells(lines, literal);
+  const literalGraphemes = new Set(graphemes(literal));
+  assert.ok(lines.flatMap(graphemes).every(grapheme => literalGraphemes.has(grapheme)), 'graphemes remain whole');
   assert.equal(layout.rows[1].parts[0].block.text, '');
   assert.deepEqual(layout.rows[2].parts[0].block.lines.map(line => line.text), ['first', '', 'last']);
 });
