@@ -41,8 +41,6 @@ syntactic rules. Desktop remains the primary experience.
      draw.
    - After a failed parse in Derivation Replay, the sentence input stays
      visible: the failure panel has no dismiss control.
-   - A wrapped category line can start with the space that overflowed the
-     line before (22 saved labels).
    - Mobile calibration and a desktop minimum-zoom clamp.
    - Step-order work kept from the October rewrite
      (`refactor/replay-step-order-kernel`): just-in-time order and head

@@ -28,22 +28,29 @@ const WIDENING_STEPS = 8;
 // What a line may hang past its width, generously: spaces and closing marks.
 const HANG_ALLOWANCE = 100;
 
-/** Wrap display text without abbreviating, interpreting or changing its characters. */
+/** Wrap display text without abbreviating, interpreting or changing its characters.
+ * A later line never starts with whitespace: whitespace that overflows a line
+ * is the break itself, painted and measured on neither line. */
 function wrapCategoryText(text: string, measure: CategoryTextMeasure) {
   const unwrappedWidth = measure(text);
   if (unwrappedWidth <= LINE_WIDTH) return { lines: [text], width: unwrappedWidth, height: 52, x: -unwrappedWidth / 2, y: -56 };
   const segments = [...graphemes.segment(text)].map(part => part.segment);
   const wrapAt = (maxWidth: number) => {
-    const fits = (from: number, to: number) => measure(segments.slice(from, to).join('')) <= maxWidth;
+    const fits = (from: number, to: number) => measure(lineText(segments, from, to)) <= maxWidth;
     return [0, ...joinBlankLines(segments, wrapBreaks(segments, fits))];
   };
   let starts = wrapAt(LINE_WIDTH);
   if (starts.length > MAX_LINES) starts = widened(segments, starts, unwrappedWidth, wrapAt);
-  const lines = starts.map((from, index) => segments.slice(from, starts[index + 1]).join(''));
+  const lines = starts.map((from, index) => lineText(segments, from, starts[index + 1]));
   const width = Math.max(...lines.map(measure));
   const height = 52 + (lines.length - 1) * CATEGORY_LINE_HEIGHT;
   return { lines, width, height, x: -width / 2, y: -height - 4 };
 }
+
+const lineText = (segments: string[], from: number, to = segments.length) => {
+  if (from > 0) while (from < to && /^\s/u.test(segments[from])) from++;
+  return segments.slice(from, to).join('');
+};
 
 /** The first wider wrapping within `MAX_LINES` that splits no more words and
  * leaves no more remnants than `starts`, or `starts` itself. Widths whose four

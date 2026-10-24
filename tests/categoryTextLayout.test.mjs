@@ -6,6 +6,17 @@ import { checkLabelTypography } from './helpers/visualRules.mjs';
 import { authoredDeterminerHasNominalComplement } from '../replay/replayCasing.ts';
 import { isPhrasalReplayMovement } from '../replay/movementLinks.ts';
 
+// The lines spell the text in order; a break consumes only whitespace.
+const assertSpells = (lines, text) => {
+  let rest = text;
+  lines.forEach((line, index) => {
+    if (index > 0) rest = rest.trimStart();
+    assert(rest.startsWith(line), `${JSON.stringify(lines)} does not spell ${JSON.stringify(text)}`);
+    rest = rest.slice(line.length);
+  });
+  assert.equal(rest, '');
+};
+
 test('long categories wrap to measured width without losing text or changing short notation', () => {
   const measure = s => [...s].length * 20;
   for (const text of ['V[past, third-person feminine singular]', 'D[proper name, third-person feminine singular]', '日本語のとても長いラベルをここに書きます'.repeat(2), 'N[e\u0301e\u0301e\u0301]'.repeat(8)]) {
@@ -107,29 +118,47 @@ test('a word that fits on a line stays whole even when that adds a line', () => 
   assert.deepEqual(lines('Mod[circumstantialpossibility]'), ['Mod[circumstanti', 'alpossibility]']);
 });
 
-test('no line is blank: spaces that would fill a line alone hang at the end of the line before', () => {
+test('no line is blank: spaces that would fill a line alone are the break between its neighbours', () => {
   const inked = (text, measure) => {
     const { lines } = categoryTextLayout(text, measure);
-    assert.equal(lines.join(''), text);
+    assertSpells(lines, text);
     assert(lines.every(line => line.trim()), `${JSON.stringify(lines)} has a blank line`);
     return lines;
   };
   // Each of these left a line holding only a space.
-  assert.deepEqual(inked('Mod[circumstantial interpretation]'), ['Mod', '[circumstantial ', 'interpretation]']);
+  assert.deepEqual(inked('Mod[circumstantial interpretation]'), ['Mod', '[circumstantial', 'interpretation]']);
   assert.deepEqual(inked('Mod[circumstantial interpretations]'), ['Mod', '[circumstantial ', 'interpretations]']);
   assert.deepEqual(inked('C [declarative, topic-compatible]'), ['C [declarative, ', 'topic-', 'compatible]']);
   assert.deepEqual(inked('C[interrogativeness, uninterpretability]', measureCategoryText),
-    ['C', '[interrogativeness, ', 'uninterpretability]']);
+    ['C', '[interrogativeness,', 'uninterpretability]']);
   // Spaces at either end of a label stay on the line next to them.
   assert.deepEqual(inked('interrogatives  '), ['interrogatives  ']);
   assert.deepEqual(inked('  interrogatives'), ['  interrogatives']);
+});
+
+test('no wrapped line starts with the space that overflowed the line before', () => {
+  const lines = text => {
+    const wrapped = categoryTextLayout(text, measureCategoryText);
+    assert(wrapped.lines.every((line, index) => index === 0 || !/^\s/u.test(line)), `${JSON.stringify(wrapped.lines)} starts a line with a space`);
+    assertSpells(wrapped.lines, text);
+    assert.equal(wrapped.width, Math.max(...wrapped.lines.map(measureCategoryText)));
+    return wrapped.lines;
+  };
+  // Saved labels whose later line began with the space after a comma or a word.
+  assert.deepEqual(lines('I\u2070[+finite, present, nominative]'), ['I\u2070[+finite, present,', 'nominative]']);
+  assert.deepEqual(lines('Neg[interpretable negation]'), ['Neg[interpretable', 'negation]']);
+  assert.deepEqual(lines('AgrO, abstract object-agreement head'), ['AgrO, abstract ', 'object-agreement', 'head']);
+  assert.deepEqual(lines('I\u2070 [finite, nonpast, progressive, agreement 3SG]'),
+    ['I\u2070 [finite, nonpast,', 'progressive, ', 'agreement 3SG]']);
+  // The whole run of spaces is the break, not only the one that overflowed.
+  assert.deepEqual(lines('Neg[interpretable  negation]'), ['Neg[interpretable', 'negation]']);
 });
 
 test('joining blank lines takes no measurements beyond the lines it paints', () => {
   let probes = 0;
   const measure = text => { probes++; return measureCategoryText(text); };
   assert.deepEqual(categoryTextLayout('T[uninterpretable, perfect/completive]', measure).lines,
-    ['T[uninterpretable,', ' perfect/', 'completive]']);
+    ['T[uninterpretable,', 'perfect/', 'completive]']);
   assert.equal(probes, 50);
 });
 
@@ -167,7 +196,7 @@ test('a label that would need more than four lines widens them, up to twice the 
   const measure = s => { probes++; return [...s].length * 20; };
   const long = `V[${Array.from({ length: 24 }, (_, index) => `feature${index}`).join(', ')}]`;
   const kept = categoryTextLayout(long, measure);
-  assert.equal(kept.lines.join(''), long);
+  assertSpells(kept.lines, long);
   assert(kept.lines.length > 4);
   assert(kept.lines.every(line => measure(line.trimEnd()) <= 380));
   assert(probes < 400, `${probes} measurements`);
@@ -205,6 +234,6 @@ test('wrapping reuse is isolated by font state and returned line arrays cannot c
   let newProbes = 0;
   const wider = categoryTextLayout(text, value => { newProbes++; return [...value].length * 30; });
   assert.ok(newProbes > 0);
-  assert.equal(wider.lines.join(''), text);
+  assertSpells(wider.lines, text);
   assert.notDeepEqual(wider.lines, expected.lines);
 });
