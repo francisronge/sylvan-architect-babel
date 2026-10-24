@@ -1,6 +1,6 @@
 # Babel Roadmap
 
-Status date: 2026-10-21
+Status date: 2026-10-24
 
 This is Babel's single list of remaining work, in order. Completed work and its
 evidence live in Git history. Durable rules and contracts live in the canonical
@@ -13,8 +13,8 @@ syntactic rules. Desktop remains the primary experience.
 ## Current work order
 
 1. Run Claude Opus 5.5/high batches through `npm run qualification:anthropic` once
-   the Max plan's monthly API credits can be claimed (around 2026-10-24). Spend
-   only those credits.
+   the Max plan's monthly API credits can be claimed. On 2026-10-24 the claim
+   option had not yet appeared in Billing. Spend only those credits.
 2. Renderer follow-ups left after the October renderer pass. Each has saved
    evidence.
    - Plaques left far from their anchor (catalog #3): a second look after
@@ -25,25 +25,31 @@ syntactic rules. Desktop remains the primary experience.
      7 to a plaque placed earlier, 7 to other plaques' final pockets or the
      quarter-nearer condition, and 1 whose nearer pocket lies too close to a
      movement arrow, since a plaque brought near keeps the full gap from arrows.
-   - A host drops a row when a parent is inserted above it. This stays instant
-     (no glide), so it needs a layout answer or acceptance.
-   - A `RELATION_TIMING_CONFLICT` cycle that no order satisfies: in the
-     Icelandic case transfer, continued V-to-I and I-to-C each own part of one
-     moving head complex. It needs a decision about which claim introduces the
-     shared head complex. A movement also does not wait for a
-     contextual anchor, so the Icelandic raising chain's verb-trace role lacks
-     its anchor at its moment (waiting would cost the subject landing its
-     reserved slot and shift the matrix IP about 120 px).
-   - Movements still drawn as copies without an arrow: the Hungarian verbal
-     particle's topicalization (night3 14-hu-verbal-particle), and hop 8:0 of
-     the long tough relative (night4 09-en-tough-relative-long), whose claim
-     names only the landing and the new trace. Both belong with recognition
-     (item 3).
+   - A movement does not wait for a contextual anchor, so the Icelandic
+     raising chain's verb-trace role ("Þessum börnum virðist hafa verið
+     hjálpað") lacks its anchor at its moment: the model lists the raising
+     before the V-to-I movement that makes the trace. Head movement before
+     phrasal movement in one stage (approved by Francis on 2026-10-23) resolves
+     it; it waits with the step-order work below.
+   - Movements still drawn as copies without an arrow, all in saved runs on the
+     earlier prompt: across-the-board and right-node-raising movement, where
+     one landing has several lower copies, and a claim that names two
+     displacements at once (T and the auxiliary in negative inversion). Claims
+     whose role names offer more than one candidate landing or source (four
+     saved runs) stay neutral by design: structure ignores role names, so it
+     cannot tell redundant naming from a contradictory claim, which must not
+     draw.
    - After a failed parse in Derivation Replay, the sentence input stays
      visible: the failure panel has no dismiss control.
    - A wrapped category line can start with the space that overflowed the
      line before (22 saved labels).
    - Mobile calibration and a desktop minimum-zoom clamp.
+   - Step-order work kept from the October rewrite
+     (`refactor/replay-step-order-kernel`): just-in-time order and head
+     movement before phrasal movement in one stage were approved, but each
+     moved existing layouts, because today's stage layout depends on frame
+     history. They wait for a stage layout that is planned from the
+     derivation's states rather than its frame order.
 3. Recognition:
    - Neutral relations can earn a shared-lineage coindex or a single-host
      plaque from structure alone; the adjunction fork stays off because
@@ -52,7 +58,13 @@ syntactic rules. Desktop remains the primary experience.
      Run the same geometry-first experiment for movement and the other
      relations: measure the wrong-picture rate where Babel already draws, and
      decide whether each further measured rule can claim its whole envelope.
-   - Later, consider Jev as a fallback.
+   - Later, Jev as the fallback for relations structure cannot settle (mostly
+     non-movement relations): run it once after generation, only for claims
+     recognition leaves neutral, to map the model's role names to drawing
+     roles; Babel still checks the structure, and Jev's answer is saved with
+     the analysis so Replay stays offline and repeatable.
+   - Possibly, if it proves worth it: shared structure (multidominance) as an
+     alternative to copies for movement and sharing.
 4. Merge duplicated layout checks without changing a pixel, proving identical
    output with the fixture layout fingerprint (`npm run verify:visual-offline`)
    and `npm run verify:corpus`, and fix the one remaining stretched branch in
@@ -386,6 +398,11 @@ review authority, and correction path.
 - Deployment target and public product timing.
 
 ## Explicitly Not Active
+
+- Gliding layout changes between Replay steps. A host steps down one row when
+  a parent is inserted above it, instead of keeping a stretched branch
+  (Francis: "no glide." on 2026-10-18; "no i'm fine with the step down" on
+  2026-10-23).
 
 - More relation-card design without a reproducible defect.
 - Provider calls as part of default verification.
