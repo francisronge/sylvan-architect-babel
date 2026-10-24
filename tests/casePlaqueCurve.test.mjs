@@ -224,3 +224,18 @@ test('a shallower route keeps the plain curve as its limit and offers only visib
   assert.deepEqual(caseAssignmentDrawnRoute(word, orchard, 173), { bend: 0 });
   assert.deepEqual([...caseAssignmentRoutes(word, orchard, 173)], [{ exit: 'stem', bend: 0 }]);
 });
+
+test('a right-to-left Replay draws the reflection of the bent arrow its left-to-right allocation cleared', () => {
+  // Measured Arabic VSO run (indexed-night 31-ar-vso-agreement, steps 24-27): the
+  // allocation bowed the aligned arrow away from "a-v-complex"; drawn unreflected in
+  // the mirrored tree, the same bow ran through that label.
+  const word = rect([4253.3, 1000, 209.5, 100.5]), plaque = rect([3986, 613.4, 379, 138]), axis = 2050;
+  const route = caseAssignmentDrawnRoute(word, plaque, 706.4);
+  assert.equal(route.bend, 1, 'the plain arrow runs too straight');
+  const left = caseAssignmentPlaqueCurve(word, plaque, 706.4, route);
+  const right = caseAssignmentPlaqueCurve(mirror(word, axis), mirror(plaque, axis), 706.4, { ...route, mirror: true });
+  for (const key of ['source', 'control1', 'control2', 'target']) {
+    assert(Math.abs(right[key].x - (2 * axis - left[key].x)) < 1e-9, `${key} reflects`);
+    assert(Math.abs(right[key].y - left[key].y) < 1e-9, `${key} keeps its height`);
+  }
+});

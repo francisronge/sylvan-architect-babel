@@ -18,7 +18,9 @@ export type Rect = { x: number; y: number; width: number; height: number };
  * Babel draws wherever it already bends visibly. */
 export type CaseArrowExit = 'side' | 'stem';
 const SIDE: CaseArrowExit = 'side', STEM: CaseArrowExit = 'stem';
-export type CaseArrowRoute = { exit?: CaseArrowExit; bend: number };
+/** `mirror` bows an aligned arrow toward the other side: a right-to-left Replay
+ * reflects the left-to-right allocation, and its bent arrows must reflect too. */
+export type CaseArrowRoute = { exit?: CaseArrowExit; bend: number; mirror?: boolean };
 export const PLAIN_CASE_ROUTE: CaseArrowRoute = Object.freeze({ bend: 0 });
 
 const caseArrowTarget = (assigner: Rect, plaque: Rect, rowY: number) => {
@@ -99,7 +101,7 @@ export function caseAssignmentDrawnRoute(assigner: Rect, plaque: Rect, rowY: num
  * rectangle. The route defaults to the plain curve, by which the allocator also
  * ranks pockets. */
 export function caseAssignmentPlaqueCurve(assigner: Rect, plaque: Rect, rowY: number,
-  { exit = caseAssignmentExits(assigner, plaque, rowY)[0], bend }: CaseArrowRoute = PLAIN_CASE_ROUTE) {
+  { exit = caseAssignmentExits(assigner, plaque, rowY)[0], bend, mirror }: CaseArrowRoute = PLAIN_CASE_ROUTE) {
   const route = { exit, bend };
   const centerX = assigner.x + assigner.width / 2;
   const target = caseArrowTarget(assigner, plaque, rowY);
@@ -135,8 +137,8 @@ export function caseAssignmentPlaqueCurve(assigner: Rect, plaque: Rect, rowY: nu
   const approach = Math.min(76, span(source) / 2);
   const approachX = target.side === 'left' ? -approach : target.side === 'right' ? approach : 0;
   // Aligned boxes keep the curve wholly within their vertical gap.
-  const bowX = target.side === 'vertical'
-    ? toward(Math.min(32, Math.abs(plainBendY)), Math.max(Math.min(32, Math.abs(bendY)), bow)) : 0;
+  const bowX = (mirror ? -1 : 1) * (target.side === 'vertical'
+    ? toward(Math.min(32, Math.abs(plainBendY)), Math.max(Math.min(32, Math.abs(bendY)), bow)) : 0);
   const approachY = target.side === 'vertical' ? source.y + bendY : target.y;
   return { source, target, control1: { x: source.x + bowX, y: source.y + bendY },
     control2: { x: target.x + approachX, y: approachY } };

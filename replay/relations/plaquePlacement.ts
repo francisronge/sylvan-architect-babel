@@ -235,6 +235,8 @@ export function reflectPlaquePlacement(placement: PlaquePlacement, axis: number)
   const drawn = placement.drawnWidth ?? placement.width;
   const reflectX = (x: number) => axis - x;
   return { ...placement, x: axis - placement.x - drawn, width: drawn, attachmentX: reflectX(placement.attachmentX),
+    // A bent Case arrow reflects with its pocket; a plain arrow is drawn as main draws it.
+    ...(placement.caseRoute ? { caseRoute: { ...placement.caseRoute, mirror: !placement.caseRoute.mirror } } : {}),
     ...(placement.collectionRows ? { collectionRows: placement.collectionRows.map(row => ({ ...row,
       ...(row.edge === 'left' || row.edge === 'right' ? { edge: row.edge === 'left' ? 'right' : 'left' } as const : {}),
       ...(row.portX === undefined ? {} : { portX: drawn - row.portX }) })) } : {}),
