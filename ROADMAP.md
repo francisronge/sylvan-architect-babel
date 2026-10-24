@@ -25,8 +25,11 @@ syntactic rules. Desktop remains the primary experience.
      it; it waits with the step-order work below.
    - Movements still drawn as copies without an arrow, all in saved runs on the
      earlier prompt: across-the-board and right-node-raising movement, where
-     one landing has several lower copies, and a claim that names two
-     displacements at once (T and the auxiliary in negative inversion). Claims
+     one landing has several lower copies, a claim that names two
+     displacements at once (T and the auxiliary in negative inversion, a German
+     V2 auxiliary), and Japanese topicalization, Dutch stripping focus and
+     English past-affix lowering, whose wording draws only an identity coindex
+     or badge. Claims
      whose role names offer more than one candidate landing or source (four
      saved runs) stay neutral by design: structure ignores role names, so it
      cannot tell redundant naming from a contradictory claim, which must not
@@ -39,7 +42,12 @@ syntactic rules. Desktop remains the primary experience.
      movement before phrasal movement in one stage were approved, but each
      moved existing layouts, because today's stage layout depends on frame
      history. They wait for a stage layout that is planned from the
-     derivation's states rather than its frame order.
+     derivation's states rather than its frame order. The same work owns the
+     listed camera jumps where unmoved syntax shifts 27–78 px when a stage
+     begins or inside a stage (`STAGE_RELAYOUT`, `RELAYOUT_WITHIN_STAGE` in
+     `tests/helpers/cameraExceptions.mjs`). Its first prototype
+     (`refactor/stage-layout-from-finished-tree`) did not meet the
+     zero-regression bar.
 3. Recognition:
    - Neutral relations can earn a shared-lineage coindex or a single-host
      plaque from structure alone; the adjunction fork stays off because
@@ -57,8 +65,7 @@ syntactic rules. Desktop remains the primary experience.
      alternative to copies for movement and sharing.
 4. Merge duplicated layout checks without changing a pixel, proving identical
    output with the fixture layout fingerprint (`npm run verify:visual-offline`)
-   and `npm run verify:corpus`, and fix the one remaining stretched branch in
-   Indonesian control analysis 2.
+   and `npm run verify:corpus`.
 
 ## Execution Order
 
