@@ -5,51 +5,147 @@
  * rectangles so the drawing rules can be tested adversarially.
  */
 
-import { dottedCollectionControls } from './markGeometry.ts';
+import { dottedCollectionControls, sampleCubic } from './markGeometry.ts';
 import { rectsIntersect } from './rectGeometry.ts';
 
 export type Point = { x: number; y: number };
 export type Rect = { x: number; y: number; width: number; height: number };
 
-/** Enter the plaque from the assigner's side; the curve stays outside its rectangle. */
-export function caseAssignmentPlaqueCurve(assigner: Rect, plaque: Rect, rowY: number) {
+/** Where a Case arrow leaves its source, the side facing the plaque or a stem
+ * from the top or bottom, and how far its bend reaches between the plain curve
+ * (`bend` 0) and the full bounded bow (`bend` 1). Without an exit the arrow
+ * takes the preferred one; `{ bend: 0 }` alone is the plain curve, which
+ * Babel draws wherever it already bends visibly. */
+export type CaseArrowExit = 'side' | 'stem';
+const SIDE: CaseArrowExit = 'side', STEM: CaseArrowExit = 'stem';
+/** `mirror` bows an aligned arrow toward the other side: a right-to-left Replay
+ * reflects the left-to-right allocation, and its bent arrows must reflect too. */
+export type CaseArrowRoute = { exit?: CaseArrowExit; bend: number; mirror?: boolean };
+export const PLAIN_CASE_ROUTE: CaseArrowRoute = Object.freeze({ bend: 0 });
+
+const caseArrowTarget = (assigner: Rect, plaque: Rect, rowY: number) => {
   const centerX = assigner.x + assigner.width / 2;
-  const target = centerX < plaque.x
+  return centerX < plaque.x
     ? { x: plaque.x - 12, y: rowY, side: 'left' }
     : centerX > plaque.x + plaque.width
       ? { x: plaque.x + plaque.width + 12, y: rowY, side: 'right' }
       : { x: centerX, y: assigner.y < plaque.y ? plaque.y - 12 : plaque.y + plaque.height + 12, side: 'vertical' };
-  // A row beside the word must leave its side, not the space beneath it,
-  // which may already belong to the next category label. Side exits need
-  // their own bow: level endpoints otherwise make both handles collinear. A
-  // row within one bow of the word is level too, because a top or bottom exit
-  // would put all four curve points on one line.
+};
+const caseArrowSideX = (assigner: Rect, side: string) =>
+  side === 'left' ? assigner.x + assigner.width + 8 : assigner.x - 8;
+
+/** The exits a Case arrow may take to this plaque, preferred first. A row beside
+ * the word must leave its side, not the space beneath it, which may already
+ * belong to the next category label; a row within reach of the word counts as
+ * beside it. A row within twice that reach can also take the side exit, whose
+ * bend lies elsewhere, when that exit faces the row and its arrow is no longer. */
+export function caseAssignmentExits(assigner: Rect, plaque: Rect, rowY: number): CaseArrowExit[] {
+  const target = caseArrowTarget(assigner, plaque, rowY);
+  if (target.side === 'vertical') return [STEM];
+  const reach = Math.min(76, Math.abs(target.x - caseArrowSideX(assigner, target.side)) / 4);
+  const offset = Math.max(assigner.y - rowY, rowY - assigner.y - assigner.height, 0);
+  if (offset <= reach) return [SIDE];
+  if (offset > 2 * reach) return [STEM];
+  const outward = (target.side === 'left' ? 1 : -1) * (target.x - caseArrowSideX(assigner, target.side)) > 0;
+  return outward && curveLength(caseAssignmentPlaqueCurve(assigner, plaque, rowY, { exit: 'side', bend: 1 }))
+    <= curveLength(caseAssignmentPlaqueCurve(assigner, plaque, rowY, { exit: 'stem', bend: 1 })) ? [STEM, SIDE] : [STEM];
+}
+
+type Cubic = Record<'source' | 'control1' | 'control2' | 'target', Point>;
+const curveLength = ({ source, control1, control2, target }: Cubic) => {
+  const points = sampleCubic(source, control1, control2, target, 16);
+  return points.slice(1).reduce((length, point, i) => length + Math.hypot(point.x - points[i].x, point.y - points[i].y), 0);
+};
+
+/** A Case arrow bends visibly when it leaves its chord by a tenth of the chord's
+ * length, or by 30 units on a long arrow. */
+export function caseArrowBendsVisibly({ source, control1, control2, target }: Cubic): boolean {
+  const length = Math.hypot(target.x - source.x, target.y - source.y);
+  const needed = Math.min(length / 10, 30);
+  return sampleCubic(source, control1, control2, target, 64).some(point =>
+    Math.abs((target.x - source.x) * (source.y - point.y) - (source.x - point.x) * (target.y - source.y)) >= needed * length);
+}
+
+const CASE_ARROW_BENDS = [0, 1, 0.75, 0.5, 0.25];
+
+/** The visibly bent routes for an arrow whose plain curve runs too straight,
+ * in the order the allocator tries them at a pocket: each exit's plain curve
+ * where it bends visibly, its full bend, then shallower bends that still bend
+ * visibly. A pocket keeps its plaque when any of them clears, and the placement
+ * records the route it took. Later routes are built only when earlier ones are
+ * blocked. */
+export function* caseAssignmentRoutes(assigner: Rect, plaque: Rect, rowY: number): Generator<CaseArrowRoute> {
+  for (const exit of caseAssignmentExits(assigner, plaque, rowY)) {
+    let previous: Cubic | undefined;
+    for (const bend of CASE_ARROW_BENDS) {
+      const route = { exit, bend }, curve = caseAssignmentPlaqueCurve(assigner, plaque, rowY, route);
+      // Where the plain curve already bends enough, every bend draws the same curve.
+      if (previous && curve.control1.x === previous.control1.x && curve.control1.y === previous.control1.y
+        && curve.control2.x === previous.control2.x && curve.control2.y === previous.control2.y) continue;
+      if (bend !== 1 && !caseArrowBendsVisibly(curve)) continue;
+      previous = curve;
+      yield route;
+    }
+  }
+}
+
+/** The route Babel draws to an unobstructed pocket: the plain curve where it
+ * bends visibly, otherwise the first bent route. */
+export function caseAssignmentDrawnRoute(assigner: Rect, plaque: Rect, rowY: number): CaseArrowRoute {
+  if (caseArrowBendsVisibly(caseAssignmentPlaqueCurve(assigner, plaque, rowY))) return PLAIN_CASE_ROUTE;
+  for (const route of caseAssignmentRoutes(assigner, plaque, rowY)) return route;
+  return { bend: 1 };
+}
+
+/** Enter the plaque from the assigner's side; the curve stays outside its
+ * rectangle. The route defaults to the plain curve, by which the allocator also
+ * ranks pockets. */
+export function caseAssignmentPlaqueCurve(assigner: Rect, plaque: Rect, rowY: number,
+  { exit = caseAssignmentExits(assigner, plaque, rowY)[0], bend, mirror }: CaseArrowRoute = PLAIN_CASE_ROUTE) {
+  const route = { exit, bend };
+  const centerX = assigner.x + assigner.width / 2;
+  const target = caseArrowTarget(assigner, plaque, rowY);
   const direction = target.side === 'left' ? 1 : -1;
-  const sideX = direction > 0 ? assigner.x + assigner.width + 8 : assigner.x - 8;
-  const bow = Math.min(76, Math.abs(target.x - sideX) / 4);
-  if (target.side !== 'vertical' && rowY >= assigner.y - bow && rowY <= assigner.y + assigner.height + bow) {
+  const sideX = caseArrowSideX(assigner, target.side);
+  // Every Case arrow bends. The handle that carries the bend is at least the
+  // bounded bow, a quarter of the arrow's larger span up to 76; the plain
+  // handle lays the curve along its chord when the row is level with a top or
+  // bottom exit, when a narrow gap meets a tall label, or across a long aligned
+  // gap. A shallower route moves each handle that part of the way back.
+  const span = (source: Point) => Math.max(Math.abs(target.x - source.x), Math.abs(target.y - source.y));
+  const bowFrom = (source: Point) => Math.min(76, span(source) / 4);
+  const toward = (plain: number, full: number) => plain + route.bend * (full - plain);
+  if (route.exit === 'side' && target.side !== 'vertical') {
     const source = { x: sideX, y: assigner.y + assigner.height / 2 };
-    const approach = Math.min(76, Math.abs(target.x - source.x) / 2);
+    const dx = Math.abs(target.x - source.x);
+    const bow = toward(Math.min(76, dx / 4), bowFrom(source));
+    // A row high above or below a tall word turns within a third of its span,
+    // which keeps a narrow gap's S-curve off its chord and clear of the word.
+    const approach = toward(Math.min(76, dx / 2), Math.min(76, Math.max(dx / 2, span(source) / 3)));
     // Bend above the gap, clear of the category below.
     return { source, target, control1: { x: source.x + direction * approach, y: source.y - bow },
       control2: { x: target.x - direction * approach, y: target.y - bow } };
   }
-  const source = { x: centerX, y: target.y < assigner.y
-    ? assigner.y - 8 : assigner.y + assigner.height + 8 };
-  const bendY = (target.y - source.y) / 2;
+  const up = target.y < assigner.y;
+  const source = { x: centerX, y: up ? assigner.y - 8 : assigner.y + assigner.height + 8 };
+  const bow = bowFrom(source);
+  // The stem leaves in its exit direction, even toward a row level with it.
+  const plainBendY = (target.y - source.y) / 2;
+  const bendY = toward(plainBendY, (up ? -1 : 1) * Math.max(Math.abs(plainBendY), bow));
   // A nearly aligned side attachment still needs room to turn into the row.
   // Its vertical span must not collapse the curve into a stem and tiny hook.
-  const approach = Math.min(76, Math.max(Math.abs(target.x - source.x), Math.abs(target.y - source.y)) / 2);
+  const approach = Math.min(76, span(source) / 2);
   const approachX = target.side === 'left' ? -approach : target.side === 'right' ? approach : 0;
-  // Aligned boxes still get a short curve wholly within their vertical gap.
-  const bowX = target.side === 'vertical' ? Math.min(32, Math.abs(bendY)) : 0;
+  // Aligned boxes keep the curve wholly within their vertical gap.
+  const bowX = (mirror ? -1 : 1) * (target.side === 'vertical'
+    ? toward(Math.min(32, Math.abs(plainBendY)), Math.max(Math.min(32, Math.abs(bendY)), bow)) : 0);
   const approachY = target.side === 'vertical' ? source.y + bendY : target.y;
   return { source, target, control1: { x: source.x + bowX, y: source.y + bendY },
     control2: { x: target.x + approachX, y: approachY } };
 }
 
-export function caseAssignmentPlaquePath(assigner: Rect, plaque: Rect, rowY: number): string {
-  const { source, target, control1, control2 } = caseAssignmentPlaqueCurve(assigner, plaque, rowY);
+export function caseAssignmentPlaquePath(assigner: Rect, plaque: Rect, rowY: number, route?: CaseArrowRoute): string {
+  const { source, target, control1, control2 } = caseAssignmentPlaqueCurve(assigner, plaque, rowY, route);
   return `M ${source.x.toFixed(1)} ${source.y.toFixed(1)} C ${control1.x.toFixed(1)} ${control1.y.toFixed(1)},`
     + ` ${control2.x.toFixed(1)} ${control2.y.toFixed(1)}, ${target.x.toFixed(1)} ${target.y.toFixed(1)}`;
 }
