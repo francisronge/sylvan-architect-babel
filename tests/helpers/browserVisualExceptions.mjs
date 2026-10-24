@@ -18,7 +18,7 @@
  * failure, so it is never listed.
  * Reviewed against the first native run of the gate (Chromium, 18 October). */
 
-const PLAQUE_CROWDED = 'Open (catalog #3): no nearby pocket stays clear for the plaque\'s lifetime, so the allocator takes '
+const PLAQUE_CROWDED = 'Accepted (catalog #3; ROADMAP Explicitly Not Active, Francis on 23 and 24 Oct): no nearby pocket stays clear for the plaque\'s lifetime, so the allocator takes '
   + 'the nearest clear pocket beyond its nearby candidates. #74 and #84 relocate plaques whose anchor moves, not these.';
 const MOBILE = 'mobile canvas: role label/landing past the canvas edge';
 const STAGE_CROSSING = 'Open (stage-crossing layout): entering the last stage at 43>44, the subject movement relays out the clause, so '
@@ -33,7 +33,7 @@ export const EXCEPTIONS = [
     { desktop: { '14-43': 1.19 }, mobile: { '14-43': 1.19 } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'first-paint-continuity', 'jump:stage-coordinates', 'stage 4',
     { desktop: { '43>44': 77.67 }, mobile: { '43>44': 38.15 } },
-    { by: 'Francis Ronge', on: '2026-10-21', expires: '2027-01-21', note: 'Accepted on the plaque-gap side-by-side review '
+    { by: 'Francis Ronge', on: '2026-10-21', note: 'Accepted on the plaque-gap side-by-side review '
       + '("The movement jump is fine too."): the browser measure of the +1.16 px plaque-reach jump (#150) he accepted offline.',
       accepts: { desktop: { '43>44': 77.67 }, mobile: { '43>44': 38.15 } } }),
   x(STAGE_CROSSING, CATALOGUE(6), 'rapid-motion', 'node-jump', '@view',

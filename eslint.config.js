@@ -5,7 +5,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 // live. Types are checked by `npm run typecheck`.
 export default [
   {
-    ignores: ['node_modules/', 'dist/', 'test/', 'bench-baseline/', '.artifacts/', '**/*.{js,cjs,mjs}']
+    ignores: ['node_modules/', 'dist/', 'test/', 'bench-baseline/', '.artifacts/', '.claude/', '**/*.{js,cjs,mjs}']
   },
   {
     files: ['**/*.{ts,tsx}'],
