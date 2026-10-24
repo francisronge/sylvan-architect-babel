@@ -37,6 +37,11 @@ syntactic rules. Desktop remains the primary experience.
    - After a failed parse in Derivation Replay, the sentence input stays
      visible: the failure panel has no dismiss control.
    - Mobile calibration and a desktop minimum-zoom clamp.
+   - Case plaque allocation checks other plaques only at the steps it places
+     them in, not at transient steps. In 27-sv-embedded-negation, at step 21
+     only, a bent Case arrow passes about 4 units from plaque 2:0#8, and
+     main's straight arrow already passed it inside the 24-unit gap.
+     Francis accepted the current picture on 2026-10-24.
    - Step-order work kept from the October rewrite
      (`refactor/replay-step-order-kernel`): just-in-time order and head
      movement before phrasal movement in one stage were approved, but each
@@ -89,15 +94,6 @@ through the commands in [AGENTS.md](AGENTS.md#qualification-runs).
    proved, the association becomes visible at the latest covering relation's
    moment, once every candidate has played. Do not prescribe model role names or
    force a drawing to eliminate that conservative fallback.
-3. Adjudicate the reading distinctions still open in saved analyses, and decide
-   what counts as a distinct reading:
-   - the Mandarin and Arabic alternatives. One Arabic alternative assumes a past
-     nonverbal matrix clause without the copula required by the
-     [Standard Arabic past-time contrast](https://marz.kau.edu.sa/Files/320/Researches/74322_47483.pdf);
-     it stays inspectable with its review limitation;
-   - the Thai alternatives, which may repeat one interpretation under different
-     theoretical accounts, and the Dutch analyses, which combine three temporal
-     scopes with two role assignments, the latter requiring personification.
 
 Complete when demonstrated product defects have verified resolutions and each
 contract/recovery proposal has an evidence-backed adopt, reject or hold decision.
@@ -404,6 +400,12 @@ review authority, and correction path.
   plaques or breaks the no-teleport rule (Francis: "Plaques: Ok." on
   2026-10-23; "if there's no way to solve it easily, then it's probably fine"
   on 2026-10-24).
+
+- Bending movement arrows or connector lines around words and labels they
+  cross. Their shape stays as designed (Francis: "I'm fine with movement
+  arrows crossing words and labels, same with lines, can't really do much
+  about them, since we're not changing how they look, so we won't bend them
+  or anything" on 2026-10-24). Case arrows are different: they always bend.
 
 - Gliding layout changes between Replay steps. A host steps down one row when
   a parent is inserted above it, instead of keeping a stretched branch
