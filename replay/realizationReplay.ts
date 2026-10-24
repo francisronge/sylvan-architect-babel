@@ -418,10 +418,10 @@ export const resolveRealizationChanges = (
           && spellingRewriteOnly(index, change)));
     }
     // Among relations covering the same change, the one relation that states the
-    // realized text of every new group owns it; field names play no part. Its
-    // anchors lie within the groups, its statement is unhedged, spells no other
-    // input and describes no PF output of other syntax, and no other candidate
-    // asserts a realization of its own.
+    // realized text of every new group owns it; names play no part. Its anchors
+    // lie within the groups, its authored outcome is established, it spells no
+    // other input and describes no PF output of other syntax, and no other
+    // candidate asserts a realization of its own.
     if (directCandidates.length > 1 && change.after.length && inputTokens) {
       const spell = (positions: readonly number[]) => caselessSpelling([...positions].sort((a, b) => a - b)
         .map(position => inputTokens[position] ?? '').join(''));
@@ -437,8 +437,6 @@ export const resolveRealizationChanges = (
         const outputs = pfOutputs(dispatch);
         return [...relations[index].current].every(id => domain.has(id))
           && !malformedClaim(dispatch) && establishesAssignment(dispatch.evidence)
-          && !relationLabelClauses(relation.relation).some(clause =>
-            /^(?:no|not|failed|blocked|pending|possible|potential|hypothetical|conditional|unresolved)\b/u.test(clause))
           && !own.has('') && [...own].every(text => literals.includes(text))
           && !literals.some(text => otherInput.has(text))
           && (!outputs.length || change.after.every(group => outputs.some(output => outputCovers(output.ids, group))));

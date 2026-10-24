@@ -1027,8 +1027,8 @@ including unknown participant roles and wholly neutral Tier-3 claims. This does
 not promote, consume or reorder those claims. Without a validated owner, multiple
 coverage-only candidates remain ambiguous, unless exactly one of them states the
 realized text of every new group in a value (caseless, as the spelling check
-compares) whatever its field names. That relation owns the change when its
-anchors lie within the groups, its name is unhedged, its values spell no other
+compares), whatever its names. That relation owns the change when its anchors
+lie within the groups, its authored outcome is established, its values spell no other
 input, any PF output it recovers is the group, and no other candidate asserts a
 realization of its own. Output and association domains must
 have exactly the same uniquely resolved leaves; a group can name a complete
