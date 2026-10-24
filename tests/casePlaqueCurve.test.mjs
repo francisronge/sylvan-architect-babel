@@ -3,6 +3,7 @@ import test from 'node:test';
 import { caseAssignmentPlaqueCurve } from '../replay/relations/overlayGeometry.ts';
 import { sampleCubic } from '../replay/relations/markGeometry.ts';
 import { cubicIntersectsRect } from '../replay/relations/curveClearance.ts';
+import { CATEGORY_LINE_HEIGHT } from '../replay/rendererMetrics.ts';
 
 test('a Case row beside its source exits the source side, clear of the category below', () => {
   // Measured Japanese final-frame word and wrapped V label, in tree coordinates.
@@ -86,4 +87,96 @@ test('a Case row just above or below its word still bends instead of running str
       assert(!cubicIntersectsRect(curve, plaque, 0), 'the arrow stays outside the plaque');
     }
   }
+});
+
+// Francis, 24 Oct: "i dont want straight arrows i want them to bend, that is
+// the design of the case arrow". A bend is visible when the curve leaves its
+// chord by a tenth of the chord's length, or by 30 tree units on a long arrow.
+const chordSag = curve => {
+  const { source, target } = curve;
+  const length = Math.hypot(target.x - source.x, target.y - source.y);
+  const sag = Math.max(...sampleCubic(curve.source, curve.control1, curve.control2, curve.target, 128)
+    .map(point => Math.abs((target.x - source.x) * (source.y - point.y) - (source.x - point.x) * (target.y - source.y)) / length));
+  return { length, sag };
+};
+const assertBends = (curve, message) => {
+  const { length, sag } = chordSag(curve);
+  assert(sag >= Math.min(length / 10, 30),
+    `${message}: the curve leaves its ${length.toFixed(1)}-unit chord by only ${sag.toFixed(2)}`);
+};
+const mirror = (rect, axis) => ({ ...rect, x: 2 * axis - rect.x - rect.width });
+const rect = ([x, y, width, height]) => ({ x, y, width, height });
+
+test('a Case row level with the top of its source bends over instead of running straight', () => {
+  // Measured do-support Replay (ship1 s1-11, frames 27-33, with the head-rewrite
+  // fix): the plaque sits just left of "I⁰ [finite, past, 3sg]" and its row lies
+  // a unit below the stem's exit.
+  const label = rect([1437.3, 340, 305.5, 100.5]), plaque = rect([1016.3, 240, 379, 262]);
+  for (const flip of [false, true]) {
+    const word = flip ? mirror(label, 1500) : label, box = flip ? mirror(plaque, 1500) : plaque;
+    const curve = caseAssignmentPlaqueCurve(word, box, 333);
+    assertBends(curve, `do-support${flip ? ', mirrored' : ''}`);
+    assert.equal(curve.source.y, word.y - 8, 'the stem leaves the top of the label');
+    assert(curve.control1.y < curve.source.y, 'the stem rises before it turns');
+    assert.equal(curve.control2.y, curve.target.y, 'the arrow turns fully into the Case row');
+    assert(!cubicIntersectsRect(curve, word, 6), 'the arrow leaves the label clear');
+    assert(!cubicIntersectsRect(curve, box, 0), 'the arrow stays outside the plaque');
+  }
+});
+
+test('Case arrows that main drew along their chord bend', () => {
+  // Desktop production layouts in which the main-branch curve stayed within a
+  // few units of its chord: [label, plaque, Case row].
+  const measured = {
+    // showcase/agreement-and-case.json cases/4, frame 21: a row level with the top exit.
+    'level top exit': [[1276.3, 1159, 184.8, 70], [1512.8, 1145, 379, 138], 1238],
+    // replay-regressions/workspace-reservation.json cases/0, frame 21: a long row level with the bottom exit.
+    'long level bottom exit': [[2872.9, 1488, 291.7, 52.5], [817.3, 1532, 379, 138], 1625],
+    // visual-relations/case-collection-growth.json, frame 28: a long aligned gap.
+    'long aligned gap': [[1382.7, 828, 159.6, 52.5], [1404.9, -72.7, 379, 138], 20.3],
+    // replay-regressions/plaque-hold-pockets.json cases/4, frame 14: a narrow gap beside a tall label.
+    'narrow gap, tall label': [[3098, 904, 269, 196.5], [2669.3, 993, 361, 138], 1086],
+    // Saved run spellout-night-20261018 33-tr-evidential-relative, frame 52: a row at a tall label's foot.
+    'row at a tall label\'s foot': [[4538.9, 684, 406, 196.5], [4996.9, 780, 480, 300], 873]
+  };
+  for (const [name, [label, plaque, rowY]] of Object.entries(measured)) {
+    const word = rect(label), box = rect(plaque), curve = caseAssignmentPlaqueCurve(word, box, rowY);
+    assertBends(curve, name);
+    assert(!cubicIntersectsRect(curve, word, 6), `${name}: the arrow leaves the label clear`);
+    assert(!cubicIntersectsRect(curve, box, 0), `${name}: the arrow stays outside the plaque`);
+  }
+});
+
+test('every allocatable Case arrow bends, clear of its label and plaque', () => {
+  // Labels from one-word leaves to wrapped categories, with plaques beside,
+  // above and below them. The allocator rejects shafts under two category lines.
+  const cases = [];
+  for (const [width, height] of [[64, 52.5], [150, 70], [300, 100.5], [406, 196.5]])
+    for (const gap of [30, 42, 60, 100, 200, 400, 800])
+      for (const direction of [-1, 1])
+        for (const offset of [-600, -300, -150, -80, -40, -20, -8, -2, 0, 2, 8, 20, 40, 80, 150, 300, 600]) {
+          const word = { x: 1000, y: 1000, width, height };
+          const rowY = offset < 0 ? word.y + offset : offset === 0 ? word.y + height / 2 : word.y + height + offset;
+          const x = direction > 0 ? word.x + width + gap : word.x - gap - 379;
+          cases.push([word, { x, y: rowY - 93, width: 379, height: 262 }, rowY]);
+        }
+  for (const [width, height] of [[64, 52.5], [150, 70], [300, 100.5]])
+    for (const gap of [30, 60, 100, 200, 400, 800])
+      for (const shift of [-150, -50, 0, 50, 150])
+        for (const below of [false, true]) {
+          const word = { x: 1000, y: 1000, width, height };
+          const y = below ? word.y + height + gap : word.y - gap - 262;
+          cases.push([word, { x: word.x + width / 2 - 190 + shift, y, width: 379, height: 262 }, y + 93]);
+        }
+  let checked = 0;
+  for (const [word, box, rowY] of cases) {
+    const curve = caseAssignmentPlaqueCurve(word, box, rowY);
+    if (Math.hypot(curve.target.x - curve.source.x, curve.target.y - curve.source.y) < 2 * CATEGORY_LINE_HEIGHT) continue;
+    checked++;
+    const where = `label ${JSON.stringify(word)}, plaque ${JSON.stringify(box)}, row ${rowY}`;
+    assertBends(curve, where);
+    assert(!cubicIntersectsRect(curve, word, 6), `${where}: the arrow leaves the label clear`);
+    assert(!cubicIntersectsRect(curve, box, 0), `${where}: the arrow stays outside the plaque`);
+  }
+  assert(checked > 800, `the sweep checks ${checked} allocatable arrows`);
 });

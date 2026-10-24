@@ -20,29 +20,38 @@ export function caseAssignmentPlaqueCurve(assigner: Rect, plaque: Rect, rowY: nu
       ? { x: plaque.x + plaque.width + 12, y: rowY, side: 'right' }
       : { x: centerX, y: assigner.y < plaque.y ? plaque.y - 12 : plaque.y + plaque.height + 12, side: 'vertical' };
   // A row beside the word must leave its side, not the space beneath it,
-  // which may already belong to the next category label. Side exits need
-  // their own bow: level endpoints otherwise make both handles collinear. A
-  // row within one bow of the word is level too, because a top or bottom exit
-  // would put all four curve points on one line.
+  // which may already belong to the next category label. A row within reach
+  // of the word counts as beside it.
   const direction = target.side === 'left' ? 1 : -1;
   const sideX = direction > 0 ? assigner.x + assigner.width + 8 : assigner.x - 8;
-  const bow = Math.min(76, Math.abs(target.x - sideX) / 4);
-  if (target.side !== 'vertical' && rowY >= assigner.y - bow && rowY <= assigner.y + assigner.height + bow) {
+  const reach = Math.min(76, Math.abs(target.x - sideX) / 4);
+  // Every Case arrow bends. The handle that carries the bend is at least the
+  // bounded bow, a quarter of the arrow's larger span up to 76; a shorter one
+  // lays the curve along its chord when the row is level with a top or bottom
+  // exit, when a narrow gap meets a tall label, or across a long aligned gap.
+  const span = (source: Point) => Math.max(Math.abs(target.x - source.x), Math.abs(target.y - source.y));
+  const bowFrom = (source: Point) => Math.min(76, span(source) / 4);
+  if (target.side !== 'vertical' && rowY >= assigner.y - reach && rowY <= assigner.y + assigner.height + reach) {
     const source = { x: sideX, y: assigner.y + assigner.height / 2 };
-    const approach = Math.min(76, Math.abs(target.x - source.x) / 2);
+    const bow = bowFrom(source);
+    // A row high above or below a tall word turns within a third of its span,
+    // which keeps a narrow gap's S-curve off its chord and clear of the word.
+    const approach = Math.min(76, Math.max(Math.abs(target.x - source.x) / 2, span(source) / 3));
     // Bend above the gap, clear of the category below.
     return { source, target, control1: { x: source.x + direction * approach, y: source.y - bow },
       control2: { x: target.x - direction * approach, y: target.y - bow } };
   }
-  const source = { x: centerX, y: target.y < assigner.y
-    ? assigner.y - 8 : assigner.y + assigner.height + 8 };
-  const bendY = (target.y - source.y) / 2;
+  const exit = target.y < assigner.y ? -1 : 1;
+  const source = { x: centerX, y: exit < 0 ? assigner.y - 8 : assigner.y + assigner.height + 8 };
+  const bow = bowFrom(source);
+  // The stem leaves in its exit direction, even toward a row level with it.
+  const bendY = exit * Math.max(Math.abs(target.y - source.y) / 2, bow);
   // A nearly aligned side attachment still needs room to turn into the row.
   // Its vertical span must not collapse the curve into a stem and tiny hook.
-  const approach = Math.min(76, Math.max(Math.abs(target.x - source.x), Math.abs(target.y - source.y)) / 2);
+  const approach = Math.min(76, span(source) / 2);
   const approachX = target.side === 'left' ? -approach : target.side === 'right' ? approach : 0;
-  // Aligned boxes still get a short curve wholly within their vertical gap.
-  const bowX = target.side === 'vertical' ? Math.min(32, Math.abs(bendY)) : 0;
+  // Aligned boxes keep the curve wholly within their vertical gap.
+  const bowX = target.side === 'vertical' ? Math.max(Math.min(32, Math.abs(bendY)), bow) : 0;
   const approachY = target.side === 'vertical' ? source.y + bendY : target.y;
   return { source, target, control1: { x: source.x + bowX, y: source.y + bendY },
     control2: { x: target.x + approachX, y: approachY } };
