@@ -22,6 +22,7 @@ import {
 import { describeStaleDist } from './distFreshness.js';
 import { checkLocalRuntimeHost, readLocalHostPolicy } from './localHostPolicy.js';
 import { PERMISSIONS_POLICY, helmetOptions } from './securityHeaders.js';
+import { staticOptions } from './staticAssets.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -175,7 +176,7 @@ if (staleDist) {
 }
 
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath, { extensions: ['html'] }));
+  app.use(express.static(distPath, staticOptions(distPath)));
 
   app.get(/^(?!\/api\/).*/, (req, res, next) => {
     if (req.path.startsWith('/api/')) return next();

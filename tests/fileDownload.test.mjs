@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createFileDownloads, DOWNLOAD_URL_LIFETIME_MS, rawOutputBlob } from '../components/fileDownload.ts';
+import { build } from 'esbuild';
+import { createFileDownloads, DOWNLOAD_URL_LIFETIME_MS, failureRecordBlob, rawOutputBlob } from '../components/fileDownload.ts';
 
 const browser = (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
@@ -54,4 +55,22 @@ test('raw model output downloads as plain text whatever media type the response 
     assert.equal(blob.type, 'text/plain;charset=utf-8');
     assert.equal(await blob.text(), text);
   }
+});
+
+test('the failure record names the build that produced it, and loads in Node without one', async () => {
+  const record = { message: 'Parse failed.', generationRecord: { runId: 'run-1' } };
+  const unbuilt = failureRecordBlob(record);
+  assert.equal(unbuilt.type, 'application/json');
+  assert.deepEqual(JSON.parse(await unbuilt.text()), record);
+
+  // Vite replaces __BABEL_BUILD__ with the stamp scripts/buildVersionPlugin.mjs reads.
+  const bundled = await build({
+    entryPoints: [new URL('../components/fileDownload.ts', import.meta.url).pathname],
+    bundle: true, write: false, platform: 'node', format: 'esm',
+    define: { __BABEL_BUILD__: JSON.stringify('0.1.0-beta+abc1234') }
+  });
+  const built = await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].text).toString('base64')}`);
+  const text = await built.failureRecordBlob(record).text();
+  assert.deepEqual(JSON.parse(text), { build: '0.1.0-beta+abc1234', ...record });
+  assert.match(text, /^\{\n  "build": "0\.1\.0-beta\+abc1234",/, 'the build leads the record');
 });

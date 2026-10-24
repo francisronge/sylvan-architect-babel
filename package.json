@@ -39,6 +39,7 @@
     "tier2:review:verify": "node scripts/verifyTier2VisualReview.mjs",
     "orchard:verify": "node scripts/verifyRelationOrchard.cjs",
     "release:verify-assets": "node scripts/verifyReleaseAssets.mjs",
+    "release:check": "npm run verify:all && npm run verify:replay-offline && npm run build && npm run release:verify-assets && npm run verify:browser && npm run verify:browser-visual",
     "preview": "vite preview",
     "start": "node server/index.js",
     "audit": "npm audit",
