@@ -85,7 +85,10 @@ export function fitTreeCamera({ session, layout }: { session: CameraSession; lay
         { x: node.x, y: node.y, parentId: node.parent ? getNodeId(node.parent) : null }]))
     }
   });
-  const minimumInitialScale = CAMERA_ZOOM.minimumFitScale[compactViewport || hasCyclicLinearizationPlate ? 'compact' : 'regular'];
+  // The Canopy (not animated) always shows its whole tree, however small that
+  // makes it; the user zooms in to read.
+  const minimumInitialScale = !session.animated ? 0
+    : CAMERA_ZOOM.minimumFitScale[compactViewport || hasCyclicLinearizationPlate ? 'compact' : 'regular'];
   const fitToRenderedBounds = () => {
     if (derivationFrameFitNodes && derivationFrameFitNodes.length > 0) {
       const minNodeX = stageCameraBounds?.minX ?? Math.min(

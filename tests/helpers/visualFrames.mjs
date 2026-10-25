@@ -18,7 +18,7 @@ import * as layout from '../../replay/treeLayout.ts';
 import * as plaqueJob from '../../replay/plaqueLayoutJob.ts';
 import { categoryTextLayout } from '../../replay/categoryTextLayout.ts';
 import {
-  CAMERA_ZOOM, CATEGORY_FONT, categoryLineBaselineY, INDEX_LABEL, isCompactViewport, markerScaleAtZoom, RELATION_BINDING_METRICS,
+  CATEGORY_FONT, categoryLineBaselineY, INDEX_LABEL, markerScaleAtZoom, RELATION_BINDING_METRICS,
   RELATION_LANES_BELOW_DEEPEST_NODE, SHELL_ATTACHMENT_CLEARANCE, TERMINAL_ATTACHMENT_Y, TERMINAL_FONT, TERMINAL_LABEL, TERMINAL_STEM,
   TRAJECTORY_ROUTES
 } from '../../replay/rendererMetrics.ts';
@@ -448,15 +448,24 @@ function layoutCanopyTree(visual, viewport, metrics = TEXT_METRICS) {
   return frameLayout.placeCanopy(root, places);
 }
 
-/** The Canopy: the final stage's forest without relation marks, fitted to its
- * painted bounds as fitTreeCamera fits a frame without stage bounds. */
-export function layoutCanopyVisualFrame(visual, viewport) {
+/** The Canopy's painted tree and its box `{ x, y, width, height }` in tree
+ * units: the text cells and branches the renderer's getBBox reads. */
+export function layoutCanopyPainted(visual, viewport) {
   const tree = layoutCanopyTree(visual, viewport);
   if (!tree) return null;
   const painted = paintedTree(tree, null, () => undefined);
   const box = union([...painted.texts.map(text => text.cell), ...painted.lines.flatMap(line => line.paths.flat().map(p => rect(p.x, p.y, 0, 0)))]);
+  return { tree, painted, box };
+}
+
+/** The Canopy: the final stage's forest without relation marks, fitted to its
+ * painted bounds as fitTreeCamera fits the Canopy, with no minimum scale. */
+export function layoutCanopyVisualFrame(visual, viewport) {
+  const canopy = layoutCanopyPainted(visual, viewport);
+  if (!canopy) return null;
+  const { painted, box } = canopy;
   const view = availableTreeViewport(viewport.width, viewport.height, viewportObstacles(viewport, false));
-  const zoom = Math.max(CAMERA_ZOOM.minimumFitScale[isCompactViewport(viewport.width) ? 'compact' : 'regular'], Math.min((view.right - view.left) / box.width, (view.bottom - view.top) / box.height, 1));
+  const zoom = Math.min((view.right - view.left) / box.width, (view.bottom - view.top) / box.height, 1);
   const pose = { x: (view.left + view.right) / 2 - (box.x + box.width / 2) * zoom, y: (view.top + view.bottom) / 2 - (box.y + box.height / 2) * zoom, k: zoom };
   return { frame: 'canopy', viewport: viewport.name, zoom, rowHeight: TREE_ROW_HEIGHT, painted: paintedNodes(painted.nodes),
     texts: painted.texts, plaques: [], lines: painted.lines, chrome: frameChrome(viewport, pose, false) };
