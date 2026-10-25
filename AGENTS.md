@@ -298,3 +298,26 @@ shows the actual one.
 npm run qualification:anthropic -- --sentence 'Mia laughed.' --framework xbar \
   --out /tmp/babel-opus-check --run
 ```
+
+## Rules and what enforces them
+
+Each rule here was broken at least twice in October 2026. Prefer a rule with an
+enforcer; when you are corrected for a rule that has none, add one in the same
+change. Drop a row once its mistake can no longer happen.
+
+| Rule | Enforced by |
+|---|---|
+| Recognition never keys on relation names, role names or wording. | `tests/recognitionVocabularyFrozen.test.mjs` fails when a change adds to the recognition vocabulary. |
+| A fault becomes an exception only with Francis's approval, quoting where he gave it. | `npm run verify:exceptions` (CI). |
+| A step moves only the syntax it owns; nothing new jumps. | CI job `corpus-motion` (`verify:corpus` over every fixture against the PR base). |
+| A movement is shown as movement at its own moment. | `movement-shown-as-movement` in `tests/helpers/replayInvariants.mjs`, and `verify:corpus`. |
+| Branches span one row, sisters share a row, parents stand centred. | `branch-geometry` and `parent-centring` in `verify:replay-offline` (CI). |
+| A plaque does not jump while its anchor holds. | `plaque-teleport` in `verify:replay-offline` (CI). |
+| Every layout change is reviewed, never regenerated blind. | Layout fingerprint `fixtures/replay-snapshots/fixture-layout.json` in `verify:replay-offline`. |
+| A check judges the layout the browser paints, not another plan. | The shared camera fit, and the measured-layout test in `tests/replayCorpusComparator.test.mjs`. |
+| Painted frames and motion stay clean. | `verify:browser-visual` in the local macOS merge train (Linux Chromium measures differently, so not CI). |
+| A review page compares the change with current main. | `scripts/buildReplayComparison.mjs` refuses a candidate that lacks the baseline commit. |
+| Mark each claim measured, inferred or guessed. An offline layout reading is not a painted picture; say which you have. | Nothing; judgment. |
+| Before calling a change or a batch clean, step through its changed frames in the real renderer. A metric that improves can hide a regression. | Nothing; judgment. |
+| Before listing open work, read ROADMAP's current work order and Explicitly Not Active. Never relist what Francis settled. | Nothing; judgment. |
+| Decide what has a sensible default or what the code answers. Bring Francis only what needs his eye, as one click-through page, without cases he already approved. | Nothing; judgment. |
