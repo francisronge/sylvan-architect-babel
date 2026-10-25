@@ -25,7 +25,9 @@ type Node = d3.HierarchyPointNode<SyntaxNode>;
  * member under the parent it attaches with and no other syntax inside it, takes
  * those positions, including the row it takes under a parent inserted above an
  * existing host, so only the host descends at the insertion; a later attachment of the same pieces
- * takes precedence. The rest of each frame is unchanged, so the coordinates must
+ * takes precedence. A member may instead still stand directly under an ancestor
+ * from which a later inserted parent separates it; that ancestor keeps its row
+ * and stands centred over the daughters it has there. The rest of each frame is unchanged, so the coordinates must
  * share one origin across stages (see the stage alignment in stageCoordinates.ts).
  * A component keeps its planned frames when its slot would invalidate a branch or
  * add or enlarge any single ink overlap, internal pairs included, in any of them. With `withinStage`, a lifetime stops at its
@@ -141,27 +143,44 @@ export function reserveWaitingSlots({ steps, sizes, coordinates, direction, meas
         pending.push(...(now.get(member)!.children ?? []).map(getNodeId).filter(child => now.has(child)));
       }
       const slot = output.get(scenes[attach].canvas)!;
-      const changes: { scene: typeof scenes[number]; ids: string[] }[] = [];
+      // A member's later parent can be inserted between it and its parent here.
+      const separatedFrom = (member: string, parent: string) => {
+        for (let above = parentOf(now, member); above; above = parentOf(now, above)) if (above === parent) return above !== parentOf(now, member);
+        return false;
+      };
+      const childIds = (nodes: ReadonlyMap<string, Node>, member: string) =>
+        (nodes.get(member)!.children ?? []).map(getNodeId).filter(child => nodes.has(child));
+      const changes: { scene: typeof scenes[number]; ids: string[]; regrouped: string[] }[] = [];
       for (let index = attach - 1; index >= 0; index--) {
         if (withinStage && scenes[index].step.replayFrameIndex !== scenes[attach].step.replayFrameIndex) break;
         const nodes = index === attach - 1 ? before : paint(scenes[index]);
         const present = [...members].filter(member => nodes.has(member));
         // The pieces keep the internal structure they attach with; only detached
-        // parts still being built may lack their later parent.
+        // parts still being built may lack their later parent, and a parent may
+        // still hold a piece directly that a later inserted parent will separate.
         if (!present.length || present.some(member => {
           const parent = parentOf(nodes, member);
-          return parent !== null && (member === id || parent !== parentOf(now, member))
+          return parent !== null && (member === id || parent !== parentOf(now, member) && !separatedFrom(member, parent))
             || (nodes.get(member)!.children ?? []).some(child => nodes.has(getNodeId(child)) && !members.has(getNodeId(child)));
         })) break;
-        changes.push({ scene: scenes[index], ids: present });
+        // A parent whose daughters the insertion changes keeps its row and
+        // stands centred over the daughters it has here.
+        const regrouped = present.filter(member => childIds(nodes, member).length
+          && JSON.stringify(childIds(nodes, member)) !== JSON.stringify(childIds(now, member)))
+          .sort((a, b) => nodes.get(b)!.depth - nodes.get(a)!.depth);
+        changes.push({ scene: scenes[index], ids: present.filter(member => !regrouped.includes(member)), regrouped });
       }
       const saved = new Map(changes.map(({ scene }) => [scene.canvas, output.get(scene.canvas)!]));
-      const accepted = changes.every(({ scene, ids }) => {
+      const accepted = changes.every(({ scene, ids, regrouped }) => {
         const original = paint(scene);
         const points = new Map(output.get(scene.canvas)!);
         // Right-to-left frames reflect x around their own stage width.
         const shift = direction === 'rtl' ? scene.size[0] - scenes[attach].size[0] : 0;
         for (const member of ids) points.set(member, { ...slot.get(member)!, x: slot.get(member)!.x + shift });
+        for (const member of regrouped) {
+          const daughters = childIds(original, member), first = points.get(daughters[0])!, last = points.get(daughters.at(-1)!)!;
+          points.set(member, { ...points.get(member)!, x: (first.x + last.x) / 2 });
+        }
         output.set(scene.canvas, points);
         const placed = paint(scene);
         return valid(placed) && keepsOverlaps(scene, original, placed);

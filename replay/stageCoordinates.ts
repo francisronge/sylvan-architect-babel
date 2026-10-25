@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import { carriedShift } from './cameraCarry.ts';
+import { MOTION_FAULT_THRESHOLD, motionFrame, replayMotionFaults } from './motionContinuity.ts';
 import { categoryMetricKey } from './categoryMetricKey.ts';
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { compactCurrentRootForks } from './currentRootCompaction.ts';
@@ -21,8 +22,9 @@ import type { PlaybackStep } from './types.ts';
 import { separateWorkspaceContours } from './workspaceContourClearance.ts';
 import { reserveWorkspaceAttachments } from './workspacePlacement.ts';
 import { reserveWaitingSlots } from './waitingSlots.ts';
-import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
 import { TREE_SIBLING_GAP } from './treeSpacing.ts';
+import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
+import { alignReplayUnaryTerminalLeaves } from './unaryTerminalLeaves.ts';
 
 type Scene = {
   canvas: SyntaxNode;
@@ -319,10 +321,13 @@ const stageStepOrder = (step: PlaybackStep) => step.replayStageStepIndex ?? (ste
 const stageSteps = (steps: readonly PlaybackStep[], stage: number) => steps
   .filter(step => step.replayFrameIndex === stage && step.replayCanvasData).sort((a, b) => stageStepOrder(a) - stageStepOrder(b));
 
-function paintedSyntax(step: PlaybackStep, size: [number, number], coordinates: TreeCoordinateReservation) {
+function paintedSyntax(step: PlaybackStep, size: [number, number], coordinates: TreeCoordinateReservation, { asPainted = false } = {}) {
   const root = d3.hierarchy(step.replayCanvasData!); applyVizIds(root);
   const visible = new Set<string>(step.replayVisibleNodeIds ?? root.descendants().map(node => getNodeId(node)));
-  return new Map<string, d3.HierarchyPointNode<SyntaxNode>>(layoutSyntaxTree(root, size, 'ltr', coordinates, visible).descendants()
+  const tree = layoutSyntaxTree(root, size, 'ltr', coordinates, visible);
+  // As the renderer paints the frame (treeFrame.ts).
+  if (asPainted) alignReplayUnaryTerminalLeaves(tree, step.replayVisibleNodeIds?.length ? visible : null);
+  return new Map<string, d3.HierarchyPointNode<SyntaxNode>>(tree.descendants()
     .filter(node => visible.has(getNodeId(node)) && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace')
     .map(node => [getNodeId(node), node] as const));
 }
@@ -380,64 +385,30 @@ export function alignedStageFrames(steps: readonly PlaybackStep[], stage: number
     buildStageLocalCoordinates(steps, index, stageSize, sizeForStage));
 }
 
-/** Motion a plan's own frames show: components the step does not own that move,
- * and existing daughters that move as a new parent joins them. A host lowered
- * below an inserted parent that takes its row keeps only its horizontal motion.
- * A component that keeps its painted parent stays one row below it, so when the
- * step moves that parent to another row the component's row change is the
- * parent's; its other motion counts. */
+/** What a plan's own painted frames show: the motion rule's faults
+ * (motionContinuity.ts), keyed as the corpus comparator keys them; the
+ * continuity reflows of its workspaces (workspaceShapeReflows.ts); the width of
+ * each tree of each completed stage; and its final tree. */
 function planMotion(steps: readonly PlaybackStep[], painted: (step: PlaybackStep) => PaintedFrame) {
   // Playback order, whatever order the steps were passed in.
   const ordered = [...steps].sort((a, b) => (a.replayFrameIndex ?? 0) - (b.replayFrameIndex ?? 0) || stageStepOrder(a) - stageStepOrder(b));
   const scenes = ordered.flatMap(step => {
     const [coordinates, size] = step.replayCanvasData && painted(step) || [];
-    return coordinates && size ? [{ step, canvas: step.replayCanvasData!, size, coordinates,
-      nodes: paintedSyntax(step, size, coordinates) }] : [];
+    return coordinates && size ? [{ step, canvas: step.replayCanvasData!, coordinates, nodes: paintedSyntax(step, size, coordinates, { asPainted: true }) }] : [];
   });
-  const render = (scene: typeof scenes[number]) => [...scene.nodes.values()];
-  const paintedParent = (scene: typeof scenes[number], id: string) => {
-    const parent = scene.nodes.get(id)?.parent;
-    return parent && scene.nodes.has(getNodeId(parent)) ? getNodeId(parent) : null;
-  };
-  const unowned = new Map(workspaceContinuityReflows(scenes, new Map(scenes.map(scene => [scene.canvas, scene.coordinates])), render)
-    // A component whose painted parent changes is attaching at that step, which owns its motion.
-    .filter(reflow => reflow.kind === 'unowned-component-motion' && paintedParent(scenes[reflow.index], reflow.rootId)
-      === paintedParent(scenes[reflow.index - 1], reflow.rootId)).map(reflow => {
-      // Across a stage crossing, distance is measured after the camera carry.
-      const before = scenes[reflow.index - 1], after = scenes[reflow.index];
-      const carry = before.step.replayFrameIndex === after.step.replayFrameIndex ? { x: 0, y: 0 } : carriedShift(before.nodes, after.nodes);
-      const from = before.nodes.get(reflow.rootId)!, to = after.nodes.get(reflow.rootId)!, parent = paintedParent(after, reflow.rootId);
-      const rows = parent ? after.nodes.get(parent)!.y - before.nodes.get(parent)!.y : carry.y;
-      return [`${reflow.index}:${reflow.rootId}`, Math.hypot(to.x - from.x - carry.x, to.y - from.y - rows)] as const;
-    }));
-  const joins = new Map<string, number>();
-  scenes.forEach((scene, index) => {
-    const before = scenes[index - 1], target = scene.step.targetNodeId, parent = target && scene.nodes.get(target);
-    if (!before || scene.step.replayKind !== 'micro' || !['ExternalMerge', 'Project'].includes(scene.step.operation)
-      || !parent || before.nodes.has(target)) return;
-    // At an insertion the host descends under the new parent; only its
-    // horizontal motion counts.
-    const priorParent = (id: string) => { const old = before.nodes.get(id)?.parent; return old && before.nodes.has(getNodeId(old)) ? getNodeId(old) : null; };
-    const grand = parent.parent && scene.nodes.has(getNodeId(parent.parent)) ? getNodeId(parent.parent) : null;
-    const insertion = Boolean(grand) && (parent.children ?? []).some(child => priorParent(getNodeId(child)) === grand);
-    for (const node of parent.children ?? []) {
-      const id = getNodeId(node), now = scene.nodes.get(id), prior = before.nodes.get(id);
-      if (!now || !prior) continue;
-      const descends = insertion && Math.abs(parent.y - prior.y) < 1e-6 && now.y > parent.y;
-      const distance = descends ? Math.abs(now.x - prior.x) : Math.hypot(now.x - prior.x, now.y - prior.y);
-      if (distance > 1) joins.set(`${index}:${id}`, distance);
-    }
-  });
-  const moves = new Map<string, number>();
-  scenes.forEach((scene, index) => {
-    const before = scenes[index - 1];
-    if (before) for (const [id, node] of scene.nodes) {
-      const prior = before.nodes.get(id);
-      if (prior) moves.set(`${index}:${id}`, Math.hypot(node.x - prior.x, node.y - prior.y));
-    }
+  const frames = scenes.map(({ step, nodes }) => ({ ...motionFrame(step, nodes, getNodeId), relationIndex: step.replayRelationIdentity?.relationIndex }));
+  const faults = new Map(replayMotionFaults({ frames }).map(fault => [JSON.stringify([fault.kind, fault.step, fault.node]), fault] as const));
+  const reflows = new Set(workspaceContinuityReflows(scenes, new Map(scenes.map(scene => [scene.canvas, scene.coordinates])),
+    scene => [...scene.nodes.values()]).map(reflow => JSON.stringify([reflow.index, reflow.rootId, reflow.kind])));
+  const span = (nodes: readonly d3.HierarchyPointNode<SyntaxNode>[]) => nodes.length ? Math.max(...nodes.map(node => node.x)) - Math.min(...nodes.map(node => node.x)) : 0;
+  const widths = new Map<string, number>();
+  scenes.forEach(({ step, nodes }, index) => {
+    if (step.replayKind !== 'macro') return;
+    for (const root of nodes.values()) if (!root.parent || !nodes.has(getNodeId(root.parent)))
+      widths.set(`${index}:${getNodeId(root)}`, span(root.descendants().filter(node => nodes.has(getNodeId(node)))));
   });
   const last = scenes.at(-1);
-  return { unowned, joins, moves, count: unowned.size + joins.size,
+  return { faults, count: faults.size, reflows, widths,
     final: last ? [...last.nodes].map(([id, node]) => [id, node.x, node.y] as const) : [] };
 }
 
@@ -453,23 +424,23 @@ function finalTreeShift(before: ReturnType<typeof planMotion>, after: ReturnType
     ? { x, y } : null;
 }
 
-/** An aligned plan replaces an established one only when it removes motion and
- * adds none: no new unowned component, no surviving one or join that moves
- * farther, and the same final tree. */
-export function alignmentImprovesMotion(before: ReturnType<typeof planMotion>, after: ReturnType<typeof planMotion>) {
-  return after.count < before.count && finalTreeShift(before, after) !== null
-    && [...after.unowned].every(([key, distance]) => before.unowned.has(key) && distance <= before.unowned.get(key)! + 1e-6)
-    && [...after.joins].every(([key, distance]) => distance <= (before.joins.get(key) ?? 1) + 1e-6);
-}
+// A surviving fault may lengthen by less than half the rule's threshold, below
+// the comparator's tolerance.
+const MOTION_TOLERANCE = MOTION_FAULT_THRESHOLD / 2;
 
-/** Slots in stage-local frames change only the pieces they place, so they are
- * judged without ownership: no painted node may move farther in any frame, total
- * motion must fall, and the final tree stays the same. */
-function slotsReduceMotion(before: ReturnType<typeof planMotion>, after: ReturnType<typeof planMotion>) {
-  const total = (moves: ReadonlyMap<string, number>) => [...moves.values()].reduce((sum, distance) => sum + distance, 0);
-  return after.count < before.count && total(after.moves) < total(before.moves) - 1
-    && [...after.moves].every(([key, distance]) => distance <= (before.moves.get(key) ?? 0) + 1)
-    && finalTreeShift(before, after) !== null;
+/** A plan replaces another only when it shows less motion and costs nothing
+ * else. It keeps the same final tree, shows no motion-rule fault the other does
+ * not show or that is longer, no continuity reflow the other lacks, and no
+ * completed tree wider (a stage's forest may widen, as waiting pieces stand
+ * where they attach). It then shows fewer or shorter faults, or the same faults
+ * and fewer continuity reflows: a stage crossing in one coordinate frame. */
+export function motionImproves(before: ReturnType<typeof planMotion>, after: ReturnType<typeof planMotion>) {
+  const total = (motion: ReturnType<typeof planMotion>) => [...motion.faults.values()].reduce((sum, fault) => sum + fault.distance, 0);
+  if (finalTreeShift(before, after) === null
+    || ![...after.faults].every(([key, fault]) => before.faults.has(key) && fault.distance <= before.faults.get(key)!.distance + MOTION_TOLERANCE)
+    || ![...after.reflows].every(reflow => before.reflows.has(reflow))
+    || ![...after.widths].every(([key, width]) => !before.widths.has(key) || width <= before.widths.get(key)! + 1e-6)) return false;
+  return after.count < before.count || total(after) < total(before) - MOTION_FAULT_THRESHOLD || after.reflows.size < before.reflows.size;
 }
 
 /** All consumers share the same placement plan. Stage-local geometry is built
@@ -481,9 +452,10 @@ function slotsReduceMotion(before: ReturnType<typeof planMotion>, after: ReturnT
  * every frame is then ordered; the outcome is recorded per layout. It is accepted
  * on contour order alone, without comparing motion or ink clearance: a lifetime
  * that ends early can move a lower occurrence and its ancestors at its moment.
- * When the chosen plan still moves syntax that a step does not own, or moves
- * material as it is joined, the same plan is made again with aligned stage
- * frames and replaces it only under `alignmentImprovesMotion`.
+ * When the chosen plan's painted frames show motion the Replay motion rule
+ * reports, the same plan is made again with aligned stage frames, and then with
+ * waiting pieces slotted within each stage; the first replaces it only under
+ * `motionImproves`, which judges every plan as the screen shows it.
  *
  * Planning reads no writing direction: one plan, in left-to-right coordinates,
  * serves both directions (`reflectedReservations`), so every comparison it makes
@@ -596,26 +568,26 @@ function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number
     }));
     return result;
   };
-  // A plan with motion is replaced by the aligned plan when that removes motion
-  // under `alignmentImprovesMotion`, otherwise by its slotted form when no painted
-  // node moves farther in any frame. A replacement whose final tree is the
-  // established one translated is moved back as a whole, every stage alike, so
-  // the final tree keeps its coordinates and the camera sees no difference.
+  // A plan with motion is replaced by the aligned plan, otherwise by its slotted
+  // form, when that shows less motion under `motionImproves`. A replacement
+  // whose final tree is the established one translated is moved back as a
+  // whole, every stage alike, so the final tree keeps its coordinates and the
+  // camera sees no difference.
   const settle = (chosen: ReturnType<typeof plan>, orderedContours: boolean) => {
     if (!sizeForStage) return chosen.frames;
     let choice = alignedChoices.get(chosen.key);
     if (choice === undefined) {
       const before = planMotion(steps, chosen.painted);
       choice = { mode: 'stage', shift: { x: 0, y: 0 } };
-      const accept = (mode: 'slotted' | 'aligned', candidate: ReturnType<typeof plan>, improves: typeof alignmentImprovesMotion) => {
+      const accept = (mode: 'slotted' | 'aligned', candidate: ReturnType<typeof plan>) => {
         if (!ordered(candidate)) return false;
         const after = planMotion(steps, candidate.painted), shift = finalTreeShift(before, after);
-        if (!shift || !improves(before, after)) return false;
+        if (!shift || !motionImproves(before, after)) return false;
         choice = { mode, shift: { x: -shift.x, y: -shift.y } };
         return true;
       };
-      if (before.count && !accept('aligned', plan(orderedContours, 'aligned'), alignmentImprovesMotion))
-        accept('slotted', plan(orderedContours, 'slotted'), slotsReduceMotion);
+      if (before.count && !accept('aligned', plan(orderedContours, 'aligned')))
+        accept('slotted', plan(orderedContours, 'slotted'));
       alignedChoices.set(chosen.key, choice);
     }
     if (choice.mode === 'stage') return chosen.frames;

@@ -175,18 +175,19 @@ export function replayMotionFaults({ frames }: { frames: readonly MotionFrame[] 
 }
 
 type PaintedHierarchyNode = { x: number; y: number; parent: unknown };
+type NodeIdentity<N extends PaintedHierarchyNode> = (node: NonNullable<N['parent']>) => string;
 
 /** Painted points of one laid-out scene, with each point's painted parent. */
-export function paintedPoints<N extends PaintedHierarchyNode>(nodes: ReadonlyMap<string, N>, getNodeId: (node: N) => string): MotionPoint[] {
+export function paintedPoints<N extends PaintedHierarchyNode>(nodes: ReadonlyMap<string, N>, getNodeId: NodeIdentity<N>): MotionPoint[] {
   return [...nodes].map(([id, node]) => {
-    const parent = node.parent && nodes.has(getNodeId(node.parent as N)) ? getNodeId(node.parent as N) : null;
-    return { id, x: node.x, y: node.y, parent };
+    const parent = node.parent ? getNodeId(node.parent as NonNullable<N['parent']>) : null;
+    return { id, x: node.x, y: node.y, parent: parent !== null && nodes.has(parent) ? parent : null };
   });
 }
 
 /** The rule's view of one Replay step: its operation, target, the participants
  * of its own trajectory links, and its painted points. */
-export function motionFrame<N extends PaintedHierarchyNode>(step: PlaybackStep, nodes: ReadonlyMap<string, N>, getNodeId: (node: N) => string): MotionFrame {
+export function motionFrame<N extends PaintedHierarchyNode>(step: PlaybackStep, nodes: ReadonlyMap<string, N>, getNodeId: NodeIdentity<N>): MotionFrame {
   return { stage: step.replayFrameIndex, kind: step.replayKind, operation: step.operation, target: step.targetNodeId,
     links: stepTrajectoryParticipants(step), points: paintedPoints(nodes, getNodeId) };
 }
