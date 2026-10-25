@@ -158,7 +158,7 @@ The parse selector exposes `Parse 1`, `Parse 2`, and any additional analyses. Se
 
 `Canopy` is the clean final-workspace view. It shows each authored final root without adding a syntactic parent.
 
-It is optimized for readability of the resulting structure.
+It draws the tree exactly where the last Replay frame leaves it, without the relation marks, so switching between the two views moves nothing.
 
 ### 8) Derivation Replay view
 
