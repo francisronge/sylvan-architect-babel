@@ -25,13 +25,13 @@ import { guardViewCallback } from '../viewErrorHandling.ts';
 import { installCameraInteraction, updateScreenStableText, type CameraEffects } from './cameraInteraction.ts';
 import { deferredTreeMatrix, type CameraSession } from './cameraState.ts';
 import { fitTreeCamera } from './frameCamera.ts';
+import { layoutReplayFrameTree, placeCanopyAtReplayFrame, type CanopyReplayFrame } from './frameTreeLayout.ts';
 import { createIdentityForestLight } from './identityLighting.ts';
 import { installRelationHitTargets } from './relationInteraction.ts';
 import { refineRelationGeometry } from './relationRefinements.ts';
 import { paintRelationScene } from './relationScene.ts';
 import type { SyntaxDrawingContext } from './syntaxDrawing.ts';
 import { paintSyntaxTree } from './syntaxDrawing.ts';
-import { alignReplayUnaryTerminalLeaves } from './treeNotation.ts';
 import { measureTreeGraphics } from './treeMeasurements.ts';
 
 interface FrameLayout {
@@ -41,6 +41,8 @@ interface FrameLayout {
   movementProtectedNodeIds: Set<string>;
   stageLayoutSize: [number, number] | null;
   replayCoordinates: MeasuredStageCoordinates | undefined;
+  /** The last Replay frame the Canopy lays out; null keeps the fresh layout. */
+  canopyReplayFrame: CanopyReplayFrame | null;
   treeDirection: TreeDirection;
   activePlaqueLayout: Map<number, PlaquePlacement>;
   uiBounds: { top: number; right: number; bottom: number; headerBottom: number; panelTop: number };
@@ -105,6 +107,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     movementProtectedNodeIds,
     stageLayoutSize,
     replayCoordinates,
+    canopyReplayFrame,
     treeDirection,
     activePlaqueLayout,
     uiBounds,
@@ -194,17 +197,17 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
   const stageCoordinates = animated && usesDerivationFrames
     ? replayCoordinates?.get(activeDerivationFrameIndex)?.get(canvasData)
     : undefined;
-  const treeLayout = (root: d3.HierarchyNode<SyntaxNode>) =>
-    layoutSyntaxTree(root, [innerWidth, innerHeight], treeDirection, stageCoordinates,
-      stageCoordinates ? replayVisibleNodeIdSet ?? undefined : undefined,
-      { measureCategoryText, measureTreeInk });
+  const measurements = { measureCategoryText, measureTreeInk };
+  const treeLayout = (root: d3.HierarchyNode<SyntaxNode>) => usesDerivationFrames
+    ? layoutReplayFrameTree(root, [innerWidth, innerHeight], treeDirection, stageCoordinates, replayVisibleNodeIdSet, measurements)
+    : layoutSyntaxTree(root, [innerWidth, innerHeight], treeDirection, undefined, undefined, measurements);
   svg.attr('data-babel-tree-direction', treeDirection);
 
-  const treeData = treeLayout(rootHierarchy);
-
-  if (usesDerivationFrames) {
-    alignReplayUnaryTerminalLeaves(treeData, replayVisibleNodeIdSet);
-  }
+  // The Canopy takes the last Replay frame's places; without that frame it is packed fresh.
+  const canopyTree = !animated && canopyReplayFrame
+    ? placeCanopyAtReplayFrame(rootHierarchy, canopyReplayFrame, treeDirection, measurements) : null;
+  svg.attr('data-babel-canopy-layout', animated ? null : canopyTree ? 'replay-frame' : 'fresh');
+  const treeData = canopyTree ?? treeLayout(rootHierarchy);
   const plaqueNodePositions = indexHierarchyNodesByIdAndAliases(treeData.descendants());
   const replayPlaqueLayout = projectPlaqueLayout(activePlaqueLayout, id => plaqueNodePositions.get(id) ?? null);
   const derivationFrameFitNodes = (() => {
@@ -225,7 +228,6 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
       markTriangulatedNodes(fitHierarchy, movementProtectedNodeIds);
     }
     const fitTreeData = treeLayout(fitHierarchy);
-    alignReplayUnaryTerminalLeaves(fitTreeData, replayVisibleNodeIdSet);
     return fitTreeData.descendants().filter((node) =>
       !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
     );

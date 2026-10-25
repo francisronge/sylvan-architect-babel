@@ -42,6 +42,7 @@ import { treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
 import { buildMovementProtectedNodeIds, isUnderTriangulation } from '../../replay/triangulation.ts';
 import * as notation from '../../components/renderer/treeNotation.ts';
 import { fitTreeCamera } from '../../components/renderer/frameCamera.ts';
+import * as frameLayout from '../../components/renderer/frameTreeLayout.ts';
 import { createPrimitiveVisibility } from '../../components/renderer/relationVisibility.ts';
 import { createTreeInkTextMeasure } from '../../components/treeInkTextMeasure.ts';
 import { createTreeLabelMeasure } from '../../components/treeLabelMeasure.ts';
@@ -423,15 +424,22 @@ function boundMarks(primitives, items) {
   });
 }
 
-/** The Canopy tree: the final stage's forest, laid out as drawTreeFrame lays out a
- * frame without a stage size. The canvas goes where the renderer once passed it,
- * so a layout size that reads it again is reported by layoutWidthFindings. */
-function layoutCanopyTree(visual, viewport, { measureCategoryText, measureTreeInk } = TEXT_METRICS) {
+/** The Canopy tree: the final stage's forest at the places of the last Replay
+ * frame, as drawTreeFrame places it, or laid out fresh as drawTreeFrame lays out
+ * a frame without a stage size when that frame cannot place it. The canvas goes
+ * where the renderer once passed it, so a layout size that reads it again is
+ * reported by layoutWidthFindings. */
+function layoutCanopyTree(visual, viewport, metrics = TEXT_METRICS) {
   const data = canvas.buildDerivationCanvasData(visual.record.derivationStages.at(-1)?.workspaceForest ?? []);
   if (!data) return null;
   const root = d3.hierarchy(canvas.buildRenderableCommittedCanvasData(data)); display.applyVizIds(root);
-  return layout.layoutSyntaxTree(root, camera.treeLayoutSize(root.descendants().length, root.height, viewport.width, viewport.height),
-    visual.direction, undefined, undefined, { measureCategoryText, measureTreeInk });
+  const { playbackSteps: steps, replayDerivationFrames: stages } = visual.prepared;
+  const measurements = { measureCategoryText: metrics.measureCategoryText, measureTreeInk: metrics.measureTreeInk };
+  const scene = steps.length && stages.length ? layoutMeasuredScenes(visual, viewport, metrics) : null;
+  const frame = scene && frameLayout.selectCanopyReplayFrame(steps, scene.coordinates, viewport, scene.groups);
+  return (frame && frameLayout.placeCanopyAtReplayFrame(root, frame, visual.direction, measurements))
+    ?? layout.layoutSyntaxTree(root, camera.treeLayoutSize(root.descendants().length, root.height, viewport.width, viewport.height),
+      visual.direction, undefined, undefined, measurements);
 }
 
 /** The Canopy: the final stage's forest without relation marks, fitted to its
@@ -444,8 +452,8 @@ export function layoutCanopyVisualFrame(visual, viewport) {
   const view = availableTreeViewport(viewport.width, viewport.height, viewportObstacles(viewport, false));
   const zoom = Math.max(CAMERA_ZOOM.minimumFitScale[isCompactViewport(viewport.width) ? 'compact' : 'regular'], Math.min((view.right - view.left) / box.width, (view.bottom - view.top) / box.height, 1));
   const pose = { x: (view.left + view.right) / 2 - (box.x + box.width / 2) * zoom, y: (view.top + view.bottom) / 2 - (box.y + box.height / 2) * zoom, k: zoom };
-  return { frame: 'canopy', viewport: viewport.name, zoom, rowHeight: TREE_ROW_HEIGHT, texts: painted.texts, plaques: [], lines: painted.lines,
-    chrome: frameChrome(viewport, pose, false) };
+  return { frame: 'canopy', viewport: viewport.name, zoom, rowHeight: TREE_ROW_HEIGHT, painted: paintedNodes(painted.nodes),
+    texts: painted.texts, plaques: [], lines: painted.lines, chrome: frameChrome(viewport, pose, false) };
 }
 
 /** layout-width: layout must not read the window. Each other viewport lays out
