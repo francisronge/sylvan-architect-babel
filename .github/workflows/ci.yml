@@ -55,6 +55,7 @@ jobs:
               "verify:visual-offline": "node scripts/auditReplayVisuals.mjs --fixtures --viewports desktop,desktop-large --exceptions tests/helpers/visualExceptions.mjs --snapshot fixtures/replay-snapshots/fixture-layout.json",
               "verify:camera-offline": "node scripts/auditReplayVisuals.mjs --audit camera --fixtures --viewports desktop,mobile --exceptions tests/helpers/cameraExceptions.mjs",
               "verify:replay-offline": "node scripts/auditReplayVisuals.mjs --fixtures --audit visual --viewports desktop,desktop-large --exceptions tests/helpers/visualExceptions.mjs --audit camera --viewports desktop,mobile --exceptions tests/helpers/cameraExceptions.mjs --snapshot fixtures/replay-snapshots/fixture-layout.json",
+              "verify:corpus": "node scripts/compareReplayCorpus.mjs",
             };
             const changed = Object.entries(expected).filter(([name, command]) => scripts[name] !== command);
             for (const [name, command] of changed) {
@@ -159,9 +160,61 @@ jobs:
       - name: Verify static Replay geometry and camera offline
         run: npm run verify:replay-offline -- --jobs 4
 
+  corpus-motion:
+    name: Replay motion against the PR base
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: candidate
+          persist-credentials: false
+
+      - name: Check out PR base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.event.before || 'main' }}
+          path: baseline
+          persist-credentials: false
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: candidate/package-lock.json
+
+      - name: Install both locked dependency sets
+        run: |
+          npm ci --prefix baseline
+          npm ci --prefix candidate
+
+      # Every committed fixture analysis is laid out in both checkouts on the
+      # measured path the browser paints. A new motion fault, a fault that moves
+      # farther, or a movement the base shows as movement losing its moment
+      # fails the job.
+      - name: Compare Replay motion with the PR base
+        working-directory: candidate
+        run: |
+          node scripts/buildCorpusArchiveManifest.mjs --fixtures --out "$RUNNER_TEMP/fixtures-manifest.json"
+          npm run -s verify:corpus -- --baseline-root ../baseline --candidate-root . \
+            --archive-manifest "$RUNNER_TEMP/fixtures-manifest.json" \
+            --output "$RUNNER_TEMP/corpus-motion.json" --timeout-ms 1200000
+
+      - name: Retain the comparison report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: corpus-motion-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/corpus-motion.json
+          if-no-files-found: warn
+          retention-days: 30
+
   verify:
     name: Provider-free verification
-    needs: [contract, offline-tests, replay-offline]
+    needs: [contract, offline-tests, replay-offline, corpus-motion]
     # GitHub treats a skipped required check as passing, so this job always
     # runs and fails unless every needed job succeeded.
     if: always()
