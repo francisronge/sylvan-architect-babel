@@ -17,9 +17,11 @@ import { availableTreeViewport } from '../../components/treeViewport.ts';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import { STAGE_CAMERA_PADDING } from '../../replay/stageCamera.ts';
 import { createCameraHarness } from './cameraHarness.mjs';
-import { CAMERA_THRESHOLDS, checkCameraTrace } from './cameraInvariants.mjs';
+import { CAMERA_THRESHOLDS, checkCameraTrace, checkCanopyPlacement } from './cameraInvariants.mjs';
 import { createSvgDom } from './svgDom.mjs';
-import { canopyFinalFrameFindings, layoutMeasuredScenes, prepareVisualRecord, VIEWPORTS, viewportForWindow, viewportObstacles } from './visualFrames.mjs';
+import {
+  canopyFinalFrameFindings, layoutCanopyPainted, layoutMeasuredScenes, prepareVisualRecord, VIEWPORTS, viewportForWindow, viewportObstacles
+} from './visualFrames.mjs';
 
 /** The visual audit's windows plus a wide, short one, where height limits the Fit. */
 export const CAMERA_VIEWPORTS = Object.freeze([...VIEWPORTS, viewportForWindow('wide-short', [1800, 900])]);
@@ -97,18 +99,41 @@ export function traceCamera(visual, viewport, { reversals = true } = {}) {
   } finally { restore(); }
 }
 
+/** The Canopy's fit at one canvas, for checkCanopyPlacement: the real
+ * fitTreeCamera of the Canopy view (not animated, no stage bounds) over the
+ * painted tree's box, which stands in for the renderer's getBBox. `extent` is
+ * the wheel and pinch zoom extent the fit leaves. Null without a Canopy. */
+export function fitCanopyCamera(visual, viewport) {
+  const canopy = layoutCanopyPainted(visual, viewport);
+  if (!canopy) return null;
+  const { Element, restore } = createSvgDom();
+  try {
+    const camera = createCameraHarness(Element, { width: viewport.width, height: viewport.height });
+    const { x, y, width, height } = canopy.box;
+    camera.group.node().getBBox = () => ({ x, y, width, height });
+    const uiBounds = viewportObstacles(viewport, false), visibleNodes = canopy.tree.descendants();
+    const painted = camera.run(() => fitTreeCamera({ session: camera.session, layout: {
+      relationRenderPlan: visual.prepared.relationRenderPlan, activeDerivationFrameIndex: -1, uiBounds, stageCameraBounds: null,
+      stagePlaqueContainmentBounds: null, completedReplayStep: undefined, g: camera.group, fitFallbackOverlays: undefined,
+      derivationFrameFitNodes: null, overlayFitBounds: null, visibleNodes } }));
+    return { view: availableTreeViewport(viewport.width, viewport.height, uiBounds), box: canopy.box, pose: pose(painted),
+      extent: camera.session.zoom.scaleExtent() };
+  } finally { restore(); }
+}
+
 /** One record's camera findings at each viewport, in the shape of tests/helpers/findings.mjs,
- * with canopy-final-frame: the Canopy and the last Replay frame differ only in the camera.
+ * with canopy-final-frame (the Canopy and the last Replay frame differ only in
+ * the camera) and canopy-placement (the Canopy's fit shows and centres the whole tree).
  * `visual` may be the record's prepareVisualRecord result shared with another
  * audit; this audit only reads it. */
 export function auditCameraRecord(id, record, { viewports = CAMERA_VIEWPORTS, thresholds = CAMERA_THRESHOLDS, reversals = true,
   visual = prepareVisualRecord(record) } = {}) {
   let frames = 0;
   const findings = viewports.flatMap(viewport => {
-    const trace = traceCamera(visual, viewport, { reversals });
-    if (!trace) return [];
-    frames += trace.frames.length;
-    return [...checkCameraTrace(trace, thresholds).findings, ...canopyFinalFrameFindings(visual, viewport)]
+    const trace = traceCamera(visual, viewport, { reversals }), canopy = fitCanopyCamera(visual, viewport);
+    if (trace) frames += trace.frames.length;
+    return [...trace ? [...checkCameraTrace(trace, thresholds).findings, ...canopyFinalFrameFindings(visual, viewport)] : [],
+      ...canopy ? checkCanopyPlacement(canopy, thresholds) : []]
       .map(finding => ({ ...finding, record: id, viewport: viewport.name }));
   });
   return { steps: visual.prepared.playbackSteps.length, frames, findings };

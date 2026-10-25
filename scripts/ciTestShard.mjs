@@ -26,6 +26,7 @@ const WEIGHTS = new Map([
   ['cameraInvariants.test.mjs', 7],
   ['plaqueLayoutJob.test.mjs', 7],
   ['stageCamera.test.mjs', 7],
+  ['canopyCameraFit.test.mjs', 6],
   ['replayNamedAtlasRegressions.test.mjs', 6],
   ['researchGeneration.test.mjs', 6],
   ['movementSlotClearance.test.mjs', 6],

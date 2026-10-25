@@ -64,8 +64,10 @@ layout fault: the Canopy shows it as Replay does, with Retry, and never draws
 another layout in its place. Only an analysis without derivation stages, such as
 an older saved record holding just its tree, is laid out with the same contour
 packing with native text measurements; the tree's SVG then reads
-`data-babel-canopy-layout="fresh"` (otherwise `"replay-frame"`). The camera
-audit's `canopy-final-frame` rule checks every committed analysis at desktop and
+`data-babel-canopy-layout="fresh"` (otherwise `"replay-frame"`). The Canopy's
+Fit has no minimum scale: it always shows the whole tree, centred in the usable
+view, and the user zooms in to read. The camera audit's `canopy-final-frame` and
+`canopy-placement` rules check every committed analysis at desktop and
 mobile. Established movement slots
 remain owned by their exact occurrences. If the spoken source cannot safely use
 the smaller lower-occurrence slot, retain its established slot after that

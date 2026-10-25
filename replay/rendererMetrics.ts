@@ -112,8 +112,9 @@ export const COMPACT_VIEWPORT_WIDTH = 500;
 export const isCompactViewport = (width: number) => width < COMPACT_VIEWPORT_WIDTH;
 
 /**
- * A fresh fit never goes below `minimumFitScale`; containment may shrink a
- * retained fit further. Wheel and pinch zoom keep to `userZoomExtent`, widened
+ * A fresh Replay fit never goes below `minimumFitScale`; containment may shrink
+ * it, or a retained fit, further. The Canopy's fit has no minimum: it always
+ * shows the whole tree. Wheel and pinch zoom keep to `userZoomExtent`, widened
  * by `userZoomExtentAt` to include the scale the camera actually applied.
  */
 export const CAMERA_ZOOM = {

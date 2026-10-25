@@ -26,7 +26,7 @@
 // canopy-final-frame is checked by visualFrames.mjs (compareCanopyToFinalFrame) and
 // reported with the camera audit, which lays out each record at desktop and mobile.
 export const CAMERA_RULES = ['settled-path-independence', 'content-placement', 'first-paint-continuity', 'within-stage-stability',
-  'canopy-final-frame'];
+  'canopy-final-frame', 'canopy-placement'];
 
 /** Screen-pixel thresholds, tuned against the committed fixtures and saved
  * qualification runs (`node scripts/auditReplayVisuals.mjs --audit camera`). */
@@ -44,7 +44,9 @@ export const CAMERA_THRESHOLDS = {
   /** Median first-paint jump of syntax whose attachment is unchanged. */
   jumpPx: 24,
   /** A shared node this far beyond the canvas edge, label included, is out of sight. */
-  offCanvasPx: 24
+  offCanvasPx: 24,
+  /** The Canopy's painted tree is centred when its centre lies this close to the view's. */
+  centrePx: 2
 };
 
 const screen = (pose, point) => ({ x: pose.x + point.x * pose.k, y: pose.y + point.y * pose.k });
@@ -271,6 +273,26 @@ export function checkWithinStageStability(trace, thresholds = CAMERA_THRESHOLDS)
         + `${poseText(step.settled)}, though the previous pose contains the stage` }, pass.name);
   }
   return found.list();
+}
+
+/**
+ * The Canopy's fit shows its whole painted tree inside the usable view
+ * ('clipped') and centres it there on both axes ('off-centre'), however wide
+ * the tree; the user zooms in to read. `canopy` is `{ view, box, pose }`: the
+ * usable view, the painted tree's box `{ x, y, width, height }` in tree units
+ * and the settled pose. Findings are as above, at frame 'canopy'.
+ */
+export function checkCanopyPlacement({ view, box, pose }, thresholds = CAMERA_THRESHOLDS) {
+  const ink = screenRect(pose, { minX: box.x, minY: box.y, maxX: box.x + box.width, maxY: box.y + box.height });
+  const place = { rule: 'canopy-placement', subject: 'canopy', frame: 'canopy' }, found = [];
+  const spill = Object.entries(overflow(ink, view)).filter(([, amount]) => amount > thresholds.clipPx);
+  if (spill.length) found.push({ ...place, subtype: 'clipped', measure: round(Math.max(...spill.map(([, amount]) => amount))),
+    detail: `at ${poseText(pose)}, the painted tree is clipped ${spill.map(([side, amount]) => `${side} ${round(amount)} px`).join(', ')}` });
+  const off = { x: (ink.left + ink.right - view.left - view.right) / 2, y: (ink.top + ink.bottom - view.top - view.bottom) / 2 };
+  if (Math.max(Math.abs(off.x), Math.abs(off.y)) > thresholds.centrePx) found.push({ ...place, subtype: 'off-centre',
+    measure: round(Math.max(Math.abs(off.x), Math.abs(off.y))),
+    detail: `at ${poseText(pose)}, the painted tree's centre is ${round(off.x)}, ${round(off.y)} px from the view's` });
+  return found;
 }
 
 /** Every rule over one trace. */
