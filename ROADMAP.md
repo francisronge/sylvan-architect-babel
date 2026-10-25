@@ -34,6 +34,16 @@ syntactic rules. Desktop remains the primary experience.
      saved runs) stay neutral by design: structure ignores role names, so it
      cannot tell redundant naming from a contradictory claim, which must not
      draw.
+   - Separate workspaces that cannot wait where they merge. In "The letter was
+     signed by the manager." (ship1-20261024/s1-01-en-passive-by) "was" and the
+     waiting PP jump 508 units as stage 1 opens. "was" can only wait at its
+     merge site with the 120-unit separation between workspaces if the
+     finished tree keeps that room, 200.6 units wider at I′ there. Measured over
+     the fixtures and saved runs, keeping the room for every merge of pieces
+     that waited apart would widen 498 of 1,296 analyses' trees (median 2.1% of
+     Canopy width, over 5% in 63, over 10% in 15). Sliding into place at the
+     merge and waiting closer than that separation were both rejected by
+     Francis on 2026-10-25; the widening awaits his decision.
    - After a failed parse in Derivation Replay, the sentence input stays
      visible: the failure panel has no dismiss control.
    - Mobile calibration and a desktop minimum-zoom clamp.
