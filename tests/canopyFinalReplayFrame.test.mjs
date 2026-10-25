@@ -4,58 +4,51 @@ import { test } from 'node:test';
 import * as d3 from 'd3';
 import { placeCanopyAtReplayFrame, selectCanopyReplayFrame } from '../components/renderer/frameTreeLayout.ts';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
-import { buildDerivationCanvasData, buildRenderableCommittedCanvasData, indexHierarchyNodesByIdAndAliases } from '../replay/replayCanvas.ts';
+import { buildDerivationCanvasData, buildRenderableCommittedCanvasData } from '../replay/replayCanvas.ts';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
-import { layoutCanopyVisualFrame, layoutMeasuredScenes, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
+import { canopyFinalFrameFindings, compareCanopyToFinalFrame, layoutMeasuredScenes, prepareVisualRecord, VIEWPORTS } from './helpers/visualFrames.mjs';
 
-// The Canopy is the last Replay frame without its relation marks: the same
-// syntax at the same places. Only the camera may differ, because the Canopy
-// fits its syntax alone; in tree units the two agree up to one translation.
+const corpus = loadFixtureAnalyses().records;
+const recordOf = id => corpus.find(entry => entry.id === id).record;
 const viewports = VIEWPORTS.filter(({ name }) => name === 'desktop' || name === 'mobile');
 
-/** Each place where the Canopy differs from the last Replay frame, beyond one translation. */
-function canopyDifferences(visual, viewport) {
-  const last = layoutMeasuredScenes(visual, viewport).scenes.at(-1);
-  const canopy = layoutCanopyVisualFrame(visual, viewport);
-  if (!last || !canopy) return [`${viewport.name}: ${last ? 'no Canopy' : 'no Replay frame'}`];
-  const frameNodes = indexHierarchyNodesByIdAndAliases([...last.nodes.values()]);
-  const differences = [], seen = new Set();
-  let offset;
-  assert(canopy.painted, 'the Canopy frame records its painted syntax');
-  for (const [id, point] of canopy.painted) {
-    const node = frameNodes.get(id);
-    if (!node) { differences.push(`${viewport.name}: ${id} is not in the last Replay frame`); continue; }
-    seen.add(getNodeId(node));
-    offset ??= { x: point.x - node.x, y: point.y - node.y };
-    const dx = point.x - node.x - offset.x, dy = point.y - node.y - offset.y;
-    if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01)
-      differences.push(`${viewport.name}: ${id} is ${dx.toFixed(2)}, ${dy.toFixed(2)} from its last-frame place`);
-  }
-  for (const id of last.nodes.keys()) {
-    if (!seen.has(id)) differences.push(`${viewport.name}: the Canopy does not paint ${id}`);
-  }
-  return differences;
-}
+// The camera audit (verify:camera-offline, verify:replay-offline) checks
+// canopy-final-frame on every committed analysis at desktop and mobile. These
+// cover its kinds of syntax here: terminals found through aliases, unary
+// terminals, right-to-left order and several roots.
+const REPRESENTATIVE = {
+  'aliased and unary terminals': 'normalized/mia-laughed.xbar.json#/analyses/0',
+  'aliases with movement': 'normalized/what-did-mia-see.xbar.json#/analyses/0',
+  'right to left': 'showcase/agreement-and-case.json#/cases/0',
+  'right to left with movement': 'replay-regressions/inserted-adjunction-segment.json#',
+  'several roots': 'replay-regressions/pending-source-pronunciation.json#'
+};
+for (const [kind, id] of Object.entries(REPRESENTATIVE)) test(`the Canopy is the last Replay frame: ${kind}`, () => {
+  const visual = prepareVisualRecord(recordOf(id));
+  assert(visual.prepared.playbackSteps.length, `${id} has a Replay`);
+  for (const viewport of viewports) assert.deepEqual(canopyFinalFrameFindings(visual, viewport), [], `${id} at ${viewport.name}`);
+});
 
-test('the Canopy lays out every fixture analysis as its last Replay frame', () => {
-  const { records } = loadFixtureAnalyses();
-  assert(records.length > 100, 'the committed fixture corpus is loaded');
-  const failures = [];
-  for (const { id, record } of records) {
-    const visual = prepareVisualRecord(record);
-    if (!visual.prepared.playbackSteps.length) continue;
-    const differences = viewports.flatMap(viewport => canopyDifferences(visual, viewport));
-    if (differences.length) failures.push(`${id}\n    ${differences.slice(0, 3).join('\n    ')}`
-      + (differences.length > 3 ? `\n    … ${differences.length - 3} more` : ''));
-  }
-  assert.equal(failures.length, 0, `${failures.length} of ${records.length} analyses:\n${failures.slice(0, 12).join('\n')}`);
+test('control: canopy-final-frame reports a moved, a missing and an unknown Canopy node', () => {
+  const visual = prepareVisualRecord(recordOf(REPRESENTATIVE['aliased and unary terminals']));
+  const desktop = viewports[0], frame = layoutMeasuredScenes(visual, desktop).scenes.at(-1).nodes;
+  const canopy = [...frame.values()].map(node => Object.assign(Object.create(Object.getPrototypeOf(node)), node));
+  assert.deepEqual(compareCanopyToFinalFrame(canopy.map(node => Object.assign(node, { x: node.x + 40, y: node.y - 3 })), frame), [],
+    'one translation is the camera');
+  const tbar = canopy.find(node => getNodeId(node) === 'tbar_1');
+  tbar.x += 7;
+  const found = compareCanopyToFinalFrame(canopy.filter(node => getNodeId(node) !== 'vp_laughed'), frame);
+  assert.deepEqual(found.map(({ subtype, subject, measure }) => [subtype, subject, measure]),
+    [['moved', 'tbar_1', 7], ['unpainted', 'vp_laughed', null]]);
+  const unknown = Object.assign(Object.create(Object.getPrototypeOf(tbar)), tbar, { __vizId: 'unknown' });
+  assert.equal(compareCanopyToFinalFrame([...canopy, unknown], frame).find(({ subtype }) => subtype === 'unmatched')?.subject, 'unknown');
 });
 
 // Fallbacks: the Canopy is laid out fresh when there is no last Replay frame,
 // when its reservation is not prepared, or when that frame does not show the
 // Canopy's syntax exactly.
-const mia = loadFixtureAnalyses().records.find(entry => entry.id === 'normalized/mia-laughed.xbar.json#/analyses/0').record;
-const desktop = VIEWPORTS.find(({ name }) => name === 'desktop');
+const mia = recordOf(REPRESENTATIVE['aliased and unary terminals']);
+const desktop = viewports[0];
 const canopyRoot = (forest = mia.derivationStages.at(-1).workspaceForest) => {
   const root = d3.hierarchy(buildRenderableCommittedCanvasData(buildDerivationCanvasData(structuredClone(forest))));
   applyVizIds(root);

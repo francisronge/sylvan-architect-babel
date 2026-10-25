@@ -23,7 +23,10 @@
  * authored stage of the frame. Where several passes paint the same fault, one
  * finding keeps the largest measure. Checkers never assert. */
 
-export const CAMERA_RULES = ['settled-path-independence', 'content-placement', 'first-paint-continuity', 'within-stage-stability'];
+// canopy-final-frame is checked by visualFrames.mjs (compareCanopyToFinalFrame) and
+// reported with the camera audit, which lays out each record at desktop and mobile.
+export const CAMERA_RULES = ['settled-path-independence', 'content-placement', 'first-paint-continuity', 'within-stage-stability',
+  'canopy-final-frame'];
 
 /** Screen-pixel thresholds, tuned against the committed fixtures and saved
  * qualification runs (`node scripts/auditReplayVisuals.mjs --audit camera`). */

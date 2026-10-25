@@ -60,7 +60,9 @@ place of its occurrence in that frame, through the one frame layout both views
 use (`components/renderer/frameTreeLayout.ts`), and only the camera Fit differs.
 An analysis without Replay steps, a Replay layout that fails, or a last frame that
 does not show every Canopy node exactly once leaves the Canopy to the same contour
-packing with native text measurements. Established movement slots
+packing with native text measurements; the page then warns once in the console
+and the tree's SVG reads `data-babel-canopy-layout="fresh"`. The camera audit's
+`canopy-final-frame` rule checks every committed analysis at desktop and mobile. Established movement slots
 remain owned by their exact occurrences. If the spoken source cannot safely use
 the smaller lower-occurrence slot, retain its established slot after that
 movement instead of pulling unchanged ancestors inward. This fallback must pass

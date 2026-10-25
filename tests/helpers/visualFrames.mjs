@@ -219,9 +219,11 @@ export function prepareVisualRecord(record) {
 const firstRun = (runs, kind) => runs?.find(run => run.kind === kind);
 
 /** Tree text, stems and branches painted by paintSyntaxTree. */
+const paintedSyntax = (tree, visible) => tree.descendants().filter(node => !isUnderTriangulation(node)
+  && !canvas.isSyntheticWorkspaceRootNode(node) && (!visible || visible.has(display.getNodeId(node))));
+
 function paintedTree(tree, visible, runsFor) {
-  const nodes = tree.descendants().filter(node => !isUnderTriangulation(node) && !canvas.isSyntheticWorkspaceRootNode(node)
-    && (!visible || visible.has(display.getNodeId(node))));
+  const nodes = paintedSyntax(tree, visible);
   const shown = new Set(nodes), texts = [], lines = [];
   for (const node of nodes) {
     const id = display.getNodeId(node), runs = runsFor(node);
@@ -454,6 +456,41 @@ export function layoutCanopyVisualFrame(visual, viewport) {
   const pose = { x: (view.left + view.right) / 2 - (box.x + box.width / 2) * zoom, y: (view.top + view.bottom) / 2 - (box.y + box.height / 2) * zoom, k: zoom };
   return { frame: 'canopy', viewport: viewport.name, zoom, rowHeight: TREE_ROW_HEIGHT, painted: paintedNodes(painted.nodes),
     texts: painted.texts, plaques: [], lines: painted.lines, chrome: frameChrome(viewport, pose, false) };
+}
+
+/** canopy-final-frame: the Canopy is the last Replay frame without its
+ * relation marks. It paints the same syntax at the same places; only the camera
+ * may differ, so in tree units the two agree up to one translation. `canopy` is
+ * the Canopy's painted nodes and `frame` the last frame's, a Map from display
+ * ID. A Canopy node is that frame's node of the same ID or alias. Findings
+ * follow tests/helpers/findings.mjs without `record` and `viewport`; `measure`
+ * is the larger of the horizontal and vertical displacement in tree units. */
+export function compareCanopyToFinalFrame(canopy, frame) {
+  const occurrences = canvas.indexHierarchyNodesByIdAndAliases([...frame.values()]), shown = new Set(), findings = [];
+  const finding = (subtype, subject, measure, detail) => ({ rule: 'canopy-final-frame', subtype, subject, frame: 'canopy', measure, detail });
+  let offset;
+  for (const node of canopy) {
+    const id = display.getNodeId(node), occurrence = occurrences.get(id);
+    if (!occurrence) { findings.push(finding('unmatched', id, null, `${id} is not in the last Replay frame`)); continue; }
+    shown.add(display.getNodeId(occurrence));
+    offset ??= { x: node.x - occurrence.x, y: node.y - occurrence.y };
+    const dx = node.x - occurrence.x - offset.x, dy = node.y - occurrence.y - offset.y;
+    const measure = Math.round(Math.max(Math.abs(dx), Math.abs(dy)) * 100) / 100;
+    if (measure > 0.01) findings.push(finding('moved', id, measure, `${id} is ${dx.toFixed(2)}, ${dy.toFixed(2)} from its place in the last frame`));
+  }
+  for (const id of frame.keys()) if (!shown.has(id)) findings.push(finding('unpainted', id, null, `the Canopy does not paint ${id}`));
+  return findings;
+}
+
+/** canopy-final-frame at one viewport. It reuses the viewport's measured Replay
+ * layout, so a pass that laid out the frames adds only the Canopy's placement. */
+export function canopyFinalFrameFindings(visual, viewport) {
+  const { playbackSteps: steps, replayDerivationFrames: stages } = visual.prepared;
+  if (!steps.length || !stages.length) return [];
+  const last = layoutMeasuredScenes(visual, viewport).scenes.at(-1), tree = layoutCanopyTree(visual, viewport);
+  if (!tree) return [{ rule: 'canopy-final-frame', subtype: 'unpainted', subject: 'canopy', frame: 'canopy', measure: null,
+    detail: 'the last Replay frame has no Canopy' }];
+  return compareCanopyToFinalFrame(paintedSyntax(tree, null), last.nodes);
 }
 
 /** layout-width: layout must not read the window. Each other viewport lays out

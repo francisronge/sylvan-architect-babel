@@ -379,6 +379,10 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   // A Canopy whose Replay layout failed is still the final tree: it falls back
   // to the fresh layout instead of reporting the failure.
   const canopyLayoutFailed = canopyFollowsReplay && Boolean(plaqueLayoutError);
+  useEffect(() => {
+    // Replay shows this failure; the Canopy reports it once, during development too.
+    if (canopyLayoutFailed) console.warn('Babel Canopy could not lay out this tree; showing the fresh layout:', plaqueLayoutError);
+  }, [canopyLayoutFailed, plaqueLayoutError]);
   const frameViewport = layoutViewport ?? (canopyLayoutFailed ? viewport : undefined);
   const canopyReplayFrame = useMemo(() => canopyFollowsReplay && layoutViewport
     ? selectCanopyReplayFrame(layoutPlaybackSteps, replayCoordinates, layoutViewport, stageLayoutGroups) : null,
