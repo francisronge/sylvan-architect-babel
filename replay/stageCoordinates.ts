@@ -21,6 +21,7 @@ import type { PlaybackStep } from './types.ts';
 import { separateWorkspaceContours } from './workspaceContourClearance.ts';
 import { reserveWorkspaceAttachments } from './workspacePlacement.ts';
 import { reserveWaitingSlots } from './waitingSlots.ts';
+import { holdFinalPositions } from './finalPositionHold.ts';
 import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
 import { TREE_SIBLING_GAP } from './treeSpacing.ts';
 
@@ -492,8 +493,39 @@ export function buildStageCoordinateReservations(steps: readonly PlaybackStep[],
   sizeForStage?: (stageIndex: number) => [number, number] | null,
   direction: TreeDirection = 'ltr', measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
   treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> {
-  const planned = planStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
+  const planned = heldStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel)
+    ?? planStageCoordinates(steps, stageIndex, size, sizeForStage, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
   return direction === 'rtl' ? reflectedReservations(steps, planned, size, sizeForStage) : planned;
+}
+
+const heldPlans = new WeakMap<readonly PlaybackStep[], Map<string, Map<number, Map<SyntaxNode, TreeCoordinateReservation>> | null>>();
+
+/** Every stage's plan, held at the completed derivation's positions
+ * (`holdFinalPositions`), or null when the stage sizes are unknown or the hold
+ * cannot produce valid frames. One hold serves every stage of these steps. */
+function heldStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number, size: [number, number],
+  sizeForStage?: (stageIndex: number) => [number, number] | null,
+  measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
+  treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> | null {
+  if (!sizeForStage) return null;
+  const sizes = new Map<number, [number, number]>();
+  for (const step of steps) {
+    if (step.replayFrameIndex === undefined || sizes.has(step.replayFrameIndex)) continue;
+    const stageSize = sizeForStage(step.replayFrameIndex);
+    if (stageSize) sizes.set(step.replayFrameIndex, stageSize);
+  }
+  const own = sizes.get(stageIndex);
+  if (!own || own[0] !== size[0] || own[1] !== size[1]) return null;
+  const key = JSON.stringify([[...sizes].sort(([a], [b]) => a - b), categoryMetricKey(steps, measureCategoryText),
+    treeInkMetricKey(steps, measureCategoryText, measureTreeInk), treeLabelMetricKey(steps, treeLabelRuns, measureTreeLabel)]);
+  let byKey = heldPlans.get(steps);
+  if (!byKey) heldPlans.set(steps, byKey = new Map());
+  if (!byKey.has(key)) {
+    const planned = new Map([...sizes].map(([stage, stageSize]) => [stage, planStageCoordinates(steps, stage, stageSize, sizeForStage,
+      measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel)] as const));
+    byKey.set(key, holdFinalPositions({ steps, sizes, planned, measureCategoryText }));
+  }
+  return byKey.get(key)?.get(stageIndex) ?? null;
 }
 
 // Each plan's right-to-left reservations, per translation, so a reused layout
