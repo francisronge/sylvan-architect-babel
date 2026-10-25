@@ -1,37 +1,11 @@
 import * as d3 from 'd3';
-import { getNodeId } from '../../replay/displayIdentity.ts';
 import { markerScaleAtZoom } from '../../replay/rendererMetrics.ts';
-import { isSyntheticWorkspaceRootNode } from '../../replay/replayCanvas.ts';
-import { formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue, isTraceLike, isWordlessCategoryLeaf } from '../../replay/replaySurfaceNotation.ts';
+import { formatAuthoredWitnessSurface, formatIndexedSurfaceForDisplayValue, isTraceLike } from '../../replay/replaySurfaceNotation.ts';
 import type { HierNode } from '../../replay/types.ts';
-import type { SyntaxNode } from '../../types.ts';
 import type { DrawingLayer } from './drawingContext.ts';
 import { labelBelongsToNode } from './treeMeasurements.ts';
 
-export const alignReplayUnaryTerminalLeaves = (root: d3.HierarchyPointNode<SyntaxNode>, replayVisibleNodeIdSet: Set<string> | null) => {
-  root.eachBefore((node) => {
-    const children = Array.isArray(node.children) ? node.children : [];
-    const layoutChildren = children.filter((child) =>
-      !isSyntheticWorkspaceRootNode(child)
-    );
-    if (layoutChildren.length !== 1) return;
-    const child = layoutChildren[0];
-    if (
-      replayVisibleNodeIdSet
-      && (
-        !replayVisibleNodeIdSet.has(getNodeId(node))
-        || !replayVisibleNodeIdSet.has(getNodeId(child))
-      )
-    ) return;
-    if (!child) return;
-    if (isSyntheticWorkspaceRootNode(node) || isSyntheticWorkspaceRootNode(child)) return;
-    const childHasChildren = Array.isArray(child.children) && child.children.length > 0;
-    const isTerminalLeaf = !childHasChildren && !isWordlessCategoryLeaf(child.data);
-    if (isTerminalLeaf) {
-      child.x = node.x;
-    }
-  });
-};
+export { alignReplayUnaryTerminalLeaves } from '../../replay/unaryTerminalLeaves.ts';
 
 export const hasTreeGapNotation = (g: DrawingLayer, nodeId: string, text: string): boolean => Boolean(
   g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
