@@ -22,12 +22,14 @@ import {
   stageTreeLayoutSize
 } from '../replay/stageCamera.ts';
 import { buildMovementProtectedNodeIds } from '../replay/triangulation.ts';
+import type { PlaybackStep } from '../replay/types.ts';
 import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
 import { type DerivationStage, type SyntaxNode } from '../types';
 import { selectReplayCanvas } from './replayStepCanvas.ts';
 import { withPlaqueTextMeasure } from './renderer/plaqueText.ts';
 import { applyRelationEmphasis } from './renderer/relationInteraction.ts';
 import { updateSyntaxReveal } from './renderer/syntaxReveal.ts';
+import { canopyPlacesInReplayFrame, selectCanopyReplayFrame } from './renderer/frameTreeLayout.ts';
 import { drawTreeFrame } from './renderer/treeFrame.ts';
 import ReplayPanel from './ReplayPanel';
 import { createTreeInkTextMeasure } from './treeInkTextMeasure';
@@ -40,6 +42,8 @@ import { useViewErrorHandler } from './ViewErrorBoundary';
 import { guardViewCallback } from './viewErrorHandling.ts';
 
 import type { AutoCameraState, TreeCameraState } from './renderer/cameraState.ts';
+
+const NO_PLAYBACK_STEPS: PlaybackStep[] = [];
 
 export type { TreeCameraState } from './renderer/cameraState.ts';
 
@@ -149,16 +153,19 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     setSettledFontText(fontText);
     setFontLayoutPass(pass => pass + 1);
   }, fontText, () => latestMeasuredRuns.current.changed()), [fontText]);
+  // The Canopy lays out the last Replay frame, so both views prepare Replay's playback.
   const { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
-    movementChainIndexCatalogue, playbackSteps } = useMemo(
-      () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, includePlayback: animated }),
-      [preparedReplay, derivationStages, sentence, inputTokens, animated]
+    movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps } = useMemo(
+      () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, includePlayback: true }),
+      [preparedReplay, derivationStages, sentence, inputTokens]
     );
+  // Only Replay plays its steps; the Canopy paints the completed tree.
+  const playbackSteps = animated ? layoutPlaybackSteps : NO_PLAYBACK_STEPS;
   const treeLabelRuns = useMemo(() => settledFontText === fontText ? prepareTreeLabelRuns({
     replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
-    movementChainIndexCatalogue, playbackSteps
+    movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps
   }, measureCategoryText) : undefined,
-    [playbackSteps, replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
+    [layoutPlaybackSteps, replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
       movementChainIndexCatalogue, measureCategoryText, settledFontText, fontText]);
   const initialStepIndex = initialReplayStepIndex(playbackSteps, initialReplayMoment, initialReplayStep);
   const [activeStepIndex, setActiveStepIndex] = useState(initialStepIndex);
@@ -192,6 +199,8 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     })).join('|');
   }, [replayDerivationFrames]);
   const usesDerivationFrames = animated && replayDerivationFrames.length > 0;
+  const canopyFollowsReplay = !animated && hasDerivationFrames && Boolean(layoutPlaybackSteps.at(-1)?.replayCanvasData);
+  const layoutsReplay = usesDerivationFrames || canopyFollowsReplay;
   const committedDerivationFrameIndex = hasDerivationFrames
     ? replayDerivationFrames.length - 1
     : -1;
@@ -203,7 +212,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     [committedDerivationVisualLinks]
   );
   const committedDerivationCanvasData = useMemo(() => {
-    if (!usesDerivationFrames) return null;
+    if (!layoutsReplay) return null;
     if (!committedDerivationFrame) {
       return {
         label: DERIVATION_WORKSPACE_ROOT_LABEL,
@@ -214,7 +223,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     return buildRenderableDerivationCanvasData(
       committedDerivationFrame.workspaceForest || []
     );
-  }, [committedDerivationFrame, usesDerivationFrames]);
+  }, [committedDerivationFrame, layoutsReplay]);
   const committedCanonicalDerivationCanvasData = useMemo(() => {
     if (!usesDerivationFrames) return null;
     return buildRenderableCommittedCanvasData(
@@ -352,28 +361,38 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
     return new Set(nodeIds.map((id) => String(id || '')).filter(Boolean));
   }, [activeDerivationReplayStep, usesDerivationFrames]);
   const acceptedCompositionIsTreeFirst = isTreeFirstComposition(relationRenderPlan?.frames[activeDerivationFrameIndex]?.items ?? []);
-  const stageLayoutGroups = useMemo(() => buildStageLayoutGroups(playbackSteps, replayDerivationFrames),
-    [playbackSteps, replayDerivationFrames]);
+  const stageLayoutGroups = useMemo(() => buildStageLayoutGroups(layoutPlaybackSteps, replayDerivationFrames),
+    [layoutPlaybackSteps, replayDerivationFrames]);
   const layoutContent = useMemo(() => committedDerivationCanvasData && settledFontText === fontText ? {
-    steps: playbackSteps, stageIndex: 0, completedCanvas: committedDerivationCanvasData,
+    steps: layoutPlaybackSteps, stageIndex: 0, completedCanvas: committedDerivationCanvasData,
     plan: relationRenderPlan, direction: treeDirection, abstractionMode, protectedNodeIds: movementProtectedNodeIds,
     layoutGroups: stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel
-  } : null, [committedDerivationCanvasData, playbackSteps, relationRenderPlan, abstractionMode, movementProtectedNodeIds,
+  } : null, [committedDerivationCanvasData, layoutPlaybackSteps, relationRenderPlan, abstractionMode, movementProtectedNodeIds,
     stageLayoutGroups, measurePlaqueText, measureCategoryText, measureTreeInk, treeDirection,
     settledFontText, fontText, treeLabelRuns, measureTreeLabel]);
   const viewport = useMemo(() => ({ ...dimensions, bounds: uiBounds }), [dimensions, uiBounds]);
   // The frame is drawn for the displayed viewport, which stays the earlier one
   // while a resize prepares a new layout.
-  const { viewport: frameViewport, schedule: replayPlaqueSchedule, coordinates: replayCoordinates, ready: plaqueLayoutReady,
-    error: plaqueLayoutError, retry: retryPlaqueLayout } = useReplayPlaqueLayout(layoutContent, viewport, activeDerivationFrameIndex);
+  const { viewport: layoutViewport, schedule: replayPlaqueSchedule, coordinates: replayCoordinates, ready: plaqueLayoutReady,
+    error: plaqueLayoutError, retry: retryPlaqueLayout } = useReplayPlaqueLayout(layoutContent, viewport,
+    usesDerivationFrames ? activeDerivationFrameIndex : committedDerivationFrameIndex);
+  const frameViewport = layoutViewport;
+  // The Canopy paints at the last Replay frame's places, and waits for them as Replay does.
+  const canopyPlaces = useMemo(() => {
+    if (!canopyFollowsReplay || !layoutViewport || !canvasData) return null;
+    const frame = selectCanopyReplayFrame(layoutPlaybackSteps, replayCoordinates, layoutViewport, stageLayoutGroups);
+    return frame && canopyPlacesInReplayFrame(canvasData, frame, treeDirection, { measureCategoryText, measureTreeInk });
+  }, [canopyFollowsReplay, layoutViewport, canvasData, layoutPlaybackSteps, replayCoordinates, stageLayoutGroups, treeDirection,
+    measureCategoryText, measureTreeInk]);
   const stageLayoutSize = useMemo(() => (
     animated && usesDerivationFrames && frameViewport
       ? stageTreeLayoutSize(playbackSteps, activeDerivationFrameIndex, frameViewport.width, frameViewport.height, stageLayoutGroups)
       : null
   ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, frameViewport, stageLayoutGroups]);
-  // An empty stage paints no syntax, so it needs no coordinates.
-  const missingReplayCoordinates = Boolean(layoutContent && plaqueLayoutReady && usesDerivationFrames && canvasData
-    && !replayCoordinates?.get(activeDerivationFrameIndex)?.has(canvasData));
+  // An empty stage paints no syntax, so it needs no coordinates. A Canopy the
+  // last frame cannot place is the same layout fault, never another layout.
+  const missingReplayCoordinates = Boolean(layoutContent && plaqueLayoutReady && canvasData && (usesDerivationFrames
+    ? !replayCoordinates?.get(activeDerivationFrameIndex)?.has(canvasData) : canopyFollowsReplay && !canopyPlaces));
   const layoutReady = settledFontText === fontText && dimensions.width > 0 && plaqueLayoutReady && !missingReplayCoordinates;
   const stagePlaqueLayout = useMemo(() => selectReplayPlaqueLayout(replayPlaqueSchedule, activeDerivationFrameIndex),
     [replayPlaqueSchedule, activeDerivationFrameIndex]);
@@ -591,6 +610,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         movementProtectedNodeIds,
         stageLayoutSize,
         replayCoordinates,
+        canopyPlaces,
         treeDirection,
         activePlaqueLayout,
         uiBounds: frameViewport.bounds,
@@ -645,6 +665,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   }, [
     layoutReady,
     replayCoordinates,
+    canopyPlaces,
     zoomBehavior,
     activeDerivationFrame,
     activeDerivationFrameIndex,

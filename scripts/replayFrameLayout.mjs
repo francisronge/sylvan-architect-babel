@@ -10,7 +10,9 @@
  * laid-out `tree` and `visible` ids with unary terminals aligned as the painter
  * aligns them (module `notation`), and `stageCamera(stage, completedStep)` gives
  * the stage camera `bounds` and plaque `containment` that TreeVisualizer passes
- * to fitTreeCamera (module `canvas` builds each stage's completed canvas).
+ * to fitTreeCamera (module `canvas` builds each stage's completed canvas);
+ * `coordinates` and `groups` are the stage reservations and layout groups
+ * TreeVisualizer passes on, which the Canopy reads its last frame from.
  * `measured` = { plan, protectedNodeIds, treeLabelRuns, measurePlaqueText,
  * measureCategoryText, measureTreeInk, measureTreeLabel, pocketOccupants? }; with
  * `pocketOccupants` the schedule keeps what its hold pass saw at each step
@@ -68,5 +70,5 @@ export function layoutReplayFrames({ steps, stages, width, height, direction, me
     }
     return cameras.get(key);
   };
-  return { sizes, positions, render, scenes, schedule, ...(measured ? { stageCamera } : {}) };
+  return { sizes, positions, render, scenes, schedule, ...(measured ? { stageCamera, coordinates: stageCoordinates, groups } : {}) };
 }

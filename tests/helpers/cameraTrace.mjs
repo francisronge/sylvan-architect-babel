@@ -19,7 +19,7 @@ import { STAGE_CAMERA_PADDING } from '../../replay/stageCamera.ts';
 import { createCameraHarness } from './cameraHarness.mjs';
 import { CAMERA_THRESHOLDS, checkCameraTrace } from './cameraInvariants.mjs';
 import { createSvgDom } from './svgDom.mjs';
-import { layoutMeasuredScenes, prepareVisualRecord, VIEWPORTS, viewportForWindow, viewportObstacles } from './visualFrames.mjs';
+import { canopyFinalFrameFindings, layoutMeasuredScenes, prepareVisualRecord, VIEWPORTS, viewportForWindow, viewportObstacles } from './visualFrames.mjs';
 
 /** The visual audit's windows plus a wide, short one, where height limits the Fit. */
 export const CAMERA_VIEWPORTS = Object.freeze([...VIEWPORTS, viewportForWindow('wide-short', [1800, 900])]);
@@ -97,7 +97,8 @@ export function traceCamera(visual, viewport, { reversals = true } = {}) {
   } finally { restore(); }
 }
 
-/** One record's camera findings at each viewport, in the shape of tests/helpers/findings.mjs.
+/** One record's camera findings at each viewport, in the shape of tests/helpers/findings.mjs,
+ * with canopy-final-frame: the Canopy and the last Replay frame differ only in the camera.
  * `visual` may be the record's prepareVisualRecord result shared with another
  * audit; this audit only reads it. */
 export function auditCameraRecord(id, record, { viewports = CAMERA_VIEWPORTS, thresholds = CAMERA_THRESHOLDS, reversals = true,
@@ -107,7 +108,8 @@ export function auditCameraRecord(id, record, { viewports = CAMERA_VIEWPORTS, th
     const trace = traceCamera(visual, viewport, { reversals });
     if (!trace) return [];
     frames += trace.frames.length;
-    return checkCameraTrace(trace, thresholds).findings.map(finding => ({ ...finding, record: id, viewport: viewport.name }));
+    return [...checkCameraTrace(trace, thresholds).findings, ...canopyFinalFrameFindings(visual, viewport)]
+      .map(finding => ({ ...finding, record: id, viewport: viewport.name }));
   });
   return { steps: visual.prepared.playbackSteps.length, frames, findings };
 }

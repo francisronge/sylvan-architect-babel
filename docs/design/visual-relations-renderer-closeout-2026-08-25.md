@@ -54,8 +54,19 @@ individual forks back into a previous whole-tree width. Dense full-tree
 overviews can therefore require zoom; that alone is not a defect.
 
 Replay prepares intrinsic contours once through the construction history and
-then applies its existing attachment and continuity constraints. Canopy uses the
-same contour packing with native text measurements. Established movement slots
+then applies its existing attachment and continuity constraints. The Canopy is
+the last Replay frame without its relation marks: every Canopy node takes the
+place of its occurrence in that frame, through the one frame layout both views
+use (`components/renderer/frameTreeLayout.ts`), and only the camera Fit differs.
+The Canopy waits behind the layout cover for that frame. A Replay layout that
+fails, or a last frame that does not show every Canopy node exactly once, is a
+layout fault: the Canopy shows it as Replay does, with Retry, and never draws
+another layout in its place. Only an analysis without derivation stages, such as
+an older saved record holding just its tree, is laid out with the same contour
+packing with native text measurements; the tree's SVG then reads
+`data-babel-canopy-layout="fresh"` (otherwise `"replay-frame"`). The camera
+audit's `canopy-final-frame` rule checks every committed analysis at desktop and
+mobile. Established movement slots
 remain owned by their exact occurrences. If the spoken source cannot safely use
 the smaller lower-occurrence slot, retain its established slot after that
 movement instead of pulling unchanged ancestors inward. This fallback must pass
@@ -1002,7 +1013,8 @@ The workers remove compilation and plaque allocation from the app's UI thread,
 not their CPU cost. Message transfer, font measurement and D3 layout/painting still
 involve the UI thread. There is no persistent
 cache, worker pool, automatic provider retry or change to JSON processing. Canopy
-preparation omits Replay steps; switching into Replay prepares those steps then.
+preparation includes the Replay steps and waits for their layout, since the Canopy
+paints the last Replay frame's places; each view still prepares when it mounts.
 
 Within one compilation, interpreted stage relations are reused when constructing
 cumulative links. Links still resolve against their current forest and relation
