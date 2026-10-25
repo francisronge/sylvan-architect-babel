@@ -568,11 +568,11 @@ function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number
     }));
     return result;
   };
-  // A plan with motion is replaced by the aligned plan, otherwise by its slotted
-  // form, when that shows less motion under `motionImproves`. A replacement
-  // whose final tree is the established one translated is moved back as a
-  // whole, every stage alike, so the final tree keeps its coordinates and the
-  // camera sees no difference.
+  // A plan whose syntax moves unowned, joins away from its site or reflows is
+  // replaced by the aligned plan, otherwise by its slotted form, when that
+  // shows less motion under `motionImproves`. A replacement whose final tree is the
+  // established one translated is moved back as a whole, every stage alike, so
+  // the final tree keeps its coordinates and the camera sees no difference.
   const settle = (chosen: ReturnType<typeof plan>, orderedContours: boolean) => {
     if (!sizeForStage) return chosen.frames;
     let choice = alignedChoices.get(chosen.key);
@@ -586,7 +586,12 @@ function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number
         choice = { mode, shift: { x: -shift.x, y: -shift.y } };
         return true;
       };
-      if (before.count && !accept('aligned', plan(orderedContours, 'aligned')))
+      // The alternatives place pieces that wait and stages that meet, so they are
+      // planned when syntax moves that its step does not own, a joined piece is
+      // not at its site, or a workspace reflows; shape motion alone does not
+      // repay planning again.
+      const replan = before.reflows.size > 0 || [...before.faults.values()].some(fault => fault.kind !== 'shape-motion');
+      if (replan && !accept('aligned', plan(orderedContours, 'aligned')))
         accept('slotted', plan(orderedContours, 'slotted'));
       alignedChoices.set(chosen.key, choice);
     }

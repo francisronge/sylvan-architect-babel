@@ -1,0 +1,420 @@
+{
+  "description": "Stage 4 opens with the subject's internal merge, which builds a new tense domain over the one stage 3 completed, while the complementizer waits beside it as a separate workspace until the next step merges them. Replay kept stage 3's established coordinates, which do not meet stage 4's, so after the camera carry the waiting complementizer jumped 663.8 units at the stage's first step.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, 19 October 2026 (night3 batch, 61-en-npi).",
+  "sentence": "Nobody saw anything.",
+  "framework": "minimalism",
+  "inputTokens": [
+    "Nobody",
+    "saw",
+    "anything"
+  ],
+  "derivationStages": [
+    {
+      "relations": [],
+      "stageRecord": "The workspace contains the three pronounced items and the functional heads needed for a finite declarative clause. Nobody and anything are analyzed as atomic pronominal D items: each is both minimal and maximal, so neither requires an additional nominal projection. Nobody is a negative quantifier; anything is an existential indefinite requiring negative-polarity licensing. Saw is the lexical past-tense form of see. The analysis uses a silent transitive v, a silent past T, and a silent declarative C. Projection labels in subsequent stages identify the projecting head under Bare Phrase Structure, rather than introducing independent phrase-level symbols.",
+      "statement": "Select the lexical items and silent functional heads.",
+      "workspaceForest": [
+        {
+          "children": [],
+          "id": "subject",
+          "label": "D",
+          "lineageId": "subject-chain",
+          "word": "Nobody"
+        },
+        {
+          "children": [],
+          "id": "verb",
+          "label": "V",
+          "word": "saw"
+        },
+        {
+          "children": [],
+          "id": "object",
+          "label": "D",
+          "word": "anything"
+        },
+        {
+          "children": [],
+          "id": "little-v",
+          "label": "v",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "tense",
+          "label": "T",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "complementizer",
+          "label": "C",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "argument": "object",
+            "predicate": "verb"
+          },
+          "relation": "Internal theta-role assignment",
+          "values": {
+            "thetaRole": "perceived entity"
+          }
+        }
+      ],
+      "stageRecord": "External Merge combines saw with anything, producing a constituent labeled by V. Anything receives the verb's internal theta role, the entity perceived. It remains an existential negative-polarity item; introducing it as the complement of saw does not itself license its polarity dependency.",
+      "statement": "Construct the verb's internal-argument domain.",
+      "workspaceForest": [
+        {
+          "children": [],
+          "id": "subject",
+          "label": "D",
+          "lineageId": "subject-chain",
+          "word": "Nobody"
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "verb",
+              "label": "V",
+              "word": "saw"
+            },
+            {
+              "children": [],
+              "id": "object",
+              "label": "D",
+              "word": "anything"
+            }
+          ],
+          "id": "verb-domain",
+          "label": "V"
+        },
+        {
+          "children": [],
+          "id": "little-v",
+          "label": "v",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "tense",
+          "label": "T",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "complementizer",
+          "label": "C",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "goal": "object",
+            "licenser": "little-v"
+          },
+          "relation": "Accusative Case licensing",
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "anchors": {
+            "argument": "subject",
+            "predicate": "little-v"
+          },
+          "relation": "External theta-role assignment",
+          "values": {
+            "thetaRole": "perceiver"
+          }
+        }
+      ],
+      "stageRecord": "First, transitive v merges with the V constituent and licenses accusative Case on anything. Nobody then externally merges at the edge of the resulting v constituent and receives the external theta role of perceiver. This order places Nobody above the object within the predicate domain. The lexical verb remains in its base position: this implementation does not require V-to-v head movement for English transitivity.",
+      "statement": "Introduce transitive v and the external argument.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "subject",
+              "label": "D",
+              "lineageId": "subject-chain",
+              "word": "Nobody"
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "little-v",
+                  "label": "v",
+                  "silent": true
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "verb",
+                      "label": "V",
+                      "word": "saw"
+                    },
+                    {
+                      "children": [],
+                      "id": "object",
+                      "label": "D",
+                      "word": "anything"
+                    }
+                  ],
+                  "id": "verb-domain",
+                  "label": "V"
+                }
+              ],
+              "id": "transitive-domain",
+              "label": "v"
+            }
+          ],
+          "id": "external-domain",
+          "label": "v"
+        },
+        {
+          "children": [],
+          "id": "tense",
+          "label": "T",
+          "silent": true
+        },
+        {
+          "children": [],
+          "id": "complementizer",
+          "label": "C",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "goal": "subject",
+            "probe": "tense"
+          },
+          "relation": "Finite agreement and nominative Case licensing",
+          "values": {
+            "case": "nominative",
+            "number": "singular",
+            "person": "third"
+          }
+        },
+        {
+          "anchors": {
+            "lexicalVerb": "verb",
+            "tenseHead": "tense"
+          },
+          "relation": "Past-tense feature checking",
+          "values": {
+            "implementation": "lexically inflected verb; no overt movement to T",
+            "tense": "past"
+          }
+        }
+      ],
+      "stageRecord": "Past T externally merges with the complete v constituent. T probes its complement and agrees with Nobody, the closest accessible nominal, licensing its nominative Case. Nobody supplies third-person singular agreement features. T also checks the past-tense feature of the lexical form saw. This is a feature-checking implementation with an already inflected lexical verb, not an operation that moves or fuses pronounced material; consequently, no special realization association is needed. The subject remains in its original position at this stage, providing an explicit source for subsequent Internal Merge.",
+      "statement": "Establish finite tense, agreement, and nominative Case.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "tense",
+              "label": "T",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "subject",
+                  "label": "D",
+                  "lineageId": "subject-chain",
+                  "word": "Nobody"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "little-v",
+                      "label": "v",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "verb",
+                          "label": "V",
+                          "word": "saw"
+                        },
+                        {
+                          "children": [],
+                          "id": "object",
+                          "label": "D",
+                          "word": "anything"
+                        }
+                      ],
+                      "id": "verb-domain",
+                      "label": "V"
+                    }
+                  ],
+                  "id": "transitive-domain",
+                  "label": "v"
+                }
+              ],
+              "id": "external-domain",
+              "label": "v"
+            }
+          ],
+          "id": "tense-domain",
+          "label": "T"
+        },
+        {
+          "children": [],
+          "id": "complementizer",
+          "label": "C",
+          "silent": true
+        }
+      ]
+    },
+    {
+      "relations": [
+        {
+          "anchors": {
+            "attractingHead": "tense",
+            "higherOccurrence": "subject",
+            "lowerOccurrence": "subject-lower"
+          },
+          "priorAnchors": {
+            "sourceOccurrence": "subject"
+          },
+          "relation": "Subject Internal Merge and copy pronunciation",
+          "values": {
+            "pronunciation": "higher occurrence pronounced; lower occurrence silent",
+            "trigger": "T subject-edge requirement"
+          }
+        },
+        {
+          "anchors": {
+            "licensedIndefinite": "object",
+            "licenser": "subject"
+          },
+          "relation": "Negative-polarity licensing",
+          "values": {
+            "configuration": "negative subject c-commands the indefinite",
+            "polarity": "negative-polarity existential"
+          }
+        },
+        {
+          "anchors": {
+            "existentialIndefinite": "object",
+            "negativeQuantifier": "subject",
+            "predicate": "verb"
+          },
+          "relation": "Quantificational scope",
+          "values": {
+            "interpretation": "There is no person x such that there is a thing y that x saw.",
+            "scope": "negative subject > existential object"
+          }
+        }
+      ],
+      "stageRecord": "Nobody internally merges at the edge of the T constituent to satisfy T's subject-edge requirement. Its pronounced occurrence retains its identity, and a distinct silent lower copy preserves its original theta position. Silent declarative C then merges with the completed T constituent. In the resulting clause, pronounced Nobody c-commands anything and licenses it as a negative-polarity indefinite. Nobody itself supplies the semantic negation, so no independent Neg head is required. The interpretation is that there is no person who saw any thing: the existential contributed by anything is inside the scope of the negative subject. The object is not independently raised to a wide-scope existential position. The pronounced terminals, with the lower subject copy and all functional heads silent, yield Nobody saw anything.",
+      "statement": "Complete the declarative clause and license the negative-polarity object.",
+      "workspaceForest": [
+        {
+          "children": [
+            {
+              "children": [],
+              "id": "complementizer",
+              "label": "C",
+              "silent": true
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "id": "subject",
+                  "label": "D",
+                  "lineageId": "subject-chain",
+                  "word": "Nobody"
+                },
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "id": "tense",
+                      "label": "T",
+                      "silent": true
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "id": "subject-lower",
+                          "label": "D",
+                          "lineageId": "subject-chain",
+                          "silent": true,
+                          "word": "Nobody"
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [],
+                              "id": "little-v",
+                              "label": "v",
+                              "silent": true
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [],
+                                  "id": "verb",
+                                  "label": "V",
+                                  "word": "saw"
+                                },
+                                {
+                                  "children": [],
+                                  "id": "object",
+                                  "label": "D",
+                                  "word": "anything"
+                                }
+                              ],
+                              "id": "verb-domain",
+                              "label": "V"
+                            }
+                          ],
+                          "id": "transitive-domain",
+                          "label": "v"
+                        }
+                      ],
+                      "id": "external-domain",
+                      "label": "v"
+                    }
+                  ],
+                  "id": "tense-domain",
+                  "label": "T"
+                }
+              ],
+              "id": "subject-tense-domain",
+              "label": "T"
+            }
+          ],
+          "id": "clause",
+          "label": "C"
+        }
+      ]
+    }
+  ]
+}
