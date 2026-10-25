@@ -34,6 +34,7 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 - Commit bodies briefly state the problem, then the fix. Record the model and harness used when known; never guess.
 - Keep each PR to one independently shippable concern. Its tests and documentation belong with it.
 - UI changes need before-and-after images. Motion, Replay, or camera changes need a short recording.
+- Show Francis a Replay or renderer change as one click-through page built with `node scripts/buildReplayComparison.mjs --baseline-root <main> --candidate-root <branch> --cases <cases.json> --out /tmp/<page>`: both checkouts play the same analyses side by side and step together. It refuses a candidate that lacks the baseline commit, and every case must say what to watch and which steps to open.
 - Keep PR-only evidence outside the worktree and upload it to the PR; never commit it.
 
 ## Plans and documentation
@@ -132,7 +133,7 @@ prerequisites, not rendered correctness, and starts no server or provider reques
 | Focused relation geometry | `npm run verify:renderer-browser` checks native endpoints, persistence, zoom/Fit and narrow views. |
 | Complete browser behavior | `npm run verify:browser` runs every required browser spec, including real app failure recovery and Tree Bank save/reopen. Missing, unowned or skipped required specs fail. |
 | Engine and review-page compatibility | `npm run verify:browser-webkit` runs the bounded Chromium/WebKit renderer and comparison-visibility matrix. This does not substitute for macOS in-app-browser review of relevant UI changes. |
-| Shared Replay/layout changes | `npm run verify:corpus -- --baseline-root /base --candidate-root /candidate --output /tmp/comparison.json` compares the same explicit records in two checkouts, and fails when a movement the baseline shows as movement loses its moment or trajectory on the candidate. `--archive-manifest /private/index.json` adds private saved records; unknown mechanism coverage is reported. |
+| Shared Replay/layout changes | `npm run verify:corpus -- --baseline-root /base --candidate-root /candidate --output /tmp/comparison.json` compares the same explicit records in two checkouts, and fails when a movement the baseline shows as movement loses its moment or trajectory on the candidate. CI runs it over every committed fixture analysis against the PR base, so a new or farther motion fault fails the pull request. `--archive-manifest /private/index.json` adds private saved records; unknown mechanism coverage is reported. |
 | Renderer preparation or startup | `npm run verify:renderer-performance -- --baseline-root /base --report /tmp/timing.json` preserves the first-paint budget and reports full preparation separately. Both checkouts need locked dependencies. Preparation distributions are informational until a separate budget is established. |
 | Painted Replay geometry and motion: renderer, camera, layout, resize | `npm run verify:browser-visual` renders the human-catalogue analyses with the production renderer in Chromium at 1440×900 and 390×844 and judges every painted frame and the Canopy with the shared geometry rules, index letters with the one-letter count, settled poses with the camera policy, and every animation frame of each Next step, rapid Next run and resize (empty or faded frames, off-canvas, jumping or blinking syntax and marks, jitter). It fails on findings not listed in `tests/helpers/browserVisualExceptions.mjs`, beyond their bound or stale, and on unjudged places. For discovery over saved review pages, `node scripts/auditReplayBrowser.mjs --page PAGE.html --cases all --out /tmp/audit` (`--dry-run` estimates, `--shard`, `--baseline`). |
 | Renderer, layout, font or Replay changes; release work | `npm run verify:visual-offline` lays out every committed fixture frame and Canopy offline at 1440×900 and 2560×1440 and checks overlapping text, lines through plaques or text, distant plaques and role labels, broken label wraps, clipping, syntax branches off the one-row grid or sisters on different rows, parents more than a pixel off the midpoint of their outermost visible daughters, and plaques that jump between adjacent frames while their anchor stays still and nothing new occupies the pocket they leave. It fails on findings not listed in `tests/helpers/visualExceptions.mjs`, on findings beyond their bound and on stale exceptions. For discovery over saved runs, `node scripts/auditReplayVisuals.mjs --fixtures --batches /path/codex-qualification --out /tmp/visual-audit.json` (mobile included). |
@@ -298,3 +299,26 @@ shows the actual one.
 npm run qualification:anthropic -- --sentence 'Mia laughed.' --framework xbar \
   --out /tmp/babel-opus-check --run
 ```
+
+## Rules and what enforces them
+
+Each rule here was broken at least twice in October 2026. Prefer a rule with an
+enforcer; when you are corrected for a rule that has none, add one in the same
+change. Drop a row once its mistake can no longer happen.
+
+| Rule | Enforced by |
+|---|---|
+| Recognition never keys on relation names, role names or wording. | `tests/recognitionVocabularyFrozen.test.mjs` fails when a change adds to the recognition vocabulary. |
+| A fault becomes an exception only with Francis's approval, quoting where he gave it. | `npm run verify:exceptions` (CI). |
+| A step moves only the syntax it owns; nothing new jumps. | CI job `corpus-motion` (`verify:corpus` over every fixture against the PR base). |
+| A movement is shown as movement at its own moment. | `movement-shown-as-movement` in `tests/helpers/replayInvariants.mjs`, and `verify:corpus`. |
+| Branches span one row, sisters share a row, parents stand centred. | `branch-geometry` and `parent-centring` in `verify:replay-offline` (CI). |
+| A plaque does not jump while its anchor holds. | `plaque-teleport` in `verify:replay-offline` (CI). |
+| Every layout change is reviewed, never regenerated blind. | Layout fingerprint `fixtures/replay-snapshots/fixture-layout.json` in `verify:replay-offline`. |
+| A check judges the layout the browser paints, not another plan. | The shared camera fit, and the measured-layout test in `tests/replayCorpusComparator.test.mjs`. |
+| Painted frames and motion stay clean. | `verify:browser-visual` in the local macOS merge train (Linux Chromium measures differently, so not CI). |
+| A review page compares the change with current main. | `scripts/buildReplayComparison.mjs` refuses a candidate that lacks the baseline commit. |
+| Mark each claim measured, inferred or guessed. An offline layout reading is not a painted picture; say which you have. | Nothing; judgment. |
+| Before calling a change or a batch clean, step through its changed frames in the real renderer. A metric that improves can hide a regression. | Nothing; judgment. |
+| Before listing open work, read ROADMAP's current work order and Explicitly Not Active. Never relist what Francis settled. | Nothing; judgment. |
+| Decide what has a sensible default or what the code answers. Bring Francis only what needs his eye, as one click-through page, without cases he already approved. | Nothing; judgment. |
