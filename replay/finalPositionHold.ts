@@ -4,7 +4,7 @@ import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { plaqueBranchObstacles, plaqueTreeObstacles } from './relations/plaquePlacement.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation } from './treeLayout.ts';
-import { TREE_ROW_HEIGHT } from './treeSpacing.ts';
+import { TREE_ROW_HEIGHT, TREE_SIBLING_GAP } from './treeSpacing.ts';
 import type { PlaybackStep } from './types.ts';
 
 type Node = d3.HierarchyNode<SyntaxNode>;
@@ -24,8 +24,9 @@ const statuses = new WeakMap<readonly PlaybackStep[], FinalHoldStatus[]>();
 /** How each final-position hold of these steps ended, for diagnostics. */
 export const getFinalHoldStatuses = (steps: readonly PlaybackStep[]) => [...(statuses.get(steps) ?? [])];
 
-// Clearance between separate workspaces, as separateWorkspaceContours measures it.
-const WORKSPACE_CLEARANCE = 34;
+// A waiting workspace keeps the layout's node unit (the d3 node size) from
+// every label, word and branch of a neighbouring workspace, in any direction.
+const WORKSPACE_CLEARANCE = TREE_SIBLING_GAP / 2.5;
 const CUT_ROUNDS = 12;
 
 const painted = (node: Node) => !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace';
@@ -225,6 +226,34 @@ export function holdFinalPositions({ steps, sizes, planned, measureCategoryText 
         const from = scene.plan.get(getNodeId(attachment))!, to = coordinates.get(getNodeId(attachment))!;
         coordinates.set(id, { x: own.x + to.x - from.x, y: own.y + to.y - from.y });
       });
+      // A relation that inserts a new parent into a host's slot (a complex head,
+      // a landing's new phrase) owns the host, while the ancestors above keep
+      // their daughters. The host waits where that parent will stand, so the
+      // ancestors need not recentre when it arrives; the host moves at its own
+      // relation. Construction steps judge a joining daughter's motion instead,
+      // so their hosts keep their own places. Across a stage crossing the camera
+      // carries the bulk of the shown syntax, so a host that is most of it stays.
+      if (next.step.replayKind === 'relation') {
+        const crossing = scene.step.replayFrameIndex !== next.step.replayFrameIndex;
+        const shownCount = [...scene.nodes.values()].filter(node => painted(node) && scene.visible.has(getNodeId(node))).length;
+        const shownParent = (frame: Scene, node: Node | undefined) => {
+          const parent = node?.parent;
+          return parent && painted(parent) && frame.visible.has(getNodeId(parent)) ? getNodeId(parent) : null;
+        };
+        for (const id of kept) {
+          const node = scene.nodes.get(id)!, later = next.nodes.get(id)!;
+          if (!scene.visible.has(id) || !next.visible.has(id)) continue;
+          const before = shownParent(scene, node), inserted = shownParent(next, later);
+          if (!before || !inserted || before === inserted || scene.visible.has(inserted)
+            || shownParent(next, next.nodes.get(inserted)) !== before) continue;
+          if (crossing && 2 * node.descendants().filter(member => painted(member) && scene.visible.has(getNodeId(member))).length >= shownCount) continue;
+          const shift = reference.get(inserted)!.x - reference.get(id)!.x;
+          if (Math.abs(shift) > 1e-6) node.each(member => {
+            const point = coordinates.get(getNodeId(member))!;
+            coordinates.set(getNodeId(member), { x: point.x + shift, y: point.y });
+          });
+        }
+      }
       rows(scene, coordinates, kept, ownedBy(scene, next));
       centre(scene, coordinates);
       held[index] = coordinates;
@@ -241,19 +270,47 @@ export function holdFinalPositions({ steps, sizes, planned, measureCategoryText 
   };
   type Box = ReturnType<typeof plaqueTreeObstacles>[number];
   type PaintedNode = d3.HierarchyPointNode<SyntaxNode>;
+  // Boxes indexed by horizontal bands of rows, each band sorted by x, so a
+  // check visits only the boxes within reach of a row.
+  const BAND = TREE_ROW_HEIGHT / 2;
+  type Bands = Map<number, Box[]>;
+  const banded = (boxes: readonly Box[]): Bands => {
+    const bands: Bands = new Map();
+    for (const box of boxes) for (let band = Math.floor(box.y / BAND); band <= Math.floor((box.y + box.height) / BAND); band++) {
+      const list = bands.get(band);
+      if (list) list.push(box); else bands.set(band, [box]);
+    }
+    for (const list of bands.values()) list.sort((a, b) => a.x - b.x);
+    return bands;
+  };
   // How far `right` must move right for every box of `left` to stand `clearance`
   // clear of every box of `right` that shares its rows, or `floor` when that is
-  // no more. `right` is sorted by x, so each left box stops at its first
-  // row-sharing box or at the first box too far right to exceed the floor.
-  const overlap = (left: readonly Box[], right: readonly Box[], clearance: number, floor: number) => {
+  // no more. Within a band each left box stops at its first row-sharing box or
+  // at the first box too far right to exceed the floor.
+  const overlap = (left: readonly Box[], right: Bands, clearance: number, floor: number) => {
     let gap = floor;
     for (const l of left) {
       const limit = l.x + l.width + clearance;
-      for (const r of right) {
+      for (let band = Math.floor(l.y / BAND); band <= Math.floor((l.y + l.height) / BAND); band++) for (const r of right.get(band) ?? []) {
         if (limit - r.x <= gap) break;
         if (Math.min(l.y + l.height, r.y + r.height) <= Math.max(l.y, r.y)) continue;
         gap = limit - r.x;
         break;
+      }
+    }
+    return gap;
+  };
+  // How far `right` must move right for every box of `left` to stand at least
+  // `clearance` from every box of `right` in any direction, or 0 when none is
+  // needed.
+  const separation = (left: readonly Box[], right: Bands, clearance: number) => {
+    let gap = 0;
+    for (const l of left) {
+      const edge = l.x + l.width;
+      for (let band = Math.floor((l.y - clearance) / BAND); band <= Math.floor((l.y + l.height + clearance) / BAND); band++) for (const r of right.get(band) ?? []) {
+        if (edge + clearance - r.x <= gap) break;
+        const rows = Math.max(0, r.y - (l.y + l.height), l.y - (r.y + r.height));
+        if (rows < clearance) gap = Math.max(gap, edge + Math.sqrt(clearance * clearance - rows * rows) - r.x);
       }
     }
     return gap;
@@ -268,36 +325,61 @@ export function holdFinalPositions({ steps, sizes, planned, measureCategoryText 
     }
     return relative.map(box => ({ ...box, x: box.x + node.x, y: box.y + node.y }));
   };
-  // One painted frame's units: each painted subtree's boxes (sorted by x), its
+  // One painted frame's units: each painted subtree's extent, its boxes
+  // (gathered, and sorted by x, only when a check needs them), its
   // completed-leaf span and its extreme shifts from the frame's own plan.
-  type Unit = { boxes: Box[]; sorted: Box[]; span?: readonly [number, number]; x: number; minShift: number; maxShift: number; rowShift?: number };
+  type Extent = { left: number; right: number; top: number; bottom: number };
+  type Unit = { id: string; node: PaintedNode; own: readonly Box[]; extent: Extent; span?: readonly [number, number]; x: number;
+    minShift: number; maxShift: number; rowShift?: number; boxes?: Box[]; bands?: Bands };
+  const extentOf = (boxes: readonly Box[], into: Extent = { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity }) => {
+    for (const box of boxes) {
+      into.left = Math.min(into.left, box.x); into.right = Math.max(into.right, box.x + box.width);
+      into.top = Math.min(into.top, box.y); into.bottom = Math.max(into.bottom, box.y + box.height);
+    }
+    return into;
+  };
   const frameUnits = (nodes: readonly PaintedNode[], leafSpans: ReadonlyMap<string, readonly [number, number]>, plan?: ReadonlyMap<string, PaintedNode>) => {
     const included = new Set(nodes), units = new Map<PaintedNode, Unit>();
     for (const node of [...nodes].sort((a, b) => b.depth - a.depth)) {
       const children = (node.children ?? []).filter(child => included.has(child));
-      const own = boxesOf(node), id = getNodeId(node), reference = plan?.get(id);
+      const id = getNodeId(node), reference = plan?.get(id);
+      const own = [...boxesOf(node), ...(node.parent && included.has(node.parent) ? plaqueBranchObstacles(node.parent, node) : [])];
       const shift = reference ? node.x - reference.x : 0, rows = reference ? node.y - reference.y : 0;
-      let boxes = [...own], minShift = shift, maxShift = shift, rowShift: number | undefined = rows;
+      const extent = extentOf(boxesOf(node));
+      let minShift = shift, maxShift = shift, rowShift: number | undefined = rows;
       const spans: (readonly [number, number])[] = [];
       if (!children.length && leafSpans.has(id)) spans.push(leafSpans.get(id)!);
       for (const child of children) {
         const part = units.get(child)!;
-        boxes = boxes.concat(part.boxes, plaqueBranchObstacles(node, child));
+        extentOf(part.own.slice(boxesOf(child).length), extent);
+        extent.left = Math.min(extent.left, part.extent.left); extent.right = Math.max(extent.right, part.extent.right);
+        extent.top = Math.min(extent.top, part.extent.top); extent.bottom = Math.max(extent.bottom, part.extent.bottom);
         minShift = Math.min(minShift, part.minShift); maxShift = Math.max(maxShift, part.maxShift);
         if (part.rowShift === undefined || Math.abs(part.rowShift - rows) > 1e-6) rowShift = undefined;
         if (part.span) spans.push(part.span);
       }
-      units.set(node, { boxes, sorted: [], x: node.x, minShift, maxShift, rowShift,
+      units.set(node, { id, node, own, extent, x: node.x, minShift, maxShift, rowShift,
         span: spans.length ? [Math.min(...spans.map(span => span[0])), Math.max(...spans.map(span => span[1]))] : undefined });
     }
-    const sorted = (unit: Unit) => unit.sorted.length || !unit.boxes.length ? unit.sorted : (unit.sorted = [...unit.boxes].sort((a, b) => a.x - b.x));
-    return { units, included, sorted };
+    // A subtree's boxes: its own label and word boxes and, below it, every
+    // member's boxes and the branch to its parent.
+    const boxes = (unit: Unit) => {
+      if (unit.boxes) return unit.boxes;
+      const out = [...boxesOf(unit.node)];
+      for (const member of unit.node.descendants()) if (member !== unit.node && included.has(member)) out.push(...units.get(member)!.own);
+      return unit.boxes = out;
+    };
+    const sorted = (unit: Unit) => unit.bands ??= banded(boxes(unit));
+    return { units, included, boxes, sorted };
   };
+  // Whether `left` and `right` can come within `reach` of each other at all.
+  const near = (left: Extent, right: Extent, reach: number) => left.right + reach - right.left > 0.5
+    && right.top - left.bottom < reach && left.top - right.bottom < reach;
   // Where a gap moves `right` away from `left` in the completed leaf order: at
   // any leaf after `left`'s last up to `right`'s first. A side the completed
   // tree does not place bounds nothing; `cut` is where a new gap opens.
-  type Request = { from: number; to: number; cut: number; gap: number };
-  const between = (left: Unit, right: Unit): Omit<Request, 'gap'> | undefined =>
+  type Request = { from: number; to: number; cut: number; gap: number; pair: string };
+  const between = (left: Unit, right: Unit): Omit<Request, 'gap' | 'pair'> | undefined =>
     left.span && right.span ? (left.span[1] < right.span[0] ? { from: left.span[1] + 1, to: right.span[0], cut: right.span[0] } : undefined)
       : right.span ? { from: 0, to: right.span[0], cut: right.span[0] }
       : left.span ? { from: left.span[1] + 1, to: Infinity, cut: left.span[1] + 1 } : undefined;
@@ -319,10 +401,10 @@ export function holdFinalPositions({ steps, sizes, planned, measureCategoryText 
   const clashes = (scene: Scene, coordinates: TreeCoordinateReservation, leafSpans: ReadonlyMap<string, readonly [number, number]>) => {
     const nodes = paint(scene, coordinates);
     const plan = planFrame(scene), planNodes = plan.nodes;
-    const { units, included, sorted } = frameUnits(nodes, leafSpans, planNodes);
+    const { units, included, boxes, sorted } = frameUnits(nodes, leafSpans, planNodes);
     const found: Request[] = [];
-    const want = (place: Omit<Request, 'gap'> | undefined, gap: number) => {
-      if (place && gap > 0.5) found.push({ ...place, gap });
+    const want = (pair: string, place: Omit<Request, 'gap' | 'pair'> | undefined, gap: number) => {
+      if (place && gap > 0.5) found.push({ ...place, gap, pair });
     };
     const tops = nodes.filter(node => !node.parent || !included.has(node.parent));
     // A workspace waiting at a place inside another's span stands clear of the
@@ -339,9 +421,10 @@ export function holdFinalPositions({ steps, sizes, planned, measureCategoryText 
           sides[side].push(...plaqueBranchObstacles(member.parent, member));
         ends[side] = side ? Math.min(ends[side], span![0]) : Math.max(ends[side], span![1]);
       }
-      if (sides[0].length) want({ from: ends[0] + 1, to: lo, cut: lo }, overlap(sides[0], sorted(guest), WORKSPACE_CLEARANCE, 0));
-      if (sides[1].length) want({ from: hi + 1, to: ends[1], cut: hi + 1 },
-        overlap(guest.boxes, [...sides[1]].sort((a, b) => a.x - b.x), WORKSPACE_CLEARANCE, 0));
+      const pair = `tucked ${getNodeId(host)} ${guest.id}`;
+      if (sides[0].length) want(`${pair} left`, { from: ends[0] + 1, to: lo, cut: lo }, separation(sides[0], sorted(guest), WORKSPACE_CLEARANCE));
+      if (sides[1].length) want(`${pair} right`, { from: hi + 1, to: ends[1], cut: hi + 1 },
+        separation(boxes(guest), banded(sides[1]), WORKSPACE_CLEARANCE));
     };
     for (let i = 0; i < tops.length; i++) for (let j = i + 1; j < tops.length; j++) {
       const a = units.get(tops[i])!, b = units.get(tops[j])!;
@@ -352,12 +435,14 @@ export function holdFinalPositions({ steps, sizes, planned, measureCategoryText 
       }
       const [left, right] = a.span && b.span ? (a.span[1] < b.span[0] ? [a, b] : [b, a])
         : a.span || b.span ? (a.x <= b.x ? [a, b] : [b, a]) : [];
-      if (left && right) want(between(left, right), overlap(left.boxes, sorted(right), WORKSPACE_CLEARANCE, 0));
+      if (left && right && near(left.extent, right.extent, WORKSPACE_CLEARANCE))
+        want(`workspaces ${left.id} ${right.id}`, between(left, right), separation(boxes(left), sorted(right), WORKSPACE_CLEARANCE));
     }
     for (const node of nodes) {
       const children = (node.children ?? []).filter(child => included.has(child));
       for (let k = 1; k < children.length; k++) {
         const left = units.get(children[k - 1])!, right = units.get(children[k])!;
+        if (!near(left.extent, right.extent, 0)) continue;
         if (left.rowShift !== undefined && right.rowShift !== undefined && Math.abs(left.rowShift - right.rowShift) <= 1e-6
           && left.maxShift <= right.minShift + 1e-6) continue;
         const pair = `${getNodeId(children[k - 1])} ${getNodeId(children[k])}`;
@@ -365,41 +450,49 @@ export function holdFinalPositions({ steps, sizes, planned, measureCategoryText 
         if (allowed === undefined) {
           const planLeft = planNodes.get(getNodeId(children[k - 1])), planRight = planNodes.get(getNodeId(children[k]));
           plan.allowed.set(pair, allowed = planLeft && planRight && planLeft.parent === planRight.parent
-            ? overlap(plan.units.get(planLeft)!.boxes, plan.sorted(plan.units.get(planRight)!), 0, 0) : 0);
+            ? overlap(plan.boxes(plan.units.get(planLeft)!), plan.sorted(plan.units.get(planRight)!), 0, 0) : 0);
         }
-        want(between(left, right), overlap(left.boxes, sorted(right), 0, allowed) - allowed);
+        if (left.extent.right - right.extent.left > allowed + 0.5)
+          want(`sisters ${pair}`, between(left, right), overlap(boxes(left), sorted(right), 0, allowed) - allowed);
       }
     }
     return found;
   };
 
   // Requests are met in order of their range's right end: a gap opened for one
-  // already serves any later request whose range contains it. A cut whose own request did not
-  // shrink after its gap opened cannot separate that pair (a piece the completed
-  // tree does not place moves with neither side): its gap is withdrawn and the
-  // cut is not opened again.
-  const cuts = new Map<number, number>(), requested = new Map<number, number>(), withdrawn = new Set<number>();
+  // already serves any later request whose range contains it. A pair whose
+  // request did not shrink after a gap opened for it cannot be separated that way
+  // (a piece the completed tree does not place moves with neither side): that
+  // gap is withdrawn and the pair asks no more. Other pairs ask again for what
+  // they still need.
+  const cuts = new Map<number, number>(), previous = new Map<string, number>(), withdrawn = new Set<string>();
+  const openedFor = new Map<string, { cut: number; width: number }>();
   let result = holdAll(cuts), clear = false;
   for (let round = 0; round < CUT_ROUNDS; round++) {
     const requests = scenes.flatMap((scene, index) => clashes(scene, result.held[index], result.spans[index]))
-      .filter(request => !withdrawn.has(request.cut));
+      .filter(request => !withdrawn.has(request.pair));
     if (!requests.length) { clear = !withdrawn.size; break; }
-    const largest = new Map<number, number>();
-    for (const { cut, gap } of requests) largest.set(cut, Math.max(largest.get(cut) ?? 0, gap));
-    for (const [cut, gap] of largest) {
-      const previous = requested.get(cut);
-      if (previous !== undefined && gap >= previous - 0.5 && cuts.has(cut)) {
-        withdrawn.add(cut);
-        cuts.delete(cut);
+    const largest = new Map<string, number>();
+    for (const { pair, gap } of requests) largest.set(pair, Math.max(largest.get(pair) ?? 0, gap));
+    for (const [pair, gap] of largest) {
+      const opened = openedFor.get(pair);
+      if (opened && gap >= previous.get(pair)! - 0.5) {
+        withdrawn.add(pair);
+        const width = (cuts.get(opened.cut) ?? 0) - opened.width;
+        if (width > 1e-6) cuts.set(opened.cut, width); else cuts.delete(opened.cut);
       }
-      requested.set(cut, gap);
+      previous.set(pair, gap);
     }
     const opened = new Map<number, number>();
-    for (const { from, to, cut, gap } of [...requests].filter(request => !withdrawn.has(request.cut))
+    openedFor.clear();
+    for (const { from, to, cut, gap, pair } of [...requests].filter(request => !withdrawn.has(request.pair))
       .sort((a, b) => a.to - b.to || a.cut - b.cut || b.gap - a.gap)) {
       let served = 0;
       for (const [at, width] of opened) if (at >= from && at <= to) served += width;
-      if (gap - served > 0.5) opened.set(cut, (opened.get(cut) ?? 0) + gap - served);
+      if (gap - served > 0.5) {
+        opened.set(cut, (opened.get(cut) ?? 0) + gap - served);
+        openedFor.set(pair, { cut, width: gap - served });
+      }
     }
     for (const [cut, width] of opened) cuts.set(cut, (cuts.get(cut) ?? 0) + width);
     result = holdAll(cuts);
