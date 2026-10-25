@@ -34,6 +34,7 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 - Commit bodies briefly state the problem, then the fix. Record the model and harness used when known; never guess.
 - Keep each PR to one independently shippable concern. Its tests and documentation belong with it.
 - UI changes need before-and-after images. Motion, Replay, or camera changes need a short recording.
+- Show Francis a Replay or renderer change as one click-through page built with `node scripts/buildReplayComparison.mjs --baseline-root <main> --candidate-root <branch> --cases <cases.json> --out /tmp/<page>`: both checkouts play the same analyses side by side and step together. It refuses a candidate that lacks the baseline commit, and every case must say what to watch and which steps to open.
 - Keep PR-only evidence outside the worktree and upload it to the PR; never commit it.
 
 ## Plans and documentation
