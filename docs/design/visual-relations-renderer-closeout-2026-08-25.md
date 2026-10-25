@@ -58,11 +58,15 @@ then applies its existing attachment and continuity constraints. The Canopy is
 the last Replay frame without its relation marks: every Canopy node takes the
 place of its occurrence in that frame, through the one frame layout both views
 use (`components/renderer/frameTreeLayout.ts`), and only the camera Fit differs.
-An analysis without Replay steps, a Replay layout that fails, or a last frame that
-does not show every Canopy node exactly once leaves the Canopy to the same contour
-packing with native text measurements; the page then warns once in the console
-and the tree's SVG reads `data-babel-canopy-layout="fresh"`. The camera audit's
-`canopy-final-frame` rule checks every committed analysis at desktop and mobile. Established movement slots
+The Canopy waits behind the layout cover for that frame. A Replay layout that
+fails, or a last frame that does not show every Canopy node exactly once, is a
+layout fault: the Canopy shows it as Replay does, with Retry, and never draws
+another layout in its place. Only an analysis without derivation stages, such as
+an older saved record holding just its tree, is laid out with the same contour
+packing with native text measurements; the tree's SVG then reads
+`data-babel-canopy-layout="fresh"` (otherwise `"replay-frame"`). The camera
+audit's `canopy-final-frame` rule checks every committed analysis at desktop and
+mobile. Established movement slots
 remain owned by their exact occurrences. If the spoken source cannot safely use
 the smaller lower-occurrence slot, retain its established slot after that
 movement instead of pulling unchanged ancestors inward. This fallback must pass

@@ -427,21 +427,25 @@ function boundMarks(primitives, items) {
 }
 
 /** The Canopy tree: the final stage's forest at the places of the last Replay
- * frame, as drawTreeFrame places it, or laid out fresh as drawTreeFrame lays out
- * a frame without a stage size when that frame cannot place it. The canvas goes
- * where the renderer once passed it, so a layout size that reads it again is
- * reported by layoutWidthFindings. */
+ * frame, as TreeVisualizer and drawTreeFrame place it. A record without Replay
+ * is laid out fresh, as drawTreeFrame lays out a frame without a stage size;
+ * the canvas goes where the renderer once passed it, so a layout size that
+ * reads it again is reported by layoutWidthFindings. A last frame that cannot
+ * place the Canopy is a layout fault, reported as an error. */
 function layoutCanopyTree(visual, viewport, metrics = TEXT_METRICS) {
   const data = canvas.buildDerivationCanvasData(visual.record.derivationStages.at(-1)?.workspaceForest ?? []);
   if (!data) return null;
-  const root = d3.hierarchy(canvas.buildRenderableCommittedCanvasData(data)); display.applyVizIds(root);
+  const canopy = canvas.buildRenderableCommittedCanvasData(data);
+  const root = d3.hierarchy(canopy); display.applyVizIds(root);
   const { playbackSteps: steps, replayDerivationFrames: stages } = visual.prepared;
   const measurements = { measureCategoryText: metrics.measureCategoryText, measureTreeInk: metrics.measureTreeInk };
-  const scene = steps.length && stages.length ? layoutMeasuredScenes(visual, viewport, metrics) : null;
-  const frame = scene && frameLayout.selectCanopyReplayFrame(steps, scene.coordinates, viewport, scene.groups);
-  return (frame && frameLayout.placeCanopyAtReplayFrame(root, frame, visual.direction, measurements))
-    ?? layout.layoutSyntaxTree(root, camera.treeLayoutSize(root.descendants().length, root.height, viewport.width, viewport.height),
-      visual.direction, undefined, undefined, measurements);
+  if (!steps.at(-1)?.replayCanvasData || !stages.length) return layout.layoutSyntaxTree(root,
+    camera.treeLayoutSize(root.descendants().length, root.height, viewport.width, viewport.height), visual.direction, undefined, undefined, measurements);
+  const scene = layoutMeasuredScenes(visual, viewport, metrics);
+  const frame = frameLayout.selectCanopyReplayFrame(steps, scene.coordinates, viewport, scene.groups);
+  const places = frame && frameLayout.canopyPlacesInReplayFrame(canopy, frame, visual.direction, measurements);
+  if (!places) throw Error('Could not lay out this tree: the last Replay frame cannot place the Canopy');
+  return frameLayout.placeCanopy(root, places);
 }
 
 /** The Canopy: the final stage's forest without relation marks, fitted to its

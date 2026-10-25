@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import * as d3 from 'd3';
-import { placeCanopyAtReplayFrame, selectCanopyReplayFrame } from '../components/renderer/frameTreeLayout.ts';
+import { canopyPlacesInReplayFrame, placeCanopy, selectCanopyReplayFrame } from '../components/renderer/frameTreeLayout.ts';
 import { applyVizIds, getNodeId } from '../replay/displayIdentity.ts';
 import { buildDerivationCanvasData, buildRenderableCommittedCanvasData } from '../replay/replayCanvas.ts';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
@@ -44,16 +44,14 @@ test('control: canopy-final-frame reports a moved, a missing and an unknown Cano
   assert.equal(compareCanopyToFinalFrame([...canopy, unknown], frame).find(({ subtype }) => subtype === 'unmatched')?.subject, 'unknown');
 });
 
-// Fallbacks: the Canopy is laid out fresh when there is no last Replay frame,
-// when its reservation is not prepared, or when that frame does not show the
-// Canopy's syntax exactly.
+// The Canopy waits for the last Replay frame. A frame that cannot place it is
+// a layout fault the view reports as Replay does; only an analysis without
+// Replay is laid out fresh.
 const mia = recordOf(REPRESENTATIVE['aliased and unary terminals']);
 const desktop = viewports[0];
-const canopyRoot = (forest = mia.derivationStages.at(-1).workspaceForest) => {
-  const root = d3.hierarchy(buildRenderableCommittedCanvasData(buildDerivationCanvasData(structuredClone(forest))));
-  applyVizIds(root);
-  return root;
-};
+const canopyCanvas = (forest = mia.derivationStages.at(-1).workspaceForest) =>
+  buildRenderableCommittedCanvasData(buildDerivationCanvasData(structuredClone(forest)));
+const hierarchyOf = canvas => { const root = d3.hierarchy(structuredClone(canvas)); applyVizIds(root); return root; };
 const miaFrame = () => {
   const visual = prepareVisualRecord(mia), steps = visual.prepared.playbackSteps;
   const { coordinates, groups } = layoutMeasuredScenes(visual, desktop);
@@ -73,38 +71,44 @@ test('the Canopy reads the last Replay frame only when Replay has prepared it', 
 });
 
 test('the Canopy is placed through the aliases the last frame keeps for authored terminals', () => {
-  const { visual, frame } = miaFrame();
-  const placed = placeCanopyAtReplayFrame(canopyRoot(), frame, visual.direction);
-  assert(placed, 'leaf_mia and leaf_laughed are found through their aliases');
+  const { visual, frame } = miaFrame(), canvas = canopyCanvas();
+  const places = canopyPlacesInReplayFrame(canvas, frame, visual.direction);
+  assert(places, 'leaf_mia and leaf_laughed are found through their aliases');
+  const placed = placeCanopy(hierarchyOf(canvas), places);
   assert(placed.descendants().every(node => Number.isFinite(node.x) && Number.isFinite(node.y)));
 });
 
-test('a last frame that does not show the Canopy\'s syntax exactly leaves the Canopy to the fresh layout', () => {
+test('a last frame that does not show the Canopy\'s syntax exactly cannot place it', () => {
   const { visual, frame } = miaFrame();
   const forest = mia.derivationStages.at(-1).workspaceForest;
-  const unplaced = root => {
-    assert.equal(placeCanopyAtReplayFrame(root, frame, visual.direction), null);
-    assert(root.descendants().every(node => node.x === undefined), 'nothing is half placed');
-  };
   const extra = structuredClone(forest);
   extra[0].children.push({ id: 'unknown', label: 'AdvP', children: [] });
-  unplaced(canopyRoot(extra));
+  assert.equal(canopyPlacesInReplayFrame(canopyCanvas(extra), frame, visual.direction), null, 'a node the frame lacks');
   const moved = structuredClone(forest);
   const [subject, tbar] = moved[0].children;
   moved[0].children = [tbar];
   tbar.children.push(subject);
-  unplaced(canopyRoot(moved));
+  assert.equal(canopyPlacesInReplayFrame(canopyCanvas(moved), frame, visual.direction), null, 'a node under another parent');
   const hidden = { ...frame, visibleIds: new Set([...frame.visibleIds].filter(id => id !== 'vp_laughed')) };
-  assert.equal(placeCanopyAtReplayFrame(canopyRoot(), hidden, visual.direction), null, 'a node the frame does not show');
+  assert.equal(canopyPlacesInReplayFrame(canopyCanvas(), hidden, visual.direction), null, 'a node the frame does not show');
+  const places = canopyPlacesInReplayFrame(canopyCanvas(), frame, visual.direction);
+  assert.throws(() => placeCanopy(hierarchyOf(canopyCanvas(extra)), places), /no place for unknown/u,
+    'places belong to the canvas they were made for');
 });
 
-test('the renderer lays out the Canopy and Replay frames through the shared frame layout', () => {
+test('the view reports a Canopy layout fault as Replay does and lays out fresh only without Replay', () => {
   const frame = readFileSync(new URL('../components/renderer/treeFrame.ts', import.meta.url), 'utf8');
-  assert.match(frame, /placeCanopyAtReplayFrame\(rootHierarchy, canopyReplayFrame,/u);
-  assert.match(frame, /canopyTree \?\? treeLayout\(rootHierarchy\)/u, 'an unplaced Canopy keeps the fresh layout');
+  assert.match(frame, /!animated && canopyPlaces \? placeCanopy\(rootHierarchy, canopyPlaces\)/u);
+  assert.match(frame, /canopyTree \?\? treeLayout\(rootHierarchy\)/u);
   assert.doesNotMatch(frame, /alignReplayUnaryTerminalLeaves/u, 'unary alignment belongs to layoutReplayFrameTree');
   const visualizer = readFileSync(new URL('../components/TreeVisualizer.tsx', import.meta.url), 'utf8');
-  assert.match(visualizer, /selectCanopyReplayFrame\(layoutPlaybackSteps, replayCoordinates,/u);
+  assert.match(visualizer, /const canopyFollowsReplay = !animated && hasDerivationFrames && /u, 'only an analysis without Replay is fresh');
+  assert.match(visualizer, /canopyPlacesInReplayFrame\(canvasData, frame, treeDirection,/u);
+  assert.match(visualizer, /: canopyFollowsReplay && !canopyPlaces\)\);/u, 'an unplaced Canopy is the missing-coordinates fault');
+  assert.match(visualizer, /const layoutReady = settledFontText === fontText && dimensions\.width > 0 && plaqueLayoutReady && !missingReplayCoordinates;/u,
+    'a layout error keeps the cover with its Retry');
+  assert.match(visualizer, /\{plaqueLayoutError \|\| missingReplayCoordinates \? <div role="alert"/u);
+  assert.doesNotMatch(visualizer, /console\.warn/u);
   assert.match(visualizer, /includePlayback: true/u);
   assert.match(readFileSync(new URL('../components/AsyncTreeVisualizer.tsx', import.meta.url), 'utf8'), /includePlayback: true/u);
 });

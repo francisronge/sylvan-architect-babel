@@ -25,7 +25,7 @@ import { guardViewCallback } from '../viewErrorHandling.ts';
 import { installCameraInteraction, updateScreenStableText, type CameraEffects } from './cameraInteraction.ts';
 import { deferredTreeMatrix, type CameraSession } from './cameraState.ts';
 import { fitTreeCamera } from './frameCamera.ts';
-import { layoutReplayFrameTree, placeCanopyAtReplayFrame, type CanopyReplayFrame } from './frameTreeLayout.ts';
+import { layoutReplayFrameTree, placeCanopy, type CanopyPlaces } from './frameTreeLayout.ts';
 import { createIdentityForestLight } from './identityLighting.ts';
 import { installRelationHitTargets } from './relationInteraction.ts';
 import { refineRelationGeometry } from './relationRefinements.ts';
@@ -41,8 +41,8 @@ interface FrameLayout {
   movementProtectedNodeIds: Set<string>;
   stageLayoutSize: [number, number] | null;
   replayCoordinates: MeasuredStageCoordinates | undefined;
-  /** The last Replay frame the Canopy lays out; null keeps the fresh layout. */
-  canopyReplayFrame: CanopyReplayFrame | null;
+  /** The Canopy's places in the last Replay frame; null only where there is no Replay. */
+  canopyPlaces: CanopyPlaces | null;
   treeDirection: TreeDirection;
   activePlaqueLayout: Map<number, PlaquePlacement>;
   uiBounds: { top: number; right: number; bottom: number; headerBottom: number; panelTop: number };
@@ -107,7 +107,7 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     movementProtectedNodeIds,
     stageLayoutSize,
     replayCoordinates,
-    canopyReplayFrame,
+    canopyPlaces,
     treeDirection,
     activePlaqueLayout,
     uiBounds,
@@ -203,9 +203,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     : layoutSyntaxTree(root, [innerWidth, innerHeight], treeDirection, undefined, undefined, measurements);
   svg.attr('data-babel-tree-direction', treeDirection);
 
-  // The Canopy takes the last Replay frame's places; without that frame it is packed fresh.
-  const canopyTree = !animated && canopyReplayFrame
-    ? placeCanopyAtReplayFrame(rootHierarchy, canopyReplayFrame, treeDirection, measurements) : null;
+  // The Canopy takes the last Replay frame's places; an analysis without Replay is packed fresh.
+  const canopyTree = !animated && canopyPlaces ? placeCanopy(rootHierarchy, canopyPlaces) : null;
   svg.attr('data-babel-canopy-layout', animated ? null : canopyTree ? 'replay-frame' : 'fresh');
   const treeData = canopyTree ?? treeLayout(rootHierarchy);
   const plaqueNodePositions = indexHierarchyNodesByIdAndAliases(treeData.descendants());

@@ -29,7 +29,7 @@ import { selectReplayCanvas } from './replayStepCanvas.ts';
 import { withPlaqueTextMeasure } from './renderer/plaqueText.ts';
 import { applyRelationEmphasis } from './renderer/relationInteraction.ts';
 import { updateSyntaxReveal } from './renderer/syntaxReveal.ts';
-import { selectCanopyReplayFrame } from './renderer/frameTreeLayout.ts';
+import { canopyPlacesInReplayFrame, selectCanopyReplayFrame } from './renderer/frameTreeLayout.ts';
 import { drawTreeFrame } from './renderer/treeFrame.ts';
 import ReplayPanel from './ReplayPanel';
 import { createTreeInkTextMeasure } from './treeInkTextMeasure';
@@ -376,27 +376,24 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   const { viewport: layoutViewport, schedule: replayPlaqueSchedule, coordinates: replayCoordinates, ready: plaqueLayoutReady,
     error: plaqueLayoutError, retry: retryPlaqueLayout } = useReplayPlaqueLayout(layoutContent, viewport,
     usesDerivationFrames ? activeDerivationFrameIndex : committedDerivationFrameIndex);
-  // A Canopy whose Replay layout failed is still the final tree: it falls back
-  // to the fresh layout instead of reporting the failure.
-  const canopyLayoutFailed = canopyFollowsReplay && Boolean(plaqueLayoutError);
-  useEffect(() => {
-    // Replay shows this failure; the Canopy reports it once, during development too.
-    if (canopyLayoutFailed) console.warn('Babel Canopy could not lay out this tree; showing the fresh layout:', plaqueLayoutError);
-  }, [canopyLayoutFailed, plaqueLayoutError]);
-  const frameViewport = layoutViewport ?? (canopyLayoutFailed ? viewport : undefined);
-  const canopyReplayFrame = useMemo(() => canopyFollowsReplay && layoutViewport
-    ? selectCanopyReplayFrame(layoutPlaybackSteps, replayCoordinates, layoutViewport, stageLayoutGroups) : null,
-  [canopyFollowsReplay, layoutPlaybackSteps, replayCoordinates, layoutViewport, stageLayoutGroups]);
+  const frameViewport = layoutViewport;
+  // The Canopy paints at the last Replay frame's places, and waits for them as Replay does.
+  const canopyPlaces = useMemo(() => {
+    if (!canopyFollowsReplay || !layoutViewport || !canvasData) return null;
+    const frame = selectCanopyReplayFrame(layoutPlaybackSteps, replayCoordinates, layoutViewport, stageLayoutGroups);
+    return frame && canopyPlacesInReplayFrame(canvasData, frame, treeDirection, { measureCategoryText, measureTreeInk });
+  }, [canopyFollowsReplay, layoutViewport, canvasData, layoutPlaybackSteps, replayCoordinates, stageLayoutGroups, treeDirection,
+    measureCategoryText, measureTreeInk]);
   const stageLayoutSize = useMemo(() => (
     animated && usesDerivationFrames && frameViewport
       ? stageTreeLayoutSize(playbackSteps, activeDerivationFrameIndex, frameViewport.width, frameViewport.height, stageLayoutGroups)
       : null
   ), [animated, usesDerivationFrames, playbackSteps, activeDerivationFrameIndex, frameViewport, stageLayoutGroups]);
-  // An empty stage paints no syntax, so it needs no coordinates.
-  const missingReplayCoordinates = Boolean(layoutContent && plaqueLayoutReady && usesDerivationFrames && canvasData
-    && !replayCoordinates?.get(activeDerivationFrameIndex)?.has(canvasData));
-  const layoutReady = settledFontText === fontText && dimensions.width > 0
-    && (plaqueLayoutReady || canopyLayoutFailed) && !missingReplayCoordinates;
+  // An empty stage paints no syntax, so it needs no coordinates. A Canopy the
+  // last frame cannot place is the same layout fault, never another layout.
+  const missingReplayCoordinates = Boolean(layoutContent && plaqueLayoutReady && canvasData && (usesDerivationFrames
+    ? !replayCoordinates?.get(activeDerivationFrameIndex)?.has(canvasData) : canopyFollowsReplay && !canopyPlaces));
+  const layoutReady = settledFontText === fontText && dimensions.width > 0 && plaqueLayoutReady && !missingReplayCoordinates;
   const stagePlaqueLayout = useMemo(() => selectReplayPlaqueLayout(replayPlaqueSchedule, activeDerivationFrameIndex),
     [replayPlaqueSchedule, activeDerivationFrameIndex]);
   const activePlaqueLayout = useMemo(() => selectReplayPlaqueLayout(replayPlaqueSchedule, activeDerivationFrameIndex,
@@ -613,7 +610,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
         movementProtectedNodeIds,
         stageLayoutSize,
         replayCoordinates,
-        canopyReplayFrame,
+        canopyPlaces,
         treeDirection,
         activePlaqueLayout,
         uiBounds: frameViewport.bounds,
@@ -668,7 +665,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   }, [
     layoutReady,
     replayCoordinates,
-    canopyReplayFrame,
+    canopyPlaces,
     zoomBehavior,
     activeDerivationFrame,
     activeDerivationFrameIndex,
