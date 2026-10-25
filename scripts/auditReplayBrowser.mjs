@@ -170,7 +170,7 @@ const git = args => { try { return execFileSync('git', args, { cwd: root, encodi
 const SOURCE_FILES = ['scripts/auditReplayBrowser.mjs', 'scripts/browserSession.mjs', 'scripts/captureReadiness.mjs',
   ...fs.readdirSync(path.join(root, 'scripts/visualAudit')).sort().map(name => `scripts/visualAudit/${name}`),
   'tests/helpers/visualRules.mjs', 'tests/helpers/findings.mjs', 'tests/helpers/replayInvariants.mjs', 'tests/helpers/cameraInvariants.mjs',
-  'tests/helpers/motionOwnership.mjs',
+  'tests/helpers/motionOwnership.mjs', 'replay/motionContinuity.ts', 'replay/cameraCarry.ts',
   'components/treeViewport.ts', 'replay/replaySurfaceNotation.ts'];
 const sourceFingerprint = fingerprint(JSON.stringify([fingerprint(pageBytes),
   ...SOURCE_FILES.map(file => [file, fingerprint(fs.readFileSync(path.join(root, file)))])]));
