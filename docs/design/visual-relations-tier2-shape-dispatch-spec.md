@@ -1110,6 +1110,14 @@ complex, or as `complexHead` when it is that complex, and the ordinary head
 context check then verifies it. Any other node still competes for the landing,
 so the exact claim stays malformed and Tier 2 does not draw it.
 
+The same holds for an openly named field that only reads as an endpoint slot,
+such as a landing clause or source clause, when the tree proves another field,
+whatever it is called, to be that endpoint. The field is context when the
+movement evidence verifies it as the landing's site, host or complex, or when
+its node contains the proven endpoint; the proven field then fills the slot.
+Any other field reading as that slot, including a registered role name naming
+another node, still competes, and the exact claim stays malformed.
+
 For an independently proved phrasal movement, a named target or landing head
 can remain neutral context when it projects beside the landing. The landing
 parent must have exactly two children and the same category as that head; its
