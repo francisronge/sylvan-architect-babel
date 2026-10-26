@@ -258,3 +258,20 @@ test('a seeded change to one Replay step or one relation-plan field is reported 
     }), [[], ['relation-plan-change'], []]);
   } finally { await rm(scratch, { recursive: true, force: true }); }
 });
+
+test('a fixture the change adds is compared by motion only, never one the base already has', async () => {
+  const { allowAddedFixtures } = await import('../scripts/compareReplayCorpus.mjs');
+  const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const pathModule = await import('node:path');
+  const base = mkdtempSync(pathModule.join(tmpdir(), 'corpus-base-')), head = mkdtempSync(pathModule.join(tmpdir(), 'corpus-head-'));
+  for (const root of [base, head]) { mkdirSync(pathModule.join(root, 'fixtures'), { recursive: true }); writeFileSync(pathModule.join(root, 'fixtures', 'old.json'), '{}'); }
+  writeFileSync(pathModule.join(head, 'fixtures', 'new.json'), '{}');
+  const records = allowAddedFixtures([
+    { id: 'old', source: pathModule.join(head, 'fixtures', 'old.json'), allow: {} },
+    { id: 'new', source: pathModule.join(head, 'fixtures', 'new.json'), allow: {} },
+    { id: 'outside', source: pathModule.join(tmpdir(), 'elsewhere.json'), allow: {} }], base, head);
+  assert.deepEqual(records.map(record => Boolean(record.allow.replay)), [false, true, false]);
+  assert.match(records[1].allow.reason, /new in this change/);
+  assert.equal(records[1].allow.completedWidthGrowth, true);
+});

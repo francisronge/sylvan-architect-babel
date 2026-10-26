@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -14,6 +15,7 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
   const manifests = await Promise.all([manifest, ...(archiveManifest ? [archiveManifest] : [])].map(loadCorpusManifest));
   const records = manifests.flatMap(value => value.records), ids = new Set(records.map(record => record.id));
   if (ids.size !== records.length) throw Error('Record IDs must be unique across manifests');
+  allowAddedFixtures(records, baselineRoot, candidateRoot);
   const layout = { width, height, direction }, scratch = await mkdtemp(path.join(tmpdir(), 'babel-corpus-'));
   try {
     const snapshots = [];
@@ -52,6 +54,23 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
     if (output) await writeFile(path.resolve(output), JSON.stringify(report, null, 2) + '\n');
     return report;
   } finally { await rm(scratch, { recursive: true, force: true }); }
+}
+
+/** A record read from a file inside the candidate checkout that the base
+ * checkout lacks (a fixture the change adds) cannot regress its Replay, relation
+ * plan, final layout or completed widths from the base, which never had it: the
+ * base's rendering of it is the behavior the change replaces. Those comparisons
+ * are allowed with that reason; its motion, continuity and geometry are still
+ * judged against the base's layout of the same input. Mutates `records`. */
+export function allowAddedFixtures(records, baselineRoot, candidateRoot) {
+  const candidate = path.resolve(candidateRoot), baseline = path.resolve(baselineRoot);
+  for (const record of records) {
+    const relative = record.source && path.relative(candidate, path.resolve(record.source));
+    if (!relative || relative.startsWith('..') || path.isAbsolute(relative) || existsSync(path.join(baseline, relative))) continue;
+    record.allow = { ...record.allow, replay: true, plan: true, finalCoordinates: true, completedWidthGrowth: true,
+      reason: `${relative} is new in this change; the base checkout has no copy to compare its Replay with.` };
+  }
+  return records;
 }
 
 /** Motion faults by kind, with the analyses and frames that contain any. */
