@@ -18,8 +18,10 @@ export function isPriorMovementContextFailure(
   const evidence = dispatch.evidence;
   const chainIdentity = ['achain', 'abarchain', 'whchain', 'headchain']
     .includes(foldMovementIdentityKey(relation.relation));
+  // A lineage refusal pairs a landing with a cited occurrence of another
+  // chain; only the earlier-owner reading below can explain it as context.
   if (evidence.movement || !['MOVEMENT_ENDPOINTS_UNRESOLVED', 'MOVEMENT_WITNESS_OUTSIDE_SOURCE',
-    'MOVEMENT_TARGET_IS_LOWER_WITNESS'].includes(evidence.movementFailure ?? '')
+    'MOVEMENT_TARGET_IS_LOWER_WITNESS', 'MOVEMENT_LINEAGE_UNPROVEN'].includes(evidence.movementFailure ?? '')
     || isMovementIdentity(relation.relation) && !chainIdentity
     || findRelationRegistryEntry(productionRelationRegistry, relation.relation)
     || evidence.authoredPriorAnchors?.some(entry => entry.concepts.includes('movement.source'))

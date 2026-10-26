@@ -778,6 +778,19 @@ export function recoverMovementEvidence(
     && !isMovementIdentity(relation.relation) && !explicitPriorSources.length) {
     return { diagnostics: [] };
   }
+  // Movement relates two occurrences of one lineage. A claim naming one end
+  // alone, such as the thematic Source of an ablative phrase, none of whose
+  // anchored occurrences shares its lineage with another occurrence, states
+  // no movement, whatever its field names suggest.
+  const hasOtherOccurrence = (id: string): boolean => {
+    const lineage = current.nodes.get(id)?.lineageId;
+    return Boolean(lineage) && [...current.nodes.values(), ...prior.nodes.values()]
+      .some(node => node.id !== id && node.lineageId === lineage);
+  };
+  if ((!targets.length || !sources.length && !witnesses.length) && !isMovementIdentity(relation.relation)
+    && !covertDescription && !explicitPriorSources.length && !entries.some(e => e.ids.some(hasOtherOccurrence))) {
+    return { diagnostics: [] };
+  }
   // Operator and variable also name the ends of an interpretive dependency.
   // When they are a claim's only endpoint words and the operator was carried
   // this stage inside a phrase that moved and contained it before, that
