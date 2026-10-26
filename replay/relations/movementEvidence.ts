@@ -167,6 +167,23 @@ const isBareSpecifier = (target: SyntaxNode, workspaces?: MovementWorkspaces): b
   const sisters = (parent.children ?? []).filter(child => child !== target);
   return bare.maximal(target) && sisters.length === 1 && bare.projects(sisters[0], parent) && !bare.minimal(sisters[0]);
 };
+/** A one-word landing beside the head that projects its parent ([V buy what])
+ * may have adjoined to that head or be its complement. Head adjunction leaves
+ * the lower occurrence in the tree of the complex it forms; a landing whose
+ * every other occurrence lies in another workspace moved sideward into this
+ * one, and the head selected it as a phrase. */
+const isSidewardComplement = (target: SyntaxNode, workspaces?: MovementWorkspaces): boolean => {
+  const bare = workspaces && bareProjectionsOf(workspaces.current), parent = bare?.parent(target);
+  const { current } = workspaces ?? {};
+  if (!bare || !parent || !current || current.nodes.get(target.id) !== target || target.children?.length
+    || !target.lineageId || current.duplicates.has(target.id)) return false;
+  const sisters = (parent.children ?? []).filter(child => child !== target);
+  if (sisters.length !== 1 || !bare.projects(sisters[0], parent) || !bare.minimal(sisters[0])) return false;
+  let root = target;
+  while (current.parents.get(root.id)) root = current.parents.get(root.id)!;
+  const lower = [...current.nodes.values()].filter(node => node.lineageId === target.lineageId && node.id !== target.id);
+  return lower.length > 0 && lower.every(node => !contains(root, node.id));
+};
 
 const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: SyntaxNode,
   workspaces?: MovementWorkspaces): boolean => {
@@ -258,7 +275,9 @@ export const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: r
     || Boolean(headContext && priorSource.node?.children?.length && sharesHeadCategory(priorSource.node, target)
       && isHeadAssembly(priorSource.node) && isHeadAssembly(target))
     || HEAD_NOTATION.test(target.label) || projectedSource;
-  if (parent && isBareSpecifier(target, workspaces)) return 'phrasal';
+  // An explicitly anchored receiving head or complex still proves adjunction.
+  if (parent && (isBareSpecifier(target, workspaces)
+    || !headContext && !structuralHost && isSidewardComplement(target, workspaces))) return 'phrasal';
   if (headUnit && parent && (isHeadComplex(parent, target.id, previous)
     || structuralHost && adjoinsHostInPlace(parent, target.id, workspaces)
     || isProjectedHead(parent, target, priorSource.node, workspaces))) return 'head';
