@@ -1815,6 +1815,30 @@
         "4:1 T3 fallback"
       ]
     },
+    "replay-regressions/kept-landing-fresh-trace.json#": {
+      "frames": "UKH6axOP PKr1b-Ma kQQzWS6A ekbR-UAB oC48cYcC MXadjbZL Zy-X5eNt qxsspJYy 7ym4d-xQ nvEOAuPb ykmnNPko SUZTShnV ddSvBa5g tqFW4eu3 fOs-leQz bhtCf8U0 QWHUfgsR iZ8D-Tkn VcEQ9az8 QaDhG-Vj j54jrxj9 uynRK1Gb 75NW7en- 58rojcCw hhe5Wcfq eCp55s4F FulC_Fu2 cHfLOnQo k9-f5CGo",
+      "canopy": "uU6RwdDs",
+      "tiers": [
+        "0:0 T1 node-badges theta.grid",
+        "0:0 T1 node-plaque theta.grid",
+        "0:1 T2 directed-path tier2.feature-dependency feature.dependency",
+        "0:1 T3 fallback",
+        "1:0 T1 node-badges theta.grid",
+        "1:0 T1 node-plaque theta.grid",
+        "2:0 T2 node-plaque feature-bundle.plaque plaque.structured",
+        "2:0 T3 fallback",
+        "3:0 T2 node-badges tier2.gap-notation gap.notation",
+        "3:0 T2 trajectory tier2.movement-path movement.path",
+        "3:1 T3 fallback",
+        "4:0 T2 node-badges tier2.gap-notation gap.notation",
+        "4:0 T2 trajectory tier2.movement-path movement.path",
+        "4:1 T2 directed-path tier2.feature-dependency feature.dependency",
+        "4:1 T3 fallback",
+        "4:2 T2 directed-path tier2.feature-dependency feature.dependency",
+        "4:2 T2 node-plaque feature-bundle.plaque feature.dependency",
+        "4:2 T3 fallback"
+      ]
+    },
     "replay-regressions/landing-claimed-again.json#": {
       "frames": "KIzeQC7u aRGxx11_ 8zdy3hAf qBziCu14 0P_DreMN I-H_HZV_ 1wxqImO1 fRAzV4z2 Z-NKkpI7 PxbQmOmY NwfWukgJ Jic-e7Zh 1RAMQ4qH quWROBRj wMs55n64 8s02UhPB w-S-OWC5 MgO-JBfl 2ZDn2zN3 4EqveyaC 7fiXvHRz 79cetS7a Qb-mBlpW m8BLAeOO UGrrgBcU 69d_Z5DV tiZEaj32 K6uo4gxb 02dJYLAr KNXpEBjY ZHsK7iko Q-FMi71z CQpyLJ82 SAaFMHXv BPZbe1YU yzrQHzO5 7cggvE2r mUpL9kni GGkV37iz HV-ExZ5R -0v4j_pQ CvLNI567 AQHkSwd3 1hrRMV5f SPmjBO-a oYUqIxm4 ua939BpY nFMoQJYp XOmhgJLq td7E_uFq N_Qsih7D 6lEPD4Iz nJ6uWB16 aTDhbrIU 8tmAH2fW dt5AfVZm Wz6z5Z0P xYsqwPla z-MtNW2a gfvTySnf akvQV8Lm",
       "canopy": "TYFw3nhm",
