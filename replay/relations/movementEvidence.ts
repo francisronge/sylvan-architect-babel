@@ -262,10 +262,17 @@ export const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: r
   if (headUnit && parent && (isHeadComplex(parent, target.id, previous)
     || structuralHost && adjoinsHostInPlace(parent, target.id, workspaces)
     || isProjectedHead(parent, target, priorSource.node, workspaces))) return 'head';
-  const parentCategory = readCategoryLabel(parent?.label);
-  const specifier = parentCategory && parent?.children?.some(n => n.id !== target.id
-    && headCategory(n) === parentCategory.head && !onlyExponents(n));
+  const specifier = parent?.children?.some(n => n.id !== target.id && projectsParent(n, parent) && !onlyExponents(n));
   if (target.children?.length || shape?.kind === 'phrase' || specifier) return 'phrasal';
+};
+
+/** Whether `node` is the daughter whose label its parent repeats: the same
+ * head category or, for labels that are not category notation (a lexical
+ * item, "洗" over "洗", or prose, "T-projection"), the same exact label. */
+const projectsParent = (node: SyntaxNode, parent: SyntaxNode): boolean => {
+  const category = readCategoryLabel(parent.label), text = String(parent.label ?? '').trim();
+  return category ? headCategory(node) === category.head
+    : Boolean(text) && !readCategoryLabel(node.label) && String(node.label ?? '').trim() === text;
 };
 
 /** Shared exact structural check for Tier 1 and recovered movement context. */
@@ -287,6 +294,10 @@ export const movementContextFailure = (
   const isParent = parent === context[0];
   if (kind === 'site') {
     if (isParent) return;
+    // Internal merge targets the object the landing merges with, which
+    // projects their new parent: the specifier's sister names its site too.
+    if (parent.children?.length === 2 && context[0] !== landing[0] && parent.children.includes(context[0])
+      && context[0].children?.length && projectsParent(context[0], parent)) return;
     // A topic/edge shell may intervene between the moved occurrence and its
     // landing domain. Only the nearest common domain of the proved endpoints
     // establishes that context; an arbitrary containing ancestor does not.
@@ -725,8 +736,22 @@ export function recoverMovementEvidence(
       targets = occurrences;
     }
   }
+  // An explicitly anchored receiving head or complex verified around a landing.
+  const namesHeadContext = (landingId: string): boolean => entries.some(entry => entry.ids.length === 1
+    && (hasRole(entry.key, 'movement.host') || hasRole(entry.key, 'movement.complex') || entry.key === 'host')
+    && movementContextFailure(forest, landingId, entry.ids[0],
+      hasRole(entry.key, 'movement.complex') ? 'head-complex' : 'head-landing', previous) === undefined);
+  // The prose-label structural reading needs the receiving head or complex
+  // named explicitly, in the role that the context check below verifies. A
+  // phrasal attractor names no adjunction host.
+  const namesStructuralHost = (landingId: string): boolean => entries.some(entry => {
+    const contextKind = headContextKind(entry.key);
+    return entry.ids.length === 1 && entry.key !== 'attracting head' && contextKind !== undefined
+      && movementContextFailure(forest, landingId, entry.ids[0], contextKind, previous, undefined, { current, prior }) === undefined;
+  });
   // Unfamiliar wording still needs explicit movement direction or an established
   // identity, plus exact anchored occurrences and a changed preceding source slot.
+  // A landing's kind reads the same receiving-head evidence as a named landing's.
   if ((sources.length === 0 || targets.length === 0) && sources.length <= 1 && targets.length <= 1
     && witnesses.length <= 1 && explicitPriorSources.length <= 1
     && canBindStructuralEndpoints) {
@@ -749,7 +774,8 @@ export function recoverMovementEvidence(
         // a unique, explicitly witnessed successive movement ambiguous.
         if (targetId !== priorId && samePriorSlot(targetId, targetId)
           && JSON.stringify(prior.nodes.get(targetId)) === JSON.stringify(target)) continue;
-        const kind = landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) }, { current, prior });
+        const kind = landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) },
+          { current, prior }, namesHeadContext(targetId), namesStructuralHost(targetId));
         const expectedKind = movementIdentityKind(relation.relation);
         if (!kind || (expectedKind && expectedKind !== kind)) continue;
         pairs.push({ source: sourceId, target: targetId });
@@ -820,18 +846,7 @@ export function recoverMovementEvidence(
   if (current.duplicates.has(witnessId)) return fail('MOVEMENT_ENDPOINTS_AMBIGUOUS', `Witness ${witnessId} occurs more than once.`);
   if (!contains(source, witnessId)) return fail('MOVEMENT_WITNESS_OUTSIDE_SOURCE', `${witnessId} is not within source ${sourceId}.`);
   const precedingId = prior.nodes.has(sourceId) ? sourceId : priorSource || targetId;
-  const headContext = entries.some(entry => entry.ids.length === 1
-    && (hasRole(entry.key, 'movement.host') || hasRole(entry.key, 'movement.complex') || entry.key === 'host')
-    && movementContextFailure(forest, targetId, entry.ids[0],
-      hasRole(entry.key, 'movement.complex') ? 'head-complex' : 'head-landing', previous) === undefined);
-  // The prose-label structural reading needs the receiving head or complex
-  // named explicitly, in the role that the context check below verifies. A
-  // phrasal attractor names no adjunction host.
-  const structuralHost = entries.some(entry => {
-    const contextKind = headContextKind(entry.key);
-    return entry.ids.length === 1 && entry.key !== 'attracting head' && contextKind !== undefined
-      && movementContextFailure(forest, targetId, entry.ids[0], contextKind, previous, undefined, { current, prior }) === undefined;
-  });
+  const headContext = namesHeadContext(targetId), structuralHost = namesStructuralHost(targetId);
   const kind = landingKind(target, current.parents.get(targetId), previous,
     { node: prior.nodes.get(precedingId), parent: prior.parents.get(precedingId) }, { current, prior },
     headContext, structuralHost);
