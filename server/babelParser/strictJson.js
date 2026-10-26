@@ -105,16 +105,27 @@ const createBadJsonError = (createError, rawText, jsonDiagnostic) => {
   return error;
 };
 
+// A whole response wrapped in one Markdown code fence: an opening ``` line,
+// optionally labelled json, and a closing ``` line, with nothing outside them.
+const OUTER_CODE_FENCE = /^```(json)?[ \t]*\r?\n([\s\S]*?)\r?\n```$/i;
+
 /**
  * Parses the model text as received, after removing a leading BOM and outer whitespace.
- * Nothing else is repaired: a response whose brackets do not balance fails as
- * TRANSPORT_JSON_DELIMITERS_BALANCED with the parser's own error retained.
+ * A response that is exactly one JSON object inside a single outer Markdown code
+ * fence is read from inside the fence, and `corrections` (present only then)
+ * records that; the fence is transport framing, not part of the object.
+ * Nothing else is repaired:
+ * text outside the fence, or a response whose brackets do not balance, fails as
+ * before (TRANSPORT_JSON_DELIMITERS_BALANCED with the parser's own error retained).
  */
 export const parseStrictModelJsonDetailed = (rawText, createError) => {
   const originalText = String(rawText ?? '');
-  const text = originalText
+  const received = originalText
     .replace(/^\uFEFF/, '')
     .trim();
+  const fence = received.match(OUTER_CODE_FENCE);
+  const text = fence ? fence[2].trim() : received;
+  const corrections = fence ? [{ kind: 'outer-markdown-code-fence', label: fence[1] ? fence[1].toLowerCase() : null }] : [];
   if (!text) {
     throw createBadJsonError(createError, originalText, {
       kind: 'json-syntax', message: 'The response contains no JSON text.', originalByteOffset: 0
@@ -134,5 +145,5 @@ export const parseStrictModelJsonDetailed = (rawText, createError) => {
       message: `Expected one JSON object; received ${parsed === null ? 'null' : Array.isArray(parsed) ? 'an array' : typeof parsed}.`
     });
   }
-  return { payload };
+  return corrections.length ? { payload, corrections } : { payload };
 };
