@@ -363,6 +363,7 @@ export const dispatchRelationClaims = (
     registry = productionRelationRegistry,
     synonymIndex = DEFAULT_SYNONYM_INDEX,
     structuralMovement,
+    keepsChainIdentity,
     drawnMovements
   } = input;
   const authoredTier1Dispatch = dispatchRelation({
@@ -383,7 +384,8 @@ export const dispatchRelationClaims = (
     priorForest,
     activeLens,
     synonymIndex,
-    ...(structuralMovement ? { structuralMovement } : {})
+    ...(structuralMovement ? { structuralMovement } : {}),
+    ...(structuralMovement && keepsChainIdentity ? { keepsChainIdentity } : {})
   });
   const declaredPrimaryAnchorKeys = new Set<string>(registryEntry
     ? [
@@ -942,7 +944,8 @@ export function dispatchStageRelations(stages: readonly { workspaceForest: Synta
  * unchanged in its preceding slot. Wording reads such a list, which names the
  * new lower occurrence beside an older one, as identity alone; structure reads
  * the older copies as context, so the hop is the displacement the coindex
- * states, and the movement path draws it. */
+ * states: the movement path draws it, and the coindex stays beside the path
+ * (`keepsChainIdentity`). */
 const coindexesMovingChain = (claim: RecoveredClaim, movement: RecoveredMovement,
   forest: readonly SyntaxNode[], priorForest: readonly SyntaxNode[] = []): boolean => {
   if (claim.tier !== 2 || claim.facet.recipe.id !== 'identity.occurrences') return false;
@@ -980,9 +983,12 @@ function dispatchStagesInOrder(stages: Parameters<typeof dispatchStageRelations>
       // a claim that draws anything else today keeps exactly that drawing.
       const worded = dispatchRelationClaims(input);
       const structuralMovement = structural?.[stageIndex].movements.get(relationIndex);
+      // The coindex stays beside the path: it lights the whole chain.
+      const keepsChainIdentity = worded.claims.some(claim => claim.tier !== 3);
       const dispatch: RelationClaimDispatch = structuralMovement && worded.claims.every(claim => claim.tier === 3
         || coindexesMovingChain(claim, structuralMovement, stage.workspaceForest, stages[stageIndex - 1]?.workspaceForest))
-        ? { ...dispatchRelationClaims({ ...input, structuralMovement }), structuralMovement } : worded;
+        ? { ...dispatchRelationClaims({ ...input, structuralMovement, ...(keepsChainIdentity ? { keepsChainIdentity } : {}) }), structuralMovement }
+        : worded;
       recoveredClaimMovements(dispatch).forEach(movement => {
         rememberAssignmentMovement(assignmentContext, movement);
         rememberControlMovement(controlContext, stageIndex, movement);

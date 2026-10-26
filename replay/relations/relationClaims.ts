@@ -130,6 +130,8 @@ export type ExclusiveRelationDispatchInput = {
   structuralRules?: ReadonlySet<import('./structuralRecognition.ts').StructuralRuleId>;
   /** Structural movement for this claim; see structuralMovement.ts. */
   structuralMovement?: RecoveredMovement;
+  /** The structural movement replaces a coindex over its whole chain, which it keeps beside the path. */
+  keepsChainIdentity?: boolean;
   /** Keys (`movementKey`) of movements an earlier claim of this stage already draws. */
   drawnMovements?: ReadonlySet<string>;
 };

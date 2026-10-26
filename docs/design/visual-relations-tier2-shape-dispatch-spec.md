@@ -395,13 +395,15 @@ coindexes over the moving chain as a whole: the displacement's landing and
 lower occurrence and at least one older copy of the chain, each older copy
 unchanged in its preceding slot, as when one field lists the new trace beside an
 older one. Wording reads that list as identity alone; structure reads the older
-copies as context, so the coindex states the displacement, and the movement
-path draws it. A coindex naming only the two occurrences of the hop stays with
-wording. Any other claim that draws anything today, at either tier, keeps
-exactly that drawing, its transitions and its moment. Wording only breaks
-ties: a claim whose wording recovers a movement keeps it, and the structural
-reading stands in only where no claim of the stage recovers the same lower
-occurrence and landing. The proved displacement then enters the
+copies as context, so the coindex states the displacement: the movement path
+draws the hop at its moment, and the coindex, with its forest light, stays over
+the whole chain. The path and the coindex together consume the fields they
+read, so none is left to a neutral mark. A coindex naming only the two
+occurrences of the hop stays with wording. Any other claim that draws anything
+today, at either tier, keeps exactly that drawing, its transitions and its
+moment. Wording only breaks ties: a claim whose wording recovers a movement
+keeps it, and the structural reading stands in only where no claim of the stage
+recovers the same lower occurrence and landing. The proved displacement then enters the
 same movement evidence that worded recovery produces: endpoint fields are the
 authored entries anchoring only those occurrences, a uniquely anchored strict
 descendant of the lower occurrence is the witness, and every other field keeps

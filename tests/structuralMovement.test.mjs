@@ -270,7 +270,7 @@ test('a coindex listing a hop with the older, unchanged copies of its chain draw
     stage(keptLanding(), [openClaim]), stage(onward(), [{ relation: 'A-chain', anchors: { positions } }])])).frames[2].items
     .filter(item => item.relationRef.stageIndex === 2).map(item => [item.kind, item.sourceNodeId, item.targetNodeId].filter(Boolean));
   assert.deepEqual(plan(['dp', 'trace2', 'trace'], '0'), [['coindex']], 'wording alone draws the coindex');
-  assert.deepEqual(plan(['dp', 'trace2', 'trace']), [['trajectory', 'trace2', 'dp'], ['fallback']], 'the older trace stays neutral context');
+  assert.deepEqual(plan(['dp', 'trace2', 'trace']), [['trajectory', 'trace2', 'dp'], ['coindex']], 'the path draws the hop and the coindex keeps the whole chain');
   // Naming only the hop's two occurrences, the coindex keeps its drawing.
   assert.deepEqual(plan(['dp', 'trace2']), plan(['dp', 'trace2'], '0'));
 });

@@ -34,8 +34,13 @@ const record = { sentence: 'who left', derivationStages: stages };
 
 test('a claim listing its new and its older trace draws the stage\'s hop at its own moment', () => {
   const replay = prepareReplay({ ...structuredClone(record), includePlayback: true }), steps = replay.playbackSteps;
-  const paths = replay.relationRenderPlan.frames[2].items.filter(item => item.kind === 'trajectory' && item.relationRef.stageIndex === 2);
-  assert.deepEqual(paths.map(item => [item.sourceNodeId, item.targetNodeId]), [['highTrace', 'op']], 'the second hop draws its path');
+  const items = replay.relationRenderPlan.frames[2].items.filter(item => item.relationRef.stageIndex === 2);
+  assert.deepEqual(items.filter(item => item.kind === 'trajectory').map(item => [item.sourceNodeId, item.targetNodeId]), [['highTrace', 'op']],
+    'the second hop draws its path');
+  // The coindex and its forest light keep the whole chain, and no field is left to a neutral mark.
+  assert.deepEqual(items.filter(item => item.kind === 'coindex').map(item => [item.familyId, item.tier2OutputPieces, item.nodeIds]),
+    [['identity.occurrences', ['Coindex', 'Forest light'], ['op', 'highTrace', 'lowTrace']]]);
+  assert.deepEqual(items.filter(item => item.kind === 'fallback'), [], 'no neutral leftover');
   const moment = steps.findIndex(step => step.replayKind === 'relation' && step.replayRelationIdentity?.stageIndex === 2);
   assert.equal(frameStructure(steps[moment - 1]).parent.get('op'), 'tp', 'the operator keeps its preceding place until its moment');
   assert.equal(frameStructure(steps[moment]).parent.get('op'), 'cp', 'the operator lands at its moment');
