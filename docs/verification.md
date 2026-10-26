@@ -54,7 +54,8 @@ he would notice.
 `scripts/replayMotionContinuity.mjs` decides ownership from each frame's own
 step, not from either checkout's planner diagnostics. It reports syntax that
 moves at a step that does not own it, and material that moves at the step
-attaching it. Within a stage it measures layout motion; across a stage boundary
+attaching it. A movement step owns the closing of the gap its phrase leaves
+(`closingGroups`). Within a stage it measures layout motion; across a stage boundary
 it first removes the camera carry (`carryCamera`), as the screen does.
 
 A new fault of at least 20 tree units (`NOTICEABLE_MOTION`), or an existing one

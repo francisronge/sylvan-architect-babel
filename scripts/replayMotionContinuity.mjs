@@ -27,6 +27,7 @@
  * stage the renderer carries the camera by the common shift of unmoved shared
  * syntax (`carryCamera`), so there motion is measured after that carried shift. */
 import { carryCamera } from '../components/treeViewport.ts';
+import { TREE_SIBLING_GAP } from '../replay/treeSpacing.ts';
 import { stepOwnership, stepTrajectoryParticipants } from '../tests/helpers/motionOwnership.mjs';
 
 export const MOTION_FAULT_THRESHOLD = 1;
@@ -68,6 +69,8 @@ export function replayMotionFaults({ frames }, { threshold = MOTION_FAULT_THRESH
   for (let index = 1; index < frames.length; index++) {
     const { kind, operation, target, links = [] } = frames[index], current = points[index], prior = points[index - 1];
     const owned = stepOwnership({ target, links, points: frames[index].points, prior });
+    const closing = closingGroups({ kind, links, current, prior, motion: id => motion(index, id), owned, threshold });
+    for (const id of closing) owned.add(id);
     const moved = new Set(frames[index].points.filter(point => !owned.has(point.id) && prior.has(point.id)
       && length(motion(index, point.id)) > threshold).map(point => point.id));
     // A node riding with its moving parent is reported once, at the parent; one
@@ -82,6 +85,8 @@ export function replayMotionFaults({ frames }, { threshold = MOTION_FAULT_THRESH
       const old = prior.get(point.id);
       if (!old || !point.parent || old.parent !== point.parent || !prior.has(point.parent)
         || childIds(current, point.parent) !== childIds(prior, point.parent)) continue;
+      // A closing side slides whole while the parents spanning the gap recentre.
+      if (closing.has(point.id)) continue;
       // A parent recentring over deeper changes moves alone; the child did not move.
       const own = motion(index, point.id), carrier = motion(index, point.parent);
       const distance = length({ x: own.x - carrier.x, y: own.y - carrier.y });
@@ -104,6 +109,146 @@ export function replayMotionFaults({ frames }, { threshold = MOTION_FAULT_THRESH
     }
   }
   return faults.sort((a, b) => a.frame - b.frame || a.kind.localeCompare(b.kind) || a.node.localeCompare(b.node));
+}
+
+/** The step where a phrase moves away may close the gap it leaves (Francis,
+ * 25 October 2026: "yes, the closing the gap is alright."). At a relation step
+ * whose own trajectory takes material away (relocated or no longer painted),
+ * the remaining syntax may close toward it while the far side stays: leaves
+ * slide horizontally in blocks, each no farther than the departing extent and
+ * one node unit and no farther than the block before it, or one whole side of
+ * the departing extent slides as one. The lower occurrence may shift within
+ * that room, and parents spanning the gap recentre over their daughters.
+ * Syntax joining a new parent at this step is judged as attachment instead.
+ * Returns the ids so closing. */
+export function closingGroups({ kind, links, current, prior, motion, owned, threshold = MOTION_FAULT_THRESHOLD }) {
+  const result = new Set();
+  if (kind !== 'relation' || !links.length) return result;
+  const priorChildren = new Map();
+  for (const point of prior.values()) if (point.parent) priorChildren.set(point.parent, [...(priorChildren.get(point.parent) ?? []), point.id]);
+  // The departing material: what leaves the step's own trajectory participants
+  // (relocated under another parent, or no longer painted), with everything it
+  // painted below it in the frame before.
+  const departing = new Set();
+  const take = id => { for (const pending = [id]; pending.length;) {
+    const next = pending.pop();
+    if (departing.has(next)) continue;
+    departing.add(next); pending.push(...(priorChildren.get(next) ?? []));
+  } };
+  for (const participant of links) {
+    if (!prior.has(participant)) continue;
+    for (const pending = [participant]; pending.length;) {
+      const id = pending.pop(), old = prior.get(id), now = current.get(id);
+      if (!now || (old.parent && now.parent !== old.parent)) { take(id); continue; }
+      pending.push(...(priorChildren.get(id) ?? []));
+    }
+  }
+  const xs = [...departing].map(id => prior.get(id).x);
+  // A phrase's room is its extent and one node unit.
+  const lo = Math.min(...xs), hi = Math.max(...xs), width = hi - lo + TREE_SIBLING_GAP;
+  // Each node's painted extent in the frame before, below it included.
+  const extent = new Map();
+  const span = id => {
+    if (extent.has(id)) return extent.get(id);
+    const own = prior.get(id).x, parts = (priorChildren.get(id) ?? []).map(span);
+    const result = [Math.min(own, ...parts.map(part => part[0])), Math.max(own, ...parts.map(part => part[1]))];
+    extent.set(id, result);
+    return result;
+  };
+  // Syntax that joins a new parent here, and what rides along with it, moves
+  // because the step attaches it, not to close a gap.
+  const joining = id => {
+    for (let top = id; top; top = current.get(top)?.parent) {
+      const old = prior.get(top), now = current.get(top);
+      if (!old) return true;
+      if (old.parent !== now.parent) {
+        const a = motion(id), b = motion(top);
+        return Boolean(a && b) && Math.abs(a.x - b.x) <= threshold && Math.abs(a.y - b.y) <= threshold;
+      }
+    }
+    return false;
+  };
+  // The painted leaves outside the departing material, left to right: some cut
+  // between them may close, everything on one side of it sliding as one toward
+  // it while the other side stays.
+  const leaves = [...prior.values()].filter(point => !priorChildren.has(point.id) && !departing.has(point.id)
+    && current.has(point.id) && !joining(point.id) && !links.includes(point.id)).sort((a, b) => a.x - b.x);
+  const shiftOf = leaves.map(point => motion(point.id));
+  // Leaves on the moving side slide in blocks, each block as one, by amounts
+  // that shrink toward the side that stays (gaps closing one after another).
+  const still = shift => Math.hypot(shift.x, shift.y) <= threshold;
+  const flows = shifts => {
+    if (!shifts.length || !still(shifts.at(-1))) return false;
+    let previous = Infinity;
+    for (const shift of shifts) {
+      if (Math.abs(shift.y) > threshold) return false;
+      if (Math.abs(shift.x) > width + threshold || Math.abs(shift.x) > previous + threshold) return false;
+      previous = Math.abs(shift.x);
+    }
+    return true;
+  };
+  let moving = null;
+  if (leaves.length) for (const side of [-1, 1]) {
+    // Leaves read from the moving end toward the end that stays.
+    const order = side < 0 ? leaves.map((_, k) => k) : leaves.map((_, k) => leaves.length - 1 - k);
+    const shifts = order.map(k => shiftOf[k]);
+    const toward = shifts.every(shift => still(shift) || Math.sign(shift.x) === -side);
+    if (toward && !still(shifts[0]) && flows(shifts)) { moving = new Map(order.map(k => [leaves[k].id, shiftOf[k]]).filter(([, shift]) => !still(shift))); break; }
+  }
+  if (moving) {
+    const leavesOf = new Map();
+    const below = id => {
+      if (leavesOf.has(id)) return leavesOf.get(id);
+      const parts = priorChildren.get(id);
+      const result = parts ? parts.flatMap(below) : [id];
+      leavesOf.set(id, result);
+      return result;
+    };
+    // A node whose leaves all slide by one amount slides with them.
+    for (const point of current.values()) {
+      if (!prior.has(point.id) || departing.has(point.id) || joining(point.id)) continue;
+      const under = below(point.id).filter(id => !departing.has(id));
+      if (!under.length || !under.every(id => moving.has(id))) continue;
+      const dx = moving.get(under[0]).x, shift = motion(point.id);
+      if (shift && Math.abs(shift.y) <= threshold && under.every(id => Math.abs(moving.get(id).x - dx) <= threshold) && Math.abs(shift.x - dx) <= threshold) result.add(point.id);
+    }
+  }
+  // Or each side of the departing material's former extent slides as one.
+  for (const side of [-1, 1]) {
+    const group = [...current.values()].filter(point => !departing.has(point.id) && prior.has(point.id) && !joining(point.id)
+      && (side < 0 ? span(point.id)[1] < lo : span(point.id)[0] > hi));
+    const shifts = group.map(point => motion(point.id)).filter(Boolean);
+    const moving = shifts.filter(shift => Math.hypot(shift.x, shift.y) > threshold);
+    if (!moving.length) continue;
+    const dx = moving[0].x;
+    // The whole side moves as one, toward the gap, no farther than it.
+    if (shifts.some(shift => Math.abs(shift.x - dx) > threshold || Math.abs(shift.y) > threshold)) continue;
+    if (Math.sign(dx) !== -side || Math.abs(dx) > width + threshold) continue;
+    for (const point of group) result.add(point.id);
+  }
+  // A source's lower occurrence may shift within the room its material left.
+  for (const participant of links) {
+    const old = prior.get(participant), now = current.get(participant), shift = motion(participant);
+    if (!old || !now || departing.has(participant) || !shift || Math.abs(shift.y) > threshold || Math.abs(shift.x) > width + threshold) continue;
+    if ((priorChildren.get(participant) ?? []).some(id => departing.has(id))) result.add(participant);
+  }
+  if (!result.size) return result;
+  // Parents with daughters on both sides of the gap recentre over them: they
+  // move only horizontally, toward the gap, and no farther than their daughters.
+  const children = new Map();
+  for (const point of current.values()) if (point.parent) children.set(point.parent, [...(children.get(point.parent) ?? []), point.id]);
+  for (let grown = true; grown;) {
+    grown = false;
+    for (const point of current.values()) {
+      if (result.has(point.id) || departing.has(point.id) || !prior.has(point.id)) continue;
+      const daughters = children.get(point.id) ?? [];
+      if (!daughters.some(id => result.has(id))) continue;
+      const shift = motion(point.id), most = Math.max(...daughters.map(id => Math.abs(motion(id)?.x ?? 0)));
+      if (!shift || Math.abs(shift.y) > threshold || Math.abs(shift.x) > most + threshold) continue;
+      result.add(point.id); grown = true;
+    }
+  }
+  return result;
 }
 
 /** Painted points of one laid-out scene, with each point's painted parent. */

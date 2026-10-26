@@ -63,7 +63,8 @@ test('Doctor writes a receipt when Playwright and installed dependencies are mis
     await fs.copyFile(new URL('../components/treeViewport.ts', import.meta.url), path.join(root, 'components', 'treeViewport.ts'));
     // The carry measures painted positions through the replay identity helpers.
     await fs.mkdir(path.join(root, 'replay'));
-    for (const name of ['cameraCarry.ts', 'displayIdentity.ts']) {
+    // The approved closing measures a phrase's room in node units.
+    for (const name of ['cameraCarry.ts', 'displayIdentity.ts', 'treeSpacing.ts']) {
       await fs.copyFile(new URL(`../replay/${name}`, import.meta.url), path.join(root, 'replay', name));
     }
     // ...and decides step ownership with the shared motion helper.
