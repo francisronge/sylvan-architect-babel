@@ -934,7 +934,10 @@ completed last Stage Record releases earlier source-position bounds and fits the
 finished drawing; Fit uses those same final bounds. This does not compact or
 recenter the tree's internal coordinates.
 Forward playback also retains an already fitting view when a new stage could
-merely zoom in. Actual overflow can still pan or reduce scale. Prev within the
+merely zoom in. Actual overflow can still pan or reduce scale. A retained view
+that would leave the new stage lopsided on an axis it does not pan, with a
+quarter of the view more empty on one side of it than on the other, gives way
+to that stage's own fit. Prev within the
 same stage keeps that stage's current view rather than refitting, so a stage
 keeps one camera in both directions. Each stage lays
 out its syntax in its own coordinates, so a step into another stage translates
