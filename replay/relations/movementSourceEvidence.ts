@@ -38,15 +38,21 @@ export const sameMovementSourceSlot = (
 
 /** A continuing occurrence can declare its lineage when the first copy is
  * introduced. Its stable ID and exact preceding slot supply identity; an
- * already declared, conflicting lineage can never be overwritten. */
+ * already declared, conflicting lineage can never be overwritten. Either
+ * occurrence may keep the ID: the source left in place, or the landing, with
+ * a fresh lower occurrence of the same new lineage in the exact slot the
+ * preceding occurrence held. */
 export const hasMovementPriorIdentity = (
   current: Occurrences, prior: Occurrences, sourceId: string, priorId: string
 ): boolean => {
   const source = current.nodes.get(sourceId), before = prior.nodes.get(priorId);
   if (!source?.lineageId || !before || current.duplicates.has(sourceId) || prior.duplicates.has(priorId)) return false;
   if (before.lineageId !== undefined) return before.lineageId === source.lineageId;
-  return sourceId === priorId && sameMovementSourceSlot(current, prior, sourceId, priorId)
-    && ![...prior.nodes.values()].some(node => node.lineageId === source.lineageId);
+  if ([...prior.nodes.values()].some(node => node.lineageId === source.lineageId)) return false;
+  if (!sameMovementSourceSlot(current, prior, sourceId, priorId)) return false;
+  if (sourceId === priorId) return true;
+  const kept = current.nodes.get(priorId);
+  return Boolean(kept) && !current.duplicates.has(priorId) && kept!.lineageId === source.lineageId;
 };
 
 export const containsOccurrence = (node: SyntaxNode, id: string): boolean => node.id === id

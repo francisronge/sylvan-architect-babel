@@ -1,0 +1,498 @@
+{
+  "description": "Claude Opus 5.5 keeps each moved occurrence's ID at its landing and gives the occurrence left behind a new ID, sharing a lineage first written at the movement stage, as the prompt allows (\"either the landing or the occurrence left at the source keeps its id\"). Stage 3 raises V oku to I inside the new complex i-complex and relabels the lower copy t; stage 4 raises Ali to Spec-IP. Movement recognition required an untagged preceding occurrence to keep its ID at the source, so neither movement drew a path, the landing appeared at a construction step, and the relabelled trace replaced the verb before its moment. Both movements now play at their own moments with the source in its preceding form until then.",
+  "source": "Claude Opus 5.5, high effort, Anthropic qualification run, 26 Oct 2026 (opus-batch-20261026, n3-12-tr-evidential). The answer was wrapped in one ```json fence and read with the outer-fence intake proposal (fix/intake-outer-code-fence); the derivation is unchanged.",
+  "sentence": "Ali kitabı okumuş.",
+  "framework": "xbar",
+  "inputTokens": [
+    "Ali",
+    "kitabı",
+    "okumuş"
+  ],
+  "derivationStages": [
+    {
+      "statement": "The verb oku- combines with its object kitabı to form V-bar, assigning the object its Theme role and accusative Case.",
+      "stageRecord": "The derivation starts inside the lexical verb phrase. The noun kitabı projects through N-bar to a full NP, and the transitive verb stem oku- 'read' takes that NP as its complement. Turkish is head-final, so the complement is placed to the left of its head inside V-bar. Two relations follow from this configuration, in this order. First, the verb assigns its internal theta role, Theme, to the object NP. Second, the verb governs its complement and assigns it structural accusative Case. This Case is spelled out by the suffix -ı on kitabı, which also marks the object as definite or specific.",
+      "relations": [
+        {
+          "relation": "theta-role assignment",
+          "anchors": {
+            "assigner": "v-oku",
+            "recipient": "np-obj"
+          },
+          "values": {
+            "role": "Theme"
+          }
+        },
+        {
+          "relation": "accusative Case assignment under government",
+          "anchors": {
+            "assigner": "v-oku",
+            "assignee": "np-obj"
+          },
+          "values": {
+            "case": "accusative",
+            "exponent": "-ı"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "vbar",
+          "label": "V'",
+          "children": [
+            {
+              "id": "np-obj",
+              "label": "NP",
+              "children": [
+                {
+                  "id": "nbar-obj",
+                  "label": "N'",
+                  "children": [
+                    {
+                      "id": "n-kitap",
+                      "label": "N",
+                      "word": "kitabı",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "v-oku",
+              "label": "V",
+              "word": "oku",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "The subject Ali is base-generated in the specifier of VP and receives the Agent role.",
+      "stageRecord": "Under the VP-internal subject hypothesis, the external argument Ali first appears inside the verb's maximal projection. The proper name Ali projects to NP and is placed in the specifier of VP, to the left of V-bar. This completes VP. One relation is established: the V-bar formed from oku- and its object assigns the external theta role, Agent, to the NP in its specifier. Ali receives no Case in this position, so it must later move to a Case position.",
+      "relations": [
+        {
+          "relation": "theta-role assignment",
+          "anchors": {
+            "assigner": "vbar",
+            "recipient": "np-ali"
+          },
+          "values": {
+            "role": "Agent"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "vp",
+          "label": "VP",
+          "children": [
+            {
+              "id": "np-ali",
+              "label": "NP",
+              "children": [
+                {
+                  "id": "nbar-ali",
+                  "label": "N'",
+                  "children": [
+                    {
+                      "id": "n-ali",
+                      "label": "N",
+                      "word": "Ali",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "vbar",
+              "label": "V'",
+              "children": [
+                {
+                  "id": "np-obj",
+                  "label": "NP",
+                  "children": [
+                    {
+                      "id": "nbar-obj",
+                      "label": "N'",
+                      "children": [
+                        {
+                          "id": "n-kitap",
+                          "label": "N",
+                          "word": "kitabı",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "v-oku",
+                  "label": "V",
+                  "word": "oku",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "The finite inflectional head -mIş merges with VP and projects I-bar and IP.",
+      "stageRecord": "The inflectional suffix -muş (the vowel-harmony variant of -mIş) is a finite I head. It carries the evidential or perfect past reading ('apparently read' or 'has read'); both readings use the same structure. Because the language is head-final, I takes the VP as its complement on its left and projects I-bar. I-bar then projects IP. The specifier of IP is not yet filled. One relation is established here: I selects the VP as its complement. This relation fixes the clause as finite, with the tense and aspect features of -mIş.",
+      "relations": [
+        {
+          "relation": "complement selection",
+          "anchors": {
+            "selector": "i-mis",
+            "complement": "vp"
+          },
+          "values": {
+            "finiteness": "+finite",
+            "tense-aspect": "evidential/perfect past (-mIş)"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "ip",
+          "label": "IP",
+          "children": [
+            {
+              "id": "ibar",
+              "label": "I'",
+              "children": [
+                {
+                  "id": "vp",
+                  "label": "VP",
+                  "children": [
+                    {
+                      "id": "np-ali",
+                      "label": "NP",
+                      "children": [
+                        {
+                          "id": "nbar-ali",
+                          "label": "N'",
+                          "children": [
+                            {
+                              "id": "n-ali",
+                              "label": "N",
+                              "word": "Ali",
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "vbar",
+                      "label": "V'",
+                      "children": [
+                        {
+                          "id": "np-obj",
+                          "label": "NP",
+                          "children": [
+                            {
+                              "id": "nbar-obj",
+                              "label": "N'",
+                              "children": [
+                                {
+                                  "id": "n-kitap",
+                                  "label": "N",
+                                  "word": "kitabı",
+                                  "children": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "v-oku",
+                          "label": "V",
+                          "word": "oku",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "i-mis",
+                  "label": "I",
+                  "word": "muş",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "The verb raises from V to I and adjoins to the inflectional head, forming the complex verb okumuş.",
+      "stageRecord": "The suffix -muş is a bound affix and cannot stand alone, so the verb stem must combine with it. The verb oku- undergoes head movement out of V-bar and left-adjoins to I. The stem comes first because the suffix follows it. The adjunction creates a complex I node, and the original I remains its lower segment. A coindexed trace stays in the verb's base position, to the right of the object. Two relations are established, in this order. First, V-to-I head movement links the raised verb to its trace and to the complex I landing site; the raised verb antecedent-governs the trace. Second, the complex I head is formed as one morphological word, so the stem and suffix together are spelled out as okumuş. This second relation establishes that the complex head realizes the text 'okumuş'.",
+      "relations": [
+        {
+          "relation": "head movement (V-to-I)",
+          "anchors": {
+            "mover": "v-oku",
+            "trace": "t-v",
+            "landingSite": "i-complex"
+          }
+        },
+        {
+          "relation": "morphological word formation",
+          "anchors": {
+            "complexHead": "i-complex"
+          },
+          "values": {
+            "word": "okumuş"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "ip",
+          "label": "IP",
+          "children": [
+            {
+              "id": "ibar",
+              "label": "I'",
+              "children": [
+                {
+                  "id": "vp",
+                  "label": "VP",
+                  "children": [
+                    {
+                      "id": "np-ali",
+                      "label": "NP",
+                      "children": [
+                        {
+                          "id": "nbar-ali",
+                          "label": "N'",
+                          "children": [
+                            {
+                              "id": "n-ali",
+                              "label": "N",
+                              "word": "Ali",
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "vbar",
+                      "label": "V'",
+                      "children": [
+                        {
+                          "id": "np-obj",
+                          "label": "NP",
+                          "children": [
+                            {
+                              "id": "nbar-obj",
+                              "label": "N'",
+                              "children": [
+                                {
+                                  "id": "n-kitap",
+                                  "label": "N",
+                                  "word": "kitabı",
+                                  "children": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "t-v",
+                          "label": "t",
+                          "silent": true,
+                          "lineageId": "lin-V",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "i-complex",
+                  "label": "I",
+                  "children": [
+                    {
+                      "id": "v-oku",
+                      "label": "V",
+                      "word": "oku",
+                      "lineageId": "lin-V",
+                      "children": []
+                    },
+                    {
+                      "id": "i-mis",
+                      "label": "I",
+                      "word": "muş",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "realizations": [
+        {
+          "nodeIds": [
+            "i-complex"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "The subject Ali raises to the specifier of IP, where finite I assigns nominative Case and agrees with it, completing the S-structure.",
+      "stageRecord": "Ali has no Case inside VP, and the specifier of IP must be filled. Ali therefore undergoes NP-movement from the specifier of VP to the specifier of IP, where it ends up sentence-initial. A coindexed trace is left in its theta position. Three relations are established, in this order. First, NP-movement forms a chain between the raised subject and its trace, so the Agent role assigned in VP is linked to the Case position. Second, the finite inflectional head assigns nominative Case to the NP in its specifier; nominative has a null exponent in Turkish. Third, Ali and the inflection agree in third person singular, and this agreement is also phonologically null on okumuş. The complex verb still realizes 'okumuş', and the final order is Ali kitabı okumuş.",
+      "relations": [
+        {
+          "relation": "NP-movement to Spec-IP",
+          "anchors": {
+            "mover": "np-ali",
+            "trace": "t-ali"
+          }
+        },
+        {
+          "relation": "nominative Case assignment",
+          "anchors": {
+            "assigner": "i-mis",
+            "assignee": "np-ali"
+          },
+          "values": {
+            "case": "nominative",
+            "exponent": ""
+          }
+        },
+        {
+          "relation": "subject-verb agreement",
+          "anchors": {
+            "controller": "np-ali",
+            "target": "i-mis"
+          },
+          "values": {
+            "person": "3",
+            "number": "singular",
+            "exponent": ""
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "ip",
+          "label": "IP",
+          "children": [
+            {
+              "id": "np-ali",
+              "label": "NP",
+              "lineageId": "lin-Ali",
+              "children": [
+                {
+                  "id": "nbar-ali",
+                  "label": "N'",
+                  "children": [
+                    {
+                      "id": "n-ali",
+                      "label": "N",
+                      "word": "Ali",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "ibar",
+              "label": "I'",
+              "children": [
+                {
+                  "id": "vp",
+                  "label": "VP",
+                  "children": [
+                    {
+                      "id": "t-ali",
+                      "label": "t",
+                      "silent": true,
+                      "lineageId": "lin-Ali",
+                      "children": []
+                    },
+                    {
+                      "id": "vbar",
+                      "label": "V'",
+                      "children": [
+                        {
+                          "id": "np-obj",
+                          "label": "NP",
+                          "children": [
+                            {
+                              "id": "nbar-obj",
+                              "label": "N'",
+                              "children": [
+                                {
+                                  "id": "n-kitap",
+                                  "label": "N",
+                                  "word": "kitabı",
+                                  "children": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "t-v",
+                          "label": "t",
+                          "silent": true,
+                          "lineageId": "lin-V",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "i-complex",
+                  "label": "I",
+                  "children": [
+                    {
+                      "id": "v-oku",
+                      "label": "V",
+                      "word": "oku",
+                      "lineageId": "lin-V",
+                      "children": []
+                    },
+                    {
+                      "id": "i-mis",
+                      "label": "I",
+                      "word": "muş",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "realizations": [
+        {
+          "nodeIds": [
+            "i-complex"
+          ],
+          "tokenIndices": [
+            2
+          ]
+        }
+      ]
+    }
+  ]
+}

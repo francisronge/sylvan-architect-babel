@@ -125,8 +125,11 @@ export const buildPreMovementStructuralForest = (
     };
     return structuralForest.some(visit);
   };
-  const restoreCurrentSourceState = (currentSource: SyntaxNode, previousSource: SyntaxNode): SyntaxNode | null => {
-    if (String(currentSource.label || '').trim() !== String(previousSource.label || '').trim()
+  // `proven`: recovered movement evidence already identified previousSource as
+  // the preceding occurrence of currentSource (movementEvidence.ts), so a lower
+  // copy relabelled as a trace still restores it.
+  const restoreCurrentSourceState = (currentSource: SyntaxNode, previousSource: SyntaxNode, proven = false): SyntaxNode | null => {
+    if (!proven && String(currentSource.label || '').trim() !== String(previousSource.label || '').trim()
       && (!currentSource.lineageId || currentSource.lineageId !== previousSource.lineageId)) {
       return null;
     }
@@ -273,7 +276,7 @@ export const buildPreMovementStructuralForest = (
       const restoredSources = movements.map(item => {
         const before = findNodeInForest(previousForest, item.priorSourceNodeId);
         const lower = findNode(item.sourceNodeId);
-        return before && lower ? restoreCurrentSourceState(lower, before) : null;
+        return before && lower ? restoreCurrentSourceState(lower, before, true) : null;
       });
       // Another claim about the same landing may already have withdrawn it;
       // this movement still restores its own source.
