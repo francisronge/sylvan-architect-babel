@@ -45,7 +45,7 @@ for (const rename of [false, true]) test(`successive movement retains the interm
 
 test('an earlier landing does not transfer without one unambiguous later movement', () => {
   for (const mutate of [
-    s => { s[2].relations.shift(); },
+    s => { s[2].relations.splice(0, 2); },
     s => { s[2].relations[0].priorAnchors.sourcePhrase = 'unresolved'; }
   ]) {
     const input = stages(); mutate(input);
@@ -53,6 +53,17 @@ test('an earlier landing does not transfer without one unambiguous later movemen
     assert.equal(earlier.targetNodeId, 'wh');
     assert.equal(earlier.occurrenceTransfers, undefined);
   }
+});
+
+test('without a worded movement, a chain inventory listing the hop and the older trace is the later movement', () => {
+  // Structure proves the hop from tEdge to wh. The inventory's list names it
+  // beside the older, unchanged trace tObject, which wording read as identity alone.
+  const input = stages();
+  input[2].relations.shift();
+  const [earlier, later] = arrows(compileRelationRenderPlan(input), 2);
+  assert.deepEqual(endpoints([earlier, later]), [['tObject', 'tEdge'], ['tEdge', 'wh']]);
+  assert.equal(later.relationRef.relation, 'A′-chain');
+  assert.deepEqual(earlier.occurrenceTransfers, [{ fromNodeId: 'wh', toNodeId: 'tEdge', stageIndex: 2, relationIndex: 0 }]);
 });
 
 test('a restated later movement is one transfer, owned by its first claim', () => {

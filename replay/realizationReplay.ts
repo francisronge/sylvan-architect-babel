@@ -116,7 +116,7 @@ export const resolveRealizationChanges = (
   current: ReplayDerivationFrame,
   stageIndex: number,
   inputTokens?: readonly string[],
-  /** Structural movements of this stage's wholly neutral claims; see structuralMovementUpgrades. */
+  /** Structural movements of the claims this stage upgrades; see structuralMovementUpgrades. */
   structural?: ReadonlyMap<number, RecoveredMovement>
 ): RealizationChange[] => {
   const changes = changedGroups(previous?.after?.realizations || [], current.after?.realizations || []);

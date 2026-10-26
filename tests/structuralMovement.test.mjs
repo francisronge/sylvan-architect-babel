@@ -259,3 +259,18 @@ test('a claim that draws anything under wording keeps exactly that drawing', () 
     assert.ok(!JSON.parse(read(undefined))[2].frames[1].items.some(item => item.kind === 'trajectory'), relation.relation);
   }
 });
+
+test('a coindex listing a hop with the older, unchanged copies of its chain draws the hop', () => {
+  // A second hop: dp moves on to Spec-CP, its new trace holds its old slot, and
+  // the first trace stays unchanged in VP. Wording reads the list as identity.
+  const onward = () => [{ id: 'cp', label: 'CP', children: [cat(), { id: 'cbar', label: 'C′', children: [
+    { id: 'c', label: 'C', silent: true }, { id: 'tp2', label: 'TP', children: [
+      { id: 'trace2', label: 'DP', lineageId: 'cat', silent: true }, keptLanding()[0].children[1]] }] }] }];
+  const plan = (positions, value) => withSwitch(value, () => compileRelationRenderPlan([stage(before()),
+    stage(keptLanding(), [openClaim]), stage(onward(), [{ relation: 'A-chain', anchors: { positions } }])])).frames[2].items
+    .filter(item => item.relationRef.stageIndex === 2).map(item => [item.kind, item.sourceNodeId, item.targetNodeId].filter(Boolean));
+  assert.deepEqual(plan(['dp', 'trace2', 'trace'], '0'), [['coindex']], 'wording alone draws the coindex');
+  assert.deepEqual(plan(['dp', 'trace2', 'trace']), [['trajectory', 'trace2', 'dp'], ['fallback']], 'the older trace stays neutral context');
+  // Naming only the hop's two occurrences, the coindex keeps its drawing.
+  assert.deepEqual(plan(['dp', 'trace2']), plan(['dp', 'trace2'], '0'));
+});

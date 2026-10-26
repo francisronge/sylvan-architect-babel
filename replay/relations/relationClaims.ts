@@ -107,7 +107,7 @@ export type RelationClaimDispatch = ClaimDispatchBase & {
   residualRelation?: DerivationStageRelation;
   /** Structure-only rules that earned this relation's claims; see structuralRecognition.ts. */
   structuralRules?: import('./structuralRecognition.ts').StructuralRuleId[];
-  /** The structural movement a wholly neutral claim was upgraded with; see structuralMovement.ts. */
+  /** The structural movement a claim was upgraded with (see dispatchStageRelations and structuralMovement.ts). */
   structuralMovement?: RecoveredMovement;
   /** Movements this claim names that an earlier claim of its stage already draws; it draws no arrow for them. */
   restatedMovements?: RecoveredMovement[];
