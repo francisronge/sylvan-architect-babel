@@ -442,7 +442,7 @@ export function recoverMovementEvidence(
   // slot. Another occurrence or an unrelated phrase remains a competing source.
   const sourceContainerPresent = entries.some(e => sourceContainerRole(e.key))
     || Object.keys(relation.priorAnchors ?? {}).some(sourceContainerRole);
-  const independentPairs = (sourceContainerPresent ? [...new Set([...structuralPriorSources, ...anchored])] : []).flatMap(priorId => {
+  const candidatePairs = (sourceContainerPresent ? [...new Set([...structuralPriorSources, ...anchored])] : []).flatMap(priorId => {
     const before = prior.nodes.get(priorId);
     if (!before?.lineageId || prior.duplicates.has(priorId)) return [];
     return anchored.filter(id => !current.duplicates.has(id) && current.nodes.get(id)?.lineageId === before.lineageId
@@ -455,6 +455,13 @@ export function recoverMovementEvidence(
         && Boolean(landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) }, { current, prior }));
     }).map(targetId => ({ priorId, sourceId, targetId })));
   });
+  // When the landing kept its ID and a new occurrence holds its preceding slot,
+  // an older copy of the chain kept unchanged in its own slot is chain context:
+  // it does not compete with the landing's own preceding occurrence as the source.
+  const independentPairs = candidatePairs.filter(pair => !(pair.sourceId === pair.priorId
+    && sameAuthoredValue(current.nodes.get(pair.sourceId), prior.nodes.get(pair.priorId))
+    && candidatePairs.some(other => other.targetId === pair.targetId && other.priorId === other.targetId
+      && other.sourceId !== pair.sourceId && !prior.nodes.has(other.sourceId))));
   if (independentPairs.length === 1) {
     const pair = independentPairs[0], lineage = prior.nodes.get(pair.priorId)!.lineageId;
     const containingSource = (id: string, sourceId: string, indexed: ReturnType<typeof indexMovementOccurrences>): boolean => {

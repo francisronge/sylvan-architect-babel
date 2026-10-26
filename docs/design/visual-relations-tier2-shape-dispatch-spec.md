@@ -1015,7 +1015,9 @@ same-lineage occurrence new in this stage holds that slot, the landing's own
 preceding occurrence is the prior source and that new occurrence is the hop's
 lower endpoint, whatever its field is called. An older copy of the same chain
 kept unchanged in its own slot is chain context in any source or witness field:
-it neither becomes the source nor competes with the new witness. The claim must
+it neither becomes the source nor competes with the new witness. Beside a field
+naming the clause or phrase the hop leaves, it does not pair with the landing
+either, so that container stays context. The claim must
 still cite a source or witness; without one, it does not become a movement.
 Another claim of the stage that this rule binds to the same hop shares its
 arrow. Claims restating one transition are one occurrence transfer, at the

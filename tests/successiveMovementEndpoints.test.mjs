@@ -225,3 +225,26 @@ test('a cited older foot of the same lineage does not compete with the step\'s n
   assert.equal(recoverMovementEvidence(input.relation, input.after, input.before).failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED',
     'a trace of another lineage still competes');
 });
+
+// GPT-6.1 Sol's second analysis of sol-120-20261026 n4-04 (stage 3) names the
+// clauses beside the hop and both traces under open names.
+test('an unchanged older copy does not compete beside the clauses a hop leaves and lands in', () => {
+  const input = successiveUnfamiliarRoles();
+  input.relation = { relation: 'A-movement',
+    anchors: { movedNominal: 'mover', newTrace: 'new-copy', earlierTrace: 'old-copy', landingClause: 'root', sourceClause: 'clause' },
+    priorAnchors: { movedNominal: 'mover', sourceClause: 'clause' } };
+  const original = structuredClone(input);
+  const result = recoverMovementEvidence(input.relation, input.after, input.before);
+  assert.deepEqual([result.movement?.priorSourceNodeId, result.movement?.sourceNodeId, result.movement?.targetNodeId,
+    result.movement?.witnessNodeId], ['mover', 'new-copy', 'mover', 'new-copy']);
+  const items = compileRelationRenderPlan([
+    { statement: '', stageRecord: '', workspaceForest: input.before, relations: [] },
+    { statement: '', stageRecord: '', workspaceForest: input.after, relations: [input.relation] }
+  ]).frames[1].items;
+  assert.deepEqual(items.filter(item => item.kind === 'trajectory').map(item => [item.claimTier, item.sourceNodeId, item.targetNodeId]),
+    [[1, 'new-copy', 'mover']]);
+  assert.deepEqual(input, original);
+  // A changed older copy is not chain context and still competes.
+  index(input.after).get('old-copy').word = 'another occurrence';
+  assert.equal(recoverMovementEvidence(input.relation, input.after, input.before).movement, undefined);
+});
