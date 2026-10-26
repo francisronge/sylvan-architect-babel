@@ -169,7 +169,9 @@ that moves at a step that does not own it, and material that moves at the step
 attaching it. Within a stage it measures layout motion; across a stage boundary it
 first removes the camera carry (`carryCamera`), as the screen does. A new fault, or
 an existing one that moves farther, fails the comparison; the summary counts the
-faults each checkout has.
+faults each checkout has. A fixture the change adds, which the base checkout lacks,
+is judged by motion, continuity and geometry only (`allowAddedFixtures`): the base's
+Replay of it is the behavior the change replaces.
 
 The corpus manifest links representative existing fixtures for movement and
 ordinary wrappers, later movement, separately established pronunciation,
