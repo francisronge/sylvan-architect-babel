@@ -274,7 +274,16 @@ export function materializePlanFrames(
       }
       return;
     }
+    // A persistent state yields only to a later claim that names it as its
+    // complete preceding state; sharing its participants does not replace it.
     for (let frameIndex = item.appearsAtStage; frameIndex < stageCount; frameIndex += 1) {
+      const successor = item.replacementGroup ? items.find(candidate => candidate !== item
+        && candidate.appearsAtStage > item.appearsAtStage && candidate.appearsAtStage <= frameIndex
+        && continuesReplacementGroup(candidate.replacementPredecessorGroup, item.replacementGroup)) : undefined;
+      if (successor) {
+        materializeIntoFrame(item, frameIndex, successor.relationRef);
+        break;
+      }
       materializeIntoFrame(item, frameIndex);
     }
   });

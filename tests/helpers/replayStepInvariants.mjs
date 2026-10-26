@@ -261,7 +261,17 @@ const canonical = value => Array.isArray(value) ? value.map(canonical) : value &
 /** An authored claim, so an identical restatement under another moment is the same claim. */
 const claimKey = ref => JSON.stringify(canonical([ref.relation ?? null, ref.anchors ?? null, ref.values ?? null]));
 const isThetaBadges = item => item.kind === 'node-badges' && item.badgeStyle === 'theta-role';
-const isComposedThetaGrid = item => item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid' && Boolean(item.composedRefs?.length);
+const isThetaGrid = item => item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid';
+const isComposedThetaGrid = item => isThetaGrid(item) && Boolean(item.composedRefs?.length);
+const participantKey = anchors => [...new Set(anchorIds(anchors))].sort().join('\u0000');
+/** Authored claims whose complete `priorAnchors` block resolves in the preceding
+ * stage: each names the participants of the state it restates. */
+const authoredRestatements = (record, stages) => (record.derivationStages ?? []).flatMap((stage, stageIndex) =>
+  (stage.relations ?? []).flatMap((relation, relationIndex) => {
+    const prior = anchorIds(relation?.priorAnchors);
+    return stageIndex > 0 && prior.length && prior.every(id => stages[stageIndex - 1]?.ids.has(id))
+      ? [{ stageIndex, relationIndex, participants: participantKey(relation.priorAnchors) }] : [];
+  }));
 
 const VANISHED = /^persistent mark from stage (\d+) is not drawn at stage (\d+): anchored node\(s\) (.+) no longer exist in this stage's forest/;
 /** The plan compiler's record of persistent marks it did not materialize because
@@ -296,6 +306,10 @@ export function vanishedAnchors(plan) {
  * A composed theta grid replaces its contributors' badges: theta badges do not
  * paint beside a grid that composes their claim with another claim already
  * played, in this stage or an earlier one (`composed-still-paints`).
+ * A theta grid is a predicate's current inventory. A later claim whose complete
+ * `priorAnchors` block names exactly an earlier claim's participants restates
+ * that inventory: once the restatement has played and paints its own grid, the
+ * earlier claim's grid and badges no longer paint (`outlives-restatement`).
  * `reveal-selector` reports a frame where the production selector disagrees
  * with the authored moments. Whether an authored removal renames an occurrence
  * is a contract question (replayContractWarnings.mjs, renamed-anchor).
@@ -305,6 +319,7 @@ export function checkMarkPersistence(replay, record, { select = isPlanItemReveal
   if (!plan) return out;
   const vanished = new Map(vanishedAnchors(plan).map(entry => [`${entry.frameIndex}|${entry.relation}`, entry.ids]));
   const played = new Map(), ended = new Map(), first = new Set(), unpaintedAtMoment = new Map(), disagreed = new Set(), composed = new Set();
+  const restatements = authoredRestatements(record, stages), outlived = new Set();
   let previousPainted = new Map();
   steps.forEach((step, index) => {
     const stage = step.replayFrameIndex, frame = index + 1;
@@ -335,6 +350,17 @@ export function checkMarkPersistence(replay, record, { select = isPlanItemReveal
       if (!other || composed.has(key)) continue;
       composed.add(key);
       report('composed-still-paints', key, `paints beside a theta grid that composes it with ${refKey(other)}, which has played`);
+    }
+    const paintedGridRefs = new Set(shown.filter(mark => isThetaGrid(mark.item)).flatMap(mark => planItemRelationRefs(mark.item)).map(refKey));
+    for (const [key, mark] of painted) {
+      if (outlived.has(key) || !(isThetaGrid(mark.item) || isThetaBadges(mark.item))) continue;
+      const ref = keyRef(key), claim = planItemRelationRefs(mark.item).find(candidate => refKey(candidate) === refKey(ref));
+      const restatement = claim && restatements.find(later => later.participants === participantKey(claim.anchors)
+        && (later.stageIndex > ref.stageIndex || later.stageIndex === ref.stageIndex && later.relationIndex > ref.relationIndex)
+        && hasPlayed(later) && paintedGridRefs.has(refKey(later)));
+      if (!restatement) continue;
+      outlived.add(key);
+      report('outlives-restatement', key, `still paints after ${refKey(restatement)}, which restates its participants as its preceding state, has played`);
     }
     for (const [key, before] of previousPainted) {
       if (painted.has(key)) continue;

@@ -16,6 +16,7 @@ import {
   INDEPENDENT_TIER2_VALUE_ROLES,
   independentFeatureDimensions,
   independentIdiomMemberFields,
+  independentPriorThetaArgumentFields,
   independentThetaArgumentFields,
   independentThetaRoleValueFields,
   indexTier2Forests,
@@ -167,6 +168,7 @@ export const evaluateTier2FacetRecipe = (
         && prepareRewriteRows(evidence, groups.flatMap(entry => entry.items.map(value => ({ label: entry.key, value }))))
           .realizationRowKinds.every(kind => kind === 'rewrite')) continue;
       if (field === 'anchors' && concept === 'theta.arguments' && independentThetaArgumentFields(evidence)) continue;
+      if (field === 'priorAnchors' && concept === 'theta.arguments' && independentPriorThetaArgumentFields(evidence)) continue;
       if (field === 'anchors' && concept === 'feature.bearers' && nominalConcordMembers(evidence).length) continue;
       if (field === 'anchors' && concept === 'chunks' && independentIdiomMemberFields(evidence)) continue;
       if (field === 'anchors' && concept === 'rewrite.output' && groups.length

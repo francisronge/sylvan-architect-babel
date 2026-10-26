@@ -468,7 +468,9 @@ export const compileDispatchedRelationRenderPlan = (
        * - a later instance whose authored `priorAnchors` name exactly an
        *   earlier instance's participants has authored its own continuity
        *   with that state, and replaces it even though its current
-       *   participant set differs (a grown linearization domain).
+       *   participant set differs (a grown linearization domain). A
+       *   persistent family with prior-state replacement honours only this
+       *   second thread, so its identical restatements keep sharing ink.
        * An instance over a different participant set with no authored
        * continuity is an independent claim and both persist. Nothing global
        * to the family ever replaces across unrelated participants.
@@ -486,7 +488,8 @@ export const compileDispatchedRelationRenderPlan = (
        * it is diagnosed and retained verbatim, but it never erases an
        * earlier claim.
        */
-      const replacementPredecessor = family.persistence === 'replace-previous-instance'
+      const replacesInstances = family.persistence === 'replace-previous-instance';
+      const replacementPredecessor = (replacesInstances || family.priorStateReplacement)
         && primaryPriorAnchorBlockComplete
         ? `${familyId}:participants:${participantSetKey(primaryRelation.priorAnchors)}`
         : '';
@@ -495,7 +498,7 @@ export const compileDispatchedRelationRenderPlan = (
         familyId,
         appearsAtStage: stageIndex,
         persistence: family.persistence,
-        ...(family.persistence === 'replace-previous-instance'
+        ...(replacesInstances || family.priorStateReplacement
           ? {
             replacementGroup: replacementThread,
             ...(replacementPredecessor

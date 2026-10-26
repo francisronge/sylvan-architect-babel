@@ -510,6 +510,12 @@ Several explicit argument fields may form one predicate's inventory when every
 field has its own same-name, same-length role literals and distinct occurrences.
 They produce one grid in the original relation moment. Unpaired aliases,
 competing normalized field names and incomplete literal lists remain ambiguous.
+A `priorAnchors` block may repeat those fields: each prior field sharing a
+current field's key and length names that participant's preceding occurrence.
+A restated inventory whose complete prior block names exactly an earlier
+claim's participants replaces that grid and its badges at the restatement's
+moment, as the replacement rule below states. The registered Tier-1 theta grid
+follows the same rule; its identical restatements still share one grid.
 An open role-valued field can also identify a participant by naming an exact,
 unique anchor role as its scalar value: `objectRole: experiencer` pairs with an
 `experiencer` anchor when a predicate is explicitly anchored. This reads the
