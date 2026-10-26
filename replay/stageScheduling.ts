@@ -73,6 +73,7 @@ export const finalizeStageReplay = (
     nonMovementTransitionNodeIds,
     workspaceRoots,
     previousFrameWorkspaceRoots,
+    constructionPreviousWorkspaceRoots,
     priorVisibleNodeIds,
     structuralWorkspaceRoots,
     frameSemanticStep,
@@ -260,7 +261,7 @@ export const finalizeStageReplay = (
         .forEach(child => ordinaryStructuralNodeIds.add(child.id));
     });
     laterAttachments.forEach(nodeIds => nodeIds.forEach(id => ordinaryStructuralNodeIds.add(id)));
-    const availableNodeIds = new Set(previousFrameWorkspaceRoots.flatMap(root => collectSyntaxSubtreeNodeIds(buildRenderableCommittedCanvasData(root))));
+    const availableNodeIds = new Set(constructionPreviousWorkspaceRoots.flatMap(root => collectSyntaxSubtreeNodeIds(buildRenderableCommittedCanvasData(root))));
     const structuralProducers = new Map(pendingStructuralSteps.map((step, stepIndex) => [step.targetNodeId, stepIndex]));
     const relationProducers = new Map<string, number>();
     relationPlacements.forEach((placement) => {
@@ -581,7 +582,7 @@ export const finalizeStageReplay = (
           ...frameSemanticStep,
           replayVisibleNodeIds: Array.from(availableNodeIds),
           replayPendingAttachmentNodeIds: structuralSteps.some(step => step.replayPendingAttachmentNodeIds)
-            ? Array.from(constructionAttachmentUpdates(previousFrameWorkspaceRoots, structuralWorkspaceRoots)) : undefined
+            ? Array.from(constructionAttachmentUpdates(constructionPreviousWorkspaceRoots, structuralWorkspaceRoots)) : undefined
         };
         const relationStep = withPendingStructureHidden(buildRelationPlaybackStep(placement, activeRelationIndexes, baseStep));
         stagePlaybackSteps.push(relationStep);

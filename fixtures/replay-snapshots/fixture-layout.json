@@ -1752,8 +1752,8 @@
       ]
     },
     "replay-regressions/inserted-adjunction-segment.json#": {
-      "frames": "0gKTOX5D 6nbeU3h_ p7_iqe0j nkhKDTyL 3janS8bb BHTblPxV kqM5-7mZ tqkxzoV9 UWxt8sdQ kesRjrf4 vZDPx99Z 8W7BSzaq N4iLf9Yf 8jAv73Rg bnRtHrcC 5DT6J2s9 Sly-uEHq zlwwiLZJ d4MyN2U3 ViAujsZc Fmvxx-pV Hbx-4sGm zPk9Ce5u vr3RJ6PS 6r5gzqnF t2bjxJzh 7_qpU1C- eE2uFJtg SGn_NQlL 5D11_DZj sERR5rcy 8qUfFo2R -aTRHZIg UGBD80QJ vbl2UMP3 mWrkf8MD PCICduBB oRb6g9ak 1JOGIChO OBoj2q7e 7KNr6UoQ ufl9Oq1H gYYdvBte NpxIw-JQ wmd5nquQ 0I3hwl6k 8SDc_Uou NaMJwe_6 AXxlCbZt -k8SaeAA",
-      "canopy": "uDa-M0BL",
+      "frames": "Wk65VI3L iAgrF1ZH 3_YIMYd9 gCqGBIGM ltrbqDQX Pjy5mHr5 jyUvepts 1uEsZHpY V4gZO7nY 0pr1TmHC trvSshIU 2BGqKcix aF42YIIM YGJmBvRV MxDBJEHC Fm8Tury2 DQUG_sem x1QJ_Mfa _feD6FLG 5bxxe8KA ofD2J47P GzzIiTAP WHXWwDSz La0dj7ZY 4f0SzgNI kZEuiC9S HAHotR-y V49eo9hz Bi-Nwnqs 41JkEALb BkgXG787 KPlOKX8g _0GvJtHd IiC5Wpeo SQmtokzT LXlwTwYD 3LPzihvB CPOaWxzt CmPSVZEf MvLrSvUd 4AgFskcQ c3RcVUyf glMKU_lq rtLfxb2i wpv3u7wb uk7KX0ih NkWMTS7V onG6p0tn 6WP1kHXU",
+      "canopy": "Y0-D9tlv",
       "tiers": [
         "0:0 T3 fallback",
         "0:1 T2 node-badges theta.grid theta-grid",
@@ -2419,8 +2419,8 @@
       ]
     },
     "replay-regressions/relative-clause-waiting-clearance.json#": {
-      "frames": "b5CWNng5 tokHcL7c FSoD3Gr8 BJYVoXIW pwGAQAES mxKREcG8 ZUSe1sVs DTSYgxtI SL-QYAsU UnIh_9rM _4iqMeLg Otp9x8uu VrwMjrYF MOwv6xaD tL9pMAx7 Fhwx5wIZ qya9TacF wW5juNeq 8WtfToZi 4mHKei1r poquArEL z3FpCOSE 0-zscQe9 eZzSGuVC ibM6_7AD QReKGvo- DeQr9RAo xfzgYnV1 C-VI8q0f vykqRzzI LU1M6lDc qi-xqIaW mY55d03B W9SvHWCQ tkpGAmND OcahRpNX ZwB5yWVB k8B8YIQp IT0esdGj GuxXZ7Jo 4lm5QhFy kHk4ilFS TGlQZir6 2J9OyknI FrtQrwbk G3qcRc88 IStc3Ow4 Qh1-16aV 4MY1Dw2j mwWy8FFa tc62afui aiTCuLIx rRZm7hqT 4MOuV31X Nvpp34G8 N48cPa1U hoTaHKaC 8WE_bpSY YGV_ME0k N6ZgeBpp QgJUVrg9 IgyE_UC0 _0gSmCwD Cpka1_d6 9qEDSJJU",
-      "canopy": "88jXvHxd",
+      "frames": "RsF6eRy4 sdVh71Xi C5VmeT3_ Sbf9Eq4q BhdSCz8z 8EIzW4E_ aUuvl3tW imf0wX8P XzXrl4K- CdV37P67 1s2vbsnu CV8vu5yO mRFaHT8N i6DNyA-I cVwVDjTg L6nYnHfE M3SaqVxu jNbLzb4A h9wslcAZ rPT9jNaS -hKy_2H2 vdN3Uls4 TMul0cl6 EGxJqYGO nvbMVfsG mkve3w6x e0vSDP46 t06Urc4f ZmHT8zmj 3bn5Jwo6 OKPZIHr0 21kAptmX Jnx0ruta 1OXLYENv O5baHkka hHPRZQbQ h2xX8-_d 3ARlxhym aOqpwTrN -XxHMQ9U OeSvkCQt 3QsWhjE5 9moKUJdG 5WAQajKZ huIyCWnh qE9_ETxn JnK4RWjq Ij79LJ-Y t78Gf2yI QRKo_Yhq IAJapbk0 AnzY6uxw KjOURIkl vACfZTN_ 2GOWmU45 Z-3oBCB- eKOUZrZW Dz0DwtEj jdqucWUe q-loPMui AHSdtTop 5bmUEokf TmWxdeBM NXKWEWQB",
+      "canopy": "4Z3jCY1B",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
         "0:0 T1 node-plaque theta.grid",
@@ -4085,8 +4085,8 @@
       ]
     },
     "replay-regressions/workspace-component-lifetime.json#/cases/2": {
-      "frames": "b5CWNng5 tokHcL7c FSoD3Gr8 BJYVoXIW pwGAQAES mxKREcG8 ZUSe1sVs DTSYgxtI SL-QYAsU UnIh_9rM _4iqMeLg Otp9x8uu VrwMjrYF MOwv6xaD tL9pMAx7 Fhwx5wIZ qya9TacF wW5juNeq 8WtfToZi 4mHKei1r poquArEL z3FpCOSE 0-zscQe9 eZzSGuVC ibM6_7AD QReKGvo- DeQr9RAo xfzgYnV1 C-VI8q0f vykqRzzI LU1M6lDc qi-xqIaW mY55d03B W9SvHWCQ tkpGAmND OcahRpNX ZwB5yWVB k8B8YIQp IT0esdGj GuxXZ7Jo 4lm5QhFy kHk4ilFS TGlQZir6 2J9OyknI FrtQrwbk G3qcRc88 IStc3Ow4 Qh1-16aV 4MY1Dw2j mwWy8FFa tc62afui aiTCuLIx rRZm7hqT 4MOuV31X Nvpp34G8 N48cPa1U hoTaHKaC 8WE_bpSY YGV_ME0k N6ZgeBpp QgJUVrg9 IgyE_UC0 _0gSmCwD Cpka1_d6 9qEDSJJU",
-      "canopy": "88jXvHxd",
+      "frames": "RsF6eRy4 sdVh71Xi C5VmeT3_ Sbf9Eq4q BhdSCz8z 8EIzW4E_ aUuvl3tW imf0wX8P XzXrl4K- CdV37P67 1s2vbsnu CV8vu5yO mRFaHT8N i6DNyA-I cVwVDjTg L6nYnHfE M3SaqVxu jNbLzb4A h9wslcAZ rPT9jNaS -hKy_2H2 vdN3Uls4 TMul0cl6 EGxJqYGO nvbMVfsG mkve3w6x e0vSDP46 t06Urc4f ZmHT8zmj 3bn5Jwo6 OKPZIHr0 21kAptmX Jnx0ruta 1OXLYENv O5baHkka hHPRZQbQ h2xX8-_d 3ARlxhym aOqpwTrN -XxHMQ9U OeSvkCQt 3QsWhjE5 9moKUJdG 5WAQajKZ huIyCWnh qE9_ETxn JnK4RWjq Ij79LJ-Y t78Gf2yI QRKo_Yhq IAJapbk0 AnzY6uxw KjOURIkl vACfZTN_ 2GOWmU45 Z-3oBCB- eKOUZrZW Dz0DwtEj jdqucWUe q-loPMui AHSdtTop 5bmUEokf TmWxdeBM NXKWEWQB",
+      "canopy": "4Z3jCY1B",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
         "0:0 T1 node-plaque theta.grid",
