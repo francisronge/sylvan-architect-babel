@@ -30,6 +30,7 @@ import {
   keptIdLandingNodeIds,
   movementLandingWrapper,
   movementLandingGroups,
+  newReceivingHeadNodeIds,
   receivingHeadMaterialNodeId
 } from './treeTransitions.ts';
 import { type PlaybackStep } from './types.ts';
@@ -368,6 +369,19 @@ export const createStageRelationSnapshots = (
         }
       });
     });
+    // A receiving head that keeps its id as the new complex's container gains
+    // its new inner head at the movement (newReceivingHeadNodeIds); that
+    // material is the movement's, so its moment shows it.
+    activeMovementRelations.flatMap(relation => relation.recoveredMovements ?? [relation.recoveredMovement])
+      .flatMap(movement => newReceivingHeadNodeIds(movement, previousFrameWorkspaceRoots, workspaceRoots))
+      .forEach((nodeId) => {
+        requestedVisibleNodeIds.add(nodeId);
+        requestedLayoutNodeIds.add(nodeId);
+        if (findExactNodeByIdInForest(workspaceRoots, nodeId)?.word !== undefined) {
+          requestedVisibleNodeIds.add(identity.allocate(`${nodeId}::__leaf`, { kind: 'word', ownerId: nodeId }));
+          requestedLayoutNodeIds.add(identity.allocate(`${nodeId}::__leaf`, { kind: 'word', ownerId: nodeId }));
+        }
+      });
     // Attachments held for construction stay held under the scaffold too.
     const activeFutureLayoutScaffold = buildFrameLayoutScaffold(snapshotWorkspaceRoots,
       new Set(baseStep?.replayPendingAttachmentNodeIds ?? []));

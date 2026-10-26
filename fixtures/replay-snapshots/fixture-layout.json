@@ -2342,6 +2342,29 @@
         "7:0 T3 fallback"
       ]
     },
+    "replay-regressions/receiving-head-container.json#": {
+      "frames": "nGbm96qk fO1twYCV -_qpswc3 NuuNzGB8 3EhaOSen DTNExvIT bKLb8qV3 _OL_RyEi jm2fdLse WjtBflmm Ns5J1qCD pKRe9JBl QcwSOjwg F09jq9AY NsfnpnTM 5b82rY7K c--cvH9S 2b4KOhI1 A3Ksbnau hFS7Ko-o dH2PLO9D yhx4pqZ6 qCCJULxH BMbiP-qg 3AKgdP0h IcDWaBcZ GXLSDvk8 vESQ3Gop cKTRSP0F N6bLbWJf HytaFEHO IKSJAwKl 9d2r6LaH cHbsxiue eOkiuWzx O2geBYMn LB8fu8ft zymVF786 oGTleSVF pWP8xkzL I0-Wig_S Ua89txan",
+      "canopy": "Qcc3fC51",
+      "tiers": [
+        "0:0 T3 fallback",
+        "0:1 T2 node-badges theta.grid theta-grid",
+        "0:1 T2 node-plaque theta.grid theta-grid",
+        "0:2 T2 directed-path tier2.feature-dependency feature.dependency",
+        "1:0 T3 fallback",
+        "1:1 T2 trajectory tier2.movement-path movement.path",
+        "1:1 T3 fallback",
+        "1:2 T2 node-badges tier2.gap-notation gap.notation",
+        "1:2 T3 fallback",
+        "2:0 T3 fallback",
+        "2:1 T2 trajectory tier2.movement-path movement.path",
+        "2:1 T3 fallback",
+        "2:2 T2 directed-path tier2.feature-dependency feature.dependency",
+        "2:3 T2 node-badges tier2.gap-notation gap.notation",
+        "2:3 T3 fallback",
+        "3:0 T3 fallback",
+        "3:1 T3 fallback"
+      ]
+    },
     "replay-regressions/receiving-head-material.json#": {
       "frames": "rLF52iJD dqArfDlZ 8QgMXDzC JN7286a3 lvZU4fDW guOOARDB Ad91l9Kx M3XwKmT7 mq0ypLeH G3jo2MK6 qkhZenPU upfsnW53 JZ6XBr7B jZ45agRl 0ZVEi2he Hv16Ta4H ZLKKvk7_ 5_Rpqb0i yReb-rU0 noehwHx0 mCj70TWO FK7D16ON tVBZBV4m 3a3CWtVS 4TThXNj7 tCvepZuC ZAFUV5S0 sySc07QJ z75VmJka V1qwPuSg gp1JdQDP",
       "canopy": "ebJ_57W2",
