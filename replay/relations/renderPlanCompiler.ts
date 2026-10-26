@@ -773,6 +773,19 @@ export const compileDispatchedRelationRenderPlan = (
     }
   });
 
+  // A persistent exact state keeps its replacement thread only where a later
+  // claim of its family names it as the preceding state; otherwise the item is
+  // unchanged. Tier-2 items keep their own threads.
+  const stateThread = (item: RelationPlanItem) => item.claimTier === 1
+    && Boolean(item.familyId && families[item.familyId]?.priorStateReplacement);
+  const states = items.filter(stateThread);
+  states.map(item => ({ item,
+    named: states.some(later => later.appearsAtStage > item.appearsAtStage && later.replacementPredecessorGroup === item.replacementGroup),
+    names: states.some(earlier => earlier.appearsAtStage < item.appearsAtStage && earlier.replacementGroup === item.replacementPredecessorGroup)
+  })).forEach(({ item, named, names }) => {
+    if (!named) delete item.replacementGroup;
+    if (!names) delete item.replacementPredecessorGroup;
+  });
   const frames = materializePlanFrames(items, stageList, stageDispatches, stageNodeMaps, organizationCompanions, diagnostics);
   coalesceFrames(frames);
 

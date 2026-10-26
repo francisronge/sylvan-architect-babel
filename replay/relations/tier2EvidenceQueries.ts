@@ -271,7 +271,7 @@ export const independentPriorThetaArgumentFields = (
     && prior.every(entry => current.some(other => other.key === entry.key && other.items.length === entry.items.length));
 };
 
-export const independentThetaRoleValueFields =(evidence: Tier2FacetEvidence): boolean => {
+export const independentThetaRoleValueFields = (evidence: Tier2FacetEvidence): boolean => {
   const entries = evidence.authoredValues?.filter(entry => entry.concepts.includes('role.label')) ?? [];
   const arguments_ = evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('theta.arguments')) ?? [];
   return entries.length > 1 && entries.length === arguments_.length
