@@ -83,8 +83,6 @@ export const EXCEPTIONS = [
     { desktop: { '41>40': 30.4 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/shared-landing-source.json#', 'first-paint-continuity', 'jump:camera', 'stage 2',
     { desktop: { '40>41': 27.11 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/shared-landing-source.json#', 'first-paint-continuity', 'off-canvas:unmoved', 'stage 2',
-    { mobile: { '40>41': 33.53 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/sol-spanish-qr.json#/analyses/1', 'first-paint-continuity', 'off-canvas:unmoved', 'stage 3',
     { mobile: { '32>33': 27.4 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/sol-spanish-qr.json#/analyses/1', 'first-paint-continuity', 'off-canvas:unmoved', 'stage 4',

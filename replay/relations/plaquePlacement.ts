@@ -977,12 +977,16 @@ type PlaqueLifetime = {
   /** Reconsidered claims whose prior pocket is an incumbent instead. */
   relocating?: ReadonlySet<number>;
   spaceFor: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>) => PlaqueSpace;
-  /** Offered each newly searched pocket. A returned shorter lifetime is searched
-   * again at once, keeping this pocket as the incumbent, so later claims avoid the
-   * pocket actually chosen. */
-  relocate?: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>, box: PlaqueRect) => PlaqueSpace | undefined;
+  /** Offered each newly searched pocket. A returned lifetime is searched again at
+   * once, at its `syntaxGap` if it names one, keeping this pocket as the incumbent,
+   * so later claims avoid the pocket actually chosen. A pocket chosen at a narrower
+   * gap records it, and is carried at that gap. */
+  relocate?: (index: number, anchor: Node, allocated: Map<number, PlaquePlacement>, box: PlaqueRect)
+    => { space: PlaqueSpace; syntaxGap?: number } | undefined;
   /** Search pockets at this narrower gap from everything but plaques. */
   syntaxGap?: number;
+  /** Search only pockets whose centre lies nearer the anchor than this. */
+  searchWithin?: number;
   /** Measured Case source boxes; without them Case arrows leave estimated labels. */
   caseSources?: CaseSourceRects;
 };
@@ -1055,8 +1059,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const connectorsClear = space ? space.acceptsConnector(judged)
       : (!request.caseAssignment || caseAssignmentClears(attachment, judged, occupied, caseSources))
         && collectionPlaqueClears(placement, nodes, occupied);
-    const carryGap = lifetime?.syntaxGap ?? PLAQUE_GAP;
-    if (lifetime?.syntaxGap === undefined) delete (placement as Partial<PlaquePlacement>).syntaxGap;
+    const carryGap = lifetime?.syntaxGap ?? prior.syntaxGap ?? PLAQUE_GAP;
+    if (lifetime?.syntaxGap === undefined && prior.syntaxGap === undefined) delete (placement as Partial<PlaquePlacement>).syntaxGap;
     if (occupied.some(obstacle => blocksCarriedPocket(placement, obstacle, carryGap)) || !connectorsClear) continue;
     if (lifetime?.reconsider?.has(request.index)) {
       (lifetime.relocating?.has(request.index) ? incumbentPriors : priorCandidates).set(request.index, placement);
@@ -1158,8 +1162,11 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const select = () => {
       const priorClears = (prior: PlaquePlacement) => space ? space.acceptsConnector(prior)
         : (!caseClears || caseClears(prior)) && collectionPlaqueClears(prior, nodes, occupied);
+      // A prior pocket accepted at a narrower gap is judged at that gap.
+      const priorBlocked = (prior: PlaquePlacement) => prior.syntaxGap === undefined || prior.syntaxGap >= gap ? overlaps(prior)
+        : occupied.some(obstacle => blocksCarriedPocket(prior, obstacle, prior.syntaxGap));
       const clearPrior = (prior?: PlaquePlacement): PlaquePlacement | undefined => {
-        if (!prior || overlaps(prior)) return undefined;
+        if (!prior || priorBlocked(prior)) return undefined;
         if (!bendRoutes || !request.caseAssignment || !sourceRect || prior.caseRoute) return priorClears(prior) ? prior : undefined;
         const drawn = { ...prior, width: request.drawnWidth ?? width, height: request.drawnHeight ?? height };
         for (const caseRoute of caseAssignmentRoutes(sourceRect, drawn, prior.y + (request.caseRowY ?? 93)))
@@ -1169,7 +1176,8 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
       const prior = clearPrior(priorCandidates.get(request.index));
       const incumbent = clearPrior(incumbentPriors.get(request.index) ?? lifetime?.incumbents?.get(request.index));
       const priorCandidate = incumbent && (!prior || placementDistance(incumbent) < placementDistance(prior)) ? incumbent : prior;
-      const priorDistance = priorCandidate ? placementDistance(priorCandidate) : Infinity;
+      const priorDistance = priorCandidate ? placementDistance(priorCandidate)
+        : !sourceRect && lifetime?.searchWithin !== undefined ? lifetime.searchWithin ** 2 : Infinity;
       const candidates = request.caseAssignment ? [70, 140, -height - 70].flatMap(dy =>
         [anchor.x + 110, anchor.x - width - 110, anchor.x - width / 2]
           .map(x => ({ x, y: anchorY + dy - ((request.caseRowY ?? 93) - 93), width, height })))
@@ -1416,9 +1424,11 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
         attachmentNodeId: idOf(attachment), attachmentX: attachment.x, attachmentY: attachment.y };
       const shorter = lifetime?.relocate?.(request.index, anchor, result, chosen);
       if (shorter) {
-        chosen = placeStagePlaques(items, nodes, obstacles, new Map(), measureText, { sizes: lifetime!.sizes,
+        const { space, syntaxGap } = shorter;
+        const again = placeStagePlaques(items, nodes, obstacles, new Map(), measureText, { sizes: lifetime!.sizes,
           includes: index => index === request.index, incumbents: new Map([[request.index, chosen]]),
-          spaceFor: () => shorter, caseSources }).get(request.index) ?? chosen;
+          spaceFor: () => space, caseSources, syntaxGap }).get(request.index);
+        if (again) chosen = syntaxGap !== undefined && (again.x !== chosen.x || again.y !== chosen.y) ? { ...again, syntaxGap } : again;
         placement = chosen;
       }
       return { chosen, placement };
