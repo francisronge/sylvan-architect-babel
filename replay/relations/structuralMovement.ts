@@ -431,7 +431,8 @@ export interface StructuralStageMovement {
   /** Relation index -> the displacement its anchors prove, for a claim whose
    * wording proves no movement and whose displacement no worded claim of the
    * stage already recovers. Dispatch applies it only to a claim that wording
-   * leaves wholly neutral. */
+   * leaves wholly neutral or draws only as a coindex of the hop with older
+   * copies of its chain. */
   movements: Map<number, RecoveredMovement>;
 }
 

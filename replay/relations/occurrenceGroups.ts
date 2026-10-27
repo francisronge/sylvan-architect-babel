@@ -39,7 +39,9 @@ export function recoverOccurrenceGroups(evidence: Tier2FacetEvidence) {
       .test(normalizeTier2Synonym(entry.key)));
   const namedList = positioned.length === 1 && establishesAssignment(evidence) && /\bchain\b/u.test(normalizeTier2Synonym(evidence.relationName ?? ''))
     && !/\b(?:no|not|without|possible|potential|hypothetical|pending|unresolved|failed|blocked|unlicensed)\b/u.test(normalizeTier2Synonym(evidence.relationName ?? ''));
-  if ((!namedList && positioned.length < 2) || evidence.movement || positioned.some(entry => !entry.items.length
+  // A movement claim's positions are its endpoints, unless structure proved the
+  // movement under a coindex of its whole chain, which it keeps.
+  if ((!namedList && positioned.length < 2) || evidence.movement && !evidence.keepsChainIdentity || positioned.some(entry => !entry.items.length
     || entry.items.some(id => nodes.get(id)?.length !== 1 || !nodes.get(id)![0].lineageId?.trim()))) return listed;
   const ids = positioned.flatMap(entry => entry.items);
   if (new Set(ids).size !== ids.length) return listed;
