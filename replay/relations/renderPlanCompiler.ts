@@ -607,6 +607,7 @@ export const compileDispatchedRelationRenderPlan = (
   // witness set and replacement timing. It is materialized alongside that
   // owner's output rather than choosing one parent for a mixed relation.
   const organizationCompanions = new Map<RelationPlanItem, AnchorSetPlanItem[]>();
+  const standaloneRails: AnchorSetPlanItem[] = [];
   const isFullArrayOwned = (relationName: string, role: string): boolean => {
     const ownedEntry = findRelationRegistryEntry(registry, relationName);
     if (!ownedEntry || !families[ownedEntry.id]) return false;
@@ -655,26 +656,37 @@ export const compileDispatchedRelationRenderPlan = (
         : claim.tier === 2 ? item.tier2ClaimIdentity === claim.facet.facetIdentity
           : item.kind === 'fallback' && item.canonicalClaimIdentity === claim.canonicalClaimIdentity));
       owners.forEach(owner => {
+        // The rail is Babel's own organization of a large array, designed as a
+        // persistent drawing. When its claim draws nothing but neutral marks,
+        // it keeps the recognized rail's lifetime (Francis, 27 Oct 2026). A
+        // neutral role beside a recognized one still lends no lifetime.
+        const ownLifetime = owner.kind === 'fallback' && relationItems.every(item => item.kind === 'fallback');
         const companion: AnchorSetPlanItem = {
           kind: 'anchor-set',
           relationRef: { ...parentRelation, stageIndex: set.stageIndex, relationIndex: set.relationIndex },
           appearsAtStage: owner.appearsAtStage,
-          persistence: owner.persistence,
+          persistence: ownLifetime ? 'replace-previous-instance' : owner.persistence,
+          ...(ownLifetime ? { replacementGroup: JSON.stringify({ organization: 'large-anchor-set',
+            relation: parentRelation.relation, roles: set.roles.map(role => role.role) }) } : {}),
           backward: owner.backward,
           priorWitnessNodeIds: owner.priorWitnessNodeIds,
           tier2WitnessNodeIds: planItemDependencyNodeIds(owner),
           claimTier: owner.claimTier ?? claim.tier,
           organizationOwners: [claim.canonicalClaimIdentity],
-          showBadges: owner.kind !== 'fallback',
+          // A persisting rail numbers its own entries once the neutral role labels
+          // it joins at the moment are gone; at the moment those labels still win.
+          showBadges: owner.kind !== 'fallback' || ownLifetime,
           badgeSize: owner.familyId === 'pf.cyclic-linearization' ? 'compact' : 'standard',
           set: { ...set, roles }
         };
+        if (ownLifetime) { standaloneRails.push(companion); return; }
         const companions = organizationCompanions.get(owner) ?? [];
         companions.push(companion);
         organizationCompanions.set(owner, companions);
       });
     });
   });
+  items.push(...standaloneRails);
 
   // Allocate notation across the derivation, never separately in each painter.
   // Reserve authored symbols before allocating, including later movement indices.
