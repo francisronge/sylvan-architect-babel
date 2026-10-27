@@ -231,3 +231,20 @@ test('the prompt asks for a parts list and no longer mentions refId or nested fo
     assert.match(instruction, /Each id stands at only one position in the workspace: it is one root or the child of one parent, and never beneath itself\./);
   }
 });
+
+test('a listed node that no root reaches still needs defined, acyclic children', () => {
+  const stage = (nodes) => ({ statement: 's', stageRecord: 'r', relations: [], workspace: ['vp'], nodes });
+  const base = [{ id: 'n', label: 'N', word: 'Mia' }, { id: 'v', label: 'V', word: 'laughed' }, { id: 'vp', label: 'VP', children: ['n', 'v'] }];
+  const missing = expandPartsListAnalysis({ derivationStages: [stage([...base, { id: 'x', label: 'X', children: ['missing'] }])] });
+  assert.equal(missing.issue?.fieldPath, '$.derivationStages[0].nodes[3].children[0]');
+  const cycle = expandPartsListAnalysis({ derivationStages: [stage([...base, { id: 'y', label: 'Y', children: ['y'] }])] });
+  assert.match(cycle.issue?.message ?? '', /contains itself/);
+});
+
+test('a mixed analysis keeps its parts-list stages before the first nested stage', () => {
+  const partsStage = { statement: 's', stageRecord: 'r', relations: [], workspace: ['n'], nodes: [{ id: 'n', label: 'N', word: 'Mia' }] };
+  const result = expandPartsListAnalysis({ derivationStages: [partsStage, { statement: 's', stageRecord: 'r', relations: [], workspaceForest: [] }] });
+  assert.equal(result.issue.ruleId, 'DERIVATION_WORKSPACE_FORM_MIXED');
+  assert.equal(result.issue.stageIndex, 1);
+  assert.equal(result.stages.length, 1);
+});

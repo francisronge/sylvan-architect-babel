@@ -66,20 +66,6 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
   const stagePath = (stageIndex) => `${prefix}.derivationStages[${stageIndex}]`;
   const expanded = [];
 
-  if (form === 'mixed') {
-    const stageIndex = stages.findIndex(stage => isPlainObject(stage) && Object.hasOwn(stage, 'workspaceForest'));
-    const fieldPath = `${stagePath(stageIndex)}.workspaceForest`;
-    return {
-      form,
-      stages: expanded,
-      issue: {
-        ruleId: 'DERIVATION_WORKSPACE_FORM_MIXED', stageIndex, fieldPath,
-        offendingValue: null, expectedForm: 'workspace and nodes, as in the other stages of this analysis',
-        message: `Stage ${stageIndex + 1}, ${fieldPath}: this analysis writes other stages as workspace and nodes; every stage of one analysis must use workspace and nodes.`
-      }
-    };
-  }
-
   // id -> { node, stageIndex, nodeIndex }: the latest definition of each node.
   const definitions = new Map();
   let analysisNodes = 0;
@@ -91,6 +77,12 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
           `Stage ${stageIndex + 1}, ${fieldPath}: ${detail || `expected ${expectedForm}; received ${describeReceived(offendingValue)}`}.`);
       };
       if (!isPlainObject(stage)) fail(path, stage, 'an object', 'DERIVATION_STAGE_OBJECT');
+      // A mixed analysis keeps the stages expanded before its first nested stage.
+      if (form === 'mixed' && Object.hasOwn(stage, 'workspaceForest')) {
+        fail(`${path}.workspaceForest`, null, 'workspace and nodes, as in the other stages of this analysis',
+          'DERIVATION_WORKSPACE_FORM_MIXED',
+          'this analysis writes other stages as workspace and nodes; every stage of one analysis must use workspace and nodes');
+      }
       const fields = Object.keys(stage);
       if (fields.some(field => !PARTS_LIST_STAGE_FIELDS.includes(field))
         || REQUIRED_PARTS_LIST_STAGE_FIELDS.some(field => !Object.hasOwn(stage, field))) {
@@ -130,6 +122,30 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
         stageIds.add(node.id);
       });
       stage.nodes.forEach((node, nodeIndex) => definitions.set(node.id, { node, stageIndex, nodeIndex }));
+
+      // Every node this stage lists must resolve and stay acyclic, even one that
+      // no root reaches yet.
+      const acyclic = new Set();
+      const checkDefinition = (id, visiting) => {
+        if (acyclic.has(id)) return;
+        visiting.add(id);
+        const { node, stageIndex: definedAt, nodeIndex } = definitions.get(id);
+        (Array.isArray(node.children) ? node.children : []).forEach((childId, childIndex) => {
+          const childPath = `${stagePath(definedAt)}.nodes[${nodeIndex}].children[${childIndex}]`;
+          if (!definitions.has(childId)) {
+            fail(childPath, childId, 'the id of a node defined in this or an earlier stage', 'DERIVATION_PARTS_LIST_VALID',
+              `no node ${quoted(childId)} is defined in this or an earlier stage`);
+          }
+          if (visiting.has(childId)) {
+            fail(childPath, childId, 'a child that is not the node itself or one of its ancestors', 'DERIVATION_PARTS_LIST_VALID',
+              `node ${quoted(childId)} contains itself through its children`);
+          }
+          checkDefinition(childId, visiting);
+        });
+        visiting.delete(id);
+        acyclic.add(id);
+      };
+      stage.nodes.forEach(node => checkDefinition(node.id, new Set()));
 
       const definitionPath = ({ stageIndex: definedAt, nodeIndex }) => `${stagePath(definedAt)}.nodes[${nodeIndex}]`;
       // id -> where it already stands in this stage's workspace.
