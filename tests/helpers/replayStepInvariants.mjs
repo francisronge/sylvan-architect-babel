@@ -109,7 +109,9 @@ function frameChange(previous, current, initialKey) {
  *   at that relation's moment, whatever else owns the occurrence.
  * - `movement-incomplete`: a movement moment without its displayed landing or
  *   lower occurrence, or whose landing was already displayed, unless an
- *   earlier moment of the stage introduced that shared landing.
+ *   earlier moment of the stage introduced that shared landing. An occurrence
+ *   counts as displayed under a node that stands for it, such as a stabilized
+ *   lexical leaf, but not through its derived word leaf.
  * - `trajectory-off-moment`: a relation's movement path first appears at a
  *   step other than that relation's own moment, so the moment draws nothing
  *   or another claim's step draws it.
@@ -166,7 +168,20 @@ export function checkStepSemantics(replay, record) {
       const prior = new Set(anchorIds(authored?.priorAnchors));
       const named = new Set([...anchorIds(authored?.anchors), ...prior, ...ownership.anchored]);
       const ownedIn = (structure, id, owned) => [id, ...ancestorsIn(structure, id)].some(at => owned.has(at) || owned.has(authoredOf(structure, at)));
-      const removable = new Set([...structural, ...prior]);
+      // A landing may substitute for an empty position: a silent, childless
+      // node, which the stage no longer authors, that the landing replaces in
+      // the same parent and slot at this claim's movement moment.
+      const substituted = (step.replayRelationLinks ?? [])
+        .filter(link => link.authoredRelationKey === key && link.movementTransition === true)
+        .flatMap(link => {
+          const landing = String(link.targetNodeId ?? ''), parentId = current.parent.get(landing);
+          if (!parentId || !(change.added.includes(landing) || change.reparented.includes(landing))) return [];
+          const slot = current.children.get(parentId).indexOf(landing);
+          return change.removed.filter(id => previous.parent.get(id) === parentId
+            && previous.children.get(parentId).indexOf(id) === slot && previous.nodes.get(id)?.data.silent === true
+            && !previous.children.get(id)?.length && !stage?.ids.has(authoredOf(previous, id)));
+        });
+      const removable = new Set([...structural, ...prior, ...substituted]);
       // A derived word leaving an occurrence that stays, at the moment voicing it, is that occurrence's repaint.
       const unvoiced = id => { const origin = previous.nodes.get(id)?.data.replayOrigin;
         return origin?.kind === 'word' && current.displayed.has(origin.ownerId)
@@ -177,11 +192,15 @@ export function checkStepSemantics(replay, record) {
       const owned = new Set([...structural, ...named]), receiving = new Set(change.added.map(id => current.parent.get(id)).filter(Boolean));
       reportRepaints(id => ownedIn(previous, id, owned) || ownedIn(current, id, owned) || receiving.has(id)
         || change.added.includes(current.parent.get(id)));
+      // An occurrence may paint under a node that stands for it (`authoredIdentity`): a
+      // stabilized lexical leaf or a continued occurrence. Its derived word leaf does not.
+      const shownAs = id => current.displayed.has(id) ? id
+        : [...current.displayed].find(shown => authoredIdentity(current.nodes.get(shown)).id === id);
       for (const link of (step.replayRelationLinks ?? []).filter(item => item.authoredRelationKey === key && item.movementTransition === true)) {
-        const landing = String(link.targetNodeId ?? ''), lower = String(link.sourceNodeId ?? '');
-        if (!current.displayed.has(landing)) { report('movement-incomplete', landing, `movement landing ${landing} is not displayed`); continue; }
-        if (lower && !current.displayed.has(lower)) report('movement-incomplete', lower, `lower occurrence ${lower} is not displayed`);
-        if (change.added.includes(landing) || change.reparented.includes(landing)) introducedLandings.add(`${stageIndex}:${landing}`);
+        const landing = String(link.targetNodeId ?? ''), lower = String(link.sourceNodeId ?? ''), shownLanding = shownAs(landing);
+        if (!shownLanding) { report('movement-incomplete', landing, `movement landing ${landing} is not displayed`); continue; }
+        if (lower && !shownAs(lower)) report('movement-incomplete', lower, `lower occurrence ${lower} is not displayed`);
+        if (change.added.includes(shownLanding) || change.reparented.includes(shownLanding)) introducedLandings.add(`${stageIndex}:${landing}`);
         else if (!introducedLandings.has(`${stageIndex}:${landing}`)) report('movement-incomplete', landing, `movement landing ${landing} was already displayed`);
       }
     } else if (step.replayKind === 'macro' && operation === 'StageRecord') {

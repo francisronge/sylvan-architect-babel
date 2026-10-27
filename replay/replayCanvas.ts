@@ -98,7 +98,11 @@ const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null, identity = create
       return next;
     }
     delete next.children;
-    if (!parentId || current.replayOrigin || !shouldStabilizeReplayLeafId(current))
+    // A terminal with an authored id is its own occurrence and keeps that id
+    // whichever parent holds it, as every other authored node does, so a word
+    // stays one node when a new parent forms above it and claims, movement and
+    // ownership reach it directly.
+    if (!parentId || ownId || current.replayOrigin || !shouldStabilizeReplayLeafId(current))
       return next;
     next.aliasIds = Array.from(new Set([
       ...(Array.isArray(current.aliasIds) ? current.aliasIds : []),
@@ -112,7 +116,8 @@ const stabilizeReplayOvertLeafIds = (node?: SyntaxNode | null, identity = create
   return walk(node, '');
 };
 
-/** A stabilized lexical leaf is named after its owner, its authored parent. */
+/** A stabilized lexical leaf, a word terminal without an authored id, is named
+ * after its owner, its authored parent. */
 const lexicalLeafIdentity = (leaf: SyntaxNode, ownerId: string, authoredId: string | undefined) => {
   const tokenIndex = Number.isInteger(leaf.tokenIndex)
     ? `tok_${leaf.tokenIndex}`

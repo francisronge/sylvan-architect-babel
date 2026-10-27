@@ -32,6 +32,7 @@ import {
   type WorkspacePlanRender,
   type WorkspacePlanScene
 } from './workspacePlanValidation.ts';
+import { receivingHeadForks, receivingHeadOffsets, receivingHeadPreferences } from './workspaceReceivingHeadSlots.ts';
 import { workspaceContinuityReflows } from './workspaceShapeReflows.ts';
 import { withinWorkspaceVisualPreference } from './workspaceVisualPreference.ts';
 import {
@@ -329,6 +330,38 @@ export function planCoherentWorkspace({ scenes, baseline, direction, render, met
       preferred = selected.preferences; best = selected.plan.candidate; placement = selected.plan.placement;
       acceptedPlans.push(selected.plan);
       diagnostic.corrections++; diagnostic.historyCorrections++;
+      validatedStop = undefined;
+    }
+    compose.retainOnlyBaseline(best.frames);
+  }
+  // A receiving head that grows into its head complex keeps its place in the
+  // unchanged fork above it: the fork before the moment takes the slots the
+  // moment composes. Each fork is tried alone and kept only when the completed
+  // tree and every completed stage keep their shape and width.
+  const completedFrames = best.frames.flatMap((frame, index) => frame.step.replayKind === 'macro' || index === best.frames.length - 1 ? [index] : []);
+  const keepsShape = (before: readonly ContourFrame[], after: readonly ContourFrame[], index: number) =>
+    before[index].roots.length === after[index].roots.length && before[index].roots.every((root, rootIndex) => {
+      const current = after[index].roots[rootIndex];
+      return current.id === root.id && current.members.size === root.members.size && [...root.members].every(([id, point]) => {
+        const moved = current.members.get(id);
+        return moved && Math.abs(moved.x - point.x) <= 1e-6 && Math.abs(moved.y - point.y) <= 1e-6;
+      });
+    });
+  for (const { frame, receiver } of receivingHeadForks(best.frames)) {
+    const fork = receivingHeadForks(best.frames).find(item => item.frame === frame && item.receiver === receiver);
+    const [offset] = fork ? receivingHeadOffsets(best.frames, [fork]) : [0];
+    const aligned = fork && offset > 1e-6 ? receivingHeadPreferences(preferred, [fork]) : undefined;
+    const candidate = aligned && evaluate(aligned, undefined, undefined, best.frames);
+    const next = candidate && placeRigidGroups(candidate.graph, referenceFrames);
+    const placed = placement.coordinates;
+    const widths = completedFrames.map(index => workspaceFinalWidth(placed[index]));
+    if (aligned && candidate && next && next.accepted !== false
+      && receivingHeadOffsets(candidate.frames, [fork!])[0] < offset - 1e-6
+      && completedFrames.every((index, position) => keepsShape(best.frames, candidate.frames, index)
+        && workspaceFinalWidth(next.coordinates[index]) <= widths[position] + 1e-6)) {
+      preferred = aligned; best = candidate; placement = next;
+      acceptedPlans.push({ candidate, placement: next, finalWidth: workspaceFinalWidth(next.coordinates.at(-1)!) });
+      diagnostic.corrections++;
       validatedStop = undefined;
     }
     compose.retainOnlyBaseline(best.frames);

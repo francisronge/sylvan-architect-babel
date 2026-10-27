@@ -3,6 +3,7 @@ import { getFrameStageRecordText } from './authoredFrames.ts';
 import { type SyntaxNode } from '../types.ts';
 import { getDerivationFrameChange, getMovementLandingNodeId } from './authoredFrames.ts';
 import type { ReplayCompilation } from './compilationContext.ts';
+import { renameContinuedOccurrences } from './continuedOccurrences.ts';
 import {
   buildAuthoredRelationLinksForFrames,
   isRenderableReplayRelation
@@ -192,6 +193,9 @@ export const prepareReplayStage = (
     return structuralFallbackRecipe;
   })();
   const priorVisibleNodeIds = new Set(previousVisibleNodeIds);
+  // The preceding forest as construction reads it: each occurrence this stage
+  // continues under a new id already carries that id.
+  const constructionPreviousWorkspaceRoots = renameContinuedOccurrences(previousFrameWorkspaceRoots, compilation.continuedOccurrenceIds(index));
   const frameRelationSteps: IndexedRelationStep[] = plannedStage
     ? plannedFrameRelations
       .map((relation, listIndex) => ({
@@ -375,6 +379,7 @@ export const prepareReplayStage = (
     workspaceRoots,
     frameRelationSteps,
     previousFrameWorkspaceRoots,
+    constructionPreviousWorkspaceRoots,
     structuralWorkspaceRoots,
     frameHasNonMovementTreeTransition,
     authoredPreviousRelationRelationLinks,
