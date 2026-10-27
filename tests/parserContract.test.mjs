@@ -116,15 +116,16 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.doesNotMatch(frameworkInstruction, /endocentric|binary|one or two children|Attach overt words|bar-level prime|X-bar shells/);
     assert.equal(instruction.slice(frameworkInstruction.length + 2), DERIVATION_STAGES_BASE_INSTRUCTION);
     assert.match(instruction, /An unchanged workspace needs a sentence-specific reason within the analysis for the new stage\./);
-    assert.match(instruction, /Babel derives the basic construction display from workspaceForest states: introducing a syntax object, adding a projection, and combining objects under a parent\./);
+    assert.match(instruction, /Babel derives the basic construction display from the workspace states: introducing a syntax object, adding a projection, and combining objects under a parent\./);
     assert.match(instruction, /Do not add a relation solely to announce one of these construction events\./);
     assert.match(instruction, /Record every additional relational claim introduced or changed in the analysis, including claims established through those construction events\./);
     assert.doesNotMatch(instruction, /construction steps recoverable from workspace changes|not fully expressed by the forest's ordinary mother-daughter or sisterhood branching/);
     assert.match(instruction, /- stageRecord: .* Explain the choices specific to this sentence, not the framework's general conventions\. Do not mention node ids, field names or how the JSON encodes the analysis\./);
     assert.match(instruction, /- relations: an array of relations introduced or changed in this stage\. Record each relation once, in the stage where it is established; list it again in a later stage only if the analysis changes it\./);
     assert.match(instruction, /Babel replays a stage's relations in the order they are listed; if the analysis needs an order that this cannot show, record the intermediate workspace as a separate stage rather than describing it only in prose\./);
-    assert.match(instruction, /An occurrence keeps its id in every later stage, including when it is rewritten\. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id\./);
-    assert.match(instruction, /Rewrite a node when any of its authored fields changes; unchanged descendant subtrees may still use refId\./);
+    assert.match(instruction, /An occurrence keeps its id in every later stage, including when it is redefined\. When an occurrence moves, either the landing or the occurrence left at the source keeps its id; the other is a new occurrence with a new id\./);
+    assert.match(instruction, /List a node in nodes in the stage that introduces it and in every later stage that changes any of its fields, including its children, and in no other stage\./);
+    assert.doesNotMatch(instruction, /refId|workspaceForest/);
     assert.match(instruction, /Unlike relations, groups record the complete current state: repeat every association that still holds in each later stage, even when its nodes are unchanged\./);
     assert.match(instruction, /Record the operation that establishes or changes an association as a relation of that stage, anchored to the group's current nodes, with priorAnchors for the nodes of any association it replaces, and explain it in stageRecord\./);
     assert.match(instruction, /When the sentence has readings that need different structures, return one analysis for each reading\. Then the only top-level field is analyses, a nonempty array of analysis objects, each containing only derivationStages\./);
@@ -142,7 +143,7 @@ test('both frameworks select the theory and share the open derivation contract w
     assert.match(instruction, /values: a nonempty object with nonblank entry names/);
     assert.match(instruction, /Each entry contains a literal string or a nonempty array of literal strings/);
     assert.match(instruction, /anchors: a nonempty object with nonblank role names/);
-    assert.match(instruction, /priorAnchors:.*immediately preceding stage's expanded workspace/);
+    assert.match(instruction, /priorAnchors:.*immediately preceding stage's workspace/);
     assert.match(instruction, /Relation names, anchor roles, and value-entry names are open; choose them to describe this analysis\./);
     assert.match(instruction, /Use an anchor list for nodes with the same role in this relation\. Keep distinct groups in separate entries and name their roles distinctly\./);
     assert.match(instruction, /Anchor each relation to the exact occurrences involved when it is established, including occurrences established by that relation\./);

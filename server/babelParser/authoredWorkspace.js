@@ -1,3 +1,5 @@
+import { expandPartsListAnalysis } from './partsList.js';
+
 // The complete node contract: required id/label/children, the optional
 // authored fields, and the server-derived surfaceSpan.
 const DERIVATION_NODE_FIELDS = new Set(['id', 'label', 'children', 'word', 'tokenIndex', 'silent', 'lineageId', 'surfaceSpan']);
@@ -436,20 +438,37 @@ export const createAuthoredWorkspaceHelpers = ({
   };
 
   // Inspection reports defects without making malformed records eligible for Replay.
-  const inspectDerivationWorkspaces = (stages, options = {}) => {
-    if (!Array.isArray(stages)) return null;
+  const inspectDerivationWorkspaces = (authoredStages, options = {}) => {
+    if (!Array.isArray(authoredStages)) return null;
+    // A parts-list analysis is inspected in its expanded nested form. Stages
+    // from the first one that cannot be expanded have no workspace.
+    const partsList = expandPartsListAnalysis({ derivationStages: authoredStages });
+    const unexpandedFrom = partsList.issue ? partsList.issue.stageIndex : authoredStages.length;
+    const stages = partsList.form === 'nested' ? authoredStages
+      : partsList.issue ? partsList.stages : partsList.analysis.derivationStages;
     const shapeDiagnostics = [];
     normalizeDerivationStagesToDerivationFrames(stages, { validationIssues: shapeDiagnostics });
     const priorNodes = new Map();
     const stageNodes = [];
     let blockedByStageIndex = null;
-    const entries = stages.map((stage, stageIndex) => {
+    const entries = authoredStages.map((authoredStage, stageIndex) => {
+      const stage = stages[stageIndex];
       const diagnostics = shapeDiagnostics.filter((issue) => issue.stageIndex === stageIndex);
       const entry = {
-        stageIndex, authoredStage: cloneJson(stage), workspaceForest: null,
+        stageIndex, authoredStage: cloneJson(authoredStage), workspaceForest: null,
         diagnostics, anchorChecks: [], replayStatus: 'not-compiled',
         ...(blockedByStageIndex === null ? {} : { transitionUnavailableSinceStageIndex: blockedByStageIndex })
       };
+      if (stageIndex >= unexpandedFrom) {
+        if (stageIndex === unexpandedFrom) {
+          diagnostics.push(createFailure({
+            failureClass: 'contract_misunderstanding', ...partsList.issue, processingStep: 'workspace-expansion'
+          }));
+        }
+        blockedByStageIndex ??= stageIndex;
+        stageNodes[stageIndex] = null;
+        return entry;
+      }
       const report = (fieldPath, offendingValue, expectedForm, ruleId = 'DERIVATION_NODE_OPTIONAL_FIELD') => {
         diagnostics.push(createFailure({
           failureClass: 'contract_misunderstanding', ruleId, stageIndex, fieldPath,
@@ -562,7 +581,7 @@ export const createAuthoredWorkspaceHelpers = ({
     });
 
     entries.forEach((entry, stageIndex) => {
-      const relations = stages[stageIndex]?.relations;
+      const relations = authoredStages[stageIndex]?.relations;
       if (Array.isArray(relations)) relations.forEach((relation, relationIndex) => {
         for (const field of ['anchors', 'priorAnchors']) {
           const block = relation?.[field];
