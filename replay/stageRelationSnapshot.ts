@@ -406,8 +406,11 @@ export const createStageRelationSnapshots = (
       inactivePhrasalLandingHostNodeIds
     };
   };
-  const rebuildStructuralStepForActiveRelations = (step: PlaybackStep, activeRelationIndexes: Set<number>): PlaybackStep => {
-    if (activeRelationIndexes.size === 0
+  /** `heldAttachmentsChanged` rebuilds a step whose held attachments differ
+   * from those its construction canvas was built with. */
+  const rebuildStructuralStepForActiveRelations = (step: PlaybackStep, activeRelationIndexes: Set<number>, heldAttachmentsChanged = false): PlaybackStep => {
+    if (!heldAttachmentsChanged
+      && activeRelationIndexes.size === 0
       && relationLayoutNodeIds.length === 0
       && !frameHasTreeTransition) {
       return step;
