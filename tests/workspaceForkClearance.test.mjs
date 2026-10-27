@@ -2,11 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as d3 from 'd3';
 import { prepareWorkspaceLifetimeContours, WorkspaceContourClearanceError } from '../replay/workspaceLifetimeContours.ts';
-import { currentForkBranchesClear } from '../replay/workspaceForkClearance.ts';
+import { currentForkBranchesClear, forkWideningCannotClear } from '../replay/workspaceForkClearance.ts';
 import { rigidPoseGraph } from '../replay/workspacePoseGraph.ts';
 import { layoutSyntaxTree } from '../replay/treeLayout.ts';
 import { TREE_ROW_HEIGHT } from '../replay/treeSpacing.ts';
-import { TEXT_METRICS } from './helpers/visualFrames.mjs';
+import { categoryTextLayout } from '../replay/categoryTextLayout.ts';
+import { layoutCanopyVisualFrame, layoutVisualFrames, prepareVisualRecord, TEXT_METRICS, VIEWPORTS } from './helpers/visualFrames.mjs';
+import { checkBranchGeometry } from './helpers/visualRules.mjs';
 
 const atom = id => ({ id, label: id });
 const fork = (id, ...children) => ({ id, label: 'IP', children });
@@ -156,31 +158,77 @@ const ternary = () => ({ id: 'vbar', label: 'V′', children: [
     { id: 'a', label: 'P⁰', word: 'a' },
     { id: 'maria', label: 'NP', children: [{ id: 'mariaNbar', label: 'N′', children: [{ id: 'mariaN', label: 'N⁰', word: 'María' }] }] }] }] }] });
 
-test('a fork no widening clears lowers its row until its branches pass above the inner label', () => {
+// Branches always span one row. Francis rejected stretched branches and, on
+// 24 October 2026, accepted lines that cross words and labels, so a fork that no
+// widening clears keeps its row and its slots instead of lowering its daughters.
+test('a fork no widening clears keeps its row and slots, and its branch crosses the inner label', () => {
   const { measureCategoryText, measureTreeInk } = TEXT_METRICS;
   const part = prepareWorkspaceLifetimeContours([step(ternary())], measureCategoryText, measureTreeInk)()[0].nodes.get('vbar');
-  const rows = part.children.map(child => part.members.get(child.id).y);
-  assert.ok(rows.every(y => y === rows[0]) && rows[0] > TREE_ROW_HEIGHT, 'the sisters share one lowered row');
-  assert.equal(clear(part), true);
-  // On the ordinary row every widening still crosses the label at one height.
+  for (const child of part.children) assert.equal(part.members.get(child.id).y, TREE_ROW_HEIGHT, `${child.id} stays one row below`);
+  assert.equal(clear(part), false);
+  // Every widening still crosses the label at one height.
+  assert.equal(forkWideningCannotClear({ x: 0, y: 0 }, part.children.map(child => ({ point: part.members.get(child.id), obstacles: child.obstacles }))), true);
   for (const factor of [1, 4, 64, 512]) assert.equal(currentForkBranchesClear({ x: 0, y: 0 }, part.children.map(child => ({
     point: { x: part.members.get(child.id).x * factor, y: TREE_ROW_HEIGHT }, obstacles: child.obstacles }))), false);
 
   const tree = layoutSyntaxTree(d3.hierarchy(ternary()), [1440, 900], 'ltr', undefined, undefined, { measureCategoryText, measureTreeInk });
   const placed = new Map(tree.descendants().map(node => [node.data.id, node]));
-  for (const child of part.children) assert.equal(placed.get(child.id).y - placed.get('vbar').y, rows[0], 'the Canopy uses the packed fork');
+  for (const child of part.children) {
+    assert.equal(placed.get(child.id).y - placed.get('vbar').y, TREE_ROW_HEIGHT, 'the Canopy keeps one-row branches');
+    assert.ok(Math.abs(placed.get(child.id).x - placed.get('vbar').x - part.members.get(child.id).x) < 1e-6, 'the Canopy uses the packed fork');
+  }
 });
 
-test('a Canopy fork the packer cannot clear keeps the tree layout instead of throwing', () => {
+// Sol's Spanish n4-14 (sol-parts-20261026, "Juan quiere que se lo expliquemos a
+// su hermana…"), reduced: a three-way V′ whose silent middle object carries a
+// four-line feature label, then head movement of V to I. The movement makes the
+// coherent planner compose that fork; it used to lower the daughters to a
+// second row from the V′'s first frame through the Canopy.
+const spanishClause = moved => ({ id: 'eIP', label: 'IP', children: [
+  { id: 'eSubj', label: 'NP [pro, 1pl]', silent: true },
+  { id: 'eIbar', label: 'I′', children: [
+    { id: 'eI', label: 'I⁰', children: [
+      { id: 'loCl', label: 'Cl⁰ [accusative, masculine singular]', word: 'lo' },
+      moved ? { id: 'eIcore', label: 'I⁰ [present subjunctive, 1pl]', children: [
+        { id: 'eV', label: 'V⁰', word: 'expliquemos', lineageId: 'explicar' },
+        { id: 'eInfl', label: 'I⁰ [inflectional features]', silent: true }] }
+        : { id: 'eIcore', label: 'I⁰ [present subjunctive, 1pl]', silent: true }] },
+    { id: 'eVP', label: 'VP', children: [{ id: 'eVbar', label: 'V′', children: [
+      moved ? { id: 'eTrace', label: 't [V⁰]', silent: true, lineageId: 'explicar' }
+        : { id: 'eV', label: 'V⁰', word: 'expliquemos', lineageId: 'explicar' },
+      { id: 'eObj', label: 'NP [pro, accusative, masculine singular]', silent: true },
+      { id: 'goalPP', label: 'PP [Goal]', children: [{ id: 'goalPbar', label: 'P′', children: [
+        { id: 'goalP', label: 'P⁰ [dative]', word: 'a' },
+        { id: 'sisNP', label: 'NP', children: [{ id: 'su', label: 'D⁰ [possessive, third-person possessor]', word: 'su' },
+          { id: 'sisNbar', label: 'N′', children: [{ id: 'sisN', label: 'N⁰', word: 'hermana' }] }] }] }] }] }] }] }] });
+
+test('head movement out of a three-way V′ under a four-line inner label keeps every branch on one row', () => {
+  const visual = prepareVisualRecord({ sentence: 'lo expliquemos a su hermana', inputTokens: ['lo', 'expliquemos', 'a', 'su', 'hermana'],
+    derivationStages: [
+      { statement: 'Build the clause.', stageRecord: 'The clause is built.', workspaceForest: [spanishClause(false)],
+        relations: [{ relation: 'theta_assignment', anchors: { predicate: 'eV', theme: 'eObj', goal: 'goalPP' } }] },
+      { statement: 'Raise the verb to I.', stageRecord: 'The verb raises to I.', workspaceForest: [spanishClause(true)],
+        relations: [{ relation: 'V_to_I_movement', anchors: { movedHead: 'eV', landingHead: 'eIcore', sourceTrace: 'eTrace' },
+          priorAnchors: { sourceHead: 'eV' } }] }] });
+  assert.equal(categoryTextLayout('NP [pro, accusative, masculine singular]', TEXT_METRICS.measureCategoryText).lines.length, 4);
+  const desktop = VIEWPORTS.filter(viewport => viewport.name === 'desktop');
+  const frames = [...layoutVisualFrames(visual, desktop), layoutCanopyVisualFrame(visual, desktop[0])];
+  assert.ok(frames.some(frame => frame.lines.some(line => line.kind === 'branch' && line.nodes[0] === 'eVbar' && line.nodes[1] === 'eTrace')),
+    'the moved V leaves its trace in the V′');
+  for (const frame of frames) assert.deepEqual(checkBranchGeometry(frame).map(finding => finding.detail), [], `frame ${frame.frame}`);
+});
+
+test('a Canopy fork no widening clears is packed with its slots rather than thrown away', () => {
   const canvas = fork('p', atom('A'), atom('I'), atom('B'));
-  // The inner label is far taller than any lowered row could pass above.
+  // The inner label is far taller than any branch could pass above.
   const bounds = { A: { x: -20, y: -40, width: 40, height: 45 }, I: { x: -190, y: -1e5, width: 380, height: 1e5 + 5 },
     B: { x: -700, y: -40, width: 1400, height: 45 } };
   const treeLabelRuns = new Map([[canvas, new Map(Object.keys(bounds).map(id => [id, [{ kind: 'category', id }]]))]]);
   const measureTreeLabel = runs => bounds[runs.id];
-  assert.throws(() => prepareWorkspaceLifetimeContours([step(canvas)], undefined, undefined, treeLabelRuns, measureTreeLabel)(),
-    /Current fork branches cannot clear child ink/);
-  const points = tree => tree.descendants().map(node => [node.data.id, node.x, node.y]);
-  assert.deepEqual(points(layoutSyntaxTree(d3.hierarchy(canvas), [1000, 1000], 'ltr', undefined, undefined, { treeLabelRuns, measureTreeLabel })),
-    points(layoutSyntaxTree(d3.hierarchy(structuredClone(canvas)), [1000, 1000])));
+  const part = prepareWorkspaceLifetimeContours([step(canvas)], undefined, undefined, treeLabelRuns, measureTreeLabel)()[0].nodes.get('p');
+  const tree = layoutSyntaxTree(d3.hierarchy(canvas), [1000, 1000], 'ltr', undefined, undefined, { treeLabelRuns, measureTreeLabel });
+  const placed = new Map(tree.descendants().map(node => [node.data.id, node]));
+  for (const id of ['A', 'I', 'B']) assert.deepEqual([placed.get(id).x - placed.get('p').x, placed.get(id).y - placed.get('p').y],
+    [part.members.get(id).x, part.members.get(id).y], `the Canopy places ${id} as packed`);
+  assert.equal(new Set(['A', 'I', 'B'].map(id => placed.get(id).y)).size, 1, 'the sisters share one row');
 });
