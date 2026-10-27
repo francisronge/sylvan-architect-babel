@@ -12,13 +12,21 @@
  * occurs, each frame list (written like '3-7,9,canopy') with the bound of
  * `measure` at those frames, or null for a rule without a measure. Matching
  * reports a finding no exception covers, a finding whose measure exceeds the
- * bound of its own place, and every listed place where the fault no longer occurs.
+ * bound of its own place by more than BOUND_TOLERANCE, and every listed place
+ * where the fault no longer occurs.
  *
  * An exception that a change adds, or lets grow, also carries the owner's
  * `approval: { by, on, expires, note, accepts }`, where `accepts` is the `at`
  * he accepted (`exceptionGrowth`); see scripts/checkExceptionGrowth.mjs. */
 
 const NO_VIEWPORT = '-';
+
+/** The share by which a measure may exceed its listed bound, and a bound may
+ * grow, before it counts: the owner does not want a change he could not notice
+ * brought to him (27 Oct 2026). More places always count. */
+export const BOUND_TOLERANCE = 0.05;
+/** The most `measure` may be and still lie within `bound`. */
+export const withinBound = (measure, bound) => measure <= (bound ?? -Infinity) + Math.abs(bound ?? 0) * BOUND_TOLERANCE + 1e-9;
 const identity = item => JSON.stringify([item.rule, item.subtype, item.record, item.subject]);
 
 /** '3-5,9,canopy' → ['3', '4', '5', '9', 'canopy']. */
@@ -55,7 +63,7 @@ export function matchFindings(findings, exceptions) {
     const own = places.get(identity(finding)), key = `${finding.viewport ?? NO_VIEWPORT} ${finding.frame}`, place = own?.get(key);
     if (!place) { unexpected.push(finding); continue; }
     seen.add(`${identity(finding)} ${key}`);
-    if (finding.measure !== null && finding.measure !== undefined && !(finding.measure <= (place.bound ?? -Infinity) + 1e-9))
+    if (finding.measure !== null && finding.measure !== undefined && !withinBound(finding.measure, place.bound))
       exceeded.push({ finding, bound: place.bound });
   }
   const stale = exceptions.flatMap(exception => placesOf(exception)
@@ -111,16 +119,16 @@ const boundsOf = exception => {
 
 /** How `head`'s entry grew from `base`'s (undefined when new): the viewports
  * where it lists more places, or where a place's bound exceeds what the base
- * allowed, comparing bounds largest first. Renumbered frames and smaller
- * bounds are not growth; a fault may move with its frames but not spread or
- * worsen. */
+ * allowed by more than BOUND_TOLERANCE, comparing bounds largest first.
+ * Renumbered frames and smaller bounds are not growth; a fault may move with
+ * its frames but not spread or noticeably worsen. */
 function growthOf(base, head) {
   if (!base) return ['new exception'];
   const before = boundsOf(base), out = [];
   for (const [viewport, bounds] of boundsOf(head)) {
     const allowed = before.get(viewport) ?? [];
     if (bounds.length > allowed.length) { out.push(`${viewport}: ${allowed.length} → ${bounds.length} places`); continue; }
-    const index = bounds.findIndex((bound, at) => (bound ?? -Infinity) > (allowed[at] ?? -Infinity) + 1e-9);
+    const index = bounds.findIndex((bound, at) => !withinBound(bound ?? -Infinity, allowed[at]));
     if (index >= 0) out.push(`${viewport}: bound ${allowed[index]} → ${bounds[index]}`);
   }
   return out;

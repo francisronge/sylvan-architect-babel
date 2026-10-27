@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { approvalProblem, exceptionGrowth } from './helpers/findings.mjs';
+import { approvalProblem, exceptionGrowth, matchFindings } from './helpers/findings.mjs';
+import { EXCEPTIONS as MOTION_EXCEPTIONS } from './helpers/motionExceptions.mjs';
 
 // Entries as they stood before and after real changes.
 const CATALOG_6 = 'replay-regressions/visual-human-catalog.json#/cases/6/analyses/0';
@@ -67,4 +68,34 @@ test('an approval names the owner, its date, where it was given and what it acce
   const old = approved(relayout); old.approval.on = '2025-01-01';
   assert.deepEqual(growth([old], [old]), [], 'an unchanged entry keeps an approval however old it is');
   assert.match(growth([], [{ ...approved(relayout), reason: '' }])[0].problem, /no reason/);
+});
+
+test('a bound may grow by at most 5% without a new approval; more places still need one', () => {
+  assert.deepEqual(growth([unmoved(165.57)], [unmoved(173.8)]), [], '165.57 → 173.8 is within 5%');
+  assert.deepEqual(growth([unmoved(165.57)], [unmoved(174)]).map(({ grown }) => grown), [['mobile: bound 165.57 → 174']]);
+  assert.equal(approvalProblem({ ...unmoved(206.7), approval: { ...approval, accepts: unmoved(196.88).at } }), null,
+    'within 5% of what the approval accepts');
+  assert.match(approvalProblem({ ...unmoved(206.8), approval: { ...approval, accepts: unmoved(196.88).at } }), /beyond what the approval/);
+  assert.deepEqual(growth([copy('34')], [copy('40-41')]).map(({ grown }) => grown), [['-: 1 → 2 places']]);
+});
+
+test('a finding within 5% above its bound is not beyond it', () => {
+  const finding = measure => ({ rule: unmoved(0).rule, subtype: unmoved(0).subtype, record: CATALOG_6, subject: 'stage 3',
+    frame: '43>44', viewport: 'mobile', measure });
+  assert.deepEqual(matchFindings([finding(100)], [unmoved(100)]).exceeded, []);
+  assert.deepEqual(matchFindings([finding(104.9)], [unmoved(100)]).exceeded, []);
+  assert.deepEqual(matchFindings([finding(105.1)], [unmoved(100)]).exceeded.map(({ bound }) => bound), [100]);
+});
+
+test('a motion exception needs the owner\'s approval, and the committed list has it on every entry', () => {
+  const motion = { reason: 'A 30-unit join the owner accepted.', record: 'fixture:movement/clause-context.json#/cases/0', rule: 'motion',
+    subtype: 'attachment-site-motion', subject: 'n_vp', at: { '-': { '12': 30 } } };
+  const list = entries => exceptionGrowth({}, { 'motionExceptions.mjs#EXCEPTIONS': entries });
+  assert.deepEqual(list([motion]).map(({ grown, problem }) => [grown, problem]), [[['new exception'], 'no approval']]);
+  assert.deepEqual(list([approved(motion)]), []);
+  assert(Array.isArray(MOTION_EXCEPTIONS));
+  for (const entry of MOTION_EXCEPTIONS) {
+    assert.equal(entry.rule, 'motion');
+    assert.equal(approvalProblem(entry), null, `${entry.record} ${entry.subject}`);
+  }
 });
