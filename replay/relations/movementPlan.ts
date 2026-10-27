@@ -1,3 +1,4 @@
+import type { SyntaxNode } from '../../types.ts';
 import { isWordlessCategoryLeaf } from '../replaySurfaceNotation.ts';
 import { collectAuthoredSilentSubtreeIds } from './authoredSilence.ts';
 import type { FacetPlanCompilers, FacetPlanContext } from './facetPlanContext.ts';
@@ -21,6 +22,10 @@ import {
 import { pairedLiterals } from './tier2EvidenceQueries.ts';
 import { gapBadgeText, singleValue } from './tier2PlanValues.ts';
 import { headTrajectoryAttachment } from './trajectoryAttachment.ts';
+
+
+const pronouncesWord = (node?: SyntaxNode): boolean => Boolean(node) && node!.silent !== true
+  && (node!.children?.length ? node!.children.some(pronouncesWord) : Boolean(node!.word?.trim()));
 
 export const movementPlan = {
   'operator-variable-binding': (context) => {
@@ -186,7 +191,8 @@ export const movementPlan = {
         : headSized ? headTrajectoryAttachment(nodes.get(target.nodeId)!) : 'shell-bottom'
     });
 
-    if (sideward) {
+    // A gap label marks a gap: a sideward source that stays pronounced gets none.
+    if (sideward && !pronouncesWord(nodes.get(source.nodeId))) {
       items.push({
         ...base,
         kind: 'node-badges',
