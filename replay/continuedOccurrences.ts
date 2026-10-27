@@ -48,7 +48,8 @@ const ownContent = (node: SyntaxNode): string => JSON.stringify([String(node.lab
 export function continuedOccurrences(
   previousForest: readonly SyntaxNode[],
   currentForest: readonly SyntaxNode[],
-  ownedNodeIds: () => ReadonlySet<string>
+  ownedNodeIds: () => ReadonlySet<string>,
+  exactNodeIds: () => ReadonlySet<string> = () => new Set()
 ): Map<string, string> {
   const previous = indexExactForestNodeLocations(previousForest as SyntaxNode[]);
   const current = indexExactForestNodeLocations(currentForest as SyntaxNode[]);
@@ -90,7 +91,9 @@ export function continuedOccurrences(
   // a relation moves inside the continuation or a new sister keeps its ids.
   const placedByRelation = (id: string) => [id, ...(current.get(id)!.node.children ?? []).map(child => child.id)]
     .some(at => Boolean(at && owned.has(at)));
-  pairs = pairs.filter(([from, to]) => raised.has(from) ? !placedByRelation(from)
+  // Earlier stages paint a raised occurrence under its continuation's id, which
+  // an earlier trajectory or rewrite that names it forbids (`exactNodeIds`).
+  pairs = pairs.filter(([from, to]) => raised.has(from) ? !placedByRelation(from) && !exactNodeIds().has(from)
     : !touches(previous.get(from)) && !touches(current.get(to)));
   for (;;) {
     const partners = new Map<string, string[]>(), continued = new Set(pairs.map(([, id]) => id));
@@ -192,18 +195,25 @@ function relationOwnedNodeIds(
 }
 
 /** The continuations a stage authors over its preceding stage. A stage that
- * encodes movement in its own payload has none; movement rules own it. */
+ * encodes movement in its own payload has none; movement rules own it. A node
+ * that a relation of an earlier stage moves, copies or rewrites keeps its exact
+ * id in that stage's frames (`displayContinuedOccurrences`), so it is not
+ * raised: its continuation could not be painted under one id across stages. */
 export function stageContinuedOccurrences(
   frames: readonly ReplayDerivationFrame[],
   index: number,
-  relations: readonly DerivationReplayPlanStep[]
+  relations: readonly DerivationReplayPlanStep[],
+  earlierRelations: (stage: number) => readonly DerivationReplayPlanStep[] = () => []
 ): Map<string, string> {
   const frame = frames[index], previousForest = frames[index - 1]?.workspaceForest;
   if (!frame || !Array.isArray(previousForest) || !Array.isArray(frame.workspaceForest)) return new Map();
   if (isMoveLikeOperation(frame.movement?.operation || frame.operation) || getMovementLandingNodeId(frame.movement)
     || frame.movement?.sourceNodeId || frame.movement?.traceNodeId || frame.chainId) return new Map();
+  let exact: Set<string> | undefined;
   return continuedOccurrences(previousForest, frame.workspaceForest,
-    () => relationOwnedNodeIds(frame, relations, previousForest, frame.workspaceForest));
+    () => relationOwnedNodeIds(frame, relations, previousForest, frame.workspaceForest),
+    () => exact ??= new Set(frames.slice(0, index).flatMap((earlier, stage) => [...relationOwnedNodeIds(earlier,
+      earlierRelations(stage), frames[stage - 1]?.workspaceForest ?? [], earlier.workspaceForest ?? [])])));
 }
 
 const linkNodeIds = (link: ResolvedRelationLink): string[] => [link.sourceNodeId, link.targetNodeId, link.witnessNodeId,

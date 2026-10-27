@@ -344,17 +344,33 @@ export function checkStableConstruction(replay) {
   return out;
 }
 
+/** What the relations of a stage move, copy or rewrite. */
+const ownedBy = (relations, previousForest, currentForest) => new Set(relations.flatMap(relation => {
+  const ownership = resolveFallbackTreeTransitionOwnership(relation, previousForest, currentForest);
+  const anchors = [...Object.values(relation.anchors ?? {}), ...Object.values(relation.priorAnchors ?? {})].flat().map(String);
+  return [
+    ...(relation.recoveredMovement || relation.recoveredMovements?.length || relation.unprovenNewLandingNodeId
+      || relation.anchoredCopyDisplacement || isRegisteredTrajectoryRelation(relation.relation, relation.anchors)
+      || relationOwnsNonMovementTreeTransition(relation, previousForest, currentForest) ? anchors : []),
+    ...(relation.recoveredMovements ?? [relation.recoveredMovement]).flatMap(movement => movement
+      ? [movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId, movement.witnessNodeId] : []),
+    ...(ownership ? [...ownership.currentNodeIds, ...ownership.priorNodeIds, ...(ownership.hostNodeIds ?? [])] : [])
+  ];
+}));
+
 /** Each node a stage dissolves, paired with the new node of that stage that
  * structurally continues it: the same category, word, silence and lineage, the
  * same slot (the same position under the continuing parent, or a root that
  * stays a root or gains a new parent), and every daughter or its continuation
  * in order, with at most one new node inserted directly above one daughter.
  * A node whose id the stage moves to a new parent above it is continued in
- * the same way by that parent's new daughter, the parent holding the slot.
+ * the same way by that parent's new daughter, the parent holding the slot,
+ * unless a relation of an earlier stage moves, copies or rewrites it
+ * (`earlierOwned`): its earlier frames keep that exact id.
  * Only unique pairings count, and none over material a relation of the stage
  * moves, copies or rewrites. This restates the rule independently of
  * replay/continuedOccurrences.ts. */
-function continuedPairs(previousForest, currentForest, relations) {
+function continuedPairs(previousForest, currentForest, relations, earlierOwned = new Set()) {
   const index = forest => {
     const nodes = new Map();
     const visit = (node, parent, slot) => {
@@ -366,18 +382,7 @@ function continuedPairs(previousForest, currentForest, relations) {
   };
   const before = index(previousForest), after = index(currentForest);
   const subtree = node => [node.id, ...(node.children ?? []).flatMap(subtree)];
-  const owned = new Set(relations.flatMap(relation => {
-    const ownership = resolveFallbackTreeTransitionOwnership(relation, previousForest, currentForest);
-    const anchors = [...Object.values(relation.anchors ?? {}), ...Object.values(relation.priorAnchors ?? {})].flat().map(String);
-    return [
-      ...(relation.recoveredMovement || relation.recoveredMovements?.length || relation.unprovenNewLandingNodeId
-        || relation.anchoredCopyDisplacement || isRegisteredTrajectoryRelation(relation.relation, relation.anchors)
-        || relationOwnsNonMovementTreeTransition(relation, previousForest, currentForest) ? anchors : []),
-      ...(relation.recoveredMovements ?? [relation.recoveredMovement]).flatMap(movement => movement
-        ? [movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId, movement.witnessNodeId] : []),
-      ...(ownership ? [...ownership.currentNodeIds, ...ownership.priorNodeIds, ...(ownership.hostNodeIds ?? [])] : [])
-    ];
-  }));
+  const owned = ownedBy(relations, previousForest, currentForest);
   const content = (node, lineageId = node.lineageId) => JSON.stringify([trimmed(node.label), trimmed(node.word), node.silent === true, lineageId ?? '']);
   const free = node => node.children?.length && !subtree(node).some(id => owned.has(id));
   let pairs = [...before].filter(([id, at]) => at && !after.has(id) && free(at.node)).flatMap(([id, at]) => [...after]
@@ -388,7 +393,8 @@ function continuedPairs(previousForest, currentForest, relations) {
   // content (the kept id may keep the lineage) and daughter count continues it.
   const raised = new Set([...before].filter(([id, at]) => {
     const outer = after.get(id)?.node, daughters = outer?.children ?? [];
-    return at?.node.children?.length && daughters.length > 1 && ![id, ...daughters.map(child => child.id)].some(at => owned.has(at))
+    return at?.node.children?.length && daughters.length > 1 && !earlierOwned.has(id)
+      && ![id, ...daughters.map(child => child.id)].some(at => owned.has(at))
       && !daughters.some(child => at.node.children.some(daughter => daughter.id === child.id));
   }).map(([id]) => id));
   for (const id of raised) {
@@ -437,7 +443,9 @@ export function checkContinuedOccurrences(replay, record) {
     const own = stepsOfStage(steps, stageIndex), last = stepsOfStage(steps, stageIndex - 1).at(-1);
     if (!own.length || last === undefined) return;
     const previousForest = stages[stageIndex - 1].workspaceForest ?? [], currentForest = stage.workspaceForest ?? [];
-    const pairs = continuedPairs(previousForest, currentForest, resolve(stageIndex));
+    const earlierOwned = new Set(stages.slice(0, stageIndex).flatMap((earlier, at) => frames[at]
+      ? [...ownedBy(resolve(at), stages[at - 1]?.workspaceForest ?? [], earlier.workspaceForest ?? [])] : []));
+    const pairs = continuedPairs(previousForest, currentForest, resolve(stageIndex), earlierOwned);
     if (!pairs.length) return;
     const daughters = new Map();
     const visit = node => { daughters.set(node.id, (node.children ?? []).map(child => child.id)); (node.children ?? []).forEach(visit); };

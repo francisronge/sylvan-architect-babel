@@ -75,3 +75,34 @@ test('a raised copula and a new expletive subject: T stays built, and the T abov
   assert.equal(movement.step.operation, 'head_movement');
   assert.deepEqual(frameStructure(movement.step).children.get('mtm'), ['mcomplex', 'vc'], 'the head moves inside the continuing T');
 });
+
+// A phrase that moves and then has its id raised onto a new adjunction segment:
+// the movement's trajectory names the landing, whose earlier frames keep that
+// exact id, so the stage cannot continue it under the inner id. It keeps its
+// painted identity rather than disappearing behind the new daughter.
+const moved = id => ({ ...node(id, 'D', leaf('d', 'D', 'the'), leaf('n', 'N', 'cat')), lineageId: 'cat' });
+const lowerClause = () => node('vp', 'V', { ...leaf('sub', 'D[trace]'), lineageId: 'cat' }, leaf('v', 'V', 'slept'));
+const moveThenAdjoin = {
+  sentence: 'The cat that purred slept.',
+  derivationStages: [
+    { statement: 'Build the verb phrase.', stageRecord: 'The cat is the subject of slept.', relations: [],
+      workspaceForest: [node('vp', 'V', moved('sub'), leaf('v', 'V', 'slept'))] },
+    { statement: 'Raise the subject.', stageRecord: 'The subject moves to Spec,TP.',
+      relations: [{ relation: 'internal_merge', anchors: { source: 'sub', landing: 'p' } }],
+      workspaceForest: [node('tp', 'T', moved('p'), node('tb', 'T', leaf('t', 'T[past]'), lowerClause()))] },
+    { statement: 'Adjoin the relative clause.', stageRecord: 'The relative clause modifies the raised subject.', relations: [],
+      workspaceForest: [node('tp', 'T', { ...node('p', 'D', { ...moved('w'), lineageId: undefined },
+        node('cp', 'C', leaf('c', 'C', 'that'), leaf('pv', 'V', 'purred'))), lineageId: 'cat' },
+      node('tb', 'T', leaf('t', 'T[past]'), lowerClause()))] }
+  ]
+};
+
+test('a moved phrase whose id a later adjunction raises keeps its painted identity', async () => {
+  const { checkStepSemantics } = await import('./helpers/replayStepInvariants.mjs');
+  const replay = prepareReplay({ ...structuredClone(moveThenAdjoin), includePlayback: true }), steps = replay.playbackSteps;
+  assert.deepEqual(checkContinuedOccurrences(replay, moveThenAdjoin), []);
+  assert.deepEqual(checkStepSemantics(replay, moveThenAdjoin).filter(found => found.subtype === 'authored-removal'), []);
+  const from = stageSteps(steps, 1).at(-1).index;
+  for (const { index } of stageSteps(steps, 2)) assert(frameStructure(steps[index]).displayed.has('p'), `p stays painted at step ${index + 1}`);
+  assert(frameStructure(steps[from]).displayed.has('p'));
+});
