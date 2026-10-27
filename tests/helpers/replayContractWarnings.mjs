@@ -95,18 +95,32 @@ const SCRIPTS = ['Han', 'Hiragana', 'Katakana', 'Hangul', 'Thai', 'Lao', 'Khmer'
   .map(name => ({ name, pattern: new RegExp(`\\p{Script=${name}}`, 'u') }));
 const scriptOf = character => SCRIPTS.find(script => script.pattern.test(character))?.name;
 
+/* Letters in canonical decomposition without combining marks: Hangul syllables
+ * become jamo, and vowel points, shadda and similar marks drop. */
+const lettersOf = text => [...String(text).normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase()];
+/* A run cites a word's lexeme when the word begins with more than half of the
+ * run's letters: an inflected or vocalized word keeps its stem's beginning. */
+const citesLexeme = (run, word) => {
+  const cited = lettersOf(run), written = lettersOf(word);
+  let shared = 0;
+  while (shared < cited.length && cited[shared] === written[shared]) shared += 1;
+  return shared * 2 > cited.length;
+};
+
 /** Relation names, anchor and value role names and node labels are Babel's
  * metalanguage. One that writes words in a non-Latin script the sentence uses,
  * other than the sentence's own words (quoted or cited), means the analysis
- * was written in the object language. A lone Greek letter (φ, θ) is ordinary
- * metalanguage notation. One warning per record, with counts per field. */
+ * was written in the object language. A terminal's label may also cite its own
+ * word's lexeme (말하- on 말했다, إنّ on إنَّ). A lone Greek letter (φ, θ) is
+ * ordinary metalanguage notation. One warning per record, with counts per field. */
 export function checkObjectLanguageMetalanguage(record) {
   const sentence = String(record.sentence ?? '').normalize('NFC').toLocaleLowerCase();
   const scripts = new Set([...sentence].map(scriptOf).filter(Boolean));
   if (!scripts.size) return [];
   const runs = new RegExp(`(?:${[...scripts].map(name => `\\p{Script=${name}}`).join('|')})(?:[\\p{M}]|${[...scripts].map(name => `\\p{Script=${name}}`).join('|')})*`, 'gu');
-  const offending = name => (String(name ?? '').normalize('NFC').match(runs) ?? [])
-    .filter(run => !(run.length === 1 && scriptOf(run) === 'Greek') && !sentence.includes(run.toLocaleLowerCase()));
+  const offending = (name, word) => (String(name ?? '').normalize('NFC').match(runs) ?? [])
+    .filter(run => !(run.length === 1 && scriptOf(run) === 'Greek') && !sentence.includes(run.toLocaleLowerCase())
+      && !(word && citesLexeme(run, word)));
   const found = { relation: new Set(), role: new Set(), label: new Set() };
   for (const stage of record.derivationStages ?? []) {
     for (const relation of stage.relations ?? []) {
@@ -114,7 +128,7 @@ export function checkObjectLanguageMetalanguage(record) {
       for (const field of [relation?.anchors, relation?.priorAnchors, relation?.values])
         for (const role of Object.keys(field && typeof field === 'object' ? field : {})) if (offending(role).length) found.role.add(role);
     }
-    for (const node of nodesOf(stage.workspaceForest)) if (offending(node.label).length) found.label.add(node.label);
+    for (const node of nodesOf(stage.workspaceForest)) if (offending(node.label, node.word).length) found.label.add(node.label);
   }
   const total = found.relation.size + found.role.size + found.label.size;
   if (!total) return [];
