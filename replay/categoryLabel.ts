@@ -40,10 +40,11 @@ export const readCategoryLabel = (label?: string | null): CategoryShape | undefi
     : categoryText.replace(/(?:\s*\([^()]+\))+$/u, '').trim();
   // Each member of a compound head may carry its own features.
   const parts = spelling.split(/[+/]/u).map(part => {
-    const match = /^([A-Za-z\p{Script=Greek}]+)(?:_[A-Za-z][A-Za-z0-9_-]*)?(⁰|°|\^?0|[′’'])?$/u.exec(withoutFeatures(part));
+    // A star marks a strong phase head (v*, v*P, v*′) and does not change the category.
+    const match = /^([A-Za-z\p{Script=Greek}]+)(?:\*([A-Za-z\p{Script=Greek}]*))?(?:_[A-Za-z][A-Za-z0-9_-]*)?(⁰|°|\^?0|[′’'])?$/u.exec(withoutFeatures(part));
     if (!match) return;
-    const category = match[1];
-    const kind = /[′’']/u.test(match[2] ?? '') ? 'bar' : category !== 'P' && /P$/u.test(category) ? 'phrase' : 'head';
+    const category = match[1] + (match[2] ?? '');
+    const kind = /[′’']/u.test(match[3] ?? '') ? 'bar' : category !== 'P' && /P$/u.test(category) ? 'phrase' : 'head';
     return { category, head: kind === 'phrase' ? category.slice(0, -1) : category, kind } as const;
   });
   if (parts.some(part => !part) || parts.length > 1 && parts.some(part => part?.kind !== 'head')
