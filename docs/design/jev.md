@@ -38,6 +38,11 @@ families and slots come from Babel's code (`replay/relations/jev.ts`):
   (`structuralMovement.ts`), and its endpoints are read by the movement
   reader's own vocabulary, which an alias does not reach.
 
+Jev maps a key only when the key's own words say what the slot says. A key
+naming only a position or a category, such as `head`, `specifier` or
+`complement`, maps to `none`: which of them is a source or a target is a claim
+about the syntax, and structure cannot check it.
+
 `validateJevAnswer` rejects the whole answer if any part lies outside these
 sets: an unknown family, a key the claim did not author, a slot of another
 family, a slot under `none`, an extra field. Jev therefore cannot name a node,
@@ -64,7 +69,7 @@ The answers are saved as the analysis's Jev record:
   "terms": { "relation": "theta-marking", "roles": ["assigner", "assignee"], "values": { "role": ["Theme"] } },
   "answer": { "family": "theta-grid", "roles": { "assigner": "predicate", "assignee": "theta.arguments" },
     "values": { "role": "role.label" } } }],
-  "provenance": { "model": "openai:gpt-6.1-sol", "effort": "high", "promptVersion": "jev-1", "requestSha256": "…" } }
+  "provenance": { "model": "openai:gpt-6.1-sol", "effort": "high", "promptVersion": "jev-2", "requestSha256": "…" } }
 ```
 
 A mapping applies only to the claim at that position whose words equal its
