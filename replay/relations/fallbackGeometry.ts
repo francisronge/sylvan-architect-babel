@@ -9,12 +9,13 @@ import type {
 import type { Point, Rect } from './overlayGeometry.ts';
 import { allocateSpanLanes } from './overlayGeometry.ts';
 import { TREE_ROW_HEIGHT } from '../treeSpacing.ts';
+import { anchorSetBadgeRadius } from '../rendererMetrics.ts';
 import type { PlaqueTextStyle } from './plaqueTextLayout.ts';
 
 export const anchorSetRailPaths = (rail: BoundAnchorSetRail, markerScale: number, fallbackScale = markerScale) => ({
   rail: `M ${rail.x1} ${rail.y} H ${rail.x2}`,
   joins: rail.anchors.map(anchor => {
-    const clearance = anchor.type === 'fallback-mark' ? 12 : anchor.badgeSize === 'compact' ? 7 : 9;
+    const clearance = anchor.type === 'fallback-mark' ? 12 : anchorSetBadgeRadius(anchor.badgeSize);
     return `M ${anchor.x} ${anchor.y + clearance * (anchor.type === 'fallback-mark' ? fallbackScale : markerScale)} V ${rail.y}`;
   }).join(' ')
 });

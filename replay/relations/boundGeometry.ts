@@ -428,6 +428,11 @@ export type BindGeometryOptions = {
   /** Writing direction. Neutral role labels try the reading-direction side of
    * their node first, so right-to-left placement reflects left-to-right. */
   direction?: 'ltr' | 'rtl';
+  /** What anchor-set badges must not cover, in tree units: every painted tree
+   * label's glyph cells with their outline (`outlinedTreeLabelCell`), index
+   * runs included, and the shells of displayed plaques. Without it badges keep
+   * their nominal offset. */
+  badgeObstacles?: readonly Rect[];
 };
 
 /**

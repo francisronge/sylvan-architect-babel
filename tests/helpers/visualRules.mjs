@@ -13,6 +13,9 @@ import { newPocketBlocker, ownRoutesChanged, returnsWithinReach } from '../../re
  *   carry between two frames { dx, dy } when the adapter measures it.
  *   texts   [{ id, kind, text, boxes, halo, nodes, claims, lines?, plaque?, reach?, distance? }]
  *     kind 'category' or 'word' is tree text; any other kind is a mark's own text.
+ *     An anchor-set badge is kind 'badge', its one box the painted circle; it
+ *     labels no node, so like other marks it may not cover any label, its
+ *     anchor's included.
  *     boxes are glyph boxes, one per painted line or index run; halo is the width
  *     of the dark outline painted under them; nodes are the tree nodes it labels;
  *     claims are the relation keys ('stage:relation') whose mark it belongs to;

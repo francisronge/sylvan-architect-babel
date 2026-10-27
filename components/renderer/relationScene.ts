@@ -2,13 +2,13 @@ import * as d3 from 'd3';
 import { type PlanPositionProvider } from '../../replay/relations/boundGeometry.ts';
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import {
-  markerScaleAtZoom, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TRAJECTORY_ROUTES
+  ANCHOR_SET_BADGE, anchorSetBadgeRadius, markerScaleAtZoom, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TRAJECTORY_ROUTES
 } from '../../replay/rendererMetrics.ts';
 import { boundOverlayBounds, type OverlayBounds } from '../../replay/relations/geometryBounds.ts';
 import {
   type Rect
 } from '../../replay/relations/overlayGeometry.ts';
-import { projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
+import { drawnPlaque, projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
 import { projectVisibleAnchorSetOrganization } from '../../replay/relations/relationFrame.ts';
 import type { RelationRenderPlan } from '../../replay/relations/renderPlan.ts';
 import {
@@ -21,6 +21,7 @@ import {
 import { projectThetaGrid } from '../../replay/relations/thetaGridComposition.ts';
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
 import type { TreeDirection } from '../../replay/treeLayout.ts';
+import type { TreeLabelRuns } from '../../replay/treeLabelRuns.ts';
 import { type HierNode } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
 import { createBindingDrawing, indexLetterLabels } from './bindingDrawing.ts';
@@ -46,7 +47,7 @@ import { createShapeDrawing } from './shapeDrawing.ts';
 import { createSharingDrawing } from './sharingDrawing.ts';
 import { createThetaDrawing } from './thetaDrawing.ts';
 import { createTrajectoryDrawing } from './trajectoryDrawing.ts';
-import { createTreeMeasurements, labelBelongsToNode } from './treeMeasurements.ts';
+import { createTreeMeasurements, labelBelongsToNode, measurePaintedTreeLabelCells } from './treeMeasurements.ts';
 import { appendOverlayMarker, hasTreeGapNotation } from './treeNotation.ts';
 
 interface RelationSceneContext {
@@ -77,6 +78,9 @@ interface RelationSceneContext {
   TARGET_EMERALD: string;
   /** Neutral role labels prefer the reading-direction side of their node. */
   treeDirection: TreeDirection;
+  /** This step's tree labels with their relation index letters
+   * (`treeLabelRunsForStep`), read only when the frame places anchor-set badges. */
+  stepLabelRuns?: () => ReadonlyMap<string, readonly TreeLabelRuns[]> | undefined;
 }
 export function paintRelationScene({
   relationRenderPlan,
@@ -101,7 +105,8 @@ export function paintRelationScene({
   uiBounds,
   containerRef,
   TARGET_EMERALD,
-  treeDirection
+  treeDirection,
+  stepLabelRuns
 }: RelationSceneContext) {
   let overlayFitBounds: OverlayBounds | null = null;
   let fitFallbackOverlays: ((fitZoom: number, fittedViewport: Rect) => void) | undefined;
@@ -225,6 +230,12 @@ export function paintRelationScene({
     const frameMaxNodeY = d3.max([...frameLayoutById.values()], (frameNode) => frameNode.y) ?? 0;
     // Share the exact displayed-notation decision between slot allocation and painting.
     const hasExistingGapNotation = (nodeId: string, text: string) => hasTreeGapNotation(g, nodeId, text);
+    // Anchor-set badges clear the labels as this step paints them and the displayed plaque shells.
+    const labelRuns = frameItems.some(item => item.kind === 'anchor-set') ? stepLabelRuns?.() ?? null : undefined;
+    const badgeObstacles = labelRuns === undefined ? undefined : [
+      ...measurePaintedTreeLabelCells(g, replayVisibleNodeIdSet, labelRuns ? nodeId => labelRuns.get(nodeId) : undefined),
+      ...(fallbackMeasurements.visibleObstacles ?? []).map(drawnPlaque)
+    ];
     const boundFrame = withPlaqueTextMeasure(svg, measurePlaqueText => bindRelationPlanFrame(
       displayedRelationPlan,
       activeDerivationFrameIndex,
@@ -244,7 +255,8 @@ export function paintRelationScene({
         // vertical allocation law beneath the deepest allocated lane.
         connectorBaselineY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,
         railBaseY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase,
-        direction: treeDirection
+        direction: treeDirection,
+        ...(badgeObstacles ? { badgeObstacles } : {})
       }
     ));
     const fallbackPlacement = createFallbackPlacement({ fallbackMeasurements, boundFrame, markerScale, badgeGap, frameMaxNodeY, animated, usesDerivationFrames, g, direction: treeDirection });
@@ -909,10 +921,10 @@ export function paintRelationScene({
         const marker = appendMarker(primitive.x, primitive.y);
         marker.append('circle')
           .attr('class', 'vr-anchor-set-badge')
-          .attr('r', compact ? 7 : 9)
+          .attr('r', anchorSetBadgeRadius(primitive.badgeSize))
           .attr('fill', 'rgba(2,24,15,0.92)')
           .attr('stroke', '#34d399')
-          .attr('stroke-width', 1.2);
+          .attr('stroke-width', ANCHOR_SET_BADGE.strokeWidth);
         marker.append('text')
           .attr('text-anchor', 'middle')
           .attr('y', compact ? 3 : 4)

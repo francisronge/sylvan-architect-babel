@@ -1,7 +1,8 @@
 import * as d3 from 'd3';
 import { getNodeId, isReplayDisplayChild } from '../../replay/displayIdentity.ts';
 import { resolveUniqueDisplayTerminal } from '../../replay/relations/trajectoryAttachment.ts';
-import { SHELL_ATTACHMENT_CLEARANCE, TERMINAL_ATTACHMENT_Y, TRAJECTORY_ROUTES } from '../../replay/rendererMetrics.ts';
+import { categoryLineBaselineY, outlinedTreeLabelCell, SHELL_ATTACHMENT_CLEARANCE, TERMINAL_ATTACHMENT_Y, TRAJECTORY_ROUTES } from '../../replay/rendererMetrics.ts';
+import { treeLabelIndexAttributes, type TreeLabelRuns } from '../../replay/treeLabelRuns.ts';
 import { isDisplayTerminalNode } from '../../replay/replaySurfaceNotation.ts';
 import { type HierNode } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
@@ -264,4 +265,57 @@ export function measureScreenGraphics(g: DrawingLayer, labels: SVGGraphicsElemen
     height: Math.max(...ys) - Math.min(...ys)
 
   };
+}
+
+/** The glyph cells of every painted tree label, outlines included
+ * (`outlinedTreeLabelCell`), in tree units: one per line of a wrapped category
+ * label and one per index run after it; one for a word or an unwrapped label
+ * with its indices. `visibleNodeIds` limits them to the step's painted syntax.
+ * `runsFor` gives a node's labels as the step paints them once its relations
+ * are drawn (`treeLabelRunsForStep` with relation indices); each such label is
+ * measured from a hidden copy, so index letters added later already count.
+ * Labels without runs are measured as they stand. */
+export function measurePaintedTreeLabelCells(g: DrawingLayer, visibleNodeIds: ReadonlySet<string> | null,
+  runsFor?: (nodeId: string) => readonly TreeLabelRuns[] | undefined) {
+  const cells: Array<{ x: number; y: number; width: number; height: number }> = [];
+  const namespace = 'http://www.w3.org/2000/svg';
+  g.selectAll<SVGTextElement, HierNode>('.node-group .category-label, .node-group .terminal-label').each(function () {
+    const group = this.closest('.node-group');
+    const nodeId = group?.getAttribute('data-node-group-id');
+    if (!group || !nodeId || visibleNodeIds && !visibleNodeIds.has(nodeId) || group.getAttribute('opacity') === '0') return;
+    const kind = this.classList.contains('category-label') ? 'category' : 'terminal';
+    const run = runsFor?.(nodeId)?.find(candidate => candidate.kind === kind);
+    let label: SVGTextElement = this;
+    if (run) {
+      label = this.cloneNode(false) as SVGTextElement;
+      label.removeAttribute('class');
+      label.removeAttribute('id');
+      label.setAttribute('visibility', 'hidden');
+      label.setAttribute('aria-hidden', 'true');
+      if (run.lines) run.lines.forEach((line, index) => {
+        const span = document.createElementNS(namespace, 'tspan');
+        span.setAttribute('x', '0');
+        span.setAttribute('y', String(categoryLineBaselineY(index, run.lines!.length)));
+        span.textContent = line;
+        label.appendChild(span);
+      });
+      else label.textContent = run.text;
+      run.indices.forEach((index) => {
+        const span = document.createElementNS(namespace, 'tspan');
+        for (const [name, value] of Object.entries(treeLabelIndexAttributes(run.kind, index.mode))) span.setAttribute(name, value);
+        span.textContent = index.text;
+        label.appendChild(span);
+      });
+      group.appendChild(label);
+    }
+    const spans = [...label.children].filter((child): child is SVGTSpanElement => child.tagName.toLowerCase() === 'tspan');
+    const pieces: SVGGraphicsElement[] = kind === 'category' && spans.some(span => span.hasAttribute('y'))
+      ? spans as unknown as SVGGraphicsElement[] : [label];
+    pieces.forEach((piece) => {
+      const cell = measureScreenGraphics(g, [piece]);
+      if (cell && (cell.width || cell.height)) cells.push(outlinedTreeLabelCell(cell, kind));
+    });
+    if (label !== this) label.remove();
+  });
+  return cells;
 }

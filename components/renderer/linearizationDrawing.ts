@@ -11,6 +11,8 @@ import { settledClientPoint } from './cameraState.ts';
 import type { ClaimDrawing, DrawingLayer, RelationEmphasis, TreeMeasurements } from './drawingContext.ts';
 
 import { nativeLinearizationPlateHeight } from '../../replay/relations/nativeDrawingContent.ts';
+import { ANCHOR_SET_BADGE, ANCHOR_SET_BADGE_CLEARANCE } from '../../replay/rendererMetrics.ts';
+import { measurePaintedTreeLabelCells } from './treeMeasurements.ts';
 import {
   planAnchorSetLayout,
   type AnchorSetLayout
@@ -89,7 +91,12 @@ export function createLinearizationDrawing({
             || exactScreenTreeLabelRectNow(nodeId, true),
           {
             badgeOffsetY: localPx(16),
-            railGap: localPx(14)
+            railGap: localPx(14),
+            clearance: {
+              obstacles: measurePaintedTreeLabelCells(g, null),
+              radiusFor: () => localPx(7 + ANCHOR_SET_BADGE.strokeWidth / 2),
+              gap: localPx(ANCHOR_SET_BADGE_CLEARANCE)
+            }
           }
         ) : { badges: [], rails: [] };
         if (anchorSetItem?.kind === 'anchor-set' && anchorPlan.badges.length > 0) {

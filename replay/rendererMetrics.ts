@@ -65,6 +65,21 @@ export const nominalLabelWidth = (text: string) => Math.max(150, text.length * 4
  * frame with the same values, so their marks have the same extents. */
 export const RELATION_BINDING_METRICS = { labelWidth: 150, labelHeight: 70, badgeGap: 46, laneGap: 60 } as const;
 
+/** A numbered anchor-set badge: a circle drawn in marker units, scaled by the
+ * marker scale. Its outer radius includes half the stroke. */
+export const ANCHOR_SET_BADGE = { radius: 9, compactRadius: 7, strokeWidth: 1.2 } as const;
+export const anchorSetBadgeRadius = (badgeSize?: 'standard' | 'compact') =>
+  badgeSize === 'compact' ? ANCHOR_SET_BADGE.compactRadius : ANCHOR_SET_BADGE.radius;
+export const anchorSetBadgeOuterRadius = (badgeSize?: 'standard' | 'compact') =>
+  anchorSetBadgeRadius(badgeSize) + ANCHOR_SET_BADGE.strokeWidth / 2;
+/** Marker units a badge keeps from the labels and plaques it clears. */
+export const ANCHOR_SET_BADGE_CLEARANCE = 1;
+/** A painted tree label's glyph cell grown by the dark outline painted under it. */
+export const outlinedTreeLabelCell = (cell: { x: number; y: number; width: number; height: number }, kind: 'category' | 'terminal') => {
+  const outline = (kind === 'category' ? CATEGORY_LABEL : TERMINAL_LABEL).strokeWidth / 2;
+  return { x: cell.x - outline, y: cell.y - outline, width: cell.width + 2 * outline, height: cell.height + 2 * outline };
+};
+
 /** Lanes below the frame's deepest node, as offsets from that node's y. */
 export const RELATION_LANES_BELOW_DEEPEST_NODE = { trajectoryFloor: 180, connectorBaseline: 130, railBase: 240 } as const;
 
