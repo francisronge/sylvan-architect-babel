@@ -9,4 +9,18 @@
  * Every entry needs Francis's approval: { by, on, note, accepts }
  * (scripts/checkExceptionGrowth.mjs). Motion below the gate's noticeable
  * tolerance never needs an entry. */
-export const EXCEPTIONS = [];
+const REASON = 'Accepted trade-off (case 3, 27 Oct): with no one-branch N\u2032 frame, attaching the relative clause beside an N\u2032 that already has a parent slides the old N\u2032 and the waiting clause into their slots at that merge; main shows a wrong one-branch frame and then slides the spine. Avoiding any slide would need room kept in earlier frames, which widens trees.';
+const APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-10-27', note: 'Reviewed case 3 on the unary and option-2 pages; after option 2 did not remove the slide: \u201calright. then it\u2019s whatever.\u201d (lead session, 27 Oct)', accepts: at });
+const x = (record, subtype, subject, at) => ({ reason: REASON, record, rule: 'motion', subtype, subject, at, approval: APPROVAL(at) });
+
+export const EXCEPTIONS = [
+  x('relative-clause-waiting-clearance', 'attachment-site-motion', 'letterInnerNBar', { '-': { '58': 678.46 } }),
+  x('relative-clause-waiting-clearance', 'attachment-site-motion', 'relativeCP', { '-': { '58': 428.6 } }),
+  x('relative-clause-waiting-clearance', 'shape-motion', 'matrixIBar', { '-': { '57': 256.54 } }),
+  x('fixture:replay-regressions/relative-clause-waiting-clearance.json#', 'attachment-site-motion', 'letterInnerNBar', { '-': { '58': 678.46 } }),
+  x('fixture:replay-regressions/relative-clause-waiting-clearance.json#', 'attachment-site-motion', 'relativeCP', { '-': { '58': 428.6 } }),
+  x('fixture:replay-regressions/relative-clause-waiting-clearance.json#', 'shape-motion', 'matrixIBar', { '-': { '57': 256.54 } }),
+  x('fixture:replay-regressions/workspace-component-lifetime.json#/cases/2', 'attachment-site-motion', 'letterInnerNBar', { '-': { '58': 678.46 } }),
+  x('fixture:replay-regressions/workspace-component-lifetime.json#/cases/2', 'attachment-site-motion', 'relativeCP', { '-': { '58': 428.6 } }),
+  x('fixture:replay-regressions/workspace-component-lifetime.json#/cases/2', 'shape-motion', 'matrixIBar', { '-': { '57': 256.54 } }),
+];

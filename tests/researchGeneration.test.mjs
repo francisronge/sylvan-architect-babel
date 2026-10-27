@@ -365,9 +365,22 @@ test('the provider returned identity remains distinct from the requested model',
   assert.equal(bundle.modelUsed, 'kimi-k3-provider-snapshot');
 });
 
-test('all active routes preserve fenced output and its decoding failure without regeneration', async (t) => {
+test('all active routes read an answer inside one json code block and record the form', async (t) => {
   isolate(t);
   const fenced = `\u0060\u0060\u0060json\n${rawOutput}\n\u0060\u0060\u0060`;
+  for (const modelId of GENERATION_MODEL_IDS) {
+    const model = getResearchModel(modelId);
+    const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify(envelopeFor(model, fenced))));
+    const bundle = await parseFromBody({ sentence: fixture.sentence, modelId });
+    assert.deepEqual(bundle.generationRecord.processing.json.corrections, [{ kind: 'outer-markdown-code-fence', label: 'json' }]);
+    assert.equal(fetch.mock.callCount(), 1);
+    fetch.mock.restore();
+  }
+});
+
+test('all active routes preserve output with text beside its code block and its decoding failure without regeneration', async (t) => {
+  isolate(t);
+  const fenced = `\u0060\u0060\u0060json\n${rawOutput}\n\u0060\u0060\u0060\nThe JSON above is incomplete.`;
   for (const modelId of GENERATION_MODEL_IDS) {
     const model = getResearchModel(modelId);
     const responseText = JSON.stringify(envelopeFor(model, fenced));

@@ -25,26 +25,31 @@ const ownContent = (node: SyntaxNode): string => JSON.stringify([String(node.lab
   node.silent === true, String(node.lineageId || '')]);
 
 /**
- * Pairs each dissolved preceding node with the new node that structurally
- * continues it, as `previous id -> current id`. Construction then treats the
- * pair as one occurrence, exactly as if the stage had kept the id: only the
- * genuinely new material is built, in place.
+ * Pairs each preceding node that a stage authors again under a new id with
+ * the new node that structurally continues it, as `previous id -> current id`.
+ * Construction then treats the pair as one occurrence, exactly as if the stage
+ * had kept the id: only the genuinely new material is built, in place.
  *
  * A new node continues a dissolved one when it has the same own content
  * (category, word, silence, lineage), occupies the same slot (the same child
  * position under the continuing parent, or a root that stays a root or gains
  * a genuinely new parent), and keeps every preceding daughter, or that
  * daughter's continuation, in order, with at most one new node inserted
- * directly above one of them. A pair survives only while every pair it relies
- * on holds and each of its nodes has exactly one candidate partner; anything
- * else fails closed to ordinary construction. Nothing touching the owned
- * material (what a relation of the stage moves or rewrites) pairs; it is read
- * only when some candidate pair exists.
+ * directly above one of them. It also continues a preceding node whose id the
+ * stage gives to a new parent above it (an adjunction that names the higher
+ * segment after the earlier phrase): that parent then holds the slot, and is
+ * itself new material, built at the merge that creates it, so no frame shows
+ * it over its continuation alone. A pair survives only while every pair it
+ * relies on holds and each of its nodes has exactly one candidate partner;
+ * anything else fails closed to ordinary construction. Nothing touching the
+ * owned material (what a relation of the stage moves or rewrites) pairs; it is
+ * read only when some candidate pair exists.
  */
 export function continuedOccurrences(
   previousForest: readonly SyntaxNode[],
   currentForest: readonly SyntaxNode[],
-  ownedNodeIds: () => ReadonlySet<string>
+  ownedNodeIds: () => ReadonlySet<string>,
+  exactNodeIds: () => ReadonlySet<string> = () => new Set()
 ): Map<string, string> {
   const previous = indexExactForestNodeLocations(previousForest as SyntaxNode[]);
   const current = indexExactForestNodeLocations(currentForest as SyntaxNode[]);
@@ -54,16 +59,42 @@ export function continuedOccurrences(
     const key = ownContent(location.node);
     fresh.set(key, [...(fresh.get(key) ?? []), id]);
   }
+  /* A preceding occurrence can also keep its id on a new parent the stage
+   * puts above it: none of its daughters stays directly under that parent,
+   * and one of the parent's new daughters has its own content. The kept id may
+   * keep the lineage as well; a new daughter without one then continues it. */
+  const raisedCandidates = (before: SyntaxNode, outer: SyntaxNode): string[] => {
+    const daughters = outer.children ?? [];
+    if (daughters.length < 2 || daughters.some(child => before.children!.some(daughter => daughter.id === child.id))) return [];
+    const lineage = (child: SyntaxNode) => child.lineageId || (outer.lineageId === before.lineageId ? before.lineageId : undefined);
+    return daughters.filter(child => child.id && !previous.has(child.id) && child.children?.length
+      && ownContent({ ...child, lineageId: lineage(child) }) === ownContent(before)).map(child => child.id!);
+  };
   let pairs: Array<[string, string]> = [];
+  // Preceding ids the stage gives to a new parent above their continuation.
+  const raised = new Set<string>();
   for (const [id, location] of previous) {
-    if (!location || current.has(id) || !location.node.children?.length) continue;
-    for (const candidate of fresh.get(ownContent(location.node)) ?? [])
-      if (current.get(candidate)!.node.children!.length === location.node.children.length) pairs.push([id, candidate]);
+    if (!location || !location.node.children?.length) continue;
+    const outer = current.get(id);
+    for (const candidate of outer ? raisedCandidates(location.node, outer.node) : fresh.get(ownContent(location.node)) ?? [])
+      if (current.get(candidate)!.node.children!.length === location.node.children.length) {
+        pairs.push([id, candidate]);
+        if (outer) raised.add(id);
+      }
   }
   if (!pairs.length) return new Map();
   const owned = ownedNodeIds(), touches = (location: ExactForestNodeLocation | null | undefined) =>
     collectSyntaxSubtreeNodeIds(location!.node).some(id => owned.has(id));
-  pairs = pairs.filter(([from, to]) => !touches(previous.get(from)) && !touches(current.get(to)));
+  // A raised occurrence's new parent and that parent's daughters must be
+  // unowned: a relation that places a daughter there (a movement landing makes
+  // the continuation the landing's new parent) owns that attachment. Material
+  // a relation moves inside the continuation or a new sister keeps its ids.
+  const placedByRelation = (id: string) => [id, ...(current.get(id)!.node.children ?? []).map(child => child.id)]
+    .some(at => Boolean(at && owned.has(at)));
+  // Earlier stages paint a raised occurrence under its continuation's id, which
+  // an earlier trajectory or rewrite that names it forbids (`exactNodeIds`).
+  pairs = pairs.filter(([from, to]) => raised.has(from) ? !placedByRelation(from) && !exactNodeIds().has(from)
+    : !touches(previous.get(from)) && !touches(current.get(to)));
   for (;;) {
     const partners = new Map<string, string[]>(), continued = new Set(pairs.map(([, id]) => id));
     pairs.forEach(([from, to]) => {
@@ -85,9 +116,11 @@ export function continuedOccurrences(
         return genuinelyNew(child) && Boolean(child.children?.some(grandchild => continues(daughter.id, grandchild)));
       });
       if (!daughters || insertions > 1) return false;
-      if (!before.parent) return !after.parent || genuinelyNew(after.parent);
-      return continues(before.parentId, after.parent) && before.childIndex === after.childIndex
-        && before.parent.children!.length === after.parent!.children!.length;
+      // A raised occurrence's slot is held by the new parent that keeps its id.
+      const slot = raised.has(from) ? current.get(from)! : after;
+      if (!before.parent) return !slot.parent || genuinelyNew(slot.parent);
+      return continues(before.parentId, slot.parent) && before.childIndex === slot.childIndex
+        && before.parent.children!.length === slot.parent!.children!.length;
     };
     const consistentPairs = pairs.filter(consistent);
     const kept = consistentPairs.length < pairs.length ? consistentPairs
@@ -162,18 +195,25 @@ function relationOwnedNodeIds(
 }
 
 /** The continuations a stage authors over its preceding stage. A stage that
- * encodes movement in its own payload has none; movement rules own it. */
+ * encodes movement in its own payload has none; movement rules own it. A node
+ * that a relation of an earlier stage moves, copies or rewrites keeps its exact
+ * id in that stage's frames (`displayContinuedOccurrences`), so it is not
+ * raised: its continuation could not be painted under one id across stages. */
 export function stageContinuedOccurrences(
   frames: readonly ReplayDerivationFrame[],
   index: number,
-  relations: readonly DerivationReplayPlanStep[]
+  relations: readonly DerivationReplayPlanStep[],
+  earlierRelations: (stage: number) => readonly DerivationReplayPlanStep[] = () => []
 ): Map<string, string> {
   const frame = frames[index], previousForest = frames[index - 1]?.workspaceForest;
   if (!frame || !Array.isArray(previousForest) || !Array.isArray(frame.workspaceForest)) return new Map();
   if (isMoveLikeOperation(frame.movement?.operation || frame.operation) || getMovementLandingNodeId(frame.movement)
     || frame.movement?.sourceNodeId || frame.movement?.traceNodeId || frame.chainId) return new Map();
+  let exact: Set<string> | undefined;
   return continuedOccurrences(previousForest, frame.workspaceForest,
-    () => relationOwnedNodeIds(frame, relations, previousForest, frame.workspaceForest));
+    () => relationOwnedNodeIds(frame, relations, previousForest, frame.workspaceForest),
+    () => exact ??= new Set(frames.slice(0, index).flatMap((earlier, stage) => [...relationOwnedNodeIds(earlier,
+      earlierRelations(stage), frames[stage - 1]?.workspaceForest ?? [], earlier.workspaceForest ?? [])])));
 }
 
 const linkNodeIds = (link: ResolvedRelationLink): string[] => [link.sourceNodeId, link.targetNodeId, link.witnessNodeId,
@@ -224,7 +264,7 @@ export function displayContinuedOccurrences(
     }
     const successorOf = (id: string) => {
       const location = here.get(id);
-      return !location ? undefined : next.get(id) ? id : next.has(id) ? undefined : continued.get(id);
+      return !location ? undefined : continued.get(id) ?? (next.get(id) ? id : undefined);
     };
     const display = (id: string, successor: string | undefined) => {
       const shown = successor && (displays[stage + 1].get(successor) ?? successor);

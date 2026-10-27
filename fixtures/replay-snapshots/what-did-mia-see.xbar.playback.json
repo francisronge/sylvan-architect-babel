@@ -6,11 +6,11 @@
     {
       "operation": "LexicalSelect",
       "replayKind": "micro",
-      "targetNodeId": "dp_what_low::__lex_tok_0_what",
+      "targetNodeId": "what_low",
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 1/4 · Step 1/3",
       "replayVisibleNodeIds": [
-        "dp_what_low::__lex_tok_0_what"
+        "what_low"
       ]
     },
     {
@@ -18,11 +18,11 @@
       "replayKind": "micro",
       "targetNodeId": "dp_what_low",
       "sourceNodeIds": [
-        "dp_what_low::__lex_tok_0_what"
+        "what_low"
       ],
       "replayProgressLabel": "Stage 1/4 · Step 2/3",
       "replayVisibleNodeIds": [
-        "dp_what_low::__lex_tok_0_what",
+        "what_low",
         "dp_what_low"
       ]
     },
@@ -33,20 +33,20 @@
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 1/4 · Step 3/3",
       "replayVisibleNodeIds": [
-        "dp_what_low::__lex_tok_0_what",
+        "what_low",
         "dp_what_low"
       ]
     },
     {
       "operation": "LexicalSelect",
       "replayKind": "micro",
-      "targetNodeId": "v_see::__lex_tok_3_see",
+      "targetNodeId": "see_terminal",
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 2/4 · Step 1/4",
       "replayVisibleNodeIds": [
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "v_see::__lex_tok_3_see"
+        "what_low",
+        "see_terminal"
       ]
     },
     {
@@ -54,13 +54,13 @@
       "replayKind": "micro",
       "targetNodeId": "v_see",
       "sourceNodeIds": [
-        "v_see::__lex_tok_3_see"
+        "see_terminal"
       ],
       "replayProgressLabel": "Stage 2/4 · Step 2/4",
       "replayVisibleNodeIds": [
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "v_see::__lex_tok_3_see",
+        "what_low",
+        "see_terminal",
         "v_see"
       ]
     },
@@ -75,8 +75,8 @@
       "replayProgressLabel": "Stage 2/4 · Step 3/4",
       "replayVisibleNodeIds": [
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "v_see::__lex_tok_3_see",
+        "what_low",
+        "see_terminal",
         "v_see",
         "vp_see"
       ]
@@ -89,8 +89,8 @@
       "replayProgressLabel": "Stage 2/4 · Step 4/4",
       "replayVisibleNodeIds": [
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "v_see::__lex_tok_3_see",
+        "what_low",
+        "see_terminal",
         "v_see",
         "vp_see"
       ]
@@ -98,16 +98,16 @@
     {
       "operation": "LexicalSelect",
       "replayKind": "micro",
-      "targetNodeId": "t_did::__lex_tok_1_did",
+      "targetNodeId": "did_terminal",
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 3/4 · Step 1/7",
       "replayVisibleNodeIds": [
         "vp_see",
         "v_see",
-        "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did"
+        "see_terminal",
+        "what_low",
+        "did_terminal"
       ]
     },
     {
@@ -115,16 +115,16 @@
       "replayKind": "micro",
       "targetNodeId": "t_did",
       "sourceNodeIds": [
-        "t_did::__lex_tok_1_did"
+        "did_terminal"
       ],
       "replayProgressLabel": "Stage 3/4 · Step 2/7",
       "replayVisibleNodeIds": [
         "vp_see",
         "v_see",
-        "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did",
+        "see_terminal",
+        "what_low",
+        "did_terminal",
         "t_did"
       ]
     },
@@ -140,10 +140,10 @@
       "replayVisibleNodeIds": [
         "vp_see",
         "v_see",
-        "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did",
+        "see_terminal",
+        "what_low",
+        "did_terminal",
         "t_did",
         "tbar_question"
       ]
@@ -151,19 +151,19 @@
     {
       "operation": "LexicalSelect",
       "replayKind": "micro",
-      "targetNodeId": "np_mia_question::__lex_tok_2_mia",
+      "targetNodeId": "mia_question_terminal",
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 3/4 · Step 4/7",
       "replayVisibleNodeIds": [
         "vp_see",
         "v_see",
-        "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did",
+        "see_terminal",
+        "what_low",
+        "did_terminal",
         "t_did",
         "tbar_question",
-        "np_mia_question::__lex_tok_2_mia"
+        "mia_question_terminal"
       ]
     },
     {
@@ -171,19 +171,19 @@
       "replayKind": "micro",
       "targetNodeId": "np_mia_question",
       "sourceNodeIds": [
-        "np_mia_question::__lex_tok_2_mia"
+        "mia_question_terminal"
       ],
       "replayProgressLabel": "Stage 3/4 · Step 5/7",
       "replayVisibleNodeIds": [
         "vp_see",
         "v_see",
-        "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did",
+        "see_terminal",
+        "what_low",
+        "did_terminal",
         "t_did",
         "tbar_question",
-        "np_mia_question::__lex_tok_2_mia",
+        "mia_question_terminal",
         "np_mia_question"
       ]
     },
@@ -199,13 +199,13 @@
       "replayVisibleNodeIds": [
         "vp_see",
         "v_see",
-        "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did",
+        "see_terminal",
+        "what_low",
+        "did_terminal",
         "t_did",
         "tbar_question",
-        "np_mia_question::__lex_tok_2_mia",
+        "mia_question_terminal",
         "np_mia_question",
         "tp_question"
       ]
@@ -219,13 +219,13 @@
       "replayVisibleNodeIds": [
         "vp_see",
         "v_see",
-        "v_see::__lex_tok_3_see",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
-        "t_did::__lex_tok_1_did",
+        "see_terminal",
+        "what_low",
+        "did_terminal",
         "t_did",
         "tbar_question",
-        "np_mia_question::__lex_tok_2_mia",
+        "mia_question_terminal",
         "np_mia_question",
         "tp_question"
       ]
@@ -241,17 +241,17 @@
       "replayVisibleNodeIds": [
         "tp_question",
         "np_mia_question",
-        "np_mia_question::__lex_tok_2_mia",
+        "mia_question_terminal",
         "tbar_question",
         "t_did",
         "did_terminal",
         "vp_see",
         "v_see",
-        "v_see::__lex_tok_3_see",
+        "see_terminal",
         "dp_what_low",
-        "dp_what_low::__lex_tok_0_what",
+        "what_low",
         "c_question",
-        "c_question::__lex_tok_1_did",
+        "did_high",
         "cbar_question"
       ]
     },
@@ -266,21 +266,21 @@
       "replayVisibleNodeIds": [
         "tp_question",
         "np_mia_question",
-        "np_mia_question::__lex_tok_2_mia",
+        "mia_question_terminal",
         "tbar_question",
         "t_did",
         "did_terminal",
         "vp_see",
         "v_see",
-        "v_see::__lex_tok_3_see",
+        "see_terminal",
         "dp_what_low",
+        "what_low",
         "c_question",
-        "c_question::__lex_tok_1_did",
+        "did_high",
         "cbar_question",
         "cp_question",
         "dp_what_high",
-        "dp_what_high::__lex_tok_0_what",
-        "what_low"
+        "what_high"
       ]
     },
     {
@@ -292,21 +292,21 @@
       "replayVisibleNodeIds": [
         "tp_question",
         "np_mia_question",
-        "np_mia_question::__lex_tok_2_mia",
+        "mia_question_terminal",
         "tbar_question",
         "t_did",
         "did_terminal",
         "vp_see",
         "v_see",
-        "v_see::__lex_tok_3_see",
+        "see_terminal",
         "dp_what_low",
+        "what_low",
         "c_question",
-        "c_question::__lex_tok_1_did",
+        "did_high",
         "cbar_question",
         "cp_question",
         "dp_what_high",
-        "dp_what_high::__lex_tok_0_what",
-        "what_low"
+        "what_high"
       ]
     }
   ]

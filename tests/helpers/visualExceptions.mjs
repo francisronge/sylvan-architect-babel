@@ -50,7 +50,7 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/head-movement-ordinary-wrapper.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta external participant in living)@i_v', { desktop: { '28-36': 1.22 }, 'desktop-large': { '28-36': 1.22 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/inserted-adjunction-segment.json#', 'mark-distance', 'plaque',
-    'plaque(1:7 agreement: third-person masculine singular; tens)@mi', { desktop: { '45-50': 1.55 }, 'desktop-large': { '45-50': 1.55 } },
+    'plaque(1:7 agreement: third-person masculine singular; tens)@mi', { desktop: { '44-49': 1.54 }, 'desktop-large': { '44-49': 1.54 } },
     { by: 'Francis Ronge', on: '2026-10-23', note: 'Move first, then adjoin: the movement now plays before the phrase it lands in is merged into a larger one. Francis reviewed the click-through side-by-side of all seven changed fixtures on 23 Oct in the lead session (\'Looked at the replay page, looks good.\'): the relative clause\'s movements play before the matrix builds, so stage 3 is laid out differently and this plaque sits at 1.55 of its reach instead of 1.29.',
       accepts: { desktop: { '45-50': 1.55 }, 'desktop-large': { '45-50': 1.55 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/native-plaque-footprints.json#', 'mark-distance', 'plaque',
