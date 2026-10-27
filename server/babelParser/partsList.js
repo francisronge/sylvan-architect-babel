@@ -186,8 +186,12 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
         const { node } = definition;
         const children = Array.isArray(node.children) ? node.children : [];
         const result = {};
+        // Contract fields are scalars. Any other authored key is passed on by
+        // reference, never copied per stage, so a large unknown value retained
+        // across many stages cannot multiply before the response-wide field
+        // budget downstream rejects it.
         Object.entries(node).forEach(([key, value]) => {
-          if (key !== 'children') result[key] = structuredClone(value);
+          if (key !== 'children') result[key] = value;
         });
         result.children = children.map((childId, childIndex) => build(childId, `${ownPath}.children[${childIndex}]`, id, depth + 1));
         ancestors.delete(id);

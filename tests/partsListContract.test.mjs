@@ -255,3 +255,12 @@ test('a very deep chain of listed nodes is rejected as too deep, not by a crash'
   const result = expandPartsListAnalysis({ derivationStages: [{ statement: 's', stageRecord: 'r', relations: [], workspace: ['n0'], nodes }] });
   assert.match(result.issue?.message ?? '', /nests deeper than/);
 });
+
+test('an unknown field retained across many stages is shared, not copied per stage', () => {
+  const extra = Array.from({ length: 1000 }, (_, index) => index);
+  const stage = { statement: 's', stageRecord: 'r', relations: [], workspace: ['n'], nodes: [] };
+  const first = { ...stage, nodes: [{ id: 'n', label: 'N', word: 'Mia', extra }] };
+  const result = expandPartsListAnalysis({ derivationStages: [first, ...Array.from({ length: 50 }, () => stage)] });
+  const stages = result.analysis.derivationStages;
+  assert.equal(stages[0].workspaceForest[0].extra, stages[50].workspaceForest[0].extra, 'every stage shares the authored value');
+});
