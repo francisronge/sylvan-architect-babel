@@ -21,11 +21,23 @@ const files = directory => fs.readdirSync(directory, { withFileTypes: true }).fl
 const savedSentence = item => [item?.sentence, item?.request?.sentence, item?.input?.sentence, item?.response?.sentence]
   .find(sentence => typeof sentence === 'string' && sentence.trim());
 
+// A fingerprinted fixture's Replay, relation plan, final layout and widths are
+// reviewed through its committed layout fingerprint (verify:replay-offline), so
+// the corpus gate judges it by motion, continuity, geometry and movement only.
+const FINGERPRINTED = { replay: true, plan: true, finalCoordinates: true, completedWidthGrowth: true,
+  reason: 'A committed fixture: its Replay and layout changes are reviewed through fixtures/replay-snapshots/fixture-layout.json '
+    + '(verify:replay-offline), so this comparison judges it by motion, continuity, geometry and movement only.' };
+const fingerprinted = root => {
+  const file = path.join(root, 'replay-snapshots', 'fixture-layout.json');
+  return new Set(fs.existsSync(file) ? Object.keys(JSON.parse(fs.readFileSync(file, 'utf8')).records ?? {}) : []);
+};
+
 /** Every analysis with derivationStages under fixtures/, with the nearest ancestor
  * that carries its sentence as context. Analyses without a saved sentence are
- * reported, never given an invented one. */
+ * reported, never given an invented one. An analysis the layout fingerprint
+ * covers carries the allowances of FINGERPRINTED. */
 export function fixtureRecords(root = FIXTURE_ROOT) {
-  const records = [], skipped = [];
+  const records = [], skipped = [], reviewed = fingerprinted(root);
   for (const file of files(root)) {
     const source = path.relative(root, file).split(path.sep).join('/');
     if (EXCLUDED_FIXTURE_PREFIXES.some(prefix => source.startsWith(prefix))) continue;
@@ -42,7 +54,8 @@ export function fixtureRecords(root = FIXTURE_ROOT) {
       const context = [here, ...ancestors].find(item => savedSentence(item.value));
       if (!context) { skipped.push({ id, reason: 'no saved sentence' }); return; }
       records.push({ id, source: file, selector: pointer(keys),
-        ...(context !== here ? { contextSelector: pointer(context.keys) } : {}) });
+        ...(context !== here ? { contextSelector: pointer(context.keys) } : {}),
+        ...(reviewed.has(`${source}#${pointer(keys)}`) ? { allow: FINGERPRINTED } : {}) });
     };
     visit(document, [], []);
   }

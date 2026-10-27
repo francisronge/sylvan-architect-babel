@@ -69,6 +69,8 @@ test('Doctor writes a receipt when Playwright and installed dependencies are mis
     // ...and decides step ownership with the shared motion helper.
     await fs.mkdir(path.join(root, 'tests', 'helpers'), { recursive: true });
     await fs.copyFile(new URL('./helpers/motionOwnership.mjs', import.meta.url), path.join(root, 'tests', 'helpers', 'motionOwnership.mjs'));
+    // The corpus comparison matches motion faults against approved exceptions.
+    await fs.copyFile(new URL('./helpers/findings.mjs', import.meta.url), path.join(root, 'tests', 'helpers', 'findings.mjs'));
     for (const name of ['package.json', 'package-lock.json']) {
       await fs.copyFile(new URL(`../${name}`, import.meta.url), path.join(root, name));
     }

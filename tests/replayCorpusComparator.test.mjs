@@ -74,6 +74,50 @@ test('a selected word that its projection pulls back is a new joining jump', () 
     [[2, 'attachment-site-motion', 20, true]], 'joining jumps the baseline already has are not new');
 });
 
+test('a new jump shorter than 20 tree units is reported but does not fail', () => {
+  const pulled = distance => {
+    const joined = structuredClone(snapshot);
+    joined.records[0].frames[0].points[0].x -= distance;
+    return compare(joined)[0];
+  };
+  const small = pulled(19);
+  assert.deepEqual(small.motion.new.map(fault => [fault.frame, fault.kind, fault.distance]), [[2, 'attachment-site-motion', 19]]);
+  assert.deepEqual(small.motion.tolerated, small.motion.new);
+  assert.deepEqual(small.violations, []);
+  assert.deepEqual(pulled(20).violations.map(violation => violation.kind), ['new-motion-fault']);
+});
+
+test('an approved motion exception covers its fault within its bound, and only in its own record', () => {
+  const joined = structuredClone(snapshot);
+  joined.records[0].frames[0].points[0].x -= 40;
+  const [fault] = compare(joined)[0].motion.new;
+  const entry = bound => ({ reason: 'test', record: records[0].id, rule: 'motion', subtype: fault.kind, subject: fault.node,
+    at: { '-': { [fault.frame]: bound } } });
+  const kinds = (exceptions, list = records) => compareCorpusSnapshots(snapshot, joined, list, { motionExceptions: exceptions })[0]
+    .violations.map(violation => violation.kind);
+  assert.deepEqual(kinds([entry(40)]), []);
+  assert.deepEqual(kinds([entry(38.5)]), [], 'a fault within 5% of its bound is covered');
+  assert.deepEqual(kinds([entry(30)]), ['new-motion-fault'], 'a fault beyond its bound is not');
+  assert.deepEqual(kinds([{ ...entry(40), record: 'another record' }]), ['new-motion-fault']);
+  assert.deepEqual(compareCorpusSnapshots(snapshot, joined, records, { motionExceptions: [entry(40)] })[0].motion.excepted, [fault]);
+});
+
+test('a fingerprinted fixture fails on motion, not on a reviewed Replay, plan or final-layout change', async () => {
+  const { fixtureRecords } = await import('../scripts/buildCorpusArchiveManifest.mjs');
+  const { allow } = fixtureRecords().records[0];
+  const changed = structuredClone(snapshot), record = changed.records[0], final = record.frames.at(-1);
+  record.replaySha256 = 'changed Replay'; record.planSha256 = 'changed plan';
+  final.widths[0].width += 200;
+  final.points[0].x += 200;
+  record.frames[0].points[0].x -= 40;
+  const judged = list => faults(compareCorpusSnapshots(snapshot, changed, list).slice(0, 1));
+  assert(!judged([{ ...records[0], allow }]).some(kind => ['replay-change', 'relation-plan-change', 'final-coordinate-change',
+    'completed-width-growth'].includes(kind)), 'reviewed through the layout fingerprint');
+  assert(judged([{ ...records[0], allow }]).includes('new-motion-fault'), 'a 40-unit joining jump still fails');
+  assert.deepEqual(new Set(judged(records)), new Set(['replay-change', 'relation-plan-change', 'final-coordinate-change',
+    'completed-width-growth', 'new-motion-fault']), 'a maintained corpus record keeps its strict allow rules');
+});
+
 test('a candidate that drops its planner diagnostics still fails a seeded 500-unit jump', () => {
   const suppressed = structuredClone(snapshot), record = suppressed.records[0];
   record.continuity = [];
@@ -136,6 +180,26 @@ test('a deformation the baseline already has fails when the candidate makes it l
   const [result] = compareCorpusSnapshots(baseline.copy, candidate.copy, records);
   assert(result.violations.some(violation => violation.kind === 'worsened-motion-fault'
     && violation.faults.some(fault => fault.node === candidate.node && fault.kind === 'shape-motion' && Math.round(fault.distance) === 200)));
+});
+
+test('a fault the baseline has fails only when it grows by 20 units or 10% of its old distance, whichever is larger', () => {
+  const shifted = distance => {
+    const copy = structuredClone(snapshot), frames = copy.records[0].frames;
+    const at = frames.findIndex((frame, index) => index > 0 && index < frames.length - 1 && frame.points.some(item => item.parent
+      && !frame.points.some(other => other.parent === item.id) && frames[index - 1].points.some(other => other.id === item.id)));
+    const leaf = frames[at].points.find(item => item.parent && !frames[at].points.some(other => other.parent === item.id)
+      && frames[at - 1].points.some(other => other.id === item.id));
+    leaf.x += distance;
+    return copy;
+  };
+  const judge = (from, to) => {
+    const [result] = compareCorpusSnapshots(shifted(from), shifted(to), records);
+    return { worsened: result.motion.worsened.length > 0, kinds: result.violations.map(violation => violation.kind) };
+  };
+  assert.deepEqual(judge(20, 39), { worsened: true, kinds: [] }, '19 units farther is reported, not failed');
+  assert.deepEqual(judge(20, 41).kinds, ['worsened-motion-fault']);
+  assert.deepEqual(judge(300, 325), { worsened: true, kinds: [] }, 'under 10% of a long fault is reported, not failed');
+  assert.deepEqual(judge(300, 331).kinds, ['worsened-motion-fault']);
 });
 
 test('a movement the baseline shows fails when the candidate drops its moment, builds its landing or loses its trajectory', () => {
