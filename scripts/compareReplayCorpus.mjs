@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { compareCorpusSnapshots, loadCorpusManifest, sha256 } from './replayCorpusInputs.mjs';
+import { EXCEPTIONS as MOTION_EXCEPTIONS } from '../tests/helpers/motionExceptions.mjs';
 
 const run = promisify(execFile), worker = fileURLToPath(new URL('./replayCorpusSnapshot.mjs', import.meta.url));
 const defaultManifest = fileURLToPath(new URL('../fixtures/replay-corpus/manifest.json', import.meta.url));
@@ -27,7 +28,7 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
       await run(process.execPath, [worker, request, snapshot], { cwd: path.resolve(root), timeout, maxBuffer: 1024 * 1024 });
       snapshots.push(JSON.parse(await readFile(snapshot, 'utf8')));
     }
-    const compared = compareCorpusSnapshots(snapshots[0], snapshots[1], records);
+    const compared = compareCorpusSnapshots(snapshots[0], snapshots[1], records, { motionExceptions: MOTION_EXCEPTIONS });
     const failures = compared.filter(record => record.violations.length);
     const report = { schemaVersion: 1, ok: failures.length === 0, layout,
       scope: 'Offline Replay and the measured tree layout the renderer paints, with text measured from the bundled fonts. Native text rendering, SVG painting, plaque/connector geometry, camera and interaction are separate browser gates.',
@@ -36,6 +37,9 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
         fileURLToPath(import.meta.url), worker, fileURLToPath(new URL('./replayCorpusInputs.mjs', import.meta.url)),
         fileURLToPath(new URL('./replayFrameLayout.mjs', import.meta.url)),
         fileURLToPath(new URL('./replayMotionContinuity.mjs', import.meta.url)),
+        // Approved motion faults and how their bounds match.
+        fileURLToPath(new URL('../tests/helpers/motionExceptions.mjs', import.meta.url)),
+        fileURLToPath(new URL('../tests/helpers/findings.mjs', import.meta.url)),
         // The movement rule judges both checkouts' Replays.
         fileURLToPath(new URL('../tests/helpers/replayInvariants.mjs', import.meta.url)),
         // Both checkouts' text is measured from the bundled fonts.
@@ -48,6 +52,8 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
         uniqueInputs: new Set(records.map(record => record.inputSha256)).size,
         recordsWithoutMechanismLabels: records.filter(record => !record.mechanisms.length).length,
         changedAnalyses: compared.filter(record => record.changedFrames?.length).length, failures: failures.length,
+        toleratedMotionFaults: compared.reduce((count, record) => count + (record.motion?.tolerated.length ?? 0), 0),
+        exceptedMotionFaults: compared.reduce((count, record) => count + (record.motion?.excepted.length ?? 0), 0),
         existingContinuityFaults: snapshots[0].records.reduce((count, record) => count + (record.continuity?.length ?? 0), 0),
         existingMotionFaults: motionCounts(compared, 'baseline'), candidateMotionFaults: motionCounts(compared, 'candidate') },
       records: compared };
