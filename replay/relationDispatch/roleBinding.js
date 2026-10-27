@@ -37,6 +37,10 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest, s
   // landing's site, host or complex.
   const structuralContext = new Set((movement?.context ?? [])
     .filter(({ key }) => !movement.roles[normalizeTier2Synonym(key)]?.length).map(({ key }) => key));
+  // Only these contexts describe where the landing went; a carried head member
+  // does not.
+  const landingContext = new Set((movement?.context ?? []).filter(({ key, kind }) => structuralContext.has(key)
+    && kind !== 'head-member').map(({ key }) => key));
   const forestNodes = [];
   if (movement) currentForest.forEach(function visit(node) { forestNodes.push(node); (node.children || []).forEach(visit); });
   const provenEndpointId = concept => concept === 'movement.source' ? movement?.sourceNodeId
@@ -74,11 +78,14 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest, s
     // to fill, whatever that field is called; structural recovery below binds
     // the proven field to the slot. Any other field reading as that slot still
     // competes for it, so the claim stays as malformed as it was authored.
-    // Containing the proven endpoint is not enough for a registered role name.
+    // A registered role name is context only as a landing word whose node is
+    // the proven landing's verified site, host or complex; a carried member or
+    // a node containing the endpoint is not enough for it.
     const proven = (authoredRole, concept) => movement.roles[normalizeTier2Synonym(authoredRole)]?.includes(concept);
     const contextFor = (authoredRole, value, concept) => !proven(authoredRole, concept)
-      && (structuralContext.has(authoredRole)
-        || !candidatesFor(authoredRole).spelled.length && containsProvenEndpoint(value, concept));
+      && (candidatesFor(authoredRole).spelled.length
+        ? concept === 'movement.landing' && landingContext.has(authoredRole)
+        : structuralContext.has(authoredRole) || containsProvenEndpoint(value, concept));
     const contextBesideProvenEndpoint = (authoredRole, value, concept) => MOVEMENT_ENDPOINTS.has(concept)
       && contextFor(authoredRole, value, concept)
       && Object.keys(relation[field]).some(other => other !== authoredRole && proven(other, concept))

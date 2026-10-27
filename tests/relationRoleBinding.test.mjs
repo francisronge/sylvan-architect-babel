@@ -357,6 +357,12 @@ test('a registered landing word naming a proven movement\'s site is context, not
   const conflicting = siteClaim(siteStages({ landing: 'kimHigh', lowerCopy: 'kimTrace', target: 'v' }));
   assert.equal(conflicting.primaryClaim.tier, 3);
   assert.ok(conflicting.tier1Dispatch.signatureIssues.some(issue => issue.kind === 'conflicting-role-bindings'));
+  // A registered word naming a head member the landing carries (V2 inside
+  // hv1) is not where the movement went; it still competes for the landing.
+  const carried = savedClaim(1, 4, 1, { target: 'V2' }).result;
+  assert.equal(carried.primaryClaim.tier, 3);
+  assert.ok(carried.tier1Dispatch.signatureIssues.some(issue => issue.kind === 'conflicting-role-bindings'
+    && issue.roles.includes('target')));
 });
 
 // Opus's head movement {mover, trace, target} (opus-parts n3-68 6:0): `target`
