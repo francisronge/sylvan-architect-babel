@@ -46,6 +46,7 @@ import type {
   Tier2ResolvedFacet,
   Tier3RecoveredClaim
 } from './relationClaims.ts';
+import { jevAnswerFor, jevReadingDraws, jevSynonymIndex, type JevRecord } from './jev.ts';
 import { buildTier2FacetEvidence } from './relationEvidence.ts';
 import type { RecoveredMovement } from './movementEvidence.ts';
 import { indexMovementOccurrences, sameMovementSourceSlot } from './movementSourceEvidence.ts';
@@ -373,6 +374,7 @@ export const dispatchRelationClaims = (
     relationIndex,
     currentForest,
     priorForest,
+    synonymIndex,
     ...(structuralMovement ? { structuralMovement } : {})
   });
   const registryEntry = findRelationRegistryEntry(registry, relation.relation);
@@ -910,12 +912,15 @@ export function structuralMovementUpgrades(stages: Parameters<typeof dispatchSta
  * as the render plan compiled from a set of dispatches draws it. */
 export type NodePlaqueHosts = (dispatches: RelationClaimDispatch[][]) => ReadonlyMap<string, ReadonlySet<string>>;
 
+/** `jev` holds the analysis's saved Jev readings (`jev.ts`); without it dispatch reads wording and structure only. */
+type StageDispatchOptions = Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens' | 'structuralRules'> & { jev?: JevRecord };
+
 /** Earlier claims can clarify later restatements; later relations never justify earlier ones.
  * `plaqueHosts` lets a later stage's drawing keep an earlier structure-only
  * plaque when it puts no plaque on that plaque's node; without it, any later
  * drawing on the node withdraws the plaque. */
 export function dispatchStageRelations(stages: readonly { workspaceForest: SyntaxNode[]; relations: DerivationStageRelation[]; realizations?: SurfaceRealization[] }[],
-  options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens' | 'structuralRules'> & { plaqueHosts?: NodePlaqueHosts } = {}): RelationClaimDispatch[][] {
+  options: StageDispatchOptions & { plaqueHosts?: NodePlaqueHosts } = {}): RelationClaimDispatch[][] {
   const { plaqueHosts, ...dispatchOptions } = options;
   const structuralRules = dispatchOptions.structuralRules ?? structuralRecognitionRules();
   const dispatches = dispatchStagesInOrder(stages, structuralRules.size ? { ...dispatchOptions, structuralRules } : dispatchOptions);
@@ -966,7 +971,7 @@ const coindexesMovingChain = (claim: RecoveredClaim, movement: RecoveredMovement
  * the assignment and control contexts; relations listed in `withoutStructure`
  * are dispatched by wording alone. */
 function dispatchStagesInOrder(stages: Parameters<typeof dispatchStageRelations>[0],
-  options: Pick<ExclusiveRelationDispatchInput, 'registry' | 'activeLens' | 'structuralRules'>,
+  { jev, ...options }: StageDispatchOptions,
   withoutStructure: ReadonlySet<string> = new Set()): RelationClaimDispatch[][] {
   const assignmentContext = createAssignmentContext();
   const controlContext = createControlContext();
@@ -988,11 +993,18 @@ function dispatchStagesInOrder(stages: Parameters<typeof dispatchStageRelations>
       const structuralMovement = structural?.[stageIndex].movements.get(relationIndex);
       // The coindex stays beside the path: it lights the whole chain.
       const keepsChainIdentity = worded.claims.some(claim => claim.tier !== 3);
-      const dispatch: RelationClaimDispatch = structuralMovement && worded.claims.every(claim => claim.tier === 3
+      const recognized: RelationClaimDispatch = structuralMovement && worded.claims.every(claim => claim.tier === 3
         || coindexesMovingChain(claim, structuralMovement, stage.workspaceForest, stages[stageIndex - 1]?.workspaceForest,
           worded.evidence.movementFailure))
         ? { ...dispatchRelationClaims({ ...input, structuralMovement, ...(keepsChainIdentity ? { keepsChainIdentity } : {}) }), structuralMovement }
         : worded;
+      // A saved Jev reading applies only to a claim recognition leaves wholly
+      // neutral. It changes how the claim's own keys read; the same checks then
+      // decide, and the reading stands only when they draw the family Jev named.
+      const answer = recognized.claims.every(claim => claim.tier === 3 && claim.reason !== 'malformed-authored-relation')
+        ? jevAnswerFor(jev, stageIndex, relationIndex, relation) : undefined;
+      const read = answer && dispatchRelationClaims({ ...input, synonymIndex: jevSynonymIndex(DEFAULT_SYNONYM_INDEX, relation, answer) });
+      const dispatch: RelationClaimDispatch = read && jevReadingDraws(read, answer) ? { ...read, jev: answer.family } : recognized;
       recoveredClaimMovements(dispatch).forEach(movement => {
         rememberAssignmentMovement(assignmentContext, movement);
         rememberControlMovement(controlContext, stageIndex, movement);
