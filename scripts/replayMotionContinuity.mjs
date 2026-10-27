@@ -31,6 +31,20 @@ import { stepOwnership, stepTrajectoryParticipants } from '../tests/helpers/moti
 
 export const MOTION_FAULT_THRESHOLD = 1;
 
+/** What the corpus gate fails on (scripts/replayCorpusInputs.mjs). Every fault
+ * above MOTION_FAULT_THRESHOLD is reported, but the owner does not want motion
+ * he could not notice brought to him (27 Oct 2026): a new fault fails from
+ * NOTICEABLE_MOTION tree units, and a fault the base already has fails when it
+ * moves farther by NOTICEABLE_MOTION or NOTICEABLE_MOTION_GROWTH of its old
+ * distance, whichever is larger. */
+export const NOTICEABLE_MOTION = 20;
+export const NOTICEABLE_MOTION_GROWTH = 0.1;
+
+/** Whether `fault` is motion the gate fails on, given the base's fault at the
+ * same step (undefined when it is new). */
+export const noticeableMotion = (fault, base) => base === undefined ? fault.distance >= NOTICEABLE_MOTION
+  : fault.distance - base.distance >= Math.max(NOTICEABLE_MOTION, base.distance * NOTICEABLE_MOTION_GROWTH);
+
 export function replayMotionFaults({ frames }, { threshold = MOTION_FAULT_THRESHOLD } = {}) {
   const points = frames.map(frame => new Map(frame.points.map(point => [point.id, point])));
   const painted = index => new Map(frames[index].points.map(point => [point.id, { x: point.x, y: point.y, parentId: point.parent }]));
