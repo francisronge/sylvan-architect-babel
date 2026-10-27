@@ -37,9 +37,10 @@ export const createReplayCompilation = ({
   }> = [];
   // Each stage's continuations of its preceding stage, `previous id -> current id`.
   const continuations = new Map<number, Map<string, string>>();
+  const plannedRelations = (stage: number) => getReplayPlanStage(replayPlan, stage) ? resolveFrameRelations(stage) : [];
   const continuedOccurrenceIds = (index: number): Map<string, string> => {
     if (!continuations.has(index)) continuations.set(index, index > 0
-      ? stageContinuedOccurrences(frames, index, getReplayPlanStage(replayPlan, index) ? resolveFrameRelations(index) : [])
+      ? stageContinuedOccurrences(frames, index, plannedRelations(index), plannedRelations)
       : new Map());
     return continuations.get(index)!;
   };

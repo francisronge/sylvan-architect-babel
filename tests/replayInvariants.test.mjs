@@ -6,7 +6,7 @@ import {
   checkAttachAtMerge, checkContinuedOccurrences, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
   checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationConstruction, checkRelationMoments,
   checkStableConstruction,
-  checkStageCompletion, checkVisibleInCanvas, frameStructure
+  checkStageCompletion, checkVisibleInCanvas, checkWholeParent, frameStructure
 } from './helpers/replayInvariants.mjs';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 import { matchFindings } from './helpers/findings.mjs';
@@ -183,6 +183,16 @@ test('control: parent-after-children reports a new parent without its child and 
   assert(reported(checkParentAfterChildren(retained), 'parent-after-children', merge + 2, `${child} is hidden under displayed`));
 });
 
+test('control: whole-parent reports a parent shown with fewer daughters than its stage or the preceding one gives it', () => {
+  assert.deepEqual(checkWholeParent(replay), []);
+  const merge = steps.findIndex(step => step.replayKind === 'micro' && step.operation === 'ExternalMerge');
+  const target = steps[merge].targetNodeId, [child, sister] = frameStructure(steps[merge]).children.get(target);
+  const partial = breakReplay(copy => { copy[merge].replayVisibleNodeIds = copy[merge].replayVisibleNodeIds.filter(id => id !== child); });
+  assert(reported(checkWholeParent(partial), 'whole-parent', merge + 1, `${target} shows [${sister}], authored [${child},${sister}]`));
+  const swapped = breakReplay(copy => { d3.hierarchy(copy[merge].replayCanvasData).find(node => node.data.id === target).data.children.reverse(); });
+  assert(reported(checkWholeParent(swapped), 'whole-parent', merge + 1, `${target} shows [${sister},${child}]`));
+});
+
 test('control: stable-construction reports retained syntax that disappears or moves at another target\'s step', () => {
   assert.deepEqual(checkStableConstruction(replay), []);
   const retained = index => [...frameStructure(steps[index - 1]).displayed].find(id => id !== steps[index].targetNodeId
@@ -350,7 +360,7 @@ const REPORTED_BY = new Map([['attach-at-merge', 'no-early-reveal']]);
 const subjectOf = violation => violation.detail.split(' ')[0];
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments', 'landing-attached',
-  'no-early-reveal', 'relation-construction', 'parent-after-children', 'stable-construction', 'continued-occurrence', 'attach-at-merge',
+  'no-early-reveal', 'relation-construction', 'parent-after-children', 'whole-parent', 'stable-construction', 'continued-occurrence', 'attach-at-merge',
   'movement-landing-parent', 'movement-shown-as-movement',
   'visible-in-canvas',
   'marks-at-owning-moment', 'one-letter-per-label'];
@@ -363,7 +373,8 @@ before(() => {
       return { id, frames: prepared.playbackSteps.length, violations: [
         ...checkInputUnchanged(snapshot, authored), ...checkNoVisibleScaffolding(prepared), ...checkStageCompletion(prepared, authored),
         ...checkRelationMoments(prepared, authored), ...checkLandingAttached(prepared), ...checkNoEarlyReveal(prepared),
-        ...checkRelationConstruction(prepared, authored), ...checkParentAfterChildren(prepared), ...checkStableConstruction(prepared),
+        ...checkRelationConstruction(prepared, authored), ...checkParentAfterChildren(prepared), ...checkWholeParent(prepared),
+        ...checkStableConstruction(prepared),
         ...checkContinuedOccurrences(prepared, authored),
         ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored),
         ...checkMovementShownAsMovement(prepared, authored), ...checkVisibleInCanvas(prepared),

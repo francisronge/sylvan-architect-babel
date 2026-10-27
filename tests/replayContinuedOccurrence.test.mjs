@@ -132,3 +132,21 @@ test('the rule fails closed on regrouping, movement, another slot and changed co
     node('num2', 'Num', leaf('three', 'Num', 'three'), leaf('cats', 'N', 'cats')))];
   assert.deepEqual(pairs(rehung), [], 'the same daughters under another parent');
 });
+
+test('the rule pairs a node whose id moves to a new parent above it with the new daughter that takes over its daughters', () => {
+  const before = [node('dp', 'D', leaf('d', 'D', 'the'), leaf('n', 'N', 'cats'))];
+  const lower = (extra = {}) => ({ ...node('core', 'D', leaf('d', 'D', 'the'), leaf('n', 'N', 'cats')), ...extra });
+  const adjoined = (inner = lower(), outer = {}) => [{ ...node('dp', 'D', inner, node('cp', 'C', leaf('c', 'C', 'that'))), ...outer }];
+  const raised = (current, owned = []) => [...continuedOccurrences(before, current, () => new Set(owned))];
+  assert.deepEqual(raised(adjoined()), [['dp', 'core']]);
+  before[0].lineageId = 'x';
+  assert.deepEqual(raised(adjoined(lower(), { lineageId: 'x' })), [['dp', 'core']], 'the kept id keeps the lineage');
+  assert.deepEqual(raised(adjoined(lower({ lineageId: 'y' }), { lineageId: 'x' })), [], 'the new daughter names another lineage');
+  delete before[0].lineageId;
+  assert.deepEqual(raised(adjoined(), ['cp']), [], 'a relation places the new sister, as a movement places its landing');
+  assert.deepEqual(raised(adjoined(), ['dp']), [], 'a relation names the new parent');
+  assert.deepEqual(raised(adjoined(), ['n']), [['dp', 'core']], 'material a relation moves inside the continuation keeps it continued');
+  const keepsDaughter = [node('dp', 'D', leaf('d', 'D', 'the'), node('core', 'D', leaf('n', 'N', 'cats'), leaf('x', 'N', 'x')))];
+  assert.deepEqual(raised(keepsDaughter), [], 'the kept parent still holds a preceding daughter itself');
+  assert.deepEqual(raised([node('dp', 'D', lower())]), [], 'a unary parent gains no new sister');
+});

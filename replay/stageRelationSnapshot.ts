@@ -50,6 +50,7 @@ export const createStageRelationSnapshots = (
     frame,
     index,
     previousFrameWorkspaceRoots,
+    constructionPreviousWorkspaceRoots,
     workspaceRoots,
     frameRelationSteps,
     authoredPreviousRelationRelationLinks,
@@ -312,7 +313,7 @@ export const createStageRelationSnapshots = (
       const activeTransitionNodeIds = [...Array.from(fallbackTransitionOwnership)
         .flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex) ? [...ownership.currentNodeIds] : []),
       ...[...transitionHostNodeIds].flatMap(([nodeId, relationIndex]) => activeRelationIndexes.has(relationIndex) ? [nodeId] : [])];
-      snapshotWorkspaceRoots = preserveConstructionAttachments(snapshotWorkspaceRoots, previousFrameWorkspaceRoots, new Set(baseStep.replayPendingAttachmentNodeIds), new Set([...(baseStep.replayVisibleNodeIds || []), ...extraVisibleNodeIds, ...activeTransitionNodeIds]));
+      snapshotWorkspaceRoots = preserveConstructionAttachments(snapshotWorkspaceRoots, constructionPreviousWorkspaceRoots, new Set(baseStep.replayPendingAttachmentNodeIds), new Set([...(baseStep.replayVisibleNodeIds || []), ...extraVisibleNodeIds, ...activeTransitionNodeIds]));
     }
     const activeRelationLinks = buildActiveRelationLinks(activeRelationIndexes);
     const baseVisibleNodeIds = Array.isArray(baseStep?.replayVisibleNodeIds)
