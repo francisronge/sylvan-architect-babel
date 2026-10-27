@@ -24,9 +24,10 @@ const headContextSlot = (currentForest, priorForest, landingId, nodeId) =>
     : movementContextFailure(currentForest, landingId, nodeId, 'head-complex', priorForest) === undefined ? 'complexHead'
       : undefined;
 
-// Binding changes lookup keys only. `vocabulary` is the claim's synonym index,
-// which a saved Jev reading (`replay/relations/jev.ts`) may extend for its own keys. Authored text, item order, cardinality and
+// Binding changes lookup keys only. Authored text, item order, cardinality and
 // references stay intact; ambiguous meanings never select the first candidate.
+// `vocabulary` is the claim's synonym index, which a saved Jev reading
+// (`replay/relations/jev.ts`) may extend for the claim's own keys.
 export const bindRelationRoles = (relation, entry, currentForest, priorForest, structuralMovement = undefined,
   vocabulary = roleVocabulary) => {
   const bindings = [];
