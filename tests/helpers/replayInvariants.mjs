@@ -223,6 +223,28 @@ function momentNeeds(steps, index, relation) {
   return needs;
 }
 
+/** The parents a moment's landings join: the displayed parent of each node the
+ * moment moves (displayed in the preceding frame under another parent). */
+function landingParents(steps, index) {
+  const structure = frameStructure(steps[index]), before = index ? frameStructure(steps[index - 1]) : EMPTY_FRAME;
+  return new Set([...structure.displayed]
+    .filter(id => before.displayed.has(id) && structure.parent.get(id) && before.parent.get(id) !== structure.parent.get(id))
+    .flatMap(id => nodeNames(structure.nodes.get(structure.parent.get(id)))));
+}
+
+/** Whether the moment at `index` relocates the displayed node named `name`: it
+ * or an ancestor leaves its preceding parent, which no longer contains it. A
+ * new parent inserted above it keeps the preceding parent above, and is not a relocation. */
+function relocatesAt(steps, index, name) {
+  const structure = frameStructure(steps[index]), before = index ? frameStructure(steps[index - 1]) : EMPTY_FRAME;
+  const id = [...structure.displayed].find(candidate => nodeNames(structure.nodes.get(candidate)).includes(name));
+  if (!id || !before.displayed.has(id)) return false;
+  const lineage = start => { const ids = []; for (let at = start; at; at = structure.parent.get(at)) ids.push(at); return ids; };
+  const current = lineage(id);
+  return current.some(at => before.displayed.has(at) && before.parent.get(at) !== structure.parent.get(at)
+    && !current.includes(before.parent.get(at)));
+}
+
 /** Whether `id` is one of a relation's authored anchors, or an ancestor or descendant of one in its stage's forest. */
 function coveredByClaim(stage, relation, id) {
   const parent = new Map();
@@ -238,7 +260,9 @@ function coveredByClaim(stage, relation, id) {
  * its stage that introduces syntax it needs. A relation that plays after a
  * later authored one must have waited: from the last such relation's moment to
  * its own, some moment first displays one of its needs (`momentNeeds`) that
- * belongs to that moment's own authored claim.
+ * belongs to that moment's own authored claim, or relocates, within its claim,
+ * the parent one of its landings joins (`landingParents`): a landing inside a
+ * phrase a later movement moves waits for that movement.
  */
 export function checkRelationMoments(replay, record) {
   const steps = replay.playbackSteps, out = [], moments = new Map();
@@ -264,9 +288,11 @@ export function checkRelationMoments(replay, record) {
       const overtaking = played.slice(0, position).filter(other => other.relationIndex > moment.relationIndex).at(-1);
       if (!overtaking) return;
       const needs = momentNeeds(steps, moment.index, moment.relation), shown = displayedNames(frameStructure(steps[moment.index]));
+      const parents = landingParents(steps, moment.index);
       const waited = played.slice(played.indexOf(overtaking), position).some(other => {
         const before = other.index ? displayedNames(frameStructure(steps[other.index - 1])) : new Set();
-        return [...needs].some(id => shown.has(id) && !before.has(id) && coveredByClaim(stage, other.relation, id));
+        return [...needs].some(id => shown.has(id) && !before.has(id) && coveredByClaim(stage, other.relation, id))
+          || [...parents].some(id => relocatesAt(steps, other.index, id) && coveredByClaim(stage, other.relation, id));
       });
       if (!waited) out.push(violation('relation-moments', moment.index + 1,
         `relation ${moment.key} plays after later authored relation ${overtaking.key} without waiting for syntax it introduces`));

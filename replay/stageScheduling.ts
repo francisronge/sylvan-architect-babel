@@ -341,11 +341,25 @@ export const finalizeStageReplay = (
       return producers;
     };
     // A movement's landing appears attached: when another relation's moment
-    // introduces the parent a landing joins, the movement waits for it.
-    const landingParentOwners = (placement: RelationPlacement): number[] => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition
+    // introduces the parent a landing joins, the movement waits for it. A
+    // parent that keeps its id is introduced at its current place by the
+    // movement whose moved phrase contains it: a landing inside a phrase
+    // another movement of the stage relocates waits for that relocation.
+    const movesPhrase = (placement: RelationPlacement) => placement.renderableTrajectory || placement.ownsPhrasalTreeTransition;
+    const relocatingOwners = new Map<string, Set<number>>();
+    relationPlacements.filter(movesPhrase).forEach(placement => {
+      const relocated = [...placement.authoredTargetNodeIds.filter(nodeId => findParentNodeIdInForest(workspaceRoots, nodeId)
+        !== findParentNodeIdInForest(previousFrameWorkspaceRoots, nodeId)), ...getMovementPiedPipedNodeIds(placement)];
+      relocated.flatMap(nodeId => collectSyntaxSubtreeNodeIds(findNodeByIdInForest(workspaceRoots, nodeId)))
+        .forEach(nodeId => relocatingOwners.set(nodeId, (relocatingOwners.get(nodeId) ?? new Set()).add(placement.relationIndex)));
+    });
+    const landingParentOwners = (placement: RelationPlacement): number[] => movesPhrase(placement)
       ? placement.authoredTargetNodeIds.map(nodeId => findParentNodeIdInForest(workspaceRoots, nodeId))
-        .filter(parentId => parentId && !initiallyAvailableNodeIds.has(parentId))
-        .flatMap(parentId => relationProducers.get(parentId) ?? [])
+        .filter(Boolean)
+        .flatMap(parentId => [
+          ...(initiallyAvailableNodeIds.has(parentId) ? [] : relationProducers.has(parentId) ? [relationProducers.get(parentId)!] : []),
+          ...[...relocatingOwners.get(parentId) ?? []].filter(owner => owner !== placement.relationIndex)
+        ])
       : [];
     // A movement can complete an existing phrase: its landing joins a parent the stage already
     // had, and that parent contains the movement's source, as a specifier landing does (a head
