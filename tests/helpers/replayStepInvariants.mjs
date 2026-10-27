@@ -166,7 +166,20 @@ export function checkStepSemantics(replay, record) {
       const prior = new Set(anchorIds(authored?.priorAnchors));
       const named = new Set([...anchorIds(authored?.anchors), ...prior, ...ownership.anchored]);
       const ownedIn = (structure, id, owned) => [id, ...ancestorsIn(structure, id)].some(at => owned.has(at) || owned.has(authoredOf(structure, at)));
-      const removable = new Set([...structural, ...prior]);
+      // A landing may substitute for an empty position: a silent, childless
+      // node, which the stage no longer authors, that the landing replaces in
+      // the same parent and slot at this claim's movement moment.
+      const substituted = (step.replayRelationLinks ?? [])
+        .filter(link => link.authoredRelationKey === key && link.movementTransition === true)
+        .flatMap(link => {
+          const landing = String(link.targetNodeId ?? ''), parentId = current.parent.get(landing);
+          if (!parentId || !(change.added.includes(landing) || change.reparented.includes(landing))) return [];
+          const slot = current.children.get(parentId).indexOf(landing);
+          return change.removed.filter(id => previous.parent.get(id) === parentId
+            && previous.children.get(parentId).indexOf(id) === slot && previous.nodes.get(id)?.data.silent === true
+            && !previous.children.get(id)?.length && !stage?.ids.has(authoredOf(previous, id)));
+        });
+      const removable = new Set([...structural, ...prior, ...substituted]);
       // A derived word leaving an occurrence that stays, at the moment voicing it, is that occurrence's repaint.
       const unvoiced = id => { const origin = previous.nodes.get(id)?.data.replayOrigin;
         return origin?.kind === 'word' && current.displayed.has(origin.ownerId)
