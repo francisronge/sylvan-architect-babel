@@ -77,6 +77,8 @@ test('control: step-semantics finds a movement landing displayed under a node th
     node.children = [...node.children ?? [], { id: `${landing}::__leaf`, label: 'x', word: 'x', replayOrigin: { kind: 'word', ownerId: landing } }];
     list[moment].replayVisibleNodeIds = list[moment].replayVisibleNodeIds.filter(id => id !== landing).concat(`${landing}::__leaf`);
   }), [`movement landing ${landing} is not displayed at relation "subject A-movement"`]);
+});
+
 // Opus s65 (opus-stress, stage 7): GB substitution. The moved subject lands
 // in Spec-IP, replacing the authored empty NP there at its own moment.
 const substitution = (emptyWord) => {
