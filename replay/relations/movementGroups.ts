@@ -29,10 +29,13 @@ export function recoverMovementGroups(evidence: Tier2FacetEvidence) {
     && sources[0].items.every(id => (evidence.priorForest ?? []).some(root => containsOccurrence(root, id)));
   if (sources.length !== 1 || (priorSources.length !== 1 && !retained) || !targets.length) return [];
   const source = sources[0], previous = retained ? source : priorSources[0];
+  // A claim may list the landings under more than one landing-like role, such
+  // as landing and target. Each source tries every item of each listed role,
+  // and the proof alone picks the item that belongs to it.
   const listedTargets = targets.filter(target => target.items.length > 1);
-  if (listedTargets.length > 1) return [];
-  const listedTarget = listedTargets[0];
-  const targetChoices = listedTarget ? listedTarget.items.map((_, index) => index) : [0];
+  const choices = listedTargets.reduce<number[][]>((combos, target) =>
+    combos.flatMap(combo => target.items.map((_, index) => [...combo, index])), [[]]);
+  if (choices.length > 64) return [];
   if (source.items.length < 2 || targets.some(target => !target.items.length || new Set(target.items).size !== target.items.length) || previous.items.length !== source.items.length
     || new Set(source.items).size !== source.items.length || new Set(previous.items).size !== previous.items.length
     || targets.some(target => target.items.some(id => source.items.includes(id)))) return [];
@@ -46,20 +49,22 @@ export function recoverMovementGroups(evidence: Tier2FacetEvidence) {
     return Boolean(parent && containsOccurrence(parent, sourceId));
   };
   const pairs = source.items.map(sourceId => {
-    const matches = previous.items.flatMap((priorId, priorIndex) => retained && priorId !== sourceId ? [] : targetChoices.flatMap(targetIndex => {
+    const matches = previous.items.flatMap((priorId, priorIndex) => retained && priorId !== sourceId ? [] : choices.flatMap(choice => {
+      const chosen = (entry: Tier2AuthoredEvidenceEntry) => listedTargets.indexOf(entry);
       const result = recoverMovementEvidence({ relation: 'Authored movement group',
-        anchors: Object.fromEntries(current.map(entry => [entry.key, entry === source ? sourceId : entry === listedTarget ? entry.items[targetIndex] : [...entry.items]])),
+        anchors: Object.fromEntries(current.map(entry => [entry.key, entry === source ? sourceId
+          : chosen(entry) >= 0 ? entry.items[choice[chosen(entry)]] : [...entry.items]])),
         priorAnchors: Object.fromEntries(prior.map(entry => [entry.key, entry === previous ? priorId : [...entry.items]]))
       }, evidence.currentForest, evidence.priorForest);
-      return result.movement ? [{ movement: result.movement, diagnostics: result.diagnostics, priorIndex, targetIndex }] : [];
+      return result.movement ? [{ movement: result.movement, diagnostics: result.diagnostics, priorIndex, choice }] : [];
     }));
     const commanding = matches.filter(match => commands(match.movement.targetNodeId, match.movement.sourceNodeId));
     return matches.length > 1 && commanding.length === 1 ? commanding : matches;
   });
   if (pairs.some(matches => matches.length !== 1)
     || new Set(pairs.map(matches => matches[0].priorIndex)).size !== source.items.length
-    || listedTarget && (listedTarget.items.length !== source.items.length
-      || new Set(pairs.map(matches => matches[0].targetIndex)).size !== listedTarget.items.length)
+    || listedTargets.some((target, listIndex) => target.items.length !== source.items.length
+      || new Set(pairs.map(matches => matches[0].choice[listIndex])).size !== target.items.length)
     || !pairs.some(matches => matches[0].movement.transition)) return [];
   return movementGroupScopes(evidence, current, source, targets, previous, retained, pairs.map(([match]) => match));
 }
