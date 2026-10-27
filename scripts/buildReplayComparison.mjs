@@ -68,7 +68,7 @@ createRoot(document.getElementById('root')).render(r?<TreeVisualizer data={build
 const safeJson = value => JSON.stringify(value).replaceAll('<', '\\u003c');
 const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-async function paneHtml(root, records) {
+export async function paneHtml(root, records) {
   const { buildQualificationReviewRuntime } = await import(pathToFileURL(path.join(root, 'scripts/buildContractQualificationReviewRuntime.mjs')).href);
   const runtime = await buildQualificationReviewRuntime({ root, entrySource: ENTRY });
   return `<!doctype html><html lang="en"><meta charset="utf-8"><title>Replay</title><style>${runtime.css.replace(/<\/style/gi, '<\\/style')}html,body,#root{height:100%;margin:0}body{background:#03100a}</style><div id="root"></div><script id="replay-records" type="application/json">${safeJson(records.map(({ sentence, inputTokens, derivationStages }) => ({ sentence, inputTokens, derivationStages })))}</script><script>${runtime.js.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--')}</script></html>`;
@@ -94,7 +94,7 @@ $('next').onclick=()=>press('next');$('prev').onclick=()=>press('prev');
 document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')press('next');if(e.key==='ArrowLeft')press('prev')});load(0);</script></html>`;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { values } = parseArgs({ options: { 'baseline-root': { type: 'string' }, 'candidate-root': { type: 'string' },
     cases: { type: 'string' }, out: { type: 'string' }, title: { type: 'string' } } });
   for (const option of ['baseline-root', 'candidate-root', 'cases', 'out']) if (!values[option]) throw new Error(`--${option} is required`);
