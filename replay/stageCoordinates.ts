@@ -17,6 +17,7 @@ import { treeInkMetricKey } from './treeInkMetricKey.ts';
 import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { clearTreeText, paintedTreeText } from './treeTextClearance.ts';
 import type { PlaybackStep } from './types.ts';
 import { separateWorkspaceContours } from './workspaceContourClearance.ts';
 import { reserveWorkspaceAttachments } from './workspacePlacement.ts';
@@ -251,8 +252,15 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
     const tree = layoutSyntaxTree(root, size);
     // A temporary construction forest contributes no extra syntax level.
     tree.each(node => { node.y = (node.depth - temporaryRootDepth(canvas)) * rowHeight; });
+    const visible = new Set(step.replayVisibleNodeIds ?? tree.descendants().map(getNodeId));
+    // Styled-label measurements show where painted text runs into text on
+    // another row; without them the D3 layout stands.
+    const labels = measureTreeLabel && treeLabelRuns?.get(canvas);
+    if (labels) clearTreeText(tree, node => visible.has(getNodeId(node))
+      && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace',
+      node => paintedTreeText(labels.get(getNodeId(node)), measureTreeLabel!, measureCategoryText));
     const nodes = new Map<string, d3.HierarchyPointNode<SyntaxNode>>(tree.descendants().map(node => [getNodeId(node), node]));
-    return { canvas, nodes, visible: new Set(step.replayVisibleNodeIds ?? nodes.keys()),
+    return { canvas, nodes, visible,
       constructionForest: Boolean(temporaryRootDepth(canvas) && step.replayPendingAttachmentNodeIds),
       coordinates: new Map([...nodes].map(([id, node]) => [id, { x: node.x, y: node.y }])) };
   });
