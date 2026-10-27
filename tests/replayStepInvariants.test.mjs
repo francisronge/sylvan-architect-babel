@@ -58,6 +58,27 @@ test('control: step-semantics reports empty steps, wrong child counts, repaints,
     'movement landing dpTP was already displayed'));
 });
 
+test('control: step-semantics finds a movement landing displayed under a node that stands for it, and only there', () => {
+  // Claude Opus 5.5 (n3-23): the landing o2 painted as its new parent's stabilized
+  // lexical leaf TP2::__lex_leaf, aliased o2, was reported as not displayed.
+  const moment = momentOf(steps, 3, 1), landing = 'dpTP';
+  const incomplete = edit => checkStepSemantics(edited(replay, edit), sample)
+    .filter(found => found.subtype === 'movement-incomplete' && found.frame === moment + 1).map(found => found.detail);
+  const standIn = (list, visible) => {
+    const node = d3.hierarchy(list[moment].replayCanvasData).find(item => item.data.id === landing).data;
+    Object.assign(node, { id: 'dpTPHost::__lex_leaf', aliasIds: [landing], replayOrigin: { kind: 'lexical', ownerId: 'dpTPHost', authoredId: landing } });
+    list[moment].replayVisibleNodeIds = list[moment].replayVisibleNodeIds.filter(id => id !== landing).concat(visible ? [node.id] : []);
+  };
+  assert.deepEqual(incomplete(list => standIn(list, true)), []);
+  assert.deepEqual(incomplete(list => standIn(list, false)), [`movement landing ${landing} is not displayed at relation "subject A-movement"`]);
+  // A derived word leaf paints its owner's word, not the occurrence itself.
+  assert.deepEqual(incomplete(list => {
+    const node = d3.hierarchy(list[moment].replayCanvasData).find(item => item.data.id === landing).data;
+    node.children = [...node.children ?? [], { id: `${landing}::__leaf`, label: 'x', word: 'x', replayOrigin: { kind: 'word', ownerId: landing } }];
+    list[moment].replayVisibleNodeIds = list[moment].replayVisibleNodeIds.filter(id => id !== landing).concat(`${landing}::__leaf`);
+  }), [`movement landing ${landing} is not displayed at relation "subject A-movement"`]);
+});
+
 test('historical: step-semantics reports a merge the preceding projection already showed (PR #78)', () => {
   for (const [name, child, parent, text] of [['retained-parent-attachment', 'embeddedCP', 'matrixVBar', 'matrixVBar attaches nothing new'],
     ['retained-head-attachment', 'tDid', 'tI', 'tI attaches nothing new']]) {
