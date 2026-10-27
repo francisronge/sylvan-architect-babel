@@ -7,13 +7,14 @@ import { DEFAULT_CODEX_QUALIFICATION_MODEL } from './codexOAuth.js';
  * sets they may be read into. It carries no tree, node, word or sentence.
  * Sent only through the Codex subscription transport (`codexOAuth.js`).
  */
-export const JEV_PROMPT_VERSION = 'jev-1';
+export const JEV_PROMPT_VERSION = 'jev-2';
 
 export const JEV_INSTRUCTIONS = [
   'You are Jev, a terminology reader inside Babel. Another model wrote syntactic claims; Babel did not recognise their words.',
   'For each claim, translate its words into Babel\'s words:',
   '- Pick the one family offered for that claim (its own "families" if it has them, otherwise the shared "families"), whose slot names mean what the claim\'s role and value keys say. If no family fits, the family is "none".',
   '- Map each role key to one role slot of that family, or "none". Map each value key to one value slot of that family, or "none". Several keys may share a slot.',
+  '- Map a key only when its own words say what the slot says. A key that names only a position or a category, such as head, specifier or complement, says nothing about which role it plays: map it to "none".',
   '- Translate names only. Do not judge whether the claim is right and do not add anything it does not say. Babel checks the structure itself.',
   'Reply with JSON only: {"claims":[{"id":"...","family":"...","roles":{"<role key>":"<slot>"},"values":{"<value key>":"<slot>"}}]}, one entry per claim, keys exactly as given.'
 ].join('\n');
