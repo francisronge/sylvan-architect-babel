@@ -95,9 +95,12 @@ const translatedBounds = (rect: PlaqueRect, x: number, y: number): Bounds => ({ 
 /** Prefer stable poses for unchanged material outside the actual movement,
  * and let independent merge inputs wait at their attachment positions. Required
  * pose equations and complete-lifetime clearance take precedence. These optional
- * ties never change child contours or the operation's motion ownership. */
+ * ties never change child contours or the operation's motion ownership. A tie
+ * that clearance rejects is returned in `waiting`: placement keeps that earlier
+ * material at the nearest clear position to the tie. */
 function preferredStationaryPoses(graph: WorkspacePoseGraph, baseline: readonly ReferenceFrame[]) {
   let union = graph.union.copy();
+  const waiting: { from: number; to: number; delta: Point }[] = [];
   const references = baseline.map(frame => new Map(frame.nodes.map(node => [node.id, node])));
   type Entry = { index: number; variable: number; shape: LifetimeContour };
   const occurrences = new Map<number, Entry[]>();
@@ -130,47 +133,63 @@ function preferredStationaryPoses(graph: WorkspacePoseGraph, baseline: readonly 
         return a && b && Math.hypot(a.x - b.x, a.y - b.y) <= 1e-6;
       })) candidates.add(id);
     }
-    for (const id of candidates) {
-      const parent = graph.topologies[index].parent.get(id);
-      if (parent && candidates.has(parent)) continue;
-      const oldRoot = graph.topologies[index - 1].root.get(id)!, newRoot = graph.topologies[index].root.get(id)!;
-      const from = graph.variables[index - 1].get(oldRoot.id)!, to = graph.variables[index].get(newRoot.id)!;
-      const a = union.find(from), b = union.find(to);
-      if (a.group === b.group) continue;
-      const oldPoint = oldRoot.members.get(id)!, newPoint = newRoot.members.get(id)!;
-      const trial = union.copy();
-      trial.join(from, to, { x: oldPoint.x - newPoint.x, y: oldPoint.y - newPoint.y });
-      const earlier = occurrences.get(a.group)!, later = occurrences.get(b.group)!;
-      // Only pairs newly coupled by this tie can add a fixed conflict. Test
-      // their real cubic envelopes at every shared frame before committing it.
-      const clear = earlier.every(left => later.every(right => {
-        if (left.index !== right.index) return true;
-        const x = trial.find(left.variable).offset, y = trial.find(right.variable).offset;
-        return clearPairs(pairKey(left.shape.obstacles, x, right.shape.obstacles, y), () => {
-          const own = left.shape.obstacles.map(rect => translated(rect, x.x, x.y));
-          const other = right.shape.obstacles.map(rect => translated(rect, y.x, y.y));
-          if (!mayCollide(own, other)) return true;
-          const query = verticalObstacleIndex(other, { overlapOnly: true });
-          for (let i = 0; i < own.length; i++) {
-            if (query(own[i], obstacle => collision(own[i], obstacle))) return false;
-          }
-          return true;
-        });
-      }));
-      if (!clear) continue;
-      union = trial;
-      occurrences.set(a.group, [...earlier, ...later]);
-      occurrences.delete(b.group);
-    }
+    type Rejected = { from: number; to: number; delta: Point };
+    const attempt = (order: readonly string[]) => {
+      let tied = union;
+      const groups = new Map(occurrences), rejected: Rejected[] = [];
+      for (const id of order) {
+        const parent = graph.topologies[index].parent.get(id);
+        if (parent && candidates.has(parent)) continue;
+        const oldRoot = graph.topologies[index - 1].root.get(id)!, newRoot = graph.topologies[index].root.get(id)!;
+        const from = graph.variables[index - 1].get(oldRoot.id)!, to = graph.variables[index].get(newRoot.id)!;
+        const a = tied.find(from), b = tied.find(to);
+        if (a.group === b.group) continue;
+        const oldPoint = oldRoot.members.get(id)!, newPoint = newRoot.members.get(id)!;
+        const delta = { x: oldPoint.x - newPoint.x, y: oldPoint.y - newPoint.y };
+        const trial = tied.copy();
+        trial.join(from, to, delta);
+        const earlier = groups.get(a.group)!, later = groups.get(b.group)!;
+        // Only pairs newly coupled by this tie can add a fixed conflict. Test
+        // their real cubic envelopes at every shared frame before committing it.
+        const clear = earlier.every(left => later.every(right => {
+          if (left.index !== right.index) return true;
+          const x = trial.find(left.variable).offset, y = trial.find(right.variable).offset;
+          return clearPairs(pairKey(left.shape.obstacles, x, right.shape.obstacles, y), () => {
+            const own = left.shape.obstacles.map(rect => translated(rect, x.x, x.y));
+            const other = right.shape.obstacles.map(rect => translated(rect, y.x, y.y));
+            if (!mayCollide(own, other)) return true;
+            const query = verticalObstacleIndex(other, { overlapOnly: true });
+            for (let i = 0; i < own.length; i++) {
+              if (query(own[i], obstacle => collision(own[i], obstacle))) return false;
+            }
+            return true;
+          });
+        }));
+        if (!clear) { rejected.push({ from, to, delta }); continue; }
+        tied = trial;
+        groups.set(a.group, [...earlier, ...later]);
+        groups.delete(b.group);
+      }
+      return { tied, groups, rejected };
+    };
+    // When ties of one step exclude each other, the larger material keeps its
+    // pose: a lone head then yields to the phrase beside it.
+    let result = attempt([...candidates]);
+    if (result.rejected.length)
+      result = attempt([...candidates].sort((a, b) => current.nodes.get(b)!.members.size - current.nodes.get(a)!.members.size));
+    union = result.tied;
+    occurrences.clear();
+    for (const [group, entries] of result.groups) occurrences.set(group, entries);
+    waiting.push(...result.rejected);
   }
-  return union;
+  return { union, waiting };
 }
 /** Place whole pose groups only. Their internal coordinates were fixed by exact
 * temporal equations and never change during clearance. */
 export function placeRigidGroups(graph: WorkspacePoseGraph, baseline: readonly ReferenceFrame[]): WorkspacePosePlacement {
   if (graph.conflicts.length)
     return { accepted: false, reason: 'inconsistent-temporal-constraints' };
-  const union = preferredStationaryPoses(graph, baseline);
+  const { union, waiting } = preferredStationaryPoses(graph, baseline);
   const groups = new Map<number, PoseGroup>();
   const scenes = graph.frames.map((frame, index) => frame.roots.map((shape, rootIndex): Occurrence => {
     const variable = graph.variables[index].get(shape.id)!;
@@ -237,6 +256,13 @@ export function placeRigidGroups(graph: WorkspacePoseGraph, baseline: readonly R
         x: to.offset.x + nextPoint.x - from.offset.x - oldPoint.x,
         y: to.offset.y + nextPoint.y - from.offset.y - oldPoint.y });
     }
+  }
+  // A rejected stationary tie still names where its earlier material is next
+  // placed; it waits as an independent merge input does.
+  for (const tie of waiting) {
+    const from = union.find(tie.from), to = union.find(tie.to);
+    if (from.group === to.group || attachment.has(from.group)) continue;
+    attachment.set(from.group, { target: to.group, x: to.offset.x - from.offset.x - tie.delta.x, y: to.offset.y - from.offset.y - tie.delta.y });
   }
   // Place the receiving scene first, then let an independent input wait in the
   // nearest clear position to its next attachment. A failed exact tie must not
