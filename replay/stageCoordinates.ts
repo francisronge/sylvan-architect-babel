@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
 import { carriedShift } from './cameraCarry.ts';
 import { categoryMetricKey } from './categoryMetricKey.ts';
-import type { CategoryTextMeasure } from './categoryTextLayout.ts';
+import { categoryTextLayout, type CategoryTextMeasure } from './categoryTextLayout.ts';
 import { compactCurrentRootForks } from './currentRootCompaction.ts';
 import { retainCurrentRootFork } from './currentRootFork.ts';
 import { retainCurrentSiblingRanks, retainCurrentDaughterRanks } from './currentSiblingRanks.ts';
@@ -254,11 +254,15 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
     tree.each(node => { node.y = (node.depth - temporaryRootDepth(canvas)) * rowHeight; });
     const visible = new Set(step.replayVisibleNodeIds ?? tree.descendants().map(getNodeId));
     // Styled-label measurements show where painted text runs into text on
-    // another row; without them the D3 layout stands.
+    // another row; without them the D3 layout stands. Only the lines of the
+    // label's own layout have measured widths: a run wrapped under other
+    // measures keeps its cell width.
     const labels = measureTreeLabel && treeLabelRuns?.get(canvas);
     if (labels) clearTreeText(tree, node => visible.has(getNodeId(node))
-      && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace',
-      node => paintedTreeText(labels.get(getNodeId(node)), measureTreeLabel!, measureCategoryText));
+      && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace', node => {
+      const measured = new Set(measureCategoryText ? categoryTextLayout(node.data.label || '', measureCategoryText).lines : []);
+      return paintedTreeText(labels.get(getNodeId(node)), measureTreeLabel!, line => measured.has(line) ? measureCategoryText!(line) : undefined);
+    });
     const nodes = new Map<string, d3.HierarchyPointNode<SyntaxNode>>(tree.descendants().map(node => [getNodeId(node), node]));
     return { canvas, nodes, visible,
       constructionForest: Boolean(temporaryRootDepth(canvas) && step.replayPendingAttachmentNodeIds),

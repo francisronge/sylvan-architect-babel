@@ -1,6 +1,5 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../types.ts';
-import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { CATEGORY_LABEL, categoryLineBaselineY, TERMINAL_LABEL } from './rendererMetrics.ts';
 import type { TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 
@@ -24,9 +23,11 @@ const finite = (box: Omit<TreeTextBox, 'halo'>) => [box.x, box.y, box.width, box
  * A styled measurement's `cell` is the native text box, and its envelope adds a
  * stroke allowance on every side. A box keeps the cell's advance width and the
  * envelope's glyph extent, or the cell's font extent when indices are styled.
- * A label without a measurement contributes nothing. */
+ * `lineWidth` gives a wrapped line's advance where one is measured; a line
+ * without one keeps the cell's width. A label without a measurement
+ * contributes nothing. */
 export function paintedTreeText(runs: readonly TreeLabelRuns[] | undefined, measureTreeLabel: TreeLabelMeasure,
-  measureCategoryText?: CategoryTextMeasure): TreeTextBox[] {
+  lineWidth?: (line: string) => number | undefined): TreeTextBox[] {
   const boxes: TreeTextBox[] = [];
   for (const run of runs ?? []) {
     const bounds = measureTreeLabel(run), cell = bounds?.cell;
@@ -39,7 +40,7 @@ export function paintedTreeText(runs: readonly TreeLabelRuns[] | undefined, meas
     // line leaves the corners beside it empty.
     const ascent = categoryLineBaselineY(0, lines.length) - top, descent = bottom - categoryLineBaselineY(lines.length - 1, lines.length);
     lines.forEach((line, index) => {
-      const advance = measureCategoryText?.(line);
+      const advance = lineWidth?.(line);
       const width = advance !== undefined && Number.isFinite(advance) && advance > 0 ? Math.min(advance, cell.width) : cell.width;
       boxes.push({ x: -width / 2, y: categoryLineBaselineY(index, lines.length) - ascent, width, height: ascent + descent, halo });
     });
