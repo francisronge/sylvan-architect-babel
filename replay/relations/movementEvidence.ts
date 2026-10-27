@@ -198,7 +198,8 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: Syntax
     && sisters.every(child => ['bar', 'phrase'].includes(readCategoryLabel(child.label)?.kind ?? ''));
   // Bare labels do not distinguish a projecting node from its lexical head.
   // A new matching parent is a head projection only when its other child is
-  // the preceding complement, unchanged except for the proved lower occurrence.
+  // the preceding complement, unchanged except for the proved lower occurrence
+  // or, for a head copied sideward, a preceding separate workspace.
   // The head carries its word itself or, in a forest written wholly in bare
   // labels, over a single terminal ("C" over "did").
   const preterminals = Boolean(workspaces && bareProjectionsOf(workspaces.current) && bareProjectionsOf(workspaces.prior));
@@ -212,19 +213,39 @@ const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: Syntax
     || prior.nodes.has(parent.id) || prior.nodes.has(target.id) && target.id !== before.id
     || !complement.children?.length || prior.duplicates.has(complement.id)) return false;
   const oldComplement = prior.nodes.get(complement.id);
-  if (!oldComplement || !contains(oldComplement, before.id)) return false;
-  const complementIds: string[] = [];
-  const collect = (node: SyntaxNode) => { complementIds.push(node.id); node.children?.forEach(collect); };
-  collect(complement);
-  const pair = sourceOccurrencePair(current, prior, before.id, [target.id, ...complementIds]);
-  if (!pair || pair.landing.id !== target.id || !contains(complement, pair.source.id)) return false;
+  if (!oldComplement) return false;
+  const rootOf = (id: string): string => {
+    let root = id;
+    while (current.parents.get(root)) root = current.parents.get(root)!.id;
+    return root;
+  };
+  // A head copied sideward merges with another workspace: its complement was
+  // a separate root before, and the source keeps its exact slot in another
+  // tree, as does every other occurrence of the head's lineage.
+  const sideward = !prior.parents.has(complement.id) && !contains(oldComplement, before.id)
+    && Boolean(target.lineageId) && current.nodes.get(before.id)?.lineageId === target.lineageId
+    && (!before.lineageId || before.lineageId === target.lineageId)
+    && !current.duplicates.has(before.id) && !prior.duplicates.has(before.id)
+    && sameMovementSourceSlot(current, prior, before.id, before.id)
+    && [...current.nodes.values()].every(node => node.lineageId !== target.lineageId || node.id === target.id
+      || rootOf(node.id) !== rootOf(target.id));
+  let sourceId = before.id;
+  if (!sideward) {
+    if (!contains(oldComplement, before.id)) return false;
+    const complementIds: string[] = [];
+    const collect = (node: SyntaxNode) => { complementIds.push(node.id); node.children?.forEach(collect); };
+    collect(complement);
+    const pair = sourceOccurrencePair(current, prior, before.id, [target.id, ...complementIds]);
+    if (!pair || pair.landing.id !== target.id || !contains(complement, pair.source.id)) return false;
+    sourceId = pair.source.id;
+  }
   // A constituent that left the complement in the same stage, with its lineage
   // now pronounced outside it, leaves its own lower occurrence in its slot.
   const movedOut = (node: SyntaxNode, old: SyntaxNode) => Boolean(old.lineageId) && node.lineageId === old.lineageId
-    && !contains(node, pair.source.id)
+    && !contains(node, sourceId)
     && [...current.nodes.values()].some(other => other.lineageId === old.lineageId && !contains(complement, other.id));
   const retained = (node: SyntaxNode, old: SyntaxNode): boolean => {
-    if (node.id === pair.source.id && old.id === before.id) return true;
+    if (node.id === sourceId && old.id === before.id) return true;
     if (movedOut(node, old)) return true;
     if (current.duplicates.has(node.id) || prior.duplicates.has(old.id)) return false;
     const { children = [], ...fields } = node, { children: oldChildren = [], ...oldFields } = old;
