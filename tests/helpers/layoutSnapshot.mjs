@@ -37,9 +37,10 @@ export function panelText({ buildReplayPanelContent, buildReplayDisplayDetailBlo
 
 /** One normalized frame (visualRules' model) and its panel, in a stable form. A
  * plaque's identity key and allocated pocket describe its allocation, not what it
- * paints; its content box is the audit's measure of its rows, which its shell shows. */
+ * paints; its content box is the audit's measure of its rows, which its shell shows,
+ * and `realization` classifies a plate the audit judges by its own rule. */
 export function canonicalFrame(frame, panel = null) {
-  const plaques = frame.plaques.map(({ key: _key, pocket: _pocket, content: _content, ...plaque }) => plaque);
+  const plaques = frame.plaques.map(({ key: _key, pocket: _pocket, content: _content, realization: _realization, ...plaque }) => plaque);
   return JSON.stringify({ zoom: frame.zoom, chrome: frame.chrome, texts: byId(frame.texts), plaques: byId(plaques),
     lines: byId(frame.lines), marks: byId(frame.marks ?? []), panel }, round);
 }

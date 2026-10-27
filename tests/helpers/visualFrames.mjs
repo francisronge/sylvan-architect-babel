@@ -52,7 +52,7 @@ import { availableTreeViewport } from '../../components/treeViewport.ts';
 import { layoutReplayFrames } from '../../scripts/replayFrameLayout.mjs';
 import { createCameraHarness } from './cameraHarness.mjs';
 import { createSvgDom } from './svgDom.mjs';
-import { checkFrame, checkStaleShell, checkMarkMotion, THRESHOLDS } from './visualRules.mjs';
+import { checkFrame, checkStaleShell, checkMarkMotion, checkRealizationDistance, THRESHOLDS } from './visualRules.mjs';
 import { SNAPSHOT_VIEWPORT, snapshotRecord } from './layoutSnapshot.mjs';
 import { buildReplayPanelContent } from '../../replay/replayPanel.ts';
 import { buildReplayDisplayDetailBlocks } from '../../replay/replayPanelFormatting.ts';
@@ -186,6 +186,7 @@ export function plaqueRecord(item, box, anchor) {
   return { id: `plaque(${refsOf(item).join('/')} ${text.slice(0, 48)})@${box.attachmentNodeId}`, text, claims: refsOf(item),
     rect: rect(box.x, box.y, box.drawnWidth ?? box.width, box.drawnHeight ?? box.height), radius: 14,
     size: { width: box.width, height: box.height }, grid,
+    ...item.kind === 'node-plaque' && item.realization ? { realization: true } : {},
     joined: item.kind === 'directed-path' || Boolean(box.collectionRows?.length),
     anchor: anchor && { x: anchor.x, y: anchor.y + (!anchor.children?.length && anchor.data.word ? TERMINAL_ATTACHMENT_Y : 0) } };
 }
@@ -565,6 +566,35 @@ export function markMotionFindings(frames, thresholds = THRESHOLDS) {
   });
 }
 
+/** mark-distance's realization subtype over each viewport's Replay frames: a plate's
+ * pocket is judged against what allocation reserves at every frame of its stay in
+ * that pocket (consecutive frames at one offset from its anchor), carried to each
+ * frame's anchor. */
+export function realizationDistanceFindings(frames, thresholds = THRESHOLDS) {
+  const byViewport = new Map();
+  for (const frame of frames) if (typeof frame.frame === 'number')
+    byViewport.set(frame.viewport, [...(byViewport.get(frame.viewport) ?? []), frame]);
+  const offset = plaque => `${Math.round(plaque.rect.x - plaque.anchor.x)},${Math.round(plaque.rect.y - plaque.anchor.y)}`;
+  return [...byViewport.values()].flatMap(list => {
+    list.sort((a, b) => a.frame - b.frame);
+    const stay = (index, plaque) => {
+      const run = [];
+      const take = at => {
+        const frame = list[at], same = frame?.plaques.find(other => other.id === plaque.id && other.anchor);
+        if (!same || offset(same) !== offset(plaque)) return false;
+        run.push(...(frame.reserves ?? []).map(box => ({ ...box, x: box.x + plaque.anchor.x - same.anchor.x, y: box.y + plaque.anchor.y - same.anchor.y })));
+        return true;
+      };
+      take(index);
+      for (let at = index - 1; at >= 0 && list[at].frame === list[at + 1].frame - 1 && take(at); at--);
+      for (let at = index + 1; at < list.length && list[at].frame === list[at - 1].frame + 1 && take(at); at++);
+      return run;
+    };
+    return list.flatMap((frame, index) => frame.plaques.some(plaque => plaque.realization)
+      ? checkRealizationDistance(frame, plaque => stay(index, plaque), thresholds) : []);
+  });
+}
+
 /** mark-motion's stale-shell subtype over each viewport's Replay frames in order. */
 export function staleShellFindings(frames, thresholds = THRESHOLDS) {
   const byViewport = new Map();
@@ -590,7 +620,7 @@ export function auditVisualRecord(id, record, { viewports = VIEWPORTS, canopy = 
   if (canopy) frames.push(...viewports.map(viewport => layoutCanopyVisualFrame(visual, viewport)).filter(Boolean));
   return { steps: visual.prepared.playbackSteps.length, frames: frames.length,
     findings: [...frames.flatMap(frame => checkFrame(frame, thresholds)), ...markMotionFindings(frames, thresholds),
-      ...staleShellFindings(frames, thresholds),
+      ...staleShellFindings(frames, thresholds), ...realizationDistanceFindings(frames, thresholds),
       ...layoutWidthFindings(visual, viewports, { canopy })]
       .map(finding => ({ ...finding, record: id })),
     ...(snapshot ? { snapshot: snapshotVisualRecord(visual, frames.filter(frame => frame.viewport === SNAPSHOT_VIEWPORT)) } : {}) };

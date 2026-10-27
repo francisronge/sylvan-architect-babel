@@ -1114,7 +1114,13 @@ plate: one literal row, its contributors' words rewritten as the realized text
 (`do → did`), sized to that text (`replay/realizationDisplay.ts`). It is anchored
 on the pronounced contributors (the group's occurrences when none is pronounced)
 and attaches at the word itself when its anchor holds one; it chooses its pocket
-after every relation's plaque, so it never displaces one. The plate
+after every relation's plaque, so it never displaces one. Whatever its width, it
+searches the nearest clear pocket beside its owner as a compact plaque does, and
+goes below the subtree only when no pocket stays clear; Francis found a 590-unit
+plate placed below a whole tree on 27 October 2026 ("Plaque very low"). The
+offline audit reports a plate more than a tenth beyond its nearby reach while a
+pocket at least that much nearer stays clear through its stay
+(`mark-distance`, subtype `realization`). The plate
 shows exactly while Replay holds the group active (below), and in the Canopy for
 the final stage; it never first appears at a Stage Record. The relation whose
 moment shows it focuses it. A relation's own realization, spell-out or

@@ -1,4 +1,5 @@
 import { foreseenPocketBlocker, newPocketBlocker, ownRoutesChanged, returnsWithinReach } from '../../replay/relations/pocketHold.ts';
+import { blocksCarriedPocket } from '../../replay/relations/plaquePlacement.ts';
 
 /** Static geometry rules for one painted frame, independent of how the frame was
  * measured. An adapter normalizes a frame to the model below and calls
@@ -235,7 +236,8 @@ export function checkMarkDistance(frame, thresholds = THRESHOLDS) {
   const out = [], margin = 1 + thresholds.reachMargin, leader = thresholds.leaderPx / frame.zoom;
   for (const plaque of frame.plaques) {
     const size = plaque.size ?? plaque.rect;
-    if (!plaque.anchor || plaque.joined || !(Math.max(size.width, size.height) <= LOCAL_PLAQUE || plaque.grid && size.height <= LOCAL_PLAQUE)) continue;
+    if (!plaque.anchor || plaque.joined || plaque.realization
+      || !(Math.max(size.width, size.height) <= LOCAL_PLAQUE || plaque.grid && size.height <= LOCAL_PLAQUE)) continue;
     if (frame.lines.some(line => line.kind === 'connector' && shares(line.claims, plaque.claims)
       && Math.min(...line.paths.map(path => pathToShell(path, plaque.rect))) <= leader)) continue;
     const reach = plaqueNearbyReach(size);
@@ -247,6 +249,39 @@ export function checkMarkDistance(frame, thresholds = THRESHOLDS) {
     if (!(text.reach > 0) || text.distance <= text.reach * margin || (text.distance - text.reach) * frame.zoom <= thresholds.textReachPx) continue;
     out.push(finding('mark-distance', text.kind, frame, text.id,
       `${describe(text)} is ${Math.round(text.distance)} units from its witness; nearby reach ${Math.round(text.reach)}`, text.distance / text.reach));
+  }
+  return out;
+}
+
+/** mark-distance, subtype realization: a realization group's plate (`realization`,
+ * realizationDisplay.ts), which allocation places after every relation's plaque, farther
+ * than `reachMargin` beyond its nearby reach from its owner while a pocket at least
+ * that margin nearer stays clear. Pockets are searched on a 40-unit grid around the
+ * owner, nearest first. A pocket is clear when none of `blockers` (pocket occupants,
+ * carried to this frame's anchor) comes within the plaque gap: the boxes allocation
+ * reserved through the plate's stay in its pocket, so a pocket that later syntax or
+ * marks take does not count. Plates of any size are judged. */
+export function checkRealizationDistance(frame, blockersOf = plaque => frame.reserves ?? [], thresholds = THRESHOLDS) {
+  const out = [], margin = 1 + thresholds.reachMargin;
+  for (const plaque of frame.plaques) {
+    if (!plaque.realization || !plaque.anchor) continue;
+    const size = plaque.size ?? plaque.rect, { width, height } = size, { x: ax, y: ay } = plaque.anchor;
+    const reach = plaqueNearbyReach(size), distanceOf = box => Math.hypot(box.x + width / 2 - ax, box.y + height / 2 - ay);
+    const distance = distanceOf(plaque.rect);
+    if (distance <= reach * margin) continue;
+    const bound = distance / margin, step = 40, cells = Math.floor(bound / step);
+    const near = { x: ax - bound - width, y: ay - bound - height, width: 2 * (bound + width), height: 2 * (bound + height) };
+    const blockers = blockersOf(plaque).filter(occupant => (occupant.owner === undefined || occupant.owner !== (plaque.key ?? plaque.id))
+      && blocksCarriedPocket(near, occupant));
+    const pockets = [];
+    for (let i = -cells; i <= cells; i++) for (let j = -cells; j <= cells; j++) {
+      const box = { x: ax + i * step - width / 2, y: ay + j * step - height / 2, width, height };
+      if (distanceOf(box) <= bound) pockets.push(box);
+    }
+    const nearer = pockets.sort((a, b) => distanceOf(a) - distanceOf(b)).find(box => !blockers.some(blocker => blocksCarriedPocket(box, blocker)));
+    if (nearer) out.push(finding('mark-distance', 'realization', frame, plaque.id,
+      `${describe(plaque)} is ${Math.round(distance)} units from its owner, nearby reach ${Math.round(reach)}, while a pocket ${Math.round(distanceOf(nearer))} units away stays clear`,
+      distance / reach));
   }
   return out;
 }

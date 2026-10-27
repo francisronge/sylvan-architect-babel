@@ -1144,8 +1144,9 @@ export function placeStagePlaques(items: RelationPlanItem[], nodes: Node[], obst
     const availableNodes = new Set(nodes);
     const domainBounds = boundingRect(plaqueTreeObstacles(domain.descendants().filter(node => availableNodes.has(node))));
     const { width, height } = request;
-    // Role grids grow horizontally with their columns; width alone must not detach them from the predicate.
-    const local = fitsLocalPocket(request) || (request.thetaGrid && height <= localPlaqueSize);
+    // Role grids grow horizontally with their columns, and a realization plate with its
+    // realized text: width alone must not detach either from its owner.
+    const local = fitsLocalPocket(request) || (request.thetaGrid || request.realizedForm) && height <= localPlaqueSize;
     const terminal = request.caseAssignment ? anchor.descendants().filter(node => !node.children?.length && node.data.word) : [];
     const anchorY = terminal.length === 1 ? terminal[0].y + TERMINAL_ATTACHMENT_Y
       : anchor.y + (!anchor.children?.length && anchor.data.word ? TERMINAL_ATTACHMENT_Y : 0);
