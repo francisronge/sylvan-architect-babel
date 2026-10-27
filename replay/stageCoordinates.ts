@@ -31,6 +31,8 @@ type Scene = {
   visible: Set<string>;
   coordinates: TreeCoordinateReservation;
   constructionForest?: boolean;
+  /** Each node's x before clearTreeText widened the stage-local layout. */
+  uncleared?: ReadonlyMap<string, number>;
 };
 type StageReservation = { categoryMetrics: string; treeInkMetrics: string; treeLabelMetrics: string; size: [number, number]; preceding?: TreeCoordinateReservation; frames: ReadonlyMap<SyntaxNode, TreeCoordinateReservation> };
 const cache = new WeakMap<readonly PlaybackStep[], Map<string, StageReservation>>();
@@ -184,7 +186,11 @@ function reserveContours(scenes: Scene[], separateAttachments = false): Scene[] 
     const prior = nodes[index - 1], common = node.ancestors().find(ancestor => prior.ancestors().includes(ancestor));
     if (!common || common.data.replayOrigin?.kind === 'workspace') return;
     const priorId = key(scene, prior), next = edges.get(priorId) ?? new Map<string, number>();
-    const distance = Math.min(Math.max(0, node.x - prior.x), pitch * (node.parent === prior.parent ? 2.5 : 3.5));
+    // The pitch cap drops spacing a wide subtree gave D3; room that cleared
+    // painted text stays above it.
+    const before = scene.uncleared, gap = node.x - prior.x;
+    const cleared = before ? Math.max(0, gap - (before.get(getNodeId(node))! - before.get(getNodeId(prior))!)) : 0;
+    const distance = Math.min(Math.max(0, gap), pitch * (node.parent === prior.parent ? 2.5 : 3.5) + cleared);
     next.set(id, Math.max(next.get(id) ?? 0, distance));
     edges.set(priorId, next);
   }));
@@ -258,13 +264,14 @@ function buildStageLocalCoordinates(steps: readonly PlaybackStep[], stageIndex: 
     // label's own layout have measured widths: a run wrapped under other
     // measures keeps its cell width.
     const labels = measureTreeLabel && treeLabelRuns?.get(canvas);
+    const uncleared = labels ? new Map(tree.descendants().map(node => [getNodeId(node), node.x])) : undefined;
     if (labels) clearTreeText(tree, node => visible.has(getNodeId(node))
       && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace', node => {
       const measured = new Set(measureCategoryText ? categoryTextLayout(node.data.label || '', measureCategoryText).lines : []);
       return paintedTreeText(labels.get(getNodeId(node)), measureTreeLabel!, line => measured.has(line) ? measureCategoryText!(line) : undefined);
     });
     const nodes = new Map<string, d3.HierarchyPointNode<SyntaxNode>>(tree.descendants().map(node => [getNodeId(node), node]));
-    return { canvas, nodes, visible,
+    return { canvas, nodes, visible, uncleared,
       constructionForest: Boolean(temporaryRootDepth(canvas) && step.replayPendingAttachmentNodeIds),
       coordinates: new Map([...nodes].map(([id, node]) => [id, { x: node.x, y: node.y }])) };
   });

@@ -58,9 +58,37 @@ test('clearTreeText widens only the fork where the colliding paths divide, keepi
     assert.equal(item.y, before.get(item.data.id)[1]);
     if (item.children) assert.equal(item.x, (item.children[0].x + item.children.at(-1).x) / 2);
   }
-  // Text that already clears, or meets on one row, or grazes by less than an outline, is left alone.
+  // Text that already clears, or grazes by less than an outline, is left alone.
   const clear = tree();
   assert.equal(clearTreeText(clear, () => true, item => item.data.id === 'low' ? [{ ...boxes.low[0], x: 0 }] : boxes[item.data.id] ?? []), 0);
   const grazing = tree();
   assert.equal(clearTreeText(grazing, () => true, item => item.data.id === 'low' ? [{ ...boxes.low[0], y: -5 }] : boxes[item.data.id] ?? []), 0);
+});
+
+// Reduced from Claude Opus 5.5's analysis of "The prize was given to the young
+// scientist whose research on climate change had been ignored for a decade."
+// (qualification run n4-05-en-passive-ditransitive-long). The raised phrase's
+// silent lower copy shows its whole word between "ignored" and "for" on one
+// row, where D3's fixed pitch leaves too little room; the stage contours then
+// capped the widened gap back to that pitch.
+const phrase = () => ({ ...node('dp_whose', 'D', leaf('d_whose', 'D', 'whose'), node('np_research', 'N', leaf('n_research', 'N', 'research'),
+  node('pp_on', 'P', leaf('p_on', 'P', 'on'), node('n_compound', 'N', leaf('n_climate', 'N', 'climate'), leaf('n_change', 'N', 'change'))))),
+lineageId: 'whose' });
+const relativeClause = object => node('tbar', 'T', { ...leaf('t', 'T'), silent: true }, node('perfp', 'Perf', leaf('perf', 'Perf', 'had'),
+  node('vp_adj', 'V', node('vp', 'V', leaf('v', 'V', 'ignored'), object), node('pp_for', 'P', leaf('p_for', 'P', 'for'), leaf('dp_decade', 'D', 'a decade')))));
+const longLowerCopy = {
+  sentence: 'whose research on climate change had ignored for a decade',
+  derivationStages: [
+    stage('The clause is built around its object.', relativeClause(phrase())),
+    { ...stage('The object raises to the subject position.', node('tp', 'T', phrase(),
+      relativeClause({ ...leaf('copy', 'D', 'whose research on climate change'), lineageId: 'whose', silent: true }))),
+    relations: [{ relation: 'internalMerge', anchors: { mover: 'dp_whose', lowerCopy: 'copy', landingSite: 'tp' } }] }
+  ]
+};
+
+test('a long word keeps clear of its neighbours on its own row in every frame and the Canopy', () => {
+  const { findings } = auditVisualRecord('long-lower-copy', longLowerCopy, { viewports: VIEWPORTS });
+  assert.deepEqual(findings.filter(finding => finding.rule === 'glyph-overlap')
+    .map(finding => `${finding.frame}@${finding.viewport}: ${finding.detail}`), []);
+  assert.deepEqual(findings.filter(finding => ['branch-geometry', 'parent-centring'].includes(finding.rule)), []);
 });

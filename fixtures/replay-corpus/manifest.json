@@ -20,7 +20,8 @@
       "id": "nested-premovement-wrapper",
       "source": "../replay-regressions/nested-premovement-width.json",
       "mechanisms": ["movement-wrapper", "later-movement"],
-      "expect": {"minMovementMoments": 2}
+      "expect": {"minMovementMoments": 2},
+      "allow": {"finalCoordinates": true, "completedWidthGrowth": true, "reason": "Text clearance separates long words on one row: the matrix C fork widens by 3.9 tree units so its labels no longer crowd each other."}
     },
     {
       "id": "pending-source-pronunciation",

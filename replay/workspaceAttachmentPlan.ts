@@ -196,6 +196,9 @@ export function reserveAttachmentLifetimes({
             const valid = !ordinary || placed.every(node => {
               if (node.parent && visible.has(getNodeId(node.parent)) && node.y <= node.parent.y) return false;
               const children = (node.children ?? []).filter(child => visible.has(getNodeId(child)));
+              // A daughter outside the component keeps its own row while the
+              // lifetime moves its parent and sisters; sisters share one row.
+              if (children.some(child => Math.abs(child.y - children[0].y) > 1e-6)) return false;
               return children.slice(1).every((child, index) => direction === 'rtl'
                 ? children[index].x > child.x : children[index].x < child.x);
             });
