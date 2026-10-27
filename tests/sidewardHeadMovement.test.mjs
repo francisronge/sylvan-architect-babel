@@ -79,3 +79,13 @@ test('a sideward head reading keeps the refusals for malformed or unrelated clai
     assert.notEqual(recover(input).movement?.trajectoryKind, 'head', name);
   }
 });
+
+test('the gap-label-on-silence invariant reports a generated label on a pronounced occurrence', async () => {
+  const { checkGapLabelOnSilence } = await import('./helpers/replayInvariants.mjs');
+  const input = shape({ relation: 'sidewardMovement', anchors: { source: 'T2', copy: 'T1' } });
+  const record = { derivationStages: [input.priorForest, input.currentForest].map(workspaceForest => ({ workspaceForest })) };
+  const planted = { relationRenderPlan: { frames: [{ items: [] }, { items: [{ kind: 'node-badges', badgeStyle: 'gap-notation', badges: [{ nodeId: 'T2', text: 't₁' }] }] }] } };
+  assert.deepEqual(checkGapLabelOnSilence(planted, record).map(v => v.rule), ['gap-label-on-silence']);
+  find(input.currentForest, 'T2').silent = true;
+  assert.deepEqual(checkGapLabelOnSilence(planted, record), []);
+});
