@@ -35,6 +35,7 @@ Use Node 24.x and ESM. Replay tests import `.ts` modules through Node's built-in
 - Keep each PR to one independently shippable concern. Its tests and documentation belong with it.
 - UI changes need before-and-after images. Motion, Replay, or camera changes need a short recording.
 - Show Francis a Replay or renderer change as one click-through page built with `node scripts/buildReplayComparison.mjs --baseline-root <main> --candidate-root <branch> --cases <cases.json> --out /tmp/<page>`: both checkouts play the same analyses side by side and step together. It refuses a candidate that lacks the baseline commit, and every case must say what to watch and which steps to open.
+- Show Francis saved batches for review with `node scripts/buildReplayReview.mjs --batch DIR[=Label]... --out /tmp/<page> [--visual]`: one Replay pane per analysis, opening at step 1, with ← → on Replay and j / k between trees. The tool writes each tree's notes from the Replay invariant audit, Babel's own movement diagnostics and, with `--visual`, the offline visual and camera audits; do not hand-write or trim them.
 - Keep PR-only evidence outside the worktree and upload it to the PR; never commit it.
 
 ## Plans and documentation
@@ -328,6 +329,7 @@ change. Drop a row once its mistake can no longer happen.
 | Every layout change is reviewed, never regenerated blind. | Layout fingerprint `fixtures/replay-snapshots/fixture-layout.json` in `verify:replay-offline`. |
 | A check judges the layout the browser paints, not another plan. | The shared camera fit, and the measured-layout test in `tests/replayCorpusComparator.test.mjs`. |
 | Painted frames and motion stay clean. | `verify:browser-visual` in the local macOS merge train (Linux Chromium measures differently, so not CI). |
+| A batch review page prints every known fault on its tree; nobody filters it by hand. | `scripts/buildReplayReview.mjs` writes the notes itself; `tests/buildReplayReview.test.mjs`. |
 | A review page compares the change with current main. | `scripts/buildReplayComparison.mjs` refuses a candidate that lacks the baseline commit. |
 | Mark each claim measured, inferred or guessed. An offline layout reading is not a painted picture; say which you have. | Nothing; judgment. |
 | Before calling a change or a batch clean, step through its changed frames in the real renderer. A metric that improves can hide a regression. | Nothing; judgment. |
