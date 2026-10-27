@@ -1,0 +1,1523 @@
+{
+  "description": "A head selected on its own receives a raised head while the phrase that head leaves still waits as its own workspace. Stage 6 selects the silent Foc head beside the finite clause mTP, completed one stage earlier; its T-to-Foc head movement then builds the landing mFocComplex from the raised mTComplex and mFocHead and attaches mTP below the new mFocCore. The layout kept mTP at its earlier-stage place, laid the new head out at its final place far to its right, and at the movement moved the whole clause across to it (a median 5,900 layout units; a 539 px first-paint jump at 1440×900). mTP now keeps its place through that moment; the selected head stands beside the head that joins it and only makes room for it.",
+  "source": "GPT-6.1 Sol, high reasoning effort, Codex OAuth qualification run, 26 Oct 2026 (sol-parts-20261026, n4-29-hu-long-focus, analysis 0; ~/Library/Application Support/Babel/codex-qualification/sol-parts-20261026/runs), read with the Oct 27 ship candidate's intake. Intentional variant: the relative clause amelyet Péter ajánlott, the four stages that build it and the relative-modification relation of the book expression are removed; every other stage keeps the model's nodes, relations and text. The sentence is the remaining words.",
+  "sentence": "Tegnap a könyvet csak Mari olvasta el az egész osztályból.",
+  "framework": "minimalism",
+  "inputTokens": [
+    "Tegnap",
+    "a",
+    "könyvet",
+    "csak",
+    "Mari",
+    "olvasta",
+    "el",
+    "az",
+    "egész",
+    "osztályból"
+  ],
+  "derivationStages": [
+    {
+      "statement": "Construct the definite book expression with its relative modifier.",
+      "stageRecord": "Adjoin the completed relative clause to the nominal projection containing könyvet, then merge the definite article a. The relative operator is interpreted as ranging over the book denoted by this nominal, with its lower occurrence supplying the object of Péter's recommendation. The resulting definite nominal bears accusative morphology and will enter the main clause as its object. The suffix on könyvet remains part of the lexical word.",
+      "relations": [],
+      "workspaceForest": [
+        {
+          "id": "bookDP",
+          "label": "D[definite,accusative]",
+          "lineageId": "main-object",
+          "children": [
+            {
+              "id": "bookD",
+              "label": "D[definite]",
+              "word": "a",
+              "children": []
+            },
+            {
+              "id": "bookNModified",
+              "label": "N",
+              "children": [
+                {
+                  "id": "bookN",
+                  "label": "N[accusative]",
+                  "word": "könyvet",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Merge the book expression as the main verb's object.",
+      "stageRecord": "Merge olvasta with the complete definite book expression. The object receives the Theme role of reading. Olvasta is introduced in its surface past-tense, third-person singular definite-conjugation form; later agreement will license that form without adding separately pronounced inflectional terminals.",
+      "relations": [
+        {
+          "relation": "theta-role",
+          "anchors": {
+            "predicate": "mV",
+            "argument": "bookDP"
+          },
+          "values": {
+            "role": "Theme"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "mVP",
+          "label": "V",
+          "children": [
+            {
+              "id": "mV",
+              "label": "V[past,3sg,definite]",
+              "word": "olvasta",
+              "lineageId": "main-verb",
+              "children": []
+            },
+            {
+              "id": "bookDP",
+              "label": "D[definite,accusative]",
+              "lineageId": "main-object",
+              "children": [
+                {
+                  "id": "bookD",
+                  "label": "D[definite]",
+                  "word": "a",
+                  "children": []
+                },
+                {
+                  "id": "bookNModified",
+                  "label": "N",
+                  "children": [
+                    {
+                      "id": "bookN",
+                      "label": "N[accusative]",
+                      "word": "könyvet",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Introduce el, the focused subject, and the class-domain restrictor.",
+      "stageRecord": "Build a predicational layer with el in its preverbal modifier position and the reading predicate below it. Merge transitive v and introduce the constituent csak Mari as its external argument; Mari receives the Agent role through this constituent. Transitive v licenses the book expression's accusative Case. Build az egész osztályból as an elative nominal and right-adjoin it to the v projection. This adjunct supplies the class-based comparison domain for the subject alternatives, rather than a source argument of reading. The elative suffix remains within osztályból. The particle csak associates with Mari inside the constituent that will move to the focus position.",
+      "relations": [
+        {
+          "relation": "theta-role",
+          "anchors": {
+            "predicate": "mvHead",
+            "argument": "mSubject",
+            "referentialNominal": "mMari"
+          },
+          "values": {
+            "role": "Agent"
+          }
+        },
+        {
+          "relation": "case-licensing",
+          "anchors": {
+            "licensor": "mvHead",
+            "nominal": "bookDP"
+          },
+          "values": {
+            "case": "accusative"
+          }
+        },
+        {
+          "relation": "alternative-domain-restriction",
+          "anchors": {
+            "restrictor": "classDP",
+            "restrictedConstituent": "mSubject",
+            "associate": "mMari"
+          },
+          "values": {
+            "domain": "members of the whole class"
+          }
+        },
+        {
+          "relation": "particle-association",
+          "anchors": {
+            "particle": "onlyParticle",
+            "associate": "mMari",
+            "constituent": "mSubject"
+          },
+          "values": {
+            "particleMeaning": "only"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "mvDomain",
+          "label": "v",
+          "children": [
+            {
+              "id": "mvP",
+              "label": "v",
+              "children": [
+                {
+                  "id": "mSubject",
+                  "label": "D[focus-associated]",
+                  "lineageId": "main-subject",
+                  "children": [
+                    {
+                      "id": "onlyParticle",
+                      "label": "Part[exclusive]",
+                      "word": "csak",
+                      "children": []
+                    },
+                    {
+                      "id": "mMari",
+                      "label": "D",
+                      "word": "Mari",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "mvCore",
+                  "label": "v",
+                  "children": [
+                    {
+                      "id": "mvHead",
+                      "label": "v[transitive]",
+                      "silent": true,
+                      "children": []
+                    },
+                    {
+                      "id": "predP",
+                      "label": "Pred",
+                      "children": [
+                        {
+                          "id": "elParticle",
+                          "label": "Prt",
+                          "word": "el",
+                          "children": []
+                        },
+                        {
+                          "id": "predCore",
+                          "label": "Pred",
+                          "children": [
+                            {
+                              "id": "predHead",
+                              "label": "Pred",
+                              "silent": true,
+                              "children": []
+                            },
+                            {
+                              "id": "mVP",
+                              "label": "V",
+                              "children": [
+                                {
+                                  "id": "mV",
+                                  "label": "V[past,3sg,definite]",
+                                  "word": "olvasta",
+                                  "lineageId": "main-verb",
+                                  "children": []
+                                },
+                                {
+                                  "id": "bookDP",
+                                  "label": "D[definite,accusative]",
+                                  "lineageId": "main-object",
+                                  "children": [
+                                    {
+                                      "id": "bookD",
+                                      "label": "D[definite]",
+                                      "word": "a",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "bookNModified",
+                                      "label": "N",
+                                      "children": [
+                                        {
+                                          "id": "bookN",
+                                          "label": "N[accusative]",
+                                          "word": "könyvet",
+                                          "children": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "classDP",
+              "label": "D[elative]",
+              "children": [
+                {
+                  "id": "classD",
+                  "label": "D[definite]",
+                  "word": "az",
+                  "children": []
+                },
+                {
+                  "id": "classNModified",
+                  "label": "N",
+                  "children": [
+                    {
+                      "id": "classA",
+                      "label": "A",
+                      "word": "egész",
+                      "children": []
+                    },
+                    {
+                      "id": "classN",
+                      "label": "N[elative]",
+                      "word": "osztályból",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Raise the main verb to v while leaving el in the predicational layer.",
+      "stageRecord": "Raise olvasta from its previously established V position to transitive v and leave a silent V trace. The particle el does not accompany this head movement: it remains in the modifier position above the lexical predicate. This separation is necessary for the verb–particle order that the preverbal focus will require.",
+      "relations": [
+        {
+          "relation": "head-movement",
+          "anchors": {
+            "movedHead": "mV",
+            "landingHead": "mvComplex",
+            "host": "mvHead",
+            "sourceTrace": "mVTrace"
+          },
+          "priorAnchors": {
+            "source": "mV"
+          },
+          "values": {
+            "operation": "V-to-v"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "mvDomain",
+          "label": "v",
+          "children": [
+            {
+              "id": "mvP",
+              "label": "v",
+              "children": [
+                {
+                  "id": "mSubject",
+                  "label": "D[focus-associated]",
+                  "lineageId": "main-subject",
+                  "children": [
+                    {
+                      "id": "onlyParticle",
+                      "label": "Part[exclusive]",
+                      "word": "csak",
+                      "children": []
+                    },
+                    {
+                      "id": "mMari",
+                      "label": "D",
+                      "word": "Mari",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "mvCore",
+                  "label": "v",
+                  "children": [
+                    {
+                      "id": "mvComplex",
+                      "label": "v",
+                      "lineageId": "main-v-complex",
+                      "children": [
+                        {
+                          "id": "mV",
+                          "label": "V[past,3sg,definite]",
+                          "word": "olvasta",
+                          "lineageId": "main-verb",
+                          "children": []
+                        },
+                        {
+                          "id": "mvHead",
+                          "label": "v[transitive]",
+                          "silent": true,
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "predP",
+                      "label": "Pred",
+                      "children": [
+                        {
+                          "id": "elParticle",
+                          "label": "Prt",
+                          "word": "el",
+                          "children": []
+                        },
+                        {
+                          "id": "predCore",
+                          "label": "Pred",
+                          "children": [
+                            {
+                              "id": "predHead",
+                              "label": "Pred",
+                              "silent": true,
+                              "children": []
+                            },
+                            {
+                              "id": "mVP",
+                              "label": "V",
+                              "children": [
+                                {
+                                  "id": "mVTrace",
+                                  "label": "V[trace]",
+                                  "silent": true,
+                                  "lineageId": "main-verb",
+                                  "children": []
+                                },
+                                {
+                                  "id": "bookDP",
+                                  "label": "D[definite,accusative]",
+                                  "lineageId": "main-object",
+                                  "children": [
+                                    {
+                                      "id": "bookD",
+                                      "label": "D[definite]",
+                                      "word": "a",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "bookNModified",
+                                      "label": "N",
+                                      "children": [
+                                        {
+                                          "id": "bookN",
+                                          "label": "N[accusative]",
+                                          "word": "könyvet",
+                                          "children": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "classDP",
+              "label": "D[elative]",
+              "children": [
+                {
+                  "id": "classD",
+                  "label": "D[definite]",
+                  "word": "az",
+                  "children": []
+                },
+                {
+                  "id": "classNModified",
+                  "label": "N",
+                  "children": [
+                    {
+                      "id": "classA",
+                      "label": "A",
+                      "word": "egész",
+                      "children": []
+                    },
+                    {
+                      "id": "classN",
+                      "label": "N[elative]",
+                      "word": "osztályból",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Establish main-clause finiteness and definite conjugation.",
+      "stageRecord": "Merge past finite T and raise the existing v–verb complex to T, leaving a silent v trace. T agrees with Mari and licenses nominative Case on the subject constituent without first moving that constituent into a separate preverbal subject position. The definite book object licenses the definite conjugation realized by olvasta. The subject remains in its established external-argument position until focus movement.",
+      "relations": [
+        {
+          "relation": "head-movement",
+          "anchors": {
+            "movedHead": "mvComplex",
+            "landingHead": "mTComplex",
+            "host": "mTHead",
+            "sourceTrace": "mvTrace"
+          },
+          "priorAnchors": {
+            "source": "mvComplex"
+          },
+          "values": {
+            "operation": "v-to-T"
+          }
+        },
+        {
+          "relation": "finite-agreement-and-case",
+          "anchors": {
+            "probe": "mTHead",
+            "subject": "mSubject",
+            "agreementGoal": "mMari"
+          },
+          "values": {
+            "agreement": "third-person singular",
+            "case": "nominative"
+          }
+        },
+        {
+          "relation": "conjugation",
+          "anchors": {
+            "finiteHead": "mTComplex",
+            "object": "bookDP"
+          },
+          "values": {
+            "paradigm": "definite"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "mTP",
+          "label": "T",
+          "children": [
+            {
+              "id": "mTComplex",
+              "label": "T",
+              "lineageId": "main-T-complex",
+              "children": [
+                {
+                  "id": "mvComplex",
+                  "label": "v",
+                  "lineageId": "main-v-complex",
+                  "children": [
+                    {
+                      "id": "mV",
+                      "label": "V[past,3sg,definite]",
+                      "word": "olvasta",
+                      "lineageId": "main-verb",
+                      "children": []
+                    },
+                    {
+                      "id": "mvHead",
+                      "label": "v[transitive]",
+                      "silent": true,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "mTHead",
+                  "label": "T[past,finite]",
+                  "silent": true,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "mvDomain",
+              "label": "v",
+              "children": [
+                {
+                  "id": "mvP",
+                  "label": "v",
+                  "children": [
+                    {
+                      "id": "mSubject",
+                      "label": "D[focus-associated]",
+                      "lineageId": "main-subject",
+                      "children": [
+                        {
+                          "id": "onlyParticle",
+                          "label": "Part[exclusive]",
+                          "word": "csak",
+                          "children": []
+                        },
+                        {
+                          "id": "mMari",
+                          "label": "D",
+                          "word": "Mari",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "mvCore",
+                      "label": "v",
+                      "children": [
+                        {
+                          "id": "mvTrace",
+                          "label": "v[trace]",
+                          "silent": true,
+                          "lineageId": "main-v-complex",
+                          "children": []
+                        },
+                        {
+                          "id": "predP",
+                          "label": "Pred",
+                          "children": [
+                            {
+                              "id": "elParticle",
+                              "label": "Prt",
+                              "word": "el",
+                              "children": []
+                            },
+                            {
+                              "id": "predCore",
+                              "label": "Pred",
+                              "children": [
+                                {
+                                  "id": "predHead",
+                                  "label": "Pred",
+                                  "silent": true,
+                                  "children": []
+                                },
+                                {
+                                  "id": "mVP",
+                                  "label": "V",
+                                  "children": [
+                                    {
+                                      "id": "mVTrace",
+                                      "label": "V[trace]",
+                                      "silent": true,
+                                      "lineageId": "main-verb",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "bookDP",
+                                      "label": "D[definite,accusative]",
+                                      "lineageId": "main-object",
+                                      "children": [
+                                        {
+                                          "id": "bookD",
+                                          "label": "D[definite]",
+                                          "word": "a",
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "bookNModified",
+                                          "label": "N",
+                                          "children": [
+                                            {
+                                              "id": "bookN",
+                                              "label": "N[accusative]",
+                                              "word": "könyvet",
+                                              "children": []
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "classDP",
+                  "label": "D[elative]",
+                  "children": [
+                    {
+                      "id": "classD",
+                      "label": "D[definite]",
+                      "word": "az",
+                      "children": []
+                    },
+                    {
+                      "id": "classNModified",
+                      "label": "N",
+                      "children": [
+                        {
+                          "id": "classA",
+                          "label": "A",
+                          "word": "egész",
+                          "children": []
+                        },
+                        {
+                          "id": "classN",
+                          "label": "N[elative]",
+                          "word": "osztályból",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Derive the immediately preverbal exclusive focus csak Mari.",
+      "stageRecord": "Merge Foc above the finite clause. First raise the existing T–verb complex to Foc, leaving a silent T trace. Then internally merge the complete constituent csak Mari in the focus specifier from its external-argument position, leaving a silent nominal trace. The exclusive particle takes the reading predicate as its scope and excludes the other contextually relevant members of the whole class. Because el stays below the raised finite verb, this produces csak Mari olvasta el rather than a preverbal el sequence.",
+      "relations": [
+        {
+          "relation": "head-movement",
+          "anchors": {
+            "movedHead": "mTComplex",
+            "landingHead": "mFocComplex",
+            "host": "mFocHead",
+            "sourceTrace": "mTTrace"
+          },
+          "priorAnchors": {
+            "source": "mTComplex"
+          },
+          "values": {
+            "operation": "T-to-Foc"
+          }
+        },
+        {
+          "relation": "internal-merge",
+          "anchors": {
+            "landingOccurrence": "mSubject",
+            "sourceTrace": "mSubjectTrace",
+            "target": "mFocP"
+          },
+          "priorAnchors": {
+            "source": "mSubject"
+          },
+          "values": {
+            "dependency": "preverbal identificational focus"
+          }
+        },
+        {
+          "relation": "exclusive-focus-interpretation",
+          "anchors": {
+            "particle": "onlyParticle",
+            "focus": "mMari",
+            "scope": "mTP",
+            "alternativeDomain": "classDP"
+          },
+          "values": {
+            "interpretation": "Mari, and no other relevant member of the whole class, read the book"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "mFocP",
+          "label": "Foc",
+          "children": [
+            {
+              "id": "mSubject",
+              "label": "D[focus-associated]",
+              "lineageId": "main-subject",
+              "children": [
+                {
+                  "id": "onlyParticle",
+                  "label": "Part[exclusive]",
+                  "word": "csak",
+                  "children": []
+                },
+                {
+                  "id": "mMari",
+                  "label": "D",
+                  "word": "Mari",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "mFocCore",
+              "label": "Foc",
+              "children": [
+                {
+                  "id": "mFocComplex",
+                  "label": "Foc",
+                  "children": [
+                    {
+                      "id": "mTComplex",
+                      "label": "T",
+                      "lineageId": "main-T-complex",
+                      "children": [
+                        {
+                          "id": "mvComplex",
+                          "label": "v",
+                          "lineageId": "main-v-complex",
+                          "children": [
+                            {
+                              "id": "mV",
+                              "label": "V[past,3sg,definite]",
+                              "word": "olvasta",
+                              "lineageId": "main-verb",
+                              "children": []
+                            },
+                            {
+                              "id": "mvHead",
+                              "label": "v[transitive]",
+                              "silent": true,
+                              "children": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "mTHead",
+                          "label": "T[past,finite]",
+                          "silent": true,
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "mFocHead",
+                      "label": "Foc",
+                      "silent": true,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "mTP",
+                  "label": "T",
+                  "children": [
+                    {
+                      "id": "mTTrace",
+                      "label": "T[trace]",
+                      "silent": true,
+                      "lineageId": "main-T-complex",
+                      "children": []
+                    },
+                    {
+                      "id": "mvDomain",
+                      "label": "v",
+                      "children": [
+                        {
+                          "id": "mvP",
+                          "label": "v",
+                          "children": [
+                            {
+                              "id": "mSubjectTrace",
+                              "label": "D[trace]",
+                              "silent": true,
+                              "lineageId": "main-subject",
+                              "children": []
+                            },
+                            {
+                              "id": "mvCore",
+                              "label": "v",
+                              "children": [
+                                {
+                                  "id": "mvTrace",
+                                  "label": "v[trace]",
+                                  "silent": true,
+                                  "lineageId": "main-v-complex",
+                                  "children": []
+                                },
+                                {
+                                  "id": "predP",
+                                  "label": "Pred",
+                                  "children": [
+                                    {
+                                      "id": "elParticle",
+                                      "label": "Prt",
+                                      "word": "el",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "predCore",
+                                      "label": "Pred",
+                                      "children": [
+                                        {
+                                          "id": "predHead",
+                                          "label": "Pred",
+                                          "silent": true,
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "mVP",
+                                          "label": "V",
+                                          "children": [
+                                            {
+                                              "id": "mVTrace",
+                                              "label": "V[trace]",
+                                              "silent": true,
+                                              "lineageId": "main-verb",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "bookDP",
+                                              "label": "D[definite,accusative]",
+                                              "lineageId": "main-object",
+                                              "children": [
+                                                {
+                                                  "id": "bookD",
+                                                  "label": "D[definite]",
+                                                  "word": "a",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "bookNModified",
+                                                  "label": "N",
+                                                  "children": [
+                                                    {
+                                                      "id": "bookN",
+                                                      "label": "N[accusative]",
+                                                      "word": "könyvet",
+                                                      "children": []
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "classDP",
+                          "label": "D[elative]",
+                          "children": [
+                            {
+                              "id": "classD",
+                              "label": "D[definite]",
+                              "word": "az",
+                              "children": []
+                            },
+                            {
+                              "id": "classNModified",
+                              "label": "N",
+                              "children": [
+                                {
+                                  "id": "classA",
+                                  "label": "A",
+                                  "word": "egész",
+                                  "children": []
+                                },
+                                {
+                                  "id": "classN",
+                                  "label": "N[elative]",
+                                  "word": "osztályból",
+                                  "children": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Front the complete book expression as the main-clause topic.",
+      "stageRecord": "Merge Top above the focus projection and internally merge the definite book expression in its specifier, replacing its established object position with a silent trace. The relative clause moves with the nominal because it is contained within that nominal's projection. The fronted expression is interpreted as the aboutness topic of the proposition whose subject focus is csak Mari; it is not a second focus.",
+      "relations": [
+        {
+          "relation": "internal-merge",
+          "anchors": {
+            "landingOccurrence": "bookDP",
+            "sourceTrace": "bookTrace",
+            "target": "mTopP"
+          },
+          "priorAnchors": {
+            "source": "bookDP"
+          },
+          "values": {
+            "dependency": "object topicalization"
+          }
+        },
+        {
+          "relation": "aboutness-topic",
+          "anchors": {
+            "topic": "bookDP",
+            "comment": "mFocP",
+            "licensor": "mTopHead"
+          },
+          "values": {
+            "interpretation": "the book is the entity about which the focused proposition is asserted"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "mTopP",
+          "label": "Top",
+          "children": [
+            {
+              "id": "bookDP",
+              "label": "D[definite,accusative]",
+              "lineageId": "main-object",
+              "children": [
+                {
+                  "id": "bookD",
+                  "label": "D[definite]",
+                  "word": "a",
+                  "children": []
+                },
+                {
+                  "id": "bookNModified",
+                  "label": "N",
+                  "children": [
+                    {
+                      "id": "bookN",
+                      "label": "N[accusative]",
+                      "word": "könyvet",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "mTopCore",
+              "label": "Top",
+              "children": [
+                {
+                  "id": "mTopHead",
+                  "label": "Top",
+                  "silent": true,
+                  "children": []
+                },
+                {
+                  "id": "mFocP",
+                  "label": "Foc",
+                  "children": [
+                    {
+                      "id": "mSubject",
+                      "label": "D[focus-associated]",
+                      "lineageId": "main-subject",
+                      "children": [
+                        {
+                          "id": "onlyParticle",
+                          "label": "Part[exclusive]",
+                          "word": "csak",
+                          "children": []
+                        },
+                        {
+                          "id": "mMari",
+                          "label": "D",
+                          "word": "Mari",
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "mFocCore",
+                      "label": "Foc",
+                      "children": [
+                        {
+                          "id": "mFocComplex",
+                          "label": "Foc",
+                          "children": [
+                            {
+                              "id": "mTComplex",
+                              "label": "T",
+                              "lineageId": "main-T-complex",
+                              "children": [
+                                {
+                                  "id": "mvComplex",
+                                  "label": "v",
+                                  "lineageId": "main-v-complex",
+                                  "children": [
+                                    {
+                                      "id": "mV",
+                                      "label": "V[past,3sg,definite]",
+                                      "word": "olvasta",
+                                      "lineageId": "main-verb",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "mvHead",
+                                      "label": "v[transitive]",
+                                      "silent": true,
+                                      "children": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "mTHead",
+                                  "label": "T[past,finite]",
+                                  "silent": true,
+                                  "children": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "mFocHead",
+                              "label": "Foc",
+                              "silent": true,
+                              "children": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "mTP",
+                          "label": "T",
+                          "children": [
+                            {
+                              "id": "mTTrace",
+                              "label": "T[trace]",
+                              "silent": true,
+                              "lineageId": "main-T-complex",
+                              "children": []
+                            },
+                            {
+                              "id": "mvDomain",
+                              "label": "v",
+                              "children": [
+                                {
+                                  "id": "mvP",
+                                  "label": "v",
+                                  "children": [
+                                    {
+                                      "id": "mSubjectTrace",
+                                      "label": "D[trace]",
+                                      "silent": true,
+                                      "lineageId": "main-subject",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "mvCore",
+                                      "label": "v",
+                                      "children": [
+                                        {
+                                          "id": "mvTrace",
+                                          "label": "v[trace]",
+                                          "silent": true,
+                                          "lineageId": "main-v-complex",
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "predP",
+                                          "label": "Pred",
+                                          "children": [
+                                            {
+                                              "id": "elParticle",
+                                              "label": "Prt",
+                                              "word": "el",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "predCore",
+                                              "label": "Pred",
+                                              "children": [
+                                                {
+                                                  "id": "predHead",
+                                                  "label": "Pred",
+                                                  "silent": true,
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "mVP",
+                                                  "label": "V",
+                                                  "children": [
+                                                    {
+                                                      "id": "mVTrace",
+                                                      "label": "V[trace]",
+                                                      "silent": true,
+                                                      "lineageId": "main-verb",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "bookTrace",
+                                                      "label": "D[definite,accusative,trace]",
+                                                      "silent": true,
+                                                      "lineageId": "main-object",
+                                                      "children": []
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "classDP",
+                                  "label": "D[elative]",
+                                  "children": [
+                                    {
+                                      "id": "classD",
+                                      "label": "D[definite]",
+                                      "word": "az",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "classNModified",
+                                      "label": "N",
+                                      "children": [
+                                        {
+                                          "id": "classA",
+                                          "label": "A",
+                                          "word": "egész",
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "classN",
+                                          "label": "N[elative]",
+                                          "word": "osztályból",
+                                          "children": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statement": "Complete the declarative with the initial temporal frame tegnap.",
+      "stageRecord": "Merge a temporal Frame projection above the object topic and introduce tegnap in its specifier. Tegnap restricts the main reading event to yesterday; it does not independently require Péter's recommendation to have occurred yesterday. Finally merge a silent declarative C. With silent traces and functional heads unpronounced, the completed tree yields Tegnap a könyvet, amelyet Péter ajánlott, csak Mari olvasta el az egész osztályból. The initial temporal frame, object topic, exclusive subject focus, postverbal particle, and final class-domain adjunct thus have distinct structural positions.",
+      "relations": [
+        {
+          "relation": "temporal-frame",
+          "anchors": {
+            "frame": "yesterday",
+            "finiteTense": "mTHead",
+            "eventPredicate": "mV",
+            "framedClause": "mTopP"
+          },
+          "values": {
+            "time": "yesterday"
+          }
+        },
+        {
+          "relation": "clause-typing",
+          "anchors": {
+            "head": "mCHead",
+            "clause": "mCP"
+          },
+          "values": {
+            "type": "declarative"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "mCP",
+          "label": "C",
+          "children": [
+            {
+              "id": "mCHead",
+              "label": "C[declarative]",
+              "silent": true,
+              "children": []
+            },
+            {
+              "id": "frameP",
+              "label": "Frame",
+              "children": [
+                {
+                  "id": "yesterday",
+                  "label": "Adv[temporal]",
+                  "word": "Tegnap",
+                  "children": []
+                },
+                {
+                  "id": "frameCore",
+                  "label": "Frame",
+                  "children": [
+                    {
+                      "id": "frameHead",
+                      "label": "Frame",
+                      "silent": true,
+                      "children": []
+                    },
+                    {
+                      "id": "mTopP",
+                      "label": "Top",
+                      "children": [
+                        {
+                          "id": "bookDP",
+                          "label": "D[definite,accusative]",
+                          "lineageId": "main-object",
+                          "children": [
+                            {
+                              "id": "bookD",
+                              "label": "D[definite]",
+                              "word": "a",
+                              "children": []
+                            },
+                            {
+                              "id": "bookNModified",
+                              "label": "N",
+                              "children": [
+                                {
+                                  "id": "bookN",
+                                  "label": "N[accusative]",
+                                  "word": "könyvet",
+                                  "children": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "mTopCore",
+                          "label": "Top",
+                          "children": [
+                            {
+                              "id": "mTopHead",
+                              "label": "Top",
+                              "silent": true,
+                              "children": []
+                            },
+                            {
+                              "id": "mFocP",
+                              "label": "Foc",
+                              "children": [
+                                {
+                                  "id": "mSubject",
+                                  "label": "D[focus-associated]",
+                                  "lineageId": "main-subject",
+                                  "children": [
+                                    {
+                                      "id": "onlyParticle",
+                                      "label": "Part[exclusive]",
+                                      "word": "csak",
+                                      "children": []
+                                    },
+                                    {
+                                      "id": "mMari",
+                                      "label": "D",
+                                      "word": "Mari",
+                                      "children": []
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "mFocCore",
+                                  "label": "Foc",
+                                  "children": [
+                                    {
+                                      "id": "mFocComplex",
+                                      "label": "Foc",
+                                      "children": [
+                                        {
+                                          "id": "mTComplex",
+                                          "label": "T",
+                                          "lineageId": "main-T-complex",
+                                          "children": [
+                                            {
+                                              "id": "mvComplex",
+                                              "label": "v",
+                                              "lineageId": "main-v-complex",
+                                              "children": [
+                                                {
+                                                  "id": "mV",
+                                                  "label": "V[past,3sg,definite]",
+                                                  "word": "olvasta",
+                                                  "lineageId": "main-verb",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "mvHead",
+                                                  "label": "v[transitive]",
+                                                  "silent": true,
+                                                  "children": []
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "id": "mTHead",
+                                              "label": "T[past,finite]",
+                                              "silent": true,
+                                              "children": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "mFocHead",
+                                          "label": "Foc",
+                                          "silent": true,
+                                          "children": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "mTP",
+                                      "label": "T",
+                                      "children": [
+                                        {
+                                          "id": "mTTrace",
+                                          "label": "T[trace]",
+                                          "silent": true,
+                                          "lineageId": "main-T-complex",
+                                          "children": []
+                                        },
+                                        {
+                                          "id": "mvDomain",
+                                          "label": "v",
+                                          "children": [
+                                            {
+                                              "id": "mvP",
+                                              "label": "v",
+                                              "children": [
+                                                {
+                                                  "id": "mSubjectTrace",
+                                                  "label": "D[trace]",
+                                                  "silent": true,
+                                                  "lineageId": "main-subject",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "mvCore",
+                                                  "label": "v",
+                                                  "children": [
+                                                    {
+                                                      "id": "mvTrace",
+                                                      "label": "v[trace]",
+                                                      "silent": true,
+                                                      "lineageId": "main-v-complex",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "predP",
+                                                      "label": "Pred",
+                                                      "children": [
+                                                        {
+                                                          "id": "elParticle",
+                                                          "label": "Prt",
+                                                          "word": "el",
+                                                          "children": []
+                                                        },
+                                                        {
+                                                          "id": "predCore",
+                                                          "label": "Pred",
+                                                          "children": [
+                                                            {
+                                                              "id": "predHead",
+                                                              "label": "Pred",
+                                                              "silent": true,
+                                                              "children": []
+                                                            },
+                                                            {
+                                                              "id": "mVP",
+                                                              "label": "V",
+                                                              "children": [
+                                                                {
+                                                                  "id": "mVTrace",
+                                                                  "label": "V[trace]",
+                                                                  "silent": true,
+                                                                  "lineageId": "main-verb",
+                                                                  "children": []
+                                                                },
+                                                                {
+                                                                  "id": "bookTrace",
+                                                                  "label": "D[definite,accusative,trace]",
+                                                                  "silent": true,
+                                                                  "lineageId": "main-object",
+                                                                  "children": []
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "id": "classDP",
+                                              "label": "D[elative]",
+                                              "children": [
+                                                {
+                                                  "id": "classD",
+                                                  "label": "D[definite]",
+                                                  "word": "az",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "classNModified",
+                                                  "label": "N",
+                                                  "children": [
+                                                    {
+                                                      "id": "classA",
+                                                      "label": "A",
+                                                      "word": "egész",
+                                                      "children": []
+                                                    },
+                                                    {
+                                                      "id": "classN",
+                                                      "label": "N[elative]",
+                                                      "word": "osztályból",
+                                                      "children": []
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

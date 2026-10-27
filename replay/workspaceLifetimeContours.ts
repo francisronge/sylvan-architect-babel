@@ -15,7 +15,7 @@ import {
   type WorkspaceContourPair
 } from './workspaceContourPairs.ts';
 import { changesOwnedDisplayTerminal } from './workspaceDisplayTerminal.ts';
-import { currentForkBranchCollision, currentForkBranchesClear } from './workspaceForkClearance.ts';
+import { currentForkBranchCollision, currentForkBranchesClear, forkWideningCannotClear } from './workspaceForkClearance.ts';
 import { preservesLockedWorkspaceGap, type WorkspaceLockedGapReference } from './workspaceLockedGapPreference.ts';
 import { neutralWorkspaceAttachments } from './workspaceNeutralAttachments.ts';
 import { composeWorkspaceObstacleBuffer, type WorkspaceObstacleBuffer } from './workspaceObstacleBuffer.ts';
@@ -574,47 +574,8 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
       }
       const forkClear = () => currentForkBranchesClear({ x: 0, y: 0 }, children.map(child => ({ point: members.get(child.id)!, obstacles: ink(child) })));
       const originalForkClear = forkClear();
+      let unclearable = false;
       if (!originalForkClear) {
-        if (fixedSlots.size > 1) {
-          const detail = `Locked current fork branches cross child ink ${part.serial}:${part.id}`;
-          // Current slots remain fixed. Reserve any missing fork clearance at
-          // the nearest earlier incarnation where a whole side was still free.
-          for (let prior = part.predecessor; prior; prior = prior.predecessor) {
-            if (prior.children.length !== part.children.length || prior.children.some((child, index) => child.id !== part.children[index].id)) break;
-            if (!prior.fixedSlots) break;
-            const fixed = [...prior.fixedSlots.keys()];
-            let request: WorkspaceContourClearanceError['preference'] | undefined;
-            for (let split = 1; split < children.length; split++) {
-              const leftFree = fixed.every(index => index >= split), rightFree = fixed.every(index => index < split);
-              if (!leftFree && !rightFree) continue;
-              const side = leftFree && rightFree ? 'both' : leftFree ? 'left' : 'right';
-              const positions = (increase: number) => children.map((child, index) => {
-                const point = members.get(child.id)!;
-                const shift = side === 'both' ? (index < split ? -.5 : .5) : side === 'left' ? (index < split ? -1 : 0) : (index < split ? 0 : 1);
-                return { x: point.x + shift * increase, y: point.y };
-              });
-              const clear = (increase: number) => {
-                const points = positions(increase), center = (points[0].x + points.at(-1)!.x) / 2;
-                return currentForkBranchesClear({ x: center, y: 0 }, children.map((child, index) => ({ point: points[index], obstacles: ink(child) })))
-                  && children.every((left, i) => children.every((right, j) => j <= i || clearPair(left, right, points[j].x - points[i].x)));
-              };
-              let low = 0, high = Math.max(1, members.get(children.at(-1)!.id)!.x - members.get(children[0].id)!.x);
-              for (let attempt = 0; attempt < 8 && !clear(high); attempt++) { low = high; high *= 2; }
-              if (!clear(high)) continue;
-              for (let attempt = 0; attempt < 20; attempt++) {
-                const middle = (low + high) / 2;
-                if (clear(middle)) high = middle; else low = middle;
-              }
-              if (!request || high < request.increase)
-                request = measuredPreference(prior, split, high + 1e-6, side);
-            }
-            if (request) {
-              const contact = currentForkBranchCollision({ x: 0, y: 0 }, children.map(child => ({ point: members.get(child.id)!, obstacles: ink(child) })));
-              throw new WorkspaceContourClearanceError(detail, request, contact ? obstructionControls(part, prior, [contact]) : []);
-            }
-          }
-          throw Error(detail);
-        }
         const original = children.map(child => members.get(child.id)!);
         const lockedIndex = fixedSlots.keys().next().value;
         const pivot = lockedIndex === undefined ? 0 : original[lockedIndex].x;
@@ -623,7 +584,7 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
           return currentForkBranchesClear({ x: center, y: 0 }, children.map((child, index) => ({ point: points[index], obstacles: ink(child) })))
             && children.every((left, i) => children.every((right, j) => j <= i || clearPair(left, right, points[j].x - points[i].x)));
         };
-        // Doubles, then bisects, the smallest clear amount of one enlargement.
+        // Doubles, then bisects, the smallest widening factor that clears.
         const enlarge = (positions: (amount: number) => Point[], low: number, high: number) => {
           for (let attempt = 0; attempt < 8 && !clear(positions(high)); attempt++) { low = high; high *= 2; }
           if (!clear(positions(high))) return undefined;
@@ -633,16 +594,56 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
           }
           return positions(high);
         };
-        // Widening scales every child's offset from the fork's centre, so a
-        // branch passing over an inner sister crosses her at the same height
-        // however wide the fork grows: a wrapped label rising to that height
-        // stays crossed. Lowering the row moves the label down faster than the
-        // crossing, so it follows, unless a current slot fixes the row.
-        const points = enlarge(factor => original.map(point => ({ x: pivot + (point.x - pivot) * factor, y: point.y })), 1, 2)
-          ?? (lockedIndex === undefined ? enlarge(depth => original.map(point => ({ x: point.x, y: point.y + depth })), 0, TREE_ROW_HEIGHT / 4) : undefined);
-        if (!points) throw Error(`Current fork branches cannot clear child ink ${part.serial}:${part.id}`);
-        const center = (points[0].x + points.at(-1)!.x) / 2;
-        placeChildren(points, center);
+        // A fork no widening clears keeps its slots and its row; its branch
+        // crosses the inner label (forkWideningCannotClear).
+        unclearable = forkWideningCannotClear({ x: (original[0].x + original.at(-1)!.x) / 2, y: 0 },
+          children.map((child, index) => ({ point: original[index], obstacles: ink(child) })));
+        if (!unclearable) {
+          if (fixedSlots.size > 1) {
+            const detail = `Locked current fork branches cross child ink ${part.serial}:${part.id}`;
+            // Current slots remain fixed. Reserve any missing fork clearance at
+            // the nearest earlier incarnation where a whole side was still free.
+            for (let prior = part.predecessor; prior; prior = prior.predecessor) {
+              if (prior.children.length !== part.children.length || prior.children.some((child, index) => child.id !== part.children[index].id)) break;
+              if (!prior.fixedSlots) break;
+              const fixed = [...prior.fixedSlots.keys()];
+              let request: WorkspaceContourClearanceError['preference'] | undefined;
+              for (let split = 1; split < children.length; split++) {
+                const leftFree = fixed.every(index => index >= split), rightFree = fixed.every(index => index < split);
+                if (!leftFree && !rightFree) continue;
+                const side = leftFree && rightFree ? 'both' : leftFree ? 'left' : 'right';
+                const positions = (increase: number) => children.map((child, index) => {
+                  const point = members.get(child.id)!;
+                  const shift = side === 'both' ? (index < split ? -.5 : .5) : side === 'left' ? (index < split ? -1 : 0) : (index < split ? 0 : 1);
+                  return { x: point.x + shift * increase, y: point.y };
+                });
+                const clear = (increase: number) => {
+                  const points = positions(increase), center = (points[0].x + points.at(-1)!.x) / 2;
+                  return currentForkBranchesClear({ x: center, y: 0 }, children.map((child, index) => ({ point: points[index], obstacles: ink(child) })))
+                    && children.every((left, i) => children.every((right, j) => j <= i || clearPair(left, right, points[j].x - points[i].x)));
+                };
+                let low = 0, high = Math.max(1, members.get(children.at(-1)!.id)!.x - members.get(children[0].id)!.x);
+                for (let attempt = 0; attempt < 8 && !clear(high); attempt++) { low = high; high *= 2; }
+                if (!clear(high)) continue;
+                for (let attempt = 0; attempt < 20; attempt++) {
+                  const middle = (low + high) / 2;
+                  if (clear(middle)) high = middle; else low = middle;
+                }
+                if (!request || high < request.increase)
+                  request = measuredPreference(prior, split, high + 1e-6, side);
+              }
+              if (request) {
+                const contact = currentForkBranchCollision({ x: 0, y: 0 }, children.map(child => ({ point: members.get(child.id)!, obstacles: ink(child) })));
+                throw new WorkspaceContourClearanceError(detail, request, contact ? obstructionControls(part, prior, [contact]) : []);
+              }
+            }
+            throw Error(detail);
+          }
+          const points = enlarge(factor => original.map(point => ({ x: pivot + (point.x - pivot) * factor, y: point.y })), 1, 2);
+          if (!points) throw Error(`Current fork branches cannot clear child ink ${part.serial}:${part.id}`);
+          const center = (points[0].x + points.at(-1)!.x) / 2;
+          placeChildren(points, center);
+        }
       }
       const selected = selectedContours?.get(part.serial);
       let previousShapes = contourCache.get(part.serial);
@@ -702,7 +703,7 @@ export function prepareWorkspaceLifetimeContours(steps: readonly PlaybackStep[],
             throw Error(`Selected contour overlaps children ${part.serial}:${part.id}`);
       // Expanding descendant members leaves the already checked child slots
       // unchanged. Selected coordinates or clearance expansion need a new check.
-      if ((selected || !originalForkClear) && !forkClear()) throw Error(`Selected fork branches cross child ink ${part.serial}:${part.id}`);
+      if ((selected || !originalForkClear) && !unclearable && !forkClear()) throw Error(`Selected fork branches cross child ink ${part.serial}:${part.id}`);
       // Rejected searches retain scalar bounds without allocating a rectangle
       // per ancestor. Accepted-plan consumers keep the same ordered object API.
       let buffered: WorkspaceObstacleBuffer | undefined;

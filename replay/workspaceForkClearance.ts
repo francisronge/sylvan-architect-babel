@@ -24,6 +24,21 @@ export function currentForkBranchesClear(parent: Point, children: readonly Child
   return currentForkBranchCollision(parent, children) === undefined;
 }
 
+/** The widest fork the packer tries: every child's offset from the parent
+ * times this factor. */
+export const FORK_WIDENING_LIMIT = 512;
+
+/** Whether no widening clears a fork's branches. Widening scales every child's
+ * offset from the parent, so a branch passing over an inner sister crosses her
+ * at the same height however wide the fork grows, and a wrapped label rising to
+ * that height stays crossed. Branches always span one row and may cross a label,
+ * so such a fork keeps its row and slots; packing and plan validation both
+ * accept its crossing, and only it. */
+export function forkWideningCannotClear(parent: Point, children: readonly ChildInk[]): boolean {
+  return !currentForkBranchesClear(parent, children.map(child => ({ ...child,
+    point: { x: parent.x + (child.point.x - parent.x) * FORK_WIDENING_LIMIT, y: child.point.y } })));
+}
+
 /** Return the same rejected contact for measured backward-clearance planning. */
 export function currentForkBranchCollision(parent: Point, children: readonly ChildInk[]): { childIndex: number; obstacle: PlaqueRect } | undefined {
   if (children.length < 2) return undefined;
