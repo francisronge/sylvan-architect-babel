@@ -166,13 +166,13 @@ test('without the earlier movement claim the government claim keeps its refusal 
 // an A-bar chain claim inventories the head, a list of intermediate copies and
 // the foot. Earlier stages left the lower copies; the stage's first claim
 // draws the new hop.
-const chainSummary = (withMovement = true) => {
+const chainSummary = (withMovement = true, { strandedCopy = false } = {}) => {
   const copy = id => node(id, 'DP', [], { lineageId: 'book', silent: true });
   const clause = () => node('cbar', 'C′', [word('c', 'C', '', { silent: true }),
     node('vp', 'VP', [copy('t2'), node('vbar', 'V′', [word('v', 'V', '看过'), copy('t1')])])]);
   const before = [node('cp', 'CP', [word('book', 'DP', '这本书', { lineageId: 'book' }), clause()])];
   const after = [node('topp', 'TopP', [word('book', 'DP', '这本书', { lineageId: 'book' }),
-    node('topbar', 'Top′', [word('top', 'Top', '', { silent: true }), node('cp', 'CP', [copy('t3'), clause()])])])];
+    node('topbar', 'Top′', [word('top', 'Top', '', { silent: true }), node('cp', 'CP', strandedCopy ? [clause(), copy('t3')] : [copy('t3'), clause()])])])];
   const movement = { relation: 'internal-merge (A-bar topicalization)', anchors: { mover: 'book', tail: 't3', attractor: 'top' } };
   const chain = { relation: 'A-bar chain', anchors: { head: 'book', intermediateCopies: ['t3', 't2'], foot: 't1' } };
   return { sentence: '这本书看过', derivationStages: [stage(before), stage(after, withMovement ? [movement, chain] : [chain])] };
@@ -186,12 +186,27 @@ test('a chain inventory listing lower copies of hops already drawn asserts no mo
   assert(!checkMovementUnrendered(replay, record).some(found => found.subject === '1:1'));
 });
 
-test('without the claim drawing the new hop, or with a copy listed twice, the chain inventory keeps its refusal', () => {
+test('alone, the chain inventory draws its proven new hop at its own moment', () => {
   const record = chainSummary(false), replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
-  assert.ok(movementCodes(moment(replay, 1, 0)).some(text => text.startsWith('MOVEMENT_ENDPOINTS_UNRESOLVED')));
-  assert.ok(checkMovementUnrendered(replay, record).some(found => found.subject === '1:0'));
-  const twice = chainSummary();
-  twice.derivationStages[1].relations[1].anchors.intermediateCopies = ['t3', 't3', 't2'];
-  assert.ok(movementCodes(moment(prepareReplay({ ...structuredClone(twice), includePlayback: true }), 1, 1))
-    .some(text => text.startsWith('MOVEMENT_ENDPOINTS_UNRESOLVED')));
+  assert.equal(replay.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory'
+    && item.sourceNodeId === 't3' && item.targetNodeId === 'book').length, 1);
+  assert.deepEqual(movementCodes(moment(replay, 1, 0)), []);
+  assert.deepEqual(checkMovementUnrendered(replay, record), []);
+});
+
+test('a chain inventory whose new hop no claim draws, or that lists a copy twice, keeps its refusal', () => {
+  // The new lower copy does not hold the slot the moved phrase left, so no
+  // structure proves the hop and no earlier claim draws it.
+  const stranded = chainSummary(false, { strandedCopy: true });
+  const strandedReplay = prepareReplay({ ...structuredClone(stranded), includePlayback: true });
+  assert(!strandedReplay.relationRenderPlan.frames[1].items.some(item => item.kind === 'trajectory'));
+  assert.ok(movementCodes(moment(strandedReplay, 1, 0)).some(text => text.startsWith('MOVEMENT_ENDPOINTS_UNRESOLVED')));
+  assert.ok(checkMovementUnrendered(strandedReplay, stranded).some(found => found.subject === '1:0'));
+  for (const withMovement of [true, false]) {
+    const twice = chainSummary(withMovement), relationIndex = withMovement ? 1 : 0;
+    twice.derivationStages[1].relations[relationIndex].anchors.intermediateCopies = ['t3', 't3', 't2'];
+    const replay = prepareReplay({ ...structuredClone(twice), includePlayback: true });
+    assert.ok(movementCodes(moment(replay, 1, relationIndex)).some(text => text.startsWith('MOVEMENT_ENDPOINTS_UNRESOLVED')));
+    assert.ok(checkMovementUnrendered(replay, twice).some(found => found.subject === `1:${relationIndex}`));
+  }
 });
