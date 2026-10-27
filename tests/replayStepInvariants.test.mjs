@@ -209,6 +209,23 @@ test('control: object-language-metalanguage reports names written in the sentenc
   assert.match(checkObjectLanguageMetalanguage(written)[0].detail, /^1 relation names, 0 role names and 0 labels are written in Hangul script/);
 });
 
+test('object-language-metalanguage accepts a terminal label citing its own word\'s lexeme, and not other object-language words', () => {
+  const korean = regression('unrendered-head-movement').record;
+  const labelled = label => {
+    const record = structuredClone(korean);
+    const visit = node => { if (node.id === 'verbAtHonorific') node.label = label; (node.children ?? []).forEach(visit); };
+    record.derivationStages.forEach(stage => stage.workspaceForest.forEach(visit));
+    return record;
+  };
+  assert.deepEqual(checkObjectLanguageMetalanguage(labelled('V⁰: 읽다, raised')), [], 'the stem cited in its dictionary form');
+  assert.match(checkObjectLanguageMetalanguage(labelled('V⁰: 동사'))[0]?.detail ?? '', /0 relation names, 0 role names and 1 labels are written in Hangul/);
+  // Sol, sol-parts-20261026 n4-24-ar-long-relative: the label cites إنّ without the fatha its word carries.
+  const arabic = vocalized => ({ sentence: 'قال المعلمُ إنَّ الطالبَ نجح.', derivationStages: [{ relations: [], workspaceForest: [
+    { id: 'cp', label: 'CP', children: [{ id: 'innaC', label: vocalized, word: 'إنَّ' }, { id: 'tp', label: 'TP', word: 'الطالبَ' }] }] }] });
+  assert.deepEqual(checkObjectLanguageMetalanguage(arabic('C⁰ [إنّ, ACC]')), []);
+  assert.match(checkObjectLanguageMetalanguage(arabic('C⁰ [حرف]'))[0]?.detail ?? '', /1 labels are written in Arabic/);
+});
+
 test('control: movement-unrendered reports a proved movement whose path is gone', () => {
   assert.deepEqual(checkMovementUnrendered(replay, sample), []);
   const pathless = edited(replay, (_list, plan) => plan.frames.forEach(frame => {
