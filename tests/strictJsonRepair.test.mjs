@@ -173,3 +173,21 @@ test('committed raw fixtures parse with no repair', async () => {
     assert.deepEqual(Object.keys(parseModelJsonDetailed(rawFixture)), ['payload'], fixtureName);
   }
 });
+
+// Claude Opus 5.5 wraps its whole answer in one ```json fence (Opus batch,
+// 26 Oct 2026: 3 of 3 pilot answers). The fence is framing: Babel reads the
+// object inside it and records that it did; anything else stays a failure.
+test('one outer Markdown code fence around the whole object is read past and recorded', () => {
+  for (const [text, label] of [['```json\n{"a":1}\n```', 'json'], ['```\n{"a":1}\n```', null], ['﻿  ```JSON  \r\n{"a":1}\r\n```\n', 'json']]) {
+    const parsed = parseModelJsonDetailed(text);
+    assert.deepEqual(parsed.payload, { a: 1 });
+    assert.deepEqual(parsed.corrections, [{ kind: 'outer-markdown-code-fence', label }]);
+  }
+  assert.deepEqual(parseModelJsonDetailed('{"a":1}'), { payload: { a: 1 } }, 'an unfenced object records nothing');
+});
+
+test('a fence with text outside it, two fences, or a broken object inside still fails', () => {
+  for (const text of ['Here it is:\n```json\n{"a":1}\n```', '```json\n{"a":1}\n```\nDone.', '```json\n{"a":1}\n```\n```json\n{"b":2}\n```',
+    '```json\n{"a":1\n```', '```json\n[1]\n```', '```json {"a":1} ```'])
+    assert.throws(() => parseModelJsonDetailed(text), ParseApiError, JSON.stringify(text));
+});
