@@ -46,7 +46,8 @@ import {
   type PlaqueRect,
   type PlaqueSpace
 } from './relations/plaquePlacement.ts';
-import { newPocketBlocker, ownRoutesChanged, returnsWithinReach, type HeldPocket, type PocketOccupant } from './relations/pocketHold.ts';
+import { foreseenPocketBlocker, newPocketBlocker, ownRoutesChanged, returnsWithinReach, type AheadStep, type HeldPocket,
+  type PocketOccupant } from './relations/pocketHold.ts';
 import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
 import {
   isPlanItemRevealed,
@@ -804,6 +805,32 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     return kept && Math.abs(kept.x - candidate.x) < 1e-6 && Math.abs(kept.y - candidate.y) < 1e-6 ? kept : undefined;
   };
   const unblocked: PlaqueSpace = { obstacles: [], acceptsConnector: () => true };
+  /** The pocket allocation chooses for the plaque `index` among everything this step
+   * paints and the syntax and marks of the later steps `ahead` (aheadOf), carried
+   * with its anchor, accepted where every allocation rule accepts it now. */
+  const clearThrough = (phaseIndex: number, scene: Scene, stepIndex: number, index: number, anchor: d3.HierarchyPointNode<SyntaxNode>,
+    occupants: readonly PocketOccupant[], rowVisible: RowVisible, revealed: number[],
+    ahead: readonly { phaseIndex: number; scene: Scene; stepIndex: number; revealed: number[]; played: ReadonlySet<number>;
+      anchor: d3.HierarchyPointNode<SyntaxNode> }[], reach: number) => {
+    const items = phases[phaseIndex].items, request = requestsByIndex(phaseIndex).get(index), key = identityOf(items[index]);
+    const { nodes, obstacles } = scene.paintedSpace(input.steps[stepIndex].replayVisibleNodeIds, revealed);
+    if (!request) return undefined;
+    const caseOwners = planItemRelationRefs(items[index]).map(ref => `${ref.stageIndex}:${ref.relationIndex}`);
+    const stageIndex = phases[phaseIndex].stageIndex, scenes: LifetimeScene[] = [{ nodes, obstacles, anchor, request, dx: 0, dy: 0,
+      caseVisible: rowVisible(caseOwners), rowVisible, added: occupants.slice(obstacles.length).filter(occupant => occupant.owner !== key) }];
+    for (const later of ahead) {
+      const laterRequest = requestsByIndex(later.phaseIndex).get(index);
+      if (!laterRequest) return undefined;
+      const painted = later.scene.paintedSpace(input.steps[later.stepIndex].replayVisibleNodeIds, later.revealed);
+      const visible = rowVisibleAt(stageIndex, later.played);
+      scenes.push({ nodes: painted.nodes, obstacles: painted.obstacles, anchor: later.anchor, request: laterRequest,
+        dx: anchor.x - later.anchor.x, dy: anchor.y - later.anchor.y, caseVisible: visible(caseOwners), rowVisible: visible, added: [] });
+    }
+    const space = lifetimeSpaceOf(scenes);
+    const found = placeStagePlaques(items, nodes, obstacles, new Map(), input.measurePlaqueText,
+      { sizes, includes: other => other === index, spaceFor: () => space, caseSources, searchWithin: reach }).get(index);
+    return found && found.location === 'local' ? clearAt(phaseIndex, scene, stepIndex, index, found, occupants, rowVisible, revealed) : undefined;
+  };
   /** `candidate` where every allocation rule accepts it among everything the step
    * paints: for a plaque whose own Case arrow or collectors change at this step. */
   const clearAt = (phaseIndex: number, scene: Scene, stepIndex: number, index: number, candidate: PlaquePlacement,
@@ -817,11 +844,65 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       added: occupants.slice(obstacles.length).filter(occupant => occupant.owner !== key) }]);
     return attachAt(phaseIndex, index, candidate, nodes, obstacles, space);
   };
+  /** The plan items whose marks step `stepIndex` of this phase and scene draws, once it
+   * has played `playedNow`: a mark draws where each of its nodes, or a descendant, is
+   * visible (relationScene.ts). */
+  const revealedAt = (phaseIndex: number, scene: Scene, stepIndex: number, playedNow: ReadonlySet<number>, active: number | null) => {
+    const phase = phases[phaseIndex], byId = sceneNodes(scene), step = input.steps[stepIndex];
+    const visibleIds = step.replayVisibleNodeIds && new Set(step.replayVisibleNodeIds);
+    const drawable = (id: string) => byId.get(id)?.descendants().some(node => !visibleIds || visibleIds.has(String((node as any).__vizId ?? node.data.id)));
+    return phase.items.flatMap((item, index) => isPlanItemRevealed(item, phase.stageIndex, playedNow, active)
+      && planItemDependencyNodeIds(item).every(drawable) ? [index] : []);
+  };
+  /** Where each Replay step of a stage stands in the schedule, in step order. */
+  const stageSteps = new Map<number, { stepIndex: number; phaseIndex: number; scene: Scene }[]>();
+  phases.forEach((phase, phaseIndex) => phase.scenes.forEach(scene => scene.stepIndices.forEach(stepIndex => {
+    if (!stageSteps.has(phase.stageIndex)) stageSteps.set(phase.stageIndex, []);
+    stageSteps.get(phase.stageIndex)!.push({ stepIndex, phaseIndex, scene });
+  })));
+  stageSteps.forEach(list => list.sort((a, b) => a.stepIndex - b.stepIndex));
+  /** The later steps of the stage of `stepIndex` while the plaque `index` stays shown
+   * there with its anchor `anchorId` within a unit of `anchor`, each with what it
+   * paints apart from plaques and the anchor's move since `old` (pocketHold.ts,
+   * AheadStep). `played` holds the stage's relations played by `stepIndex`. */
+  const aheadOf = (stageIndex: number, stepIndex: number, index: number, anchorId: string, anchor: { x: number; y: number },
+    old: { x: number; y: number }, played: ReadonlySet<number>) => {
+    type Ahead = AheadStep & { phaseIndex: number; scene: Scene; stepIndex: number; revealed: number[]; played: ReadonlySet<number>;
+      anchor: d3.HierarchyPointNode<SyntaxNode> };
+    const list = stageSteps.get(stageIndex) ?? [], ahead: Ahead[] = [];
+    let playedNow: ReadonlySet<number> = played;
+    for (const { stepIndex: later, phaseIndex, scene } of list) {
+      if (later <= stepIndex) continue;
+      const painted = paintedAt(later, phaseIndex, scene, playedNow);
+      playedNow = painted.played;
+      const node = sceneNodes(scene).get(anchorId);
+      if (!node || Math.hypot(node.x - anchor.x, node.y - anchor.y) > 1 || layouts[phaseIndex].get(index)?.attachmentNodeId !== anchorId
+        || !painted.revealed.includes(index)) break;
+      ahead.push({ ...painted, move: { x: node.x - old.x, y: node.y - old.y }, phaseIndex, scene, stepIndex: later, anchor: node });
+    }
+    return ahead;
+  };
+  /** What step `stepIndex` reveals and paints apart from plaques, once its stage has
+   * played `before` by the step before it; the same for every plaque that looks ahead. */
+  const paintedSteps = new Map<number, { revealed: number[]; played: ReadonlySet<number>; occupants: readonly PocketOccupant[] }>();
+  const paintedAt = (stepIndex: number, phaseIndex: number, scene: Scene, before: ReadonlySet<number>) => {
+    let painted = paintedSteps.get(stepIndex);
+    if (!painted) {
+      const step = input.steps[stepIndex], identity = step.replayRelationIdentity, stageIndex = phases[phaseIndex].stageIndex;
+      const active = step.replayKind === 'relation' && identity?.stageIndex === stageIndex ? identity.relationIndex : null;
+      const played = active === null || before.has(active) ? before : new Set([...before, active]);
+      const revealed = revealedAt(phaseIndex, scene, stepIndex, played, active);
+      paintedSteps.set(stepIndex, painted = { revealed, played, occupants: scene.paintedSpace(step.replayVisibleNodeIds, revealed).obstacles });
+    }
+    return painted;
+  };
   /** A plaque shown at consecutive steps keeps its pocket, carried with its anchor,
    * while that anchor stays still against the tree and the step paints nothing new in
    * its way (pocketHold.ts). The schedule may have moved it at a phase boundary because
    * the pocket is blocked later in the phase, or because a nearer one opened; it then
-   * moves at the step that blocks its pocket, or when its anchor moves. */
+   * moves at the step that blocks its pocket, or when its anchor moves, unless syntax
+   * or a mark of its stage will take that pocket while it is still shown beside a still
+   * anchor: then it leaves as soon as it may (foreseenPocketBlocker). */
   const holdPockets = (phaseIndex: number, stepIndex: number) => {
     const phase = phases[phaseIndex], scheduled = layouts[phaseIndex], items = phase.items;
     const scene = phase.scenes.find(candidate => candidate.stepIndices.includes(stepIndex))!, byId = sceneNodes(scene);
@@ -830,14 +911,8 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     if (step.replayKind === 'relation' && identity?.stageIndex === phase.stageIndex) played.add(identity.relationIndex);
     const active = step.replayKind === 'relation' && identity?.stageIndex === phase.stageIndex ? identity.relationIndex : null;
     const playedNow = new Set(played), rowVisible = rowVisibleAt(phase.stageIndex, playedNow);
-    // A mark draws where each of its nodes, or a descendant, is visible (relationScene.ts).
     let revealedItems: number[] | undefined, shownItems: Set<number> | undefined;
-    const revealed = () => revealedItems ??= (() => {
-      const visibleIds = step.replayVisibleNodeIds && new Set(step.replayVisibleNodeIds);
-      const drawable = (id: string) => byId.get(id)?.descendants().some(node => !visibleIds || visibleIds.has(String((node as any).__vizId ?? node.data.id)));
-      return items.flatMap((item, index) => isPlanItemRevealed(item, phase.stageIndex, playedNow, active)
-        && planItemDependencyNodeIds(item).every(drawable) ? [index] : []);
-    })();
+    const revealed = () => revealedItems ??= revealedAt(phaseIndex, scene, stepIndex, playedNow, active);
     const shown = () => shownItems ??= new Set(revealed().filter(index => scheduled.has(index)));
     let paintedNodes: PaintedNodes | undefined;
     const painted = () => paintedNodes ??= (() => {
@@ -847,7 +922,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
         nodes.set(idOf(node), { x: node.x, y: node.y, parentId: node.parent ? idOf(node.parent) : null });
       return nodes;
     })();
-    const layout = new Map(scheduled), held = new Set<number>();
+    const layout = new Map(scheduled), held = new Set<number>(), left = new Set<number>();
     const before = shownBefore;
     const moved = before ? [...scheduled].filter(([index, placement]) => {
       const prior = before.placements.get(identityOf(items[index]));
@@ -859,6 +934,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       // the syntax the crossing leaves in place (carryCamera).
       const shift = before.stageIndex === phase.stageIndex ? { x: 0, y: 0 } : paintedShift(before.painted(), painted());
       const shownThen = before.shown(), candidates = new Map<number, { pocket: PlaquePlacement; move: { x: number; y: number } }>();
+      left.clear();
       let later: PocketOccupant[] | undefined;
       const occupants = () => later ??= occupantsAt(phaseIndex, scene, stepIndex, layout, shown(), revealed(), rowVisible);
       for (const [index, placement] of moved) {
@@ -874,6 +950,10 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
         const point = plaqueAnchorPoint(anchor);
         if (request && proximityOnly(request) && returnsWithinReach({ before: { pocket, anchor: point }, after: { pocket: placement, anchor: point },
           owner: key, move, thetaGrid: request.thetaGrid }, before.occupants(), occupants())) continue;
+        // Nor does it keep a pocket that syntax or a mark of this stage will take while
+        // it is still shown beside a still anchor.
+        if (foreseenPocketBlocker({ pocket, move }, before.occupants(),
+          aheadOf(phase.stageIndex, stepIndex, index, placement.attachmentNodeId, anchor, old, playedNow))) { left.add(index); continue; }
         candidates.set(index, { pocket, move });
       }
       /** The candidate pocket of `index`, attached, if nothing this step newly paints is in its way. */
@@ -900,6 +980,46 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
         }
       }
     }
+    // Nor does a plaque take a pocket that syntax or a mark of this stage will take while
+    // it is still shown beside a still anchor: it takes the first pocket the schedule
+    // gives it later in that stretch that every allocation rule accepts now and that
+    // stays clear (pocketHold.ts, foreseenPocketBlocker).
+    let current: PocketOccupant[] | undefined;
+    for (const index of shown()) {
+      const placement = layout.get(index)!, anchor = byId.get(placement.attachmentNodeId);
+      if (!anchor) continue;
+      const at = (box: PlaquePlacement): PlaquePlacement => ({ ...box, x: box.x - box.attachmentX + anchor.x, y: box.y - box.attachmentY + anchor.y,
+        attachmentX: anchor.x, attachmentY: anchor.y });
+      const ahead = aheadOf(phase.stageIndex, stepIndex, index, placement.attachmentNodeId, anchor, anchor, playedNow);
+      if (!ahead.length) continue;
+      const now = () => current ??= occupantsAt(phaseIndex, scene, stepIndex, layout, shown(), revealed(), rowVisible);
+      // Only syntax and marks count ahead, so what this step paints of them says what is new later.
+      const { obstacles: here } = scene.paintedSpace(step.replayVisibleNodeIds, revealed());
+      const still = { x: 0, y: 0 }, foreseen = (box: PlaquePlacement) => foreseenPocketBlocker({ pocket: at(box), move: still }, here, ahead);
+      const request = requestsByIndex(phaseIndex).get(index), size = sizes.get(identityOf(items[index])) ?? request;
+      const nearby = request && size ? FORESEEN_REACH * nearbyPlaqueReach({ width: size.width, height: size.height, thetaGrid: request.thetaGrid }) : 0;
+      if (!foreseen(placement)) {
+        // One that left its pocket for this stretch need not stand farther than nearby.
+        if (!left.has(index) || anchorDistance(anchor, at(placement)) <= nearby + 1e-6) continue;
+        const kept = clearThrough(phaseIndex, scene, stepIndex, index, anchor, now(), rowVisible, revealed(), ahead, nearby + 1e-6);
+        if (kept && anchorDistance(anchor, kept) <= nearby + 1e-6 && !foreseen(kept)) { layout.set(index, kept); held.add(index); current = undefined; }
+        continue;
+      }
+      const later = new Map<string, PlaquePlacement>();
+      for (const { phaseIndex: future } of (stageSteps.get(phase.stageIndex) ?? []).filter(entry => entry.stepIndex > stepIndex).slice(0, ahead.length)) {
+        const box = layouts[future].get(index);
+        if (box && !samePocket(box, placement)) later.set(`${box.x - box.attachmentX},${box.y - box.attachmentY}`, box);
+      }
+      // The new pocket stands within a tenth beyond the plaque's nearby reach, or no
+      // farther than the old one.
+      const reach = Math.max(nearby, anchorDistance(anchor, at(placement))) + 1e-6;
+      const near = (box: PlaquePlacement | undefined) => box && anchorDistance(anchor, box) <= reach ? box : undefined;
+      let kept: PlaquePlacement | undefined;
+      for (const box of later.values()) if (!foreseen(box) && (kept = near(clearAt(phaseIndex, scene, stepIndex, index, at(box), now(), rowVisible, revealed())))) break;
+      // Otherwise it looks for the nearest pocket clear at this step and through the stretch.
+      kept ??= near(clearThrough(phaseIndex, scene, stepIndex, index, anchor, now(), rowVisible, revealed(), ahead, reach));
+      if (kept && !foreseen(kept)) { layout.set(index, kept); held.add(index); current = undefined; }
+    }
     let final: PocketOccupant[] | undefined;
     const occupants = () => final ??= occupantsAt(phaseIndex, scene, stepIndex, layout, shown(), revealed(), rowVisible);
     shownBefore = { stageIndex: phase.stageIndex, byId, painted, occupants,
@@ -913,10 +1033,21 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     return held.size ? layout : scheduled;
   };
   let released = 0;
-  /** Enter allocated phases into the schedule once no undecided remote run can still
-   * change them, and publish each completed stage. */
+  /** How far beyond its nearby reach, as a multiple of it, a plaque may stand to keep
+   * clear of what its stage paints later; the offline audit's mark-distance margin. */
+  const FORESEEN_REACH = 1.1;
+  const firstOfStage = (phaseIndex: number) => {
+    let first = phaseIndex;
+    while (first > 0 && phases[first - 1].stageIndex === phases[phaseIndex].stageIndex) first--;
+    return first;
+  };
+  /** Enter allocated phases into the schedule once their whole stage is allocated, since
+   * a step's hold reads the stage's later steps (aheadOf), and no undecided remote run
+   * can still change them; publish each completed stage. */
   const release = (allocated: number) => {
-    const pending = Math.min(allocated, ...[...openRuns.values()].filter(run => run.remote).map(run => run.phases[0] - 1));
+    const complete = allocated >= 0 && phases[allocated + 1]?.stageIndex === phases[allocated].stageIndex
+      ? firstOfStage(allocated) - 1 : allocated;
+    const pending = Math.min(complete, ...[...openRuns.values()].filter(run => run.remote).map(run => run.phases[0] - 1));
     for (; released <= pending; released++) {
       const phase = phases[released], layout = layouts[released];
       schedule.stages[phase.stageIndex] = layout;

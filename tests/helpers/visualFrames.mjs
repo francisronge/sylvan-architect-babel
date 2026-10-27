@@ -543,13 +543,16 @@ const paintedNodes = nodes => new Map(nodes.map(node => [display.getNodeId(node)
   { x: node.x, y: node.y, parentId: node.parent ? display.getNodeId(node.parent) : null }]));
 
 /** mark-motion between each pair of adjacent Replay frames of one viewport, with
- * the camera's carry across a stage boundary. */
+ * the camera's carry across a stage boundary and the later frame's stage ahead. */
 export function markMotionFindings(frames, thresholds = THRESHOLDS) {
   const byPlace = new Map(frames.filter(frame => typeof frame.frame === 'number').map(frame => [`${frame.viewport} ${frame.frame}`, frame]));
   return [...byPlace.values()].flatMap(frame => {
     const before = byPlace.get(`${frame.viewport} ${frame.frame - 1}`);
     const shift = before && before.stage !== frame.stage && before.painted && frame.painted ? paintedShift(before.painted, frame.painted) : undefined;
-    return checkMarkMotion(before, frame, thresholds, shift && { dx: shift.x, dy: shift.y });
+    const ahead = [];
+    for (let next = byPlace.get(`${frame.viewport} ${frame.frame + 1}`); next && next.stage === frame.stage;
+      next = byPlace.get(`${frame.viewport} ${next.frame + 1}`)) ahead.push(next);
+    return checkMarkMotion(before, frame, thresholds, shift && { dx: shift.x, dy: shift.y }, ahead);
   });
 }
 

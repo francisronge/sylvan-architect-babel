@@ -305,8 +305,22 @@ moved, its pocket is kept only where every allocation rule accepts them. The
 schedule may still move a plaque at a phase or stage boundary, because its pocket
 is blocked later in the phase, because a nearer pocket opened, or because a later
 mark of the new stage reserves it. The plaque then waits and moves at the step that
-blocks its pocket or moves its anchor. One exception lets a plaque that shows its
-owner only by proximity, left beyond its nearby reach, return within it: it takes
+blocks its pocket or moves its anchor, with one limit: within a stage the schedule
+knows what every step paints, so a plaque does not wait in a pocket that syntax or
+a mark of its stage will newly take while it is still shown beside a still anchor.
+Francis asked for this on 27 October 2026, after a θ-grid waited above a noun until
+N′ was projected there: "plaque fucking teleports because IT IS PUT IN THE WORST
+POSITION POSSIBLE, LITERALLY ABOVE SOMETHING THAT IS ABOUT TO BE PROJECTED". Such a
+plaque leaves at once, at the stage's first step or wherever it is first shown or
+its anchor moves. It takes the pocket its phase is scheduled, or, where that one is
+taken later in the stretch too, the first pocket scheduled later in the stretch that
+every allocation rule accepts now and that stays clear, or else the nearest pocket
+clear through the stretch. A pocket it chooses so stands at most a tenth beyond its
+nearby reach or no farther than its old pocket, and a scheduled pocket farther than
+that gives way to a nearer one clear through the stretch. Plaques and their own
+routes, placed step by step, do not count as known in advance. The offline audit
+reports a jump within a stage that only such syntax or a mark caused. One
+exception lets a plaque that shows its owner only by proximity, left beyond its nearby reach, return within it: it takes
 its nearer scheduled pocket at the step where what the previous step painted there
 has gone. A claim a later movement transfers to a lower occurrence keeps one plaque
 identity, its authored occurrence's, across that movement. The camera includes

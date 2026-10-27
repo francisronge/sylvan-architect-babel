@@ -1,4 +1,4 @@
-import { newPocketBlocker, ownRoutesChanged, returnsWithinReach } from '../../replay/relations/pocketHold.ts';
+import { foreseenPocketBlocker, newPocketBlocker, ownRoutesChanged, returnsWithinReach } from '../../replay/relations/pocketHold.ts';
 
 /** Static geometry rules for one painted frame, independent of how the frame was
  * measured. An adapter normalizes a frame to the model below and calls
@@ -371,13 +371,18 @@ const firstPoint = item => item.boxes?.[0] ?? item.rect ?? item.paths?.[0]?.[0];
  *   - its anchor moves (against the camera's carry across a stage boundary),
  *   - its own Case arrow or collectors start, end, meet another row or leave a source
  *     that moved,
- *   - the later frame newly paints something in its pocket's way, or
+ *   - the later frame newly paints something in its pocket's way: within one stage
+ *     only another plaque or its own route, since the stage laid out its syntax and
+ *     marks in advance and the plaque should have left before they arrived,
+ *   - a later frame of the later frame's stage, while the plaque stays shown there
+ *     beside a still anchor, newly paints syntax or a mark in its pocket's way
+ *     (`ahead`: the frames after `after` of its viewport and stage, in order), or
  *   - it shows its owner only by proximity and returns from beyond its nearby reach
  *     to within it, into a pocket that what the earlier frame had there has left.
- * Both frames' `reserves` say what each paints, as the schedule saw it. Subtype
+ * The frames' `reserves` say what each paints, as the schedule saw it. Subtype
  * plaque-teleport; the frame is the transition and the measure the shift in tree
  * units. */
-export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCarry = undefined) {
+export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCarry = undefined, ahead = []) {
   if (!before || before.viewport !== after.viewport) return [];
   const textsBefore = new Map(before.texts.map(text => [text.id, text]));
   const offsets = after.texts.filter(text => TREE_TEXT.has(text.kind) && textsBefore.has(text.id)).map(text => {
@@ -408,13 +413,31 @@ export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCa
     const owner = plaque.key ?? plaque.id;
     const pocketOf = ({ rect, size = rect, pocket = { x: rect.x, y: rect.y, width: size.width, height: size.height } }) => pocket;
     const pocket = { ...pocketOf(prior), x: pocketOf(prior).x + move.x, y: pocketOf(prior).y + move.y };
-    if (ownRoutesChanged(owner, move, earlier, later) || newPocketBlocker({ pocket, owner, move }, earlier, later)
+    // Within a stage, syntax and marks a frame newly paints were laid out in advance.
+    const blocked = newPocketBlocker({ pocket, owner, move }, earlier, later);
+    const foreseen = blocked && before.stage !== undefined && !crossing && !newPocketBlocker({ pocket, owner, move }, earlier, later, occupant => occupant.owner !== undefined);
+    if (ownRoutesChanged(owner, move, earlier, later) || blocked && !foreseen
+      || !blocked && foreseenPocketBlocker({ pocket, move }, earlier, aheadOf(plaque, prior, ahead, thresholds))
       || !plaque.joined && returnsWithinReach({ before: { pocket, anchor: plaque.anchor }, after: { pocket: pocketOf(plaque),
         anchor: plaque.anchor }, owner, move, thetaGrid: plaque.grid }, earlier, later)) continue;
-    out.push(finding('mark-motion', 'plaque-teleport', after, plaque.id,
-      `${describe(plaque)} jumps ${Math.round(shift)} units from a pocket nothing new occupies, beside its still anchor`, shift));
+    out.push(finding('mark-motion', 'plaque-teleport', after, plaque.id, foreseen
+      ? `${describe(plaque)} jumps ${Math.round(shift)} units beside its still anchor when its stage paints syntax or a mark it laid out in advance in its pocket`
+      : `${describe(plaque)} jumps ${Math.round(shift)} units from a pocket nothing new occupies, beside its still anchor`, shift));
   }
   return out.map(entry => ({ ...entry, frame: `${before.frame}>${after.frame}` }));
+}
+
+/** The frames of `ahead` while `plaque` stays shown in them with its anchor within
+ * `stillUnits` of where `plaque` has it (pocketHold.ts, AheadStep), each with what
+ * it paints and the anchor's move since `prior`, the plaque in the earlier frame. */
+function aheadOf(plaque, prior, ahead, thresholds) {
+  const steps = [];
+  for (const frame of ahead) {
+    const later = frame.plaques.find(other => other.id === plaque.id && other.anchor);
+    if (!later || Math.hypot(later.anchor.x - plaque.anchor.x, later.anchor.y - plaque.anchor.y) > thresholds.stillUnits) break;
+    steps.push({ occupants: frame.reserves ?? [], move: { x: later.anchor.x - prior.anchor.x, y: later.anchor.y - prior.anchor.y } });
+  }
+  return steps;
 }
 
 /** Every rule on one normalized frame. */
