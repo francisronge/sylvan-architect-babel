@@ -3,7 +3,7 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  checkAttachAtMerge, checkContinuedOccurrences, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
+  checkAttachAtMerge, checkContinuedOccurrences, checkExistingNotRemerged, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
   checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationConstruction, checkRelationMoments,
   checkStableConstruction,
   checkStageCompletion, checkVisibleInCanvas, checkWholeParent, frameStructure
@@ -256,6 +256,29 @@ test('control: attach-at-merge reports a child attached to its retained parent b
     'the same attachment at a step that does not target the parent');
 });
 
+test('control: existing-not-remerged reports a kept-ID landing merged by construction, and accepts an inserted segment', () => {
+  assert.deepEqual(checkExistingNotRemerged(replay, sample), []);
+  // The shape the defect showed (Opus n3-06, stage 7): the landing keeps the
+  // moved occurrence's ID and construction merges it into its new parent.
+  const moment = steps.findIndex(step => step.replayKind === 'relation' && step.operation === 'subject A-movement');
+  assert(moment > 0 && steps[moment].targetNodeId === 'dpTP' && steps[moment].sourceNodeIds[0] === 'dpLow');
+  const kept = structuredClone(sample), stage = kept.derivationStages[steps[moment].replayFrameIndex];
+  const rename = node => {
+    node.id = { dpLow: 'dpLowTrace', dpTP: 'dpLow' }[node.id] ?? node.id;
+    (node.children ?? []).forEach(rename);
+  };
+  stage.workspaceForest.forEach(rename);
+  const merged = breakReplay(copy => Object.assign(copy[moment], { replayKind: 'micro', operation: 'ExternalMerge',
+    sourceNodeIds: ['dpLow'], replayRelationIdentity: undefined }));
+  assert.deepEqual(checkExistingNotRemerged(merged, kept).map(item => item.frame), [moment + 1]);
+  assert(reported(checkExistingNotRemerged(merged, kept), 'existing-not-remerged', moment + 1, 'dpLow leaves'));
+  // An adjunct segment inserted below a kept parent leaves its occurrence in it.
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/workspace-arabic-continuity.json#/cases/0').record;
+  const adjoined = prepare(record);
+  assert(adjoined.playbackSteps.some(step => step.replayKind === 'micro' && step.targetNodeId === 'nadj' && step.sourceNodeIds.includes('nb')));
+  assert.deepEqual(checkExistingNotRemerged(adjoined, record), []);
+});
+
 test('control: visible-in-canvas reports a visible id with no canvas node', () => {
   assert.deepEqual(checkVisibleInCanvas(replay), []);
   const stale = breakReplay(copy => { copy[3].replayVisibleNodeIds = [...copy[3].replayVisibleNodeIds, 'not-a-canvas-node']; });
@@ -361,7 +384,7 @@ const subjectOf = violation => violation.detail.split(' ')[0];
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments', 'landing-attached',
   'no-early-reveal', 'relation-construction', 'parent-after-children', 'whole-parent', 'stable-construction', 'continued-occurrence', 'attach-at-merge',
-  'movement-landing-parent', 'movement-shown-as-movement',
+  'movement-landing-parent', 'movement-shown-as-movement', 'existing-not-remerged',
   'visible-in-canvas',
   'marks-at-owning-moment', 'one-letter-per-label'];
 let sweep;
@@ -377,7 +400,7 @@ before(() => {
         ...checkStableConstruction(prepared),
         ...checkContinuedOccurrences(prepared, authored),
         ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored),
-        ...checkMovementShownAsMovement(prepared, authored), ...checkVisibleInCanvas(prepared),
+        ...checkMovementShownAsMovement(prepared, authored), ...checkExistingNotRemerged(prepared, authored), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),
         ...checkContractWarnings(prepared, authored, { contract })] };

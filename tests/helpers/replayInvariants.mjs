@@ -783,6 +783,34 @@ export function checkAttachAtMerge(replay) {
   return out;
 }
 
+/** Construction merges what its stage has not yet placed. A micro-step whose
+ * source is an authored occurrence that, in the preceding stage, was the child
+ * of a parent the current stage keeps, and that the parent no longer
+ * dominates, merges an existing constituent again: the stage moved it, so
+ * construction is showing movement. A preceding root that gains a parent is an
+ * ordinary merge; a parent the stage no longer has was rebuilt, not left; a new
+ * segment inserted below the parent (adjunction) leaves the occurrence in it.
+ * Repeated ids cannot be compared and are not reported. */
+export function checkExistingNotRemerged(replay, record) {
+  const steps = replay.playbackSteps, stages = record.derivationStages ?? [], out = [];
+  const located = stages.map(stage => locateAuthored(stage?.workspaceForest));
+  steps.forEach((step, index) => {
+    const stageIndex = step.replayFrameIndex;
+    if (step.replayKind !== 'micro' || !Number.isInteger(stageIndex) || stageIndex < 1) return;
+    const before = located[stageIndex - 1], after = located[stageIndex];
+    for (const id of new Set((step.sourceNodeIds ?? []).map(String))) {
+      const was = before.get(id), now = after.get(id);
+      if (!was?.parentId || !now || now.parentId === was.parentId || !after.get(was.parentId)) continue;
+      let above = now.parentId;
+      while (above && above !== was.parentId) above = after.get(above)?.parentId;
+      if (above) continue;
+      out.push(violation('existing-not-remerged', index + 1, `${id} leaves ${was.parentId} for ${now.parentId ?? 'a root'} `
+        + `at micro ${step.operation} (target ${step.targetNodeId ?? ''}): an existing constituent is merged again`));
+    }
+  });
+  return out;
+}
+
 /** A movement moment introduces its landing together with the smallest new
  * parent needed to attach it above an existing subtree. In the authored stage
  * forest that parent is the landing's only sister when the landing's parent had

@@ -9,7 +9,9 @@ import {
   sameMovementSourceSlot,
   retainedSourceContainer,
   sourceOccurrencePair,
-  resolveMovementSourceAnchors
+  resolveMovementSourceAnchors,
+  keptLandingWithoutLineage,
+  withOccurrenceLineage
 } from './movementSourceEvidence.ts';
 import { hasUnestablishedCovertMovementOutcome } from './outcomeResolver.ts';
 import {
@@ -39,6 +41,10 @@ export interface RecoveredMovement {
    * proved the adjunction. Its labels cannot prove it again later, so landing
    * persistence takes the site from here. */
   structuralHeadComplexNodeId?: string;
+  /** The lineage a kept-ID landing omitted, read from the lower occurrence in
+   * its preceding slot (`keptLandingWithoutLineage`). Lineage checks on this
+   * movement's two ends accept it in place of the authored field. */
+  recoveredLandingLineageId?: string;
 }
 
 type MovementContextKind = 'site' | 'head-host' | 'head-complex' | 'head-landing' | 'head-member';
@@ -402,6 +408,25 @@ export function recoverMovementEvidence(
   relation: DerivationStageRelation,
   forest: readonly SyntaxNode[],
   previous: readonly SyntaxNode[] = []
+): MovementEvidenceResult {
+  const result = recoverAnchoredMovement(relation, forest, previous);
+  if (result.movement) return result;
+  // A kept-ID landing whose lineage the model omitted is read as carrying its
+  // lower occurrence's lineage. The omission stays recorded in the diagnostics.
+  const anchored = [...new Set(Object.values(relation.anchors || {})
+    .flatMap(value => Array.isArray(value) && value.length !== 1 ? [] : [value].flat()))];
+  const kept = keptLandingWithoutLineage(indexMovementOccurrences(forest), indexMovementOccurrences(previous), anchored);
+  if (!kept) return result;
+  const adopted = recoverAnchoredMovement(relation, withOccurrenceLineage(forest, kept.landingId, kept.lineageId), previous);
+  if (!adopted.movement || adopted.movement.targetNodeId !== kept.landingId || adopted.movement.sourceNodeId !== kept.lowerId) return result;
+  return { ...adopted, movement: { ...adopted.movement, recoveredLandingLineageId: kept.lineageId }, diagnostics: [...adopted.diagnostics,
+    `MOVEMENT_LANDING_LINEAGE_OMITTED: ${kept.landingId} keeps its ID but carries no lineageId, while ${kept.lowerId} in its preceding slot declares ${JSON.stringify(kept.lineageId)}. The kept ID and slot identify the moved occurrence; the authored forest is unchanged.`] };
+}
+
+function recoverAnchoredMovement(
+  relation: DerivationStageRelation,
+  forest: readonly SyntaxNode[],
+  previous: readonly SyntaxNode[]
 ): MovementEvidenceResult {
   const fail = (code: string, reason: string): MovementEvidenceResult => ({ failure: code, diagnostics: [`${code}: ${reason}`] });
   const covertDescription = isCovertMovementDescription(relation.relation);
