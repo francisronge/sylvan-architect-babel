@@ -18,14 +18,15 @@ import { foreseenPocketBlocker, newPocketBlocker, ownRoutesChanged, returnsWithi
  *     claims are the relation keys ('stage:relation') whose mark it belongs to;
  *     lines are the wrapped lines of a label; plaque is the plaque holding it;
  *     reach and distance measure a mark's text against its placer's preferred spots.
- *   plaques [{ id, text, rect, radius, claims, anchor?, size?, pocket?, key?, grid?, joined? }]
+ *   plaques [{ id, text, rect, radius, claims, anchor?, size?, pocket?, key?, grid?, joined?, content? }]
  *     rect is the drawn shell and radius its corner radius; anchor { x, y } is the
  *     point the allocator measures from (below a word-bearing leaf, its word);
  *     size is the allocated box when it differs from rect; pocket is the allocated
  *     box as the schedule placed it, with the narrower `syntaxGap` it was accepted
  *     at, if any (by default rect's corner and size); key is the plaque's identity
  *     among `reserves` owners; grid marks a theta grid; joined marks a plaque tied
- *     to syntax by an arrow or collector of its own.
+ *     to syntax by an arrow or collector of its own; content { width, height } is the
+ *     box the rows it paints need, when the adapter knows it.
  *   lines   [{ id, kind, paths, halfWidth, nodes, claims, masked? }]
  *     paths are polylines of { x, y }; nodes are the tree nodes it may meet (a
  *     branch its parent and child, its path running parent to child; a stem its
@@ -45,7 +46,7 @@ import { foreseenPocketBlocker, newPocketBlocker, ownRoutesChanged, returnsWithi
 /** Every rule the visual audit reports. checkFrame applies all but layout-width,
  * which compares one record's frames across viewports (visualFrames.mjs,
  * layoutWidthFindings), and mark-motion, which compares adjacent frames
- * (checkMarkMotion). */
+ * (checkMarkMotion, and checkStaleShell for its stale-shell subtype). */
 export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-distance', 'label-typography', 'clipped', 'branch-geometry',
   'parent-centring', 'layout-width', 'mark-motion']);
 
@@ -55,9 +56,10 @@ export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-dis
  * (a ratio), a mark's text also by 20 pixels; a connector this close to a plaque
  * of its own claim is that plaque's leader. Tree units for mark-motion: a plaque
  * may shift `motionUnits` against its anchor between frames, and an anchor that
- * moves `stillUnits` or less stays still. What occupies a pocket is pocketHold.ts's. */
+ * moves `stillUnits` or less stays still. What occupies a pocket is pocketHold.ts's. A
+ * plaque shell may exceed its painted content by `shellRowUnits`, one Case row. */
 export const THRESHOLDS = Object.freeze({ overlapPx: 2, clearancePx: 1, crossingPx: 1, reachMargin: 0.1, textReachPx: 20,
-  leaderPx: 6, clippedPx: 2, rowUnits: 1, centringPx: 1, motionUnits: 4, stillUnits: 1 });
+  leaderPx: 6, clippedPx: 2, rowUnits: 1, centringPx: 1, motionUnits: 4, stillUnits: 1, shellRowUnits: 62 });
 
 const TREE_TEXT = new Set(['category', 'word']);
 const LOCAL_PLAQUE = 480;
@@ -425,6 +427,33 @@ export function checkMarkMotion(before, after, thresholds = THRESHOLDS, cameraCa
       : `${describe(plaque)} jumps ${Math.round(shift)} units from a pocket nothing new occupies, beside its still anchor`, shift));
   }
   return out.map(entry => ({ ...entry, frame: `${before.frame}>${after.frame}` }));
+}
+
+/** mark-motion, subtype stale-shell: a plaque whose shell is larger than the content
+ * it paints by more than a row (`shellRowUnits`, tree units, in width or height) while
+ * an earlier frame of the same viewport, showing it continuously in a shell of that
+ * size, painted content that filled it to within a row. When rows leave a plaque its
+ * shell fits the rest at that step. Only plaques whose adapter reports `content`
+ * { width, height } are judged. `history` maps each plaque id to its run so far and
+ * is updated; pass a fresh Map per viewport and the frames in order. The frame is the
+ * transition and the measure the larger excess. */
+export function checkStaleShell(before, after, history, thresholds = THRESHOLDS) {
+  const out = [], row = thresholds.shellRowUnits, seen = new Set();
+  for (const plaque of after.plaques) {
+    seen.add(plaque.id);
+    const shell = plaque.rect, content = plaque.content, prior = before ? history.get(plaque.id) : undefined;
+    const same = prior && Math.abs(prior.width - shell.width) < 1 && Math.abs(prior.height - shell.height) < 1;
+    const run = same ? prior : { width: shell.width, height: shell.height, filled: false };
+    if (content) {
+      const excess = Math.max(shell.width - content.width, shell.height - content.height);
+      if (excess <= row) run.filled = true;
+      else if (same && prior.filled) out.push(finding('mark-motion', 'stale-shell', after, plaque.id,
+        `${describe(plaque)} keeps a shell ${Math.round(excess)} units larger than the content it paints now`, excess));
+    }
+    history.set(plaque.id, run);
+  }
+  for (const id of [...history.keys()]) if (!seen.has(id)) history.delete(id);
+  return out.map(entry => ({ ...entry, frame: `${before?.frame}>${after.frame}` }));
 }
 
 /** The frames of `ahead` while `plaque` stays shown in them with its anchor within

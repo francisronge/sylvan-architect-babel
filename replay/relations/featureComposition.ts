@@ -142,6 +142,20 @@ export function caseFeatureComposition(items: RelationPlanItem[], assignmentInde
   return { assignment, assignmentIndex, bundles, collections, rows };
 }
 
+/** The rows of a Case composition still present once its stage has played `played`
+ * (null: the completed stage). A row leaves when a later relation supersedes every
+ * claim that owns it, and its plaque's shell then fits the rows that remain at that
+ * same step (renderer closeout, "When rows leave a plaque"). */
+export function presentCaseRows<Row extends { ownerIndices: number[] }>(items: readonly RelationPlanItem[], rows: readonly Row[],
+  stageIndex: number, played: ReadonlySet<number> | null): Row[] {
+  const superseded = (item: RelationPlanItem | undefined) => {
+    const at = item?.supersededAt;
+    return Boolean(at && (played === null || at.stageIndex < stageIndex || at.stageIndex === stageIndex && played.has(at.relationIndex)));
+  };
+  const present = rows.filter(row => !row.ownerIndices.every(index => superseded(items[index])));
+  return present.length ? present : [...rows];
+}
+
 export function featurePlaqueAssignment(items: RelationPlanItem[], plaqueIndex: number): number | undefined {
   const candidates = items.flatMap((_, i) => caseFeatureComposition(items, i)?.bundles
     .some(bundle => bundle.index === plaqueIndex) ? [i] : []);

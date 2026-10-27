@@ -535,6 +535,7 @@ export function paintRelationScene({
       decorateRelationElement,
       relationEmphasisForItem,
       activeDerivationFrameIndex,
+      playedRelationIndices,
       markerScale,
       frameItems,
       replayPlaqueLayout,

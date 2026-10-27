@@ -48,7 +48,8 @@ import {
 } from './relations/plaquePlacement.ts';
 import { foreseenPocketBlocker, newPocketBlocker, ownRoutesChanged, returnsWithinReach, type AheadStep, type HeldPocket,
   type PocketOccupant } from './relations/pocketHold.ts';
-import type { PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
+import { prepareCasePlaqueRows, type PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
+import { caseFeatureComposition, presentCaseRows } from './relations/featureComposition.ts';
 import {
   isPlanItemRevealed,
   planItemDependencyNodeIds,
@@ -1019,6 +1020,17 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       // Otherwise it looks for the nearest pocket clear at this step and through the stretch.
       kept ??= near(clearThrough(phaseIndex, scene, stepIndex, index, anchor, now(), rowVisible, revealed(), ahead, reach));
       if (kept && !foreseen(kept)) { layout.set(index, kept); held.add(index); current = undefined; }
+    }
+    // When rows leave a Case plaque, its shell fits the rows that remain at that step,
+    // in its pocket; allocation still reserves the stage's largest shell.
+    for (const [index, placement] of layout) {
+      if (!requestsByIndex(phaseIndex).get(index)?.caseAssignment) continue;
+      const rows = caseFeatureComposition(items, index)?.rows ?? [], present = presentCaseRows(items, rows, phase.stageIndex, playedNow);
+      if (present.length === rows.length) continue;
+      const drawn = prepareCasePlaqueRows(present), caseRow = present.findIndex(row => row.ownerIndices.includes(index));
+      layout.set(index, { ...placement, drawnWidth: drawn.width, drawnHeight: drawn.height,
+        ...caseRow < 0 ? {} : { caseRowY: drawn.rows[caseRow].y } });
+      held.add(index);
     }
     let final: PocketOccupant[] | undefined;
     const occupants = () => final ??= occupantsAt(phaseIndex, scene, stepIndex, layout, shown(), revealed(), rowVisible);

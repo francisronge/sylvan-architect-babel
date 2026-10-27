@@ -29,6 +29,8 @@ import { fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations
 import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import { paintedShift } from '../../replay/cameraCarry.ts';
 import { projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
+import { caseFeatureComposition } from '../../replay/relations/featureComposition.ts';
+import { prepareCasePlaqueRows } from '../../replay/relations/plaqueTextLayout.ts';
 import { projectVisibleAnchorSetOrganization } from '../../replay/relations/relationFrame.ts';
 import {
   isPlanItemRevealed, planItemDependencyNodeIds, planItemRelationRefs, resolveDisplayedTrajectoryAttachments
@@ -50,7 +52,7 @@ import { availableTreeViewport } from '../../components/treeViewport.ts';
 import { layoutReplayFrames } from '../../scripts/replayFrameLayout.mjs';
 import { createCameraHarness } from './cameraHarness.mjs';
 import { createSvgDom } from './svgDom.mjs';
-import { checkFrame, checkMarkMotion, THRESHOLDS } from './visualRules.mjs';
+import { checkFrame, checkStaleShell, checkMarkMotion, THRESHOLDS } from './visualRules.mjs';
 import { SNAPSHOT_VIEWPORT, snapshotRecord } from './layoutSnapshot.mjs';
 import { buildReplayPanelContent } from '../../replay/replayPanel.ts';
 import { buildReplayDisplayDetailBlocks } from '../../replay/replayPanelFormatting.ts';
@@ -355,8 +357,15 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
   const revealed = new Set(items.flatMap((item, index) => isPlanItemRevealed(item, stage, played, active) ? [index] : []));
   const shown = index => revealed.has(index) && planItemDependencyNodeIds(items[index]).every(id => Boolean(resolveOverlayAnchor(id)));
   const visiblePlacements = [...placements].filter(([index]) => items[index] && shown(index));
+  // A Case plaque paints the rows a revealed claim owns (caseFeatureDrawing.ts).
+  const contentOf = index => {
+    const rows = caseFeatureComposition(items, index)?.rows.filter(row => row.ownerIndices.some(owner => revealed.has(owner)));
+    if (!rows?.length) return {};
+    const { width, height } = prepareCasePlaqueRows(rows);
+    return { content: { width, height } };
+  };
   const plaques = visiblePlacements.map(([index, box]) => ({ ...plaqueRecord(items[index], box, laidOut.get(box.attachmentNodeId)),
-    ...pockets ? { key: pockets.owner(index), pocket: pockets.pocket(index) } : {} }));
+    ...contentOf(index), ...pockets ? { key: pockets.owner(index), pocket: pockets.pocket(index) } : {} }));
   const markerScale = markerScaleAtZoom(fitted.k), maxY = d3.max(all, node => node.y) ?? 0;
   const textTop = d3.min(painted.texts, text => text.cell.y) ?? TRAJECTORY_ROUTES.textTopFallbackY;
   const lanes = RELATION_LANES_BELOW_DEEPEST_NODE;
@@ -556,6 +565,21 @@ export function markMotionFindings(frames, thresholds = THRESHOLDS) {
   });
 }
 
+/** mark-motion's stale-shell subtype over each viewport's Replay frames in order. */
+export function staleShellFindings(frames, thresholds = THRESHOLDS) {
+  const byViewport = new Map();
+  for (const frame of frames) if (typeof frame.frame === 'number')
+    byViewport.set(frame.viewport, [...(byViewport.get(frame.viewport) ?? []), frame]);
+  return [...byViewport.values()].flatMap(list => {
+    const history = new Map();
+    return list.sort((a, b) => a.frame - b.frame).flatMap((frame, index) => {
+      const before = list[index - 1]?.frame === frame.frame - 1 ? list[index - 1] : undefined;
+      if (!before) history.clear();
+      return checkStaleShell(before, frame, history, thresholds);
+    });
+  });
+}
+
 /** One record's findings: every Replay frame at each viewport and the Canopy.
  * `visual` may be the record's prepareVisualRecord result shared with another
  * audit; this audit only reads it. With `snapshot`, the result also carries the
@@ -566,6 +590,7 @@ export function auditVisualRecord(id, record, { viewports = VIEWPORTS, canopy = 
   if (canopy) frames.push(...viewports.map(viewport => layoutCanopyVisualFrame(visual, viewport)).filter(Boolean));
   return { steps: visual.prepared.playbackSteps.length, frames: frames.length,
     findings: [...frames.flatMap(frame => checkFrame(frame, thresholds)), ...markMotionFindings(frames, thresholds),
+      ...staleShellFindings(frames, thresholds),
       ...layoutWidthFindings(visual, viewports, { canopy })]
       .map(finding => ({ ...finding, record: id })),
     ...(snapshot ? { snapshot: snapshotVisualRecord(visual, frames.filter(frame => frame.viewport === SNAPSHOT_VIEWPORT)) } : {}) };

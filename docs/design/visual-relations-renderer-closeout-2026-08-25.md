@@ -449,7 +449,15 @@ not a measured row height that can change when fonts load. Identical collector
 paths within one plaque paint once while retaining all their claim owners.
 Ports fit the narrowest shell in the claim's lifetime. Clearance
 uses each stage's painted dimensions and row positions, including other plaques'
-connector obstacles; the largest box still reserves space. A blocked vertical
+connector obstacles; the largest box still reserves space. When rows leave a
+plaque, because a later relation supersedes every claim that owns them, its shell
+fits the rows that remain at that same step, in its pocket; allocation still
+reserves the stage's largest shell. Francis asked for this on 27 October 2026
+after a Case plaque kept an empty two-row shell for two steps: "Why does the plaque
+content disappear then shrink size? if that should be happening, then why do it in
+2 steps, just make them disappear and shrink at one step?" The offline audit reports
+a shell that stays more than a row larger than the content it paints after that
+content filled it (`stale-shell`). A blocked vertical
 route can still use the side.
 Collectors with distinct sources retain their row-side associations, including
 D6's Number and Gender paths. Curve handles, dash styling, ownership and reveal
