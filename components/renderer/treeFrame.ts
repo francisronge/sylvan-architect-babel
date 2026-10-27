@@ -32,7 +32,6 @@ import { refineRelationGeometry } from './relationRefinements.ts';
 import { paintRelationScene } from './relationScene.ts';
 import type { SyntaxDrawingContext } from './syntaxDrawing.ts';
 import { paintSyntaxTree } from './syntaxDrawing.ts';
-import { measureTreeGraphics } from './treeMeasurements.ts';
 
 interface FrameLayout {
   dimensions: { width: number; height: number };
@@ -390,14 +389,16 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
   }
   const deferredRelationFrame = window.requestAnimationFrame(guardViewCallback(() => {
     deferredAcceptedRelationDraws.forEach((draw) => draw());
-    // Neutral connectors pass under visible tree text: the mask hides them only
-    // where the text's letters and their dark outline are painted.
-    const refreshConnectorTextMask = () => {
-      const paths = g.selectAll<SVGPathElement, unknown>('.vr-fallback-connector path');
+    // Relation lines pass under visible tree text through a mask of each
+    // visible label's own letters, placed exactly on the label.
+    const maskUnderVisibleLabels = (
+      paths: d3.Selection<SVGPathElement, unknown, SVGGElement, unknown>,
+      maskId: string,
+      { outline }: { outline: boolean }
+    ) => {
       if (paths.empty()) return;
       const bounds = measureGraphicsElementsInTreeSpace(paths.nodes());
       if (!bounds) return;
-      const maskId = `${trajectoryLabelMaskId}-connectors`;
       let mask = g.select<SVGMaskElement>(`#${maskId}`);
       if (mask.empty()) mask = g.append('defs').append('mask').attr('id', maskId).attr('maskUnits', 'userSpaceOnUse');
       const area = { x: bounds.x - 40, y: bounds.y - 40, width: bounds.width + 80, height: bounds.height + 80 };
@@ -414,40 +415,22 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
           glyphs.removeAttribute('id');
           glyphs.removeAttribute('class');
           glyphs.style.setProperty('fill', 'black', 'important');
-          glyphs.style.setProperty('stroke', 'black', 'important');
+          glyphs.style.setProperty('stroke', outline ? 'black' : 'none', 'important');
           glyphs.style.setProperty('opacity', '1');
           const group = mask.append('g').attr('transform', holder?.getAttribute('transform') ?? null);
           group.node()!.appendChild(glyphs);
         });
       paths.attr('mask', `url(#${maskId})`);
     };
-    // Keep the accepted movement curves, with visible text in front of them.
-    // Future reservations never punch holes in a currently visible arrow.
+    // Neutral connectors are hidden where the letters and their dark outline
+    // are painted. Movement curves are hidden only under the letters, so a
+    // curve crossing a word stays continuous over its outline and the word
+    // keeps its own pixels.
     cameraEffects.refreshTrajectoryClearance = () => {
-      refreshConnectorTextMask();
-      const paths = g.selectAll<SVGPathElement, unknown>('.babel-trajectory-path, .babel-trajectory-path-shadow');
-      if (paths.empty()) return;
-      const bounds = measureGraphicsElementsInTreeSpace(paths.nodes());
-      if (!bounds) return;
-      const labels = g.selectAll<SVGTextElement, HierNode>('.category-label, .terminal-label')
-        .filter(d => getRevealStepForNodeId(getNodeId(d)) <= effectiveRevealThreshold)
-        .nodes().flatMap(label => {
-          // Occlusion follows live rasterized ink; connector anchors retain world bounds.
-          const rect = measureTreeGraphics(g, [label]);
-          return rect ? [rect] : [];
-        });
-      let mask = g.select<SVGMaskElement>(`#${trajectoryLabelMaskId}`);
-      if (mask.empty()) mask = g.append('defs').append('mask').attr('id', trajectoryLabelMaskId)
-        .attr('maskUnits', 'userSpaceOnUse');
-      const area = { x: bounds.x - 40, y: bounds.y - 40, width: bounds.width + 80, height: bounds.height + 80 };
-      mask.attr('x', area.x).attr('y', area.y).attr('width', area.width).attr('height', area.height);
-      mask.selectAll('rect.trajectory-extent').data([area]).join('rect').attr('class', 'trajectory-extent')
-        .attr('fill', 'white').attr('x', d => d.x).attr('y', d => d.y)
-        .attr('width', d => d.width).attr('height', d => d.height);
-      mask.selectAll('rect.trajectory-label-clearance').data(labels).join('rect').attr('class', 'trajectory-label-clearance')
-        .attr('fill', 'black').attr('x', d => d.x - 4).attr('y', d => d.y - 4)
-        .attr('width', d => d.width + 8).attr('height', d => d.height + 8);
-      paths.attr('mask', `url(#${trajectoryLabelMaskId})`);
+      maskUnderVisibleLabels(g.selectAll<SVGPathElement, unknown>('.vr-fallback-connector path'),
+        `${trajectoryLabelMaskId}-connectors`, { outline: true });
+      maskUnderVisibleLabels(g.selectAll<SVGPathElement, unknown>('.babel-trajectory-path, .babel-trajectory-path-shadow'),
+        trajectoryLabelMaskId, { outline: false });
     };
     cameraEffects.refreshTrajectoryClearance();
     finishFallbackPlacement?.();

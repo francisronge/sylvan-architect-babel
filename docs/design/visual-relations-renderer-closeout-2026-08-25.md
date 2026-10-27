@@ -553,7 +553,8 @@ yield to their reserved stems; the lower lanes clear plaque bottoms. They also d
 the stage that their turns or runs would cross, to the nearest gap within one tree row; where unrelated text
 leaves no such gap, they keep their local floor rather than descend beneath it. Visible tree text is
 painted in front of every neutral connector: a mask hides the connector only under the letters and their dark
-outline, as movement curves pass behind labels. Role text
+outline. Movement curves pass behind labels too, but are hidden only under the letters: a curve crossing a
+word stays continuous over the word's dark outline, and the word keeps its own pixels. Role text
 yields to the connector routes. These allocations precede relation reveal, so revealing a plaque
 does not move existing syntax or annotations.
 
