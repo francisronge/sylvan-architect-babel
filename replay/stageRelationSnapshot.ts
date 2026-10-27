@@ -7,6 +7,7 @@ import { preserveConstructionAttachments } from './constructionAttachments.ts';
 import { replayOwnerId } from './displayIdentity.ts';
 import { isHeadLikeResolvedRelation, isResolvedMovementLink } from './movementLinks.ts';
 import { registeredTrajectoryDisplayKind } from './relations/movementIdentities.ts';
+import { getRelationAllAnchorNodeIds } from './relationAnchors.ts';
 import { buildDerivationReplaySnapshot } from './replayCanvas.ts';
 import {
   getReplayNodeCategoryFromCanvas,
@@ -206,6 +207,21 @@ export const createStageRelationSnapshots = (
         attachedNodeIds: new Set([...fallbackTransitionOwnership].flatMap(([relationIndex, ownership]) => activeRelationIndexes.has(relationIndex)
           ? (ownership.attachments ?? []).map(attachment => attachment.host) : [])),
         heldAttachmentNodeIds: new Set(heldAttachmentNodeIds())
+      });
+    // The anchored forest applies only the active relations' tree deltas. A
+    // node an active relation names but does not move, such as an attracting
+    // head whose feature is checked, takes its stage label at that moment.
+    if (nonMovementTransitionForest !== workspaceRoots)
+      frameRelationSteps.forEach((relation, relationIndex) => {
+        if (!activeRelationIndexes.has(relationIndex))
+          return;
+        getRelationAllAnchorNodeIds(relation).forEach(nodeId => {
+          const shown = findExactNodeByIdInForest(nonMovementTransitionForest, nodeId);
+          const prior = findExactNodeByIdInForest(previousFrameWorkspaceRoots, nodeId);
+          const current = findExactNodeByIdInForest(workspaceRoots, nodeId);
+          if (shown && prior && current && shown.label === prior.label)
+            shown.label = current.label;
+        });
       });
     let snapshotWorkspaceRoots = buildPreMovementStructuralForest(nonMovementTransitionForest, frameRelationSteps.flatMap((relation, relationIndex) => {
       if (activeRelationIndexes.has(relationIndex))
