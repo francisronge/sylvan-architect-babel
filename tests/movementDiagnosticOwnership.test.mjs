@@ -255,3 +255,81 @@ test('malformed exact Tier-1 claims cannot use the positional-context exception'
     ...dispatch, evidence: { ...dispatch.evidence, movement: undefined, movementFailure: 'MOVEMENT_ENDPOINTS_UNRESOLVED' }
   }, earlier), false);
 });
+
+// An established head chain and a stage whose own claim shifts the object: a
+// later claim of the stage may cite both without stating a movement of its own.
+const describedShift = describing => {
+  const subject = node('subject', 'DP', [], { word: 'Mia' });
+  const raised = node('raisedV', 'V', [], { lineageId: 'verb', word: 'read' });
+  const object = node('object', 'DP', [], { lineageId: 'object', word: 'it' });
+  const adverb = node('adverb', 'AdvP', [], { word: 'not' });
+  const head = node('i', 'I', [raised]);
+  const vp = lowerObject => node('vp', 'VP', [node('verbTrace', 'V trace', [], { lineageId: 'verb', silent: true }), lowerObject]);
+  const before = node('ip', 'IP', [subject, node('ibar', 'I′', [head, node('negP', 'NegP', [adverb, vp(object)])])]);
+  const after = node('ip', 'IP', [subject, node('ibar', 'I′', [head, node('shiftP', 'NegP', [object,
+    node('negP', 'NegP', [adverb, vp(node('objectTrace', 'DP trace', [], { lineageId: 'object', silent: true }))])])])]);
+  const shift = { relation: 'Object shift', anchors: { mover: 'object', trace: 'objectTrace', crossed: 'adverb' } };
+  return { sentence: 'Mia read it not', derivationStages: [stage([before]), stage([after], [shift, describing])] };
+};
+const momentOf = (replay, stageIndex, relationIndex) => replay.playbackSteps.find(step =>
+  step.replayRelationIdentity?.stageIndex === stageIndex && step.replayRelationIdentity.relationIndex === relationIndex);
+const describingClaims = [
+  ['cites the owned landing beside an unchanged head chain', { relation: 'Licensing generalization',
+    anchors: { shiftedObject: 'object', vacatedVerbPosition: 'verbTrace', raisedVerb: 'raisedV' } }],
+  ['cites the owned lower occurrence beside an unchanged lower head', { relation: 'Government',
+    anchors: { verbalHead: 'raisedV', lowerVerbalOccurrence: 'verbTrace', governedTrace: 'objectTrace' } }],
+  ['names a lineage-less head in a landing-like field', { relation: 'Requirement',
+    anchors: { trigger: 'object', targetHead: 'i' } }]
+];
+for (const [name, describing] of describingClaims) test(`a claim that ${name} states no failed movement`, () => {
+  const input = describedShift(describing), original = structuredClone(input);
+  const { dispatch, quiet } = observe(input);
+  assert.equal(dispatch.evidence.movementFailure, 'MOVEMENT_ENDPOINTS_UNRESOLVED', 'the speculative refusal stays inspectable');
+  assert.equal(quiet, true);
+  const replay = prepareReplay({ ...input, includePlayback: true });
+  assert(!momentOf(replay, 1, 1).movementDiagnostics?.some(text => text.startsWith('MOVEMENT_')));
+  assert.equal(replay.relationRenderPlan.frames[1].items.filter(item => item.kind === 'trajectory').length, 1,
+    'the owning claim alone draws the shift');
+  assert.deepEqual(input, original);
+});
+
+test('a prior field naming a lineage-less occurrence does not make a licensing claim a movement', () => {
+  const input = describedShift({ relation: 'Argument licensing',
+    anchors: { predicate: 'raisedV', theme: 'objectTrace', source: 'adverb' },
+    priorAnchors: { predicate: 'raisedV', theme: 'object', source: 'adverb' } });
+  const { dispatch, quiet } = observe(input);
+  assert.equal(dispatch.evidence.movementFailure, 'MOVEMENT_ENDPOINTS_UNRESOLVED');
+  assert.equal(quiet, true);
+  assert(!momentOf(prepareReplay({ ...input, includePlayback: true }), 1, 1).movementDiagnostics
+    ?.some(text => text.startsWith('MOVEMENT_')));
+});
+
+for (const [name, mutate] of [
+  ['before its owning movement', input => input.derivationStages[1].relations.reverse()],
+  ['without an owning movement', input => input.derivationStages[1].relations.shift()],
+  ['naming the displaced occurrence in a movement-like field', input => {
+    input.derivationStages[1].relations[1].anchors = { verbalHead: 'raisedV', lowerVerbalOccurrence: 'objectTrace' };
+  }],
+  ['naming an explicit prior source of the moved lineage', input => {
+    input.derivationStages[1].relations[1].priorAnchors = { source: 'object' };
+  }],
+  ['displacing an occurrence no claim owns', input => {
+    const shiftP = input.derivationStages[1].workspaceForest[0].children[1].children[1];
+    shiftP.children.unshift(node('subjectCopy', 'DP', [], { lineageId: 'verb', silent: true }));
+    input.derivationStages[1].relations[1].anchors.copy = 'subjectCopy';
+  }]
+]) test(`a describing claim ${name} keeps its movement diagnostic`, () => {
+  const input = describedShift(structuredClone(describingClaims[0][1])); mutate(input);
+  const relationIndex = input.derivationStages[1].relations.findIndex(relation => relation.relation === 'Licensing generalization');
+  const { dispatch, quiet } = observe(input, relationIndex);
+  assert(dispatch.evidence.movementFailure, 'the claim is refused as a movement');
+  assert.equal(quiet, false);
+});
+
+test('a malformed movement claim drawn by no other claim keeps its diagnostic', () => {
+  const input = describedShift({ relation: 'Object shift',
+    anchors: { mover: 'object', trace: 'objectTrace', landing: 'object', source: 'verbTrace' } });
+  input.derivationStages[1].relations.shift();
+  const replay = prepareReplay({ ...input, includePlayback: true });
+  assert(momentOf(replay, 1, 0).movementDiagnostics?.some(text => text.startsWith('MOVEMENT_')));
+});
