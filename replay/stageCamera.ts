@@ -24,6 +24,7 @@ import {
   measuredCaseSourceRect,
   beyondNearbyReach,
   DETACHED_PLAQUE_GAP,
+  nearbyPlaqueReach,
   MIN_RELOCATION_GAIN,
   plaqueAnchorPoint,
   placeStagePlaques,
@@ -274,9 +275,15 @@ export function selectReplayPlaqueLayout(schedule: ReplayPlaqueSchedule, stageIn
  * participants' relative geometry changes, and its pocket stays clear in every scene
  * of that lifetime. A plaque without a connector whose one pocket would be remote
  * instead takes a pocket for each position an authored movement carries its anchor
- * to. Plaques are placed in one pass, so each avoids the pockets actually shown.
- * A plaque without a connector still remote afterwards gets one second look per run
- * of phases at one pocket (`bringNear`), which moves no other plaque. */
+ * to; failing that, a clearly nearer pocket at the second look's narrower gap from
+ * syntax for its whole lifetime; failing that, a nearby pocket until the first phase
+ * that blocks every nearby pocket, where the syntax, marks and other pockets known
+ * then leave it another. One carried beyond its nearby reach looks again in every
+ * phase. Such a nearer pocket must not leave the phase's plaques farther beyond their
+ * reach in all, Case and collector plaques included (`joinedReserve`). Plaques are
+ * placed in one pass, so each avoids the pockets actually shown. A plaque without a
+ * connector still remote afterwards gets one second look per run of phases at one
+ * pocket (`bringNear`), which moves no other plaque. */
 type PocketRecord = { occupants: () => PocketOccupant[]; owner: (index: number) => string; pocket: (index: number) => HeldPocket | undefined };
 const pocketRecords = new WeakMap<ReplayPlaqueSchedule, ReadonlyMap<number, PocketRecord>>();
 /** What the hold pass of a schedule built with `pocketOccupants` saw at one Replay
@@ -492,7 +499,13 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
   // Claims placed one anchor position at a time: from the phase where their one
   // lifetime pocket would be remote, each lifetime ends at the anchor's next movement.
   const relocatedKeys = new Set<string>();
+  /** A proximity plaque whose every nearby pocket is blocked somewhere in its
+   * lifetime keeps a nearby pocket until the first phase that blocks them all
+   * (`end`), and there chooses again. `from` is the phase that chose the pocket. */
+  const nearbyEnds = new Map<string, { from: number; end: number }>();
   type AllocationMode = 'collections' | 'ordinary';
+  const sameOffset = (a: PlaquePlacement, b: PlaquePlacement) => a.attachmentNodeId === b.attachmentNodeId
+    && Math.abs(a.x - a.attachmentX - (b.x - b.attachmentX)) < 1e-6 && Math.abs(a.y - a.attachmentY - (b.y - b.attachmentY)) < 1e-6;
   const allocate = (phaseIndex: number, mode: AllocationMode) => {
     const phase = phases[phaseIndex], frame = { ...frames[phase.stageIndex], items: phase.items };
     const { nodes, obstacles } = phase;
@@ -522,47 +535,181 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       });
       if (invalid) remembered.delete(key);
     });
-    // A relocated plaque starts a new lifetime when an authored movement carries its
-    // anchor; its old pocket becomes its incumbent. That pocket stays reserved like any
-    // other until the plaque itself is placed, so whichever plaque is allocated first
-    // cannot take it before its owner decides whether to leave it.
-    const relocating = new Set(phaseRequests[phaseIndex].filter(request => relocatedKeys.has(keyOf(request.index))
-      && anchorMoved(phaseIndex, request.ids[0])).map(request => request.index));
-    const reconsider = new Set(phaseRequests[phaseIndex].filter(request =>
-      (collectionsOnly || !collectionReservations[phaseIndex]?.has(request.index))
-      && (geometryBoundary(phaseIndex, request, participantIds(request, phaseIndex)) || relocating.has(request.index)))
-      .map(request => request.index));
+    /** The phases from this one where a pocket chosen here must stay clear. */
+    const lifetimeEnd = (index: number, untilMovement: boolean) => {
+      const extent = lifetimeExtent(phaseIndex, phaseRequests[phaseIndex].find(request => request.index === index)!);
+      const nearby = nearbyEnds.get(keyOf(index));
+      return Math.min(untilMovement ? extent.movement ?? extent.end : extent.end, nearby && nearby.end > phaseIndex ? nearby.end : Infinity);
+    };
+    // Plaques a Case arrow or collector joins to syntax choose after proximity plaques,
+    // so a proximity plaque leaving its one lifetime pocket for a nearer one can take
+    // the pocket such a plaque holds when it stays (`joinedReserve`: those pockets,
+    // chosen in this phase without the proximity plaques' new pockets). When the
+    // phase's plaques then stand farther beyond their nearby reach in all than before
+    // those moves, the phase is allocated again with the joined pockets reserved while
+    // proximity plaques look, and keeps whichever allocation leaves less beyond reach.
+    let reserving = false;
+    let joinedPockets: Map<string, PlaquePlacement> | undefined;
+    const joinedReserve = () => joinedPockets ??= (() => {
+      const joined = new Set(phaseRequests[phaseIndex].filter(request => !proximityOnly(request)
+        && !collectionReservations[phaseIndex]?.has(request.index)).map(request => request.index));
+      if (collectionsOnly || !joined.size) return new Map<string, PlaquePlacement>();
+      const reconsidered = new Set([...joined].filter(index => {
+        const request = requestsByIndex(phaseIndex).get(index)!;
+        return geometryBoundary(phaseIndex, request, participantIds(request, phaseIndex));
+      }));
+      const layout = placeStagePlaques(phase.items, nodes, obstacles, remembered, input.measurePlaqueText, {
+        sizes, reconsider: reconsidered, caseSources, includes: index => joined.has(index),
+        spaceFor: (index, anchor, allocated) => lifetimeSpace(index, anchor, allocated, relocatedKeys.has(keyOf(index))) });
+      return new Map([...layout].map(([index, placement]) => [keyOf(index), placement] as const));
+    })();
     const lifetimeSpace = (index: number, anchor: d3.HierarchyPointNode<SyntaxNode>, allocated: Map<number, PlaquePlacement>,
-      untilMovement: boolean) => {
+      untilMovement: boolean, end = lifetimeEnd(index, untilMovement), start = phaseIndex, reserveJoined = false) => {
       const key = keyOf(index);
       const known = new Map(remembered);
+      if (reserveJoined && reserving) joinedReserve().forEach((placement, joinedKey) => known.set(joinedKey, placement));
       allocated.forEach((placement, itemIndex) => known.set(keyOf(itemIndex), placement));
-      const extent = lifetimeExtent(phaseIndex, phaseRequests[phaseIndex].find(request => request.index === index)!);
-      const end = untilMovement ? extent.movement ?? extent.end : extent.end;
-      return lifetimeSpaceOf(pocketScenes(key, anchor, Array.from({ length: end - phaseIndex }, (_, offset) => phaseIndex + offset),
+      return lifetimeSpaceOf(pocketScenes(key, anchor, Array.from({ length: end - start }, (_, offset) => start + offset),
         future => new Map(phases[future].items.flatMap((item, index) => {
           const otherKey = plaqueIdentity(item), reserved = collectionReservations[future]?.get(index);
           const placement = future === phaseIndex ? known.get(otherKey) ?? reserved : reserved ?? known.get(otherKey);
           return placement ? [[index, placement] as const] : [];
         }))));
     };
-    const layout = placeStagePlaques(phase.items, nodes, obstacles, remembered, input.measurePlaqueText, {
-      sizes, collectionsOnly, reconsider, relocating, caseSources,
-      spaceFor: (index, anchor, allocated) => lifetimeSpace(index, anchor, allocated, relocatedKeys.has(keyOf(index))),
-      relocate: (index, anchor, allocated, box) => {
-        const request = phaseRequests[phaseIndex].find(request => request.index === index)!;
-        if (relocatedKeys.has(keyOf(index)) || !proximityOnly(request)
-          || lifetimeExtent(phaseIndex, request).movement === undefined || !remote(anchor, box, request)) return undefined;
-        relocatedKeys.add(keyOf(index));
-        return lifetimeSpace(index, anchor, allocated, true);
-      } });
-    layout.forEach((placement, index) => remembered.set(keyOf(index), placement));
+    /** The nearby pocket `space` holds for the claim at `index`, at `syntaxGap`, if any. */
+    const nearbyIn = (index: number, anchor: d3.HierarchyPointNode<SyntaxNode>, request: Request, space: PlaqueSpace,
+      syntaxGap?: number) => {
+      const size = sizes.get(keyOf(index)) ?? request, reach = nearbyPlaqueReach({ width: size.width, height: size.height, thetaGrid: request.thetaGrid });
+      const near = placeStagePlaques(phase.items, nodes, obstacles, new Map(), input.measurePlaqueText, {
+        sizes, includes: other => other === index, spaceFor: () => space, caseSources, syntaxGap, searchWithin: reach + 1e-6 }).get(index);
+      return near?.location === 'local' && !remote(anchor, near, request) ? near : undefined;
+    };
+    // A proximity plaque carried beyond its nearby reach looks again in every phase
+    // whose own syntax, marks and pockets leave it a nearby pocket, keeping its pocket
+    // unless one is clear for its lifetime (the Replay step hold below moves it only
+    // where the pocket-hold contract allows).
+    const remoteCarried = (request: Request) => {
+      const prior = !collectionsOnly && proximityOnly(request) && remembered.get(keyOf(request.index));
+      const anchor = prior && sceneNodes(phase).get(prior.attachmentNodeId);
+      return Boolean(anchor && remote(anchor, projectPlaqueLayout(new Map([[0, prior]]), () => anchor).get(0)!, request)
+        && nearbyIn(request.index, anchor, request, lifetimeSpace(request.index, anchor, new Map(),
+          relocatedKeys.has(keyOf(request.index)), phaseIndex + 1, phaseIndex, true), DETACHED_PLAQUE_GAP));
+    };
+    /** How far beyond its nearby reach a pocket stands, as a fraction of that reach. */
+    const excess = (anchor: d3.HierarchyPointNode<SyntaxNode>, box: PlaqueRect, request: Request) =>
+      Math.max(0, anchorDistance(anchor, box) / nearbyPlaqueReach(reachOf(box, request)) - 1);
+    /** Proximity plaques a pass gave a nearer pocket, with the excess of the pocket they left. */
+    let left = new Map<number, number>();
+    const pass = () => {
+      left = new Map();
+      // A relocated plaque starts a new lifetime when an authored movement carries its
+      // anchor; its old pocket becomes its incumbent. That pocket stays reserved like any
+      // other until the plaque itself is placed, so whichever plaque is allocated first
+      // cannot take it before its owner decides whether to leave it. So does the remote
+      // pocket of a plaque carried beyond reach that looks again.
+      const carriedAgain = new Set<number>();
+      const relocating = new Set(phaseRequests[phaseIndex].filter(request => relocatedKeys.has(keyOf(request.index))
+        && anchorMoved(phaseIndex, request.ids[0]) || remoteCarried(request) && carriedAgain.add(request.index)).map(request => request.index));
+      const reconsider = new Set(phaseRequests[phaseIndex].filter(request =>
+        (collectionsOnly || !collectionReservations[phaseIndex]?.has(request.index))
+        && (geometryBoundary(phaseIndex, request, participantIds(request, phaseIndex)) || relocating.has(request.index)))
+        .map(request => request.index));
+      const layout = placeStagePlaques(phase.items, nodes, obstacles, remembered, input.measurePlaqueText, {
+        sizes, collectionsOnly, reconsider, relocating, caseSources,
+        spaceFor: (index, anchor, allocated) => lifetimeSpace(index, anchor, allocated, relocatedKeys.has(keyOf(index)),
+          undefined, phaseIndex, carriedAgain.has(index)),
+        relocate: (index, anchor, allocated, box) => {
+          const request = phaseRequests[phaseIndex].find(request => request.index === index)!, key = keyOf(index);
+          if (!proximityOnly(request) || !remote(anchor, box, request)) return undefined;
+          const relocated = relocatedKeys.has(key);
+          let untilMovement = relocated, end = lifetimeEnd(index, untilMovement);
+          if (!untilMovement && lifetimeExtent(phaseIndex, request).movement !== undefined) {
+            relocatedKeys.add(key);
+            untilMovement = true; end = lifetimeEnd(index, true);
+            const space = lifetimeSpace(index, anchor, allocated, true, end, phaseIndex, true);
+            if (nearbyIn(index, anchor, request, space)) { left.set(index, excess(anchor, box, request)); return { space }; }
+          }
+          let wholeSpace: PlaqueSpace | undefined, reservedSpace: PlaqueSpace | undefined;
+          const whole = () => wholeSpace ??= lifetimeSpace(index, anchor, allocated, untilMovement, end);
+          const reservedWhole = () => reservedSpace ??= lifetimeSpace(index, anchor, allocated, untilMovement, end, phaseIndex, true);
+          const unchanged = () => untilMovement && !relocated ? { space: whole() } : undefined;
+          // Each choice below needs a nearby pocket in this phase, at least at the
+          // second look's narrower gap from syntax.
+          const first = lifetimeSpace(index, anchor, allocated, untilMovement, phaseIndex + 1, phaseIndex, true);
+          if (!nearbyIn(index, anchor, request, first, DETACHED_PLAQUE_GAP)) return unchanged();
+          // A clearly nearer pocket at that gap, as the second look allows (bringNear),
+          // serves the whole lifetime.
+          const detached = nearbyIn(index, anchor, request, reservedWhole(), DETACHED_PLAQUE_GAP);
+          if (detached && anchorDistance(anchor, detached) <= MIN_RELOCATION_GAIN * anchorDistance(anchor, box)) {
+            left.set(index, excess(anchor, box, request));
+            return { space: reservedWhole(), syntaxGap: DETACHED_PLAQUE_GAP };
+          }
+          // No nearby pocket serves the whole lifetime: the longest run of phases from
+          // this one that some nearby pocket does serve ends where they are all blocked.
+          // The plaque changes pocket there only where syntax and marks leave it a nearby
+          // pocket, at most as near them as the second look allows; otherwise it keeps
+          // the one pocket that serves its whole lifetime.
+          if (phaseIndex + 1 >= end || !nearbyIn(index, anchor, request, first)) return unchanged();
+          let served = { space: first, end: phaseIndex + 1 }, low = phaseIndex + 2, high = end - 1;
+          while (low <= high) {
+            const middle = (low + high) >> 1, space = lifetimeSpace(index, anchor, allocated, untilMovement, middle, phaseIndex, true);
+            if (nearbyIn(index, anchor, request, space)) { served = { space, end: middle }; low = middle + 1; }
+            else high = middle - 1;
+          }
+          // What the syntax, marks, fixed collections and the other plaques' pockets known now leave there.
+          const after = lifetimeSpace(index, anchor, allocated, untilMovement, served.end + 1, served.end, true);
+          if (!nearbyIn(index, anchor, request, after) && !nearbyIn(index, anchor, request, after, DETACHED_PLAQUE_GAP)) return unchanged();
+          nearbyEnds.set(key, { from: phaseIndex, end: served.end });
+          left.set(index, excess(anchor, box, request));
+          return { space: served.space };
+        } });
+      carriedAgain.forEach(index => {
+        const prior = remembered.get(keyOf(index)), anchor = prior && sceneNodes(phase).get(prior.attachmentNodeId);
+        const request = requestsByIndex(phaseIndex).get(index);
+        if (anchor && request && !left.has(index))
+          left.set(index, excess(anchor, projectPlaqueLayout(new Map([[0, prior]]), () => anchor).get(0)!, request));
+      });
+      return layout;
+    };
+    const state = () => ({ relocated: new Set(relocatedKeys), nearby: new Map(nearbyEnds) });
+    const restore = ({ relocated, nearby }: ReturnType<typeof state>) => {
+      relocatedKeys.clear(); relocated.forEach(key => relocatedKeys.add(key));
+      nearbyEnds.clear(); nearby.forEach((value, key) => nearbyEnds.set(key, value));
+    };
+    const initial = state();
+    let layout = pass();
+    /** The excess of the joined plaques and of the proximity plaques given nearer
+     * pockets, summed: as `placements` stand, or, with `held`, before those moves. */
+    const beyondReach = (placements: ReadonlyMap<number, PlaquePlacement>, moved: ReadonlyMap<number, number>, held = false) =>
+      [...placements].reduce((sum, [index, placement]) => {
+        const request = requestsByIndex(phaseIndex).get(index), anchor = sceneNodes(phase).get(placement.attachmentNodeId);
+        if (!request || !anchor) return sum;
+        if (moved.has(index)) return sum + (held ? moved.get(index)! : excess(anchor, placement, request));
+        const before = !proximityOnly(request) && joinedReserve().get(keyOf(index));
+        return before ? sum + excess(anchor, held ? before : placement, request) : sum;
+      }, 0);
+    if (!collectionsOnly && left.size && beyondReach(layout, left) > beyondReach(layout, left, true) + 1e-6) {
+      const first = { layout, state: state() }, moved = new Map(left);
+      restore(initial);
+      reserving = true;
+      const again = pass();
+      left.forEach((value, index) => { if (!moved.has(index)) moved.set(index, value); });
+      if (beyondReach(again, moved) < beyondReach(first.layout, moved) - 1e-6) layout = again;
+      else restore(first.state);
+    }
+    layout.forEach((placement, index) => {
+      const key = keyOf(index), prior = remembered.get(key), nearby = nearbyEnds.get(key);
+      // A shortened lifetime belongs to its pocket.
+      if (nearby && nearby.from < phaseIndex && !(prior && sameOffset(prior, placement))) nearbyEnds.delete(key);
+      remembered.set(key, placement);
+    });
     return layout;
   };
   // D6 collection curves have fixed endpoints and control lanes. Reserve them
   // first so an earlier, freely placed grid cannot force a later detour.
   phases.forEach((_, phaseIndex) => { collectionReservations[phaseIndex] = allocate(phaseIndex, 'collections'); });
   remembered.clear();
+  nearbyEnds.clear();
   const schedule: ReplayPlaqueSchedule = { stages: [], steps: new Map() };
   if (recorded) pocketRecords.set(schedule, recorded);
   const layouts: Map<number, PlaquePlacement>[] = [];

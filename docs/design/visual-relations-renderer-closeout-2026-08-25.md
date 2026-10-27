@@ -604,7 +604,9 @@ takes at most four lines, because a taller one pushes its sisters' row down: one
 that would need more widens its lines, up to twice the normal width, when that
 splits no more words. Wrapped categories
 use the same multiline bounds for plaque obstacles and stage Fit. Native branch
-geometry never depends on label height. Category glyphs and their dark stroke
+geometry never depends on label height: a fork that no widening can clear of an
+inner sister's wrapped label keeps its row and slots, and its branch crosses
+that label. Category glyphs and their dark stroke
 paint over branches without masking the surrounding multiline rectangle. The
 incoming branch remains visible between and outside the glyphs. Short
 labels preserve their existing bounds and native branches.
@@ -934,7 +936,10 @@ completed last Stage Record releases earlier source-position bounds and fits the
 finished drawing; Fit uses those same final bounds. This does not compact or
 recenter the tree's internal coordinates.
 Forward playback also retains an already fitting view when a new stage could
-merely zoom in. Actual overflow can still pan or reduce scale. Prev within the
+merely zoom in. Actual overflow can still pan or reduce scale. A retained view
+that would leave the new stage lopsided on an axis it does not pan, with a
+quarter of the view more empty on one side of it than on the other, gives way
+to that stage's own fit. Prev within the
 same stage keeps that stage's current view rather than refitting, so a stage
 keeps one camera in both directions. Each stage lays
 out its syntax in its own coordinates, so a step into another stage translates
