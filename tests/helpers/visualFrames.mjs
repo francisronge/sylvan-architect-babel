@@ -383,6 +383,8 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     stage, positionFor, { ...RELATION_BINDING_METRICS, markerScale, ...badgeObstacles,
       hasExistingGapNotation: runText, plaqueTextLayout: { measureText: measurePlaqueText }, isItemRevealed: index => revealed.has(index),
       trajectoryCeilingY: textTop - TRAJECTORY_ROUTES.ceilingAboveTextTop, trajectoryFloorY: maxY + lanes.trajectoryFloor,
+      // measuredTreeLabelRects: each painted category label and word.
+      trajectoryLabelBoxes: () => painted.texts.map(text => text.cell),
       connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase, direction: visual.direction, ...extra });
   const drawable = createPrimitiveVisibility(items, resolveOverlayAnchor);
   const shownMarks = bound => bound.primitives.filter(primitive => revealed.has(primitive.itemIndex) && drawable(primitive));
