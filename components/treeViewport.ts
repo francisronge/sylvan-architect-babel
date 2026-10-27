@@ -47,12 +47,19 @@ export function createViewportSettler({ apply, painted, schedule, cancel, delay 
 
 export type { PaintedNodes };
 
+/** Entering a new stage, a retained pose that leaves this share of the view
+ * more empty on one side of the stage envelope than on the other is lopsided. */
+export const CROSSING_LOPSIDED_SHARE = 0.25;
+
 /** Playback does not zoom in merely because a later stage has more room.
  * Preserve the accepted pose until clearance needs a pan or smaller scale.
  * Entering a new stage (`crossing`), an axis that clearance has to pan is
  * centred on the envelope instead of clamped to the edge it overflowed: the
  * camera moves on that axis anyway, and the stage then keeps the pose for all
- * its micro-steps. Within a stage the least pan remains. */
+ * its micro-steps. A retained pose left lopsided on an axis it does not pan
+ * (the new stage's envelope shrank or shifted away from one edge, leaving it
+ * flush against the other) gives way to the stage's own fit, as direct
+ * selection frames it. Within a stage the least pan remains. */
 export function advanceFittedCamera(
   previous: { x: number; y: number; k: number },
   fitted: { x: number; y: number; k: number },
@@ -62,14 +69,20 @@ export function advanceFittedCamera(
 ) {
   if (previous.k > fitted.k + 1e-7) return fitted;
   const contained = containCamera(previous, bounds, view);
-  if (!crossing || contained === previous) return contained;
+  if (!crossing) return contained;
   const epsilon = 1e-6, { k } = contained;
   // containCamera's position before clamping: scaled about the view centre.
   const centerX = (view.left + view.right) / 2, centerY = (view.top + view.bottom) / 2;
   const scaledX = centerX + (previous.x - centerX) * k / previous.k, scaledY = centerY + (previous.y - centerY) * k / previous.k;
+  const panX = Math.abs(contained.x - scaledX) > epsilon, panY = Math.abs(contained.y - scaledY) > epsilon;
+  const lopsided = (position: number, min: number, max: number, start: number, end: number) =>
+    Math.abs((position + min * k - start) - (end - position - max * k)) > CROSSING_LOPSIDED_SHARE * (end - start);
+  if ((!panX && lopsided(contained.x, bounds.minX, bounds.maxX, view.left, view.right))
+    || (!panY && lopsided(contained.y, bounds.minY, bounds.maxY, view.top, view.bottom))) return fitted;
+  if (!panX && !panY) return contained;
   return {
-    x: Math.abs(contained.x - scaledX) > epsilon ? centerX - (bounds.minX + bounds.maxX) / 2 * k : contained.x,
-    y: Math.abs(contained.y - scaledY) > epsilon ? centerY - (bounds.minY + bounds.maxY) / 2 * k : contained.y,
+    x: panX ? centerX - (bounds.minX + bounds.maxX) / 2 * k : contained.x,
+    y: panY ? centerY - (bounds.minY + bounds.maxY) / 2 * k : contained.y,
     k
   };
 }

@@ -55,6 +55,18 @@ test('current head movement owns its exact receiver and leaves subject/object st
   assert.deepEqual(motion(before, current, relation()), result);
 });
 
+test('a head waiting as its own workspace belongs to the new landing that its raised head joins', () => {
+  const vp = fork('vp', atom('subject'), atom('object'));
+  const before = view(fork('tp', fork('source', atom('verb')), vp), atom('receiver'), atom('other'));
+  const current = view(fork('core', fork('complex', fork('source', atom('verb')), atom('receiver')), fork('tp', atom('witness'), vp)), atom('other'));
+  const head = overrides => relation({ trajectoryKind: 'head', priorSourceNodeId: 'source', targetNodeId: 'source', ...overrides });
+  const result = motion(before, current, head());
+  assert(result.owned.has('receiver')); assert.deepEqual(result.stationary, ['other']);
+  assert(!motion(before, current, head({ trajectoryKind: 'phrasal' })).owned.has('receiver'), 'only a head landing joins its receiver');
+  const changed = view(fork('core', fork('complex', fork('source', atom('verb')), atom('receiver', 'word')), fork('tp', atom('witness'), vp)), atom('other'));
+  assert(!motion(before, changed, head()).owned.has('receiver'), 'a receiver whose material changes keeps its own constraint');
+});
+
 test('an exact new extraction wrapper owns its retained host, never its outside sibling', () => {
   const before = view(fork('clause', atom('subject'), fork('host', atom('source'), atom('object'))));
   const current = view(fork('clause', atom('subject'), fork('wrapper', atom('landing'), fork('host', atom('witness'), atom('object')))));
