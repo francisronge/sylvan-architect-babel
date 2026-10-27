@@ -161,3 +161,37 @@ test('without the earlier movement claim the government claim keeps its refusal 
   assert.ok(movementCodes(moment(replay, 1, 0)).some(text => text.startsWith('MOVEMENT_')));
   assert.ok(checkMovementUnrendered(replay, record).some(found => found.subject === '1:0'));
 });
+
+// Opus s58 (opus-stress, stage 22): after topicalization takes the last hop,
+// an A-bar chain claim inventories the head, a list of intermediate copies and
+// the foot. Earlier stages left the lower copies; the stage's first claim
+// draws the new hop.
+const chainSummary = (withMovement = true) => {
+  const copy = id => node(id, 'DP', [], { lineageId: 'book', silent: true });
+  const clause = () => node('cbar', 'C′', [word('c', 'C', '', { silent: true }),
+    node('vp', 'VP', [copy('t2'), node('vbar', 'V′', [word('v', 'V', '看过'), copy('t1')])])]);
+  const before = [node('cp', 'CP', [word('book', 'DP', '这本书', { lineageId: 'book' }), clause()])];
+  const after = [node('topp', 'TopP', [word('book', 'DP', '这本书', { lineageId: 'book' }),
+    node('topbar', 'Top′', [word('top', 'Top', '', { silent: true }), node('cp', 'CP', [copy('t3'), clause()])])])];
+  const movement = { relation: 'internal-merge (A-bar topicalization)', anchors: { mover: 'book', tail: 't3', attractor: 'top' } };
+  const chain = { relation: 'A-bar chain', anchors: { head: 'book', intermediateCopies: ['t3', 't2'], foot: 't1' } };
+  return { sentence: '这本书看过', derivationStages: [stage(before), stage(after, withMovement ? [movement, chain] : [chain])] };
+};
+
+test('a chain inventory listing lower copies of hops already drawn asserts no movement', () => {
+  const record = chainSummary(), replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
+  assert.ok(replay.relationRenderPlan.frames[1].items.some(item => item.kind === 'trajectory'
+    && item.sourceNodeId === 't3' && item.targetNodeId === 'book'), 'the stage\'s first claim draws the new hop');
+  assert.deepEqual(movementCodes(moment(replay, 1, 1)), []);
+  assert(!checkMovementUnrendered(replay, record).some(found => found.subject === '1:1'));
+});
+
+test('without the claim drawing the new hop, or with a copy listed twice, the chain inventory keeps its refusal', () => {
+  const record = chainSummary(false), replay = prepareReplay({ ...structuredClone(record), includePlayback: true });
+  assert.ok(movementCodes(moment(replay, 1, 0)).some(text => text.startsWith('MOVEMENT_ENDPOINTS_UNRESOLVED')));
+  assert.ok(checkMovementUnrendered(replay, record).some(found => found.subject === '1:0'));
+  const twice = chainSummary();
+  twice.derivationStages[1].relations[1].anchors.intermediateCopies = ['t3', 't3', 't2'];
+  assert.ok(movementCodes(moment(prepareReplay({ ...structuredClone(twice), includePlayback: true }), 1, 1))
+    .some(text => text.startsWith('MOVEMENT_ENDPOINTS_UNRESOLVED')));
+});

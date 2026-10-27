@@ -76,7 +76,6 @@ export function isPriorMovementContextFailure(
     && identities.some(ids => ids.length > 1
       && new Set(ids).size === ids.length && ids.every(unchanged) && (!listed || settledLineages(ids))
       && [...directional, ...witnesses].every(entry => entry.items.every(id => ids.includes(id))))) return true;
-  if (listed) return false;
   const earlierChain = (ids: readonly string[]) => earlierMovements.some(movement => {
     const members = new Set([movement.sourceNodeId, movement.targetNodeId, movement.witnessNodeId]);
     return movement.transition && ids.includes(movement.sourceNodeId) && ids.includes(movement.targetNodeId)
@@ -85,11 +84,17 @@ export function isPriorMovementContextFailure(
   // A chain inventory can describe a transition already owned by an earlier
   // relation. Its name alone must not demand a second transition. Directed
   // endpoints and changed members without an earlier owner remain errors.
-  if (chainIdentity) return evidence.movementFailure === 'MOVEMENT_ENDPOINTS_UNRESOLVED'
-    && directional.length === 0 && witnesses.length === 0
+  // A pair directs one movement; head, foot and intermediate copies naming
+  // several distinct lower occurrences inventory the chain's hops instead.
+  const lowerCopies = new Set(directional.filter(entry => entry.concepts.includes('movement.source')).flatMap(entry => entry.items));
+  if (chainIdentity) return evidence.movementFailure === 'MOVEMENT_ENDPOINTS_UNRESOLVED' && witnesses.length === 0
+    && (directional.length === 0 || lowerCopies.size > 1
+      && directional.every(entry => new Set(entry.items).size === entry.items.length))
     && identities.some(ids => ids.length > 1 && new Set(ids).size === ids.length
       && anchors.every(id => ids.includes(id) || unchanged(id))
+      && directional.every(entry => entry.items.every(id => ids.includes(id)))
       && (ids.every(unchanged) || earlierChain(ids)));
+  if (listed) return false;
 
   // A positional reference is not an instruction to move. A neutral claim may
   // name a base position alongside its independently established raised member.
