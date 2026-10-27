@@ -19,7 +19,7 @@ interface TrajectoryRefinementsContext extends Pick<RelationMeasurements,
   | 'unionRects'
 > {
   g: DrawingLayer;
-  productionTrajectoryPaths: () => SVGPathElement[];
+  laneTrajectoryPaths: () => SVGPathElement[];
 }
 export function createTrajectoryRefinements({
   measuredShellRect,
@@ -31,7 +31,7 @@ export function createTrajectoryRefinements({
   measureRenderedElementsInTreeSpace,
   measuredTrajectorySubtreeRect,
   unionRects,
-  productionTrajectoryPaths
+  laneTrajectoryPaths
 }: TrajectoryRefinementsContext) {
   const measuredDepartureRect = (path: d3.Selection<SVGPathElement, unknown, null, undefined>) => {
     const terminal = path.attr('data-trajectory-source-attachment') === 'terminal';
@@ -270,7 +270,7 @@ export function createTrajectoryRefinements({
           .filter((rect): rect is { x: number; y: number; width: number; height: number } => Boolean(rect))
       )
       : null;
-    const pathIndex = Math.max(0, productionTrajectoryPaths().indexOf(this));
+    const pathIndex = Math.max(0, laneTrajectoryPaths().indexOf(this));
     const sourceX = departureRect
       ? departureRect.x + departureRect.width / 2
       : sourceRect.x + sourceRect.width / 2;
