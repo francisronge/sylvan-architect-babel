@@ -11,6 +11,7 @@ import {
 import { projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
 import { projectVisibleAnchorSetOrganization } from '../../replay/relations/relationFrame.ts';
 import type { RelationRenderPlan } from '../../replay/relations/renderPlan.ts';
+import { rankScopeDomains } from '../../replay/relations/scopeColourRanks.ts';
 import {
   isPlanItemRevealed,
   planItemDependencyNodeIds,
@@ -462,21 +463,7 @@ export function paintRelationScene({
         : primitive)
       .filter(primitive => frameItems[primitive.itemIndex] && revealedItemIndices.has(primitive.itemIndex)
         && primitiveWitnessesVisible(primitive));
-    const operatorVariableScopeRankByItem = new Map<number, number>();
-    const operatorVariableScopeItems = frameItems
-      .map((item, itemIndex) => ({ item, itemIndex }))
-      .filter((entry): entry is {
-        item: Extract<RelationPlanItem, { kind: 'operator-variable-binding' }>;
-        itemIndex: number;
-      } => entry.item.kind === 'operator-variable-binding' && Boolean(entry.item.scopeDomainNodeId))
-      .sort((left, right) => {
-        const sizeDifference = (right.item.scopeMemberNodeIds?.length || 0)
-          - (left.item.scopeMemberNodeIds?.length || 0);
-        return sizeDifference || left.itemIndex - right.itemIndex;
-      });
-    operatorVariableScopeItems.forEach((entry, rank) => {
-      operatorVariableScopeRankByItem.set(entry.itemIndex, rank);
-    });
+    const { ranks: operatorVariableScopeRankByItem, scopes: operatorVariableScopeItems } = rankScopeDomains(frameItems, revealedItemIndices);
     const renderedFeatureSharingItems = new Set<number>();
     const renderedCaseCompositions = new Set<string>();
 
