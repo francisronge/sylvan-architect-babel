@@ -24,7 +24,7 @@ test('a feature plaque keeps clear of the remnant enclosure its stage draws late
   assert.equal(offsets.size, 1, `one pocket from frame 27 through the enclosure: ${[...offsets]}`);
 });
 
-test('control: region-overlap reports a plaque across another claim\'s region outline', () => {
+test('control: region-overlap reports a plaque across another claim\'s region box outline', () => {
   const plaque = (x, y, claims = ['3:1']) => ({ id: 'plaque(3:1 subjectCase: nominative)@who', text: 'subjectCase: nominative',
     rect: { x, y, width: 360, height: 129 }, radius: 14, claims });
   const frame = (plaques, marks) => ({ frame: 37, viewport: 'desktop', zoom: 0.11, texts: [], lines: [], plaques, marks });
@@ -33,8 +33,8 @@ test('control: region-overlap reports a plaque across another claim\'s region ou
     [['region-overlap', 'plaque', 11.22]], 'main: 121 units across its left edge, 102 into its height');
   assert.deepEqual(checkRegionOverlap(frame([plaque(7824, 1915)], [box])), [], 'beside it');
   assert.deepEqual(checkRegionOverlap(frame([plaque(7257, 2018, ['5:0'])], [box])), [], 'its own claim\'s region');
-  const ellipse = { id: 'domain-ellipse(1:1)#1', type: 'domain-ellipse', cx: 0, cy: 0, rx: 2000, ry: 1000 };
-  assert.deepEqual(checkRegionOverlap(frame([plaque(-180, -60)], [ellipse])), [], 'wholly inside a domain');
-  assert.equal(checkRegionOverlap(frame([plaque(1800, -60)], [ellipse])).length, 1, 'across its outline');
-  assert.deepEqual(checkRegionOverlap(frame([plaque(2100, -60)], [ellipse])), [], 'outside it');
+  const domain = { id: 'domain-region(1:1)#1', type: 'domain-region', x: -2000, y: -1000, width: 4000, height: 2000 };
+  assert.deepEqual(checkRegionOverlap(frame([plaque(-180, -60)], [domain])), [], 'wholly inside a domain box');
+  assert.equal(checkRegionOverlap(frame([plaque(1800, -60)], [domain])).length, 1, 'across its outline');
+  assert.deepEqual(checkRegionOverlap(frame([plaque(2100, -60)], [domain])), [], 'outside it');
 });

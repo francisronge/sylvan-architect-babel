@@ -473,9 +473,10 @@ shaded box, and the outline of a domain box, which a plaque may stand inside or
 outside but not across. Each is reserved in the scenes that paint it, so a plaque's
 lifetime pocket avoids a region its stage draws later. Francis called a feature
 plaque across a sluicing remnant's enclosure "tiny collisions" on 27 October 2026.
-A binding domain's ellipse spans its members at √2 of their bounds and is not
-reserved; the offline audit still reports every plaque across another claim's
-region outline (`region-overlap`).
+The offline audit reports a plaque across another claim's enclosure or domain box
+(`region-overlap`). A binding domain's ellipse spans its members at √2 of their
+bounds; keeping plaques off it moved nearby plaques beyond their reach, so it is
+neither reserved nor judged until Francis decides whether a plaque may cross it.
 
 Allocation runs in a worker after chunked browser text measurement.
 

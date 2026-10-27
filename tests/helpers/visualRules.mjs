@@ -504,14 +504,16 @@ function aheadOf(plaque, prior, ahead, thresholds) {
   return steps;
 }
 
-const REGION_MARKS = new Set(['enclosure', 'domain-region', 'domain-ellipse']);
+const REGION_MARKS = new Set(['enclosure', 'domain-region']);
 const claimsOfMark = mark => /\(([^)]*)\)/.exec(mark.id ?? '')?.[1].split('/').filter(Boolean) ?? [];
 
-/** region-overlap: a plaque shell across the outline of a region mark that belongs to
- * no claim of its own, entering it by more than `overlapPx`: an enclosure, a domain box
- * or a domain ellipse in `marks` (bound region primitives, tree units, the claims in
- * their id `type(stage:relation/…)#n`). A plaque wholly inside a region does not cross
- * its outline. Subtype plaque; the measure is the depth in pixels. */
+/** region-overlap: a plaque shell across the outline of a region box that belongs to
+ * no claim of its own, entering it by more than `overlapPx`: an enclosure or a domain
+ * box in `marks` (bound region primitives, tree units, the claims in their id
+ * `type(stage:relation/…)#n`). A plaque wholly inside a region does not cross its
+ * outline. Domain ellipses are not judged: a binding domain's ellipse spans its
+ * members at √2 of their bounds, allocation does not reserve it, and whether a plaque
+ * may cross it awaits Francis. Subtype plaque; the measure is the depth in pixels. */
 export function checkRegionOverlap(frame, thresholds = THRESHOLDS) {
   const out = [];
   for (const mark of frame.marks ?? []) {
@@ -520,15 +522,7 @@ export function checkRegionOverlap(frame, thresholds = THRESHOLDS) {
     for (const plaque of frame.plaques) {
       if (shares(plaque.claims, claims)) continue;
       const r = plaque.rect;
-      let depth;
-      if (mark.type === 'domain-ellipse') {
-        // How far inside the ellipse the shell's nearest point lies, along its nearer axis.
-        const x = Math.min(Math.max(mark.cx, r.x), r.x + r.width), y = Math.min(Math.max(mark.cy, r.y), r.y + r.height);
-        const reach = Math.hypot((x - mark.cx) / mark.rx, (y - mark.cy) / mark.ry);
-        const inside = [[r.x, r.y], [r.x + r.width, r.y], [r.x, r.y + r.height], [r.x + r.width, r.y + r.height]]
-          .every(([cx, cy]) => Math.hypot((cx - mark.cx) / mark.rx, (cy - mark.cy) / mark.ry) <= 1);
-        depth = reach >= 1 || inside ? 0 : (1 - reach) * Math.min(mark.rx, mark.ry);
-      } else depth = contains(mark, r) ? 0 : Math.min(overlap1d(r.x, r.x + r.width, mark.x, mark.x + mark.width),
+      const depth = contains(mark, r) ? 0 : Math.min(overlap1d(r.x, r.x + r.width, mark.x, mark.x + mark.width),
         overlap1d(r.y, r.y + r.height, mark.y, mark.y + mark.height));
       if (depth * frame.zoom > thresholds.overlapPx) out.push(finding('region-overlap', 'plaque', frame, `${plaque.id} ${mark.id}`,
         `${describe(plaque)} enters the ${mark.type} of ${claims.join('/')} by ${px(frame, depth)} px`, depth * frame.zoom));
