@@ -940,20 +940,23 @@ export function dispatchStageRelations(stages: readonly { workspaceForest: Synta
 }
 
 /** Whether a claim's drawing is a coindex over a structurally proven movement's
- * whole chain: both occurrences of the hop and older copies of the chain, each
- * unchanged in its preceding slot. Wording reads such a list, which names the
- * new lower occurrence beside an older one, as identity alone; structure reads
- * the older copies as context, so the hop is the displacement the coindex
- * states: the movement path draws it, and the coindex stays beside the path
- * (`keepsChainIdentity`). */
+ * chain: both occurrences of the hop, and any older copies of the chain, each
+ * unchanged in its preceding slot. Wording reads such a claim as identity alone
+ * when it names no movement endpoint (open fields such as head and tail) or
+ * lists the new lower occurrence beside an older one; structure reads the older
+ * copies as context, so the hop is the displacement the coindex states: the
+ * movement path draws it, and the coindex stays beside the path
+ * (`keepsChainIdentity`). A coindex of the hop alone qualifies only when worded
+ * recognition refused no movement (`wordedRefusal`): where it read endpoint
+ * fields and refused them, as for an ambiguous landing context, that refusal stands. */
 const coindexesMovingChain = (claim: RecoveredClaim, movement: RecoveredMovement,
-  forest: readonly SyntaxNode[], priorForest: readonly SyntaxNode[] = []): boolean => {
+  forest: readonly SyntaxNode[], priorForest: readonly SyntaxNode[] = [], wordedRefusal?: string): boolean => {
   if (claim.tier !== 2 || claim.facet.recipe.id !== 'identity.occurrences') return false;
   const occurrences = claim.facet.evidence?.currentAnchors.occurrences ?? [];
   const current = indexMovementOccurrences(forest), prior = indexMovementOccurrences(priorForest);
   const ends = [movement.targetNodeId, movement.sourceNodeId], older = occurrences.filter(id => !ends.includes(id));
   const lineage = current.nodes.get(movement.targetNodeId)?.lineageId;
-  return Boolean(lineage) && ends.every(id => occurrences.includes(id)) && older.length > 0
+  return Boolean(lineage) && ends.every(id => occurrences.includes(id)) && (older.length > 0 || !wordedRefusal)
     && occurrences.every(id => current.nodes.get(id)?.lineageId === lineage && !current.duplicates.has(id))
     && older.every(id => prior.nodes.has(id) && !prior.duplicates.has(id) && sameMovementSourceSlot(current, prior, id, id)
       && JSON.stringify(prior.nodes.get(id)) === JSON.stringify(current.nodes.get(id)));
@@ -979,14 +982,15 @@ function dispatchStagesInOrder(stages: Parameters<typeof dispatchStageRelations>
         priorRealizations: stages[stageIndex - 1]?.realizations, priorForest: stages[stageIndex - 1]?.workspaceForest
       };
       // Structure upgrades only a claim that wording leaves wholly neutral, or
-      // whose only drawing coindexes the moving chain's hop and older copies;
+      // whose only drawing coindexes the moving chain (`coindexesMovingChain`);
       // a claim that draws anything else today keeps exactly that drawing.
       const worded = dispatchRelationClaims(input);
       const structuralMovement = structural?.[stageIndex].movements.get(relationIndex);
       // The coindex stays beside the path: it lights the whole chain.
       const keepsChainIdentity = worded.claims.some(claim => claim.tier !== 3);
       const dispatch: RelationClaimDispatch = structuralMovement && worded.claims.every(claim => claim.tier === 3
-        || coindexesMovingChain(claim, structuralMovement, stage.workspaceForest, stages[stageIndex - 1]?.workspaceForest))
+        || coindexesMovingChain(claim, structuralMovement, stage.workspaceForest, stages[stageIndex - 1]?.workspaceForest,
+          worded.evidence.movementFailure))
         ? { ...dispatchRelationClaims({ ...input, structuralMovement, ...(keepsChainIdentity ? { keepsChainIdentity } : {}) }), structuralMovement }
         : worded;
       recoveredClaimMovements(dispatch).forEach(movement => {

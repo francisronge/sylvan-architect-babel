@@ -124,11 +124,16 @@ for (const [name, mutate] of [
   });
 }
 
-test('neutral clause association does not become movement from lineage or a move-like title', () => {
+test('lineage or a move-like title alone proves no movement; a title never decides what structure proves', () => {
   const input = example();
+  // Wording reads open fields under a chain title as identity, never movement.
+  // Structure proves the displacement of clause to its landing whatever the
+  // claim is called, so the path draws beside that coindex.
   input.relation = { relation: 'CP-extraposition chain', anchors: { participantA: 'clause', participantB: 'lower' } };
   assert.equal(recover(input).movement, undefined);
-  assert.equal(hasTrajectory(input), false);
+  const kinds = relations => prepare(input, relations).relationRenderPlan.frames.at(-1).items.map(item => item.kind);
+  assert.deepEqual(kinds([input.relation]), ['trajectory', 'coindex']);
+  assert.deepEqual(kinds([{ ...input.relation, relation: 'Clause association' }]), ['trajectory']);
   input.relation = { relation: 'Clause comparison', anchors: { sourceClause: 'clause', targetClause: 'predicate' } };
   assert.equal(recover(input).movement, undefined);
   assert.equal(hasTrajectory(input), false);

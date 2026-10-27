@@ -48,3 +48,21 @@ test('a claim listing its new and its older trace draws the stage\'s hop at its 
   assert.deepEqual([...checkRelationMoments(replay, record), ...checkStepSemantics(replay, record), ...checkMarkPersistence(replay, record),
     ...checkMovementUnrendered(replay, record)], []);
 });
+
+// Claude Opus 5.5 (opus-parts batch: n3-15, n3-30, n3-56, n4-01, n4-03) named each hop
+// `movement-chain` with open fields {head: landing, tail: trace}. Wording proves no
+// movement from them and refuses none; it drew a coindex, which kept the hop's path off.
+test('a chain claim naming only the hop under open fields draws the path beside its coindex', () => {
+  const headTail = structuredClone(record);
+  headTail.derivationStages[1].relations = [{ relation: 'movement-chain', anchors: { head: 'op', tail: 'lowTrace' } }];
+  headTail.derivationStages[2].relations = [{ relation: 'movement-chain', anchors: { head: 'op', tail: 'highTrace' } }];
+  const replay = prepareReplay({ ...structuredClone(headTail), includePlayback: true });
+  for (const [stage, lower] of [[1, 'lowTrace'], [2, 'highTrace']]) {
+    const items = replay.relationRenderPlan.frames[stage].items.filter(item => item.relationRef.stageIndex === stage);
+    assert.deepEqual(items.filter(item => item.kind === 'trajectory').map(item => [item.sourceNodeId, item.targetNodeId]), [[lower, 'op']]);
+    assert.deepEqual(items.filter(item => item.kind === 'coindex').map(item => item.nodeIds), [['op', lower]]);
+    assert.deepEqual(items.filter(item => item.kind === 'fallback' && Object.keys(item.relationRef.anchors).length), [], 'no field is left to a neutral mark');
+  }
+  assert.deepEqual([...checkRelationMoments(replay, headTail), ...checkStepSemantics(replay, headTail), ...checkMarkPersistence(replay, headTail),
+    ...checkMovementUnrendered(replay, headTail)], []);
+});

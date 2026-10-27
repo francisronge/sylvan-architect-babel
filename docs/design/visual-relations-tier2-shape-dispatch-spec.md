@@ -391,15 +391,18 @@ only.
 
 Structure upgrades only a claim that wording leaves wholly neutral, with every
 recovered claim in Tier 3, or whose only drawings are `identity.occurrences`
-coindexes over the moving chain as a whole: the displacement's landing and
-lower occurrence and at least one older copy of the chain, each older copy
-unchanged in its preceding slot, as when one field lists the new trace beside an
-older one. Wording reads that list as identity alone; structure reads the older
-copies as context, so the coindex states the displacement: the movement path
-draws the hop at its moment, and the coindex, with its forest light, stays over
-the whole chain. The path and the coindex together consume the fields they
-read, so none is left to a neutral mark. A coindex naming only the two
-occurrences of the hop stays with wording. Any other claim that draws anything
+coindexes over the moving chain: the displacement's landing and lower
+occurrence, with any older copies of the chain, each unchanged in its preceding
+slot. Wording reads such a claim as identity alone when its fields name no
+movement endpoint (open fields such as head and tail under a chain title) or
+when one field lists the new trace beside an older one; structure reads the
+older copies as context, so the coindex states the displacement: the movement
+path draws the hop at its moment, and the coindex, with its forest light, stays
+over the chain. The path and the coindex together consume the fields they read,
+so none is left to a neutral mark. A coindex of the hop's two occurrences alone
+qualifies only when worded recognition refused no movement: where it read
+endpoint fields and refused them, as for an ambiguous landing context, the
+refusal stands. Any other claim that draws anything
 today, at either tier, keeps exactly that drawing, its transitions and its
 moment. Wording only breaks ties: a claim whose wording recovers a movement
 keeps it, and the structural reading stands in only where no claim of the stage
