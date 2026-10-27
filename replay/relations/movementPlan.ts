@@ -64,7 +64,8 @@ export const movementPlan = {
     if (family.trajectoryKind === 'atb') {
       const target = firstRole(anchors, TRAJECTORY_TARGET_ROLES);
       const sources = flattenAnchorIds(anchors.sources);
-      const witnesses = flattenAnchorIds(anchors.traceWitnesses);
+      // Without trace witnesses each source is its own lower copy.
+      const witnesses = anchors.traceWitnesses === undefined ? sources : flattenAnchorIds(anchors.traceWitnesses);
       if (!target || !requireResolved(target.role, target.nodeId)) return;
       if (sources.length === 0 || sources.length !== witnesses.length) {
         pushDiagnostic('endpoint-missing', 'ATB requires positionally paired sources and traceWitnesses');
