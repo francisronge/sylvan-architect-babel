@@ -83,7 +83,7 @@ const memberAtPath = (root: SyntaxNode, path: readonly number[]): SyntaxNode | u
 };
 export const readsAsProjection = (node: SyntaxNode): boolean => ['bar', 'phrase'].includes(readCategoryLabel(node.label)?.kind ?? '');
 // Explicit zero-level notation, which may be followed by an annotation.
-const HEAD_NOTATION = /^([A-Za-z][A-Za-z]*)(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u;
+const HEAD_NOTATION = /^([A-Za-z\p{Script=Greek}]+)(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u;
 const notatedHeads = (label?: string): string[] | undefined => {
   const shape = readCategoryLabel(label), notated = HEAD_NOTATION.exec(label ?? '')?.[1];
   return shape ? shape.kind === 'head' ? shape.members : undefined : notated ? [notated] : undefined;
@@ -118,13 +118,17 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
   const containsLowerOccurrence = (node: SyntaxNode): boolean => Boolean(landing?.lineageId
     && node.id !== landing.id && node.lineageId === landing.lineageId)
     || Boolean(node.children?.some(containsLowerOccurrence));
-  if (readCategoryLabel(parent.label)?.kind !== 'head' || readCategoryLabel(landing?.label)?.kind !== 'head') return false;
+  // A complex may bear its host's word as its label ("helpen" over
+  // [V helpen]), as projections of word-labelled heads do.
+  const namesHost = siblings.length === 1 && !siblings[0].children?.length && Boolean(siblings[0].word?.trim())
+    && String(parent.label ?? '').trim() === siblings[0].word!.trim();
+  if (readCategoryLabel(parent.label)?.kind !== 'head' && !namesHost || readCategoryLabel(landing?.label)?.kind !== 'head') return false;
   if (parent.children?.length === 1 && parent.children[0].id === landingId) {
     const landing = parent.children[0];
     return readCategoryLabel(landing.label)?.kind === 'head' && onlyExponents(landing);
   }
   if (siblings.length === 1 && readCategoryLabel(siblings[0].label)?.kind === 'head'
-    && sharesHeadCategory(siblings[0], parent)) {
+    && (sharesHeadCategory(siblings[0], parent) || namesHost)) {
     // A previously built host remains the same head when another head adjoins;
     // its internal clitic or inflection structure need not be flat.
     if (onlyExponents(siblings[0])) return true;
@@ -166,6 +170,23 @@ const isBareSpecifier = (target: SyntaxNode, workspaces?: MovementWorkspaces): b
   if (!bare || !parent || workspaces!.current.nodes.get(target.id) !== target) return false;
   const sisters = (parent.children ?? []).filter(child => child !== target);
   return bare.maximal(target) && sisters.length === 1 && bare.projects(sisters[0], parent) && !bare.minimal(sisters[0]);
+};
+/** A one-word landing beside the head that projects its parent ([V buy what])
+ * may have adjoined to that head or be its complement. Head adjunction leaves
+ * the lower occurrence in the tree of the complex it forms; a landing whose
+ * every other occurrence lies in another workspace moved sideward into this
+ * one, and the head selected it as a phrase. */
+const isSidewardComplement = (target: SyntaxNode, workspaces?: MovementWorkspaces): boolean => {
+  const bare = workspaces && bareProjectionsOf(workspaces.current), parent = bare?.parent(target);
+  const { current } = workspaces ?? {};
+  if (!bare || !parent || !current || current.nodes.get(target.id) !== target || target.children?.length
+    || !target.lineageId || current.duplicates.has(target.id)) return false;
+  const sisters = (parent.children ?? []).filter(child => child !== target);
+  if (sisters.length !== 1 || !bare.projects(sisters[0], parent) || !bare.minimal(sisters[0])) return false;
+  let root = target;
+  while (current.parents.get(root.id)) root = current.parents.get(root.id)!;
+  const lower = [...current.nodes.values()].filter(node => node.lineageId === target.lineageId && node.id !== target.id);
+  return lower.length > 0 && lower.every(node => !contains(root, node.id));
 };
 
 const isProjectedHead = (parent: SyntaxNode, target: SyntaxNode, before?: SyntaxNode,
@@ -258,14 +279,23 @@ export const landingKind = (target: SyntaxNode, parent?: SyntaxNode, previous: r
     || Boolean(headContext && priorSource.node?.children?.length && sharesHeadCategory(priorSource.node, target)
       && isHeadAssembly(priorSource.node) && isHeadAssembly(target))
     || HEAD_NOTATION.test(target.label) || projectedSource;
-  if (parent && isBareSpecifier(target, workspaces)) return 'phrasal';
+  // An explicitly anchored receiving head or complex still proves adjunction.
+  if (parent && (isBareSpecifier(target, workspaces)
+    || !headContext && !structuralHost && isSidewardComplement(target, workspaces))) return 'phrasal';
   if (headUnit && parent && (isHeadComplex(parent, target.id, previous)
     || structuralHost && adjoinsHostInPlace(parent, target.id, workspaces)
     || isProjectedHead(parent, target, priorSource.node, workspaces))) return 'head';
-  const parentCategory = readCategoryLabel(parent?.label);
-  const specifier = parentCategory && parent?.children?.some(n => n.id !== target.id
-    && headCategory(n) === parentCategory.head && !onlyExponents(n));
+  const specifier = parent?.children?.some(n => n.id !== target.id && projectsParent(n, parent) && !onlyExponents(n));
   if (target.children?.length || shape?.kind === 'phrase' || specifier) return 'phrasal';
+};
+
+/** Whether `node` is the daughter whose label its parent repeats: the same
+ * head category or, for labels that are not category notation (a lexical
+ * item, "洗" over "洗", or prose, "T-projection"), the same exact label. */
+const projectsParent = (node: SyntaxNode, parent: SyntaxNode): boolean => {
+  const category = readCategoryLabel(parent.label), text = String(parent.label ?? '').trim();
+  return category ? headCategory(node) === category.head
+    : Boolean(text) && !readCategoryLabel(node.label) && String(node.label ?? '').trim() === text;
 };
 
 /** Shared exact structural check for Tier 1 and recovered movement context. */
@@ -287,6 +317,10 @@ export const movementContextFailure = (
   const isParent = parent === context[0];
   if (kind === 'site') {
     if (isParent) return;
+    // Internal merge targets the object the landing merges with, which
+    // projects their new parent: the specifier's sister names its site too.
+    if (parent.children?.length === 2 && context[0] !== landing[0] && parent.children.includes(context[0])
+      && context[0].children?.length && projectsParent(context[0], parent)) return;
     // A topic/edge shell may intervene between the moved occurrence and its
     // landing domain. Only the nearest common domain of the proved endpoints
     // establishes that context; an arbitrary containing ancestor does not.
@@ -725,8 +759,22 @@ export function recoverMovementEvidence(
       targets = occurrences;
     }
   }
+  // An explicitly anchored receiving head or complex verified around a landing.
+  const namesHeadContext = (landingId: string): boolean => entries.some(entry => entry.ids.length === 1
+    && (hasRole(entry.key, 'movement.host') || hasRole(entry.key, 'movement.complex') || entry.key === 'host')
+    && movementContextFailure(forest, landingId, entry.ids[0],
+      hasRole(entry.key, 'movement.complex') ? 'head-complex' : 'head-landing', previous) === undefined);
+  // The prose-label structural reading needs the receiving head or complex
+  // named explicitly, in the role that the context check below verifies. A
+  // phrasal attractor names no adjunction host.
+  const namesStructuralHost = (landingId: string): boolean => entries.some(entry => {
+    const contextKind = headContextKind(entry.key);
+    return entry.ids.length === 1 && entry.key !== 'attracting head' && contextKind !== undefined
+      && movementContextFailure(forest, landingId, entry.ids[0], contextKind, previous, undefined, { current, prior }) === undefined;
+  });
   // Unfamiliar wording still needs explicit movement direction or an established
   // identity, plus exact anchored occurrences and a changed preceding source slot.
+  // A landing's kind reads the same receiving-head evidence as a named landing's.
   if ((sources.length === 0 || targets.length === 0) && sources.length <= 1 && targets.length <= 1
     && witnesses.length <= 1 && explicitPriorSources.length <= 1
     && canBindStructuralEndpoints) {
@@ -749,7 +797,8 @@ export function recoverMovementEvidence(
         // a unique, explicitly witnessed successive movement ambiguous.
         if (targetId !== priorId && samePriorSlot(targetId, targetId)
           && JSON.stringify(prior.nodes.get(targetId)) === JSON.stringify(target)) continue;
-        const kind = landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) }, { current, prior });
+        const kind = landingKind(target, current.parents.get(targetId), previous, { node: before, parent: prior.parents.get(priorId) },
+          { current, prior }, namesHeadContext(targetId), namesStructuralHost(targetId));
         const expectedKind = movementIdentityKind(relation.relation);
         if (!kind || (expectedKind && expectedKind !== kind)) continue;
         pairs.push({ source: sourceId, target: targetId });
@@ -776,6 +825,19 @@ export function recoverMovementEvidence(
   }));
   if (!occurrenceRoles && !sharedLineage && !(witnesses.length && sources.length && targets.length)
     && !isMovementIdentity(relation.relation) && !explicitPriorSources.length) {
+    return { diagnostics: [] };
+  }
+  // Movement relates two occurrences of one lineage. A claim naming one end
+  // alone, such as the thematic Source of an ablative phrase, none of whose
+  // anchored occurrences shares its lineage with another occurrence, states
+  // no movement, whatever its field names suggest.
+  const hasOtherOccurrence = (id: string): boolean => {
+    const lineage = current.nodes.get(id)?.lineageId;
+    return Boolean(lineage) && [...current.nodes.values(), ...prior.nodes.values()]
+      .some(node => node.id !== id && node.lineageId === lineage);
+  };
+  if ((!targets.length || !sources.length && !witnesses.length) && !isMovementIdentity(relation.relation)
+    && !covertDescription && !explicitPriorSources.length && !entries.some(e => e.ids.some(hasOtherOccurrence))) {
     return { diagnostics: [] };
   }
   // Operator and variable also name the ends of an interpretive dependency.
@@ -820,18 +882,7 @@ export function recoverMovementEvidence(
   if (current.duplicates.has(witnessId)) return fail('MOVEMENT_ENDPOINTS_AMBIGUOUS', `Witness ${witnessId} occurs more than once.`);
   if (!contains(source, witnessId)) return fail('MOVEMENT_WITNESS_OUTSIDE_SOURCE', `${witnessId} is not within source ${sourceId}.`);
   const precedingId = prior.nodes.has(sourceId) ? sourceId : priorSource || targetId;
-  const headContext = entries.some(entry => entry.ids.length === 1
-    && (hasRole(entry.key, 'movement.host') || hasRole(entry.key, 'movement.complex') || entry.key === 'host')
-    && movementContextFailure(forest, targetId, entry.ids[0],
-      hasRole(entry.key, 'movement.complex') ? 'head-complex' : 'head-landing', previous) === undefined);
-  // The prose-label structural reading needs the receiving head or complex
-  // named explicitly, in the role that the context check below verifies. A
-  // phrasal attractor names no adjunction host.
-  const structuralHost = entries.some(entry => {
-    const contextKind = headContextKind(entry.key);
-    return entry.ids.length === 1 && entry.key !== 'attracting head' && contextKind !== undefined
-      && movementContextFailure(forest, targetId, entry.ids[0], contextKind, previous, undefined, { current, prior }) === undefined;
-  });
+  const headContext = namesHeadContext(targetId), structuralHost = namesStructuralHost(targetId);
   const kind = landingKind(target, current.parents.get(targetId), previous,
     { node: prior.nodes.get(precedingId), parent: prior.parents.get(precedingId) }, { current, prior },
     headContext, structuralHost);

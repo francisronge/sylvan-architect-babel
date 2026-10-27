@@ -36,7 +36,7 @@ export interface BareProjections<Node extends ProjectionNode = SyntaxNode> {
 const childrenOf = <Node extends ProjectionNode>(node: Node): Node[] => (Array.isArray(node.children) ? node.children : []) as Node[];
 
 // Prose such as "T-projection" also states a level.
-const PROSE_LEVEL = /^[A-Za-z]+[\s-]+(?:projection|phrase|bar)\b/iu;
+const PROSE_LEVEL = /^[A-Za-z\p{Script=Greek}]+[\s-]+(?:projection|phrase|bar)\b/iu;
 
 /** Whether some label writes a projection level (XP, X′ or "X projection"). */
 export const writesProjectionLevels = (roots: readonly ProjectionNode[]): boolean => {
@@ -52,7 +52,7 @@ export const writesProjectionLevels = (roots: readonly ProjectionNode[]): boolea
 };
 
 // A lower occurrence written as "T trace" or "D-copy" keeps its category.
-const LOWER_OCCURRENCE = /^([A-Za-z]+)[\s-]+(?:trace|copy)$/iu;
+const LOWER_OCCURRENCE = /^([A-Za-z\p{Script=Greek}]+)[\s-]+(?:trace|copy)$/iu;
 const structuralCategory = (label?: string): string | undefined => readCategoryLabel(label)?.head
   ?? readCategoryLabel(LOWER_OCCURRENCE.exec(String(label ?? '').trim())?.[1])?.head;
 
