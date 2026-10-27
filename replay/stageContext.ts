@@ -159,31 +159,37 @@ export const prepareReplayStage = (
       pendingProjectionReveals.push({ nodeId: parent.id, firstStageIndex, stageIndex: index, relationIndexes: [owner] });
     });
   });
-  const plannedStageRelocatesPriorLandingOccurrence = index > 0
-    && !plannedFrameRelations.some((relation) => relation?.relation === 'CopyOccurrence')
-    && plannedFrameRelations.some((relation) => {
-      if (!isRegisteredTrajectoryRelation(relation?.relation, relation?.anchors))
-        return false;
-      const resolvedAnchors = getResolvedReplayRelationAnchors(relation);
-      const targetNodeId = getRelationTargetNodeId(relation)
-        || String(findResolvedReplayAnchorByRoles(resolvedAnchors, relationOwnedPhrasalTargetRoles(relation))?.nodeId || '');
-      const explicitSourceNodeIds = getRelationSourceNodeIds(relation);
-      const sourceNodeIds = explicitSourceNodeIds.length > 0
-        ? explicitSourceNodeIds
-        : findResolvedReplayAnchorsByRoles(resolvedAnchors, relationOwnedPhrasalSourceRoles(relation))
-          .map((anchor) => String(anchor.nodeId || ''))
-          .filter(Boolean);
-      return Boolean(targetNodeId)
-        && Boolean(findNodeByIdInForest(previousFrameWorkspaceRoots, targetNodeId))
-        && sourceNodeIds.length > 0
-        && sourceNodeIds.every((sourceNodeId) => !findNodeByIdInForest(previousFrameWorkspaceRoots, sourceNodeId));
-    });
+  const relocatesPriorLandingOccurrence = (relation: DerivationReplayPlanStep): boolean => {
+    if (!isRegisteredTrajectoryRelation(relation?.relation, relation?.anchors))
+      return false;
+    const resolvedAnchors = getResolvedReplayRelationAnchors(relation);
+    const targetNodeId = getRelationTargetNodeId(relation)
+      || String(findResolvedReplayAnchorByRoles(resolvedAnchors, relationOwnedPhrasalTargetRoles(relation))?.nodeId || '');
+    const explicitSourceNodeIds = getRelationSourceNodeIds(relation);
+    const sourceNodeIds = explicitSourceNodeIds.length > 0
+      ? explicitSourceNodeIds
+      : findResolvedReplayAnchorsByRoles(resolvedAnchors, relationOwnedPhrasalSourceRoles(relation))
+        .map((anchor) => String(anchor.nodeId || ''))
+        .filter(Boolean);
+    return Boolean(targetNodeId)
+      && Boolean(findNodeByIdInForest(previousFrameWorkspaceRoots, targetNodeId))
+      && sourceNodeIds.length > 0
+      && sourceNodeIds.every((sourceNodeId) => !findNodeByIdInForest(previousFrameWorkspaceRoots, sourceNodeId));
+  };
+  const relocatingRelations = index > 0 && !plannedFrameRelations.some((relation) => relation?.relation === 'CopyOccurrence')
+    ? plannedFrameRelations.filter(relocatesPriorLandingOccurrence)
+    : [];
   const authoredLandingNodeId = getMovementLandingNodeId(frame.movement);
-  const frameHasMovementPayload = Boolean(authoredLandingNodeId
+  const frameAuthorsMovement = Boolean(authoredLandingNodeId
     || String(frame.movement?.sourceNodeId || '')
     || String(frame.movement?.traceNodeId || '')
-    || String(frame.chainId || '')
-    || plannedStageRelocatesPriorLandingOccurrence);
+    || String(frame.chainId || ''));
+  const frameHasMovementPayload = frameAuthorsMovement || relocatingRelations.length > 0;
+  // A recovered movement whose landing keeps the moved occurrence's id is
+  // undone by buildPreMovementStructuralForest, so the stage's other new
+  // material still gets its ordinary construction steps.
+  const frameMovementPayloadReplacesConstruction = frameAuthorsMovement
+    || relocatingRelations.some(relation => !relation.recoveredMovement?.transition);
   const frameCarriesAuthoredEffect = Boolean(String(getDerivationFrameChange(frame)?.statement || '').trim());
   const movementRecipe = pickPreferredReplayText(frame.movement?.note);
   const semanticRecipe = (() => {
@@ -391,6 +397,7 @@ export const prepareReplayStage = (
     frameSemanticStep,
     plannedStage,
     frameHasMovementPayload,
+    frameMovementPayloadReplacesConstruction,
     fallbackOperation,
     priorVisibleNodeIds,
     structuralLayoutScaffold,

@@ -20,7 +20,7 @@ export const buildStageConstruction = (compilation: ReplayCompilation, stage: Re
   const { frames, sentence, inputTokens, identity, previousWorkspaceRootIds, getPreFrontingLexicalSurface } = compilation;
   const {
     index,
-    frameHasMovementPayload,
+    frameMovementPayloadReplacesConstruction,
     fallbackOperation,
     structuralWorkspaceRoots,
     priorVisibleNodeIds,
@@ -35,7 +35,7 @@ export const buildStageConstruction = (compilation: ReplayCompilation, stage: Re
     plannedStage,
     frameRelationSteps
   } = stage;
-  const structuralMicrosteps = !frameHasMovementPayload && !isMoveLikeOperation(fallbackOperation)
+  const structuralMicrosteps = !frameMovementPayloadReplacesConstruction && !isMoveLikeOperation(fallbackOperation)
     ? buildStructuralDerivationPlaybackSteps({
       forest: structuralWorkspaceRoots,
       frameIndex: index,
