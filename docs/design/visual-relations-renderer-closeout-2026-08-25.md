@@ -604,7 +604,9 @@ takes at most four lines, because a taller one pushes its sisters' row down: one
 that would need more widens its lines, up to twice the normal width, when that
 splits no more words. Wrapped categories
 use the same multiline bounds for plaque obstacles and stage Fit. Native branch
-geometry never depends on label height. Category glyphs and their dark stroke
+geometry never depends on label height: a fork that no widening can clear of an
+inner sister's wrapped label keeps its row and slots, and its branch crosses
+that label. Category glyphs and their dark stroke
 paint over branches without masking the surrounding multiline rectangle. The
 incoming branch remains visible between and outside the glyphs. Short
 labels preserve their existing bounds and native branches.
