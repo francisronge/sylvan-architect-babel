@@ -552,8 +552,12 @@ function revealedByRelation(node, ownership, previous, voices) {
       if (current.parent.children.some(sister => sister !== current && existing(sister))) break;
     }
   }
-  return Boolean(node.parent?.children?.some(sister => sister !== node && named(sister, endpoints))
-    && (node.children ?? []).filter(child => !isScaffold(child.data)).every(shownBefore));
+  // A new sister where a landing attaches: a parent over existing children,
+  // or a receiving head's new inner head, whose own word is pronunciation.
+  const newSister = candidate => Boolean(candidate?.parent?.children?.some(sister => sister !== candidate && named(sister, endpoints))
+    && (candidate.children ?? []).filter(child => !isScaffold(child.data) && child.data.replayOrigin?.kind !== 'word').every(shownBefore));
+  if (origin?.kind === 'word' && node.parent && !shownBefore(node.parent) && newSister(node.parent)) return true;
+  return newSister(node);
 }
 
 /** A node first painted at step k must be earned by step k. Structural
