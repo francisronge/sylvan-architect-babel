@@ -32,10 +32,15 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest, s
   // endpoint, an openly named field it verifies as the occurrence's host,
   // complex, site or carried member is context and does not compete for the
   // slot; so is one whose node contains that proven endpoint, such as the
-  // clause it leaves or lands in. Registered role names keep their declared
-  // slot, apart from the head-movement host reading below.
+  // clause it leaves or lands in. A registered role name keeps its declared
+  // slot unless the movement evidence verifies its node as the proven
+  // landing's site, host or complex.
   const structuralContext = new Set((movement?.context ?? [])
     .filter(({ key }) => !movement.roles[normalizeTier2Synonym(key)]?.length).map(({ key }) => key));
+  // Only these contexts describe where the landing went; a carried head member
+  // does not.
+  const landingContext = new Set((movement?.context ?? []).filter(({ key, kind }) => structuralContext.has(key)
+    && kind !== 'head-member').map(({ key }) => key));
   const forestNodes = [];
   if (movement) currentForest.forEach(function visit(node) { forestNodes.push(node); (node.children || []).forEach(visit); });
   const provenEndpointId = concept => concept === 'movement.source' ? movement?.sourceNodeId
@@ -69,17 +74,18 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest, s
           || concepts.includes(rules[role].concept)));
       return { spelled, candidates };
     };
-    // Another field that the tree proves to be this endpoint and that reads as its slot.
-    const provenEndpointField = (authoredRole, concept) => Object.keys(relation[field]).some(other =>
-      other !== authoredRole && movement.roles[normalizeTier2Synonym(other)]?.includes(concept)
-      && candidatesFor(other).candidates.some(role => rules[role].concept === concept));
     // A field that only reads as an endpoint slot the tree proves another field
     // to fill, whatever that field is called; structural recovery below binds
     // the proven field to the slot. Any other field reading as that slot still
     // competes for it, so the claim stays as malformed as it was authored.
+    // A registered role name is context only as a landing word whose node is
+    // the proven landing's verified site, host or complex; a carried member or
+    // a node containing the endpoint is not enough for it.
     const proven = (authoredRole, concept) => movement.roles[normalizeTier2Synonym(authoredRole)]?.includes(concept);
     const contextFor = (authoredRole, value, concept) => !proven(authoredRole, concept)
-      && (structuralContext.has(authoredRole) || containsProvenEndpoint(value, concept));
+      && (candidatesFor(authoredRole).spelled.length
+        ? concept === 'movement.landing' && landingContext.has(authoredRole)
+        : structuralContext.has(authoredRole) || containsProvenEndpoint(value, concept));
     const contextBesideProvenEndpoint = (authoredRole, value, concept) => MOVEMENT_ENDPOINTS.has(concept)
       && contextFor(authoredRole, value, concept)
       && Object.keys(relation[field]).some(other => other !== authoredRole && proven(other, concept))
@@ -90,21 +96,25 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest, s
     const assigned = [];
     for (const [authoredRole, value] of Object.entries(relation[field])) {
       const { spelled, candidates: meanings } = candidatesFor(authoredRole);
-      if (field === 'anchors' && movement && !spelled.length && meanings.length
-        && meanings.every(role => contextBesideProvenEndpoint(authoredRole, value, rules[role].concept))) {
-        record[authoredRole] = value;
-        continue;
-      }
       // In head-movement terminology a registered landing word such as
       // `target` can name the head the moved head adjoins to. When the tree
-      // proves another field to be the landing and this field's node to be
-      // that landing's host or head complex, it binds as that context role and
-      // is checked as one below; it never becomes a second landing.
+      // proves another field, whatever it is called, to be the landing and this
+      // field's node to be that landing's host or head complex, it binds as
+      // that context role and is checked as one below; it never becomes a
+      // second landing.
       const headContextRole = field === 'anchors' && entry.id === 'trajectory.head' && spelled.length
         && structuralContext.has(authoredRole) && items(value).length === 1
         && spelled.every(role => rules[role].concept === 'movement.landing')
-        && provenEndpointField(authoredRole, 'movement.landing')
+        && Object.keys(relation[field]).some(other => other !== authoredRole && proven(other, 'movement.landing'))
         ? headContextSlot(currentForest, priorForest, movement.targetNodeId, items(value)[0]) : undefined;
+      // Context beside a proven endpoint keeps its authored field. A registered
+      // role name would still read as the slot there, so the bound claim omits
+      // it; the authored relation keeps it.
+      if (!headContextRole && field === 'anchors' && movement && meanings.length
+        && meanings.every(role => contextBesideProvenEndpoint(authoredRole, value, rules[role].concept))) {
+        if (!spelled.length) record[authoredRole] = value;
+        continue;
+      }
       let candidates = headContextRole ? [headContextRole] : meanings;
       if (candidates.length > 1) {
         const arityMatches = candidates.filter(role => items(value).length >= rules[role].minItems

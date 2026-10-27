@@ -315,3 +315,67 @@ test('clauses beside a proven movement are context, not its arrow\'s endpoints',
   assert.ok(raisingClaim(raisingStages({ ...raisingAnchors, sourceClause: 'vp' })).tier1Dispatch.roleBindings
     .some(binding => binding.authoredRole === 'sourceClause' && binding.concept === 'movement.source'));
 });
+
+// A registered landing word (target, landing site) naming where a proven
+// movement lands, beside another field the tree proves to be the landing:
+// Sol's A-movement {landingOccurrence, sourceTrace, target} (sol-parts-20261026
+// n3-35-no-v2-adverb a1 4:0), Opus's wh-movement {landing, lowerCopy, target}
+// (opus-parts n4-05 12:0) and {mover, trace, landingSite} (n3-28 4:0, n3-76
+// 5:0), and {mover, source, target} naming the landing's sister (n3-59 2:0).
+const siteSubject = (id, extra = {}) => ({ id, label: 'DP', lineageId: 'kim', word: 'Kim', ...extra });
+// The preceding subject keeps its id as the landing (Sol's Kari, Opus's
+// dp_whose) or as the silent lower copy (Opus's who_1).
+const siteStages = (anchors, priorId = 'kimHigh') => [
+  { statement: 'test', stageRecord: 'test', relations: [], workspaceForest: [{ id: 'tbar', label: "T'", children: [
+    { id: 't', label: 'T', word: 'will' }, { id: 'vp', label: 'VP', children: [siteSubject(priorId), { id: 'v', label: 'V', word: 'sing' }] }] }] },
+  { statement: 'test', stageRecord: 'test', relations: [{ relation: 'A-movement', anchors }], workspaceForest: [{ id: 'tp', label: 'TP', children: [
+    siteSubject('kimHigh'), { id: 'tbar', label: "T'", children: [{ id: 't', label: 'T', word: 'will' },
+      { id: 'vp', label: 'VP', children: [siteSubject('kimTrace', { word: undefined, silent: true }), { id: 'v', label: 'V', word: 'sing' }] }] }] }] }
+];
+const sitePaths = stages => compileRelationRenderPlan(stages).frames[1].items.filter(item => item.kind === 'trajectory')
+  .map(item => [item.claimTier, item.sourceNodeId, item.targetNodeId]);
+const siteClaim = stages => dispatchRelationClaims({ relation: stages[1].relations[0], currentForest: stages[1].workspaceForest,
+  priorForest: stages[0].workspaceForest, stageIndex: 1, relationIndex: 0 });
+
+test('a registered landing word naming a proven movement\'s site is context, not a second landing', () => {
+  for (const [anchors, priorId] of [
+    [{ landing: 'kimHigh', lowerCopy: 'kimTrace', target: 'tp' }],
+    [{ landingOccurrence: 'kimHigh', sourceTrace: 'kimTrace', target: 'tp' }],
+    [{ mover: 'kimHigh', trace: 'kimTrace', landingSite: 'tp' }],
+    [{ mover: 'kimHigh', source: 'kimTrace', target: 'tbar' }, 'kimTrace']
+  ]) {
+    const stages = siteStages(anchors, priorId), authored = structuredClone(stages);
+    assert.deepEqual(sitePaths(stages), [[1, 'kimTrace', 'kimHigh']], JSON.stringify(anchors));
+    assert.equal(siteClaim(stages).tier1Dispatch.roleBindings.some(binding => ['target', 'landingSite'].includes(binding.authoredRole)), false);
+    assert.deepEqual(stages, authored, 'the authored claim is unchanged');
+  }
+  // Pointed at a node that is not where the landing went, it competes for the slot again.
+  for (const anchors of [{ landing: 'kimHigh', lowerCopy: 'kimTrace', target: 'v' }, { mover: 'kimHigh', trace: 'kimTrace', landingSite: 'vp' }]) {
+    const stages = siteStages(anchors);
+    assert.equal(sitePaths(stages).some(([tier, , target]) => tier === 1 && target === 'kimHigh'), false, JSON.stringify(anchors));
+  }
+  const conflicting = siteClaim(siteStages({ landing: 'kimHigh', lowerCopy: 'kimTrace', target: 'v' }));
+  assert.equal(conflicting.primaryClaim.tier, 3);
+  assert.ok(conflicting.tier1Dispatch.signatureIssues.some(issue => issue.kind === 'conflicting-role-bindings'));
+  // A registered word naming a head member the landing carries (V2 inside
+  // hv1) is not where the movement went; it still competes for the landing.
+  const carried = savedClaim(1, 4, 1, { target: 'V2' }).result;
+  assert.equal(carried.primaryClaim.tier, 3);
+  assert.ok(carried.tier1Dispatch.signatureIssues.some(issue => issue.kind === 'conflicting-role-bindings'
+    && issue.roles.includes('target')));
+});
+
+// Opus's head movement {mover, trace, target} (opus-parts n3-68 6:0): `target`
+// names the I head the verb adjoins to, beside an openly named landing.
+test('a registered landing word naming a head movement\'s host binds as that host beside an open landing', () => {
+  const stages = [
+    { statement: 'test', stageRecord: 'test', relations: [], workspaceForest: [{ id: 'ibar', label: "I'", children: [
+      { id: 'iHead', label: 'I' }, { id: 'vp', label: 'VP', children: [{ id: 'are', label: 'V', word: 'are', lineageId: 'verb' }] }] }] },
+    { statement: 'test', stageRecord: 'test', relations: [{ relation: 'head movement', anchors: { mover: 'are', trace: 'verbTrace', target: 'iHead' } }],
+      workspaceForest: [{ id: 'ibar', label: "I'", children: [{ id: 'iComplex', label: 'I', children: [
+        { id: 'are', label: 'V', word: 'are', lineageId: 'verb' }, { id: 'iHead', label: 'I' }] },
+      { id: 'vp', label: 'VP', children: [{ id: 'verbTrace', label: 'V', lineageId: 'verb', silent: true }] }] }] }
+  ];
+  assert.deepEqual(sitePaths(stages), [[1, 'verbTrace', 'are']]);
+  assert.ok(siteClaim(stages).tier1Dispatch.roleBindings.some(binding => binding.authoredRole === 'target' && binding.role === 'hostHead'));
+});

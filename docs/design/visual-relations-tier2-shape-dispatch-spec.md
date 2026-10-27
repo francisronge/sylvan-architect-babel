@@ -1123,8 +1123,13 @@ such as a landing clause or source clause, when the tree proves another field,
 whatever it is called, to be that endpoint. The field is context when the
 movement evidence verifies it as the landing's site, host or complex, or when
 its node contains the proven endpoint; the proven field then fills the slot.
-Any other field reading as that slot, including a registered role name naming
-another node, still competes, and the exact claim stays malformed.
+A registered landing word such as `target`, `landing` or `landingSite` naming
+the proven landing's verified site, host or complex beside it is context in the
+same way: the bound claim omits it, or a head movement binds it as `hostHead` or
+`complexHead` as above, so it never becomes a second landing. Containing the
+endpoint is not enough for a registered word. Any other field reading as that
+slot, including a registered role name naming another node, still competes, and
+the exact claim stays malformed.
 
 For an independently proved phrasal movement, a named target or landing head
 can remain neutral context when it projects beside the landing. The landing
@@ -1881,8 +1886,9 @@ also participates in fallback identity so different participant sets cannot
 coalesce merely because their leftover fields match.
 
 Movement recovery records each verified host, complex or landing-site field under
-its original authored key. A site must identify the immediate landing parent;
-a head host must be the other head in the supported complex, and a complex anchor
+its original authored key. A site must identify the immediate landing parent or,
+when that parent is binary, the landing's one sister, the phrase it merges with
+(for adjunction, the lower segment it adjoins to); a head host must be the other head in the supported complex, and a complex anchor
 must identify that parent. All referenced nodes and the parent must be unique.
 Tier 1 uses the same structural check while retaining its full signature and
 role requirements. An incomplete exact claim is not rescued through Tier 2.
