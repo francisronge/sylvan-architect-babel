@@ -83,7 +83,7 @@ const memberAtPath = (root: SyntaxNode, path: readonly number[]): SyntaxNode | u
 };
 export const readsAsProjection = (node: SyntaxNode): boolean => ['bar', 'phrase'].includes(readCategoryLabel(node.label)?.kind ?? '');
 // Explicit zero-level notation, which may be followed by an annotation.
-const HEAD_NOTATION = /^([A-Za-z][A-Za-z]*)(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u;
+const HEAD_NOTATION = /^([A-Za-z\p{Script=Greek}]+)(?:_[A-Za-z][A-Za-z0-9_-]*)?(?:⁰|°|\^?0)(?:\s*(?:\[|:|\(|,)|$)/u;
 const notatedHeads = (label?: string): string[] | undefined => {
   const shape = readCategoryLabel(label), notated = HEAD_NOTATION.exec(label ?? '')?.[1];
   return shape ? shape.kind === 'head' ? shape.members : undefined : notated ? [notated] : undefined;
