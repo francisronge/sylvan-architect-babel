@@ -909,6 +909,36 @@ function recoverAnchoredMovement(
       && Array.isArray(value) && value.length !== 1)) {
     return fail('MOVEMENT_ENDPOINTS_UNRESOLVED', 'Movement endpoint fields must each identify one occurrence; repeated list entries were not collapsed.');
   }
+  // Several fields may still name the moving material and its parts, such as a
+  // verbal complex, its stem and its light verb. When one of them contains all
+  // the others and shares its lineage with the other end, it is the endpoint;
+  // the parts move with it. A container of another lineage is only the place
+  // the movement leaves or reaches, so it settles nothing here.
+  const endpointParts = new Set<string>();
+  const outermost = (ids: string[], otherEnd: string[]): string[] => {
+    if (ids.length < 2 || ids.some(id => !current.nodes.has(id) || current.duplicates.has(id))) return ids;
+    const whole = ids.filter(id => ids.every(other => other === id || contains(current.nodes.get(id)!, other)));
+    const lineage = whole.length === 1 ? current.nodes.get(whole[0])!.lineageId : undefined;
+    if (!lineage || !otherEnd.some(id => id !== whole[0] && current.nodes.get(id)?.lineageId === lineage)) return ids;
+    ids.filter(id => id !== whole[0]).forEach(id => endpointParts.add(id));
+    return whole;
+  };
+  // Only two exact copies of a complex head settle it, where named parts are
+  // carried members: the same labels, words and lineages all the way down,
+  // whatever their ids and pronunciation.
+  const copyShape = (node: SyntaxNode): string => JSON.stringify([node.label, node.word ?? null, node.lineageId ?? null,
+    (node.children ?? []).map(copyShape)]);
+  const exactCopies = (a: string[], b: string[]) => a.length === 1 && b.length === 1
+    && [a[0], b[0]].every(id => readCategoryLabel(current.nodes.get(id)!.label)?.kind === 'head')
+    && copyShape(current.nodes.get(a[0])!) === copyShape(current.nodes.get(b[0])!);
+  if ((sources.length > 1 || targets.length > 1) && exactCopies(outermost(sources, targets), outermost(targets, sources))) {
+    const named = sources, landed = targets;
+    sources = outermost(named, landed);
+    targets = outermost(landed, named);
+    // The parts are carried members, checked like any other.
+    endpointParts.forEach(id => (sources.length === 1 && contains(current.nodes.get(sources[0])!, id) ? sourceMembers
+      : targets.length === 1 && contains(current.nodes.get(targets[0])!, id) ? landingMembers : undefined)?.add(id));
+  }
   if (sources.length !== 1 || targets.length !== 1 || witnesses.length > 1) {
     return fail('MOVEMENT_ENDPOINTS_UNRESOLVED', 'Movement needs one identifiable source occurrence and one landing occurrence; the authored roles are incomplete or ambiguous.');
   }

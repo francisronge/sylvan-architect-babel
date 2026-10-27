@@ -1152,3 +1152,28 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
   } finally { restore(); }
   return out;
 }
+
+/** A gap label Babel generates (t₁, pg₁ …) marks a gap, so it never sits on an
+ * occurrence that stays pronounced in its stage. Reusing the occurrence's own
+ * authored text is not a generated label. */
+export function checkGapLabelOnSilence(replay, record) {
+  const out = [];
+  (replay.relationRenderPlan?.frames ?? []).forEach((frame, stageIndex) => {
+    const forest = record?.derivationStages?.[stageIndex]?.workspaceForest ?? [];
+    const found = new Map();
+    const visit = (node, silent) => { const quiet = silent || node.silent === true; found.set(node.id, { node, quiet }); node.children?.forEach(child => visit(child, quiet)); };
+    forest.forEach(root => visit(root, false));
+    const pronounced = ({ node, quiet }) => !quiet && (node.children?.length
+      ? node.children.some(child => pronounced(found.get(child.id) ?? { node: child, quiet }))
+      : Boolean(node.word?.trim()));
+    for (const item of frame?.items ?? []) {
+      if (item.kind !== 'node-badges' || item.badgeStyle !== 'gap-notation') continue;
+      for (const badge of item.badges ?? []) {
+        const entry = found.get(badge.nodeId);
+        if (!entry || !pronounced(entry) || badge.text === (entry.node.word ?? entry.node.label)) continue;
+        out.push(violation('gap-label-on-silence', null, `${badge.nodeId} stays pronounced in stage ${stageIndex + 1} but gets the generated gap label ${badge.text}`));
+      }
+    }
+  });
+  return out;
+}

@@ -3,7 +3,7 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  checkAttachAtMerge, checkContinuedOccurrences, checkExistingNotRemerged, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
+  checkAttachAtMerge, checkContinuedOccurrences, checkExistingNotRemerged, checkGapLabelOnSilence, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
   checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationConstruction, checkRelationMoments,
   checkStableConstruction,
   checkStageCompletion, checkVisibleInCanvas, checkWholeParent, frameStructure
@@ -401,7 +401,7 @@ before(() => {
         ...checkContinuedOccurrences(prepared, authored),
         ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored),
         ...checkMovementShownAsMovement(prepared, authored), ...checkExistingNotRemerged(prepared, authored), ...checkVisibleInCanvas(prepared),
-        ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared)
+        ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared), ...checkGapLabelOnSilence(prepared, authored)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),
         ...checkContractWarnings(prepared, authored, { contract })] };
     } catch (error) { return { id, error }; }
