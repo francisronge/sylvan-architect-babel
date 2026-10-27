@@ -24,7 +24,6 @@ export function isPriorMovementContextFailure(
     'MOVEMENT_TARGET_IS_LOWER_WITNESS', 'MOVEMENT_LINEAGE_UNPROVEN'].includes(evidence.movementFailure ?? '')
     || isMovementIdentity(relation.relation) && !chainIdentity
     || findRelationRegistryEntry(productionRelationRegistry, relation.relation)
-    || evidence.authoredPriorAnchors?.some(entry => entry.concepts.includes('movement.source'))
     || dispatch.facets.some(facet => facet.evaluation.earnedTransitions.includes('movement'))) return false;
 
   const index = (forest: readonly SyntaxNode[]) => {
@@ -71,6 +70,39 @@ export function isPriorMovementContextFailure(
             && before.parent === entry.parent && before.slot === entry.slot;
         });
     });
+  // A claim can describe, license or summarise a movement an earlier claim of
+  // the stage owns, whatever its field names suggest. Its movement-like fields
+  // then name no displaced occurrence: each keeps its exact preceding slot and
+  // content, or its lineage occurs nowhere else, so it can end no movement. Every
+  // other anchor whose lineage occurs elsewhere is unchanged or lies within an
+  // owned movement's source or landing (a prior anchor: within its preceding
+  // source), and at least one anchor lies there. A claim that displaces
+  // anything else, names a displaced occurrence in a movement-like field, or
+  // cites no owned movement still asserts a movement and keeps its refusal.
+  const within = (node: SyntaxNode | undefined, id: string): boolean => Boolean(node)
+    && (node!.id === id || Boolean(node!.children?.some(child => within(child, id))));
+  const owned = earlierMovements.filter(movement => movement.transition);
+  const ownedNow = (id: string) => owned.some(movement => [movement.sourceNodeId, movement.targetNodeId]
+    .some(endpoint => within(current.nodes.get(endpoint)?.node, id)));
+  const ownedBefore = (id: string) => owned.some(movement => within(prior.nodes.get(movement.priorSourceNodeId)?.node, id))
+    || current.nodes.has(id) && !current.duplicates.has(id) && ownedNow(id);
+  const lineageElsewhere = (node: SyntaxNode | undefined) => Boolean(node?.lineageId)
+    && [...current.nodes.values(), ...prior.nodes.values()]
+      .some(entry => entry.node.id !== node!.id && entry.node.lineageId === node!.lineageId);
+  const priorFields = evidence.authoredPriorAnchors ?? [];
+  const movementLike = (entry: { concepts: readonly string[] }) => entry.concepts.some(concept =>
+    concept === 'movement.source' || concept === 'movement.landing' || concept === 'movement.witness');
+  if (!chainIdentity && !listed && evidence.movementFailure === 'MOVEMENT_ENDPOINTS_UNRESOLVED'
+    && priorFields.every(entry => entry.items.every(id => prior.nodes.has(id) && !prior.duplicates.has(id)))
+    && [...directional, ...witnesses].every(entry => entry.items.every(id =>
+      unchanged(id) || !lineageElsewhere(current.nodes.get(id)?.node)))
+    && priorFields.filter(movementLike).every(entry => entry.items.every(id =>
+      unchanged(id) || !lineageElsewhere(prior.nodes.get(id)?.node)))
+    && anchors.every(id => unchanged(id) || !lineageElsewhere(current.nodes.get(id)?.node) || ownedNow(id))
+    && priorFields.every(entry => entry.items.every(id =>
+      unchanged(id) || !lineageElsewhere(prior.nodes.get(id)?.node) || ownedBefore(id)))
+    && (anchors.some(ownedNow) || priorFields.some(entry => entry.items.some(ownedBefore)))) return true;
+  if (evidence.authoredPriorAnchors?.some(entry => entry.concepts.includes('movement.source'))) return false;
   if (!chainIdentity && evidence.movementFailure === 'MOVEMENT_ENDPOINTS_UNRESOLVED' && !directedPair
     && directional.length > 0 && [...directional, ...witnesses].every(entry => new Set(entry.items).size === entry.items.length)
     && identities.some(ids => ids.length > 1
