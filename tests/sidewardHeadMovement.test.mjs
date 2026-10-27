@@ -47,7 +47,16 @@ for (const [name, relation] of relations) test(`a head copied sideward into anot
   assert.equal(find([steps[moment].replayCanvasData], 'T2')?.silent, undefined, 'the source keeps its pronunciation');
   const path = replay.relationRenderPlan.frames[1].items.find(item => item.kind === 'trajectory');
   assert.deepEqual([path?.sourceNodeId, path?.targetNodeId, path?.trajectoryKind], ['T2', 'T1', 'sideward']);
+  // A source that stays pronounced is no gap, so Babel adds no trace label to it.
+  assert.deepEqual(replay.relationRenderPlan.frames[1].items.filter(item => item.badgeStyle === 'gap-notation'), []);
   assert.deepEqual(input, original);
+});
+
+test('a curated sideward movement from a silent source still labels its gap', () => {
+  const input = shape({ relation: 'sidewardMovement', anchors: { source: 'T2', copy: 'T1' } });
+  find(input.currentForest, 'T2').silent = true;
+  const badges = prepare(input).relationRenderPlan.frames[1].items.filter(item => item.badgeStyle === 'gap-notation');
+  assert.deepEqual(badges.flatMap(item => item.badges.map(badge => `${badge.nodeId}:${badge.text}`)), ['T2:t₁']);
 });
 
 test('a sideward head reading keeps the refusals for malformed or unrelated claims', () => {
