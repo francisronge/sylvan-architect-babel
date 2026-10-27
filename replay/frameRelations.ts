@@ -18,6 +18,7 @@ import {
 } from './relationStages.ts';
 import { isPriorMovementContextFailure } from './relations/movementDiagnosticOwnership.ts';
 import { type RecoveredMovement } from './relations/movementEvidence.ts';
+import { recoverMovementGroups } from './relations/movementGroups.ts';
 import { registeredTrajectoryDisplayKind } from './relations/movementIdentities.ts';
 import { type RelationClaimDispatch } from './relations/relationClaims.ts';
 import { dispatchRelationStagesForPlan } from './relations/renderPlanCompiler.ts';
@@ -262,6 +263,28 @@ export const getFrameRelations = (
         return {
           ...step, recoveredMovement: movements.find(movement => movement.transition) ?? movements[0], recoveredMovements: movements,
           ...(diagnostics.length ? { movementDiagnostics: [...new Set(diagnostics)] } : {}),
+          sourceNodeIds: movements.map(movement => movement.sourceNodeId), targetNodeId: movements[0].targetNodeId
+        };
+      }
+      // An exact across-the-board claim draws its own paths. Its sources move
+      // only when each is proved, by the same pairing as an unregistered
+      // movement group, to share the claim's one landing.
+      const atbMovements = dispatch.primaryClaim?.tier === 1 && registeredEntry
+        && PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind === 'atb'
+        ? recoverMovementGroups(evidence).map(group => group.evidence.movement) : [];
+      if (atbMovements.length > 1 && new Set(atbMovements.map(movement => movement.targetNodeId)).size === 1) {
+        const movements = atbMovements.map(movement => {
+          const key = movementKey(movement);
+          const transition = !ownedMovements.has(key) && movement.transition
+            && !isCarriedHeadMemberTransition(movement, carriedBy(), previousForest, currentForest);
+          if (transition) {
+            ownedMovements.add(key);
+            earlierMovements.push(movement);
+          }
+          return { ...movement, transition, drawTrajectory: false };
+        });
+        return {
+          ...step, recoveredMovement: movements.find(movement => movement.transition) ?? movements[0], recoveredMovements: movements,
           sourceNodeIds: movements.map(movement => movement.sourceNodeId), targetNodeId: movements[0].targetNodeId
         };
       }

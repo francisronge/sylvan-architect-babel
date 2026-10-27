@@ -129,8 +129,10 @@ export const productionRelationRegistry = createRelationRegistry({
       ]
     }),
     entry('trajectory.across-the-board', ['AcrossTheBoardMovement'], {
-      required: { sources: pluralArray, traceWitnesses: pluralArray },
-      optional: { pronouncedCopy: scalar, target: scalar, landing: scalar },
+      // Sources may be the lower copies themselves; listed trace witnesses
+      // then pair positionally with them.
+      required: { sources: pluralArray },
+      optional: { traceWitnesses: pluralArray, pronouncedCopy: scalar, target: scalar, landing: scalar },
       requiredAny: [['pronouncedCopy', 'target', 'landing']],
       sameLength: [['sources', 'traceWitnesses']]
     }),
