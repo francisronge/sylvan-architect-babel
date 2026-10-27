@@ -134,13 +134,33 @@ test('390px control: a new stage that needs a smaller scale settles on its own f
   for (let step = 20; step < 24; step++) assert.deepEqual(at(auto, step, 1, stage2, frame21), direct);
 });
 
+test('1440px: a stage entry that the accepted view leaves flush against one edge takes the stage fit', () => {
+  const width = 1440, height = 840, uiBounds = { headerBottom: 57, panelTop: 564, right: 16 };
+  const at = whoseCamera(width, height, uiBounds);
+  // The earlier stage reserved its extra room only above and left of the same syntax.
+  const lopsided = { ...stage2, minX: stage2.minX - 600, minY: stage2.minY - 900 };
+  const { themeTrace: _added, ...unchanged } = frame21;
+  const auto = { current: null };
+  const accepted = at(auto, 19, 0, lopsided, unchanged);
+  const view = availableTreeViewport(width, height, uiBounds);
+  const gaps = pose => [pose.x + (stage2.minX - STAGE_CAMERA_PADDING.x) * pose.k - view.left,
+    view.right - pose.x - (stage2.maxX + STAGE_CAMERA_PADDING.x) * pose.k,
+    pose.y + (stage2.minY - STAGE_CAMERA_PADDING.y) * pose.k - view.top,
+    view.bottom - pose.y - (stage2.maxY + STAGE_CAMERA_PADDING.y) * pose.k];
+  const [left, right, top, bottom] = gaps(accepted);
+  assert(Math.max(Math.abs(left - right) / (view.right - view.left), Math.abs(top - bottom) / (view.bottom - view.top)) > 0.25,
+    'the accepted view would leave the new stage to one side');
+  assert.deepEqual(at(auto, 20, 1, stage2, frame21), at({ current: null }, 20, 1, stage2, frame21), 'Next settles on the stage fit');
+});
+
 for (const [width, height, uiBounds] of [[1440, 840, { headerBottom: 57, panelTop: 564, right: 16 }],
   [390, 844, { headerBottom: 72, panelTop: 585, right: 72 }]]) {
   const at = whoseCamera(width, height, uiBounds);
 
+  // Control: an earlier stage reserved more room on every side of the same syntax.
+  const earlier = { minX: stage2.minX - 300, maxX: stage2.maxX + 300, minY: stage2.minY - 450, maxY: stage2.maxY + 450 };
+
   test(`${width}px: shared syntax at unchanged coordinates still keeps the accepted view on stage entry`, () => {
-    // Control: an earlier stage reserved more room around the same syntax.
-    const earlier = { ...stage2, minX: stage2.minX - 600, minY: stage2.minY - 900 };
     const { themeTrace: _added, ...unchanged } = frame21;
     const auto = { current: null };
     const accepted = at(auto, 19, 0, earlier, unchanged);
@@ -150,7 +170,6 @@ for (const [width, height, uiBounds] of [[1440, 840, { headerBottom: 57, panelTo
   });
 
   test(`${width}px: Prev within a stage keeps its retained camera; Prev into an earlier stage refits`, () => {
-    const earlier = { ...stage2, minX: stage2.minX - 600, minY: stage2.minY - 900 };
     const { themeTrace: _added, ...unchanged } = frame21;
     const auto = { current: null };
     at(auto, 19, 0, earlier, unchanged);
