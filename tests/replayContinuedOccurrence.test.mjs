@@ -36,9 +36,9 @@ test('a renamed node that keeps its slot and daughters continues its predecessor
   assert.deepEqual(checkContinuedOccurrences(replay, fixture), []);
 });
 
-// A word whose label is the word itself is painted as a lexical display leaf
-// named after its parent (`numberP::__lex_three`), so a renamed parent must
-// carry the same leaf with it rather than give the word a new identity.
+// A word whose label is the word itself is an authored terminal of its own,
+// painted under its own id (`three`), so a renamed parent carries the same leaf
+// with it rather than give the word a new identity.
 const withLexicalThree = (rename = new Map()) => {
   const record = structuredClone(fixture);
   record.derivationStages.forEach((stage, index) => stage.workspaceForest.forEach(function visit(node) {
@@ -58,11 +58,9 @@ test('a word under a continued occurrence keeps its painted identity and is not 
   ], 'three is already on screen, so the stage never selects it again');
   for (const index of [done, ...own]) {
     const { children } = frameStructure(list[index]);
-    assert.deepEqual(children.get('restrictedNum'), ['restrictedNum::__lex_three', index === done ? 'cats' : 'restrictedN'],
+    assert.deepEqual(children.get('restrictedNum'), ['three', index === done ? 'cats' : 'restrictedN'],
       `the word is one painted node on both sides of the rename at frame ${index + 1}`);
   }
-  const three = d3.hierarchy(list[done].replayCanvasData).find(node => node.data.id === 'restrictedNum::__lex_three');
-  assert.deepEqual(three.data.aliasIds, ['three', 'numberP::__lex_three'], 'the word keeps its authored and preceding ids');
   assert.deepEqual(checkContinuedOccurrences(lexical, record), []);
   assert.deepEqual(checkStableConstruction(lexical), []);
   assert.deepEqual(checkAttachAtMerge(lexical), []);
@@ -74,9 +72,9 @@ test('a word follows its owner through successive renames', () => {
   const chained = prepareReplay({ ...record, includePlayback: true }), list = chained.playbackSteps;
   for (const stageIndex of [0, 1, 2]) {
     const last = list.findLastIndex(step => step.replayFrameIndex === stageIndex);
-    assert.deepEqual(frameStructure(list[last]).children.get('embeddedNum')?.[0], 'embeddedNum::__lex_three', `stage ${stageIndex + 1}`);
+    assert.deepEqual(frameStructure(list[last]).children.get('embeddedNum')?.[0], 'three', `stage ${stageIndex + 1}`);
   }
-  assert(!list.some(step => step.replayKind === 'micro' && /__lex_three/.test(step.targetNodeId) && step.replayFrameIndex > 0),
+  assert(!list.some(step => step.replayKind === 'micro' && step.targetNodeId === 'three' && step.replayFrameIndex > 0),
     'only the first stage selects the word');
   assert.deepEqual(checkContinuedOccurrences(chained, record), []);
   assert.deepEqual(checkAttachAtMerge(chained), []);
@@ -133,4 +131,22 @@ test('the rule fails closed on regrouping, movement, another slot and changed co
   const rehung = [node('dp', 'D', leaf('d', 'D', 'the')), node('pp', 'P', leaf('in', 'P', 'in'), leaf('it', 'D', 'it'),
     node('num2', 'Num', leaf('three', 'Num', 'three'), leaf('cats', 'N', 'cats')))];
   assert.deepEqual(pairs(rehung), [], 'the same daughters under another parent');
+});
+
+test('the rule pairs a node whose id moves to a new parent above it with the new daughter that takes over its daughters', () => {
+  const before = [node('dp', 'D', leaf('d', 'D', 'the'), leaf('n', 'N', 'cats'))];
+  const lower = (extra = {}) => ({ ...node('core', 'D', leaf('d', 'D', 'the'), leaf('n', 'N', 'cats')), ...extra });
+  const adjoined = (inner = lower(), outer = {}) => [{ ...node('dp', 'D', inner, node('cp', 'C', leaf('c', 'C', 'that'))), ...outer }];
+  const raised = (current, owned = []) => [...continuedOccurrences(before, current, () => new Set(owned))];
+  assert.deepEqual(raised(adjoined()), [['dp', 'core']]);
+  before[0].lineageId = 'x';
+  assert.deepEqual(raised(adjoined(lower(), { lineageId: 'x' })), [['dp', 'core']], 'the kept id keeps the lineage');
+  assert.deepEqual(raised(adjoined(lower({ lineageId: 'y' }), { lineageId: 'x' })), [], 'the new daughter names another lineage');
+  delete before[0].lineageId;
+  assert.deepEqual(raised(adjoined(), ['cp']), [], 'a relation places the new sister, as a movement places its landing');
+  assert.deepEqual(raised(adjoined(), ['dp']), [], 'a relation names the new parent');
+  assert.deepEqual(raised(adjoined(), ['n']), [['dp', 'core']], 'material a relation moves inside the continuation keeps it continued');
+  const keepsDaughter = [node('dp', 'D', leaf('d', 'D', 'the'), node('core', 'D', leaf('n', 'N', 'cats'), leaf('x', 'N', 'x')))];
+  assert.deepEqual(raised(keepsDaughter), [], 'the kept parent still holds a preceding daughter itself');
+  assert.deepEqual(raised([node('dp', 'D', lower())]), [], 'a unary parent gains no new sister');
 });

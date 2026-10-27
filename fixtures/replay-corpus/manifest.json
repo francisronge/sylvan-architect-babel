@@ -71,7 +71,8 @@
       "id": "relative-clause-waiting-clearance",
       "source": "../replay-regressions/relative-clause-waiting-clearance.json",
       "mechanisms": ["multiple-roots", "ordinary-wrapper", "later-movement"],
-      "expect": {"minWorkspaceRoots": 2, "minMerges": 1, "minMovementMoments": 1}
+      "expect": {"minWorkspaceRoots": 2, "minMerges": 1, "minMovementMoments": 1},
+      "allow": {"replay": true, "finalCoordinates": true, "reason": "The relative clause now attaches beside the old N' at one merge, without the one-branch N' frame that no authored stage contains; the accepted slide at that merge is listed in tests/helpers/motionExceptions.mjs."}
     },
     {
       "id": "phase-edge-retained-sister-contour",

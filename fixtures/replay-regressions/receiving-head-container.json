@@ -1,0 +1,645 @@
+{
+  "description": "V-to-Asp head movement where the receiving head keeps its id as the new complex's container: in stage 1 the bare Asp⁰ 'aspect' (咗) becomes the complex [v, aspect-suffix], and its word moves to a new inner head aspect-suffix. That inner head is the movement's (newReceivingHeadNodeIds): the movement moment shows it, so the completed stage paints every authored node, and no later merge reveals it.",
+  "source": "GPT-6.1 Sol, high reasoning, Codex OAuth qualification run, 26 October 2026 (sol-120-20261026, n3-04-yue-sfp).",
+  "sentence": "佢食咗飯未呀？",
+  "framework": "xbar",
+  "inputTokens": [
+    "佢",
+    "食",
+    "咗",
+    "飯",
+    "未",
+    "呀"
+  ],
+  "derivationStages": [
+    {
+      "statement": "Establish the thematic VP and the separate functional heads.",
+      "stageRecord": "佢 is the pronominal subject, 食 is the transitive verb, and 飯 is its bare nominal complement. The verb selects 飯 as its complement, assigns the Agent role to 佢 in Spec-VP and the Theme role to 飯, and licenses abstract accusative Case on 飯. The perfective head 咗, an unpronounced inflectional head, the interrogative polarity head 未, and the sentence-final particle 呀 remain separate. Here 未 belongs to the eventual yet-type question, rather than expressing ordinary preverbal negation.",
+      "relations": [
+        {
+          "relation": "complement-selection",
+          "anchors": {
+            "selector": "v",
+            "complement": "object"
+          },
+          "values": {
+            "category": "NP"
+          }
+        },
+        {
+          "relation": "theta-assignment",
+          "anchors": {
+            "predicate": "v",
+            "arguments": [
+              "subject",
+              "object"
+            ]
+          },
+          "values": {
+            "arguments": [
+              "Agent",
+              "Theme"
+            ]
+          }
+        },
+        {
+          "relation": "abstract-Case-assignment",
+          "anchors": {
+            "assigner": "v",
+            "recipient": "object"
+          },
+          "values": {
+            "Case": "accusative"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "vp",
+          "label": "VP",
+          "children": [
+            {
+              "id": "subject",
+              "label": "NP",
+              "lineageId": "subject-chain",
+              "children": [
+                {
+                  "id": "subject-nbar",
+                  "label": "N′",
+                  "children": [
+                    {
+                      "id": "pronoun",
+                      "label": "N⁰",
+                      "word": "佢",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "vbar",
+              "label": "V′",
+              "children": [
+                {
+                  "id": "v",
+                  "label": "V⁰",
+                  "word": "食",
+                  "lineageId": "verb-chain",
+                  "children": []
+                },
+                {
+                  "id": "object",
+                  "label": "NP",
+                  "children": [
+                    {
+                      "id": "object-nbar",
+                      "label": "N′",
+                      "children": [
+                        {
+                          "id": "rice",
+                          "label": "N⁰",
+                          "word": "飯",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "aspect",
+          "label": "Asp⁰",
+          "word": "咗",
+          "children": []
+        },
+        {
+          "id": "infl",
+          "label": "I⁰",
+          "silent": true,
+          "children": []
+        },
+        {
+          "id": "polarity",
+          "label": "Pol⁰",
+          "word": "未",
+          "children": []
+        },
+        {
+          "id": "particle",
+          "label": "C⁰",
+          "word": "呀",
+          "children": []
+        }
+      ]
+    },
+    {
+      "statement": "Project perfective aspect and derive the verb–aspect sequence 食咗.",
+      "stageRecord": "咗 selects the established VP and projects a head-initial AspP. 食 then moves from the previously established V position and left-adjoins to the aspect head, producing 食咗 before the object 飯. Its source becomes an unpronounced V trace. The resulting head chain connects the pronounced verb with its thematic and Case-assigning position; the raised verb antecedent-governs its trace. Perfective aspect presents the eating event as bounded or completed, without itself supplying an overt tense.",
+      "relations": [
+        {
+          "relation": "aspectual-selection-and-interpretation",
+          "anchors": {
+            "head": "aspect",
+            "complement": "vp"
+          },
+          "values": {
+            "aspect": "perfective",
+            "interpretation": "bounded or completed eating event"
+          }
+        },
+        {
+          "relation": "V-to-Asp-head-movement",
+          "anchors": {
+            "mover": "v",
+            "landingHead": "aspect",
+            "sourceTrace": "verb-trace"
+          },
+          "priorAnchors": {
+            "source": "v"
+          },
+          "values": {
+            "adjunction": "left-adjunction",
+            "chainType": "head chain"
+          }
+        },
+        {
+          "relation": "antecedent-government",
+          "anchors": {
+            "governor": "v",
+            "trace": "verb-trace"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "aspp",
+          "label": "AspP",
+          "children": [
+            {
+              "id": "aspbar",
+              "label": "Asp′",
+              "children": [
+                {
+                  "id": "aspect",
+                  "label": "Asp⁰",
+                  "children": [
+                    {
+                      "id": "v",
+                      "label": "V⁰",
+                      "word": "食",
+                      "lineageId": "verb-chain",
+                      "children": []
+                    },
+                    {
+                      "id": "aspect-suffix",
+                      "label": "Asp⁰",
+                      "word": "咗",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "vp",
+                  "label": "VP",
+                  "children": [
+                    {
+                      "id": "subject",
+                      "label": "NP",
+                      "lineageId": "subject-chain",
+                      "children": [
+                        {
+                          "id": "subject-nbar",
+                          "label": "N′",
+                          "children": [
+                            {
+                              "id": "pronoun",
+                              "label": "N⁰",
+                              "word": "佢",
+                              "children": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "vbar",
+                      "label": "V′",
+                      "children": [
+                        {
+                          "id": "verb-trace",
+                          "label": "V⁰ (trace)",
+                          "silent": true,
+                          "lineageId": "verb-chain",
+                          "children": []
+                        },
+                        {
+                          "id": "object",
+                          "label": "NP",
+                          "children": [
+                            {
+                              "id": "object-nbar",
+                              "label": "N′",
+                              "children": [
+                                {
+                                  "id": "rice",
+                                  "label": "N⁰",
+                                  "word": "飯",
+                                  "children": []
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "infl",
+          "label": "I⁰",
+          "silent": true,
+          "children": []
+        },
+        {
+          "id": "polarity",
+          "label": "Pol⁰",
+          "word": "未",
+          "children": []
+        },
+        {
+          "id": "particle",
+          "label": "C⁰",
+          "word": "呀",
+          "children": []
+        }
+      ]
+    },
+    {
+      "statement": "Establish the finite clause and raise 佢 to Spec-IP.",
+      "stageRecord": "The unpronounced inflectional head takes AspP as its complement. 佢 moves from its established Spec-VP position to Spec-IP, leaving an NP trace in the Agent position. This A-chain preserves the subject's thematic interpretation while placing its pronounced occurrence in the clause-level subject position. Finite I licenses abstract nominative Case on the raised subject, and that subject antecedent-governs its lower trace. No overt tense or agreement ending is introduced.",
+      "relations": [
+        {
+          "relation": "inflectional-selection",
+          "anchors": {
+            "head": "infl",
+            "complement": "aspp"
+          },
+          "values": {
+            "clauseStatus": "finite",
+            "overtInflection": "none"
+          }
+        },
+        {
+          "relation": "subject-A-movement",
+          "anchors": {
+            "mover": "subject",
+            "landingProjection": "ip",
+            "sourceTrace": "subject-trace"
+          },
+          "priorAnchors": {
+            "source": "subject"
+          },
+          "values": {
+            "landingPosition": "Spec-IP",
+            "sourcePosition": "Spec-VP",
+            "chainType": "A-chain"
+          }
+        },
+        {
+          "relation": "abstract-Case-assignment",
+          "anchors": {
+            "assigner": "infl",
+            "recipient": "subject"
+          },
+          "values": {
+            "Case": "nominative"
+          }
+        },
+        {
+          "relation": "antecedent-government",
+          "anchors": {
+            "governor": "subject",
+            "trace": "subject-trace"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "ip",
+          "label": "IP",
+          "children": [
+            {
+              "id": "subject",
+              "label": "NP",
+              "lineageId": "subject-chain",
+              "children": [
+                {
+                  "id": "subject-nbar",
+                  "label": "N′",
+                  "children": [
+                    {
+                      "id": "pronoun",
+                      "label": "N⁰",
+                      "word": "佢",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "ibar",
+              "label": "I′",
+              "children": [
+                {
+                  "id": "infl",
+                  "label": "I⁰",
+                  "silent": true,
+                  "children": []
+                },
+                {
+                  "id": "aspp",
+                  "label": "AspP",
+                  "children": [
+                    {
+                      "id": "aspbar",
+                      "label": "Asp′",
+                      "children": [
+                        {
+                          "id": "aspect",
+                          "label": "Asp⁰",
+                          "children": [
+                            {
+                              "id": "v",
+                              "label": "V⁰",
+                              "word": "食",
+                              "lineageId": "verb-chain",
+                              "children": []
+                            },
+                            {
+                              "id": "aspect-suffix",
+                              "label": "Asp⁰",
+                              "word": "咗",
+                              "children": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "vp",
+                          "label": "VP",
+                          "children": [
+                            {
+                              "id": "subject-trace",
+                              "label": "NP (trace)",
+                              "silent": true,
+                              "lineageId": "subject-chain",
+                              "children": []
+                            },
+                            {
+                              "id": "vbar",
+                              "label": "V′",
+                              "children": [
+                                {
+                                  "id": "verb-trace",
+                                  "label": "V⁰ (trace)",
+                                  "silent": true,
+                                  "lineageId": "verb-chain",
+                                  "children": []
+                                },
+                                {
+                                  "id": "object",
+                                  "label": "NP",
+                                  "children": [
+                                    {
+                                      "id": "object-nbar",
+                                      "label": "N′",
+                                      "children": [
+                                        {
+                                          "id": "rice",
+                                          "label": "N⁰",
+                                          "word": "飯",
+                                          "children": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "polarity",
+          "label": "Pol⁰",
+          "word": "未",
+          "children": []
+        },
+        {
+          "id": "particle",
+          "label": "C⁰",
+          "word": "呀",
+          "children": []
+        }
+      ]
+    },
+    {
+      "statement": "Complete the yet-type polar question with final 未 and 呀.",
+      "stageRecord": "未 takes the completed IP as its complement and projects a head-final PolP. It has scope over the perfective proposition and asks whether the subject has eaten by the relevant reference time or has not yet done so. 呀 then takes PolP as its complement and projects the outer head-final CP, contributing the utterance-level, addressee-directed questioning particle. Neither particle is derived by moving the verb or the clause. The resulting pronounced order is exactly 佢食咗飯未呀, interpreted as ‘Has he or she eaten yet?’; the pronoun's gender does not require a different syntactic structure.",
+      "relations": [
+        {
+          "relation": "interrogative-polarity-selection-and-scope",
+          "anchors": {
+            "head": "polarity",
+            "complement": "ip",
+            "aspectualDomain": "aspp"
+          },
+          "values": {
+            "headedness": "head-final",
+            "questionType": "yet-type polar question",
+            "alternatives": [
+              "the subject has eaten by the relevant reference time",
+              "the subject has not yet eaten by that time"
+            ]
+          }
+        },
+        {
+          "relation": "sentence-final-particle-selection",
+          "anchors": {
+            "head": "particle",
+            "complement": "polp"
+          },
+          "values": {
+            "headedness": "head-final",
+            "contribution": "addressee-directed questioning particle"
+          }
+        }
+      ],
+      "workspaceForest": [
+        {
+          "id": "cp",
+          "label": "CP",
+          "children": [
+            {
+              "id": "cbar",
+              "label": "C′",
+              "children": [
+                {
+                  "id": "polp",
+                  "label": "PolP",
+                  "children": [
+                    {
+                      "id": "polbar",
+                      "label": "Pol′",
+                      "children": [
+                        {
+                          "id": "ip",
+                          "label": "IP",
+                          "children": [
+                            {
+                              "id": "subject",
+                              "label": "NP",
+                              "lineageId": "subject-chain",
+                              "children": [
+                                {
+                                  "id": "subject-nbar",
+                                  "label": "N′",
+                                  "children": [
+                                    {
+                                      "id": "pronoun",
+                                      "label": "N⁰",
+                                      "word": "佢",
+                                      "children": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "id": "ibar",
+                              "label": "I′",
+                              "children": [
+                                {
+                                  "id": "infl",
+                                  "label": "I⁰",
+                                  "silent": true,
+                                  "children": []
+                                },
+                                {
+                                  "id": "aspp",
+                                  "label": "AspP",
+                                  "children": [
+                                    {
+                                      "id": "aspbar",
+                                      "label": "Asp′",
+                                      "children": [
+                                        {
+                                          "id": "aspect",
+                                          "label": "Asp⁰",
+                                          "children": [
+                                            {
+                                              "id": "v",
+                                              "label": "V⁰",
+                                              "word": "食",
+                                              "lineageId": "verb-chain",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "aspect-suffix",
+                                              "label": "Asp⁰",
+                                              "word": "咗",
+                                              "children": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "vp",
+                                          "label": "VP",
+                                          "children": [
+                                            {
+                                              "id": "subject-trace",
+                                              "label": "NP (trace)",
+                                              "silent": true,
+                                              "lineageId": "subject-chain",
+                                              "children": []
+                                            },
+                                            {
+                                              "id": "vbar",
+                                              "label": "V′",
+                                              "children": [
+                                                {
+                                                  "id": "verb-trace",
+                                                  "label": "V⁰ (trace)",
+                                                  "silent": true,
+                                                  "lineageId": "verb-chain",
+                                                  "children": []
+                                                },
+                                                {
+                                                  "id": "object",
+                                                  "label": "NP",
+                                                  "children": [
+                                                    {
+                                                      "id": "object-nbar",
+                                                      "label": "N′",
+                                                      "children": [
+                                                        {
+                                                          "id": "rice",
+                                                          "label": "N⁰",
+                                                          "word": "飯",
+                                                          "children": []
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "id": "polarity",
+                          "label": "Pol⁰",
+                          "word": "未",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "particle",
+                  "label": "C⁰",
+                  "word": "呀",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

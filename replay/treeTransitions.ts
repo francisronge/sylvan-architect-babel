@@ -334,8 +334,10 @@ export const buildPreMovementStructuralForest = (
     if (sources.length !== sourceIds.length || sources.length === 0 || !target)
       return;
     const targetLineageId = String(target.lineageId || '');
+    // A source's lineage is the one its stage authors: the lineage may be
+    // declared as its first copy is made, which the restored preceding form lacks.
     if (!targetLineageId || sources.some((source) => {
-      const sourceLineageId = String(source.lineageId || '');
+      const sourceLineageId = String(findNodeInForest(currentForest, source.id)?.lineageId || source.lineageId || '');
       return !sourceLineageId
         || sourceLineageId !== targetLineageId
         || source === target
@@ -942,21 +944,43 @@ export const keptIdLandingNodeIds = (
     });
 };
 
+/**
+ * The receiving head of a head movement that keeps its id and becomes the new
+ * complex's container in the completed stage, so its new inner material is
+ * part of the movement's atomic landing. Before, it was either a bare head, or
+ * a head whose daughters the completed stage re-wraps: every daughter beside
+ * the landing is new and together they contain all of its old daughters
+ * ([I Agr T] becomes [I [I Agr T] V]).
+ */
+const retainedReceivingHead = (
+  movement: RecoveredMovement | undefined,
+  previousForest: SyntaxNode[],
+  currentForest: SyntaxNode[]
+): SyntaxNode | undefined => {
+  if (!movement?.transition || movement.trajectoryKind !== 'head')
+    return undefined;
+  const parentId = findParentNodeIdInForest(currentForest, movement.targetNodeId);
+  const before = findExactNodeByIdInForest(previousForest, parentId);
+  const after = findExactNodeByIdInForest(currentForest, parentId);
+  if (!before || !after?.children?.length)
+    return undefined;
+  if (!before.children?.length)
+    return after;
+  const inner = after.children.filter(child => child.id !== movement.targetNodeId);
+  const rewrapped = inner.every(child => !findExactNodeByIdInForest(previousForest, child.id))
+    && before.children.every(old => inner.some(child => collectSyntaxSubtreeNodeIds(child).includes(old.id)));
+  return rewrapped ? after : undefined;
+};
+
 export const newReceivingHeadNodeIds = (
   movement: RecoveredMovement | undefined,
   previousForest: SyntaxNode[],
   currentForest: SyntaxNode[]
 ): string[] => {
-  if (!movement?.transition || movement.trajectoryKind !== 'head')
+  const after = retainedReceivingHead(movement, previousForest, currentForest);
+  if (!after)
     return [];
-  const parentId = findParentNodeIdInForest(currentForest, movement.targetNodeId);
-  const before = findExactNodeByIdInForest(previousForest, parentId);
-  const after = findExactNodeByIdInForest(currentForest, parentId);
-  // A retained head may become the complex's container in the completed
-  // stage. Its new inner head is part of that same atomic landing.
-  if (!before || before.children?.length || !after?.children?.length)
-    return [];
-  return after.children.filter(child => child.id !== movement.targetNodeId)
+  return after.children!.filter(child => child.id !== movement!.targetNodeId)
     .flatMap(child => collectSyntaxSubtreeNodeIds(child))
     .filter(id => !findExactNodeByIdInForest(previousForest, id));
 };
@@ -1010,14 +1034,7 @@ export const receivingHeadMaterialNodeId = (
   movement: RecoveredMovement | undefined,
   previousForest: SyntaxNode[],
   currentForest: SyntaxNode[]
-): string | undefined => {
-  if (!movement?.transition || movement.trajectoryKind !== 'head')
-    return undefined;
-  const parentId = findParentNodeIdInForest(currentForest, movement.targetNodeId);
-  const before = findExactNodeByIdInForest(previousForest, parentId);
-  const after = findExactNodeByIdInForest(currentForest, parentId);
-  return before && !before.children?.length && after?.children?.length ? parentId : undefined;
-};
+): string | undefined => retainedReceivingHead(movement, previousForest, currentForest)?.id;
 
 /**
  * Apply only the raw tree deltas witnessed by active relations.

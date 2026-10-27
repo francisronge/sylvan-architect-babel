@@ -223,6 +223,28 @@ function momentNeeds(steps, index, relation) {
   return needs;
 }
 
+/** The parents a moment's landings join: the displayed parent of each node the
+ * moment moves (displayed in the preceding frame under another parent). */
+function landingParents(steps, index) {
+  const structure = frameStructure(steps[index]), before = index ? frameStructure(steps[index - 1]) : EMPTY_FRAME;
+  return new Set([...structure.displayed]
+    .filter(id => before.displayed.has(id) && structure.parent.get(id) && before.parent.get(id) !== structure.parent.get(id))
+    .flatMap(id => nodeNames(structure.nodes.get(structure.parent.get(id)))));
+}
+
+/** Whether the moment at `index` relocates the displayed node named `name`: it
+ * or an ancestor leaves its preceding parent, which no longer contains it. A
+ * new parent inserted above it keeps the preceding parent above, and is not a relocation. */
+function relocatesAt(steps, index, name) {
+  const structure = frameStructure(steps[index]), before = index ? frameStructure(steps[index - 1]) : EMPTY_FRAME;
+  const id = [...structure.displayed].find(candidate => nodeNames(structure.nodes.get(candidate)).includes(name));
+  if (!id || !before.displayed.has(id)) return false;
+  const lineage = start => { const ids = []; for (let at = start; at; at = structure.parent.get(at)) ids.push(at); return ids; };
+  const current = lineage(id);
+  return current.some(at => before.displayed.has(at) && before.parent.get(at) !== structure.parent.get(at)
+    && !current.includes(before.parent.get(at)));
+}
+
 /** Whether `id` is one of a relation's authored anchors, or an ancestor or descendant of one in its stage's forest. */
 function coveredByClaim(stage, relation, id) {
   const parent = new Map();
@@ -238,7 +260,9 @@ function coveredByClaim(stage, relation, id) {
  * its stage that introduces syntax it needs. A relation that plays after a
  * later authored one must have waited: from the last such relation's moment to
  * its own, some moment first displays one of its needs (`momentNeeds`) that
- * belongs to that moment's own authored claim.
+ * belongs to that moment's own authored claim, or relocates, within its claim,
+ * the parent one of its landings joins (`landingParents`): a landing inside a
+ * phrase a later movement moves waits for that movement.
  */
 export function checkRelationMoments(replay, record) {
   const steps = replay.playbackSteps, out = [], moments = new Map();
@@ -264,9 +288,11 @@ export function checkRelationMoments(replay, record) {
       const overtaking = played.slice(0, position).filter(other => other.relationIndex > moment.relationIndex).at(-1);
       if (!overtaking) return;
       const needs = momentNeeds(steps, moment.index, moment.relation), shown = displayedNames(frameStructure(steps[moment.index]));
+      const parents = landingParents(steps, moment.index);
       const waited = played.slice(played.indexOf(overtaking), position).some(other => {
         const before = other.index ? displayedNames(frameStructure(steps[other.index - 1])) : new Set();
-        return [...needs].some(id => shown.has(id) && !before.has(id) && coveredByClaim(stage, other.relation, id));
+        return [...needs].some(id => shown.has(id) && !before.has(id) && coveredByClaim(stage, other.relation, id))
+          || [...parents].some(id => relocatesAt(steps, other.index, id) && coveredByClaim(stage, other.relation, id));
       });
       if (!waited) out.push(violation('relation-moments', moment.index + 1,
         `relation ${moment.key} plays after later authored relation ${overtaking.key} without waiting for syntax it introduces`));
@@ -344,15 +370,33 @@ export function checkStableConstruction(replay) {
   return out;
 }
 
+/** What the relations of a stage move, copy or rewrite. */
+const ownedBy = (relations, previousForest, currentForest) => new Set(relations.flatMap(relation => {
+  const ownership = resolveFallbackTreeTransitionOwnership(relation, previousForest, currentForest);
+  const anchors = [...Object.values(relation.anchors ?? {}), ...Object.values(relation.priorAnchors ?? {})].flat().map(String);
+  return [
+    ...(relation.recoveredMovement || relation.recoveredMovements?.length || relation.unprovenNewLandingNodeId
+      || relation.anchoredCopyDisplacement || isRegisteredTrajectoryRelation(relation.relation, relation.anchors)
+      || relationOwnsNonMovementTreeTransition(relation, previousForest, currentForest) ? anchors : []),
+    ...(relation.recoveredMovements ?? [relation.recoveredMovement]).flatMap(movement => movement
+      ? [movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId, movement.witnessNodeId] : []),
+    ...(ownership ? [...ownership.currentNodeIds, ...ownership.priorNodeIds, ...(ownership.hostNodeIds ?? [])] : [])
+  ];
+}));
+
 /** Each node a stage dissolves, paired with the new node of that stage that
  * structurally continues it: the same category, word, silence and lineage, the
  * same slot (the same position under the continuing parent, or a root that
  * stays a root or gains a new parent), and every daughter or its continuation
  * in order, with at most one new node inserted directly above one daughter.
+ * A node whose id the stage moves to a new parent above it is continued in
+ * the same way by that parent's new daughter, the parent holding the slot,
+ * unless a relation of an earlier stage moves, copies or rewrites it
+ * (`earlierOwned`): its earlier frames keep that exact id.
  * Only unique pairings count, and none over material a relation of the stage
  * moves, copies or rewrites. This restates the rule independently of
  * replay/continuedOccurrences.ts. */
-function continuedPairs(previousForest, currentForest, relations) {
+function continuedPairs(previousForest, currentForest, relations, earlierOwned = new Set()) {
   const index = forest => {
     const nodes = new Map();
     const visit = (node, parent, slot) => {
@@ -364,23 +408,26 @@ function continuedPairs(previousForest, currentForest, relations) {
   };
   const before = index(previousForest), after = index(currentForest);
   const subtree = node => [node.id, ...(node.children ?? []).flatMap(subtree)];
-  const owned = new Set(relations.flatMap(relation => {
-    const ownership = resolveFallbackTreeTransitionOwnership(relation, previousForest, currentForest);
-    const anchors = [...Object.values(relation.anchors ?? {}), ...Object.values(relation.priorAnchors ?? {})].flat().map(String);
-    return [
-      ...(relation.recoveredMovement || relation.recoveredMovements?.length || relation.unprovenNewLandingNodeId
-        || relation.anchoredCopyDisplacement || isRegisteredTrajectoryRelation(relation.relation, relation.anchors)
-        || relationOwnsNonMovementTreeTransition(relation, previousForest, currentForest) ? anchors : []),
-      ...(relation.recoveredMovements ?? [relation.recoveredMovement]).flatMap(movement => movement
-        ? [movement.priorSourceNodeId, movement.sourceNodeId, movement.targetNodeId, movement.witnessNodeId] : []),
-      ...(ownership ? [...ownership.currentNodeIds, ...ownership.priorNodeIds, ...(ownership.hostNodeIds ?? [])] : [])
-    ];
-  }));
-  const content = node => JSON.stringify([trimmed(node.label), trimmed(node.word), node.silent === true, node.lineageId ?? '']);
+  const owned = ownedBy(relations, previousForest, currentForest);
+  const content = (node, lineageId = node.lineageId) => JSON.stringify([trimmed(node.label), trimmed(node.word), node.silent === true, lineageId ?? '']);
   const free = node => node.children?.length && !subtree(node).some(id => owned.has(id));
   let pairs = [...before].filter(([id, at]) => at && !after.has(id) && free(at.node)).flatMap(([id, at]) => [...after]
     .filter(([other, next]) => next && !before.has(other) && free(next.node) && content(next.node) === content(at.node)
       && next.node.children.length === at.node.children.length).map(([other]) => [id, other]));
+  // A node whose id the stage gives to a new, unowned parent above it, among
+  // whose daughters none of its own remains: the new daughter with its
+  // content (the kept id may keep the lineage) and daughter count continues it.
+  const raised = new Set([...before].filter(([id, at]) => {
+    const outer = after.get(id)?.node, daughters = outer?.children ?? [];
+    return at?.node.children?.length && daughters.length > 1 && !earlierOwned.has(id)
+      && ![id, ...daughters.map(child => child.id)].some(at => owned.has(at))
+      && !daughters.some(child => at.node.children.some(daughter => daughter.id === child.id));
+  }).map(([id]) => id));
+  for (const id of raised) {
+    const old = before.get(id).node, outer = after.get(id).node;
+    for (const child of outer.children) if (child.id && !before.has(child.id) && child.children?.length === old.children.length
+      && content(child, child.lineageId || (outer.lineageId === old.lineageId ? old.lineageId : undefined)) === content(old)) pairs.push([id, child.id]);
+  }
   for (;;) {
     const partner = (from, to) => pairs.some(([x, y]) => x === from && y === to);
     const continuing = new Set(pairs.map(([, y]) => y));
@@ -393,8 +440,9 @@ function continuedPairs(previousForest, currentForest, relations) {
         const child = next.node.children[old.node.children.indexOf(daughter)];
         return fresh(child) && child.children?.some(grandchild => keeps(daughter.id, grandchild));
       })) return false;
-      if (!old.parent) return !next.parent || fresh(next.parent);
-      return keeps(old.parent.id, next.parent) && old.slot === next.slot && old.parent.children.length === next.parent.children.length;
+      const slot = raised.has(x) ? after.get(x) : next;
+      if (!old.parent) return !slot.parent || fresh(slot.parent);
+      return keeps(old.parent.id, slot.parent) && old.slot === slot.slot && old.parent.children.length === slot.parent.children.length;
     };
     const kept = pairs.filter(holds);
     const unique = kept.length < pairs.length ? kept
@@ -421,7 +469,9 @@ export function checkContinuedOccurrences(replay, record) {
     const own = stepsOfStage(steps, stageIndex), last = stepsOfStage(steps, stageIndex - 1).at(-1);
     if (!own.length || last === undefined) return;
     const previousForest = stages[stageIndex - 1].workspaceForest ?? [], currentForest = stage.workspaceForest ?? [];
-    const pairs = continuedPairs(previousForest, currentForest, resolve(stageIndex));
+    const earlierOwned = new Set(stages.slice(0, stageIndex).flatMap((earlier, at) => frames[at]
+      ? [...ownedBy(resolve(at), stages[at - 1]?.workspaceForest ?? [], earlier.workspaceForest ?? [])] : []));
+    const pairs = continuedPairs(previousForest, currentForest, resolve(stageIndex), earlierOwned);
     if (!pairs.length) return;
     const daughters = new Map();
     const visit = node => { daughters.set(node.id, (node.children ?? []).map(child => child.id)); (node.children ?? []).forEach(visit); };
@@ -472,6 +522,56 @@ export function checkParentAfterChildren(replay) {
         && !(before.displayed.has(id) && !before.displayed.has(getNodeId(child))))
       .map(child => violation('parent-after-children', index + 1, `${getNodeId(child)} is hidden under displayed ${id}`)));
   });
+}
+
+/** A displayed parent shows the daughters its stage authors for it, or holds
+ * its preceding stage's daughters while construction builds the new ones.
+ * Slot by slot, a daughter of the stage is shown as itself, as the visible
+ * part inside it while it is still hidden, or as the daughter it replaces in
+ * that slot; a held preceding daughter is shown as itself or inside a new node
+ * the stage puts below the parent's own new daughters. A parent shown with
+ * other daughters, such as a kept parent standing over only the new node that
+ * took over its preceding daughters while its other new daughter waits, is a
+ * state no stage authors and no step builds. Derived word leaves are
+ * pronunciation, not daughters. */
+export function checkWholeParent(replay) {
+  const frames = replay.replayDerivationFrames ?? [], forests = new Map(), out = [];
+  const forest = stage => {
+    if (!forests.has(stage)) {
+      const nodes = new Map();
+      const visit = node => {
+        if (!node?.id) return;
+        nodes.set(String(node.id), nodes.has(String(node.id)) ? null : node);
+        (node.children ?? []).forEach(visit);
+      };
+      (frames[stage]?.workspaceForest ?? []).forEach(visit);
+      forests.set(stage, nodes);
+    }
+    return forests.get(stage);
+  };
+  const daughterIds = node => (node?.children ?? []).map(child => String(child.id));
+  const holds = (node, id) => Boolean(node) && (String(node.id) === id || (node.children ?? []).some(child => holds(child, id)));
+  replay.playbackSteps.forEach((step, index) => {
+    const structure = frameStructure(step), stage = step.replayFrameIndex;
+    if (!Number.isInteger(stage)) return;
+    const now = forest(stage), before = forest(stage - 1);
+    const authored = id => String(authoredIdentity(structure.nodes.get(id)).id);
+    const painted = new Set([...structure.displayed].map(authored));
+    for (const id of structure.displayed) {
+      const shown = (structure.children.get(id) ?? []).filter(child => structure.nodes.get(child).data.replayOrigin?.kind !== 'word').map(authored);
+      const self = authored(id), current = now.get(self), preceding = before.get(self);
+      if (!shown.length || (!current?.children?.length && !preceding?.children?.length)) continue;
+      const own = daughterIds(current), held = daughterIds(preceding);
+      const asStage = own.length === shown.length && shown.every((daughter, slot) => daughter === own[slot]
+        || !painted.has(own[slot]) && holds(now.get(own[slot]), daughter)
+        || held.length === own.length && daughter === held[slot]);
+      const asHeld = held.length === shown.length && shown.every((daughter, slot) => daughter === held[slot]
+        || !before.has(daughter) && !own.includes(daughter) && holds(now.get(daughter), held[slot]));
+      if (!asStage && !asHeld)
+        out.push(violation('whole-parent', index + 1, `${id} shows [${shown}], authored [${own}]${preceding ? ` after [${held}]` : ''}`));
+    }
+  });
+  return out;
 }
 
 const nodeNames = node => [getNodeId(node), node.data.id, ...(node.data.aliasIds ?? [])].filter(Boolean);
@@ -552,8 +652,12 @@ function revealedByRelation(node, ownership, previous, voices) {
       if (current.parent.children.some(sister => sister !== current && existing(sister))) break;
     }
   }
-  return Boolean(node.parent?.children?.some(sister => sister !== node && named(sister, endpoints))
-    && (node.children ?? []).filter(child => !isScaffold(child.data)).every(shownBefore));
+  // A new sister where a landing attaches: a parent over existing children,
+  // or a receiving head's new inner head, whose own word is pronunciation.
+  const newSister = candidate => Boolean(candidate?.parent?.children?.some(sister => sister !== candidate && named(sister, endpoints))
+    && (candidate.children ?? []).filter(child => !isScaffold(child.data) && child.data.replayOrigin?.kind !== 'word').every(shownBefore));
+  if (origin?.kind === 'word' && node.parent && !shownBefore(node.parent) && newSister(node.parent)) return true;
+  return newSister(node);
 }
 
 /** A node first painted at step k must be earned by step k. Structural
