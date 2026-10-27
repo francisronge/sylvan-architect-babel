@@ -132,7 +132,7 @@ export function refineRelationGeometry({
       measureRenderedElementsInTreeSpace,
       measuredTrajectorySubtreeRect,
       unionRects,
-      productionTrajectoryPaths: () => productionTrajectoryPaths
+      laneTrajectoryPaths: () => laneTrajectoryPaths
     });
     g.selectAll<SVGGElement, unknown>('.babel-control-relation-layer')
       .each(refineControlRelation);
@@ -173,7 +173,9 @@ export function refineRelationGeometry({
     g.selectAll<SVGTextElement, unknown>('.babel-pg-gap-label[data-gap-label-anchor]').each(refineParasiticGapLabel);
     refineAcrossTheBoardPaths();
     g.selectAll<SVGPathElement, unknown>('.vr-trajectory-sideward').each(refineSidewardPath);
-    const productionTrajectoryPaths = g.selectAll<SVGPathElement, unknown>('.vr-trajectory').nodes();
+    // Only remnant and smuggling paths run along a lane under the tree; head,
+    // phrasal and roll-up paths do not take one, so they do not push it down.
+    const laneTrajectoryPaths = g.selectAll<SVGPathElement, unknown>('.vr-trajectory-remnant, .vr-trajectory-smuggling').nodes();
     g.selectAll<SVGPathElement, unknown>(
       '.vr-trajectory-remnant, .vr-trajectory-roll-up, .vr-trajectory-smuggling'
     ).each(refineOrthogonalTrajectory);

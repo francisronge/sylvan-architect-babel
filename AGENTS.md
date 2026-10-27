@@ -322,6 +322,7 @@ change. Drop a row once its mistake can no longer happen.
 | Recognition never keys on relation names, role names or wording. | `tests/recognitionVocabularyFrozen.test.mjs` fails when a change adds to the recognition vocabulary. |
 | A fault becomes an exception only with Francis's approval, quoting where he gave it. Growth within 5% of a bound needs none. | `npm run verify:exceptions` (CI), with `BOUND_TOLERANCE` in `tests/helpers/findings.mjs`. |
 | A step moves only the syntax it owns; nothing new jumps noticeably (20 tree units, or an existing jump growing by 20 units or 10%). | CI job `corpus-motion` (`verify:corpus` over every fixture against the PR base), with approved faults in `tests/helpers/motionExceptions.mjs`. |
+| Babel puts its own gap label (t₁, pg₁) only on a silent occurrence; the model's trace notation stays as written. | `gap-label-on-silence` in `tests/helpers/replayInvariants.mjs` (fixture sweep and `scripts/auditReplayInvariants.mjs`). |
 | A movement is shown as movement at its own moment. | `movement-shown-as-movement` in `tests/helpers/replayInvariants.mjs`, and `verify:corpus`. |
 | Branches span one row, sisters share a row, parents stand centred. | `branch-geometry` and `parent-centring` in `verify:replay-offline` (CI). |
 | A plaque does not jump while its anchor holds. | `plaque-teleport` in `verify:replay-offline` (CI). |
