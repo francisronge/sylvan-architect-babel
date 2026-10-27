@@ -1,5 +1,6 @@
 import { authoredWord } from './nodePronunciation.js';
 import { normalizeSurfaceToken } from './surfaceTokens.js';
+import { expandPartsListAnalysis } from './partsList.js';
 
 /*
  * Babel's input contract: the model receives only the sentence and decides
@@ -647,7 +648,11 @@ export const convertSpelloutPayload = (payload, sentence) => {
   const reading = readSentence(sentence);
   // One meter covers the spelling check of every analysis in the response.
   const meter = workMeter();
-  const aligned = analyses.map((analysis, analysisIndex) => {
+  const aligned = analyses.map((authored, analysisIndex) => {
+    // A parts-list analysis is read, and converted, in its expanded nested form.
+    const expanded = expandPartsListAnalysis(authored);
+    if (expanded.issue) return { analysisIndex, diagnostics: [failure('SPELLOUT_UNREADABLE', expanded.issue.message)] };
+    const analysis = expanded.analysis;
     try {
       // Once the meter is spent, later analyses are not read at all.
       meter.charge();

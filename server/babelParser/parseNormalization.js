@@ -12,6 +12,7 @@ import { collectOvertTerminalNodes } from './syntaxTree.js';
 import { authoredWord } from './nodePronunciation.js';
 import { omitMismatchedOptionalTokenIndices } from './tokenIndexRecovery.js';
 import { convertSpelloutPayload } from './spellout.js';
+import { expandPartsListPayload } from './partsList.js';
 
 const normalizeOptionalText = (value) => {
   const text = String(value || '').trim();
@@ -205,6 +206,21 @@ const nestsDeeperThan = (value, limit) => {
 };
 
 /** One analysis's first spelling failure, typed like other contract failures. */
+const partsListFailure = (issue, multiple) => {
+  const message = `${multiple ? `Analysis ${issue.analysisIndex + 1}: ` : ''}${issue.message}`;
+  return new ParseApiError('BAD_MODEL_RESPONSE', message, 502, withFailureDetails({}, {
+    failureClass: 'contract_misunderstanding',
+    ruleId: issue.ruleId,
+    analysisIndex: issue.analysisIndex,
+    stageIndex: issue.stageIndex,
+    fieldPath: issue.fieldPath,
+    offendingValue: issue.offendingValue,
+    expectedForm: issue.expectedForm,
+    processingStep: 'workspace-expansion',
+    message
+  }));
+};
+
 const spelloutFailure = (result, multiple) => {
   const [first] = result.diagnostics;
   const fieldPath = multiple ? `$.analyses[${result.analysisIndex}]` : '$';
@@ -227,7 +243,7 @@ export const normalizeParseBundle = (
   enforceDerivationRouteContract = false,
   options = {}
 ) => {
-  const parsed = value;
+  let parsed = value;
   // Checked before anything walks or clones the response recursively.
   if (nestsDeeperThan(parsed, MAX_RESPONSE_DEPTH)) {
     const message = `The response nests deeper than ${MAX_RESPONSE_DEPTH} levels, so Babel cannot read it.`;
@@ -274,6 +290,15 @@ export const normalizeParseBundle = (
       );
     }
   }
+  // A parts-list analysis is expanded into nested workspace forests before any
+  // other check, so every later step and the stored analysis read one form.
+  const partsList = expandPartsListPayload(parsed);
+  if (partsList.issues.length) {
+    const failed = partsList.issues.map(issue => partsListFailure(issue, Array.isArray(parsed?.analyses)));
+    failed.forEach(error => options.analysisOutcomes?.push({ analysisIndex: error.failure.analysisIndex, status: 'failed', failure: error.failure }));
+    throw failed[0];
+  }
+  parsed = partsList.payload;
   // ParseBundle is an internal/product envelope. Each analysis inside it still
   // has the same authored derivation-stage contract.
   let analysesSource = Array.isArray(parsed?.analyses)
