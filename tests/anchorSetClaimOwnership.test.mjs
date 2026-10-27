@@ -63,21 +63,24 @@ test('generic mixed roles preserve supported organization without lending its li
   }
 });
 
-test('pure Tier 3 organization expires with its owning relation, and identical names remain distinct instances', () => {
+// Francis, 27 Oct 2026, on Sol n4-02's rail vanishing after one frame: "Why does
+// the rail disappear after one frame???" The rail is a designed drawing, so it
+// persists even when its claim draws nothing but neutral marks.
+test('pure Tier 3 organization persists after its owning relation, and identical names remain distinct instances', () => {
   const open = { relation: 'Open list', anchors: { members } };
   const plan = compileRelationRenderPlan([stage([open, structuredClone(open)]), stage([])]);
-  for (const active of [0, 1]) {
-    const items = visiblePlanFrameItems(plan, 0, new Set([0, 1]), active);
-    assert.equal(sets(items).length, 1);
-    assert.equal(sets(items)[0].set.relationIndex, active);
-    assert.equal(sets(items)[0].set.instanceIndex, active);
-    assert.equal(sets(items)[0].showBadges, false);
-    const geometry = bind(plan, 0, new Set([0, 1]), active);
-    assert.equal(geometry.primitives.filter(mark => mark.type === 'anchor-set-rail').length, 1);
-    assert.equal(geometry.primitives.filter(mark => mark.type === 'anchor-set-badge').length, 0);
+  assert.equal(sets(visiblePlanFrameItems(plan, 0, new Set())).length, 0, 'nothing before its moment');
+  const instances = items => sets(items).map(item => item.set.instanceIndex).sort();
+  assert.deepEqual(instances(visiblePlanFrameItems(plan, 0, new Set([0]), 0)), [0]);
+  assert.deepEqual(instances(visiblePlanFrameItems(plan, 0, new Set([0, 1]), 1)), [0, 1]);
+  for (const [index, played] of [[0, new Set([0, 1])], [1, new Set()]]) {
+    const items = visiblePlanFrameItems(plan, index, played);
+    assert.deepEqual(instances(items), [0, 1], 'each instance keeps its own rail in later frames and stages');
+    const geometry = bind(plan, index, played);
+    assert.deepEqual([geometry.primitives.filter(mark => mark.type === 'anchor-set-rail').length,
+      geometry.primitives.filter(mark => mark.type === 'anchor-set-badge').length], [2, 10],
+      'once the neutral labels are gone, each rail numbers its own entries');
   }
-  assert.equal(sets(visiblePlanFrameItems(plan, 0, new Set([0, 1]))).length, 0);
-  assert.equal(sets(visiblePlanFrameItems(plan, 1, new Set())).length, 0);
 });
 
 test('organization follows the exact replacement moment of its owner without retiring independent claims', () => {
