@@ -11,6 +11,12 @@ const items = value => Array.isArray(value) ? value : [value];
 const isRecord = value => value && typeof value === 'object' && !Array.isArray(value);
 const roleVocabulary = buildTier2SynonymIndex();
 const MOVEMENT_ENDPOINTS = new Set(['movement.source', 'movement.witness', 'movement.landing']);
+/** The slot concept each proved movement endpoint fills in a registered
+ * design that draws a displacement: a trajectory's own endpoints, or the lower
+ * and raised occurrences of the covert QR path. */
+const PROVED_ENDPOINT_SLOTS = entryId => entryId.startsWith('trajectory.')
+  ? { 'movement.source': 'movement.source', 'movement.witness': 'movement.witness', 'movement.landing': 'movement.landing' }
+  : entryId === 'qr.covert' ? { 'movement.source': 'scope.source', 'movement.landing': 'scope.landing' } : undefined;
 /** The head-context role a node holds beside a head landing: the host head it
  * adjoins to, or the complex the adjunction forms. */
 const headContextSlot = (currentForest, priorForest, landingId, nodeId) =>
@@ -25,16 +31,34 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest, s
   const issues = [];
   const bound = { ...relation };
   // A structural movement stands in only where wording proves none.
-  const movement = entry.id.startsWith('trajectory.') && currentForest
+  const endpointSlots = PROVED_ENDPOINT_SLOTS(entry.id);
+  const movement = endpointSlots && currentForest
     ? recoverMovementEvidence(relation, currentForest, priorForest).movement ?? structuralMovement : undefined;
   // Structure, not spelling, decides which of several directional fields names
-  // the moving occurrence. When the tree proves another field that reads as the
-  // same slot to be that endpoint, an openly named field it verifies as the
-  // occurrence's host, complex, site or carried member is context and does not
-  // compete for the slot. Registered role names keep their declared slot,
-  // apart from the head-movement host reading below.
+  // the moving occurrence. When the tree proves another field to be that
+  // endpoint, an openly named field it verifies as the occurrence's host,
+  // complex, site or carried member is context and does not compete for the
+  // slot; so is one whose node contains that proven endpoint, such as the
+  // clause it leaves or lands in. A registered role name keeps its declared
+  // slot unless the movement evidence verifies its node as the proven
+  // landing's site, host or complex.
   const structuralContext = new Set((movement?.context ?? [])
     .filter(({ key }) => !movement.roles[normalizeTier2Synonym(key)]?.length).map(({ key }) => key));
+  // Only these contexts describe where the landing went; a carried head member
+  // does not.
+  const landingContext = new Set((movement?.context ?? []).filter(({ key, kind }) => structuralContext.has(key)
+    && kind !== 'head-member').map(({ key }) => key));
+  const forestNodes = [];
+  if (movement) currentForest.forEach(function visit(node) { forestNodes.push(node); (node.children || []).forEach(visit); });
+  const provenEndpointId = concept => concept === 'movement.source' ? movement?.sourceNodeId
+    : concept === 'movement.witness' ? movement?.witnessNodeId : concept === 'movement.landing' ? movement?.targetNodeId : undefined;
+  const containsProvenEndpoint = (value, concept) => {
+    const ids = items(value), endpoint = provenEndpointId(concept);
+    const nodes = ids.length === 1 ? forestNodes.filter(node => node.id === ids[0]) : [];
+    if (!endpoint || nodes.length !== 1 || nodes[0].id === endpoint) return false;
+    const holds = node => (node.children || []).some(child => child.id === endpoint || holds(child));
+    return holds(nodes[0]);
+  };
   for (const field of ['anchors', 'priorAnchors', 'values']) {
     const signature = entry.signature[field];
     const rules = { ...(field === 'values' && entry.signature.anchors.allowContext ? productionValueRules(entry.id) : {}),
@@ -57,30 +81,47 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest, s
           || concepts.includes(rules[role].concept)));
       return { spelled, candidates };
     };
-    // Another field that the tree proves to be this endpoint and that reads as its slot.
-    const provenEndpointField = (authoredRole, concept) => Object.keys(relation[field]).some(other =>
-      other !== authoredRole && movement.roles[normalizeTier2Synonym(other)]?.includes(concept)
-      && candidatesFor(other).candidates.some(role => rules[role].concept === concept));
+    // A field that only reads as an endpoint slot the tree proves another field
+    // to fill, whatever that field is called; structural recovery below binds
+    // the proven field to the slot. Any other field reading as that slot still
+    // competes for it, so the claim stays as malformed as it was authored.
+    // A registered role name is context only as a landing word whose node is
+    // the proven landing's verified site, host or complex; a carried member or
+    // a node containing the endpoint is not enough for it.
+    const proven = (authoredRole, concept) => movement.roles[normalizeTier2Synonym(authoredRole)]?.includes(concept);
+    const contextFor = (authoredRole, value, concept) => !proven(authoredRole, concept)
+      && (candidatesFor(authoredRole).spelled.length
+        ? concept === 'movement.landing' && landingContext.has(authoredRole)
+        : structuralContext.has(authoredRole) || containsProvenEndpoint(value, concept));
+    const contextBesideProvenEndpoint = (authoredRole, value, concept) => MOVEMENT_ENDPOINTS.has(concept)
+      && contextFor(authoredRole, value, concept)
+      && Object.keys(relation[field]).some(other => other !== authoredRole && proven(other, concept))
+      && Object.entries(relation[field]).every(([other, otherValue]) => other === authoredRole || proven(other, concept)
+        || contextFor(other, otherValue, concept)
+        || !candidatesFor(other).candidates.some(role => rules[role].concept === concept));
     const record = Object.create(null);
     const assigned = [];
     for (const [authoredRole, value] of Object.entries(relation[field])) {
       const { spelled, candidates: meanings } = candidatesFor(authoredRole);
-      if (field === 'anchors' && !spelled.length && structuralContext.has(authoredRole) && meanings.length
-        && meanings.every(role => MOVEMENT_ENDPOINTS.has(rules[role].concept)
-          && provenEndpointField(authoredRole, rules[role].concept))) {
-        record[authoredRole] = value;
-        continue;
-      }
       // In head-movement terminology a registered landing word such as
       // `target` can name the head the moved head adjoins to. When the tree
-      // proves another field to be the landing and this field's node to be
-      // that landing's host or head complex, it binds as that context role and
-      // is checked as one below; it never becomes a second landing.
+      // proves another field, whatever it is called, to be the landing and this
+      // field's node to be that landing's host or head complex, it binds as
+      // that context role and is checked as one below; it never becomes a
+      // second landing.
       const headContextRole = field === 'anchors' && entry.id === 'trajectory.head' && spelled.length
         && structuralContext.has(authoredRole) && items(value).length === 1
         && spelled.every(role => rules[role].concept === 'movement.landing')
-        && provenEndpointField(authoredRole, 'movement.landing')
+        && Object.keys(relation[field]).some(other => other !== authoredRole && proven(other, 'movement.landing'))
         ? headContextSlot(currentForest, priorForest, movement.targetNodeId, items(value)[0]) : undefined;
+      // Context beside a proven endpoint keeps its authored field. A registered
+      // role name would still read as the slot there, so the bound claim omits
+      // it; the authored relation keeps it.
+      if (!headContextRole && field === 'anchors' && movement && meanings.length
+        && meanings.every(role => contextBesideProvenEndpoint(authoredRole, value, rules[role].concept))) {
+        if (!spelled.length) record[authoredRole] = value;
+        continue;
+      }
       let candidates = headContextRole ? [headContextRole] : meanings;
       if (candidates.length > 1) {
         const arityMatches = candidates.filter(role => items(value).length >= rules[role].minItems
@@ -120,18 +161,20 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest, s
 
   // Structural recovery binds existing authored occurrences before the unchanged
   // signature is checked. One lower occurrence may fill both source and witness;
-  // this adds lookup slots, never another node or an authored field.
-  if (entry.id.startsWith('trajectory.') && currentForest && issues.length === 0) {
+  // this adds lookup slots, never another node or an authored field. Covert QR
+  // reads the same proof: its lower and raised occurrences are the movement's
+  // source and landing, so open participant names need no new aliases.
+  if (endpointSlots && currentForest && issues.length === 0) {
     if (movement) {
       const rules = { ...entry.signature.anchors.required, ...entry.signature.anchors.optional };
       const requiredRoles = new Set([...Object.keys(entry.signature.anchors.required),
         ...entry.signature.anchors.requiredAny.flat(), ...entry.signature.anchors.requiredAlternatives.flat(2)]);
-      for (const concept of ['movement.source', 'movement.witness', 'movement.landing']) {
+      for (const [endpoint, concept] of Object.entries(endpointSlots)) {
         if (Object.keys(bound.anchors || {}).some(role => rules[role]?.concept === concept)) continue;
         const role = Object.keys(rules).find(key => requiredRoles.has(key) && rules[key].concept === concept);
         if (!role) continue;
         for (const [authoredRole, value] of Object.entries(relation.anchors || {})) {
-          if (!movement.roles[normalizeTier2Synonym(authoredRole)]?.includes(concept)) continue;
+          if (!movement.roles[normalizeTier2Synonym(authoredRole)]?.includes(endpoint)) continue;
           bound.anchors[role] = value;
           if (!Object.hasOwn(rules, authoredRole)) delete bound.anchors[authoredRole];
           bindings.push({ field: 'anchors', authoredRole, role, concept });

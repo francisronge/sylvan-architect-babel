@@ -115,11 +115,12 @@ export const buildTier2FacetEvidence = ({
   priorForest,
   activeLens,
   synonymIndex = DEFAULT_SYNONYM_INDEX,
-  structuralMovement
+  structuralMovement,
+  keepsChainIdentity
 }: { relation: DerivationStageRelation; currentForest: readonly SyntaxNode[]; currentRealizations?: readonly SurfaceRealization[];
   priorRealizations?: readonly SurfaceRealization[];
   priorForest?: readonly SyntaxNode[]; activeLens?: boolean; synonymIndex?: Tier2SynonymIndex;
-  structuralMovement?: RecoveredMovement }): Tier2FacetEvidence => {
+  structuralMovement?: RecoveredMovement; keepsChainIdentity?: boolean }): Tier2FacetEvidence => {
   const currentAnchors = normalizeBlock(relation.anchors, 'role', synonymIndex, { ...relation, forest: currentForest });
   const priorAnchors = normalizeBlock(relation.priorAnchors, 'role', synonymIndex, { ...relation, anchors: relation.priorAnchors ?? {}, forest: priorForest });
   const worded = recoverMovementEvidence(relation, currentForest, priorForest);
@@ -380,6 +381,7 @@ export const buildTier2FacetEvidence = ({
     movementDiagnostics,
     ...(movementFailure ? { movementFailure } : {}),
     ...(movement ? { movement } : {}),
+    ...(movement === structuralMovement && keepsChainIdentity ? { keepsChainIdentity } : {}),
     currentAnchors: currentAnchors.concepts,
     authoredCurrentAnchors: currentAnchors.authored,
     ...(relation.priorAnchors

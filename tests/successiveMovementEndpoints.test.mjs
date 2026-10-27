@@ -45,7 +45,7 @@ for (const rename of [false, true]) test(`successive movement retains the interm
 
 test('an earlier landing does not transfer without one unambiguous later movement', () => {
   for (const mutate of [
-    s => { s[2].relations.shift(); },
+    s => { s[2].relations.splice(0, 2); },
     s => { s[2].relations[0].priorAnchors.sourcePhrase = 'unresolved'; }
   ]) {
     const input = stages(); mutate(input);
@@ -53,6 +53,17 @@ test('an earlier landing does not transfer without one unambiguous later movemen
     assert.equal(earlier.targetNodeId, 'wh');
     assert.equal(earlier.occurrenceTransfers, undefined);
   }
+});
+
+test('without a worded movement, a chain inventory listing the hop and the older trace is the later movement', () => {
+  // Structure proves the hop from tEdge to wh. The inventory's list names it
+  // beside the older, unchanged trace tObject, which wording read as identity alone.
+  const input = stages();
+  input[2].relations.shift();
+  const [earlier, later] = arrows(compileRelationRenderPlan(input), 2);
+  assert.deepEqual(endpoints([earlier, later]), [['tObject', 'tEdge'], ['tEdge', 'wh']]);
+  assert.equal(later.relationRef.relation, 'A′-chain');
+  assert.deepEqual(earlier.occurrenceTransfers, [{ fromNodeId: 'wh', toNodeId: 'tEdge', stageIndex: 2, relationIndex: 0 }]);
 });
 
 test('a restated later movement is one transfer, owned by its first claim', () => {
@@ -224,4 +235,27 @@ test('a cited older foot of the same lineage does not compete with the step\'s n
   index(input.after).get('old-copy').lineageId = 'other-chain';
   assert.equal(recoverMovementEvidence(input.relation, input.after, input.before).failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED',
     'a trace of another lineage still competes');
+});
+
+// GPT-6.1 Sol's second analysis of sol-120-20261026 n4-04 (stage 3) names the
+// clauses beside the hop and both traces under open names.
+test('an unchanged older copy does not compete beside the clauses a hop leaves and lands in', () => {
+  const input = successiveUnfamiliarRoles();
+  input.relation = { relation: 'A-movement',
+    anchors: { movedNominal: 'mover', newTrace: 'new-copy', earlierTrace: 'old-copy', landingClause: 'root', sourceClause: 'clause' },
+    priorAnchors: { movedNominal: 'mover', sourceClause: 'clause' } };
+  const original = structuredClone(input);
+  const result = recoverMovementEvidence(input.relation, input.after, input.before);
+  assert.deepEqual([result.movement?.priorSourceNodeId, result.movement?.sourceNodeId, result.movement?.targetNodeId,
+    result.movement?.witnessNodeId], ['mover', 'new-copy', 'mover', 'new-copy']);
+  const items = compileRelationRenderPlan([
+    { statement: '', stageRecord: '', workspaceForest: input.before, relations: [] },
+    { statement: '', stageRecord: '', workspaceForest: input.after, relations: [input.relation] }
+  ]).frames[1].items;
+  assert.deepEqual(items.filter(item => item.kind === 'trajectory').map(item => [item.claimTier, item.sourceNodeId, item.targetNodeId]),
+    [[1, 'new-copy', 'mover']]);
+  assert.deepEqual(input, original);
+  // A changed older copy is not chain context and still competes.
+  index(input.after).get('old-copy').word = 'another occurrence';
+  assert.equal(recoverMovementEvidence(input.relation, input.after, input.before).movement, undefined);
 });

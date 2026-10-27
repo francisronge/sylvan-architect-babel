@@ -40,9 +40,13 @@ import { type DerivationReplayPlanStep } from './types.ts';
 // Dispatch has already resolved the authored name and validated its signature.
 export const relationOwnsPhrasalTreeTransition = (relation: DerivationReplayPlanStep): boolean => relation.registeredEntryId === 'qr.covert';
 
-export const relationOwnedPhrasalSourceRoles = (relation: DerivationReplayPlanStep): readonly string[] => relationOwnsPhrasalTreeTransition(relation) ? ['pronouncedQP', 'source'] : TRAJECTORY_SOURCE_ROLES;
+/** The registered QR roles naming its lower (pronounced) and raised (LF) occurrences. */
+export const QR_SOURCE_ROLES = ['pronouncedQP', 'source'] as const;
+export const QR_TARGET_ROLES = ['lfQP', 'target'] as const;
 
-export const relationOwnedPhrasalTargetRoles = (relation: DerivationReplayPlanStep): readonly string[] => relationOwnsPhrasalTreeTransition(relation) ? ['lfQP', 'target'] : TRAJECTORY_TARGET_ROLES;
+export const relationOwnedPhrasalSourceRoles = (relation: DerivationReplayPlanStep): readonly string[] => relationOwnsPhrasalTreeTransition(relation) ? QR_SOURCE_ROLES : TRAJECTORY_SOURCE_ROLES;
+
+export const relationOwnedPhrasalTargetRoles = (relation: DerivationReplayPlanStep): readonly string[] => relationOwnsPhrasalTreeTransition(relation) ? QR_TARGET_ROLES : TRAJECTORY_TARGET_ROLES;
 
 /**
  * A final movement tree serializes the landed occurrence and silent lower

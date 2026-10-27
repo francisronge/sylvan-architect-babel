@@ -238,7 +238,49 @@ export function checkMovementUnrendered(replay, record) {
   return out.sort((left, right) => left.frame - right.frame);
 }
 
+/** A movement path drawn to or from a node outside the chain its relation
+ * proves to move. At a relation moment whose own link proves a movement
+ * transition, every trajectory the relation's plan items draw must join an
+ * occurrence of the proven lower occurrence's chain to an occurrence of the
+ * landing's chain (the same node, or one sharing its lineage, as a successive
+ * hop drawn between traces does). An arrow ending at the landing's site or
+ * host instead is reported as PATH_OFF_PROVEN_ENDPOINTS at that moment.
+ * checkMovementUnrendered counts a landing as reached by any path of its
+ * stage, so it does not see these. */
+export function checkMovementEndpoints(replay, record) {
+  const out = [], momentOf = new Map(), stages = record.derivationStages ?? [];
+  replay.playbackSteps.forEach((step, index) => {
+    const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
+    const key = identity && relationKey(identity.stageIndex, identity.relationIndex);
+    if (key && !momentOf.has(key)) momentOf.set(key, { step, index });
+  });
+  // Later frames may carry an arrow over to the ids its endpoints take there;
+  // the relation's own stage frame holds what its moment draws.
+  const drawn = new Map();
+  for (const item of (replay.relationRenderPlan?.frames ?? []).flatMap(frame => frame.items
+    .filter(item => item.relationRef?.stageIndex === frame.stageIndex))) {
+    if (item.kind !== 'trajectory') continue;
+    const key = relationKey(item.relationRef.stageIndex, item.relationRef.relationIndex);
+    drawn.set(key, new Map([...drawn.get(key) ?? [], [`${item.sourceNodeId}->${item.targetNodeId}`, [item.sourceNodeId, item.targetNodeId]]]));
+  }
+  for (const [key, paths] of drawn) {
+    const moment = momentOf.get(key);
+    const proven = (moment?.step.replayRelationLinks ?? [])
+      .filter(link => link.authoredRelationKey === key && link.movementTransition === true);
+    if (!proven.length) continue;
+    const forest = occurrencesOf(stages[moment.step.replayRelationIdentity.stageIndex]?.workspaceForest);
+    const lineage = id => forest.get(id)?.node.lineageId;
+    const sameChain = (drawnId, provenId) => drawnId === provenId || Boolean(lineage(drawnId) && lineage(drawnId) === lineage(provenId));
+    const off = [...paths].filter(([, [source, target]]) => !proven.some(link =>
+      sameChain(source, link.sourceNodeId) && sameChain(target, link.targetNodeId))).map(([path]) => path);
+    if (off.length) out.push(warning('movement-unrendered', 'PATH_OFF_PROVEN_ENDPOINTS', key, moment.index + 1,
+      `relation ${key} draws ${off.join(', ')} while its movement proves ${proven.map(link => `${link.sourceNodeId}->${link.targetNodeId}`).join(', ')}`));
+  }
+  return out.sort((left, right) => left.frame - right.frame);
+}
+
 /** Every contract-level warning of one prepared record. `contract` is the input
  * contract the record was authored under, when known. */
 export const checkContractWarnings = (replay, record, { contract } = {}) => [...checkRenamedAnchors(replay, record),
-  ...checkSelfSpelledRealizations(record, { contract }), ...checkObjectLanguageMetalanguage(record), ...checkMovementUnrendered(replay, record)];
+  ...checkSelfSpelledRealizations(record, { contract }), ...checkObjectLanguageMetalanguage(record), ...checkMovementUnrendered(replay, record),
+  ...checkMovementEndpoints(replay, record)];

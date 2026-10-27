@@ -390,11 +390,23 @@ and a new node of the lineage over different material, which asserts identity
 only.
 
 Structure upgrades only a claim that wording leaves wholly neutral, with every
-recovered claim in Tier 3. A claim that draws anything today, at either tier,
-keeps exactly that drawing, its transitions and its moment. Wording only breaks
-ties: a claim whose wording recovers a movement keeps it, and the structural
-reading stands in only where no claim of the stage recovers the same lower
-occurrence and landing. The proved displacement then enters the
+recovered claim in Tier 3, or whose only drawings are `identity.occurrences`
+coindexes over the moving chain: the displacement's landing and lower
+occurrence, with any older copies of the chain, each unchanged in its preceding
+slot. Wording reads such a claim as identity alone when its fields name no
+movement endpoint (open fields such as head and tail under a chain title) or
+when one field lists the new trace beside an older one; structure reads the
+older copies as context, so the coindex states the displacement: the movement
+path draws the hop at its moment, and the coindex, with its forest light, stays
+over the chain. The path and the coindex together consume the fields they read,
+so none is left to a neutral mark. A coindex of the hop's two occurrences alone
+qualifies only when worded recognition refused no movement: where it read
+endpoint fields and refused them, as for an ambiguous landing context, the
+refusal stands. Any other claim that draws anything
+today, at either tier, keeps exactly that drawing, its transitions and its
+moment. Wording only breaks ties: a claim whose wording recovers a movement
+keeps it, and the structural reading stands in only where no claim of the stage
+recovers the same lower occurrence and landing. The proved displacement then enters the
 same movement evidence that worded recovery produces: endpoint fields are the
 authored entries anchoring only those occurrences, a uniquely anchored strict
 descendant of the lower occurrence is the witness, and every other field keeps
@@ -510,6 +522,12 @@ Several explicit argument fields may form one predicate's inventory when every
 field has its own same-name, same-length role literals and distinct occurrences.
 They produce one grid in the original relation moment. Unpaired aliases,
 competing normalized field names and incomplete literal lists remain ambiguous.
+A `priorAnchors` block may repeat those fields: each prior field sharing a
+current field's key and length names that participant's preceding occurrence.
+A restated inventory whose complete prior block names exactly an earlier
+claim's participants replaces that grid and its badges at the restatement's
+moment, as the replacement rule below states. The registered Tier-1 theta grid
+follows the same rule; its identical restatements still share one grid.
 An open role-valued field can also identify a participant by naming an exact,
 unique anchor role as its scalar value: `objectRole: experiencer` pairs with an
 `experiencer` anchor when a predicate is explicitly anchored. This reads the
@@ -990,10 +1008,20 @@ a distinct new landing must still prove the movement. An explicitly supplied
 adjunction domain is checked as a scope domain and must contain the lower
 occurrence. Denied, failed and provisional covert claims cannot earn a successful
 QR drawing or an ordinary movement arrow instead.
+The exact registered QR name reads open participant names the same way, before
+its unchanged Tier-1 signature is checked, as registered trajectories do: a field
+the proved movement identifies as its lower occurrence fills the pronounced-QP
+slot and one it identifies as the landing fills the LF-QP slot. A registered role
+name keeps its slot; without that proof the open names leave the exact claim
+incomplete and neutral, and Tier 2 does not draw it.
 The covert transition retains the exact proved prior source, including when PF
 and LF workspaces contain other occurrences of the same lineage. It must not
 replace that source with the newly introduced lower trace or redo the association
-by searching every workspace for the lineage.
+by searching every workspace for the lineage. An exact QR claim whose bound
+occurrences are that proved movement's endpoints uses the same transition. When
+the raised occurrence keeps the preceding source's ID beside a fresh lower trace,
+the QP stays in its preceding position until the QR moment, which introduces the
+trace, the landing and any new adjunction segment together.
 
 Previous-stage references are not automatically current-stage drawing roles. A
 movement's prior source can identify its current lower endpoint when that exact
@@ -1015,7 +1043,9 @@ same-lineage occurrence new in this stage holds that slot, the landing's own
 preceding occurrence is the prior source and that new occurrence is the hop's
 lower endpoint, whatever its field is called. An older copy of the same chain
 kept unchanged in its own slot is chain context in any source or witness field:
-it neither becomes the source nor competes with the new witness. The claim must
+it neither becomes the source nor competes with the new witness. Beside a field
+naming the clause or phrase the hop leaves, it does not pair with the landing
+either, so that container stays context. The claim must
 still cite a source or witness; without one, it does not become a movement.
 Another claim of the stage that this rule binds to the same hop shares its
 arrow. Claims restating one transition are one occurrence transfer, at the
@@ -1109,6 +1139,19 @@ other field the tree proves to be the landing, that word binds as the landing's
 complex, or as `complexHead` when it is that complex, and the ordinary head
 context check then verifies it. Any other node still competes for the landing,
 so the exact claim stays malformed and Tier 2 does not draw it.
+
+The same holds for an openly named field that only reads as an endpoint slot,
+such as a landing clause or source clause, when the tree proves another field,
+whatever it is called, to be that endpoint. The field is context when the
+movement evidence verifies it as the landing's site, host or complex, or when
+its node contains the proven endpoint; the proven field then fills the slot.
+A registered landing word such as `target`, `landing` or `landingSite` naming
+the proven landing's verified site, host or complex beside it is context in the
+same way: the bound claim omits it, or a head movement binds it as `hostHead` or
+`complexHead` as above, so it never becomes a second landing. Containing the
+endpoint is not enough for a registered word. Any other field reading as that
+slot, including a registered role name naming another node, still competes, and
+the exact claim stays malformed.
 
 For an independently proved phrasal movement, a named target or landing head
 can remain neutral context when it projects beside the landing. The landing
@@ -1865,8 +1908,9 @@ also participates in fallback identity so different participant sets cannot
 coalesce merely because their leftover fields match.
 
 Movement recovery records each verified host, complex or landing-site field under
-its original authored key. A site must identify the immediate landing parent;
-a head host must be the other head in the supported complex, and a complex anchor
+its original authored key. A site must identify the immediate landing parent or,
+when that parent is binary, the landing's one sister, the phrase it merges with
+(for adjunction, the lower segment it adjoins to); a head host must be the other head in the supported complex, and a complex anchor
 must identify that parent. All referenced nodes and the parent must be unique.
 Tier 1 uses the same structural check while retaining its full signature and
 role requirements. An incomplete exact claim is not rescued through Tier 2.

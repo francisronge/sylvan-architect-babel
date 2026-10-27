@@ -107,6 +107,13 @@ export type ProductionRenderFamily = {
     | 'sideward'
     | 'parasitic-gap';
   persistence: RenderPersistence;
+  /**
+   * A persistent state that an authored restatement can update: a later
+   * instance whose complete `priorAnchors` block names exactly this instance's
+   * participants replaces it at the later relation's moment, as a Tier-2 state
+   * of the same drawing does. An identical restatement still shares its ink.
+   */
+  priorStateReplacement?: true;
   /** Replay tree changes this exact registered design may sequence. */
   transitionKinds?: readonly ProductionTransitionKind[];
   /** Agreement path mode, for the agreement-paths family only. */
@@ -254,7 +261,7 @@ export const PRODUCTION_RENDER_FAMILIES: Record<string, ProductionRenderFamily> 
 
   'focus.prominence': persistent('focus-prominence'),
   'focus.f-projection': persistent('f-projection'),
-  'theta.grid': persistent('theta-grid'),
+  'theta.grid': persistent('theta-grid', { priorStateReplacement: true }),
   'gapping.alignment': persistent('gapping-alignment')
 };
 

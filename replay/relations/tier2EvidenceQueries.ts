@@ -257,6 +257,20 @@ export const independentThetaArgumentFields = (
     });
 };
 
+/** A prior block that restates independent current argument fields field by
+ * field: each prior field shares its key and length with one current field, so
+ * it names that participant's preceding occurrence, not a competing inventory. */
+export const independentPriorThetaArgumentFields = (
+  evidence: Pick<Tier2FacetEvidence, 'authoredCurrentAnchors' | 'authoredPriorAnchors' | 'authoredValues' | 'relationName'>
+): boolean => {
+  const current = evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('theta.arguments')) ?? [];
+  const prior = evidence.authoredPriorAnchors?.filter(entry => entry.concepts.includes('theta.arguments')) ?? [];
+  const ids = prior.flatMap(entry => [...entry.items]);
+  return prior.length > 0 && independentThetaArgumentFields(evidence)
+    && new Set(ids).size === ids.length
+    && prior.every(entry => current.some(other => other.key === entry.key && other.items.length === entry.items.length));
+};
+
 export const independentThetaRoleValueFields = (evidence: Tier2FacetEvidence): boolean => {
   const entries = evidence.authoredValues?.filter(entry => entry.concepts.includes('role.label')) ?? [];
   const arguments_ = evidence.authoredCurrentAnchors?.filter(entry => entry.concepts.includes('theta.arguments')) ?? [];
