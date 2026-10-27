@@ -286,7 +286,9 @@ export const movementContextFailure = (
   if (!parent || nodes.filter(node => node.id === parent.id).length !== 1) return 'landing-parent-missing-or-ambiguous';
   const isParent = parent === context[0];
   if (kind === 'site') {
-    if (isParent) return;
+    // A phrase lands in its parent by merging with its one sister; either
+    // names the landing site.
+    if (isParent || parent.children?.length === 2 && context[0] !== landing[0] && parent.children.includes(context[0])) return;
     // A topic/edge shell may intervene between the moved occurrence and its
     // landing domain. Only the nearest common domain of the proved endpoints
     // establishes that context; an arbitrary containing ancestor does not.
