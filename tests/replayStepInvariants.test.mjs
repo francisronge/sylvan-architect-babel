@@ -77,6 +77,31 @@ test('control: step-semantics finds a movement landing displayed under a node th
     node.children = [...node.children ?? [], { id: `${landing}::__leaf`, label: 'x', word: 'x', replayOrigin: { kind: 'word', ownerId: landing } }];
     list[moment].replayVisibleNodeIds = list[moment].replayVisibleNodeIds.filter(id => id !== landing).concat(`${landing}::__leaf`);
   }), [`movement landing ${landing} is not displayed at relation "subject A-movement"`]);
+// Opus s65 (opus-stress, stage 7): GB substitution. The moved subject lands
+// in Spec-IP, replacing the authored empty NP there at its own moment.
+const substitution = (emptyWord) => {
+  const node = (id, label, children = [], extra = {}) => ({ id, label, children, ...extra });
+  const subject = () => node('npMtoto', 'NP', [node('nMtoto', 'N', [], { word: 'mtoto' })], { lineageId: 'mtoto' });
+  const verbPhrase = object => node('ibar', 'I′', [node('iAli', 'I', [], { word: 'alinunuliwa' }),
+    node('vp', 'VP', [node('tV', 'V', [], { silent: true }), object, node('npKitabu', 'NP', [], { word: 'kitabu' })])]);
+  const empty = node('npE', 'NP', [], emptyWord ? { word: emptyWord } : { silent: true });
+  const stage = (workspaceForest, relations = []) => ({ statement: 'State', stageRecord: 'Authored state.', relations, workspaceForest });
+  return { sentence: 'Mtoto alinunuliwa kitabu.', derivationStages: [
+    stage([node('ip', 'IP', [empty, verbPhrase(subject())])]),
+    stage([node('ip', 'IP', [subject(), verbPhrase(node('tNP', 'NP', [], { lineageId: 'mtoto', silent: true }))])],
+      [{ relation: 'NP-movement chain', anchors: { head: 'npMtoto', trace: 'tNP' }, values: { type: 'A-movement' } }])] };
+};
+
+test('step-semantics lets a landing replace the empty position it substitutes for, and no other removal', () => {
+  const record = substitution(), prepared = prepare(record), list = prepared.playbackSteps, moment = momentOf(list, 1, 0);
+  assert(frameStructure(list[moment - 1]).displayed.has('npE') && !frameStructure(list[moment]).displayed.has('npE'),
+    'the empty position leaves at the movement moment');
+  assert.deepEqual(checkStepSemantics(prepared, record).filter(found => found.subtype === 'unowned-removal'), []);
+  assert(reported(checkStepSemantics(edited(prepared, copy => hide(copy[moment], ['tV'])), record),
+    'step-semantics', 'unowned-removal', moment + 1, 'tV disappears'), 'another silent node is not the landing\'s position');
+  const pronounced = substitution('huyu'), voiced = prepare(pronounced);
+  assert(reported(checkStepSemantics(voiced, pronounced), 'step-semantics', 'unowned-removal', momentOf(voiced.playbackSteps, 1, 0) + 1,
+    'npE disappears'), 'a pronounced occurrence is not an empty position');
 });
 
 test('historical: step-semantics reports a merge the preceding projection already showed (PR #78)', () => {
