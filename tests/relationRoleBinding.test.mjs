@@ -284,3 +284,34 @@ test('a phrase\'s target head may be the complex head movement built, but only b
   assert.deepEqual([complex.movement?.sourceNodeId, complex.movement?.targetNodeId], ['dpO1', 'dpO2']);
   assert.equal(recover('c0').failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED');
 });
+
+// Subject raising as GPT-6.1 Sol wrote it in sol-120-20261026 n4-04 a1 (stage 3):
+// an open-named moved nominal and trace, beside the clauses it leaves and lands in.
+const raisingSubject = { id: 'committee', label: 'DP', lineageId: 'committee', children: [{ id: 'd', label: 'D', word: 'the' }, { id: 'n', label: 'N', word: 'committee' }] };
+const raisingClause = subject => ({ id: 'perfectIP', label: 'IP', children: [subject, { id: 'ibar', label: "I'", children: [
+  { id: 'to', label: 'I', word: 'to' }, { id: 'vp', label: 'VP', children: [{ id: 'win', label: 'V', word: 'win' }] }] }] });
+const raisingMatrix = complement => ({ id: 'seemsBar', label: "I'", children: [{ id: 'seemsI', label: 'I', word: 'seems' }, complement] });
+const raisingStages = anchors => [
+  { statement: 'test', stageRecord: 'test', workspaceForest: [raisingMatrix(raisingClause(raisingSubject))], relations: [] },
+  { statement: 'test', stageRecord: 'test', relations: [{ relation: 'A-movement', anchors,
+    priorAnchors: { movedNominal: 'committee', sourceClause: 'perfectIP' }, values: { type: 'subject raising' } }],
+  workspaceForest: [{ id: 'matrixIP', label: 'IP', children: [raisingSubject,
+    raisingMatrix(raisingClause({ id: 'committeeTrace', label: 'DP', lineageId: 'committee', silent: true }))] }] }
+];
+const raisingAnchors = { movedNominal: 'committee', trace: 'committeeTrace', landingClause: 'matrixIP', sourceClause: 'perfectIP' };
+const raisingClaim = stages => dispatchRelationClaims({ relation: stages[1].relations[0], currentForest: stages[1].workspaceForest,
+  priorForest: stages[0].workspaceForest, stageIndex: 1, relationIndex: 0 });
+
+test('clauses beside a proven movement are context, not its arrow\'s endpoints', () => {
+  const stages = raisingStages(raisingAnchors);
+  const plan = compileRelationRenderPlan(stages);
+  assert.deepEqual(plan.frames[1].items.filter(item => item.kind === 'trajectory')
+    .map(item => [item.claimTier, item.sourceNodeId, item.targetNodeId, item.witnessNodeId]),
+  [[1, 'committeeTrace', 'committee', 'committeeTrace']]);
+  assert.equal(raisingClaim(stages).tier1Dispatch.roleBindings.some(binding =>
+    ['landingClause', 'sourceClause'].includes(binding.authoredRole)), false);
+  assert.deepEqual(stages, raisingStages(raisingAnchors), 'the authored claim is unchanged');
+  // A field naming a node that holds no endpoint still competes for the slot.
+  assert.ok(raisingClaim(raisingStages({ ...raisingAnchors, sourceClause: 'vp' })).tier1Dispatch.roleBindings
+    .some(binding => binding.authoredRole === 'sourceClause' && binding.concept === 'movement.source'));
+});
