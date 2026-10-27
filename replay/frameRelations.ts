@@ -19,7 +19,7 @@ import {
 import { isPriorMovementContextFailure } from './relations/movementDiagnosticOwnership.ts';
 import { type RecoveredMovement } from './relations/movementEvidence.ts';
 import { recoverMovementGroups } from './relations/movementGroups.ts';
-import { registeredTrajectoryDisplayKind } from './relations/movementIdentities.ts';
+import { registeredTrajectoryAdmitsKind, registeredTrajectoryDisplayKind } from './relations/movementIdentities.ts';
 import { type RelationClaimDispatch } from './relations/relationClaims.ts';
 import { dispatchRelationStagesForPlan } from './relations/renderPlanCompiler.ts';
 import {
@@ -337,14 +337,15 @@ export const getFrameRelations = (
         && (facet ? facet.evaluation.earnedTransitions.includes('movement') : movement.transition);
       // A kind conflict refuses the movement. When no other claim applies its
       // change, that change stays this claim's neutral output.
-      if ((registeredKind === 'head' || registeredKind === 'phrasal') && registeredKind !== movement.trajectoryKind)
+      const admitsKind = registeredTrajectoryAdmitsKind(step.relation, movement.trajectoryKind);
+      if (!admitsKind)
         return {
           ...step,
           recoveredMovement: { ...movement, transition: false, drawTrajectory: false },
           ...(transition ? { refusedMovementTransition: true as const } : {}),
           movementDiagnostics: [...priorDiagnostics, `MOVEMENT_KIND_CONFLICT: ${step.relation} selects ${registeredKind} movement, but the anchored context was recovered as ${movement.trajectoryKind}. No recovered transition was applied.`]
         };
-      const primaryMovement = dispatch.primaryClaim?.tier === 1 && registeredKind === movement.trajectoryKind;
+      const primaryMovement = dispatch.primaryClaim?.tier === 1 && Boolean(registeredKind) && admitsKind;
       if (dispatch.primaryClaim?.tier === 1 && !primaryMovement && !tier1Covert)
         return step;
       // A restatement of an arrow an earlier claim of the stage draws is not a refused drawing.
