@@ -6,11 +6,11 @@
     {
       "operation": "LexicalSelect",
       "replayKind": "micro",
-      "targetNodeId": "n_mia::__lex_tok_0_mia",
+      "targetNodeId": "leaf_mia",
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 1/4 · Step 1/4",
       "replayVisibleNodeIds": [
-        "n_mia::__lex_tok_0_mia"
+        "leaf_mia"
       ]
     },
     {
@@ -18,11 +18,11 @@
       "replayKind": "micro",
       "targetNodeId": "n_mia",
       "sourceNodeIds": [
-        "n_mia::__lex_tok_0_mia"
+        "leaf_mia"
       ],
       "replayProgressLabel": "Stage 1/4 · Step 2/4",
       "replayVisibleNodeIds": [
-        "n_mia::__lex_tok_0_mia",
+        "leaf_mia",
         "n_mia"
       ]
     },
@@ -35,7 +35,7 @@
       ],
       "replayProgressLabel": "Stage 1/4 · Step 3/4",
       "replayVisibleNodeIds": [
-        "n_mia::__lex_tok_0_mia",
+        "leaf_mia",
         "n_mia",
         "np_mia"
       ]
@@ -47,7 +47,7 @@
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 1/4 · Step 4/4",
       "replayVisibleNodeIds": [
-        "n_mia::__lex_tok_0_mia",
+        "leaf_mia",
         "n_mia",
         "np_mia"
       ]
@@ -55,14 +55,14 @@
     {
       "operation": "LexicalSelect",
       "replayKind": "micro",
-      "targetNodeId": "v_laughed::__lex_tok_1_laughed",
+      "targetNodeId": "leaf_laughed",
       "sourceNodeIds": [],
       "replayProgressLabel": "Stage 2/4 · Step 1/5",
       "replayVisibleNodeIds": [
         "np_mia",
         "n_mia",
-        "n_mia::__lex_tok_0_mia",
-        "v_laughed::__lex_tok_1_laughed"
+        "leaf_mia",
+        "leaf_laughed"
       ]
     },
     {
@@ -70,14 +70,14 @@
       "replayKind": "micro",
       "targetNodeId": "v_laughed",
       "sourceNodeIds": [
-        "v_laughed::__lex_tok_1_laughed"
+        "leaf_laughed"
       ],
       "replayProgressLabel": "Stage 2/4 · Step 2/5",
       "replayVisibleNodeIds": [
         "np_mia",
         "n_mia",
-        "n_mia::__lex_tok_0_mia",
-        "v_laughed::__lex_tok_1_laughed",
+        "leaf_mia",
+        "leaf_laughed",
         "v_laughed"
       ]
     },
@@ -92,8 +92,8 @@
       "replayVisibleNodeIds": [
         "np_mia",
         "n_mia",
-        "n_mia::__lex_tok_0_mia",
-        "v_laughed::__lex_tok_1_laughed",
+        "leaf_mia",
+        "leaf_laughed",
         "v_laughed",
         "vbar_laughed"
       ]
@@ -109,8 +109,8 @@
       "replayVisibleNodeIds": [
         "np_mia",
         "n_mia",
-        "n_mia::__lex_tok_0_mia",
-        "v_laughed::__lex_tok_1_laughed",
+        "leaf_mia",
+        "leaf_laughed",
         "v_laughed",
         "vbar_laughed",
         "vp_laughed"
@@ -125,8 +125,8 @@
       "replayVisibleNodeIds": [
         "np_mia",
         "n_mia",
-        "n_mia::__lex_tok_0_mia",
-        "v_laughed::__lex_tok_1_laughed",
+        "leaf_mia",
+        "leaf_laughed",
         "v_laughed",
         "vbar_laughed",
         "vp_laughed"
@@ -142,10 +142,10 @@
         "np_mia",
         "vp_laughed",
         "n_mia",
-        "n_mia::__lex_tok_0_mia",
         "vbar_laughed",
+        "leaf_mia",
         "v_laughed",
-        "v_laughed::__lex_tok_1_laughed",
+        "leaf_laughed",
         "leaf_t"
       ]
     },
@@ -161,10 +161,10 @@
         "np_mia",
         "vp_laughed",
         "n_mia",
-        "n_mia::__lex_tok_0_mia",
         "vbar_laughed",
+        "leaf_mia",
         "v_laughed",
-        "v_laughed::__lex_tok_1_laughed",
+        "leaf_laughed",
         "leaf_t",
         "t_past"
       ]
@@ -182,10 +182,10 @@
         "np_mia",
         "vp_laughed",
         "n_mia",
-        "n_mia::__lex_tok_0_mia",
         "vbar_laughed",
+        "leaf_mia",
         "v_laughed",
-        "v_laughed::__lex_tok_1_laughed",
+        "leaf_laughed",
         "leaf_t",
         "t_past",
         "tbar_1"
@@ -201,10 +201,10 @@
         "np_mia",
         "vp_laughed",
         "n_mia",
-        "n_mia::__lex_tok_0_mia",
         "vbar_laughed",
+        "leaf_mia",
         "v_laughed",
-        "v_laughed::__lex_tok_1_laughed",
+        "leaf_laughed",
         "leaf_t",
         "t_past",
         "tbar_1"
@@ -223,13 +223,13 @@
         "np_mia",
         "tbar_1",
         "n_mia",
-        "n_mia::__lex_tok_0_mia",
         "t_past",
         "vp_laughed",
+        "leaf_mia",
         "leaf_t",
         "vbar_laughed",
         "v_laughed",
-        "v_laughed::__lex_tok_1_laughed",
+        "leaf_laughed",
         "tp_root"
       ]
     },
@@ -245,13 +245,13 @@
         "np_mia",
         "tbar_1",
         "n_mia",
-        "n_mia::__lex_tok_0_mia",
         "t_past",
         "vp_laughed",
+        "leaf_mia",
         "leaf_t",
         "vbar_laughed",
         "v_laughed",
-        "v_laughed::__lex_tok_1_laughed",
+        "leaf_laughed",
         "tp_root"
       ]
     },
@@ -265,13 +265,13 @@
         "np_mia",
         "tbar_1",
         "n_mia",
-        "n_mia::__lex_tok_0_mia",
         "t_past",
         "vp_laughed",
+        "leaf_mia",
         "leaf_t",
         "vbar_laughed",
         "v_laughed",
-        "v_laughed::__lex_tok_1_laughed",
+        "leaf_laughed",
         "tp_root"
       ]
     }
