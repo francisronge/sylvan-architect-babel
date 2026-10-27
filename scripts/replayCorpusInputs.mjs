@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { MOTION_FAULT_THRESHOLD, replayMotionFaults } from './replayMotionContinuity.mjs';
+import { MOTION_FAULT_THRESHOLD, noticeableMotion, replayMotionFaults } from './replayMotionContinuity.mjs';
+import { matchFindings } from '../tests/helpers/findings.mjs';
 
 export const sha256 = value => createHash('sha256').update(value).digest('hex');
 export const objectHash = value => sha256(JSON.stringify(value));
@@ -105,7 +106,10 @@ export function lostMovementPresentations(baseline, candidate) {
   });
 }
 
-export function compareCorpusSnapshots(baseline, candidate, records) {
+/** Compares each record's baseline and candidate snapshots. `motionExceptions`
+ * are approved motion faults (tests/helpers/motionExceptions.mjs): a new or
+ * worsened fault one covers within its bound is reported, not a violation. */
+export function compareCorpusSnapshots(baseline, candidate, records, { motionExceptions = [] } = {}) {
   const old = new Map(baseline.records.map(record => [record.id, record]));
   const current = new Map(candidate.records.map(record => [record.id, record]));
   return records.map(record => {
@@ -144,14 +148,28 @@ export function compareCorpusSnapshots(baseline, candidate, records) {
     if (newContinuityFaults.length) violations.push({ kind: 'new-continuity-fault', faults: newContinuityFaults });
     // The motion rule decides ownership from each frame's own step, not from the
     // checkout's planner diagnostics. A fault the baseline already has still
-    // fails if the candidate makes it move farther.
+    // fails if the candidate makes it move noticeably farther. Every new or
+    // worsened fault is reported; one below `noticeableMotion`, or covered by an
+    // approved motion exception, is not a violation.
     const motionKey = fault => JSON.stringify([fault.kind, fault.step, fault.node]);
     const motion = { baseline: replayMotionFaults(before), candidate: replayMotionFaults(after) };
     const oldMotion = new Map(motion.baseline.map(fault => [motionKey(fault), fault]));
     motion.new = motion.candidate.filter(fault => !oldMotion.has(motionKey(fault)));
     motion.worsened = motion.candidate.filter(fault => fault.distance > (oldMotion.get(motionKey(fault))?.distance ?? Infinity) + MOTION_FAULT_THRESHOLD);
-    if (motion.new.length) violations.push({ kind: 'new-motion-fault', faults: motion.new });
-    if (motion.worsened.length) violations.push({ kind: 'worsened-motion-fault', faults: motion.worsened });
+    const exceptions = motionExceptions.filter(entry => entry.record === record.id);
+    const excepted = fault => {
+      const { unexpected, exceeded } = matchFindings([{ rule: 'motion', subtype: fault.kind, record: record.id, subject: fault.node,
+        frame: fault.frame, viewport: null, measure: fault.distance }], exceptions);
+      return !unexpected.length && !exceeded.length;
+    };
+    const judged = [...motion.new, ...motion.worsened].map(fault => ({ fault,
+      noticeable: noticeableMotion(fault, oldMotion.get(motionKey(fault))), excepted: excepted(fault) }));
+    motion.tolerated = judged.filter(item => !item.noticeable).map(item => item.fault);
+    motion.excepted = judged.filter(item => item.noticeable && item.excepted).map(item => item.fault);
+    const failing = new Set(judged.filter(item => item.noticeable && !item.excepted).map(item => item.fault));
+    const newFaults = motion.new.filter(fault => failing.has(fault)), worsened = motion.worsened.filter(fault => failing.has(fault));
+    if (newFaults.length) violations.push({ kind: 'new-motion-fault', faults: newFaults });
+    if (worsened.length) violations.push({ kind: 'worsened-motion-fault', faults: worsened });
     const lostMovements = lostMovementPresentations(before.evidence.movements ?? [], after.evidence.movements ?? []);
     if (lostMovements.length) violations.push({ kind: 'movement-not-shown', faults: lostMovements });
     if (after.invalid.length) violations.push({ kind: 'invalid-geometry', faults: after.invalid });

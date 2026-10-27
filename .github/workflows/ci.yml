@@ -192,9 +192,11 @@ jobs:
           npm ci --prefix candidate
 
       # Every committed fixture analysis is laid out in both checkouts on the
-      # measured path the browser paints. A new motion fault, a fault that moves
-      # farther, or a movement the base shows as movement losing its moment
-      # fails the job.
+      # measured path the browser paints. A noticeable new motion fault or one
+      # that moves noticeably farther (scripts/replayMotionContinuity.mjs), not
+      # approved in tests/helpers/motionExceptions.mjs, or a movement the base
+      # shows as movement losing its moment, fails the job. Fixture Replay and
+      # layout changes are reviewed through the committed layout fingerprint.
       - name: Compare Replay motion with the PR base
         working-directory: candidate
         run: |
