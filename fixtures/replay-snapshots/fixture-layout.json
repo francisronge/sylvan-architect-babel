@@ -2958,6 +2958,39 @@
         "3:1 T3 fallback"
       ]
     },
+    "replay-regressions/selected-head-receives-raised-head.json#": {
+      "frames": "I9v6GHMX x7L5Mbtf rdHo9iO7 6axHfxQV DSchUDuQ XHCToOuf CUrcaYF9 jdyT03HH wwGoZ9kK eTB0cufj PC8iwx5S tqerQWcy KT8zJ731 QrGDLmHe 4x5v-KAs X0-wAWri sahcOaiy o3aTfeZ- Gijo-r0H pda_yMEU OlQT4FCP gJUUid87 _V_qXERi m8JfClbQ 49b_jUQe w3y3u6mP c1uU1X42 LFbaXX1I ovqUv4i1 RTWnwBn6 h1UC3L4B taKn1yqA kRSmgl-p L2xdXwi7 uzv0zi8b hIWpILix t-EkKAJe ETKkZL0l DTlA-TwS 64x6ev79 ZQ_UjDe6 dCNm53dy KV5onxc7 77uckVGp MNlbvi0P hvuZbdFO a7OfPLsH wBI_Gh_D fr_BUooD dB73BqiY x64Z8T6p h85DBToo Iu5KJU8O IWiDKvpp 6s5d4Bqg reT9nqeN GKAVlC17 ZE59AmqM yHUUmrzA BVag-aR2 z0xmXdL8 5a5kw4Lz ei-zJrO0 Qlga_H3z z1H2As_Z pwbVEt8n",
+      "canopy": "P1uooQ8c",
+      "tiers": [
+        "1:0 T2 node-badges theta.grid theta-grid",
+        "1:0 T2 node-plaque theta.grid theta-grid",
+        "2:0 T2 node-badges theta.grid theta-grid",
+        "2:0 T2 node-plaque theta.grid theta-grid",
+        "2:0 T3 fallback",
+        "2:1 T2 directed-path tier2.feature-dependency feature.dependency",
+        "2:2 T3 fallback",
+        "2:3 T2 enclosure copy.multiple-pronunciation constituent.occurrence",
+        "2:3 T2 undirected-link focus.association focus.association",
+        "2:3 T3 fallback",
+        "3:0 T2 trajectory tier2.movement-path movement.path",
+        "3:0 T3 fallback",
+        "4:0 T2 trajectory tier2.movement-path movement.path",
+        "4:0 T3 fallback",
+        "4:1 T2 node-plaque feature-bundle.plaque plaque.structured",
+        "4:1 T3 fallback",
+        "4:2 T3 fallback",
+        "5:0 T2 trajectory tier2.movement-path movement.path",
+        "5:0 T3 fallback",
+        "5:1 T2 trajectory tier2.movement-path movement.path",
+        "5:1 T3 fallback",
+        "5:2 T3 fallback",
+        "6:0 T2 trajectory tier2.movement-path movement.path",
+        "6:0 T3 fallback",
+        "6:1 T3 fallback",
+        "7:0 T3 fallback",
+        "7:1 T3 fallback"
+      ]
+    },
     "replay-regressions/self-spelled-realization.json#": {
       "frames": "7ymVY6t9 2kdYU_oT IOiA0PLB -W9IdQwe uEVOTs-b vfAtEAJH xuWqbqJe NTs5ZofF bPs5WrcK PT3Wt0ML IG64POdU 5jkviDMK 8kOiWgtZ s73sLb0_ HBVKqXV0 2kgQNDH0 OG1Vy0Mk ltp92Wil GJTBhse9 8WNbQLRS NTCBwWia ZswlMvl1 qOcE8S-4 eS0Ubbkv WFnkgJUB Mwh6aSWv rNgGgscH PmdjxD9k Xhvozgsh BEPrEKmk nSYPLHt_ iaRuVkK2 FzK3kJka H_Z2WUE5 qFAomZU7 npVFkV9i Vqi3Gnoa Oxey6fWy Yn-X6ZCE rt2JVJHY EW4i1WRi Do7drLA3 vyCtEXR9 N31bHAjO eDXNroeO fjtI6noG",
       "canopy": "eSsgVnhk",

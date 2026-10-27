@@ -42,6 +42,14 @@ export function workspaceMotionOwnership({ step, before, current, sameMaterial, 
   }
   for (const link of currentWorkspaceMovements(step, before, current)) {
     include(link.priorSourceNodeId, true); include(link.witnessNodeId); include(link.targetNodeId);
+    // A head that waited as its own workspace and now receives the moved head
+    // inside a new landing wrapper belongs to that complete landing: it may
+    // make room for the head that adjoins to it, so the phrase the head leaves
+    // keeps its place.
+    const wrapper = current.parent(link.targetNodeId);
+    if (link.trajectoryKind === 'head' && wrapper && !before.has(wrapper)) for (const id of current.children(wrapper)) {
+      if (id !== link.targetNodeId && before.has(id) && before.parent(id) === undefined && sameMaterial(id)) include(id);
+    }
   }
   for (const host of movementReceivingHosts(step, before, current, sameTopology)) include(host);
   for (const host of extractionReceivingHosts(step, before, current)) include(host);
