@@ -334,8 +334,10 @@ export const buildPreMovementStructuralForest = (
     if (sources.length !== sourceIds.length || sources.length === 0 || !target)
       return;
     const targetLineageId = String(target.lineageId || '');
+    // A source's lineage is the one its stage authors: the lineage may be
+    // declared as its first copy is made, which the restored preceding form lacks.
     if (!targetLineageId || sources.some((source) => {
-      const sourceLineageId = String(source.lineageId || '');
+      const sourceLineageId = String(findNodeInForest(currentForest, source.id)?.lineageId || source.lineageId || '');
       return !sourceLineageId
         || sourceLineageId !== targetLineageId
         || source === target
