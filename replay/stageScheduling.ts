@@ -476,6 +476,23 @@ export const finalizeStageReplay = (
       }
       return structuralProducer === undefined ? [] : emitStructuralStep(structuralProducer, forRelation);
     };
+    // Each construction step's canvas holds the attachments still pending at
+    // its original position. Emitted elsewhere, a parent whose merge has not
+    // yet played stays held and one whose merge has played is released.
+    // Returns the corrected set only when it differs.
+    const initialHeldAttachments = constructionAttachmentUpdates(constructionPreviousWorkspaceRoots, structuralWorkspaceRoots);
+    const heldAttachmentsAtEmission = (step: PlaybackStep): string[] | undefined => {
+      if (!step.replayPendingAttachmentNodeIds)
+        return undefined;
+      const original = new Set(step.replayPendingAttachmentNodeIds);
+      const unemittedTargets = new Set(pendingStructuralSteps.filter((candidate, candidateIndex) => candidate !== step
+        && !emittedStructuralSteps.has(candidateIndex)).map(candidate => candidate.targetNodeId));
+      const emittedTargets = new Set([...emittedStructuralSteps].map(stepIndex => pendingStructuralSteps[stepIndex].targetNodeId));
+      const held = new Set([...original, ...[...initialHeldAttachments].filter(nodeId => unemittedTargets.has(nodeId))]);
+      emittedTargets.forEach(nodeId => held.delete(nodeId));
+      held.delete(step.targetNodeId);
+      return held.size === original.size && [...held].every(nodeId => original.has(nodeId)) ? undefined : [...held];
+    };
     const emitStructuralStep = (stepIndex: number, forRelation?: number): string[] => {
       if (emittedStructuralSteps.has(stepIndex))
         return [];
@@ -507,8 +524,12 @@ export const finalizeStageReplay = (
       // A prerequisite can be pulled ahead of its original construction
       // position. Rebuild from available syntax so a still-pending wrapper
       // cannot replace a current edge and then be hidden after the rebuild.
+      // Its held attachments are those of its emitted position: a parent
+      // whose merge has not played keeps its old edges.
+      const heldAttachments = heldAttachmentsAtEmission(step);
+      const positionedStep = heldAttachments ? { ...step, replayPendingAttachmentNodeIds: heldAttachments } : step;
       const availableStep = withPendingStructureHidden({
-        ...step,
+        ...positionedStep,
         replayVisibleNodeIds: Array.from(new Set([
           ...(step.replayVisibleNodeIds || []),
           ...lastVisible,
@@ -516,8 +537,8 @@ export const finalizeStageReplay = (
         ]))
       });
       const rebuilt = rebuildStructuralStepForActiveRelations({
-        ...step, replayVisibleNodeIds: availableStep.replayVisibleNodeIds
-      }, activeRelationIndexes);
+        ...positionedStep, replayVisibleNodeIds: availableStep.replayVisibleNodeIds
+      }, activeRelationIndexes, Boolean(heldAttachments));
       // Carried syntax that no longer exists, such as a dissolved constituent
       // after its regrouping, has no node in the rebuilt canvas to show.
       const canvasIds = new Set<string>();
