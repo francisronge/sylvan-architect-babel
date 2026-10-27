@@ -48,11 +48,12 @@ export function paintedTreeText(runs: readonly TreeLabelRuns[] | undefined, meas
   return boxes.filter(finite);
 }
 
-/** D3's tidy tree separates only nodes of one depth, and a row's spacing is its
- * own. Tree text also spans rows: a word hangs below its leaf, and a wrapped
+/** D3's tidy tree separates layout points by a fixed pitch, whatever the width
+ * of their text. A long word or label runs into its neighbour on the same row,
+ * and tree text also spans rows: a word hangs below its leaf, and a wrapped
  * category label grows up toward the row above. Where one painted node's text
- * runs into the text of a node on another row, widen the fork where their paths
- * divide: every node after that split moves right by the missing room, and the
+ * runs into the text of another node on its own row or another, widen the fork
+ * where their paths divide: every node after that split moves right by the missing room, and the
  * fork and its ancestors re-centre on their first and last children, as D3
  * centres them. No gap between two nodes of one row shrinks, so rows, sister
  * order and centring are kept, and text that was clear stays clear.
@@ -83,7 +84,7 @@ export function clearTreeText(root: Node, painted: (node: Node) => boolean,
     for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
       const a = boxes[i], b = boxes[j];
       if (b.x >= a.x + a.width + reach) break;
-      if (a.node.y === b.node.y || contains(a.node, b.node) || contains(b.node, a.node)) continue;
+      if (contains(a.node, b.node) || contains(b.node, a.node)) continue;
       if (Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y) <= depth) continue;
       const [left, right] = order.get(a.node)! < order.get(b.node)! ? [a, b] : [b, a];
       const missing = left.x + left.width + left.halo + gap + right.halo - right.x;
