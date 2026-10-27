@@ -118,13 +118,17 @@ const isHeadComplex = (parent: SyntaxNode, landingId: string, previous: readonly
   const containsLowerOccurrence = (node: SyntaxNode): boolean => Boolean(landing?.lineageId
     && node.id !== landing.id && node.lineageId === landing.lineageId)
     || Boolean(node.children?.some(containsLowerOccurrence));
-  if (readCategoryLabel(parent.label)?.kind !== 'head' || readCategoryLabel(landing?.label)?.kind !== 'head') return false;
+  // A complex may bear its host's word as its label ("helpen" over
+  // [V helpen]), as projections of word-labelled heads do.
+  const namesHost = siblings.length === 1 && !siblings[0].children?.length && Boolean(siblings[0].word?.trim())
+    && String(parent.label ?? '').trim() === siblings[0].word!.trim();
+  if (readCategoryLabel(parent.label)?.kind !== 'head' && !namesHost || readCategoryLabel(landing?.label)?.kind !== 'head') return false;
   if (parent.children?.length === 1 && parent.children[0].id === landingId) {
     const landing = parent.children[0];
     return readCategoryLabel(landing.label)?.kind === 'head' && onlyExponents(landing);
   }
   if (siblings.length === 1 && readCategoryLabel(siblings[0].label)?.kind === 'head'
-    && sharesHeadCategory(siblings[0], parent)) {
+    && (sharesHeadCategory(siblings[0], parent) || namesHost)) {
     // A previously built host remains the same head when another head adjoins;
     // its internal clitic or inflection structure need not be flat.
     if (onlyExponents(siblings[0])) return true;
