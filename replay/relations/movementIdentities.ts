@@ -121,6 +121,22 @@ export const registeredTrajectoryDisplayKind = (
     : 'phrasal';
 };
 
+/**
+ * Whether a registered trajectory relation admits a structurally recovered
+ * movement kind. Most families fix head or phrasal movement; the sideward
+ * family copies either a head or a phrase into another workspace, so structure
+ * decides. An unregistered name admits whatever structure recovers.
+ */
+export const registeredTrajectoryAdmitsKind = (
+  label: string | undefined,
+  kind: 'head' | 'phrasal'
+): boolean => {
+  const displayKind = registeredTrajectoryDisplayKind(label);
+  if (!displayKind || displayKind === kind) return true;
+  const entry = findRelationRegistryEntry(productionRelationRegistry, String(label || ''));
+  return Boolean(entry && PRODUCTION_RENDER_FAMILIES[entry.id]?.trajectoryKind === 'sideward');
+};
+
 export const isRegisteredTrajectoryRelation = (
   label?: string,
   anchors?: AuthoredTrajectoryAnchors
@@ -134,8 +150,9 @@ export const isRegisteredFrontingTrajectoryRelation = (
 /**
  * Exact head/phrasal kind per movement identity. Generic labels (move,
  * movement, internalmerge, remerge, achain) carry no kind — structure decides
- * — and unlisted names carry none either: no text pattern ever assigns a
- * kind.
+ * — nor does sideward movement, which may copy a head or a phrase into
+ * another workspace. Unlisted names carry none either: no text pattern ever
+ * assigns a kind.
  */
 export const MOVEMENT_IDENTITY_KINDS: Readonly<Record<string, 'head' | 'phrasal'>> = {
   headmove: 'head',
@@ -155,8 +172,7 @@ export const MOVEMENT_IDENTITY_KINDS: Readonly<Record<string, 'head' | 'phrasal'
   smuggling: 'phrasal',
   remnantmovement: 'phrasal',
   rollupmovement: 'phrasal',
-  acrosstheboardmovement: 'phrasal',
-  sidewardmovement: 'phrasal'
+  acrosstheboardmovement: 'phrasal'
 };
 
 export const movementIdentityKind = (label?: string): 'head' | 'phrasal' | '' =>
