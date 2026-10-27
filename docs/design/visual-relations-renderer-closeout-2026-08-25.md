@@ -317,7 +317,10 @@ taken later in the stretch too, the first pocket scheduled later in the stretch 
 every allocation rule accepts now and that stays clear, or else the nearest pocket
 clear through the stretch. A pocket it chooses so stands at most a tenth beyond its
 nearby reach or no farther than its old pocket, and a scheduled pocket farther than
-that gives way to a nearer one clear through the stretch. Plaques and their own
+that gives way to a nearer one clear through the stretch. When no pocket that near
+stays clear, it takes the nearest pocket clear through the stretch however far it
+stands: Francis chose a stable farther plaque over a later jump on 27 October 2026,
+and accepted the distances this leaves. Plaques and their own
 routes, placed step by step, do not count as known in advance. The offline audit
 reports a jump within a stage that only such syntax or a mark caused. One
 exception lets a plaque that shows its owner only by proximity, left beyond its nearby reach, return within it: it takes

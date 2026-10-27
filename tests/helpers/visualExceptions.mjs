@@ -13,6 +13,9 @@ const SPOKE_ATTACHED = 'Accepted since #76: keeping the gap would cut off the sp
 const PLAQUE_CROWDED = 'Accepted (catalog #3; ROADMAP Explicitly Not Active, Francis on 23 and 24 Oct): no nearby pocket stays clear for the plaque\'s lifetime, so the allocator takes '
   + 'the nearest clear pocket beyond its nearby candidates. #74 and #84 relocate plaques whose anchor moves, not these.';
 
+const STABLE_FARTHER = 'Accepted (Francis, 27 Oct): a plaque whose only pocket clear through its stretch of a stage stands beyond '
+  + 'its nearby reach takes that pocket instead of jumping when the stage fills a nearer one.';
+const STABLE_FARTHER_NOTE = 'chat: plaques that would jump take the farther stretch-clear pocket instead (decision 1, "Yes")';
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 export const EXCEPTIONS = [
@@ -56,12 +59,13 @@ export const EXCEPTIONS = [
   x(PLAQUE_CROWDED, 'replay-regressions/native-plaque-footprints.json#', 'mark-distance', 'plaque',
     'plaque(1:2 theta Agent)@v', { desktop: { '24-29': 1.19 }, 'desktop-large': { '24-29': 1.19 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/ordinary-receiving-width-control.json#', 'mark-distance', 'plaque',
-    'plaque(0:0/0:1/1:2 theta theme)@p_v', { desktop: { '34-41': 1.14 }, 'desktop-large': { '34-41': 1.14 } },
-    { by: 'Francis Ronge', on: '2026-10-23', note: 'Accepted 21 Oct on the plaque-gap side-by-side review '
+    'plaque(0:0/0:1/1:2 theta theme)@p_v', { desktop: { '33': 1.13, '34-41': 1.14 }, 'desktop-large': { '33': 1.13, '34-41': 1.14 } },
+    { by: 'Francis Ronge', on: '2026-10-27', note: 'Accepted 21 Oct on the plaque-gap side-by-side review '
       + '("The plaque changes are fine."): a plaque brought near keeps the full gap from movement arrows, so this theme grid '
       + 'has no nearer pocket and returns to its spot from before #150. Move first, then adjoin (reviewed 23 Oct: '
-      + '"Looked at the replay page, looks good.") plays the raising two frames earlier, so the same state starts at frame 34.',
-      accepts: { desktop: { '34-41': 1.14 }, 'desktop-large': { '34-41': 1.14 } } }),
+      + '"Looked at the replay page, looks good.") plays the raising two frames earlier, so the same state starts at frame 34. '
+      + 'Frame 33, 27 Oct: ' + STABLE_FARTHER_NOTE + '; the grid takes this pocket a step early instead of jumping at frame 34.',
+      accepts: { desktop: { '33': 1.13, '34-41': 1.14 }, 'desktop-large': { '33': 1.13, '34-41': 1.14 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/receiving-slot-width-control.json#', 'mark-distance', 'plaque',
     'plaque(3:1 clauseType: declarative personal infinitive)@infinitivalC', { desktop: { '33-48': 1.2 }, 'desktop-large': { '33-48': 1.2 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/review-workspace-boundaries.json#/cases/0', 'mark-distance', 'plaque',
@@ -108,4 +112,9 @@ export const EXCEPTIONS = [
   // analysis this fixture case copies (night3 33-grc-article.r2); only its frame numbers moved.
   x(PLAQUE_CROWDED, 'replay-regressions/compound-movement-roles.json#/cases/1', 'mark-distance', 'plaque',
     'plaque(1:0 theta Theme)@V0', { desktop: { '26-38': 1.13 }, 'desktop-large': { '26-38': 1.13 } }),
+  // Plaques that would wait in a pocket their stage fills later, where only a farther
+  // pocket stays clear through the stretch, take that pocket rather than jump.
+  x(STABLE_FARTHER, 'replay-regressions/reviewed-construction.json#/cases/2', 'mark-distance', 'plaque',
+    'plaque(0:0 theta agent)@vRestored', { desktop: { '16-18': 1.19 }, 'desktop-large': { '16-18': 1.19 } },
+    { by: 'Francis Ronge', on: '2026-10-27', note: STABLE_FARTHER_NOTE, accepts: { desktop: { '16-18': 1.19 }, 'desktop-large': { '16-18': 1.19 } } }),
 ];

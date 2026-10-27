@@ -1020,6 +1020,15 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       for (const box of later.values()) if (!foreseen(box) && (kept = near(clearAt(phaseIndex, scene, stepIndex, index, at(box), now(), rowVisible, revealed())))) break;
       // Otherwise it looks for the nearest pocket clear at this step and through the stretch.
       kept ??= near(clearThrough(phaseIndex, scene, stepIndex, index, anchor, now(), rowVisible, revealed(), ahead, reach));
+      // Failing those, it stands farther rather than jump later (Francis, 27 October
+      // 2026): the nearest pocket clear through the stretch at any distance.
+      if (!kept) {
+        const farther = [...[...later.values()].filter(box => !foreseen(box))
+          .map(box => clearAt(phaseIndex, scene, stepIndex, index, at(box), now(), rowVisible, revealed())),
+          clearThrough(phaseIndex, scene, stepIndex, index, anchor, now(), rowVisible, revealed(), ahead, Infinity)]
+          .filter((box): box is PlaquePlacement => Boolean(box));
+        kept = farther.sort((a, b) => anchorDistance(anchor, a) - anchorDistance(anchor, b))[0];
+      }
       if (kept && !foreseen(kept)) { layout.set(index, kept); held.add(index); current = undefined; }
     }
     // When rows leave a Case plaque, its shell fits the rows that remain at that step,
