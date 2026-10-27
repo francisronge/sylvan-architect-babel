@@ -3,7 +3,7 @@ const XBAR_INSTRUCTION = "Analyze the exact input within X-bar Theory and Govern
 const MINIMALISM_INSTRUCTION = "Analyze the exact input within the Minimalist Program using Bare Phrase Structure.";
 
 export const DERIVATION_STAGES_BASE_INSTRUCTION = `Response
-Return only a single valid JSON object.
+Return only a single valid JSON object, either bare or inside one Markdown code block opened with \`\`\`json, and nothing else.
 For one analysis, its only field is derivationStages, a nonempty array of stages.
 When the sentence has readings that need different structures, return one analysis for each reading. Then the only top-level field is analyses, a nonempty array of analysis objects, each containing only derivationStages.
 

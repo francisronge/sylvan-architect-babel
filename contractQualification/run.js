@@ -227,7 +227,9 @@ export const runQualificationAttempt = ({ attempt, rawOutputBytes }) => {
   let inspection = null;
   const analysisOutcomes = [];
   try {
-    parsedPayload = parseModelJsonDetailed(rawOutput).payload;
+    const parsed = parseModelJsonDetailed(rawOutput);
+    parsedPayload = parsed.payload;
+    if (parsed.corrections?.length) ingress.corrections = parsed.corrections;
     inspection = {
       kind: 'authored-workspace-inspection',
       rawOutput: { ...rawOutputArtifact, encoding: 'base64', data: rawBytes.toString('base64') },
