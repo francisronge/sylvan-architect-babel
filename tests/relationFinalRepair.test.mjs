@@ -586,10 +586,12 @@ test('a vanished rendered large-role member stops the rail with one diagnostic',
     stage([], memberForest(members.slice(0, 4)))
   ]);
   assert.ok(plan.frames[0].items.some((item) => item.kind === 'anchor-set'));
+  // The designed rail persists after its neutral claim (Francis, 27 Oct 2026),
+  // so a member that vanishes later stops it, reported once.
   assert.equal(plan.frames[1].items.filter((item) => item.kind === 'anchor-set').length, 0,
-    'the neutral rail marks its own stage only');
-  assert.equal(plan.diagnostics.filter((d) => d.kind === 'anchor-vanished').length, 0,
-    'nothing is carried forward, so no member can vanish from a carried rail');
+    'the carried rail stops where its member vanishes');
+  assert.equal(plan.diagnostics.filter((d) => d.kind === 'anchor-vanished').length, 1,
+    'the vanished member is reported once');
 });
 
 test('a member unresolved at authoring keeps only its original diagnostic; the partial rail draws at its stage', () => {
@@ -604,7 +606,8 @@ test('a member unresolved at authoring keeps only its original diagnostic; the p
     stage([], chorusForest)
   ]);
   assert.deepEqual(plan.frames[0].items.map((item) => item.kind).sort(), ['anchor-set', 'fallback']);
-  assert.deepEqual(plan.frames[1].items, [], 'neutral marks belong to their own stage');
+  assert.deepEqual(plan.frames[1].items.map((item) => item.kind), ['anchor-set'],
+    'neutral marks belong to their own stage; the designed rail persists (Francis, 27 Oct 2026)');
   assert.equal(
     plan.diagnostics.filter((d) => d.kind === 'anchor-vanished').length,
     0,
@@ -1122,7 +1125,8 @@ test('the dependency law fails malformed registered claims closed and never coun
     stage([], railForest)
   ]);
   assert.ok(railPlan.frames[0].items.some((item) => item.kind === 'anchor-set'));
-  assert.deepEqual(railPlan.frames[1].items, [], 'the neutral rail marks its own stage only');
+  assert.deepEqual(railPlan.frames[1].items.map((item) => item.kind), ['anchor-set'],
+    'the partial rail persists unchanged (Francis, 27 Oct 2026)');
   assert.equal(railPlan.diagnostics.filter((d) => d.kind === 'anchor-vanished').length, 0);
 });
 
