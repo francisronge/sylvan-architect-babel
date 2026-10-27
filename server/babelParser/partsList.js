@@ -126,8 +126,13 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
       // Every node this stage lists must resolve and stay acyclic, even one that
       // no root reaches yet.
       const acyclic = new Set();
-      const checkDefinition = (id, visiting) => {
+      const checkDefinition = (id, visiting, depth = 0) => {
         if (acyclic.has(id)) return;
+        if (depth >= MAX_EXPANDED_DEPTH) {
+          const { stageIndex: definedAt, nodeIndex } = definitions.get(id);
+          fail(`${stagePath(definedAt)}.nodes[${nodeIndex}]`, id, `a workspace at most ${MAX_EXPANDED_DEPTH} levels deep`, 'DERIVATION_PARTS_LIST_VALID',
+            `the workspace nests deeper than ${MAX_EXPANDED_DEPTH} levels`);
+        }
         visiting.add(id);
         const { node, stageIndex: definedAt, nodeIndex } = definitions.get(id);
         (Array.isArray(node.children) ? node.children : []).forEach((childId, childIndex) => {
@@ -140,7 +145,7 @@ export const expandPartsListAnalysis = (analysis, prefix = '$') => {
             fail(childPath, childId, 'a child that is not the node itself or one of its ancestors', 'DERIVATION_PARTS_LIST_VALID',
               `node ${quoted(childId)} contains itself through its children`);
           }
-          checkDefinition(childId, visiting);
+          checkDefinition(childId, visiting, depth + 1);
         });
         visiting.delete(id);
         acyclic.add(id);

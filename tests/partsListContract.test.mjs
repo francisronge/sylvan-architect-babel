@@ -248,3 +248,10 @@ test('a mixed analysis keeps its parts-list stages before the first nested stage
   assert.equal(result.issue.stageIndex, 1);
   assert.equal(result.stages.length, 1);
 });
+
+test('a very deep chain of listed nodes is rejected as too deep, not by a crash', () => {
+  const nodes = Array.from({ length: 3000 }, (_, index) => index === 2999
+    ? { id: `n${index}`, label: 'N', word: 'Mia' } : { id: `n${index}`, label: 'N', children: [`n${index + 1}`] });
+  const result = expandPartsListAnalysis({ derivationStages: [{ statement: 's', stageRecord: 'r', relations: [], workspace: ['n0'], nodes }] });
+  assert.match(result.issue?.message ?? '', /nests deeper than/);
+});
