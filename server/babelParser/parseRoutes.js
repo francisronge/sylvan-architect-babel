@@ -197,13 +197,16 @@ export const createParseRoutes = ({
     primaryDebugPayloadPath
   }) => {
     let payload;
-    // Babel no longer repairs JSON, so new records always carry an empty list.
+    // Babel no longer repairs JSON, so new records always carry an empty list;
+    // `corrections` names transport framing read past (an outer code fence).
     const jsonProcessing = { repairDiagnostics: [] };
     generationRecord.processing = { json: jsonProcessing };
     const jsonStartedAt = performance.now();
 
     try {
-      payload = parseModelJsonDetailed(generationMeta.rawText).payload;
+      const parsed = parseModelJsonDetailed(generationMeta.rawText);
+      payload = parsed.payload;
+      if (parsed.corrections?.length) jsonProcessing.corrections = parsed.corrections;
     } catch (error) {
       if (error.details?.jsonDiagnostic) jsonProcessing.diagnostic = error.details.jsonDiagnostic;
       const debugPayloadPath = writeDebugModelPayload({

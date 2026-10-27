@@ -51,7 +51,7 @@ export const writeSpelloutAttempts = ({ outputPath, sentence, framework, model, 
   const results = convertSpelloutPayload(parsed.payload, sentence);
   const plan = planSpelloutAttempts(parsed.payload, results);
   Object.assign(record, {
-    ingress: { status: 'parsed', integrityFlags: [], repairDiagnostics: [] },
+    ingress: { status: 'parsed', integrityFlags: [], repairDiagnostics: [], ...(parsed.corrections?.length ? { corrections: parsed.corrections } : {}) },
     analyses: results.map(({ analysis, ...result }) => result),
     attempts: [...plan.attempts.map(({ id, inputTokens, analysisIndices }) => ({ id, inputTokens, analysisIndices })),
       ...plan.failures.map(({ id, analysisIndex }) => ({ id, analysisIndices: [analysisIndex], failed: true }))]
