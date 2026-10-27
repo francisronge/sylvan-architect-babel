@@ -468,6 +468,15 @@ Allocation measures the arrow's source as the painter does: the native text box
 of the source's word or category label in that scene, the union of its retained
 label variants. Without label measurements it keeps the estimated box.
 
+Plaques keep clear of region marks as the painter binds them: an enclosure's whole
+shaded box, and the outline of a domain box, which a plaque may stand inside or
+outside but not across. Each is reserved in the scenes that paint it, so a plaque's
+lifetime pocket avoids a region its stage draws later. Francis called a feature
+plaque across a sluicing remnant's enclosure "tiny collisions" on 27 October 2026.
+A binding domain's ellipse spans its members at √2 of their bounds and is not
+reserved; the offline audit still reports every plaque across another claim's
+region outline (`region-overlap`).
+
 Allocation runs in a worker after chunked browser text measurement.
 
 Reserved connector obstacles carry their precise cubic and stroke margin through

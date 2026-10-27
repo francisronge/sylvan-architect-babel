@@ -55,6 +55,7 @@ import {
   planItemDependencyNodeIds,
   planItemRelationRefs,
   resolveDisplayedTrajectoryAttachments,
+  type RelationPlanItem,
   type RelationRenderPlan
 } from './relations/renderPlan.ts';
 import { cloneSyntaxTree } from './syntaxForest.ts';
@@ -1207,6 +1208,7 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
           && isPlanItemRevealed(item, input.stageIndex, scene.playedRelations)), currentNodes, {
           measureCategoryText: input.measureCategoryText, measureTreeInk: input.measureTreeInk
         })];
+      obstacles.push(...regionPlaqueObstacles(input.plan, input.stageIndex, marks, byId));
       // Use the trajectory binder's actual geometry in each frame's coordinates.
       const trajectories = marks.filter(item => item.kind === 'trajectory');
       if (!input.plan || !trajectories.length) return obstacles;
@@ -1248,6 +1250,33 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
         paintedSpace: typeof paintedSpace } & typeof timing;
   });
   return { nodes, obstacles: measured.flatMap(scene => scene.obstacles), scenes: measured };
+}
+
+/** The boxes plaques keep clear of a stage's region marks, bound as the painter binds
+ * them: an enclosure's whole shaded box, and the outline of a domain box or ellipse,
+ * which a plaque may stand inside or outside but not across. A binding domain's
+ * ellipse is not reserved: it spans its members' subtree at √2 of their bounds, and
+ * keeping plaques off it moves nearby plaques beyond their reach. */
+function regionPlaqueObstacles(plan: StageLayoutInput['plan'], stageIndex: number, marks: readonly RelationPlanItem[],
+  byId: Map<string, d3.HierarchyPointNode<SyntaxNode>>): PlaqueRect[] {
+  const regions = marks.filter(item => item.kind === 'enclosure' || item.kind === 'domain-mark');
+  if (!plan || !regions.length) return [];
+  const bound = bindRelationPlanFrame({ ...plan, frames: plan.frames.map((frame, index) => index === stageIndex ? { ...frame, items: regions } : frame) },
+    stageIndex, stagePositionProvider(byId), { ...RELATION_BINDING_METRICS, markerScale: 1 });
+  const stroke = 4, edge = (x: number, y: number, width: number, height: number): PlaqueRect =>
+    ({ x: x - stroke, y: y - stroke, width: width + 2 * stroke, height: height + 2 * stroke });
+  return bound.primitives.flatMap((primitive): PlaqueRect[] => {
+    if (primitive.type === 'enclosure') return [edge(primitive.x, primitive.y, primitive.width, primitive.height)];
+    if (primitive.type === 'domain-region') {
+      const { x, y, width, height } = primitive;
+      return [edge(x, y, width, 0), edge(x, y + height, width, 0), edge(x, y, 0, height), edge(x + width, y, 0, height)];
+    }
+    if (primitive.type !== 'domain-ellipse') return [];
+    const points = Array.from({ length: 65 }, (_, i) => ({ x: primitive.cx + primitive.rx * Math.cos(i * Math.PI / 32),
+      y: primitive.cy + primitive.ry * Math.sin(i * Math.PI / 32) }));
+    return points.slice(1).map((point, i) => edge(Math.min(point.x, points[i].x), Math.min(point.y, points[i].y),
+      Math.abs(point.x - points[i].x), Math.abs(point.y - points[i].y)));
+  });
 }
 
 /** Layout reads no window size. Every canvas lays out at this reference canvas,
