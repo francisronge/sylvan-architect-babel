@@ -1008,10 +1008,20 @@ a distinct new landing must still prove the movement. An explicitly supplied
 adjunction domain is checked as a scope domain and must contain the lower
 occurrence. Denied, failed and provisional covert claims cannot earn a successful
 QR drawing or an ordinary movement arrow instead.
+The exact registered QR name reads open participant names the same way, before
+its unchanged Tier-1 signature is checked, as registered trajectories do: a field
+the proved movement identifies as its lower occurrence fills the pronounced-QP
+slot and one it identifies as the landing fills the LF-QP slot. A registered role
+name keeps its slot; without that proof the open names leave the exact claim
+incomplete and neutral, and Tier 2 does not draw it.
 The covert transition retains the exact proved prior source, including when PF
 and LF workspaces contain other occurrences of the same lineage. It must not
 replace that source with the newly introduced lower trace or redo the association
-by searching every workspace for the lineage.
+by searching every workspace for the lineage. An exact QR claim whose bound
+occurrences are that proved movement's endpoints uses the same transition. When
+the raised occurrence keeps the preceding source's ID beside a fresh lower trace,
+the QP stays in its preceding position until the QR moment, which introduces the
+trace, the landing and any new adjunction segment together.
 
 Previous-stage references are not automatically current-stage drawing roles. A
 movement's prior source can identify its current lower endpoint when that exact

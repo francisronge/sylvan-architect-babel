@@ -44,6 +44,9 @@ import {
   anchoredCopyDisplacement,
   movementLandingWrapper,
   priorWitnessWrapperNodeIds,
+  QR_SOURCE_ROLES,
+  QR_TARGET_ROLES,
+  relationOwnsPhrasalTreeTransition,
   resolveFallbackTreeTransitionOwnership
 } from './treeTransitions.ts';
 import {
@@ -69,6 +72,20 @@ export const createFrameRelationResolver = (
       resolved.set(index, getFrameRelations(frames[index], getReplayPlanStage(replayPlan, index), frames[index - 1]?.workspaceForest || [], dispatches[index]));
     return resolved.get(index)!;
   };
+};
+
+/** The proved movement of an exact covert claim whose bound lower and raised
+ * occurrences are exactly that movement's source and landing. */
+const boundCovertMovement = (
+  movement: RecoveredMovement | undefined,
+  anchors: Record<string, string | string[]> | undefined
+): RecoveredMovement | undefined => {
+  const one = (roles: readonly string[]) => {
+    const ids = [...new Set(roles.flatMap(role => anchors?.[role] === undefined ? [] : [anchors[role]].flat()))];
+    return ids.length === 1 ? ids[0] : undefined;
+  };
+  return movement?.trajectoryKind === 'phrasal'
+    && one(QR_SOURCE_ROLES) === movement.sourceNodeId && one(QR_TARGET_ROLES) === movement.targetNodeId ? movement : undefined;
 };
 
 /** A chain can restate a member that a preceding stage already raised and that
@@ -241,6 +258,11 @@ export const getFrameRelations = (
       const registeredEntry = findRelationRegistryEntry(productionRelationRegistry, String(step.relation || ''));
       const facet = dispatch.facets.find(f => f.recipe.id === 'movement.path' || f.recipe.id === 'scope.movement');
       const covert = facet?.recipe.id === 'scope.movement';
+      // An exact QR claim sequences the movement its bound endpoints prove, so
+      // its transition restores the exact preceding source as the Tier-2 covert
+      // path does, including when the raised occurrence kept that source's ID.
+      const tier1Covert = !facet && dispatch.primaryClaim?.tier === 1 && relationOwnsPhrasalTreeTransition(step)
+        ? boundCovertMovement(evidence.movement, dispatch.boundPrimaryRelation.anchors) : undefined;
       // A restated movement stays in its claim's group, drawn by the earlier claim alone.
       const groupedMovements = [...new Map([...recoveredClaimMovements(dispatch), ...dispatch.restatedMovements ?? []]
         .map(movement => [movementKey(movement), movement])).values()];
@@ -265,7 +287,7 @@ export const getFrameRelations = (
           sourceNodeIds: movements.map(movement => movement.sourceNodeId), targetNodeId: movements[0].targetNodeId
         };
       }
-      if (registeredEntry && !PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind && !facet)
+      if (registeredEntry && !PRODUCTION_RENDER_FAMILIES[registeredEntry.id]?.trajectoryKind && !facet && !tier1Covert)
         return step;
       const movementDiagnostics = isPriorMovementContextFailure(input.relation, dispatch, earlierMovements)
         ? [] : evidence.movementDiagnostics;
@@ -276,7 +298,7 @@ export const getFrameRelations = (
         targetNodeId: evidence.currentAnchors['scope.landing'][0],
         witnessNodeId: evidence.currentAnchors['scope.source'][0],
         trajectoryKind: 'phrasal', transition: facet.evaluation.earnedTransitions.includes('movement'), roles: {}
-      } : evidence.movement;
+      } : tier1Covert ?? evidence.movement;
       const priorDiagnostics = [...(Array.isArray(step.movementDiagnostics) ? step.movementDiagnostics : []),
       ...(movementDiagnostics || [])];
       if (!movement) {
@@ -300,10 +322,10 @@ export const getFrameRelations = (
           movementDiagnostics: [...priorDiagnostics, `MOVEMENT_KIND_CONFLICT: ${step.relation} selects ${registeredKind} movement, but the anchored context was recovered as ${movement.trajectoryKind}. No recovered transition was applied.`]
         };
       const primaryMovement = dispatch.primaryClaim?.tier === 1 && registeredKind === movement.trajectoryKind;
-      if (dispatch.primaryClaim?.tier === 1 && !primaryMovement)
+      if (dispatch.primaryClaim?.tier === 1 && !primaryMovement && !tier1Covert)
         return step;
       // A restatement of an arrow an earlier claim of the stage draws is not a refused drawing.
-      const drawingDiagnostics = !facet && !primaryMovement && !dispatch.restatedMovements?.some(restated => movementKey(restated) === key) ? [
+      const drawingDiagnostics = !facet && !primaryMovement && !tier1Covert && !dispatch.restatedMovements?.some(restated => movementKey(restated) === key) ? [
         `Stage ${input.stageIndex + 1}, relation ${relationIndex + 1} (${step.relation}): movement endpoints ${movement.sourceNodeId} -> ${movement.targetNodeId} are identifiable, but the drawing was not licensed: ${dispatch.primaryClaim && 'reason' in dispatch.primaryClaim ? dispatch.primaryClaim.reason : 'no-movement-facet'}. The authored analysis is unchanged.`,
         ...(dispatch.tier1Dispatch.signatureIssues || []).map(issue => `Tier 1 signature: ${JSON.stringify(issue)}`)
       ] : [];
@@ -316,7 +338,7 @@ export const getFrameRelations = (
         ...step,
         ...((priorDiagnostics.length || drawingDiagnostics.length)
           ? { movementDiagnostics: [...priorDiagnostics, ...drawingDiagnostics] } : {}),
-        recoveredMovement: { ...movement, transition, drawTrajectory: !covert && Boolean(facet || primaryMovement) },
+        recoveredMovement: { ...movement, transition, drawTrajectory: !covert && !tier1Covert && Boolean(facet || primaryMovement) },
         sourceNodeIds: [movement.sourceNodeId], targetNodeId: movement.targetNodeId
       };
     });

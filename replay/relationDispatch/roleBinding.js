@@ -11,6 +11,12 @@ const items = value => Array.isArray(value) ? value : [value];
 const isRecord = value => value && typeof value === 'object' && !Array.isArray(value);
 const roleVocabulary = buildTier2SynonymIndex();
 const MOVEMENT_ENDPOINTS = new Set(['movement.source', 'movement.witness', 'movement.landing']);
+/** The slot concept each proved movement endpoint fills in a registered
+ * design that draws a displacement: a trajectory's own endpoints, or the lower
+ * and raised occurrences of the covert QR path. */
+const PROVED_ENDPOINT_SLOTS = entryId => entryId.startsWith('trajectory.')
+  ? { 'movement.source': 'movement.source', 'movement.witness': 'movement.witness', 'movement.landing': 'movement.landing' }
+  : entryId === 'qr.covert' ? { 'movement.source': 'scope.source', 'movement.landing': 'scope.landing' } : undefined;
 /** The head-context role a node holds beside a head landing: the host head it
  * adjoins to, or the complex the adjunction forms. */
 const headContextSlot = (currentForest, priorForest, landingId, nodeId) =>
@@ -25,7 +31,8 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest, s
   const issues = [];
   const bound = { ...relation };
   // A structural movement stands in only where wording proves none.
-  const movement = entry.id.startsWith('trajectory.') && currentForest
+  const endpointSlots = PROVED_ENDPOINT_SLOTS(entry.id);
+  const movement = endpointSlots && currentForest
     ? recoverMovementEvidence(relation, currentForest, priorForest).movement ?? structuralMovement : undefined;
   // Structure, not spelling, decides which of several directional fields names
   // the moving occurrence. When the tree proves another field to be that
@@ -154,18 +161,20 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest, s
 
   // Structural recovery binds existing authored occurrences before the unchanged
   // signature is checked. One lower occurrence may fill both source and witness;
-  // this adds lookup slots, never another node or an authored field.
-  if (entry.id.startsWith('trajectory.') && currentForest && issues.length === 0) {
+  // this adds lookup slots, never another node or an authored field. Covert QR
+  // reads the same proof: its lower and raised occurrences are the movement's
+  // source and landing, so open participant names need no new aliases.
+  if (endpointSlots && currentForest && issues.length === 0) {
     if (movement) {
       const rules = { ...entry.signature.anchors.required, ...entry.signature.anchors.optional };
       const requiredRoles = new Set([...Object.keys(entry.signature.anchors.required),
         ...entry.signature.anchors.requiredAny.flat(), ...entry.signature.anchors.requiredAlternatives.flat(2)]);
-      for (const concept of ['movement.source', 'movement.witness', 'movement.landing']) {
+      for (const [endpoint, concept] of Object.entries(endpointSlots)) {
         if (Object.keys(bound.anchors || {}).some(role => rules[role]?.concept === concept)) continue;
         const role = Object.keys(rules).find(key => requiredRoles.has(key) && rules[key].concept === concept);
         if (!role) continue;
         for (const [authoredRole, value] of Object.entries(relation.anchors || {})) {
-          if (!movement.roles[normalizeTier2Synonym(authoredRole)]?.includes(concept)) continue;
+          if (!movement.roles[normalizeTier2Synonym(authoredRole)]?.includes(endpoint)) continue;
           bound.anchors[role] = value;
           if (!Object.hasOwn(rules, authoredRole)) delete bound.anchors[authoredRole];
           bindings.push({ field: 'anchors', authoredRole, role, concept });
