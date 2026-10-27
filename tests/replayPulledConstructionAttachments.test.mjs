@@ -10,8 +10,11 @@ const stage = (workspaceForest, relations = []) => ({
 const find = (root, id) => root?.id === id ? root : root?.children?.map(child => find(child, id)).find(Boolean);
 
 // Two clauses whose bare I heads each become [I V tense] in one stage. The one
-// claim listing both head movements needs the landings' new parents, so the
-// upper clause's tense selection is pulled ahead of the lower I's merge.
+// claim naming both new verbs needs their new parents, so the upper clause's
+// tense selection is pulled ahead of the lower I's merge. Its landing list
+// repeats an entry, so Babel cannot resolve it as movement; a resolved group
+// brings each landing and its parent at its own moment instead
+// (tests/movementGroupListedLandingRoles.test.mjs).
 function record() {
   const clause = (k, verb, subject, complement, moved) => node(`ip${k}`, 'IP', [node(`ib${k}`, 'I′', [
     moved
@@ -26,7 +29,7 @@ function record() {
     sentence: 'said the teacher was the book on the table',
     derivationStages: [stage([tree(false)]), stage([tree(true)], [{
       relation: 'V-to-I-head-movement',
-      anchors: { source: ['v0', 'v1'], landing: ['m0', 'm1'], target: ['i0', 'i1'] }
+      anchors: { source: ['v0', 'v1'], landing: ['m0', 'm1', 'm1'], target: ['i0', 'i1'] }
     }])],
     includePlayback: true
   };
