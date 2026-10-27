@@ -99,6 +99,26 @@ test('entering a new stage centres an axis that clearance has to pan; within a s
   assert.equal(advanceFittedCamera(previous, smaller, grown, view, { crossing: true }), smaller, 'a smaller fit is taken as it is');
 });
 
+// Opus n4-12-de-verb-cluster-long#0 at 390x844, Next 90>91: stage 18's envelope
+// loses its left part, so the retained zoom left it flush right with a third of
+// the view empty on the left (content-placement `pinned`) for all of stages 18-19.
+test('entering a new stage that the retained pose leaves lopsided takes the stage fit; within a stage the pose is kept', () => {
+  const previous = { x: 17.91, y: 256.17, k: 0.0261 };
+  const view = { left: 16, right: 314, top: 82, bottom: 428 };
+  const shrunk = { minX: 3760, maxX: 11344, minY: -2360, maxY: 1830 };
+  const fitted = { x: -132, y: 265, k: 0.0393 };
+  const left = previous.x + shrunk.minX * previous.k - view.left, right = view.right - (previous.x + shrunk.maxX * previous.k);
+  assert(right >= 0 && right < 2 && left > 0.33 * (view.right - view.left), 'the retained pose pins the stage to the right edge');
+  assert.equal(advanceFittedCamera(previous, fitted, shrunk, view), previous, 'within a stage the pose is kept');
+  assert.equal(advanceFittedCamera(previous, fitted, shrunk, view, { crossing: true }), fitted, 'entering the stage takes its fit');
+  const balanced = { ...shrunk, minX: 0, maxX: 11000 };
+  assert.equal(advanceFittedCamera(previous, fitted, balanced, view, { crossing: true }), previous,
+    'a retained pose that frames the new stage evenly is kept');
+  const offset = { ...shrunk, minX: 1500, maxX: 11344 };
+  assert.equal(advanceFittedCamera(previous, fitted, offset, view, { crossing: true }), previous,
+    'a slightly off-centre stage keeps the retained pose');
+});
+
 function settlerHarness() {
   const timers = new Map(), applied = [];
   let now = 0, id = 0, painted = false;

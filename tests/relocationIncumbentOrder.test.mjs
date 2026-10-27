@@ -5,12 +5,15 @@ import { layoutMeasuredScenes, prepareVisualRecord, TEXT_METRICS } from './helpe
 
 // Hand-built control: the Swedish subject's forests and movements (relocated-plaque-anchor)
 // with two synthetic feature plaques on its D head, which relocate with each movement.
+// The wide plaque is sized so that at the final movement the pocket it would take
+// first overlaps the small plaque's incumbent pocket; without that conflict the
+// control proves nothing.
 const record = JSON.parse(fs.readFileSync(new URL('../fixtures/replay-regressions/relocated-plaque-anchor.json', import.meta.url)));
 for (const stage of record.derivationStages) stage.relations = stage.relations.filter(relation => /movement/i.test(relation.relation));
 const plaque = (label, value) => ({ kind: 'node-plaque', plaqueStyle: 'feature', anchorNodeIds: ['subjectD'], rows: [{ label, value }],
   familyId: 'feature-bundle.plaque', tier: 1,
   relationRef: { stageIndex: 1, relationIndex: label === 'wide' ? 50 : 51, relation: 'Synthetic', anchors: { bearer: 'subjectD' } } });
-const wide = plaque('wide', 'a much longer feature value that wraps across several plaque lines for size');
+const wide = plaque('wide', 'a longer feature value that wraps across several plaque lines for size');
 const small = plaque('small', 'x');
 
 /** The synthetic plaques' pockets per frame, with their stage-3 allocation order reversed when `swap`. */
