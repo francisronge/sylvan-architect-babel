@@ -75,13 +75,17 @@ test('a connector whose anchor is a high phrase never draws inside the tree abov
   }
 });
 
-test('two words on one row keep exactly the connector they had', () => {
+test('two words on one row are bracketed and labelled too', () => {
   const { segment, marks } = route({ relation: 'open claim', anchors: { first: 'the', second: 'book' } });
-  // The path main drew before brackets existed (c7baa3f).
-  assert.equal(segment.d, 'M 1180.0 1458.0 L 1180.0 1498.0 M 1180.0 1498.0 Q 1180.0 1514.0 1198.0 1514.0 L 1402.0 1514.0 '
-    + 'Q 1420.0 1514.0 1420.0 1498.0 M 1420.0 1498.0 L 1420.0 1458.0');
-  assert.equal(segment.brackets, undefined);
-  assert.deepEqual(marks.map(mark => mark.text), ['first', 'second'], 'role tags stay beside their words');
+  const [the, book] = [wordRect('the'), wordRect('book')];
+  assert.ok(segment.brackets, 'no connector keeps the stems of the old design');
+  assert.equal(segment.brackets.inner, null);
+  const paths = pathPolylines(segment.d);
+  for (const word of [the, book]) assert.ok(paths.some(path => path.length === 2 && path[0].y === path[1].y
+    && Math.min(path[0].x, path[1].x) === word.x && Math.max(path[0].x, path[1].x) === word.x + word.width),
+  'each word has its bracket');
+  assert.ok(points(segment.d).every(point => point.y > Math.max(the.y + the.height, book.y + book.height)), 'all below the words');
+  assert.deepEqual(marks.map(mark => mark.text), ['D · first', 'N · second', 'open claim']);
 });
 
 test('a silent head gets a tick at its place in word order, between its neighbouring words', () => {
@@ -123,4 +127,25 @@ test('a bracket names its node as painted: features dropped, a chain index kept'
   assert.equal(coveredWordSpan(cp, wordOf, 'ltr', 'T[past]₁').category, 'T₁');
   assert.equal(coveredWordSpan(cp, wordOf, 'ltr', 'C [declarative]').category, 'C');
   assert.equal(coveredWordSpan(cp, wordOf).category, 'CP');
+});
+
+test('Arabic determiner and noun: no connector point above the words it brackets (Francis, 29 October)', async () => {
+  const { loadFixtureAnalyses } = await import('./helpers/replayInvariantCorpus.mjs');
+  const { layoutVisualFrames, prepareVisualRecord, VIEWPORTS } = await import('./helpers/visualFrames.mjs');
+  const record = loadFixtureAnalyses().records.find(entry => entry.id === 'showcase/agreement-and-case.json#/cases/0').record;
+  const frames = layoutVisualFrames(prepareVisualRecord(record), VIEWPORTS.filter(viewport => viewport.name !== 'mobile'), { steps: [13, 14] });
+  let checked = 0;
+  for (const frame of frames) for (const line of frame.lines.filter(line => line.kind === 'connector')) {
+    const words = frame.texts.filter(text => text.kind === 'word' && text.nodes.some(node => line.nodes.includes(node)));
+    const bottom = Math.max(...words.flatMap(text => text.boxes.map(box => box.y + box.height)));
+    assert.ok(words.length >= 2, `${line.id} covers its words`);
+    assert.deepEqual(line.paths.flat().filter(point => point.y < bottom), [], `frame ${frame.frame} ${frame.viewport}: ${line.id} stays below its words`);
+    for (const word of words) {
+      const box = word.cell;
+      assert.ok(line.paths.some(path => path.length === 2 && path[0].y === path[1].y && Math.min(path[0].x, path[1].x) <= box.x + 0.5
+        && Math.max(path[0].x, path[1].x) >= box.x + box.width - 0.5), `${line.id} brackets ${word.text} from end to end`);
+    }
+    checked++;
+  }
+  assert.ok(checked >= 2);
 });

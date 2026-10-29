@@ -133,22 +133,6 @@ export function clearLabelPath(from: Point, to: Point, boxes: readonly Rect[] = 
   return visible.filter(kept).map(([a, b]) => `M ${point(a)} L ${point(b)}`).join(' ');
 }
 
-/** Below this rise between the participants' subtree bottoms, two stems start
- * below their subtrees; above it, the higher stem would cross the tree. */
-const SAME_ROW = TREE_ROW_HEIGHT / 2;
-
-/** Whether a two-witness connector brackets its participants' words instead
- * of dropping a stem below each subtree (`from` and `to`, each its subtree's
- * bottom middle): when the subtrees do not both reach the participants' lowest
- * row, a stem from the higher one would run down through the tree, and when
- * tree text or a branch (`syntax`) reaches a row deeper between the stems,
- * their run would cross it. Two words on the lowest row keep their stems. */
-export const bracketsFallbackLink = (from: Point, to: Point, syntax: readonly Rect[]): boolean => {
-  const bottom = Math.max(from.y, to.y), left = Math.min(from.x, to.x), right = Math.max(from.x, to.x);
-  return Math.abs(from.y - to.y) > SAME_ROW
-    || syntax.some(box => box.x < right && box.x + box.width > left && box.y + box.height > bottom + SAME_ROW);
-};
-
 // Bracket shape in marker units: the end ticks' rise, and the drop from a
 // bracket to the run joining the two brackets below it.
 const BRACKET_TICK = 8;

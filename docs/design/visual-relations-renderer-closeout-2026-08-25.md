@@ -532,12 +532,10 @@ have no invented links.
 
 A connector's participant stands for the words it covers (Francis, 29 October
 2026: "1. works", choosing "Brackets under the words each anchor covers").
-When both participants' subtrees reach the same lowest row (within half a tree
-row) and no tree text or branch reaches a row deeper between their stems, each keeps its
-stem below its subtree and its role label beside it, byte for byte as before.
-Otherwise a stem from the higher one would run down through the tree, or the
-run would cross deeper branches, so neither draws a stem: below the lowest
-tree text and branches over them, on the same floor rule and lane, each gets a thin bracket spanning the painted
+Every two-witness connector uses it, even between two words on the bottom row
+(Francis, 29 October: "transition fully"), and none draws above the bottom of
+the words it brackets. Below the lowest tree text and branches over them, on
+the same floor rule and lane, each participant gets a thin bracket spanning the painted
 words it dominates in the current frame, with short ticks rising at the ends
 of every run of words (a run breaks where a word it does not dominate lies
 between). A participant covering no painted word, such as a silent head or a
@@ -558,7 +556,8 @@ ends, then lower rows. A participant's label with no such spot returns beside
 its own node, as a role label is placed; the relation name takes the free spot
 that leaves the viewport least. The floor rule is unchanged except that a
 plaque or tree label above a bracket keeps the brackets' ticks clear. Single
-witnesses, fans, arrays and closures keep their marks unchanged.
+witnesses, fans, arrays and closures keep their marks unchanged. A caller that measures no words
+(`spanFor` absent) keeps the stems below each subtree.
 `replay/relations/fallbackSpans.ts` measures the words for the painter and the
 offline frames alike; `fallbackGeometry.ts` routes and labels them. Fan paths leave measured gaps around syntax and role
 labels. Scalar connector stems use the same label clearance. A fan spoke whose

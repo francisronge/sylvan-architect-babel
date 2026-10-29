@@ -1,7 +1,7 @@
 import { spaceAuthoredName } from '../displayText.ts';
 import { ANCHOR_SET_BADGE_CLEARANCE, anchorSetBadgeOuterRadius } from '../rendererMetrics.ts';
 import type { BoundAnchorSetBadge, BoundFallbackMark } from './boundGeometry.ts';
-import { bracketsFallbackLink, FALLBACK_ROLE_STYLE, fallbackLabelRect, placeFallbackMark, routeFallbackSegments } from './fallbackGeometry.ts';
+import { FALLBACK_ROLE_STYLE, fallbackLabelRect, placeFallbackMark, routeFallbackSegments } from './fallbackGeometry.ts';
 import type { FallbackWordSpan } from './fallbackSpans.ts';
 import type { GeometryBinders } from './geometryContext.ts';
 import { fongEdgeOutlineRect } from './markGeometry.ts';
@@ -37,14 +37,14 @@ export const neutralGeometry = {
       const rect = options.fallbackMeasurements?.subtreeFor(id) ?? rectFor(id);
       return rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height } : null;
     };
-    // A two-witness link whose stems would cross the tree brackets its words instead.
+    // A two-witness link brackets the words its participants cover. Only a
+    // caller that measures no words keeps stems below each subtree.
     const link = item.drawing.link;
     const spanFor = options.fallbackMeasurements?.spanFor;
     const linkBottoms = link?.endpoints.map(subtreeBottom);
     const spans = link && spanFor && linkBottoms?.every(Boolean)
       && link.endpoints.every(id => positionFor(id)) && link.endpoints[0] !== link.endpoints[1]
-      && bracketsFallbackLink(linkBottoms[0]!, linkBottoms[1]!,
-        [...options.fallbackMeasurements?.labels ?? [], ...options.fallbackMeasurements?.branches ?? []]) ? link.endpoints.map(id => spanFor(id)) : null;
+      ? link.endpoints.map(id => spanFor(id)) : null;
     const brackets = spans?.every(Boolean) ? spans as FallbackWordSpan[] : null;
     const measure = options.plaqueTextLayout?.measureText ?? fallbackPlaqueTextMeasure;
     const measuredHeight = (metrics: ReturnType<typeof measure>) => options.plaqueTextLayout?.measureText
@@ -102,8 +102,8 @@ export const neutralGeometry = {
       ownedMarks.push(bound);
       primitives.push(bound);
     });
-    // Fans join their own marks. Two-witness links start below their subtrees,
-    // or bracket the words their participants cover.
+    // Fans join their own marks. Two-witness links bracket the words their
+    // participants cover, or without measured words start below their subtrees.
     if (link && brackets) {
       const ends = link.endpoints.map((nodeId, index) => ({ nodeId, runs: brackets[index].runs, tick: brackets[index].tick }));
       // Two silent participants in one gap of the words keep two ticks, in tree order.

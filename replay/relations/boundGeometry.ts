@@ -101,11 +101,9 @@ export type BoundFallbackMark = {
  * distinct shapes and the contract preserves that distinction so the
  * renderer cannot collapse them:
  * - `counter-lane` (row 2, two scalar witnesses): a quiet undirected
- *   connector running along its allocated lane below the terminal row, with
- *   short stems below the participating subtrees;
- *   When the two participants do not both reach the same lowest row, each
- *   instead has a bracket under the words it covers (`brackets`), and the
- *   brackets join below them, so nothing rises into the tree;
+ *   connector running along its allocated lane below the tree, where each
+ *   participant has a bracket under the words it covers (`brackets`) and a run
+ *   joins them; without measured words, short stems below each subtree;
  * - `direct` (row 3 fan spokes): a thin straight line from the hub's
  *   visible mark to the spoke's visible mark.
  * `d` is the ready-to-draw path; the
