@@ -26,6 +26,8 @@ const WIDTH_GROWTH = 0.02;
  * camera's fit) may become; a head seated clear of a movement's source may
  * reserve more, SEAT_GROWTH, for the landing that arrives beside it. */
 const STAGE_GROWTH = 0.08, SEAT_GROWTH = 0.25;
+/** How near a branch may pass text, in tree units (about a pixel at a Fit). */
+const BRANCH_CLEARANCE = 8;
 /** A closing narrower than this is not worth a step's motion. */
 const MIN_CLOSING = TREE_SIBLING_GAP;
 
@@ -600,7 +602,48 @@ function keepsClear(moved: ReadonlySet<string>, before: Painted, after: Painted,
     const old = earlier.get(id), oldOther = otherBefore.get(other.id);
     if (!old || !oldOther || !meets(old, oldOther)) return false;
   }
+  // Nor does a branch newly run through a label or word box.
+  const crossed = branchCrossings(before, moved, measureCategoryText);
+  for (const crossing of branchCrossings(after, moved, measureCategoryText)) if (!crossed.has(crossing)) return false;
   return true;
+}
+
+/** Whether the segment from (x1, y1) to (x2, y2) enters the box. */
+function crossesBox(x1: number, y1: number, x2: number, y2: number, box: { x: number; y: number; width: number; height: number }) {
+  let low = 0, high = 1;
+  const dx = x2 - x1, dy = y2 - y1;
+  for (const [p, q] of [[-dx, x1 - box.x], [dx, box.x + box.width - x1], [-dy, y1 - box.y], [dy, box.y + box.height - y1]]) {
+    if (Math.abs(p) < 1e-9) { if (q < 0) return false; continue; }
+    const t = q / p;
+    if (p < 0) low = Math.max(low, t); else high = Math.min(high, t);
+    if (low > high) return false;
+  }
+  return high - low > 1e-6;
+}
+
+/** The branches (from a parent's label to its daughter's, words excepted) that
+ * run through another node's text, line by line, among those touching syntax
+ * `moved`. */
+function branchCrossings(frame: Painted, moved: ReadonlySet<string>, measureCategoryText?: CategoryTextMeasure) {
+  const result = new Set<string>(), byNode = new Map<string, LabelBox['box'][]>();
+  for (const { id, box } of labelBoxes(frame, measureCategoryText)) byNode.set(id, [...(byNode.get(id) ?? []), box]);
+  // A wrapped label's block box encloses its lines; the lines are the text.
+  const inside = (outer: LabelBox['box'], inner: LabelBox['box']) => inner !== outer && inner.x >= outer.x && inner.y >= outer.y
+    && inner.x + inner.width <= outer.x + outer.width && inner.y + inner.height <= outer.y + outer.height;
+  const text = [...byNode].flatMap(([id, boxes]) => boxes.filter(box => !boxes.some(other => inside(box, other))).map(box => ({ id, box })));
+  for (const parent of frame.values()) for (const child of parent.children ?? []) {
+    const parentId = getNodeId(parent), childId = getNodeId(child);
+    if (!frame.has(childId) || childId.endsWith('::__leaf')) continue;
+    const touched = moved.has(parentId) || moved.has(childId);
+    const from = Math.max(parent.y, ...(byNode.get(parentId) ?? []).map(box => box.y + box.height));
+    const to = Math.min(child.y, ...(byNode.get(childId) ?? []).map(box => box.y));
+    for (const { id, box } of text) {
+      if (id === parentId || id === childId || id.replace(/::__leaf$/, '') === childId || !(touched || moved.has(id))) continue;
+      if (crossesBox(parent.x, from, child.x, to, { x: box.x - BRANCH_CLEARANCE, y: box.y - BRANCH_CLEARANCE,
+        width: box.width + 2 * BRANCH_CLEARANCE, height: box.height + 2 * BRANCH_CLEARANCE })) result.add(`${parentId}>${childId}|${id}`);
+    }
+  }
+  return result;
 }
 
 /** The rule's faults at one step (`step` after `previous`) that the new frames
