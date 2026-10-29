@@ -9,6 +9,8 @@ This file answers one question: which document should be trusted for what?
 | [`ROADMAP.md`](../ROADMAP.md) | The single ordered list of remaining work. |
 | [`CONTEXT.md`](../CONTEXT.md) | Canonical names and boundaries for the product, renderer, qualification work, archives, corpus, and benchmark. |
 | [`AGENTS.md`](../AGENTS.md) | Repository operating contract for coding agents. |
+| [`docs/verification.md`](verification.md) | What every check proves, how to run it and what it cannot see. |
+| [`docs/qualification-runs.md`](qualification-runs.md) | Generating model analyses with the Codex and Anthropic runners. |
 | [`README.md`](../README.md) | Product overview and local-use guide. |
 | [`server/babelParser/systemInstruction.js`](../server/babelParser/systemInstruction.js) and [`prompts.js`](../server/babelParser/prompts.js) | Model-facing authored contract. |
 | [`docs/implementation/invention-boundary.md`](implementation/invention-boundary.md) | Deterministic compiler and elaboration boundary. |
