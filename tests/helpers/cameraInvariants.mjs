@@ -1,4 +1,4 @@
-/** Pure checks of the camera rules in AGENTS.md "Replay and renderer safety"
+/** Pure checks of the camera rules in AGENTS.md "Replay and renderer contract"
  * and the forward-playback framing in
  * docs/design/visual-relations-renderer-closeout-2026-08-25.md, over a
  * sequence of painted camera poses and frame layouts. This is Babel's one camera
