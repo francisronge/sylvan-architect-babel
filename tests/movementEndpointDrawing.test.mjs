@@ -186,6 +186,23 @@ test('prose-labelled head movement and the complexes it builds draw exact arrows
   assert.deepEqual(proseHeads, original);
 });
 
+test('a registered head movement naming its prose-labelled host head draws the exact arrow the unfamiliar wording draws', () => {
+  const headItems = anchors => {
+    const record = structuredClone(proseHeads);
+    record.derivationStages[2].relations[0] = { ...record.derivationStages[2].relations[0], relation: 'HeadMove', anchors };
+    return prepareReplay(record).relationRenderPlan.frames[2].items.filter(item => item.relationRef?.stageIndex === 2
+      && item.relationRef.relationIndex === 0);
+  };
+  const endpoints = { source: 'verbTrace', higherCopy: 'verbAtHonorific' };
+  for (const context of [{}, { hostHead: 'honorific' }, { hostHead: 'honorific', complexHead: 'honorificComplex' }]) {
+    const items = headItems({ ...endpoints, ...context });
+    assert.deepEqual(items.map(item => [item.kind, item.trajectoryKind, item.claimTier, item.sourceNodeId, item.targetNodeId]),
+      [['trajectory', 'head', 1, 'verbTrace', 'verbAtHonorific']], JSON.stringify(context));
+  }
+  assert(!headItems({ ...endpoints, hostHead: 'tense' }).some(item => item.kind === 'trajectory' && item.claimTier === 1),
+    'a host head beside another landing is still unproven');
+});
+
 // Relabel only the next landing as notation, so the next hop is head movement
 // on its own evidence; the notation control also relabels the first complex.
 const findNode = (nodes, id) => nodes.map(n => n.id === id ? n : findNode(n.children ?? [], id)).find(Boolean);

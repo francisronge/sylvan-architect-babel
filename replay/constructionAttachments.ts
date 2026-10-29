@@ -127,9 +127,23 @@ export function regroupingParents(
   return parents;
 }
 
+/** Whether a regrouping parent has no new child, as when it takes a dissolved
+ * child's material directly. No construction step completes its wait, so the
+ * stage's completion shows the completed stage instead of the last step. */
+export function hasUnreleasedRegrouping(
+  previousForest: readonly SyntaxNode[],
+  currentForest: readonly SyntaxNode[]
+): boolean {
+  const previous = indexForest(previousForest), current = indexForest(currentForest);
+  return [...regroupingParents(previousForest, currentForest)]
+    .some(id => !childIds(current.get(id)).some(child => child && !previous.has(child)));
+}
+
 /** Until a regrouping parent's first new child is built, draw the parent with
  * its preceding children: the dissolved child returns, holding its surviving
- * material, and the new children wait. Every other node keeps its place. */
+ * material, and the new children wait. Wholly new syntax inside a waiting child
+ * stands as its own workspace, so it is built at its own step. Every other node
+ * keeps its place. */
 export function restoreRegroupedConstituents(
   currentForest: readonly SyntaxNode[],
   previousForest: readonly SyntaxNode[],
@@ -138,9 +152,13 @@ export function restoreRegroupedConstituents(
   if (!pendingParentIds.size) return currentForest as SyntaxNode[];
   const current = indexForest(currentForest), previous = indexForest(previousForest);
   const restoredChildren = new Map<string, SyntaxNode[]>();
+  const waiting: SyntaxNode[] = [];
+  const isNew = (node: SyntaxNode): boolean => !previous.has(node.id || '') && (node.children || []).every(isNew);
+  const collectNew = (node: SyntaxNode) => isNew(node) ? waiting.push(node) : node.children?.forEach(collectNew);
   for (const id of pendingParentIds) {
     const old = previous.get(id);
     if (!old || !current.has(id)) continue;
+    current.get(id)!.children?.forEach(child => { if (!previous.has(child.id || '')) collectNew(child); });
     restoredChildren.set(id, childIds(old).flatMap(childId => {
       const kept = current.get(childId);
       if (kept) return [kept];
@@ -154,7 +172,7 @@ export function restoreRegroupedConstituents(
     const children = restoredChildren.get(node.id || '') ?? node.children;
     return children ? { ...node, children: children.map(clone) } : { ...node };
   };
-  return currentForest.map(clone);
+  return [...currentForest.map(clone), ...waiting.map(clone)];
 }
 
 const subtreeIds = (node: SyntaxNode | undefined): string[] =>

@@ -2,6 +2,7 @@ import { buildTier2FacetEvidence } from '../relations/relationEvidence.ts';
 import { nativeThetaAssignments } from '../relations/compoundAssignments.ts';
 import { buildTier2SynonymIndex, normalizeTier2Synonym, relationRoleConcepts } from '../relations/tier2Synonyms.ts';
 import { movementContextFailure, recoverMovementEvidence } from '../relations/movementEvidence.ts';
+import { indexMovementOccurrences } from '../relations/movementSourceEvidence.ts';
 import { authoredOutcomeLiterals, hasUnestablishedCovertMovementOutcome, negativeClaimFailure, resolveOutcomeLiteral } from '../relations/outcomeResolver.ts';
 import { PRODUCTION_RENDER_FAMILIES, PRODUCTION_SCALAR_VALUE_KEYS } from '../relations/renderFamilies.ts';
 
@@ -217,8 +218,11 @@ export const bindRelationRoles = (relation, entry, currentForest, priorForest, s
         if (ids.length !== 1 || landings.length !== 1) continue;
         const authoredRole = bindings.find(binding => binding.field === 'anchors' && binding.role === role)?.authoredRole || role;
         const landingContext = ['landing head', 'receiving head'].includes(normalizeTier2Synonym(authoredRole));
+        // The named role is an explicitly anchored receiving head or complex,
+        // so the prose-label structural reading applies as it does in Tier 2.
         const reason = currentForest ? movementContextFailure(currentForest, landings[0], ids[0],
-          role === 'complexHead' ? 'head-complex' : landingContext ? 'head-landing' : 'head-host', priorForest) : 'workspace-required';
+          role === 'complexHead' ? 'head-complex' : landingContext ? 'head-landing' : 'head-host', priorForest, undefined,
+          { current: indexMovementOccurrences(currentForest), prior: indexMovementOccurrences(priorForest ?? []) }) : 'workspace-required';
         if (reason) issues.push({ kind: 'head-context-unproven', field: 'anchors',
           role: authoredRole,
           nodeId: ids[0], landing: landings[0],

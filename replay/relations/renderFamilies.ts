@@ -20,7 +20,7 @@
  *   persistence; they never own an independent policy.
  */
 
-import type { OutcomeConcept } from './outcomeResolver.ts';
+import { NEGATIVE_PATH_OUTCOMES, POSITIVE_OUTCOMES, type OutcomeConcept } from './outcomeResolver.ts';
 
 export type RenderPersistence =
   | 'from-stage-onward'
@@ -194,7 +194,10 @@ export const PRODUCTION_RENDER_FAMILIES: Record<string, ProductionRenderFamily> 
   'multiple-agree.fanout': persistent('agreement-paths', { agreementMode: 'multiple' }),
   'cyclic-agree.paths': persistent('agreement-paths', { agreementMode: 'cyclic' }),
   'feature-sharing.vines': persistent('feature-sharing'),
-  'case-assignment.path': persistent('case-assignment'),
+  // The outcomes the Case path draws, so a sibling facet does not consume them.
+  'case-assignment.path': persistent('case-assignment', {
+    acceptedOutcomeConcepts: [...POSITIVE_OUTCOMES, ...NEGATIVE_PATH_OUTCOMES]
+  }),
   'dependent-case.elbow': {
     family: 'dependent-case',
     acceptedOutcomeConcepts: [],

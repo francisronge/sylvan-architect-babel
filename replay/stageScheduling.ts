@@ -1,7 +1,7 @@
 /** Interleave bottom-up construction with authored relation moments and one completed Stage Record. */
 import { type DerivationOperation, type SyntaxNode } from '../types.ts';
 import type { ReplayCompilation } from './compilationContext.ts';
-import { constructionAttachmentUpdates } from './constructionAttachments.ts';
+import { constructionAttachmentUpdates, hasUnreleasedRegrouping } from './constructionAttachments.ts';
 import { replayOwnerId } from './displayIdentity.ts';
 import {
   buildReplayProgressLabel,
@@ -644,6 +644,7 @@ export const finalizeStageReplay = (
     });
     const completedStageReplayStep = stagePlaybackSteps[stagePlaybackSteps.length - 1];
     const fallbackStageCompletionSnapshot = fallbackTransitionOwnership.size > 0
+      || hasUnreleasedRegrouping(constructionPreviousWorkspaceRoots, structuralWorkspaceRoots)
       ? frameReplaySnapshot
       : null;
     return [

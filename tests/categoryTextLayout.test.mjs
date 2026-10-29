@@ -61,6 +61,16 @@ test('a closing mark hangs past the width instead of starting a line, and a word
   assert.deepEqual(lines(`X[${'e\u0301'.repeat(16)}]`), ['X', `[${'e\u0301'.repeat(16)}]`]);
 });
 
+test('a straight double quote after text closes it, so it hangs instead of starting a line', () => {
+  const measure = text => [...text].length * 22;
+  // Seventeen graphemes fill the 380-unit line; the eighteenth overflows.
+  assert.deepEqual(categoryTextLayout('"abcdefghijklmnop"', measure).lines, ['"abcdefghijklmnop"']);
+  assert.deepEqual(categoryTextLayout('abcdefghijklmnopq"', measure).lines, ['abcdefghijklmnopq"']);
+  // After a space it opens, and its quotation may start the next line.
+  assert.deepEqual(categoryTextLayout('abcdefghijklmnopq "x"', measure).lines, ['abcdefghijklmnopq', '"x"']);
+  assert.deepEqual(categoryTextLayout('abc "defghijklmnopq"', measure).lines, ['abc ', '"defghijklmnopq"']);
+});
+
 test('a hyphenated word breaks after its hyphen rather than inside either word', () => {
   const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
   const measure = s => [...graphemes.segment(s)].length * 22;
