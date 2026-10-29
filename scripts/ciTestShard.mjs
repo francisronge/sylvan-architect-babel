@@ -43,7 +43,7 @@ const WEIGHTS = new Map([
   ['workspaceComponentLifetime.test.mjs', 4],
   ['workspaceReservation.test.mjs', 4],
   ['contractFingerprintCoverage.test.mjs', 3],
-  ['offlineAuditPass.test.mjs', 3],
+  ['offlineAuditPass.test.mjs', 11],
   ['plaqueLayoutInkJob.test.mjs', 3],
   ['plaqueNearbyLifetime.test.mjs', 3],
   ['workspaceHistoryRefinement.test.mjs', 3],
