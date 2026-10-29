@@ -147,10 +147,24 @@ function keepsStageSize(scenes: readonly Scene[], frames: readonly Painted[], ch
 
 /** The corpus gate's continuity faults (workspaceContinuityReflows, with the
  * closings it grants) at `step` after `previous`, over two painted frames. */
+const pairCache = <T>() => {
+  const cache = new WeakMap<Painted, WeakMap<Painted, T>>();
+  return (before: Painted, after: Painted, compute: () => T) => {
+    let inner = cache.get(before);
+    if (!inner) { inner = new WeakMap(); cache.set(before, inner); }
+    if (!inner.has(after)) inner.set(after, compute());
+    return inner.get(after)!;
+  };
+};
+// Painted frames are never changed in place, so a pair's faults are fixed.
+const continuityCache = pairCache<string[]>(), faultCache = pairCache<ReturnType<typeof replayMotionFaults>>();
+
 function continuityFaults(previous: Scene, step: Scene, before: Painted, after: Painted) {
-  const window = [{ step: previous.step, canvas: previous.canvas, nodes: before }, { step: step.step, canvas: step.canvas, nodes: after }];
-  return workspaceContinuityReflows(window, new Map(), scene => [...scene.nodes.values()], { ownClosings: true })
-    .map(fault => `${fault.kind} ${fault.rootId}`);
+  return continuityCache(before, after, () => {
+    const window = [{ step: previous.step, canvas: previous.canvas, nodes: before }, { step: step.step, canvas: step.canvas, nodes: after }];
+    return workspaceContinuityReflows(window, new Map(), scene => [...scene.nodes.values()], { ownClosings: true })
+      .map(fault => `${fault.kind} ${fault.rootId}`);
+  });
 }
 
 /** The continuity faults the new frames add at one step over the old ones. */
@@ -425,14 +439,17 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
       const shiftOf = (at: number, w1: number, w2: number) => at === closing ? w1 : at === 1 ? w2 : 0;
       const shiftBy = (weight: readonly number[], w1: number, w2: number) => weight[closing] * w1 + weight[1] * w2;
       // A pair comes nearer by its left part's rightward shift less its right part's.
-      const fits = (w1: number, w2: number) => pairs.every(pair =>
-        -side * (shiftBy(pair.left, w1, w2) - shiftBy(pair.right, w1, w2)) <= pair.room + 1e-6);
+      // Each pair is linear in the two shifts: it allows w1 up to a bound for each w2.
+      const linear = pairs.map(pair => ({ a: -side * (pair.left[closing] - pair.right[closing]), b: -side * (pair.left[1] - pair.right[1]), room: pair.room + 1e-6 }));
+      // The largest w1 <= bound that fits with w2, or -1 when even none does.
       const most = (w2: number) => {
-        let low = 0, high = bound;
-        if (fits(high, w2)) return high;
-        if (!fits(low, w2)) return -1;
-        for (let round = 0; round < 30; round++) { const middle = (low + high) / 2; if (fits(middle, w2)) low = middle; else high = middle; }
-        return low;
+        let high = bound;
+        for (const { a, b, room } of linear) {
+          const slack = room - b * w2;
+          if (slack < 0) return -1;
+          if (a > 0) high = Math.min(high, slack / a);
+        }
+        return high;
       };
       let w2 = 0, w1 = most(0);
       if (roomFree && partsAt.some(parts => [...parts.values()].includes(1))) for (let step = 1; step <= 32; step++) {
@@ -572,7 +589,7 @@ function keepsClear(moved: ReadonlySet<string>, before: Painted, after: Painted,
 /** The rule's faults at one step (`step` after `previous`) that the new frames
  * add, or make farther, over the old ones. */
 function newFaults(previous: PlaybackStep, step: PlaybackStep, oldBefore: Painted, oldAfter: Painted, before: Painted, after: Painted) {
-  const faults = (a: Painted, b: Painted) => replayMotionFaults({ frames: [motionFrame(previous, a, getNodeId), motionFrame(step, b, getNodeId)] });
+  const faults = (a: Painted, b: Painted) => faultCache(a, b, () => replayMotionFaults({ frames: [motionFrame(previous, a, getNodeId), motionFrame(step, b, getNodeId)] }));
   const base = new Map(faults(oldBefore, oldAfter).map(fault => [`${fault.kind} ${fault.node}`, fault.distance]));
   return faults(before, after).filter(fault => fault.distance > (base.get(`${fault.kind} ${fault.node}`) ?? 0) + 1);
 }

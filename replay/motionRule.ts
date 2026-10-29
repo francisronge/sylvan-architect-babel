@@ -133,7 +133,13 @@ export function replayMotionFaults({ frames }: { frames: readonly any[] }, { thr
       if (carriedBy && length({ x: shift.x - carriedBy.x, y: shift.y - carriedBy.y }) <= threshold) continue;
       faults.push({ frame: index + 1, step: stepKeys[index], node: id, kind: 'unowned-motion', operation, distance: length(shift) });
     }
-    const childIds = (map, id) => [...map.values()].filter(point => point.parent === id).map(point => point.id).join(' ');
+    const daughters = map => {
+      const result = new Map<string, string[]>();
+      for (const point of map.values()) if (point.parent) result.set(point.parent, [...(result.get(point.parent) ?? []), point.id]);
+      return result;
+    };
+    const currentDaughters = daughters(current), priorDaughters = daughters(prior);
+    const childIds = (map, id) => ((map === current ? currentDaughters : priorDaughters).get(id) ?? []).join(' ');
     for (const point of frames[index].points) {
       const old = prior.get(point.id);
       if (!old || !point.parent || old.parent !== point.parent || !prior.has(point.parent)
