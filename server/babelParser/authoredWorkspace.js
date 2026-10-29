@@ -5,8 +5,10 @@ import { expandPartsListAnalysis } from './partsList.js';
 const DERIVATION_NODE_FIELDS = new Set(['id', 'label', 'children', 'word', 'tokenIndex', 'silent', 'lineageId', 'surfaceSpan']);
 
 // JSON values of node fields, other than children, that expansion may copy for
-// one response, counted at every expanded occurrence. Saved responses copy at
-// most about 2,000; ignored metadata referenced across many stages reaches it.
+// one response, counted at every expanded occurrence, with each string and
+// object key also charged its length, since the normalized response writes it
+// out at every occurrence. Saved responses copy at most about 2,000 values;
+// ignored metadata referenced across many stages reaches the limit.
 const MAX_EXPANDED_FIELD_VALUES = 1_000_000;
 
 // Relation diagnostics name an authored entry by at most this many characters,
@@ -306,17 +308,24 @@ export const createAuthoredWorkspaceHelpers = ({
       if (!value || typeof value !== 'object') return value;
       return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneInspectedField(item, path)]));
     };
-    // Copies one node field, charging each JSON value to the response's budget.
-    const cloneExpandedField = (value, path) => {
-      if (expansionBudget && --expansionBudget.remainingFieldValues < 0) {
+    // Copies one node field, charging each JSON value, and each string's and
+    // key's length, to the response's budget.
+    const chargeExpansion = (cost, path) => {
+      if (expansionBudget && (expansionBudget.remainingFieldValues -= cost) < 0) {
         throwMalformedWorkspace(
-          `Stage ${stageIndex + 1}, ${path}: expanded node fields exceed ${MAX_EXPANDED_FIELD_VALUES} values across the response.`,
-          path, null, `node fields with at most ${MAX_EXPANDED_FIELD_VALUES} JSON values across every expanded occurrence`
+          `Stage ${stageIndex + 1}, ${path}: expanded node fields exceed ${MAX_EXPANDED_FIELD_VALUES} values and characters across the response.`,
+          path, null, `node fields with at most ${MAX_EXPANDED_FIELD_VALUES} JSON values and characters across every expanded occurrence`
         );
       }
+    };
+    const cloneExpandedField = (value, path) => {
+      chargeExpansion(1 + (typeof value === 'string' ? value.length : 0), path);
       if (Array.isArray(value)) return value.map(item => cloneExpandedField(item, path));
       if (!value || typeof value !== 'object') return value;
-      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneExpandedField(item, path)]));
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => {
+        chargeExpansion(key.length, path);
+        return [key, cloneExpandedField(item, path)];
+      }));
     };
 
     const expandNode = (rawNode, path, carriedFrom = null, depth = 0) => {

@@ -41,16 +41,17 @@ export const runManualQualification = async ({ request, outputPath, signal, spaw
     code: 'HARNESS_ERROR', message: 'The local generation harness could not prepare this request.'
   } } };
   const bundle = readJson(path.join(outputPath, 'attempts/parse/bundle.json'));
-  if (receipt?.status === 'completed' && bundle?.response?.analyses?.length) {
+  // Each analysis that fails the spelling check has its own failed attempt
+  // beside the parse attempt of those that pass; the app rejects the response
+  // when any analysis fails rather than showing it without that analysis.
+  const anyFailure = receipt?.attempts?.find(entry => entry.outcome?.status === 'failed')?.outcome?.failure;
+  if (receipt?.status === 'completed' && bundle?.response?.analyses?.length && !anyFailure) {
     return { status: 200, payload: { ...bundle.response, requestedModelId: request.model } };
   }
-  // A response whose analyses all fail the spelling check has no parse attempt;
-  // each failed analysis has its own attempt.
   const attempt = readJson(path.join(outputPath, 'attempts/parse/attempt-receipt.json'));
   const outputFile = path.join(outputPath, 'output.txt');
   const raw = fs.existsSync(outputFile) ? fs.readFileSync(outputFile) : null;
-  const failure = attempt?.outcome?.failure
-    ?? receipt?.attempts?.find(entry => entry.outcome?.status === 'failed')?.outcome?.failure;
+  const failure = attempt?.outcome?.failure ?? anyFailure;
   const authUnavailable = receipt?.status === 'prepared';
   return { status: 502, payload: { error: {
     code: authUnavailable ? 'CODEX_LOGIN_REQUIRED' : failure ? 'PARSE_FAILED' : 'CODEX_REQUEST_FAILED',
