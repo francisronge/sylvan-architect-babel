@@ -166,6 +166,32 @@ test('an explicit agreement controller and target retain their direction beside 
   assert.equal(inspect({ ...anchors, target: 'subject' }, { features: 'third-person singular' }, forest, 'subject agreement').has('feature.dependency'), false);
 });
 
+// Francis approved on 27 Oct 2026 (relayed by the coordinating agent) that a concord
+// claim draws like an agreement claim; the relation name still decides nothing else.
+test('a concord controller and target draw like an agreement controller and target', () => {
+  const forest = [node('np', 'NP', [leaf('possessor', 'D'), leaf('noun', 'N')])];
+  const anchors = { controller: 'noun', target: 'possessor' };
+  for (const name of ['concord', 'genitive concord', 'noun_class_concord']) {
+    const result = inspect(anchors, { gender: 'feminine', number: 'singular' }, forest, name);
+    assert(result.has('feature.dependency'), name);
+    const connector = result.items.find(item => item.kind === 'directed-path');
+    assert.deepEqual([connector.fromNodeId, connector.toNodeId], ['possessor', 'noun'], name);
+  }
+  assert.equal(inspect(anchors, { gender: 'feminine' }, forest).has('feature.dependency'), false);
+  assert.equal(inspect(anchors, { gender: 'feminine' }, forest, 'concordance').has('feature.dependency'), false);
+});
+
+test('a failed agreement claim draws its dependency as blocked; a failed concord claim stays neutral', () => {
+  // Main reads a failed agreement claim as blocked. The concord reading this branch
+  // adds draws only claims stated positively, so a failed concord claim draws nothing.
+  const forest = [node('np', 'NP', [leaf('possessor', 'D'), leaf('noun', 'N')])];
+  const connectors = name => inspect({ controller: 'noun', target: 'possessor' }, { number: 'plural' }, forest, name).items
+    .filter(item => item.kind === 'directed-path');
+  assert(connectors('failed agreement').length > 0);
+  assert(connectors('failed agreement').every(item => item.outcome === 'blocked'));
+  assert.deepEqual(connectors('failed concord'), []);
+});
+
 test('qualified parasitic arguments need both actual gap occurrences', () => {
   const forest = [node('root', 'CP', [leaf('filler', 'DP'), leaf('ordinary', 'DP', { silent: true }), leaf('parasitic', 'DP', { silent: true })])];
   const anchors = { whLicenser: 'filler', matrixObject: 'ordinary', parasiticObject: 'parasitic' };
@@ -231,4 +257,15 @@ test('a growing recovered chain keeps the registered identity index', () => {
   const indices = plan.frames.flatMap(frame => frame.items.filter(i => i.kind === 'coindex').map(i => i.index));
   assert(indices.length >= 2);
   assert.equal(new Set(indices).size, 1);
+});
+
+test('a concord claim draws only when each feature row is one feature value', () => {
+  // On 50c09be number: 'default sg' drew positive concord.
+  const forest = [node('np', 'NP', [leaf('possessor', 'D'), leaf('noun', 'N')])];
+  const anchors = { controller: 'noun', target: 'possessor' };
+  for (const values of [{ number: 'default sg' }, { number: 'none' }, { number: '-' }, { number: 'n/a' },
+    { number: 'plural', gender: 'masculine or neuter' }]) {
+    assert.equal(inspect(anchors, values, forest, 'concord').has('feature.dependency'), false, JSON.stringify(values));
+  }
+  assert(inspect(anchors, { number: 'plural', gender: 'masc' }, forest, 'concord').has('feature.dependency'));
 });

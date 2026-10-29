@@ -21,6 +21,7 @@ import {
   independentThetaRoleValueFields,
   indexTier2Forests,
   negativeClaimEvidence,
+  notationFeatureLabel,
   pairedLiterals,
   projectionChain,
   sameNameValueEntries,
@@ -278,9 +279,14 @@ export const evaluateTier2FacetRecipe = (
           .filter(entry => ['beforeGroupSizes', 'afterGroupSizes'].includes(entry.key))
           .map(entry => ({ field: 'values' as const, key: entry.key }));
         if (check.kind !== 'paired-values' && check.kind !== 'feature-dependency') return [];
+        // A lone notation label is the dependency's whole content: the check that
+        // reads it owns it and the connector shows it, without a recipe value.
+        const notationLabel = check.kind === 'feature-dependency' && notationFeatureLabel(evidence) !== undefined
+          ? (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('feature.label'))
+            .map(entry => ({ field: 'values' as const, key: entry.key })) : [];
         const [role, valueConcept] = check.kind === 'paired-values'
           ? [check.role, check.value] : ['feature.target', 'case.literal'];
-        return (evidence.authoredCurrentAnchors ?? [])
+        return [...notationLabel, ...(evidence.authoredCurrentAnchors ?? [])
           .filter(entry => entry.concepts.includes(role) && entry.items.length > 0)
           .flatMap(entry => {
             const candidates = sameNameValueEntries(evidence, entry, role);
@@ -289,7 +295,7 @@ export const evaluateTier2FacetRecipe = (
             const optional = check.kind === 'paired-values' && Boolean(check.optional);
             const indices = paired.items.flatMap((item, index) => (!optional || item.trim().length > 0) ? [index] : []);
             return indices.length ? [consumedReference('values', paired, valueConcept, indices)] : [];
-          });
+          })];
       }),
       ...recipeEntry.values.flatMap((requirement) => (
         (evidence.authoredValues ?? [])

@@ -89,7 +89,9 @@ test('generic aliases and lineage alone cannot establish Control, idiom, covert 
 
 test('the smaller recipe never repairs an incomplete registered Tier 1 claim', () => {
   for (const [name, anchors, id, tree] of [
-    ['Control', { controller: 'controller', controllee: 'subject' }, 'control.dependency', forest],
+    // A domainless Control is complete (approved by Francis, 27 Oct 2026, relayed by
+    // the coordinating agent); a Control without its controllee is not.
+    ['Control', { controller: 'controller' }, 'control.dependency', forest],
     ['IdiomChunkCointerpretation', { chunks: ['a', 'b'] }, 'idiom.chunks', forest],
     ['TransferDomain', { transferredDomain: 'domain' }, 'transfer.domain', forest]
   ]) {

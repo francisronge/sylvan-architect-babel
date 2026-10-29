@@ -139,6 +139,15 @@ test('#5: one index letter painted twice at one label is repeated, using the pai
     'a letter without placement attributes is not attributed by guess');
 });
 
+test('a theta index equal to the chain subscript written in its label is repeated', () => {
+  // n4-02-en-multiple-wh-embedded (sol-120-20261026): book₁ with θ index 1 read book₁¹.
+  const book = label('t0', 'word', 'book₁', 'bookN', screenBox(-90, 70, 180, 60));
+  const theta = text => label('t1', 'index', text, 'bookN', screenBox(92, 60, 20, 30), { host: 't0', cls: 'babel-theta-terminal-index babel-relation-index' });
+  const found = letterFindings(snapshotOf({ texts: [book, theta('1')] }), { record: 'r', frame: 26, viewport: 'desktop' });
+  assert.deepEqual(found.map(item => [item.rule, item.subtype, item.subject, item.measure]), [['one-letter-per-label', 'repeated', 'bookN:word 1', 2]]);
+  assert.deepEqual(letterFindings(snapshotOf({ texts: [book, theta('j')] }), { record: 'r', frame: 26, viewport: 'desktop' }), []);
+});
+
 // Motion samples: positions by node id ([x, y, parent?]), one frame per 16.7 ms.
 const CANVAS = { x: 0, y: 60, width: 1440, height: 840 };
 const sample = (t, positions, extra = {}) => ({ t, gen: 1, visibility: 1, cover: 0, canvas: CANVAS, marks: [],
