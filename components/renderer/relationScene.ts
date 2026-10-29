@@ -11,6 +11,7 @@ import {
 import { drawnPlaque, projectPlaqueLayout } from '../../replay/relations/plaquePlacement.ts';
 import { projectVisibleAnchorSetOrganization } from '../../replay/relations/relationFrame.ts';
 import type { RelationRenderPlan } from '../../replay/relations/renderPlan.ts';
+import { scopeDomainPaint } from '../../replay/relations/scopeDomainPaint.ts';
 import {
   isPlanItemRevealed,
   planItemDependencyNodeIds,
@@ -22,7 +23,7 @@ import { projectThetaGrid } from '../../replay/relations/thetaGridComposition.ts
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
 import type { TreeDirection } from '../../replay/treeLayout.ts';
 import type { TreeLabelRuns } from '../../replay/treeLabelRuns.ts';
-import { type HierNode } from '../../replay/types.ts';
+import { type HierNode, type PlaybackStep } from '../../replay/types.ts';
 import { type SyntaxNode } from '../../types.ts';
 import { createBindingDrawing, indexLetterLabels } from './bindingDrawing.ts';
 import { createCaseFeatureDrawing } from './caseFeatureDrawing.ts';
@@ -63,6 +64,9 @@ interface RelationSceneContext {
   replayPlaqueLayout: ReturnType<typeof projectPlaqueLayout>;
   replayVisibleNodeIdSet: Set<string> | null;
   playedRelationIndices: Set<number> | null;
+  /** The Replay's steps and the one shown; scope domain colours follow their played history. */
+  playbackSteps: readonly PlaybackStep[];
+  activeStepIndex: number;
   activeRelationMoment: { stageIndex: number; relationIndex: number } | null;
   svgRef: { current: SVGSVGElement | null };
   svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -95,6 +99,8 @@ export function paintRelationScene({
   replayPlaqueLayout,
   replayVisibleNodeIdSet,
   playedRelationIndices,
+  playbackSteps,
+  activeStepIndex,
   activeRelationMoment,
   svgRef,
   svg,
@@ -475,21 +481,7 @@ export function paintRelationScene({
         : primitive)
       .filter(primitive => frameItems[primitive.itemIndex] && revealedItemIndices.has(primitive.itemIndex)
         && primitiveWitnessesVisible(primitive));
-    const operatorVariableScopeRankByItem = new Map<number, number>();
-    const operatorVariableScopeItems = frameItems
-      .map((item, itemIndex) => ({ item, itemIndex }))
-      .filter((entry): entry is {
-        item: Extract<RelationPlanItem, { kind: 'operator-variable-binding' }>;
-        itemIndex: number;
-      } => entry.item.kind === 'operator-variable-binding' && Boolean(entry.item.scopeDomainNodeId))
-      .sort((left, right) => {
-        const sizeDifference = (right.item.scopeMemberNodeIds?.length || 0)
-          - (left.item.scopeMemberNodeIds?.length || 0);
-        return sizeDifference || left.itemIndex - right.itemIndex;
-      });
-    operatorVariableScopeItems.forEach((entry, rank) => {
-      operatorVariableScopeRankByItem.set(entry.itemIndex, rank);
-    });
+    const operatorVariableScopes = scopeDomainPaint(relationRenderPlan, activeDerivationFrameIndex, playbackSteps, activeStepIndex);
     const renderedFeatureSharingItems = new Set<number>();
     const renderedCaseCompositions = new Set<string>();
 
@@ -613,10 +605,9 @@ export function paintRelationScene({
       drawIndexBadge
     } = createBindingDrawing({
       activeDerivationFrameIndex, overlay,
-      operatorVariableScopeRankByItem,
+      operatorVariableScopes,
       acceptedRootLayerBeforeNodes,
       operatorVariableBindingLayers,
-      operatorVariableScopeItems,
       activeRelationMoment,
       operatorVariableSharedPathLayers,
       relationEmphasisForItem,

@@ -295,6 +295,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     replayPlaqueLayout,
     replayVisibleNodeIdSet,
     playedRelationIndices,
+    playbackSteps,
+    activeStepIndex,
     activeRelationMoment,
     svgRef,
     svg,

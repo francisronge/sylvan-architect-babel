@@ -1818,7 +1818,13 @@ name must not reject a complete compound shape that the registered reader suppor
 
 Operator binding does not depend on a raw relation count. Every complete
 operator-variable-domain facet earns one scope hull and one binding path. The
-renderer ranks the distinct operator-domain facets that are visible together.
+renderer counts each scope domain node once. Domains that share the screen at
+any Replay step are ranked together by size for hull padding and binding lane,
+the larger outside, and each keeps that rank throughout, so a step never moves
+another domain's hull or lane. Colour follows played appearance: a domain alone
+takes the base colour, a domain appearing beside others takes the first colour
+none of them holds, and a domain keeps its colour while it stays on screen
+(`replay/relations/scopeDomainPaint.ts`).
 
 An asserted relative interpretation, abstraction or restriction can recover that
 same binding path from an explicit operator and a qualified variable role. Both
