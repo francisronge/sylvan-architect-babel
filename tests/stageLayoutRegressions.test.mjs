@@ -21,7 +21,7 @@ const faultsAt = (bug, frame) => replayMotionFaults(measured[bug]).filter(fault 
 const motion = (bug, frame, id) => {
   const [before, after] = [frame - 1, frame].map(index => measured[bug].frames[index - 1]);
   const painted = entry => new Map(entry.points.map(item => [item.id, { x: item.x, y: item.y, parentId: item.parent }]));
-  const carry = before.stage !== after.stage ? paintedShift(painted(before), painted(after)) : { x: 0, y: 0 };
+  const carry = before.stage !== after.stage ? paintedShift(painted(before), painted(after), { closing: Boolean(after.closing) }) : { x: 0, y: 0 };
   const a = point(bug, frame - 1, id), b = point(bug, frame, id);
   return Math.hypot(b.x - carry.x - a.x, b.y - carry.y - a.y);
 };
@@ -56,7 +56,7 @@ test('Sol n4-14: the parked temporal PP waits where it merges', () => {
 const attachedTravel = (bug, frame) => {
   const [before, after] = [frame - 1, frame].map(index => measured[bug].frames[index - 1]);
   const painted = entry => new Map(entry.points.map(item => [item.id, { x: item.x, y: item.y, parentId: item.parent }]));
-  const carry = before.stage !== after.stage ? paintedShift(painted(before), painted(after)) : { x: 0, y: 0 };
+  const carry = before.stage !== after.stage ? paintedShift(painted(before), painted(after), { closing: Boolean(after.closing) }) : { x: 0, y: 0 };
   const [a, b] = [before, after].map(entry => new Map(entry.points.map(item => [item.id, item])));
   const shared = new Set([...b.keys()].filter(id => a.has(id)));
   const lineage = (map, id) => { const out = []; for (let at = map.get(id).parent; at; at = map.get(at)?.parent) if (shared.has(at)) out.push(at); return out.join(' '); };

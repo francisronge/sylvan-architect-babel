@@ -1,4 +1,4 @@
-import { paintedShift, type PaintedNodes } from '../replay/cameraCarry.ts';
+import { paintedShift, type CarryOptions, type PaintedNodes } from '../replay/cameraCarry.ts';
 
 export type ViewportRect = { left: number; top: number; right: number; bottom: number };
 export type ViewportSize = { width: number; height: number };
@@ -92,8 +92,8 @@ export function advanceFittedCamera(
  * (carryReference in replay/cameraCarry.ts), removing the common translation
  * between the two layouts; residual layout changes still move. A moved
  * constituent, or syntax lowered under a newly inserted parent, travels on screen. */
-export function carryCamera(pose: { x: number; y: number; k: number }, before: PaintedNodes, after: PaintedNodes) {
-  const shift = paintedShift(before, after);
+export function carryCamera(pose: { x: number; y: number; k: number }, before: PaintedNodes, after: PaintedNodes, carry: CarryOptions = {}) {
+  const shift = paintedShift(before, after, carry);
   if (!shift.x && !shift.y) return pose;
   return { x: pose.x - shift.x * pose.k, y: pose.y - shift.y * pose.k, k: pose.k };
 }

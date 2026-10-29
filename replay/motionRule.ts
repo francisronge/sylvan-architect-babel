@@ -21,11 +21,12 @@
  *   while that parent kept exactly the same painted children. Whoever owns the step, a
  *   phrase's internal shape is then unchanged, so any such motion deforms it.
  *
- * Each frame is `{ stage, kind, operation, target, links, points }` (see
+ * Each frame is `{ stage, kind, operation, target, links, points, closing? }` (see
  * `motionFrame`). Within a stage the camera holds its pose, so motion is raw
  * layout motion. Each stage has its own layout origin, and crossing into a new
  * stage the renderer carries the camera by the common shift of unmoved shared
- * syntax (`carryCamera`), so there motion is measured after that carried shift.
+ * syntax (`carryCamera`, with the frame's `closing`), so there motion is measured
+ * after that carried shift.
  *
  * This is the one definition of the rule: the corpus comparator reaches it through
  * scripts/replayMotionContinuity.mjs, and stage planning (movementGapClosing.ts)
@@ -101,7 +102,7 @@ export function replayMotionFaults({ frames }: { frames: readonly any[] }, { thr
   // The camera carry of a stage crossing, as the screen applies it (carryCamera).
   const carried = frames.map((frame, index) => {
     if (!index || frame.stage === frames[index - 1].stage) return { x: 0, y: 0 };
-    const shift = paintedShift(painted(index - 1), painted(index));
+    const shift = paintedShift(painted(index - 1), painted(index), { closing: Boolean(frame.closing) });
     return { x: -shift.x, y: -shift.y };
   });
   const motion = (index, id) => {
@@ -329,8 +330,9 @@ export function paintedPoints(nodes: ReadonlyMap<string, any>, getNodeId: (node:
 }
 
 /** The rule's view of one Replay step: its operation, target, the participants
- * of its own trajectory links, and its painted points. */
-export function motionFrame(step: any, nodes: ReadonlyMap<string, any>, getNodeId: (node: any) => string) {
+ * of its own trajectory links, and its painted points; `closing` when the stage
+ * plan closed a movement's room at the crossing into it (CarryOptions). */
+export function motionFrame(step: any, nodes: ReadonlyMap<string, any>, getNodeId: (node: any) => string, closing = false) {
   return { stage: step.replayFrameIndex, kind: step.replayKind, operation: step.operation, target: step.targetNodeId,
-    links: stepTrajectoryParticipants(step), points: paintedPoints(nodes, getNodeId) };
+    links: stepTrajectoryParticipants(step), points: paintedPoints(nodes, getNodeId), ...(closing ? { closing: true } : {}) };
 }

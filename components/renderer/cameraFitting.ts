@@ -22,6 +22,8 @@ interface CameraFitGeometry {
   fitFallbackOverlays: ((fitZoom: number, fittedViewport: Rect) => void) | undefined;
   /** Authored stage being framed; a change marks a stage crossing. */
   stageIndex: number;
+  /** The carry into this stage breaks a tie (CarryOptions `closing`). */
+  closesOnEntry: boolean;
   paintedNodes: PaintedNodes;
 }
 export function createFittedCamera({ session, layout }: { session: CameraSession; layout: CameraFitGeometry }) {
@@ -52,8 +54,12 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     g,
     fitFallbackOverlays,
     stageIndex,
+    closesOnEntry,
     paintedNodes
   } = layout;
+  // A crossing's closing record belongs to the later stage's entry, in both directions.
+  const crossingClosing = (previousFit: NonNullable<typeof autoCameraRef.current>) =>
+    previousFit.stageIndex < stageIndex ? closesOnEntry : Boolean(previousFit.closesOnEntry);
   const animateFittedCamera = (fitted: d3.ZoomTransform, previousFit: typeof autoCameraRef.current) => {
     const sameReplay = animated && previousFit?.data === data
       && previousFit.signature === derivationStagesSignature && previousFit.fitRevision === fitRevision
@@ -70,7 +76,7 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
     // shift of unmoved shared syntax; a reattached constituent appears at its
     // new place on that frame.
     const from = adjacent && previousFit.stageIndex !== stageIndex
-      ? carryCamera(painted, previousFit.paintedNodes, paintedNodes) : painted;
+      ? carryCamera(painted, previousFit.paintedNodes, paintedNodes, { closing: crossingClosing(previousFit) }) : painted;
     cameraRuntime.cancel = animateReplayCamera(from, fitted, duration,
       pose => applyCameraTransform(session, d3.zoomIdentity.translate(pose.x, pose.y).scale(pose.k)),
       () => { cameraAnimationRef.current = null; svg.attr('data-babel-camera-settled-step', activeStepIndex); },
@@ -98,14 +104,14 @@ export function createFittedCamera({ session, layout }: { session: CameraSession
       // Stages lay out syntax in their own coordinates, so a stage crossing first
       // carries the accepted pose by the common shift of unmoved shared syntax.
       const crossing = previousFit.stageIndex !== stageIndex;
-      const accepted = crossing ? carryCamera(previousFit.transform, previousFit.paintedNodes, paintedNodes) : previousFit.transform;
+      const accepted = crossing ? carryCamera(previousFit.transform, previousFit.paintedNodes, paintedNodes, { closing: crossingClosing(previousFit) }) : previousFit.transform;
       const advanced = advanceFittedCamera(accepted, fitted, stageFitContainmentBounds,
         { left: fitLeft, right: fitRight, top: fitTop, bottom: fitBottom }, { crossing });
       fitted = d3.zoomIdentity.translate(advanced.x, advanced.y).scale(advanced.k);
     }
     autoCameraRef.current = {
       data, signature: derivationStagesSignature, width: containerWidth,
-      height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted, stageIndex, paintedNodes,
+      height: containerHeight, stepIndex: activeStepIndex, fitRevision, transform: fitted, stageIndex, closesOnEntry, paintedNodes,
       completed: completedReplayStep !== undefined
     };
     // Labels and complete fallback badges keep their accepted automatic-Fit

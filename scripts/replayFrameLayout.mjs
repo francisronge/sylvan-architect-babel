@@ -27,16 +27,23 @@ export function layoutReplayFrames({ steps, stages, width, height, direction, me
   const input = measured && { ...measures, steps, stageIndex: 0, completedCanvas: completed(stages.length - 1),
     width, height, direction, abstractionMode: false, layoutGroups: groups };
   let positions, schedule = null, stageCoordinates = null;
+  // Stages whose plan closed a movement's room at their crossing, where the camera
+  // carry breaks a tie (stageCoordinates.closesOnEntry; absent in older checkouts).
+  const closings = new Set();
+  const closes = (index, reservations) => { if (coordinates.closesOnEntry?.(reservations)) closings.add(index); };
   if (measured) {
     const measuring = plaqueJob.measurePlaqueLayoutJob(input);
     let next = measuring.next();
     while (!next.done) next = measuring.next();
     const prepared = plaqueJob.bindPlaqueLayoutResult(input, next.value, plaqueJob.runPlaqueLayoutJob(next.value, undefined, { pocketOccupants }));
     ({ schedule, coordinates: stageCoordinates } = prepared);
+    for (const [index, stage] of prepared.coordinates) closes(index, stage);
     positions = new Map([...prepared.coordinates.values()].flatMap(stage => [...stage]));
   } else positions = new Map([...sizes].flatMap(([index, size]) => {
     if (!size) throw Error(`Missing layout size for stage ${index}`);
-    return [...coordinates.buildStageCoordinateReservations(steps, index, size, stage => sizes.get(stage), direction)];
+    const reservations = coordinates.buildStageCoordinateReservations(steps, index, size, stage => sizes.get(stage), direction);
+    closes(index, reservations);
+    return [...reservations];
   }));
   const draw = (scene, points) => {
     const tree = d3.hierarchy(scene.canvas); display.applyVizIds(tree);
@@ -50,7 +57,8 @@ export function layoutReplayFrames({ steps, stages, width, height, direction, me
   const render = (scene, points) => draw(scene, points).descendants().filter(node => scene.visible.has(display.getNodeId(node))
     && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace');
   const scenes = steps.map(step => {
-    const scene = { step, canvas: step.replayCanvasData, visible: new Set((step.replayVisibleNodeIds ?? []).map(String)) };
+    const scene = { step, canvas: step.replayCanvasData, visible: new Set((step.replayVisibleNodeIds ?? []).map(String)),
+      closing: closings.has(step.replayFrameIndex) };
     if (measured) scene.tree = draw(scene, positions.get(scene.canvas));
     scene.nodes = new Map((measured ? scene.tree.descendants().filter(node => scene.visible.has(display.getNodeId(node))
       && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace') : render(scene, positions.get(scene.canvas)))

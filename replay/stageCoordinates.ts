@@ -576,7 +576,27 @@ function measuredPlaqueRoom(steps: readonly PlaybackStep[], plan: RelationRender
   return { anchors, marks };
 }
 
-const closedPlans = new WeakMap<readonly PlaybackStep[], Map<string, Map<number, Map<SyntaxNode, TreeCoordinateReservation>>>>();
+const closedPlans = new WeakMap<readonly PlaybackStep[], Map<string, ReturnType<typeof closeMovementGaps>>>();
+
+/** The stage reservations whose plan closed a movement's room at the crossing into
+ * that stage (closeMovementGaps' `closings`). The record travels with the
+ * reservations: their right-to-left reflection keeps it, and a prepared layout
+ * that crosses a worker boundary restores it (plaqueLayoutJob.ts). */
+const closingEntries = new WeakSet<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>();
+
+/** Whether the camera carry into the stage these reservations plan breaks a tie
+ * toward the block that holds still (CarryOptions `closing`): only where the
+ * plan's own closing moves syntax across that crossing. */
+export function closesOnEntry(reservations: ReadonlyMap<SyntaxNode, TreeCoordinateReservation> | undefined | null) {
+  return Boolean(reservations && closingEntries.has(reservations));
+}
+
+/** Records on reservations rebuilt from a prepared layout that their stage's
+ * plan closed at its crossing (`closesOnEntry`). */
+export function recordClosingEntry<T extends ReadonlyMap<SyntaxNode, TreeCoordinateReservation>>(reservations: T, closing: boolean): T {
+  if (closing) closingEntries.add(reservations);
+  return reservations;
+}
 
 /** Every stage's plan with the room movements leave closed at those movements
  * (closeMovementGaps), or null when this stage's size is not the planned one.
@@ -604,8 +624,9 @@ function closedStageCoordinates(steps: readonly PlaybackStep[], stageIndex: numb
     const planned = new Map([...sizes].map(([stage, stageSize]) => [stage, planStageCoordinates(steps, stage, stageSize, sizeForStage,
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel)] as const));
     byKey.set(key, closed = closeMovementGaps({ steps, sizes, planned, measureCategoryText, plaques: room }));
+    for (const stage of closed.closings) { const frames = closed.stages.get(stage); if (frames) closingEntries.add(frames); }
   }
-  return closed.get(stageIndex) ?? null;
+  return closed.stages.get(stageIndex) ?? null;
 }
 
 // Each plan's right-to-left reservations, per translation, so a reused layout
@@ -622,8 +643,8 @@ export function rightToLeftAxis(steps: readonly PlaybackStep[], size: [number, n
   return Number.isFinite(completed) && sizeForStage?.(completed)?.[0] || size[0];
 }
 
-const translated = (frames: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, dx: number) => new Map([...frames].map(([canvas, points]) =>
-  [canvas, new Map([...points].map(([id, point]) => [id, { x: point.x + dx, y: point.y }]))]));
+const translated = (frames: ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, dx: number) => recordClosingEntry(new Map([...frames].map(([canvas, points]) =>
+  [canvas, new Map([...points].map(([id, point]) => [id, { x: point.x + dx, y: point.y }]))])), closesOnEntry(frames));
 
 /** A stage's right-to-left reservations: its left-to-right plan, translated so
  * that painting (layoutSyntaxTree reflects x about the stage width) reflects

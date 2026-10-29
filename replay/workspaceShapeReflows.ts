@@ -6,12 +6,13 @@ import type { TreeCoordinateReservation } from './treeLayout.ts';
 import type { PlaybackStep } from './types.ts';
 import { visibleComponentNodes } from './visibleComponent.ts';
 import { changesOwnedDisplayTerminal } from './workspaceDisplayTerminal.ts';
-import { paintedShift } from './cameraCarry.ts';
+import { paintedShift, type CarryOptions } from './cameraCarry.ts';
 import { closingGroups, stepOwnership, stepTrajectoryParticipants } from './motionRule.ts';
 import { workspaceMotionOwnership, type WorkspaceMotionView } from './workspaceMotionOwnership.ts';
 
 type Node = d3.HierarchyPointNode<SyntaxNode>;
-type Scene = { step: PlaybackStep; canvas: SyntaxNode; nodes: ReadonlyMap<string, Node> };
+/** `closing`: the stage plan closed a movement's room at the crossing into this scene (CarryOptions). */
+type Scene = { step: PlaybackStep; canvas: SyntaxNode; nodes: ReadonlyMap<string, Node>; closing?: boolean };
 export type WorkspaceShapeReflow = { index: number; rootId: string; kind: 'unchanged-subtree-shape' };
 export type WorkspaceContinuityReflow = WorkspaceShapeReflow
   | { index: number; rootId: string; kind: 'unowned-component-motion' };
@@ -135,7 +136,8 @@ function detectWorkspaceReflows<S extends Scene>(
       });
       if (stationary.length) {
         const oldPositions = positions(index - 1), newPositions = positions(index);
-        const closing = ownClosings ? closingAt(scenes[index - 1].step, scenes[index].step, before.nodes, current.nodes, oldPositions, newPositions) : undefined;
+        const closing = ownClosings ? closingAt(scenes[index - 1].step, scenes[index].step, before.nodes, current.nodes, oldPositions, newPositions,
+          { closing: Boolean(scenes[index].closing) }) : undefined;
         for (const id of stationary) {
           if (closing?.has(id)) continue;
           const prior = oldPositions.get(id), next = newPositions.get(id);
@@ -151,7 +153,7 @@ function detectWorkspaceReflows<S extends Scene>(
 /** The syntax a step's approved closing moves, as the motion rule finds it over
  * the painted nodes `before` and `current` at their laid-out positions. */
 export function closingAt(previous: PlaybackStep, step: PlaybackStep, before: ReadonlyMap<string, Node>, current: ReadonlyMap<string, Node>,
-  oldPositions: ReadonlyMap<string, Node>, newPositions: ReadonlyMap<string, Node>) {
+  oldPositions: ReadonlyMap<string, Node>, newPositions: ReadonlyMap<string, Node>, carry: CarryOptions = {}) {
   const points = (nodes: ReadonlyMap<string, Node>, at: ReadonlyMap<string, Node>) => new Map([...nodes].flatMap(([id, node]) => {
     const point = at.get(id);
     const parent = node.parent && nodes.has(getNodeId(node.parent)) ? getNodeId(node.parent) : null;
@@ -159,10 +161,10 @@ export function closingAt(previous: PlaybackStep, step: PlaybackStep, before: Re
   }));
   const prior = points(before, oldPositions), now = points(current, newPositions);
   const painted = (map: typeof prior) => new Map([...map].map(([id, point]) => [id, { x: point.x, y: point.y, parentId: point.parent }]));
-  const carry = previous.replayFrameIndex !== step.replayFrameIndex ? paintedShift(painted(prior), painted(now)) : { x: 0, y: 0 };
+  const shift = previous.replayFrameIndex !== step.replayFrameIndex ? paintedShift(painted(prior), painted(now), carry) : { x: 0, y: 0 };
   const motion = (id: string) => {
     const a = prior.get(id), b = now.get(id);
-    return a && b ? { x: b.x - carry.x - a.x, y: b.y - carry.y - a.y } : undefined;
+    return a && b ? { x: b.x - shift.x - a.x, y: b.y - shift.y - a.y } : undefined;
   };
   const links = stepTrajectoryParticipants(step);
   const owned = stepOwnership({ target: step.targetNodeId, links, points: [...now.values()], prior });

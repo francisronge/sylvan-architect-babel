@@ -60,7 +60,7 @@ import { resolveLeafSurface } from './replaySurfaceNotation.ts';
 import {
   LEAF_INK_EXTENT_Y, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TRAJECTORY_ROUTES
 } from './rendererMetrics.ts';
-import { buildStageCoordinateReservations, leftToRightReservations, rightToLeftAxis } from './stageCoordinates.ts';
+import { buildStageCoordinateReservations, closesOnEntry, leftToRightReservations, rightToLeftAxis } from './stageCoordinates.ts';
 import { treeInkObstacles, type TreeInkTextMeasure } from './treeInkGeometry.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure, TreeLabelRuns } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
@@ -240,7 +240,8 @@ function stageLayouts({ steps, stageIndex, completedCanvas, plan, width, height,
   const completedTree = layoutSyntaxTree(root,
     stageSize ?? treeLayoutSize(root.descendants().length, root.height), direction,
     reservations?.get(completedCanvas));
-  return { scenes, completedTree };
+  // The crossing into this stage takes the carry's tie rule only where its plan closed there.
+  return { scenes, completedTree, closing: closesOnEntry(reservations) };
 }
 
 export type ReplayPlaqueSchedule = {
@@ -302,7 +303,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       const last = scenes.at(-1)!, byId = indexHierarchyNodesByIdAndAliases(last.nodes);
       const items = frames[stageIndex].items.map(item => resolveDisplayedTrajectoryAttachments(item,
         id => byId.get(id)?.data, { stageIndex, playedRelationIndices: last.playedRelations }));
-      return { stageIndex, scenes, items,
+      return { stageIndex, scenes, items, closing: space.closing,
         nodes: last.nodes, obstacles: scenes.flatMap(scene => scene.obstacles),
         movedNodeIds: new Set(scenes.flatMap(scene => [...scene.movedNodeIds])) };
     });
@@ -985,7 +986,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       // One camera fit serves a stage; across a stage boundary the camera carries
       // the syntax the crossing leaves in place (carryCamera).
       const crossing = before.stageIndex !== phase.stageIndex;
-      const shift = !crossing ? { x: 0, y: 0 } : paintedShift(before.painted(), painted());
+      const shift = !crossing ? { x: 0, y: 0 } : paintedShift(before.painted(), painted(), { closing: phase.closing });
       const shownThen = before.shown(), candidates = new Map<number, { pocket: PlaquePlacement; move: { x: number; y: number } }>();
       left.clear();
       let later: PocketOccupant[] | undefined;
@@ -1121,7 +1122,7 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     // breaks the hold (`jumped`), and release enters the span again without that early
     // pocket. Each plaque's moves beside a still anchor are counted for that comparison.
     if (before) {
-      const carry = crossing ? paintedShift(before.painted(), painted()) : { x: 0, y: 0 }, shownThen = before.shown();
+      const carry = crossing ? paintedShift(before.painted(), painted(), { closing: phase.closing }) : { x: 0, y: 0 }, shownThen = before.shown();
       const stillAt = (index: number) => {
         const placement = layout.get(index)!, key = identityOf(items[index]), prior = before.placements.get(key);
         const anchor = byId.get(placement.attachmentNodeId), old = before.byId.get(placement.attachmentNodeId);
@@ -1371,7 +1372,7 @@ function sceneLabelRuns({ steps, completedCanvas, treeLabelRuns }: Pick<StageLay
 
 /** Shared reservation for placement and verification, including unrevealed stage trajectories. */
 export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: StageGeometry) {
-  const { scenes, completedTree } = stageLayouts(input, geometry);
+  const { scenes, completedTree, closing } = stageLayouts(input, geometry);
   const visibleNodes = (tree: typeof completedTree, ids: Set<string> | null = null) => tree.descendants().filter(node =>
     !isUnderTriangulation(node) && !isSyntheticWorkspaceRootNode(node)
     && (!ids || ids.has(String((node as any).__vizId ?? node.data.id ?? ''))));
@@ -1437,7 +1438,7 @@ export function measureStagePlaqueSpace(input: StageLayoutInput, geometry?: Stag
         nodes: typeof currentNodes; obstacles: PlaqueRect[]; labels: typeof labels; playedRelations: typeof scene.playedRelations;
         paintedSpace: typeof paintedSpace } & typeof timing;
   });
-  return { nodes, obstacles: measured.flatMap(scene => scene.obstacles), scenes: measured };
+  return { nodes, obstacles: measured.flatMap(scene => scene.obstacles), scenes: measured, closing };
 }
 
 /** The boxes plaques keep clear of a stage's region marks: an enclosure's whole shaded

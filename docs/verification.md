@@ -56,7 +56,10 @@ step, not from either checkout's planner diagnostics. It reports syntax that
 moves at a step that does not own it, and material that moves at the step
 attaching it. A movement step owns the closing of the gap its phrase leaves
 (`closingGroups`). Within a stage it measures layout motion; across a stage boundary
-it first removes the camera carry (`carryCamera`), as the screen does.
+it first removes the camera carry (`carryCamera`), as the screen does. Where the
+stage plan's own closing moves syntax across that boundary, the plan records it
+and the carry keeps the block that holds still instead of a tied midpoint
+(`carriedMedian`); everywhere else the carry is the plain median.
 
 A new fault of at least 20 tree units (`NOTICEABLE_MOTION`), or an existing one
 moving farther by at least the larger of 20 units and 10% of its old distance

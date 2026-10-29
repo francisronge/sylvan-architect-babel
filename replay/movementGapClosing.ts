@@ -14,9 +14,10 @@ import type { PlaybackStep } from './types.ts';
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
 type Box = { minX: number; maxX: number; minY: number; maxY: number };
-/** `width`: the span its stage plan paints; `stage`: the scenes of its stage and the box they span together. */
+/** `width`: the span its stage plan paints; `stage`: the scenes of its stage and the box they span together;
+ * `closing`: a closing kept at this scene's movement moves syntax across the stage crossing into it. */
 type Scene = { step: PlaybackStep; canvas: SyntaxNode; size: [number, number]; visible: Set<string>; width?: number;
-  stage?: { members: number[]; box: Box } };
+  stage?: { members: number[]; box: Box }; closing?: boolean };
 type Painted = Map<string, Node>;
 
 /** Clearance kept between a closing side's label and word boxes and the syntax it closes toward. */
@@ -68,14 +69,19 @@ function ownedBy(step: PlaybackStep, before: Painted, after: Painted) {
 
 const points = (nodes: Painted): PaintedNodes => new Map([...nodes].map(([id, node]) => [id, { x: node.x, y: node.y, parentId: shownParent(nodes, node) }]));
 
+/** The camera carry into scene `j` from `before` to `after`: none within a stage,
+ * and across a crossing the screen's (paintedShift), with the tie rule only where
+ * this plan's own closing moves syntax there (`closing`, by default the scene's). */
+const carryAt = (scenes: readonly Scene[], j: number, before: Painted, after: Painted, closing = Boolean(scenes[j].closing)) =>
+  scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex ? paintedShift(points(before), points(after), { closing }) : { x: 0, y: 0 };
+
 /** Whether the step from `before` to `after` moves no shared node farther than
  * the step from `oldBefore` to `oldAfter` did, after the camera carry of a
  * crossing. A phrase the step's trajectory carries may travel differently, but
  * only together with its painted parent, so no phrase changes shape where it did
  * not before. */
-function sameMotion(step: PlaybackStep, crossing: boolean, oldBefore: Painted, oldAfter: Painted, before: Painted, after: Painted) {
-  const carry = (a: Painted, b: Painted) => crossing ? paintedShift(points(a), points(b)) : { x: 0, y: 0 };
-  const was = carry(oldBefore, oldAfter), now = carry(before, after);
+function sameMotion(scenes: readonly Scene[], j: number, oldBefore: Painted, oldAfter: Painted, before: Painted, after: Painted) {
+  const step = scenes[j].step, was = carryAt(scenes, j, oldBefore, oldAfter), now = carryAt(scenes, j, before, after);
   // The phrases the step's own trajectories carry.
   const movers = new Set<string>();
   for (const id of trajectoryParticipants(step)) after.get(id)?.each(member => { movers.add(getNodeId(member)); });
@@ -169,20 +175,24 @@ const pairCache = <T>() => {
   };
 };
 // Painted frames are never changed in place, so a pair's faults are fixed.
-const continuityCache = pairCache<string[]>(), faultCache = pairCache<ReturnType<typeof replayMotionFaults>>();
+// One cache per `closing`, which changes the carry at a crossing.
+const continuityCaches = [pairCache<string[]>(), pairCache<string[]>()];
+const faultCaches = [pairCache<ReturnType<typeof replayMotionFaults>>(), pairCache<ReturnType<typeof replayMotionFaults>>()];
 
-function continuityFaults(previous: Scene, step: Scene, before: Painted, after: Painted) {
-  return continuityCache(before, after, () => {
-    const window = [{ step: previous.step, canvas: previous.canvas, nodes: before }, { step: step.step, canvas: step.canvas, nodes: after }];
+function continuityFaults(previous: Scene, step: Scene, before: Painted, after: Painted, closing = Boolean(step.closing)) {
+  return continuityCaches[Number(closing)](before, after, () => {
+    const window = [{ step: previous.step, canvas: previous.canvas, nodes: before }, { step: step.step, canvas: step.canvas, nodes: after, closing }];
     return workspaceContinuityReflows(window, new Map(), scene => [...scene.nodes.values()], { ownClosings: true })
       .map(fault => `${fault.kind} ${fault.rootId}`);
   });
 }
 
-/** The continuity faults the new frames add at one step over the old ones. */
-function newContinuityFaults(previous: Scene, step: Scene, oldBefore: Painted, oldAfter: Painted, before: Painted, after: Painted) {
+/** The continuity faults the new frames add at one step over the old ones;
+ * `closing` is the new frames' (a candidate closing at the step's crossing). */
+function newContinuityFaults(previous: Scene, step: Scene, oldBefore: Painted, oldAfter: Painted, before: Painted, after: Painted,
+  closing = Boolean(step.closing)) {
   const old = new Set(continuityFaults(previous, step, oldBefore, oldAfter));
-  return continuityFaults(previous, step, before, after).filter(fault => !old.has(fault));
+  return continuityFaults(previous, step, before, after, closing).filter(fault => !old.has(fault));
 }
 
 /** Closes, at a movement, the room its phrase leaves behind.
@@ -204,7 +214,12 @@ function newContinuityFaults(previous: Scene, step: Scene, oldBefore: Painted, o
  * centres and the label and word boxes stay clear. A closing is not made when a
  * later step would carry syntax it does not own from one part to another, nor
  * when it takes the room a proximity plaque stands in beside its anchor
- * (keepsPlaqueRoom; `plaques` names them, from the relation plan). */
+ * (keepsPlaqueRoom; `plaques` names them, from the relation plan).
+ *
+ * Returns each stage's reservations and `closings`, the stages whose crossing a
+ * kept closing moves syntax across (its movement is the stage's first step). Only
+ * there does the camera carry break a tie toward the block that holds still
+ * (carriedMedian); stageCoordinates records them on the stage's reservations. */
 export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, plaques = { anchors: new Map() } }: {
   steps: readonly PlaybackStep[];
   sizes: ReadonlyMap<number, [number, number]>;
@@ -212,7 +227,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
   measureCategoryText?: CategoryTextMeasure;
   /** The proximity plaques whose room beside their anchors a closing keeps. */
   plaques?: PlaqueRoom;
-}): Map<number, Map<SyntaxNode, TreeCoordinateReservation>> {
+}): { stages: Map<number, Map<SyntaxNode, TreeCoordinateReservation>>; closings: Set<number> } {
   const ordered = steps.filter(step => step.replayCanvasData && step.replayFrameIndex !== undefined && sizes.has(step.replayFrameIndex))
     .sort((a, b) => a.replayFrameIndex! - b.replayFrameIndex! || stageOrder(a) - stageOrder(b));
   const scenes: Scene[] = ordered.map(step => {
@@ -274,7 +289,8 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
     // node unit a lower occurrence painted in that extent keeps.
     // At a crossing the movement's frame stands in its own stage's coordinates,
     // `entry` from the frame before.
-    const entry = scenes[m - 1].step.replayFrameIndex !== scenes[m].step.replayFrameIndex ? carriedShift(prior, current).x : 0;
+    const entry = scenes[m - 1].step.replayFrameIndex !== scenes[m].step.replayFrameIndex
+      ? carriedShift(prior, current, { closing: Boolean(scenes[m].closing) }).x : 0;
     const lo = Math.min(...xs), hi = Math.max(...xs);
     const kept = [...current].some(([id, node]) => !prior.has(id) && node.x - entry >= lo - 1 && node.x - entry <= hi + 1);
     const bound = hi - lo + (kept ? 0 : TREE_SIBLING_GAP);
@@ -343,7 +359,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
     const lines: [number, number][] = [[first, last]];
     for (let k = 2; k < frames.length; k++) {
       const crossing = scenes[m + k - 2].step.replayFrameIndex !== scenes[m + k - 1].step.replayFrameIndex;
-      const shift = crossing ? carriedShift(frames[k - 1], frames[k]).x : 0;
+      const shift = crossing ? carriedShift(frames[k - 1], frames[k], { closing: Boolean(scenes[m + k - 1].closing) }).x : 0;
       lines.push([lines[k - 2][0] + shift, lines[k - 2][1] + shift]);
     }
     // Each node keeps the part it first stands in from the movement on: syntax
@@ -490,15 +506,18 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
       // The movement's own motion is what the rule accepts, with no new or
       // farther fault, and every later step keeps the motion it had.
       const closed = scenes.slice(m).map(paint);
-      const faults = (after: Painted) => replayMotionFaults({ frames: [motionFrame(scenes[m - 1].step, prior, getNodeId), motionFrame(scenes[m].step, after, getNodeId)] });
-      const base = new Map(faults(current).map(fault => [`${fault.kind} ${fault.node}`, fault]));
-      const added = faults(closed[0]).filter(fault => fault.distance > (base.get(`${fault.kind} ${fault.node}`)?.distance ?? 0) + 1);
+      // At a crossing, a closing kept here is recorded (`closing`), so the closed
+      // frame is judged under the carry the screen will then apply.
+      const joinCarry = scenes[m - 1].step.replayFrameIndex !== scenes[m].step.replayFrameIndex;
+      const closingWas = Boolean(scenes[m].closing), closingNow = joinCarry || closingWas;
+      const faults = (after: Painted, closing: boolean) => replayMotionFaults({ frames: [motionFrame(scenes[m - 1].step, prior, getNodeId),
+        motionFrame(scenes[m].step, after, getNodeId, closing)] });
+      const base = new Map(faults(current, closingWas).map(fault => [`${fault.kind} ${fault.node}`, fault]));
+      const added = faults(closed[0], closingNow).filter(fault => fault.distance > (base.get(`${fault.kind} ${fault.node}`)?.distance ?? 0) + 1);
       // A waiting piece joining here, other than a carried phrase, moves no farther.
       const movers = new Set<string>();
       for (const id of participants) closed[0].get(id)?.each(member => { movers.add(getNodeId(member)); });
-      const joinCarry = scenes[m - 1].step.replayFrameIndex !== scenes[m].step.replayFrameIndex;
-      const shiftNow = joinCarry ? paintedShift(points(prior), points(closed[0])) : { x: 0, y: 0 };
-      const shiftWas = joinCarry ? paintedShift(points(prior), points(current)) : { x: 0, y: 0 };
+      const shiftNow = carryAt(scenes, m, prior, closed[0], closingNow), shiftWas = carryAt(scenes, m, prior, current, closingWas);
       for (const [id, node] of closed[0]) {
         const old = prior.get(id), was = current.get(id);
         if (!old || !was || movers.has(id) || shownParent(prior, old) !== null || shownParent(closed[0], node) === null) continue;
@@ -510,7 +529,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
         if (now > before + 1) added.push({ kind: 'joining-motion', node: id, distance: now });
       }
       // Beyond the closing the rule grants, no node the step does not carry moves farther.
-      const granted = closingAt(scenes[m - 1].step, scenes[m].step, prior, closed[0], prior, closed[0]);
+      const granted = closingAt(scenes[m - 1].step, scenes[m].step, prior, closed[0], prior, closed[0], { closing: closingNow });
       // Syntax the step owns may also close from both sides at once, as the
       // camera carry of a crossing can show a closing: each side only
       // horizontally, toward the room, and no farther than it.
@@ -530,18 +549,20 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
       }
       // What the step leaves attached, beyond what its closing moves, keeps its
       // place on screen.
-      const seen = (after: Painted) => closingAt(scenes[m - 1].step, scenes[m].step, prior, after, prior, after);
-      const bulk = attachedTravel(prior, closed[0], shiftNow, seen(closed[0]));
-      if (bulk > Math.max(attachedTravel(prior, current, shiftWas, seen(current)), 1) + 1e-6)
+      const seen = (after: Painted, closing: boolean) => closingAt(scenes[m - 1].step, scenes[m].step, prior, after, prior, after, { closing });
+      const bulk = attachedTravel(prior, closed[0], shiftNow, seen(closed[0], closingNow));
+      if (bulk > Math.max(attachedTravel(prior, current, shiftWas, seen(current, closingWas)), 1) + 1e-6)
         added.push({ kind: 'attached-motion', node: '', distance: bulk });
       // Nor any continuity fault the corpus gate would newly find.
       const continuous = !added.length && keepsStageSize(scenes, all, new Map(closed.map((frame, index) => [m + index, frame]))) && closed.every((frame, index) => !newContinuityFaults(scenes[m + index - 1], scenes[m + index],
-        frames[index], frames[index + 1], index ? closed[index - 1] : frames[0], frame).length);
+        frames[index], frames[index + 1], index ? closed[index - 1] : frames[0], frame, index ? Boolean(scenes[m + index].closing) : closingNow).length);
       if (continuous && closed.slice(1).every((frame, index) =>
-        sameMotion(scenes[m + index + 1].step, scenes[m + index].step.replayFrameIndex !== scenes[m + index + 1].step.replayFrameIndex,
-          frames[index + 1], frames[index + 2], closed[index], frame))
+        sameMotion(scenes, m + index + 1, frames[index + 1], frames[index + 2], closed[index], frame))
         && keepsPlaqueRoom(sceneSteps, all, [...all.slice(0, m), ...closed], m, plaques, measureCategoryText)) {
         closed.forEach((frame, index) => { all[m + index] = frame; });
+        // Recorded only where it moves painted syntax across the crossing.
+        if (joinCarry && [...closed[0]].some(([id, node]) => { const was = current.get(id); return was && Math.hypot(node.x - was.x, node.y - was.y) > 1e-6; }))
+          scenes[m].closing = true;
         // The other side may then close what room is left.
         if ((again.get(m) ?? 0) < 3) { again.set(m, (again.get(m) ?? 0) + 1); m--; }
         break;
@@ -565,7 +586,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, 
     if (!byStage.has(stage)) byStage.set(stage, new Map());
     if (!byStage.get(stage)!.has(canvas)) byStage.get(stage)!.set(canvas, plan);
   }
-  return byStage;
+  return { stages: byStage, closings: new Set(scenes.flatMap(scene => scene.closing ? [scene.step.replayFrameIndex!] : [])) };
 }
 
 type LabelBox = { id: string; box: { x: number; y: number; width: number; height: number } };
@@ -657,8 +678,10 @@ function branchCrossings(frame: Painted, moved: ReadonlySet<string>, measureCate
 
 /** The rule's faults at one step (`step` after `previous`) that the new frames
  * add, or make farther, over the old ones. */
-function newFaults(previous: PlaybackStep, step: PlaybackStep, oldBefore: Painted, oldAfter: Painted, before: Painted, after: Painted) {
-  const faults = (a: Painted, b: Painted) => faultCache(a, b, () => replayMotionFaults({ frames: [motionFrame(previous, a, getNodeId), motionFrame(step, b, getNodeId)] }));
+function newFaults(previous: Scene, step: Scene, oldBefore: Painted, oldAfter: Painted, before: Painted, after: Painted) {
+  const closing = Boolean(step.closing);
+  const faults = (a: Painted, b: Painted) => faultCaches[Number(closing)](a, b, () => replayMotionFaults({ frames: [
+    motionFrame(previous.step, a, getNodeId), motionFrame(step.step, b, getNodeId, closing)] }));
   const base = new Map(faults(oldBefore, oldAfter).map(fault => [`${fault.kind} ${fault.node}`, fault.distance]));
   return faults(before, after).filter(fault => fault.distance > (base.get(`${fault.kind} ${fault.node}`) ?? 0) + 1);
 }
@@ -706,11 +729,10 @@ function holdBack(scenes: readonly Scene[], frames: Painted[], coordinates: Map<
   measureCategoryText?: CategoryTextMeasure) {
   for (let k = scenes.length - 1; k >= 1; k--) {
     const step = scenes[k].step, before = frames[k - 1], after = frames[k];
-    const crossing = scenes[k - 1].step.replayFrameIndex !== step.replayFrameIndex;
-    const carry = crossing ? paintedShift(points(before), points(after)) : { x: 0, y: 0 };
+    const carry = carryAt(scenes, k, before, after);
     const movers = new Set<string>();
     for (const id of trajectoryParticipants(step)) before.get(id)?.each(member => { movers.add(getNodeId(member)); });
-    const granted = closingAt(scenes[k - 1].step, step, before, after, before, after);
+    const granted = closingAt(scenes[k - 1].step, step, before, after, before, after, { closing: Boolean(scenes[k].closing) });
     // Phrases the step moves rigidly without carrying them: the highest painted
     // nodes all of whose painted members move by one shift.
     const shiftOf = (id: string) => { const node = after.get(id), old = before.get(id); return node && old ? { x: node.x - carry.x - old.x, y: node.y - carry.y - old.y } : undefined; };
@@ -815,9 +837,8 @@ function holdBack(scenes: readonly Scene[], frames: Painted[], coordinates: Map<
       }
       if (ok && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [start + index, frame])))) ok = false;
       for (let j = Math.max(1, start); ok && j <= k; j++) {
-        const crossingJ = scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex;
-        if (newFaults(scenes[j - 1].step, scenes[j].step, frames[j - 1], frames[j], view(j - 1), view(j)).length
-          || !sameMotion(scenes[j].step, crossingJ, frames[j - 1], frames[j], view(j - 1), view(j))) ok = false;
+        if (newFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length
+          || !sameMotion(scenes, j, frames[j - 1], frames[j], view(j - 1), view(j))) ok = false;
         else if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) ok = false;
       }
       if (!ok) { for (const [canvas, points] of saved) coordinates.set(canvas, points); continue; }
@@ -918,16 +939,14 @@ function openSourceRoom(scenes: readonly Scene[], frames: Painted[], coordinates
         }
         if (ok && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [start + index, frame])), later ? SEAT_GROWTH : STAGE_GROWTH)) ok = false;
         for (let j = Math.max(1, start); ok && j <= k; j++) {
-          const crossingJ = scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex;
-          if (newFaults(scenes[j - 1].step, scenes[j].step, frames[j - 1], frames[j], view(j - 1), view(j)).length) ok = false;
+          if (newFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) ok = false;
           else if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) ok = false;
           else if (j === k) {
             // At the movement only its closing and carried phrases move farther.
-            const now = view(k), granted = closingAt(scenes[k - 1].step, step, view(k - 1), now, view(k - 1), now);
+            const now = view(k), granted = closingAt(scenes[k - 1].step, step, view(k - 1), now, view(k - 1), now, { closing: Boolean(scenes[k].closing) });
             const movers = new Set<string>(); for (const id of participants) now.get(id)?.each(member => { movers.add(getNodeId(member)); });
             // Across a crossing, motion is measured after the camera carry.
-            const carryNow = crossingJ ? paintedShift(points(view(k - 1)), points(now)) : { x: 0, y: 0 };
-            const carryWas = crossingJ ? paintedShift(points(frames[k - 1]), points(after)) : { x: 0, y: 0 };
+            const carryNow = carryAt(scenes, k, view(k - 1), now), carryWas = carryAt(scenes, k, frames[k - 1], after);
             for (const [id, node] of now) {
               const was = frames[k - 1].get(id), prior = view(k - 1).get(id), old = after.get(id);
               if (!was || !prior || !old || granted.has(id) || movers.has(id)) continue;
@@ -935,7 +954,7 @@ function openSourceRoom(scenes: readonly Scene[], frames: Painted[], coordinates
                 > Math.hypot(old.x - carryWas.x - was.x, old.y - carryWas.y - was.y) + 1) { ok = false; break; }
             }
           }
-          else if (j < k && !sameMotion(scenes[j].step, crossingJ, frames[j - 1], frames[j], view(j - 1), view(j))) ok = false;
+          else if (j < k && !sameMotion(scenes, j, frames[j - 1], frames[j], view(j - 1), view(j))) ok = false;
         }
         if (!ok) { for (const [canvas, points] of saved) coordinates.set(canvas, points); continue; }
         repainted.forEach((frame, index) => { frames[start + index] = frame; });
@@ -992,21 +1011,19 @@ function tryShift(context: Context, k: number, members: readonly string[], amoun
   }
   if (!reason && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [start + index, frame])), growth)) reason = 'stage size';
   for (let j = Math.max(1, start); !reason && j <= k; j++) {
-    const crossing = scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex;
-    if (newFaults(scenes[j - 1].step, scenes[j].step, frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `faults at ${j + 1}`;
+    if (newFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `faults at ${j + 1}`;
     else if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `continuity at ${j + 1}`;
     else if (j === k) {
-      const now = view(k), prior = view(k - 1), granted = closingAt(scenes[k - 1].step, step, prior, now, prior, now);
+      const now = view(k), prior = view(k - 1), granted = closingAt(scenes[k - 1].step, step, prior, now, prior, now, { closing: Boolean(scenes[k].closing) });
       const movers = new Set<string>(); for (const id of participants) now.get(id)?.each(member => { movers.add(getNodeId(member)); });
-      const carryNow = crossing ? paintedShift(points(prior), points(now)) : { x: 0, y: 0 };
-      const carryWas = crossing ? paintedShift(points(frames[k - 1]), points(after)) : { x: 0, y: 0 };
+      const carryNow = carryAt(scenes, k, prior, now), carryWas = carryAt(scenes, k, frames[k - 1], after);
       for (const [id, node] of now) {
         const was = frames[k - 1].get(id), before = prior.get(id), old = after.get(id);
         if (!was || !before || !old || granted.has(id) || movers.has(id)) continue;
         if (Math.hypot(node.x - carryNow.x - before.x, node.y - carryNow.y - before.y) > Math.hypot(old.x - carryWas.x - was.x, old.y - carryWas.y - was.y) + 1) { reason = `ungranted ${id}`; break; }
       }
     }
-    else if (j < k && !sameMotion(scenes[j].step, crossing, frames[j - 1], frames[j], view(j - 1), view(j))) reason = `motion at ${j + 1}`;
+    else if (j < k && !sameMotion(scenes, j, frames[j - 1], frames[j], view(j - 1), view(j))) reason = `motion at ${j + 1}`;
   }
   if (reason) { for (const [canvas, points] of saved) coordinates.set(canvas, points); return reason; }
   repainted.forEach((frame, index) => { frames[start + index] = frame; });
@@ -1110,10 +1127,9 @@ function tryShiftForward(context: Context, k: number, shifts: ReadonlyMap<string
   }
   if (!reason && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [k + index, frame])))) reason = 'stage size';
   for (let j = k; !reason && j <= Math.min(end, scenes.length - 1); j++) {
-    const crossing = scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex;
-    if (newFaults(scenes[j - 1].step, scenes[j].step, frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `faults at ${j + 1}`;
+    if (newFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `faults at ${j + 1}`;
     else if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `continuity at ${j + 1}`;
-    else if (j > k && !sameMotion(scenes[j].step, crossing, frames[j - 1], frames[j], view(j - 1), view(j))) reason = `motion at ${j + 1}`;
+    else if (j > k && !sameMotion(scenes, j, frames[j - 1], frames[j], view(j - 1), view(j))) reason = `motion at ${j + 1}`;
   }
   if (reason) { for (const [canvas, points] of saved) coordinates.set(canvas, points); return reason; }
   repainted.forEach((frame, index) => { frames[k + index] = frame; });
@@ -1134,10 +1150,10 @@ function holdAcrossCrossings(context: Context) {
     const step = scenes[k].step;
     if (scenes[k - 1].step.replayFrameIndex === step.replayFrameIndex) continue;
     const before = frames[k - 1], after = frames[k];
-    const carry = paintedShift(points(before), points(after));
+    const carry = carryAt(scenes, k, before, after);
     const movers = new Set<string>();
     for (const id of trajectoryParticipants(step)) before.get(id)?.each(member => { movers.add(getNodeId(member)); });
-    const granted = closingAt(scenes[k - 1].step, step, before, after, before, after);
+    const granted = closingAt(scenes[k - 1].step, step, before, after, before, after, { closing: Boolean(scenes[k].closing) });
     const shiftOf = (id: string) => { const node = after.get(id), old = before.get(id); return node && old ? { x: node.x - carry.x - old.x, y: node.y - carry.y - old.y } : undefined; };
     const isRigid = (node: Node, dx: number): boolean => {
       const own = shiftOf(getNodeId(node));

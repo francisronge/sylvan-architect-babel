@@ -35,6 +35,8 @@ export const EXCEPTIONS = [
     { mobile: { '50>51': 53.04 } }),
   x(MOVED_OFF_CANVAS, 'movement/clause-context.json#/cases/7', 'first-paint-continuity', 'off-canvas:moved', 'stage 2',
     { mobile: { '26>27': 76.59 } }),
+  x(MOVED_OFF_CANVAS, 'movement/holdout-transitions.json#/0', 'first-paint-continuity', 'off-canvas:moved', 'stage 2',
+    { mobile: { '33>34': 31.98 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/clitic-displacement.json#/fixtures/1/analysis', 'first-paint-continuity', 'off-canvas:moved', 'stage 4',
     { mobile: { '25>26': 83.23 } }),
   x(MOVED_OFF_CANVAS, 'replay-regressions/diverse-recovery.json#/examples/3/analysis', 'first-paint-continuity', 'off-canvas:moved', 'stage 6',

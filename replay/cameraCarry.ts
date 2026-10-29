@@ -10,8 +10,10 @@ import { getNodeId } from './displayIdentity.ts';
  * equals it except where a crossing lowers syntax under an inserted parent;
  * there the camera holds the syntax it does not lower. Stage alignment keeps
  * this reference because the cross-stage reservations of waiting workspaces
- * are planned against it. */
-export function carriedShift(before: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>, after: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>) {
+ * are planned against it. Both take their median by `carriedMedian`, with the
+ * same `closing`, so planning predicts the carry the screen applies. */
+export function carriedShift(before: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>, after: ReadonlyMap<string, d3.HierarchyPointNode<SyntaxNode>>,
+  { closing = false }: CarryOptions = {}) {
   const parentOf = (nodes: typeof before, id: string) => {
     const parent = nodes.get(id)!.parent;
     return parent && nodes.has(getNodeId(parent)) ? getNodeId(parent) : null;
@@ -25,11 +27,8 @@ export function carriedShift(before: ReadonlyMap<string, d3.HierarchyPointNode<S
   const unmoved = shared.filter(id => sharedAncestors(before, id) === sharedAncestors(after, id));
   const reference = unmoved.length ? unmoved : shared;
   if (!reference.length) return { x: 0, y: 0 };
-  const median = (values: number[]) => {
-    values.sort((a, b) => a - b);
-    return (values[(values.length - 1) >> 1] + values[values.length >> 1]) / 2;
-  };
-  return { x: median(reference.map(id => after.get(id)!.x - before.get(id)!.x)), y: median(reference.map(id => after.get(id)!.y - before.get(id)!.y)) };
+  return { x: carriedMedian(reference.map(id => after.get(id)!.x - before.get(id)!.x), closing),
+    y: carriedMedian(reference.map(id => after.get(id)!.y - before.get(id)!.y), closing) };
 }
 
 /** One frame's painted syntax: tree-space position and hierarchy parent, keyed by display ID. */
@@ -72,24 +71,34 @@ export function carryReference(before: PaintedNodes, after: PaintedNodes) {
   return held.length > MIN_HELD ? held : unmoved;
 }
 
-/** The median shift, after minus before, of the camera's carry reference.
- * With an even count whose middle shifts differ, every shift between them moves
- * the reference as little in total; the carry then takes the end that more of
- * the reference shares (within CARRY_TOLERANCE), if at least a quarter of it
- * does, so a block of syntax that holds together stays still, and otherwise
- * their midpoint. */
+/** `closing`: the stage plan closed a movement's room at this crossing
+ * (closeMovementGaps records it; stageCoordinates.closesOnEntry reads it). */
+export type CarryOptions = { closing?: boolean };
+
+/** Shifts within this many tree units count as one block (`carriedMedian`). */
 const CARRY_TOLERANCE = 1;
-export function paintedShift(before: PaintedNodes, after: PaintedNodes) {
-  const reference = carryReference(before, after);
-  if (!reference.length) return { x: 0, y: 0 };
-  const median = (values: number[]) => {
-    values.sort((a, b) => a - b);
-    const low = values[(values.length - 1) >> 1], high = values[values.length >> 1];
-    if (high - low <= CARRY_TOLERANCE) return (low + high) / 2;
-    const near = (value: number) => values.filter(other => Math.abs(other - value) <= CARRY_TOLERANCE).length;
-    const lows = near(low), highs = near(high), block = values.length / 4;
-    return lows > highs && lows >= block ? low : highs > lows && highs >= block ? high : (low + high) / 2;
-  };
-  return { x: median(reference.map(id => after.get(id)!.x - before.get(id)!.x)), y: median(reference.map(id => after.get(id)!.y - before.get(id)!.y)) };
+
+/** The median of a reference's shifts. With an even count whose middle shifts
+ * differ, every shift between them moves the reference as little in total.
+ * Ordinarily the carry takes their midpoint. At a crossing where the plan's own
+ * closing moves one side of a movement's room (`closing`), the midpoint would
+ * move both sides by half the closing; the carry then takes the end that more
+ * of the reference shares (within CARRY_TOLERANCE), if at least a quarter of it
+ * does, so the block that holds still stays still, and otherwise the midpoint. */
+export function carriedMedian(values: number[], closing = false) {
+  values.sort((a, b) => a - b);
+  const low = values[(values.length - 1) >> 1], high = values[values.length >> 1];
+  if (!closing || high - low <= CARRY_TOLERANCE) return (low + high) / 2;
+  const near = (value: number) => values.filter(other => Math.abs(other - value) <= CARRY_TOLERANCE).length;
+  const lows = near(low), highs = near(high), block = values.length / 4;
+  return lows > highs && lows >= block ? low : highs > lows && highs >= block ? high : (low + high) / 2;
 }
 
+/** The median shift, after minus before, of the camera's carry reference
+ * (`carriedMedian`). */
+export function paintedShift(before: PaintedNodes, after: PaintedNodes, { closing = false }: CarryOptions = {}) {
+  const reference = carryReference(before, after);
+  if (!reference.length) return { x: 0, y: 0 };
+  return { x: carriedMedian(reference.map(id => after.get(id)!.x - before.get(id)!.x), closing),
+    y: carriedMedian(reference.map(id => after.get(id)!.y - before.get(id)!.y), closing) };
+}
