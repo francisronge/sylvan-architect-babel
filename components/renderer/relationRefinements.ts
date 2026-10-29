@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import type { PlaquePlacement } from '../../replay/relations/plaquePlacement.ts';
 import type { RelationRenderPlan } from '../../replay/relations/renderPlan.ts';
+import type { TreeDirection } from '../../replay/treeLayout.ts';
 import { type SyntaxNode } from '../../types.ts';
 import { createBindingRefinements } from './bindingRefinements.ts';
 import type { DrawingLayer } from './drawingContext.ts';
@@ -23,6 +24,7 @@ interface RelationGeometryContext {
   updateScreenStableText: (screenScale: number) => void;
   /** The tree layer's screen matrix under the settled camera (`deferredTreeMatrix`). */
   deferredTreeMatrix: () => DOMMatrix | null;
+  treeDirection?: TreeDirection;
 }
 export function refineRelationGeometry({
   treeData,
@@ -37,7 +39,8 @@ export function refineRelationGeometry({
   playedRelationIndices,
   svg,
   updateScreenStableText,
-  deferredTreeMatrix
+  deferredTreeMatrix,
+  treeDirection = 'ltr'
 }: RelationGeometryContext) {
   const treeSpace = g.node();
   // Refinement follows the fit, which paints the start of a camera transition.
@@ -132,7 +135,8 @@ export function refineRelationGeometry({
       measureRenderedElementsInTreeSpace,
       measuredTrajectorySubtreeRect,
       unionRects,
-      laneTrajectoryPaths: () => laneTrajectoryPaths
+      laneTrajectoryPaths: () => laneTrajectoryPaths,
+      direction: treeDirection
     });
     g.selectAll<SVGGElement, unknown>('.babel-control-relation-layer')
       .each(refineControlRelation);

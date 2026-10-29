@@ -100,7 +100,7 @@ export const pathGeometry = {
     // Only the binder sees the departure's parent and the tree labels; the
     // painter reads the side from `bowSide`.
     const bowWeight = steepTrajectoryBowWeight(from, to);
-    const preferred = bowWeight > 0 ? trajectoryBowSide(from, context.positionFor(departureNodeId, 'parent')) : null;
+    const preferred = bowWeight > 0 ? trajectoryBowSide(from, context.positionFor(departureNodeId, 'parent'), context.options.direction) : null;
     const labels = preferred ? context.trajectoryLabelBoxes() : undefined;
     const bowSide = preferred && labels?.length
       ? clearTrajectoryBowSide(from, to, { side: preferred, weight: bowWeight }, fanOffset, labels)
