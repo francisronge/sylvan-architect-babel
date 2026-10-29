@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { isPlanItemRevealed } from '../replay/relations/renderPlan.ts';
+import { withRealizationDisplays } from '../replay/realizationDisplay.ts';
 
 /** Every realization-style plate each Replay step reveals, as the renderer selects it. */
 const platesPerStep = prepared => {
@@ -169,4 +170,21 @@ test('a restated group plate retires at the restatement even when a later plate 
   assert.deepEqual(steps[0].plates.map(text), ['go → went'], 'the tree still shows go');
   assert.deepEqual(steps[1].plates.map(text), [], 'went stands in the tree from the restatement on');
   for (const { plates } of steps.slice(2)) assert.deepEqual(plates.map(text), ['realization → went / tense → past']);
+});
+
+test('a retained group plate retires at the replacement plate Replay reaches first, whatever its authored order', () => {
+  const tense = realization => ({ relation: 'Suppletive past-tense realization', anchors: { tense: 'past' },
+    values: { lexicalBase: 'go', realization, tense: 'past' } });
+  const prepared = prepareReplay(retained([tense('went'), tense('WENT')]));
+  // Replay may play a stage's moments out of authored order; play relation 1 first.
+  const steps = [...prepared.playbackSteps], moments = steps.flatMap((step, index) => step.replayFrameIndex === 2
+    && step.replayKind === 'relation' ? [index] : []);
+  assert.equal(moments.length, 2);
+  [steps[moments[0]], steps[moments[1]]] = [steps[moments[1]], steps[moments[0]]];
+  const base = { ...prepared.relationRenderPlan, frames: prepared.relationRenderPlan.frames.map(frame =>
+    ({ ...frame, items: frame.items.filter(item => !item.realization) })) };
+  const plan = withRealizationDisplays(base, prepared.replayDerivationFrames, { sentence: 'Mia went home.',
+    inputTokens: ['Mia', 'went', 'home'], steps });
+  const group = plan.frames[2].items.filter(item => item.realization);
+  assert.deepEqual(group.map(item => item.realization.retiredAt), [{ stageIndex: 2, relationIndex: 1 }]);
 });

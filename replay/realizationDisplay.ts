@@ -189,11 +189,12 @@ export const withRealizationDisplays = (
       return displays.flatMap(({ display, activatedAt, retiredAt }) => {
         if (!display) return [];
         const showing = relationPlatesShowing(relationItems, entry.group, forest, display.text);
-        // A relation plate this stage introduces replaces a group plate shown
-        // since an earlier stage at the plate's own moment, not from the stage's start.
+        // Relation plates this stage introduces replace a group plate shown since
+        // an earlier stage at the first of their moments, not from the stage's start.
         const replacedAt = showing.length && activatedAt.stageIndex < stageIndex
           && showing.every(item => item.appearsAtStage === stageIndex && item.relationRef.stageIndex === stageIndex)
-          ? { stageIndex, relationIndex: showing[0].relationRef.relationIndex } : undefined;
+          ? firstReached(stageSteps, ...showing.map(item => ({ stageIndex, relationIndex: item.relationRef.relationIndex })))
+          : undefined;
         if (showing.length && !replacedAt) return [];
         return [realizationPlate(entry, display, activatedAt, firstReached(stageSteps, replacedAt, retiredAt))];
       });
