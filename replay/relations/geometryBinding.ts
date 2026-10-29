@@ -1,6 +1,6 @@
 import { annotationGeometry } from './annotationGeometry.ts';
 import type { BindGeometryOptions, BoundAnchorSetBadge, BoundFrame, PlanPositionProvider } from './boundGeometry.ts';
-import { fallbackRailY, routeFallbackSegments } from './fallbackGeometry.ts';
+import { fallbackRailY, placeConnectorLabelAmong, routeFallbackSegments } from './fallbackGeometry.ts';
 import { createGeometryContext, usesBoundBadgePosition, type GeometryBinders } from './geometryContext.ts';
 import { neutralGeometry } from './neutralGeometry.ts';
 import type { Point, Rect } from './overlayGeometry.ts';
@@ -187,10 +187,22 @@ export const bindRelationPlanFrame = (
    * spans therefore occupy visibly distinct lanes; the renderer draws `d`
    * verbatim and cannot discard the routing.
    */
-  primitives.push(...routeFallbackSegments(pendingSegments, {
+  const routedSegments = routeFallbackSegments(pendingSegments, {
     markerScale, laneGap, obstacles: options.fallbackMeasurements?.obstacles,
     fallbackMeasurements: options.fallbackMeasurements, connectorBaselineY: options.connectorBaselineY
-  }));
+  });
+  primitives.push(...routedSegments);
+  // A bracketed connector's text goes under its routed lines.
+  const bracketed = new Map(routedSegments.filter(segment => segment.brackets).map(segment => [segment.itemIndex, segment]));
+  const momentOccupied = new Map<number, Rect[]>();
+  primitives.forEach((primitive) => {
+    const segment = primitive.type === 'fallback-mark' && primitive.connectorLabel ? bracketed.get(primitive.itemIndex) : undefined;
+    if (!segment || primitive.type !== 'fallback-mark') return;
+    if (options.separateFallbackMoments && !momentOccupied.has(primitive.itemIndex)) momentOccupied.set(primitive.itemIndex,
+      [...(options.fallbackMeasurements?.labels ?? []), ...(options.fallbackMeasurements?.obstacles ?? [])]);
+    const occupied = momentOccupied.get(primitive.itemIndex) ?? context.fallbackOccupied;
+    Object.assign(primitive, placeConnectorLabelAmong(primitive, segment, markerScale, occupied, undefined));
+  });
   /*
    * The one vertical allocation law: rails sit a safe gap below the deepest
    * ACTUALLY allocated connector lane (or at the caller's measured base,

@@ -343,7 +343,9 @@ export function plaqueTreeObstacles(nodes: Node[], measureCategoryText?: Categor
   return rectangles;
 }
 
-/** Reserve the straight stems below neutral-link witnesses before placing plaques. */
+/** Reserve the straight stems below neutral-link witnesses before placing plaques.
+ * A link that brackets its words instead (fallbackGeometry.ts) draws below the
+ * words; the column stays reserved, and its floor still clears every plaque. */
 export function plaqueConnectorObstacles(items: RelationPlanItem[], nodes: Node[]): PlaqueRect[] {
   const byId = new Map(nodes.map(node => [idOf(node), node]));
   const included = new Set(nodes);
