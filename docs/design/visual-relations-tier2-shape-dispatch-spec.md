@@ -1018,7 +1018,11 @@ absent domains. Control and idiom painting does not depend on the enclosure
 existing. Covert Replay timing requires a preceding source, new landing and
 consistent prior-source references; its drawing remains the covert path, not
 an overt movement arrow. Existing exact Tier-1 signatures are unchanged,
-including optional fields already present in those signatures.
+including optional fields already present in those signatures, with one
+exception the owner approved on 27 Oct 2026: the exact Control signature's
+domain is optional. A Control claim with a controller and controllee but no
+domain draws the connector and coindex that the smaller recipe draws; an
+authored domain must still resolve and adds its rectangle.
 
 An asserted Quantifier Raising clause, including one combined with variable
 binding, can establish the covert claim. Open participant names do not require

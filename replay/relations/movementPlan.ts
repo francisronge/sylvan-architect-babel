@@ -283,9 +283,10 @@ export const movementPlan = {
     const domain = flattenAnchorIds(anchors.domain)[0];
     if (!requireResolved('controller', controller)) return;
     if (!requireResolved('controllee', controllee)) return;
-    if (!requireResolved('domain', domain)) return;
+    // An authored domain must resolve; without one only the connector and coindex draw.
+    if (domain !== undefined && !requireResolved('domain', domain)) return;
     const index = dependencyIndexFor(stableChainKey('control', nodes, [controller, controllee]), singleValue(context.claim.claimDispatch.evidence, 'index'));
-    items.push({
+    if (domain !== undefined) items.push({
       ...base,
       kind: 'domain-mark',
       rootNodeId: domain,

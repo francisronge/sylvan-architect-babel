@@ -417,7 +417,7 @@ test('authored values distinguish claims even when the specialized primitive cop
   );
 });
 
-test('Control accepts extra context but a missing domain stays one malformed Tier-3 primary', () => {
+test('Control accepts extra context and draws its connector without a domain', () => {
   const early = [node('root_x', 'TP', [
     node('ctrl_x', 'DP', [leaf('ctrl_l', 'D', 'kai')]),
     node('ctee_x', 'DP', [leaf('ctee_l', 'D', 'PRO', { silent: true })]),
@@ -449,10 +449,14 @@ test('Control accepts extra context but a missing domain stays one malformed Tie
     }], early),
     stage([], late)
   ]);
-  assert.deepEqual(plan.frames[0].items.map((item) => item.kind), ['fallback']);
-  assert.ok(plan.diagnostics.some((d) => d.kind === 'signature-incomplete'),
-    'extra context cannot replace the required Control domain');
-  assert.equal(plan.frames[1].items.length, 0, 'a neutral fallback marks its own stage only');
+  // Francis approved on 27 Oct 2026 (relayed by the coordinating agent) that a
+  // Control claim without a domain draws the connector and coindex, as
+  // obligatory-control does; the domain rectangle needs an authored domain.
+  assert.deepEqual(plan.frames[0].items.map((item) => item.kind), ['directed-path', 'coindex', 'fallback']);
+  assert.ok(plan.frames[0].items.filter(item => item.kind !== 'fallback').every((item) => item.claimTier === 1));
+  assert.deepEqual(plan.frames[0].items.find(item => item.kind === 'fallback').relationRef.anchors, { annotation: 'anno_x' });
+  assert.ok(!plan.diagnostics.some((d) => d.kind === 'signature-incomplete'));
+  assert.ok(plan.frames[1].items.every(item => item.kind !== 'fallback'), 'a neutral fallback marks its own stage only');
   assert.equal(plan.diagnostics.filter((d) => d.kind === 'anchor-vanished').length, 0,
     'nothing is carried into the next stage, so nothing can vanish there');
 });
@@ -1094,8 +1098,10 @@ test('ellipsis deletion remains attached to its authored site as that site grows
 });
 
 test('the dependency law fails malformed registered claims closed and never counts unresolved large members', () => {
-  // The required Control domain is missing. Extra context cannot complete
-  // that core or license a smaller Tier-2 Control drawing.
+  // A Control claim without its controller is malformed. Extra context
+  // cannot complete that core or license a smaller Tier-2 Control drawing.
+  // (A missing domain is not malformed: Francis approved on 27 Oct 2026,
+  // relayed by the coordinating agent, that Control draws without one.)
   const controlForest = (withExtra) => [node('root_x2', 'TP', [
     node('ctrl_x2', 'DP', [leaf('ctrl_x2_l', 'D', 'kai')]),
     node('ctee_x2', 'DP', [leaf('ctee_x2_l', 'D', 'PRO', { silent: true })], { silent: true }),
@@ -1105,7 +1111,7 @@ test('the dependency law fails malformed registered claims closed and never coun
   const controlPlan = compileRelationRenderPlan([
     stage([{
       relation: 'Control',
-      anchors: { controller: 'ctrl_x2', controllee: 'ctee_x2', annotation: 'anno_x2' }
+      anchors: { controllee: 'ctee_x2', domain: 'dom_x2', annotation: 'anno_x2' }
     }], controlForest(true)),
     stage([], controlForest(false))
   ]);
