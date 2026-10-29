@@ -109,10 +109,12 @@ export const createGeometryContext = (frame: RelationRenderPlan['frames'][number
   };
   /** World-space plate rectangles, including the marker counter-scale. */
   const plaqueRects: Rect[] = [];
-  /** Boxes of the anchor-set badges placed so far, whether drawn or replaced by
-   * a neutral numeral, so a later set's badge that clearance moves never lands
-   * on an earlier set's badge. */
-  const anchorSetBadgeBoxes: Rect[] = [];
+  /** Boxes of the revealed anchor-set badges placed so far, whether drawn or
+   * replaced by a neutral numeral, each with its rail's `railEntrySequence`,
+   * so a later set's badge that clearance moves never lands on an earlier
+   * set's badge. A restatement of the same sequence draws the same rail and
+   * coincides with it. */
+  const anchorSetBadgeBoxes: Array<Rect & { railEntries: string }> = [];
 
   const pendingSegments: UnroutedFallbackSegment[] = [];
   const fallbackAllocationOrder = 0;

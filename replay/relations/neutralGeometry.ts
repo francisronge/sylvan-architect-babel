@@ -6,6 +6,7 @@ import type { GeometryBinders } from './geometryContext.ts';
 import { fongEdgeOutlineRect } from './markGeometry.ts';
 import type { Point } from './overlayGeometry.ts';
 import { planAnchorSetLayout } from './overlayGeometry.ts';
+import { railEntrySequence } from './largeAnchorSets.ts';
 import { fallbackPlaqueTextMeasure } from './plaqueTextLayout.ts';
 import { planItemRelationRefs } from './renderPlan.ts';
 
@@ -99,6 +100,7 @@ export const neutralGeometry = {
       entry.roleIndex === item.set.roles.find(group => group.role === role)?.roleIndex
       && entry.arrayIndex === arrayIndex)?.badgeSize ?? item.badgeSize;
     const badgeRadius = (role: string, arrayIndex: number) => anchorSetBadgeOuterRadius(badgeSizeFor(role, arrayIndex)) * markerScale;
+    const railEntries = railEntrySequence(item.set.roles);
     const layout = planAnchorSetLayout(
       [{
         relation: item.set.relation,
@@ -110,7 +112,7 @@ export const neutralGeometry = {
         badgeOffsetY: badgeGap * markerScale,
         railGap: laneGap,
         band: item.railBand,
-        ...(options.badgeObstacles ? { clearance: { obstacles: [...options.badgeObstacles, ...anchorSetBadgeBoxes],
+        ...(options.badgeObstacles ? { clearance: { obstacles: [...options.badgeObstacles, ...anchorSetBadgeBoxes.filter(box => box.railEntries !== railEntries)],
           radiusFor: badgeRadius,
           gap: ANCHOR_SET_BADGE_CLEARANCE * markerScale } } : {})
       }
@@ -127,9 +129,11 @@ export const neutralGeometry = {
         : failed;
       channel.push({ itemIndex, nodeId: failure.nodeId, reason: failure.reason });
     });
-    if (options.badgeObstacles) anchorSetBadgeBoxes.push(...layout.badges.map(badge => {
+    // Only a revealed rail's badges are on screen: a hidden item, such as a
+    // predecessor its restatement supersedes, must not push later badges off.
+    if (options.badgeObstacles && (!options.isItemRevealed || options.isItemRevealed(itemIndex))) anchorSetBadgeBoxes.push(...layout.badges.map(badge => {
       const radius = badgeRadius(badge.role, badge.arrayIndex);
-      return { x: badge.x - radius, y: badge.y - radius, width: 2 * radius, height: 2 * radius };
+      return { x: badge.x - radius, y: badge.y - radius, width: 2 * radius, height: 2 * radius, railEntries };
     }));
     const badges: BoundAnchorSetBadge[] = layout.badges.map((badge) => ({
       type: 'anchor-set-badge',

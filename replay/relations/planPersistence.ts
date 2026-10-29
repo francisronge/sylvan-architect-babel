@@ -28,21 +28,10 @@ import { recoveredClaimMovements } from './tier2RelationDispatch.ts';
 const distinctTransitions = <T extends { relationIndex: number }>(candidates: T[], key: (candidate: T) => string): T[] =>
   candidates.filter((candidate, index) => candidates.findIndex(other => key(other) === key(candidate)) === index);
 
-/** The entries a standalone rail numbers, which are its identity
- * (renderPlanCompiler.ts); undefined for every other item. */
-const standaloneRailEntries = (item: RelationPlanItem): Set<string> | undefined =>
-  item.kind === 'anchor-set' && item.ownNumerals && item.replacementGroup
-    ? new Set(JSON.parse(item.replacementGroup).participants as string[]) : undefined;
-
-/** A later standalone rail over exactly the same entries restates the claim
- * and replaces the earlier rail at its moment. A rail over a subset, superset
- * or overlap of those entries is a different claim, so both stay, each on its
- * own band (anchorRailBands.ts). */
-const restatesRail = (later: RelationPlanItem, earlier: RelationPlanItem): boolean => {
-  const laterEntries = standaloneRailEntries(later), earlierEntries = standaloneRailEntries(earlier);
-  return Boolean(laterEntries && earlierEntries && laterEntries.size === earlierEntries.size
-    && [...laterEntries].every(id => earlierEntries.has(id)));
-};
+/** A rail that keeps its own lifetime: its `replacementGroup` is the ordered
+ * entry sequence it numbers (renderPlanCompiler.ts), so only a later rail with
+ * exactly that sequence replaces it. */
+const isStandaloneRail = (item: RelationPlanItem): boolean => item.kind === 'anchor-set' && Boolean(item.ownNumerals);
 
 export function materializePlanFrames(
   items: RelationPlanItem[],
@@ -283,15 +272,14 @@ export function materializePlanFrames(
             || continuesReplacementGroup(candidate.replacementPredecessorGroup, item.replacementGroup)
             || (collectionSupersession?.stageIndex === candidate.relationRef.stageIndex
               && collectionSupersession?.relationIndex === candidate.relationRef.relationIndex)
-            || sameMovementAfterAttachment(candidate)
-            || restatesRail(candidate, item)));
+            || sameMovementAfterAttachment(candidate)));
         if (replacement) {
           materializeIntoFrame(item, frameIndex, replacement.relationRef);
           break;
         }
         // A standalone rail that loses an entry ends there; it never skips a
         // stage and returns, so its loss is reported once.
-        if (!materializeIntoFrame(item, frameIndex) && standaloneRailEntries(item)) break;
+        if (!materializeIntoFrame(item, frameIndex) && isStandaloneRail(item)) break;
       }
       return;
     }

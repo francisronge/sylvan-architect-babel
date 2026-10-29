@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
-import { visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
+import { projectVisibleAnchorSetOrganization, visiblePlanFrameItems } from '../replay/relations/relationFrame.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
+import { isPlanItemRevealed } from '../replay/relations/renderPlan.ts';
+import { RELATION_BINDING_METRICS } from '../replay/rendererMetrics.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 
 // Rails shown together over shared terminals take distinct lanes and badge
@@ -88,10 +90,25 @@ test('recognized rails restated over shared entries in a later stage never meet'
   assert.deepEqual(timeline.at(-1).rails.map(rail => rail.lane), [0, 1]);
 });
 
-test('only an exact restatement in a later stage replaces a neutral rail; a grown or narrowed list stands beside it', () => {
-  // Coordinator decision A: the same entries, in any order, restate the claim;
-  // a subset or superset is a different claim, and both rails stay.
-  for (const [label, later, replaces] of [['restated', span('a', 'f'), true], ['reordered', span('a', 'f').reverse(), true],
+test('recognized rails restated with the same entries in a later stage draw one rail', () => {
+  // Restatements number the same sequence, so they share a band and their
+  // copies coincide, as before rails had bands.
+  const plan = compileRelationRenderPlan([stage([forms(span('a', 'e'))]), stage([forms(span('a', 'e'))]), stage([])]);
+  assert.deepEqual(plan.frames.flatMap(frame => frame.items.filter(item => item.kind === 'anchor-set').map(item => item.railBand ?? 0)),
+    [0, 0, 0, 0, 0]);
+  const bound = bindRelationPlanFrame({ ...plan, frames: plan.frames.map((frame, i) => i === 2 ? { ...frame, items: visiblePlanFrameItems(plan, 2, null) } : frame) },
+    2, id => ({ x: ids.indexOf(id) * 180, y: 0 }), { badgeObstacles: [] });
+  const drawn = type => new Set(bound.primitives.filter(mark => mark.type === type)
+    .map(mark => JSON.stringify(type === 'anchor-set-rail' ? [mark.y, mark.lane] : [mark.nodeId, mark.numeral, mark.x, mark.y])));
+  assert.equal(drawn('anchor-set-rail').size, 1, 'one rail line');
+  assert.equal(drawn('anchor-set-badge').size, 5, 'one row of numerals');
+});
+
+test('only an exact restatement in a later stage replaces a neutral rail; a grown, narrowed or reordered list stands beside it', () => {
+  // The same entries in the same order restate the claim. A subset, superset
+  // or reordering numbers differently, so it is a different claim, and both
+  // rails stay.
+  for (const [label, later, replaces] of [['restated', span('a', 'f'), true], ['reordered', span('a', 'f').reverse(), false],
     ['grown', span('a', 'g'), false], ['narrowed', span('b', 'f'), false]]) {
     const stages = [stage([open(span('a', 'f'))]), stage([open(later)]), stage([])];
     const { timeline } = play(stages);
@@ -116,6 +133,35 @@ test('one claim\'s moment never removes another claim\'s rail over a subset or s
   // A restatement in stage 2 retires only the rail it restates.
   const { timeline } = play([stage([open(span('a', 'e')), open(span('c', 'g'), 'Scope set')]), stage([open(span('a', 'e'))]), stage([])]);
   assert.deepEqual(timeline.at(-1).rails.map(rail => [rail.rail, rail.lane]), [['0:1', 1], ['1:0', 0]]);
+});
+
+test('a list restated in reverse within one stage is its own rail with its own numerals and band', () => {
+  const list = span('a', 'f');
+  const { plan, timeline } = play([stage([open(list), open([...list].reverse())]), stage([])]);
+  assert.deepEqual(plan.frames[0].items.filter(item => item.kind === 'anchor-set').map(item => item.railBand ?? 0), [0, 1]);
+  const last = timeline.at(-1);
+  assert.deepEqual(last.rails.map(rail => [rail.rail, rail.lane]), [['0:0', 0], ['0:1', 1]]);
+  assert.deepEqual(last.badges.filter(badge => badge.nodeId === 'a').map(badge => [badge.rail, badge.numeral]), [['0:0', 1], ['0:1', 6]]);
+});
+
+test('a superseded rail\'s badges never push its replacement\'s badges, as the renderer binds them', () => {
+  // The renderer binds every item of the frame, the hidden predecessor too
+  // (relationScene.ts), with badge clearance and item reveal.
+  const list = span('a', 'f');
+  const stages = [stage([open(list)], list), stage([open(list)], list), stage([], list)];
+  const plan = compileRelationRenderPlan(stages);
+  const rows = [[0, new Set([0]), 0], [0, null, null], [1, new Set(), null], [1, new Set([0]), 0], [1, null, null], [2, new Set(), null]]
+    .map(([index, played, active]) => {
+      const revealed = item => isPlanItemRevealed(item, index, played, active);
+      const items = projectVisibleAnchorSetOrganization(plan.frames[index].items, revealed);
+      const shown = new Set(items.flatMap((item, itemIndex) => revealed(item) ? [itemIndex] : []));
+      const geometry = bindRelationPlanFrame({ ...plan, frames: plan.frames.map((frame, i) => i === index ? { ...frame, items } : frame) },
+        index, id => ({ x: ids.indexOf(id) * 180, y: 0 }),
+        { ...RELATION_BINDING_METRICS, badgeObstacles: [], isItemRevealed: itemIndex => shown.has(itemIndex) });
+      return JSON.stringify(geometry.primitives.filter(mark => mark.type === 'anchor-set-badge' && shown.has(mark.itemIndex))
+        .map(badge => [badge.nodeId, badge.numeral, badge.x, badge.y]));
+    });
+  assert.equal(new Set(rows).size, 1, `the badges hold through the replacement: ${rows.join(' | ')}`);
 });
 
 test('a list grown within one stage keeps both rails, on separate bands with separate numerals', () => {
@@ -167,4 +213,22 @@ test('bands follow the order Replay plays a stage\'s moments, not authored order
     return rails.map(rail => `${items[rail.itemIndex].set.relationIndex}:${rail.lane}`).sort().join(' ');
   }).filter(Boolean);
   assert.deepEqual([...new Set(lanes)], ['1:0', '0:1 1:0'], 'the scope set keeps the first lane from its own moment on');
+});
+
+test('bands do not depend on whether playback is requested', () => {
+  // The same record as above: the moment order reverses the authored bands.
+  const ps = ['p1', 'p2', 'p3', 'p4', 'p5'];
+  const phrase = (id, silent = false) => ({ id, label: 'DP', lineageId: id.replace(/_hi$/, '').toUpperCase(),
+    word: id.replace(/_hi$/, ''), ...(silent ? { silent: true } : {}) });
+  const record = { sentence: 'b p1 p2 p3 p4 p5', derivationStages: [
+    { statement: 'Phrases.', stageRecord: 'Six phrases are built.', relations: [], workspaceForest: [phrase('b'), ...ps.map(id => phrase(id))] },
+    { statement: 'Movement.', stageRecord: 'b moves.', relations: [
+      open(['b_hi', ...ps.slice(0, 4)]), open(ps, 'Scope set'),
+      { relation: 'Internal Merge', anchors: { lowerCopy: 'b', higherCopy: 'b_hi' }, priorAnchors: { source: 'b' } }],
+    workspaceForest: [{ id: 'root', label: 'XP', children: [{ id: 'host_b', label: 'XP', children: [phrase('b_hi'), phrase('b', true)] },
+      ...ps.map(id => phrase(id))] }] }] };
+  const bands = includePlayback => prepareReplay({ ...structuredClone(record), includePlayback }).relationRenderPlan.frames
+    .map(frame => frame.items.filter(item => item.kind === 'anchor-set').map(item => [item.set.relationIndex, item.railBand ?? 0]));
+  assert.deepEqual(bands(true), [[], [[0, 1], [1, 0]]]);
+  assert.deepEqual(bands(false), bands(true));
 });

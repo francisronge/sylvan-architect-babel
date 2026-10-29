@@ -45,26 +45,29 @@ export const prepareReplay = ({ derivationStages, sentence, inputTokens, include
     : [];
   const movementChainIndexCatalogue = buildMovementChainIndexCatalogueForFrames(
     replayDerivationFrames, derivationReplayPlan, frameRelations);
+  // Replay's steps carry the order in which each stage plays its relation
+  // moments, which the plan's rail bands follow (anchorRailBands.ts). They are
+  // scheduled whether or not playback is requested, so the plan never depends
+  // on that flag.
+  const scheduledSteps = finalFrame ? buildPlaybackStepsFromDerivationFrames({
+    frames: replayDerivationFrames,
+    sentence,
+    replayPlan: derivationReplayPlan,
+    inputTokens,
+    frameRelations
+  }) : [];
   let playbackSteps: PlaybackStep[] = [];
   if (includePlayback && finalFrame) {
     const traceIndexByNodeId = buildResolvedLinkTraceIndexMap(
       finalFrame.workspaceForest || [], movementChainIndexCatalogue.links, Number.MAX_SAFE_INTEGER,
       movementChainIndexCatalogue
     );
-    const steps = buildPlaybackStepsFromDerivationFrames({
-      frames: replayDerivationFrames,
-      sentence,
-      replayPlan: derivationReplayPlan,
-      inputTokens,
-      frameRelations
-    });
     playbackSteps = applyPreFrontingSentenceInitialCasing(
-      decoratePlaybackStepsWithTraceIndices(steps, traceIndexByNodeId), sentence, inputTokens
+      decoratePlaybackStepsWithTraceIndices(scheduledSteps, traceIndexByNodeId), sentence, inputTokens
     );
   }
-  // The plan follows the order in which Replay plays each stage's moments.
   const relationPlan = hasStages ? compileDispatchedRelationRenderPlan(relationClaims,
-    includePlayback ? { relationMomentOrders: relationMomentOrders(playbackSteps, replayDerivationFrames.length) } : {}) : null;
+    { relationMomentOrders: relationMomentOrders(scheduledSteps, replayDerivationFrames.length) }) : null;
   // Realized forms join the plan once Replay has decided when each association is active.
   const relationRenderPlan = relationPlan && withRealizationDisplays(relationPlan, replayDerivationFrames,
     { sentence, inputTokens, ...(includePlayback ? { steps: playbackSteps } : {}) });

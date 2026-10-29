@@ -1,5 +1,6 @@
 import type { SyntaxNode } from '../../types.ts';
 import type { RelationStage } from '../relationStages.ts';
+import { railEntrySequence, type LargeAnchorSet } from './largeAnchorSets.ts';
 import type { PlaybackStep } from '../types.ts';
 import { isPlanItemRevealed, type AnchorSetPlanItem, type RelationRenderPlan } from './renderPlan.ts';
 
@@ -7,6 +8,18 @@ import { isPlanItemRevealed, type AnchorSetPlanItem, type RelationRenderPlan } f
  * renderer merges these items into one rail per role. */
 const railKey = (item: AnchorSetPlanItem): string =>
   JSON.stringify([item.set.stageIndex, item.set.relationIndex, item.set.instanceIndex]);
+
+/** A rail's entries across the items that materialize it. */
+const railEntries = (items: readonly AnchorSetPlanItem[]): string => {
+  const roles = new Map<number, LargeAnchorSet['roles'][number]>();
+  for (const item of items) for (const role of item.set.roles) {
+    const known = roles.get(role.roleIndex);
+    const anchors = [...known?.anchors ?? [], ...role.anchors.filter(anchor =>
+      !known?.anchors.some(other => other.arrayIndex === anchor.arrayIndex && other.nodeId === anchor.nodeId))];
+    roles.set(role.roleIndex, { ...role, large: role.large || Boolean(known?.large), anchors });
+  }
+  return railEntrySequence([...roles.values()]);
+};
 
 /** Each node's span of terminal positions, in forest order. A badge sits at its
  * node's centre, which lies within that span, so rails whose spans are disjoint
@@ -50,12 +63,14 @@ const bandWidth = (items: readonly AnchorSetPlanItem[]): number => {
  * Each stage is played as its stage entry, then each relation moment in the
  * order Replay plays them (`momentOrders`, authored order for a stage it does
  * not list), then the completed stage. Two rails conflict when some such
- * step shows both and their entries' terminal spans overlap. In order of first
- * appearance, a rail takes the lowest band that no conflicting rail already
- * holds, so a lone rail keeps band 0 and paints as before, a later rail never
- * moves an earlier one, and rails shown together never share a lane or a
- * badge position. A rail that replaces another appears at its own moment and
- * may take the band its predecessor leaves.
+ * step shows both and their entries' terminal spans overlap, unless they
+ * number the same entry sequence (`railEntrySequence`): such restatements
+ * draw one rail and share one band. In order of first appearance, a rail takes
+ * the lowest band that no conflicting rail already holds, so a lone rail keeps
+ * band 0 and paints as before, a later rail never moves an earlier one, and
+ * different rails shown together never share a lane or a badge position.
+ * A rail that replaces another with a different sequence appears at its own
+ * moment and may take the band its predecessor leaves.
  */
 export const assignAnchorRailBands = (
   frames: RelationRenderPlan['frames'],
@@ -105,18 +120,30 @@ export const assignAnchorRailBands = (
         }));
     }
   });
-  const bands = new Map<string, [number, number]>();
+  // Rails numbering one entry sequence hold one band, from the first of them
+  // to appear, and never conflict with each other.
+  const groupOf = new Map([...itemsByRail].map(([key, items]) => [key, railEntries(items)]));
+  const groupItems = new Map<string, AnchorSetPlanItem[]>();
+  const groupConflicts = new Map<string, Set<string>>();
   for (const key of order) {
-    const width = bandWidth(itemsByRail.get(key)!);
-    const taken = [...conflicts.get(key) ?? []].flatMap(other => bands.has(other) ? [bands.get(other)!] : []);
+    const group = groupOf.get(key)!;
+    groupItems.set(group, [...groupItems.get(group) ?? [], ...itemsByRail.get(key)!]);
+    const blocked = groupConflicts.get(group) ?? new Set<string>();
+    conflicts.get(key)?.forEach(other => { if (groupOf.get(other) !== group) blocked.add(groupOf.get(other)!); });
+    groupConflicts.set(group, blocked);
+  }
+  const bands = new Map<string, [number, number]>();
+  for (const [group, items] of groupItems) {
+    const width = bandWidth(items);
+    const taken = [...groupConflicts.get(group)!].flatMap(other => bands.has(other) ? [bands.get(other)!] : []);
     let start = 0;
     for (;;) {
       const blocking = taken.find(([otherStart, otherWidth]) => start < otherStart + otherWidth && otherStart < start + width);
       if (!blocking) break;
       start = blocking[0] + blocking[1];
     }
-    bands.set(key, [start, width]);
-    if (start > 0) itemsByRail.get(key)!.forEach(item => { item.railBand = start; });
+    bands.set(group, [start, width]);
+    if (start > 0) items.forEach(item => { item.railBand = start; });
   }
 };
 

@@ -7,7 +7,7 @@ import { assignAnchorRailBands } from './anchorRailBands.ts';
 import { domainPlan } from './domainPlan.ts';
 import { fallbackDrawing } from './fallbackTopology.ts';
 import { featurePlan } from './featurePlan.ts';
-import { LARGE_ANCHOR_ARRAY_THRESHOLD, compileLargeAnchorSets } from './largeAnchorSets.ts';
+import { LARGE_ANCHOR_ARRAY_THRESHOLD, compileLargeAnchorSets, railEntrySequence } from './largeAnchorSets.ts';
 import { movementPlan } from './movementPlan.ts';
 import { pfPlan } from './pfPlan.ts';
 import { createPlanCoalescer } from './planCoalescence.ts';
@@ -665,11 +665,12 @@ export const compileDispatchedRelationRenderPlan = (
         // persistent drawing. When its claim draws nothing but neutral marks,
         // it keeps the recognized rail's lifetime (Francis, 27 Oct 2026). A
         // neutral role beside a recognized one still lends no lifetime.
-        // Its identity, like a recognized claim's replacement thread, is its
-        // participants: the exact entries it numbers, whatever the relation or
-        // role is called. A later rail over exactly the same entries replaces
-        // it at that moment; a subset or superset is another claim and stands
-        // beside it (planPersistence.ts).
+        // Its identity, like a recognized claim's replacement thread, is the
+        // ordered sequence of entries it numbers (`railEntrySequence`),
+        // whatever the relation or role is called. A later rail with exactly
+        // that sequence replaces it at that moment; a subset, superset or
+        // reordering numbers differently, so it is another claim and stands
+        // beside it on its own band (planPersistence.ts, anchorRailBands.ts).
         const ownLifetime = owner.kind === 'fallback' && relationItems.every(item => item.kind === 'fallback');
         const companion: AnchorSetPlanItem = {
           kind: 'anchor-set',
@@ -677,7 +678,7 @@ export const compileDispatchedRelationRenderPlan = (
           appearsAtStage: owner.appearsAtStage,
           persistence: ownLifetime ? 'replace-previous-instance' : owner.persistence,
           ...(ownLifetime ? { replacementGroup: JSON.stringify({ organization: 'large-anchor-set',
-            participants: [...new Set(roles.flatMap(role => role.anchors.map(anchor => anchor.nodeId)))].sort() }) } : {}),
+            entries: railEntrySequence(roles) }) } : {}),
           backward: owner.backward,
           priorWitnessNodeIds: owner.priorWitnessNodeIds,
           tier2WitnessNodeIds: planItemDependencyNodeIds(owner),
