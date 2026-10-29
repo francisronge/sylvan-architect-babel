@@ -13,10 +13,12 @@ const CONCURRENCY = 2;
 
 // Approximate standalone seconds of the files that take two or more (measured
 // one file at a time on an M-series Mac, three at once); unlisted files weigh 1.
-// replayCorpusLayout.test.mjs spreads its sweep over worker threads.
 // Weights only balance the shards. A stale or missing weight never drops a file.
 const WEIGHTS = new Map([
-  ['replayCorpusLayout.test.mjs', 25],
+  ['replayCorpusLayoutPart1.test.mjs', 20],
+  ['replayCorpusLayoutPart2.test.mjs', 20],
+  ['replayCorpusLayoutPart3.test.mjs', 20],
+  ['replayCorpusLayoutPart4.test.mjs', 20],
   ['spelloutContract.test.mjs', 21],
   ['bareLabelParity.test.mjs', 19],
   ['partsListContract.test.mjs', 19],

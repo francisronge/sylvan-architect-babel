@@ -1,16 +1,18 @@
-/** The layout sweep of tests/replayCorpusLayout.test.mjs. Every committed analysis
- * is laid out in each reading direction with the unmeasured Replay layout of
- * scripts/replayFrameLayout.mjs, which the layout continuity tests check. The
- * contour sweep reads the left-to-right plans. The mirror check compares every
- * right-to-left frame with the left-to-right one, so a continuity check that
- * runs left to right also holds right to left wherever the mirror holds;
- * tests/helpers/rtlMirror.mjs lists where it does not.
+/** The layout sweep of tests/replayCorpusLayoutPart*.test.mjs. Every committed
+ * analysis is laid out in each reading direction with the unmeasured Replay
+ * layout of scripts/replayFrameLayout.mjs, which the layout continuity tests
+ * check. The contour sweep reads the left-to-right plans. The mirror check
+ * compares every right-to-left frame with the left-to-right one, so a continuity
+ * check that runs left to right also holds right to left wherever the mirror
+ * holds; tests/helpers/rtlMirror.mjs lists where it does not.
  *
- * Records are independent, so `sweepFixtureLayouts` spreads them over worker
- * threads; each thread loads the same committed analyses and sweeps the records
- * it is handed, and the results come back in record order. */
-import { availableParallelism } from 'node:os';
-import { Worker, isMainThread, parentPort } from 'node:worker_threads';
+ * The analyses are split into LAYOUT_SWEEP_PARTS parts, one test file each, so
+ * the test runner and CI shards spread them out. Every analysis belongs to
+ * exactly one part, and each part judges its own analyses; part 1 also judges
+ * listed analyses that no longer exist. */
+import assert from 'node:assert/strict';
+import { existsSync, readdirSync } from 'node:fs';
+import test, { before } from 'node:test';
 import * as d3 from 'd3';
 
 import * as display from '../../replay/displayIdentity.ts';
@@ -21,6 +23,15 @@ import * as layout from '../../replay/treeLayout.ts';
 import { TREE_ROW_HEIGHT } from '../../replay/treeSpacing.ts';
 import { layoutReplayFrames } from '../../scripts/replayFrameLayout.mjs';
 import { loadFixtureAnalyses } from './replayInvariantCorpus.mjs';
+import { MIRROR_EXCEPTIONS } from './rtlMirror.mjs';
+
+export const LAYOUT_SWEEP_PARTS = 4;
+const partFile = part => `replayCorpusLayoutPart${part}.test.mjs`;
+const TESTS = new URL('../', import.meta.url);
+
+// The analyses whose contour plans are repaired, as their established layout.
+const REPAIRED = ['replay-regressions/diverse-recovery.json#/examples/5/analysis',
+  'replay-regressions/es-wh-phase-edge-contour.json#', 'replay-regressions/hi-correlative-landing-contour.json#'];
 
 // The viewports at which the continuity tests lay out committed analyses.
 // Stage sizes do not depend on the viewport today, so each record is laid out
@@ -89,37 +100,64 @@ function mirrorDeviation(ltr, rtl) {
     detail: `stage axes ${[...axes].map(([stage, { axis }]) => `${stage + 1}:${axis}`).join(' ')}` } : null;
 }
 
-/** Every committed analysis's sweep, in record order, from up to `jobs` threads. */
-export function sweepFixtureLayouts(jobs = Math.min(4, availableParallelism())) {
-  const count = loadFixtureAnalyses().records.length, results = new Array(count);
-  if (!count) return Promise.resolve([]);
-  return new Promise((resolve, reject) => {
-    let next = 0, done = 0, failed = false;
-    const workers = Array.from({ length: Math.max(1, Math.min(jobs, count)) }, () => new Worker(new URL(import.meta.url)));
-    const finish = error => {
-      if (failed) return;
-      if (error) failed = true;
-      workers.forEach(worker => worker.terminate());
-      error ? reject(error) : resolve(results);
-    };
-    const feed = worker => { if (next < count) worker.postMessage(next++); };
-    for (const worker of workers) {
-      worker.on('message', ({ index, result, error }) => {
-        if (error) { finish(Error(`Sweeping record ${index} failed: ${error}`)); return; }
-        results[index] = result;
-        if (++done === count) finish(); else feed(worker);
-      });
-      worker.on('error', finish);
-      worker.on('exit', code => { if (code && done < count) finish(Error(`A layout sweep worker exited with code ${code}`)); });
-      feed(worker);
-    }
-  });
+/** The part (1-based) of each record: heaviest first by syntax nodes over its
+ * stages, each to the part with the least so far, ties to the lower part. */
+export function layoutSweepParts(records, parts = LAYOUT_SWEEP_PARTS) {
+  const cost = ({ record }) => {
+    let nodes = 0;
+    const visit = node => { nodes++; (node.children ?? []).forEach(visit); };
+    for (const stage of record.derivationStages) stage.workspaceForest.forEach(visit);
+    return nodes;
+  };
+  const costs = records.map(cost), load = new Array(parts).fill(0), assigned = new Array(records.length);
+  const order = records.map((_, index) => index).sort((a, b) => costs[b] - costs[a] || a - b);
+  for (const index of order) {
+    const lightest = load.indexOf(Math.min(...load));
+    load[lightest] += costs[index];
+    assigned[index] = lightest + 1;
+  }
+  return assigned;
 }
 
-if (!isMainThread) {
-  const records = loadFixtureAnalyses().records;
-  parentPort.on('message', index => {
-    try { parentPort.postMessage({ index, result: sweepRecord(records[index]) }); }
-    catch (error) { parentPort.postMessage({ index, error: error?.stack ?? String(error) }); }
+/** Defines part `part`'s tests. */
+export function defineLayoutSweepTests(part) {
+  let records, own, sweep;
+  before(() => {
+    records = loadFixtureAnalyses().records;
+    const parts = layoutSweepParts(records);
+    own = new Set(records.filter((_, index) => parts[index] === part).map(({ id }) => id));
+    sweep = records.filter(({ id }) => own.has(id)).map(sweepRecord);
+  });
+  const recordOf = key => key.slice(0, key.indexOf(' '));
+
+  test(`the layout sweep has ${LAYOUT_SWEEP_PARTS} parts, one file each, and part ${part} sweeps its analyses`, () => {
+    const files = readdirSync(TESTS).filter(file => /^replayCorpusLayoutPart\d+\.test\.mjs$/.test(file)).sort();
+    assert.deepEqual(files, Array.from({ length: LAYOUT_SWEEP_PARTS }, (_, index) => partFile(index + 1)).sort());
+    assert.ok(existsSync(new URL(partFile(part), TESTS)) && own.size > 0);
+    const parts = layoutSweepParts(records);
+    assert.ok(parts.every(value => Number.isInteger(value) && value >= 1 && value <= LAYOUT_SWEEP_PARTS));
+  });
+
+  test(`no committed fixture is left with interleaved sister contours (part ${part})`, () => {
+    assert.deepEqual(sweep.flatMap(entry => entry.offGrid), []);
+    assert.deepEqual(sweep.filter(entry => entry.statuses.includes('unresolved')).map(entry => entry.id), []);
+    assert.deepEqual(sweep.filter(entry => !entry.statuses.includes('unresolved') && entry.statuses.includes('repaired'))
+      .map(entry => entry.id).sort(), REPAIRED.filter(id => own.has(id)).sort(),
+    'a newly repaired fixture changes its established layout; review it and list it in REPAIRED');
+    if (part === 1) assert.deepEqual(REPAIRED.filter(id => !records.some(record => record.id === id)), [],
+      'listed repaired analyses that no longer exist');
+  });
+
+  test(`right-to-left Replay is the reflection of left-to-right on every frame of every committed analysis (part ${part})`, () => {
+    const found = sweep.flatMap(entry => entry.deviations.map(deviation => ({ id: entry.id, ...deviation })));
+    const key = ({ id, kind, frame }) => `${id} ${kind}${frame === null ? '' : ` frame ${frame}`}`;
+    const keys = new Set(found.map(key));
+    assert.deepEqual(found.filter(item => !MIRROR_EXCEPTIONS.has(key(item)))
+      .map(item => `${key(item)} at ${item.viewport.join('x')}: ${item.detail}`),
+    [], 'new right-to-left departures from the reflected left-to-right layout');
+    const ids = new Set(records.map(({ id }) => id));
+    assert.deepEqual([...MIRROR_EXCEPTIONS].filter(item => own.has(recordOf(item)) ? !keys.has(item)
+      : part === 1 && !ids.has(recordOf(item))), [],
+    'listed departures that no longer occur; remove them from tests/helpers/rtlMirror.mjs');
   });
 }
