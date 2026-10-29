@@ -42,9 +42,14 @@ const normalizeSynonymText = boundedStringTransform((value: string) => value
 
 export const normalizeTier2Synonym = (value: unknown): string => normalizeSynonymText(String(value ?? ''));
 
-/** One feature label written as notation, such as `+wh` or `+hon`: a single
- * whitespace-free token. Prose such as `operator binding (aL)` is not notation. */
+/** One feature label written as notation, such as `+wh`, `−hon` or `[+Q]`: a
+ * single valued feature, its sign before its name. A bare word such as `yes`,
+ * `no` or `Rel`, or prose such as `operator binding (aL)`, states no value. */
 export const isNotationFeatureLabel = (value: unknown): boolean => typeof value === 'string'
+  && /^(?:\[[+\-−][\p{L}\p{N}][^\s[\]]*\]|[+\-−][\p{L}\p{N}]\S*)$/u.test(value.trim().normalize('NFKC'));
+
+/** One feature value, such as `3`, `sg` or `masculine`: a whitespace-free token, not prose. */
+const isFeatureValueToken = (value: unknown): boolean => typeof value === 'string'
   && /^\S+$/u.test(value.trim()) && /[\p{L}\p{N}]/u.test(value);
 
 /** An explicitly default feature value does not identify its controller. */
@@ -366,6 +371,12 @@ const caseLiteralIdentity = (value: string) => {
   const normalized = normalizeTier2Synonym(value);
   return CASE_NOTATION.get(normalized) ?? normalized;
 };
+/** A same-name nominal value the Case reader accepts as Case: a conventional
+ * Case name or abbreviation, or a literal that names Case itself. */
+const isSameNameCaseLiteral = (value: unknown) => {
+  const literal = caseLiteralIdentity(String(value));
+  return [...CASE_NOTATION.values()].includes(literal) || /\bcase\b/u.test(literal);
+};
 
 // Direction is insufficient: the qualifier must itself identify Case or match
 // an independently authored Case value. A spatial/semantic goal is not a Case goal.
@@ -649,13 +660,17 @@ export const relationRoleConcepts = (
   // A values entry with an argument field's own name and length lists that
   // field's role labels: the recipe pairs it as role.label (sameNameEntryServes).
   // It lets a directional assigner act as the predicate only when no explicit
-  // predicate is named; it does not reassign a claim that names one.
+  // predicate is named; it does not reassign a claim that names one. The same
+  // entry can instead give the argument's Case, so the list must be role labels:
+  // no item is a Case value and at least one names a known thematic role.
   const sameNameArgumentLabels = !explicitThematicPredicate && currentEntries.some(([role, ids]) => {
     const count = Array.isArray(ids) ? ids.length : typeof ids === 'string' ? 1 : 0;
     const literal = context.values?.[role];
+    const items = Array.isArray(literal) ? literal : [literal];
     return count > 0 && lookupTier2SynonymCandidates(index, 'role', role).includes('theta.arguments')
-      && (Array.isArray(literal) ? literal.length : 1) === count && nonBlankLiteral(literal)
-      && (Array.isArray(literal) ? literal : [literal]).every(item => typeof item === 'string' && item.trim());
+      && items.length === count && nonBlankLiteral(literal)
+      && items.every(item => typeof item === 'string' && item.trim() && !isSameNameCaseLiteral(item))
+      && items.some(item => namedThematicRole(item));
   });
   const thetaDomain = typedThetaAssignment || sameNameArgumentLabels || namedInventory && explicitThematicPredicate || Object.keys(context.anchors ?? {}).some(role => namedThematicValue(role) ||
     valueNamesThematicParticipant(role) ||
@@ -767,7 +782,7 @@ export const relationRoleConcepts = (
     });
   };
   const pairedNominalValue = pairedNominalValueFor(key) && (assertedNominalCaseFor(key)
-    || nominalCaseValues(key).every(literal => [...CASE_NOTATION.values()].includes(literal) || /\bcase\b/u.test(literal)));
+    || nominalCaseValues(key).every(isSameNameCaseLiteral));
   const assertedNominalCase = Object.keys(context.anchors ?? {}).some(assertedNominalCaseFor);
   const qualifiedCaseValue = ownCount === 1 && Object.entries(context.values ?? {}).some(([valueKey, literal]) =>
     normalizeTier2Synonym(valueKey) === `${normalizeTier2Synonym(key)} case`
@@ -940,10 +955,15 @@ export const relationRoleConcepts = (
       if (spelling === 'controller') concepts.add('goal');
     }
     // Generic head and specifier roles need agreement content: a field named
-    // for agreement or for one phi dimension. A generic features field may be prose.
-    if (roles.has('head') && roles.has('specifier') && Object.keys(context.values ?? {}).some(key =>
-      FEATURE_DIMENSION_KEYS.has(normalizeTier2Synonym(key))
-        || ['agreement', 'agreement features', 'phi features'].includes(normalizeTier2Synonym(key)))) applyHeadSpecifierPair();
+    // for agreement, or a phi bundle of at least two dimension fields each
+    // written as a feature value. One dimension alone, such as the number of
+    // an EPP specifier, or a dimension described in prose, is not agreement.
+    // A generic features field may be prose.
+    const phiBundle = Object.entries(context.values ?? {}).filter(([key]) => FEATURE_DIMENSION_KEYS.has(normalizeTier2Synonym(key)));
+    if (roles.has('head') && roles.has('specifier') && (Object.keys(context.values ?? {}).some(key =>
+      ['agreement', 'agreement features', 'phi features'].includes(normalizeTier2Synonym(key)))
+      || new Set(phiBundle.map(([key]) => normalizeTier2Synonym(key))).size >= 2
+        && phiBundle.every(([, value]) => isFeatureValueToken(value)))) applyHeadSpecifierPair();
   }
   // Without feature rows, one feature label in notation is the content of a
   // head-specifier or named agreement pair (approved by Francis, 27 Oct 2026).
@@ -951,7 +971,8 @@ export const relationRoleConcepts = (
   // for these pairs, not for any directed source and target.
   const featureLabels = Object.entries(context.values ?? {}).filter(([valueKey]) =>
     relationValueConcepts(index, valueKey, context).includes('feature.label'));
-  if (!hasLiteral('feature.rows') && featureLabels.length === 1 && isNotationFeatureLabel(featureLabels[0][1])
+  // A Case literal makes the claim a Case claim; the label is then not its whole content.
+  if (!hasLiteral('feature.rows') && !hasLiteral('case.literal') && featureLabels.length === 1 && isNotationFeatureLabel(featureLabels[0][1])
     && (namedAgreementPair || roles.has('head') && roles.has('specifier'))) {
     if (namedAgreementPair) applyNamedAgreementPair();
     else applyHeadSpecifierPair();

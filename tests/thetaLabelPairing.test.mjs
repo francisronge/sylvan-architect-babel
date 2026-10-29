@@ -68,3 +68,26 @@ test('a theta-marking claim names its assigner and recipient as a theta grid', (
   assert.equal(grid({ relation: 'theta-marking', anchors: { assigner: 'v', recipient: 'object' } }), undefined);
   assert.equal(grid({ relation: 'case marking', anchors: { assigner: 'v', recipient: 'object' }, values: { role: 'Theme' } }), undefined);
 });
+
+test('a same-name Case value is not a role label', () => {
+  // On main this drew the Case path alone; the value must not also become a theta grid.
+  const relation = { relation: 'UnregisteredAnalysis', anchors: { assigner: 'v', argument: 'object' }, values: { argument: 'accusative' } };
+  assert.equal(grid(relation), undefined);
+  assert.deepEqual(plan(relation).filter(item => item.kind === 'directed-path').map(item => [item.fromNodeId, item.toNodeId, item.label]),
+    [['v', 'object', 'accusative']]);
+  // A Case abbreviation, a mixed list and a value no thematic role names pair nothing as roles.
+  for (const values of [{ argument: 'ACC' }, { argument: 'partitive' }]) {
+    assert.equal(grid({ ...relation, values }), undefined, JSON.stringify(values));
+  }
+  assert.equal(grid({ relation: 'UnregisteredAnalysis', anchors: { assigner: 'v', argument: ['object', 'pp'] },
+    values: { argument: ['Theme', 'accusative'] } }), undefined);
+});
+
+test('a field the role list and its own entry label differently stays neutral', () => {
+  const relation = { relation: 'theta assignment', anchors: { predicate: 'v', agent: 'subject', theme: 'object' },
+    values: { roles: ['Agent', 'Theme'], theme: 'Patient' } };
+  assert(plan(relation).every(item => item.kind === 'fallback'));
+  // Two labels that agree are one label.
+  assert.deepEqual(rows(grid({ ...relation, values: { roles: ['Agent', 'Theme'], theme: 'Theme' } })),
+    [['subject', 'Agent'], ['object', 'Theme']]);
+});

@@ -477,6 +477,19 @@ test('head and specifier agreement reads phi dimension fields as agreement conte
   ]) assert(!dispatch(relation).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
 });
 
+test('one phi dimension, or a dimension in prose, is not head and specifier agreement', () => {
+  // A specifier's number alone, as in an EPP claim, or a prose description, says nothing about matching.
+  for (const relation of [
+    { relation: 'EPP', anchors: { head: 'source', specifier: 'argument' }, values: { number: 'sg' } },
+    { relation: 'spec-head', anchors: { head: 'source', specifier: 'argument' }, values: { number: 'the subject is plural so the verb is too' } },
+    { relation: 'spec-head agreement', anchors: { head: 'source', specifier: 'argument' }, values: { person: '3', number: 'plural because the subject is' } },
+    { relation: 'Case assignment', anchors: { head: 'source', specifier: 'argument' }, values: { case: 'nominative', number: 'sg' } }
+  ]) {
+    assert(!dispatch(relation).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
+    assert(plan(relation).every(item => item.kind === 'fallback'), JSON.stringify(relation));
+  }
+});
+
 test('an anchored tense head and subject head recover finite features without treating a generic tense anchor as a head', () => {
   const currentForest = [{ id: 'tp', label: 'TP', children: [
     { id: 'subject', label: 'DP', children: [{ id: 'subjectN', label: 'N', word: 'children' }] },

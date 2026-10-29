@@ -29,3 +29,26 @@ test('a feature label that is prose, or competes with another, draws no dependen
   assert.deepEqual(connectors({ relation: 'spec-head-agreement', anchors: { specifier: 'who', head: 'who' }, values: { feature: '+wh' } }), []);
   assert.deepEqual(connectors({ relation: 'c-selection', anchors: { selector: 'c', selectee: 'ip' }, values: { feature: '+finite' } }), []);
 });
+
+const neutral = relation => items(relation).every(item => item.kind === 'fallback');
+
+test('a Case claim that also carries a feature label stays a Case claim, not a labelled dependency', () => {
+  // The label alone is a dependency's whole content; beside a Case literal it is not.
+  assert(neutral({ relation: 'Case assignment', anchors: { specifier: 'subject', head: 'infl' },
+    values: { case: 'nominative', feature: '+wh' } }));
+  assert(neutral({ relation: 'Case', anchors: { head: 'infl', specifier: 'subject' }, values: { feature: '+hon', case: 'nom' } }));
+});
+
+test('only a signed feature is a label; a bare word states no feature value', () => {
+  for (const feature of ['yes', 'no', 'none', 'false', 'unvalued', 'Rel', '±wh', '-']) {
+    assert(neutral({ relation: 'spec-head agreement', anchors: { specifier: 'who', head: 'c' }, values: { feature } }), feature);
+  }
+  for (const feature of ['-wh', '−wh', '[+Q]']) {
+    assert.deepEqual(connectors({ relation: 'spec-head agreement', anchors: { specifier: 'who', head: 'c' }, values: { feature } }),
+      [['c', 'who', feature]], feature);
+  }
+  // A probe and goal already draw their connector; an unsigned label stays beside it, as before.
+  const probeGoal = items({ relation: 'relAgree', anchors: { probe: 'c', goal: 'who' }, values: { feature: 'rel' } });
+  assert.deepEqual(probeGoal.filter(item => item.kind === 'directed-path').map(item => item.label ?? null), [null]);
+  assert(probeGoal.some(item => item.kind === 'fallback'));
+});

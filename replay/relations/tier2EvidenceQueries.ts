@@ -233,7 +233,7 @@ export const sameNameValueEntries = (
       && /(?:^| )role$/u.test(normalizeTier2Synonym(candidate.key))
       && [normalizeTier2Synonym(anchorEntry.key), namedThematicRole(anchorEntry.key)].includes(normalizeTier2Synonym(candidate.items[0]))) : [];
   // A role-label list that names each argument field gives this field the literal naming it.
-  const listed = !matches.length && !qualified.length && !named.length && (!role || role === 'theta.arguments')
+  const listed = (!role || role === 'theta.arguments')
     && anchorEntry.concepts.includes('theta.arguments') && anchorEntry.items.length === 1
     ? entries.flatMap(candidate => {
       const index = candidate.concepts.includes('role.label') && candidate.items.length > 1
@@ -241,7 +241,13 @@ export const sameNameValueEntries = (
         : undefined;
       return index === undefined ? [] : [{ key: candidate.key, concepts: candidate.concepts, items: [candidate.items[index]] }];
     }) : [];
-  return (matches.length ? matches : qualified.length ? qualified : named.length ? named : listed)
+  const primary = matches.length ? matches : qualified.length ? qualified : named;
+  // A field labelled both by the list and by another entry keeps both only when
+  // they disagree: the competing candidates leave the pairing ambiguous, so
+  // neither label is chosen silently.
+  const conflicting = primary.length > 0 && listed.length > 0 && primary.some(entry => entry.items.length !== 1
+    || listed.some(item => normalizeTier2Synonym(item.items[0]) !== normalizeTier2Synonym(entry.items[0])));
+  return (conflicting ? [...primary, ...listed] : primary.length ? primary : listed)
     .map(entry => ({ ...entry, anchorLength: anchorEntry.items.length }));
 };
 

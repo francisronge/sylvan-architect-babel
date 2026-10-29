@@ -576,15 +576,19 @@ Missing, competing, denied and provisional evidence stays unresolved.
 
 Agreement-qualified goals also bind the registered Agree signature. A finite
 head and subject with explicit feature values, or a head and specifier with an
-explicit agreement value or a person, number or gender value, can establish a
-feature dependency. A generic features field beside a head and specifier may be
-prose and does not establish it. Without feature rows or Case, one feature label
-written as notation, a single whitespace-free token such as `+wh` or `+hon`, is
-the whole content of a head-specifier or named agreement pair (the owner
-approved this on 27 Oct 2026). Any dependency whose only content is such a label
-shows it on its connector instead of leaving it as a neutral mark. Prose labels,
-competing labels and other directed pairs, such as a licensor and licensee,
-still need feature rows or explicit probe and goal roles. A finite head and
+explicit agreement value or a phi bundle, at least two of person, number and
+gender each written as one feature value token, can establish a feature
+dependency. One dimension alone, such as `{head, specifier}` with `number: sg`
+in an EPP claim, a dimension described in prose, or a generic features field
+does not establish it. Without feature rows or Case, one feature label written
+as notation, a signed feature such as `+wh`, `−hon` or `[+Q]`, is the whole
+content of a head-specifier or named agreement pair (the owner approved this on
+27 Oct 2026). Any dependency whose only content is such a label shows it on its
+connector instead of leaving it as a neutral mark. A bare word such as `yes`,
+`no` or `Rel` states no feature value and stays neutral; a Case literal beside
+the label makes the claim a Case claim, which the label does not complete.
+Prose labels, competing labels and other directed pairs, such as a licensor and
+licensee, still need feature rows or explicit probe and goal roles. A finite head and
 subject do not establish a controller for explicitly default agreement rows; those
 literal rows remain authored evidence unless a dependency is independently
 anchored. An explicit probe/goal claim keeps its own authority. Governing heads
@@ -633,16 +637,21 @@ role literals take precedence. The exact key-to-node associations participate in
 drawing identity, so swapping two roles cannot reuse the earlier grid.
 An argument field's same-name, same-length values list supplies its role labels,
 so it also establishes the thematic domain beside a directional assigner:
-`{assigner, argument: [a, b]}` with `argument: [Theme, Source]` is one grid. A
-claim that names its predicate keeps its existing reading; the list does not
-move the grid onto an introducer or assigner.
+`{assigner, argument: [a, b]}` with `argument: [Theme, Source]` is one grid. The
+same entry can instead give the argument's Case, so it establishes the domain
+only when no item is a Case value the Case reader accepts and at least one item
+names a known thematic role; `argument: accusative` stays a Case path and
+`argument: partitive` stays neutral. A claim that names its predicate keeps its
+existing reading; the list does not move the grid onto an introducer or assigner.
 A role-label list beside an explicit predicate pairs by name, never by position,
 when each literal names a different participant field of the claim:
 `{predicate, speaker, content}` with `roles: [Speaker, Content]` labels both
 fields, in either list order, and a named field is a participant whatever its
 direction word, so `source` named by the list is not the grid's source. A
 literal that names no field or names a field twice pairs nothing, and without
-an explicit predicate the list establishes no participants.
+an explicit predicate the list establishes no participants. When the list and
+the field's own entry label one field differently, as `roles: [Agent, Theme]`
+beside `theme: Patient`, neither label is chosen and the claim stays neutral.
 
 Matching Case-qualified source and recipient fields can identify an assignment
 without a separate values entry. A nominative assigner and nominative DP form
