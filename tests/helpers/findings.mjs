@@ -157,15 +157,18 @@ export function approvalProblem(entry) {
   return null;
 }
 
-/** An approval is a record of the owner's words. It may be replaced only by a
- * new approval for a value the old one does not accept; otherwise its owner,
- * date, note and accepted value stay exactly as written. */
+/** An approval is a record of the owner's words. While its entry stays
+ * within what it accepts, its owner, date and note stay exactly as written
+ * (its `accepts` may narrow with the entry) and it is never removed. A new
+ * approval for a value the old one does not accept may follow it, never
+ * dated earlier. Returns what was changed, or null. */
 function approvalRewritten(previous, entry) {
   const before = previous?.approval, after = entry.approval;
-  if (!before || !after || JSON.stringify(before) === JSON.stringify(after)) return false;
-  if (!growthOf({ at: before.accepts }, entry).length) return true;
-  // A new approval keeps the record of the old one: its note and no earlier date.
-  return typeof before.note === 'string' && !String(after.note).includes(before.note) || String(after.on) < String(before.on);
+  if (!before) return null;
+  if (!after) return 'removed';
+  if (growthOf({ at: before.accepts }, entry).length) return String(after.on) < String(before.on) ? 'dated earlier' : null;
+  const changed = ['by', 'on', 'note'].filter(field => String(before[field] ?? '').trim() !== String(after[field] ?? '').trim());
+  return changed.length ? changed.join(', ') : null;
 }
 
 /** Compares exception lists (`{ name: entries }`, keyed by file and export)
@@ -184,9 +187,12 @@ export function exceptionGrowth(base, head) {
       const grown = growthOf(previous, entry);
       const problem = (grown.length || entry.approval) && approvalProblem(entry);
       if (problem) problems.push({ name, grown, problem });
-      else if (approvalRewritten(previous, entry)) problems.push({ name, grown, problem: 'its existing approval was edited. An '
-        + 'approval records what the owner said, when and where. It changes only when he accepts a value the old approval does '
-        + 'not, and the new approval keeps the old note and is not dated earlier' });
+      else {
+        const edit = approvalRewritten(previous, entry);
+        if (edit) problems.push({ name, grown, problem: `its existing approval was edited (${edit}). An approval records what the `
+          + 'owner said, when and where: keep its by, on and note exactly as written. Only a new approval for a value the old one '
+          + 'does not accept may replace it, and never with an earlier date' });
+      }
     }
   }
   return problems;

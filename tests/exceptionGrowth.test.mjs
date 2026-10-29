@@ -107,11 +107,14 @@ test('an existing approval is a record of the owner\'s words: #285 rewrote one\'
   const base = { ...plaque({ desktop: { '33-38': 410 } }), approval: given };
   const narrowed = plaque({ desktop: { '36-38': 410 } });
   assert.deepEqual(growth([base], [{ ...narrowed, approval: given }]), [], 'narrowing under the same approval needs nothing');
-  const rewritten = { ...narrowed, approval: { ...given, on: '2026-10-27', note: 'takes this pocket a step early instead of jumping' } };
-  assert.match(growth([base], [rewritten])[0]?.problem ?? '', /existing approval was edited/);
+  assert.deepEqual(growth([base], [{ ...narrowed, approval: { note: given.note, accepts: narrowed.at, on: given.on, by: given.by } }]), [],
+    'its accepted value may narrow with the entry, in any key order');
+  const edited = growth([base], [{ ...narrowed, approval: { ...given, on: '2026-10-27', note: 'takes this pocket a step early' } }]);
+  assert.match(edited[0]?.problem ?? '', /existing approval was edited \(on, note\)/);
+  assert.match(growth([base], [narrowed])[0]?.problem ?? '', /edited \(removed\)/, 'an approval is never removed');
   const grown = plaque({ desktop: { '33-39': 410 } });
-  assert.deepEqual(growth([base], [{ ...grown, approval: { ...given, on: '2026-10-29', note: `${given.note} Chat, 29 Oct: frame 39 too.`,
-    accepts: grown.at } }]), [], 'keeping the old note');
-  assert.match(growth([base], [{ ...grown, approval: { ...given, on: '2026-10-29', note: 'Chat: accepted frame 39 too', accepts: grown.at } }])[0]
-    ?.problem ?? '', /existing approval was edited/, 'but not by erasing the old record');
+  assert.deepEqual(growth([base], [{ ...grown, approval: { by: 'Francis Ronge', on: '2026-10-29', note: 'Chat: frame 39 too',
+    accepts: grown.at } }]), [], 'a new approval for a value the old one does not accept may replace it');
+  assert.match(growth([base], [{ ...grown, approval: { by: 'Francis Ronge', on: '2026-10-20', note: 'Chat: frame 39 too',
+    accepts: grown.at } }])[0]?.problem ?? '', /dated earlier/);
 });
