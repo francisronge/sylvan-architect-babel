@@ -141,8 +141,11 @@ export const productionRelationRegistry = createRelationRegistry({
     /* ----------------------------------------- identity and reference */
     entry('identity.occurrences', ['Identity'], { minPresentItems: 2, allowAdditional: true }),
     entry('coreference.coindex', ['Coreference'], { minPresentItems: 2, allowAdditional: true }),
+    // The domain is optional: without one, Control draws its connector and
+    // coindex as the Tier-2 recipe does (approved by Francis, 27 Oct 2026).
     entry('control.dependency', ['Control'], {
-      required: { controller: scalar, controllee: scalar, domain: scalar }
+      required: { controller: scalar, controllee: scalar },
+      optional: { domain: scalar }
     }),
     entry('predication.paths', ['Predication'], {
       required: { predicand: scalar },
