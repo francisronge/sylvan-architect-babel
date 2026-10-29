@@ -288,6 +288,8 @@ test('a phrase\'s target head may be the complex head movement built, but only b
   const complex = recover('ht');
   assert.deepEqual([complex.movement?.sourceNodeId, complex.movement?.targetNodeId], ['dpO1', 'dpO2']);
   assert.equal(recover('c0').failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED');
+  // The lower verbal complex lies beneath the landing's parent but off its spine.
+  assert.equal(recover('hv').failure, 'MOVEMENT_ENDPOINTS_UNRESOLVED');
 });
 
 // Subject raising as GPT-6.1 Sol wrote it in sol-120-20261026 n4-04 a1 (stage 3):

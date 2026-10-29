@@ -742,7 +742,8 @@ function recoverAnchoredMovement(
     // preceding slot; it establishes no additional movement endpoint. A branching
     // head qualifies only as a complex that earlier head movement built, such as
     // T after verb raising: an adjoined member whose lineage also occurs outside
-    // it, beside the retained host. Bare labels alone may spell a phrase.
+    // it, beside the retained host, and only on the projection spine beside the
+    // landing. Bare labels alone may spell a phrase.
     const isMovedHeadComplex = (complex: SyntaxNode): boolean => (complex.children ?? []).some(member =>
       Boolean(member.lineageId) && !current.duplicates.has(member.id)
       && [...current.nodes.values()].some(node => node.lineageId === member.lineageId && !contains(complex, node.id))
@@ -784,7 +785,7 @@ function recoverAnchoredMovement(
         && head.lineageId !== lineage
         && landingParent && contains(landingParent, id)
         && (!precedingHead || sameAuthoredValue(precedingHead, head))
-        && (precedingHead && samePriorSlot(id, id) || projectsBesideLanding())
+        && (precedingHead && samePriorSlot(id, id) && !head.children?.length || projectsBesideLanding())
         && entries.some(e => e.ids.length === 1 && e.ids[0] === id && isHeadParticipantRole(e.key))
         && entries.filter(e => e.ids.includes(id) && hasRole(e.key, 'movement.landing'))
           .every(e => e.ids.length === 1 && isHeadParticipantRole(e.key)));
