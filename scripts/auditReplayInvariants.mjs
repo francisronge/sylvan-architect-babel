@@ -43,7 +43,7 @@ const { loadFixtureAnalyses } = await fromModule(path.join(repoRoot, 'tests/help
 const SPECIAL = new Set(['checkInputUnchanged', 'checkOneLetterPerLabel']);
 const structuralChecks = Object.entries(invariants)
   .filter(([name, check]) => typeof check === 'function' && /^check/.test(name) && !SPECIAL.has(name)).map(([, check]) => check);
-const CONSTRUCTION = new Set(['no-early-reveal', 'stable-construction', 'attach-at-merge']);
+const CONSTRUCTION = new Set(['no-early-reveal', 'stable-construction', 'attach-at-merge', 'existing-not-remerged']);
 const runChecks = (prepared, record, snapshot, contract) => {
   const found = [...invariants.checkInputUnchanged(snapshot, record), ...invariants.checkOneLetterPerLabel(prepared),
     ...structuralChecks.flatMap(check => check(prepared, record))];

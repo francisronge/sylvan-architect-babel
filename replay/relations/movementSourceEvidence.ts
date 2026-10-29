@@ -55,6 +55,46 @@ export const hasMovementPriorIdentity = (
   return Boolean(kept) && !current.duplicates.has(priorId) && kept!.lineageId === source.lineageId;
 };
 
+/** A landing that kept its ID may omit the lineage its lower occurrence
+ * declares. The claim must anchor both: an occurrence untagged in both stages
+ * that has left its preceding slot, and a fresh occurrence holding exactly that
+ * slot whose lineage no other occurrence of either stage carries. The kept ID
+ * and the slot then identify the landing as that lineage's moved occurrence, as
+ * `hasMovementPriorIdentity` accepts once the landing carries it. Only a unique
+ * pair qualifies; an occurrence that kept its position, a slot held by an
+ * unanchored or continuing occurrence, or competing pairs prove nothing. */
+export const keptLandingWithoutLineage = (
+  current: Occurrences, prior: Occurrences, anchored: readonly string[]
+): { landingId: string; lowerId: string; lineageId: string } | undefined => {
+  const unique = (id: string) => !current.duplicates.has(id) && !prior.duplicates.has(id);
+  const pairs = anchored.flatMap(landingId => {
+    const landing = current.nodes.get(landingId), before = prior.nodes.get(landingId);
+    if (!landing || !before || landing.lineageId !== undefined || before.lineageId !== undefined
+      || !unique(landingId) || !prior.parents.has(landingId)
+      || sameMovementSourceSlot(current, prior, landingId, landingId)) return [];
+    return anchored.filter(lowerId => {
+      const lower = current.nodes.get(lowerId), lineageId = lower?.lineageId;
+      return Boolean(lower && lineageId && lowerId !== landingId && !prior.nodes.has(lowerId) && unique(lowerId)
+        && ![...prior.nodes.values()].some(node => node.lineageId === lineageId)
+        && ![...current.nodes.values()].some(node => node !== lower && node.lineageId === lineageId)
+        && !containsOccurrence(landing, lowerId) && !containsOccurrence(lower, landingId)
+        && sameMovementSourceSlot(current, prior, lowerId, landingId));
+    }).map(lowerId => ({ landingId, lowerId, lineageId: current.nodes.get(lowerId)!.lineageId! }));
+  });
+  return pairs.length === 1 ? pairs[0] : undefined;
+};
+
+/** A copy of the forest in which one occurrence carries `lineageId`; only the
+ * path to it is copied, so the authored forest stays unchanged. */
+export const withOccurrenceLineage = (forest: readonly SyntaxNode[], id: string, lineageId: string): SyntaxNode[] => {
+  const visit = (node: SyntaxNode): SyntaxNode => {
+    if (node.id === id) return { ...node, lineageId };
+    if (!node.children?.length || !containsOccurrence(node, id)) return node;
+    return { ...node, children: node.children.map(visit) };
+  };
+  return forest.map(visit);
+};
+
 export const containsOccurrence = (node: SyntaxNode, id: string): boolean => node.id === id
   || Boolean(node.children?.some(child => containsOccurrence(child, id)));
 

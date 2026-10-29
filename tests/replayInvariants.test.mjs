@@ -3,7 +3,7 @@ import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import {
-  checkAttachAtMerge, checkContinuedOccurrences, checkGapLabelOnSilence, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
+  checkAttachAtMerge, checkContinuedOccurrences, checkExistingNotRemerged, checkGapLabelOnSilence, checkInputUnchanged, checkLandingAttached, checkMarksAtOwningMoment, checkMovementLandingParent, checkMovementShownAsMovement, checkNoEarlyReveal,
   checkNoVisibleScaffolding, checkOneLetterPerLabel, checkParentAfterChildren, checkRelationConstruction, checkRelationMoments,
   checkStableConstruction,
   checkStageCompletion, checkVisibleInCanvas, checkWholeParent, frameStructure
@@ -256,6 +256,36 @@ test('control: attach-at-merge reports a child attached to its retained parent b
     'the same attachment at a step that does not target the parent');
 });
 
+test('control: existing-not-remerged reports a kept-ID landing merged by construction, and accepts an inserted segment', () => {
+  assert.deepEqual(checkExistingNotRemerged(replay, sample), []);
+  // The shape the defect showed (Opus n3-06, stage 7): the landing keeps the
+  // moved occurrence's ID and construction merges it into its new parent.
+  const moment = steps.findIndex(step => step.replayKind === 'relation' && step.operation === 'subject A-movement');
+  assert(moment > 0 && steps[moment].targetNodeId === 'dpTP' && steps[moment].sourceNodeIds[0] === 'dpLow');
+  const kept = structuredClone(sample), stage = kept.derivationStages[steps[moment].replayFrameIndex];
+  const rename = node => {
+    node.id = { dpLow: 'dpLowTrace', dpTP: 'dpLow' }[node.id] ?? node.id;
+    (node.children ?? []).forEach(rename);
+  };
+  stage.workspaceForest.forEach(rename);
+  const merged = breakReplay(copy => Object.assign(copy[moment], { replayKind: 'micro', operation: 'ExternalMerge',
+    sourceNodeIds: ['dpLow'], replayRelationIdentity: undefined }));
+  assert.deepEqual(checkExistingNotRemerged(merged, kept).map(item => item.frame), [moment + 1]);
+  assert(reported(checkExistingNotRemerged(merged, kept), 'existing-not-remerged', moment + 1, 'dpLow leaves'));
+  // An adjunct segment inserted below a kept parent leaves its occurrence in it.
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/workspace-arabic-continuity.json#/cases/0').record;
+  const adjoined = prepare(record);
+  assert(adjoined.playbackSteps.some(step => step.replayKind === 'micro' && step.targetNodeId === 'nadj' && step.sourceNodeIds.includes('nb')));
+  assert.deepEqual(checkExistingNotRemerged(adjoined, record), []);
+  // An ancestor whose id the stage repeats cannot be compared: not reported.
+  const repeated = structuredClone(record);
+  const has = (node, id) => node?.id === id || (node?.children ?? []).some(child => has(child, id));
+  for (const stage of repeated.derivationStages) {
+    if (stage.workspaceForest?.some(root => has(root, 'nadj'))) stage.workspaceForest.push({ id: 'nadj', label: 'X' });
+  }
+  assert.deepEqual(checkExistingNotRemerged(adjoined, repeated), []);
+});
+
 test('control: visible-in-canvas reports a visible id with no canvas node', () => {
   assert.deepEqual(checkVisibleInCanvas(replay), []);
   const stale = breakReplay(copy => { copy[3].replayVisibleNodeIds = [...copy[3].replayVisibleNodeIds, 'not-a-canvas-node']; });
@@ -361,7 +391,7 @@ const subjectOf = violation => violation.detail.split(' ')[0];
 
 const RULES = ['input-unchanged', 'no-visible-scaffolding', 'stage-completion', 'relation-moments', 'landing-attached',
   'no-early-reveal', 'relation-construction', 'parent-after-children', 'whole-parent', 'stable-construction', 'continued-occurrence', 'attach-at-merge',
-  'movement-landing-parent', 'movement-shown-as-movement',
+  'movement-landing-parent', 'movement-shown-as-movement', 'existing-not-remerged',
   'visible-in-canvas',
   'marks-at-owning-moment', 'one-letter-per-label'];
 let sweep;
@@ -377,7 +407,7 @@ before(() => {
         ...checkStableConstruction(prepared),
         ...checkContinuedOccurrences(prepared, authored),
         ...checkAttachAtMerge(prepared), ...checkMovementLandingParent(prepared, authored),
-        ...checkMovementShownAsMovement(prepared, authored), ...checkVisibleInCanvas(prepared),
+        ...checkMovementShownAsMovement(prepared, authored), ...checkExistingNotRemerged(prepared, authored), ...checkVisibleInCanvas(prepared),
         ...checkMarksAtOwningMoment(prepared), ...checkOneLetterPerLabel(prepared), ...checkGapLabelOnSilence(prepared, authored)
       ], findings: [...checkStepSemantics(prepared, authored), ...checkMarkPersistence(prepared, authored),
         ...checkContractWarnings(prepared, authored, { contract })] };
@@ -410,7 +440,7 @@ for (const rule of RULES) test(`sweep: ${rule} holds on every frame of every com
 
 // A step-semantics finding at the frame and subject where a construction rule
 // reports is that rule's defect, not a second one.
-const CONSTRUCTION = new Set(['no-early-reveal', 'stable-construction', 'attach-at-merge']);
+const CONSTRUCTION = new Set(['no-early-reveal', 'stable-construction', 'attach-at-merge', 'existing-not-remerged']);
 test('sweep: step semantics, mark persistence and contract warnings hold on every committed analysis, apart from listed exceptions', () => {
   const findings = sweep.flatMap(entry => (entry.findings ?? []).filter(found => found.rule !== 'step-semantics'
     || !(entry.violations ?? []).some(other => CONSTRUCTION.has(other.rule) && other.frame === found.frame && subjectOf(other) === found.subject))

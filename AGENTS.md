@@ -324,6 +324,7 @@ change. Drop a row once its mistake can no longer happen.
 | A step moves only the syntax it owns; nothing new jumps noticeably (20 tree units, or an existing jump growing by 20 units or 10%). | CI job `corpus-motion` (`verify:corpus` over every fixture against the PR base), with approved faults in `tests/helpers/motionExceptions.mjs`. |
 | Babel puts its own gap label (t₁, pg₁) only on a silent occurrence; the model's trace notation stays as written. | `gap-label-on-silence` in `tests/helpers/replayInvariants.mjs` (fixture sweep and `scripts/auditReplayInvariants.mjs`). |
 | A movement is shown as movement at its own moment. | `movement-shown-as-movement` in `tests/helpers/replayInvariants.mjs`, and `verify:corpus`. |
+| Construction never merges an existing constituent again: one that left a parent its stage keeps moved. | `existing-not-remerged` in `tests/helpers/replayInvariants.mjs` (fixture sweep in `verify:all`; `scripts/auditReplayInvariants.mjs` for saved batches). |
 | Branches span one row, sisters share a row, parents stand centred. | `branch-geometry` and `parent-centring` in `verify:replay-offline` (CI). |
 | A plaque does not jump while its anchor holds. | `plaque-teleport` in `verify:replay-offline` (CI). |
 | Every layout change is reviewed, never regenerated blind. | Layout fingerprint `fixtures/replay-snapshots/fixture-layout.json` in `verify:replay-offline`. |

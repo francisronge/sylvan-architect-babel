@@ -110,8 +110,15 @@ export const evaluateStructuralCheck = (
         && Boolean(sharedRootLineage(currentIndex, [id, ...ids(check.fillerRole)])));
     case 'shared-lineage':
       return sharesLineage(currentIndex, check.roles.map(ids));
-    case 'shared-root-lineage':
-      return Boolean(sharedRootLineage(currentIndex, check.roles.flatMap(ids)));
+    case 'shared-root-lineage': {
+      // A kept-ID landing proved without its lineage shares its lower
+      // occurrence's lineage (RecoveredMovement.recoveredLandingLineageId).
+      const roleIds = check.roles.flatMap(ids), movement = evidence.movement;
+      const recovered = movement?.recoveredLandingLineageId;
+      return Boolean(sharedRootLineage(currentIndex, roleIds)) || Boolean(recovered && roleIds.length === 2
+        && roleIds[0] === movement.sourceNodeId && roleIds[1] === movement.targetNodeId
+        && sharedRootLineage(currentIndex, [roleIds[0], roleIds[0]]) === recovered);
+    }
     case 'movement-evidence':
       // A static drawing can be complete without a preceding stage. A rejected
       // occurrence, context or contradictory source cannot earn that drawing.
