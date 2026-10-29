@@ -94,10 +94,11 @@ export const neutralGeometry = {
     return;
   },
   'anchor-set': (item, itemIndex, context) => {
-    const { rectFor, badgeGap, markerScale, laneGap, policyFailed, failed, primitives, frame, options } = context;
+    const { rectFor, badgeGap, markerScale, laneGap, policyFailed, failed, primitives, frame, options, anchorSetBadgeBoxes } = context;
     const badgeSizeFor = (role: string, arrayIndex: number) => item.badgeEntries?.find(entry =>
       entry.roleIndex === item.set.roles.find(group => group.role === role)?.roleIndex
       && entry.arrayIndex === arrayIndex)?.badgeSize ?? item.badgeSize;
+    const badgeRadius = (role: string, arrayIndex: number) => anchorSetBadgeOuterRadius(badgeSizeFor(role, arrayIndex)) * markerScale;
     const layout = planAnchorSetLayout(
       [{
         relation: item.set.relation,
@@ -109,8 +110,8 @@ export const neutralGeometry = {
         badgeOffsetY: badgeGap * markerScale,
         railGap: laneGap,
         band: item.railBand,
-        ...(options.badgeObstacles ? { clearance: { obstacles: options.badgeObstacles,
-          radiusFor: (role: string, arrayIndex: number) => anchorSetBadgeOuterRadius(badgeSizeFor(role, arrayIndex)) * markerScale,
+        ...(options.badgeObstacles ? { clearance: { obstacles: [...options.badgeObstacles, ...anchorSetBadgeBoxes],
+          radiusFor: badgeRadius,
           gap: ANCHOR_SET_BADGE_CLEARANCE * markerScale } } : {})
       }
     );
@@ -126,6 +127,10 @@ export const neutralGeometry = {
         : failed;
       channel.push({ itemIndex, nodeId: failure.nodeId, reason: failure.reason });
     });
+    if (options.badgeObstacles) anchorSetBadgeBoxes.push(...layout.badges.map(badge => {
+      const radius = badgeRadius(badge.role, badge.arrayIndex);
+      return { x: badge.x - radius, y: badge.y - radius, width: 2 * radius, height: 2 * radius };
+    }));
     const badges: BoundAnchorSetBadge[] = layout.badges.map((badge) => ({
       type: 'anchor-set-badge',
       nodeId: badge.nodeId,
