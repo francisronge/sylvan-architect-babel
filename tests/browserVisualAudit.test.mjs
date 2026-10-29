@@ -198,6 +198,26 @@ test('a node that snaps in a slow redraw frame is a jump however long the frame 
   assert.deepEqual(judgeStepMotion(stopped, { checks: ['nodeJump'] }), [], 'a node that stops in a long frame');
 });
 
+test('an eased camera zoom through a long frame is not a node jump; a snap during it is', () => {
+  // components/replayCameraMotion.ts eases the camera with smoothstep over 360 ms.
+  // Zooming 1 → 0.3 moves every node toward the zoom centre at an accelerating pace,
+  // so a 180 ms frame early in the ease left screen residuals of ~265px.
+  const tree = { a: [-600, -300], b: [-300, -100, 'a'], c: [0, 0, 'a'], d: [300, 100, 'c'], e: [600, 300, 'c'], f: [-500, 250, 'b'], g: [450, -250, 'a'] };
+  const pose = t => { const p = Math.min(1, t / 360), e = p * p * (3 - 2 * p); return { x: 720, y: 380, k: 1 - 0.7 * e }; };
+  const zoomed = (t, shift = {}) => {
+    const camera = pose(t), positions = Object.fromEntries(Object.entries(tree).map(([id, [x, y, parent = null]]) =>
+      [id, [ORIGIN.x + camera.x + camera.k * x + (shift[id] ?? 0), ORIGIN.y + camera.y + camera.k * y, parent]]));
+    return sample(t, positions, { transform: camera });
+  };
+  const times = [0, 17, 197, ...Array.from({ length: 12 }, (_, index) => Math.round(197 + 16.7 * (index + 1)))];
+  for (const judge of [judgeStepMotion, judgeRapidStepping]) {
+    assert.deepEqual(judge(times.map(t => zoomed(t)), { checks: ['nodeJump'] }), [], `${judge.name}: smooth zoom`);
+    const snap = judge(times.map(t => zoomed(t, t >= 197 ? { g: 200 } : {})), { checks: ['nodeJump'] });
+    assert.deepEqual(rules(snap), [`${judge === judgeStepMotion ? 'step' : 'rapid'}-motion/node-jump`], `${judge.name}: snap during the zoom`);
+    assert.match(snap[0].detail, /g by 200px/);
+  }
+});
+
 test('#10: a covered resize, a second settle after shrinking back, and anything that vanishes are flagged', () => {
   const settled = (t0, count, positions, extra) => Array.from({ length: count }, (_, index) => sample(t0 + 16.7 * index, positions, extra));
   const ghost = [...settled(0, 3, placed()), ...settled(50, 12, placed(), { cover: 0.9 }), ...settled(260, 10, placed(80, 40))];
