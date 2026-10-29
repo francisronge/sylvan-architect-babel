@@ -750,13 +750,24 @@ function recoverAnchoredMovement(
       && isHeadComplex(complex, member.id, previous));
     const isHeadParticipantRole = (key: string): boolean => key === 'target' || key === 'head'
       || /^(?:movement )?(?:target|landing|higher|upper|raised|moved) (?:[a-z]+ )*head$/.test(key);
+    // An anchored occurrence that kept its ID while the new lower occurrence
+    // took its exact preceding slot is the displaced occurrence at the landing,
+    // whatever its field is called, as `retainedLandingSources` reads a named
+    // landing. A directional field naming the attracting head instead then
+    // leaves that head as context, which the participant check below verifies.
+    const retainsLanding = (id: string): boolean => {
+      if (priorSource || prior.nodes.has(sources[0])) return false;
+      const pair = sourceOccurrencePair(current, prior, id, anchored);
+      return pair?.landing.id === id && pair.source.id === sources[0];
+    };
     // The exact preceding root pair can identify an openly named landing even
     // when the directional field names its parent rather than the occurrence.
     const identifiesLanding = (id: string): boolean => targets.includes(id)
-      || sourcePair?.source.id === sources[0] && sourcePair.landing.id === id;
+      || sourcePair?.source.id === sources[0] && sourcePair.landing.id === id || retainsLanding(id);
     const isPhrasalHeadParticipant = (occurrence: string, id: string): boolean => {
       const target = current.nodes.get(occurrence), head = current.nodes.get(id);
-      const precedingId = prior.nodes.has(sources[0]) ? sources[0] : priorSource;
+      const precedingId = prior.nodes.has(sources[0]) ? sources[0]
+        : priorSource ?? (retainsLanding(occurrence) ? occurrence : undefined);
       const before = prior.nodes.get(precedingId ?? '');
       const projectsBesideLanding = (): boolean => {
         if (!head) return false;
