@@ -10,6 +10,7 @@ import {
   type RelationPlanItem
 } from '../../replay/relations/renderPlan.ts';
 import {
+  labelIndexAction,
   thetaLabelBase,
   thetaLabelTarget,
   treeLabelIndexAttributes
@@ -205,7 +206,10 @@ export function createThetaDrawing({
               .classed('babel-theta-indexed-label', true)
               .attr('data-theta-base-label', baseLabel);
             identityIndices.forEach(index => this.appendChild(index));
-            const sharedIndex = identityIndices.find(index => index.textContent === role.index);
+            // An equal identity index or staged subscript already shows this letter; it takes theta's ownership too.
+            const indexAction = labelIndexAction(baseLabel, identityIndices.map(index => index.textContent || ''), role.index || '');
+            const sharedIndex = indexAction === 'existing' ? identityIndices.find(index => index.textContent === role.index)
+              : indexAction === 'inline' ? this : undefined;
             const terminalIndex = sharedIndex ? d3.select(sharedIndex) : label.append('tspan')
               .attr('class', 'babel-theta-terminal-index babel-relation-index')
               .each(function applyThetaIndexStyle() {
@@ -216,7 +220,7 @@ export function createThetaDrawing({
               const previous = identityTerminalOwners.get(sharedIndex);
               const refs = mergeIdentityOwners(previous ? planItemRelationRefs(previous) : [], planItemRelationRefs(rowOwner));
               const owner = { ...rowOwner, relationRef: refs[0], composedRefs: refs.slice(1), coalescedRefs: [] };
-              terminalIndex.classed('babel-theta-terminal-index', true);
+              if (indexAction === 'existing') terminalIndex.classed('babel-theta-terminal-index', true);
               identityTerminalOwners.set(sharedIndex, owner);
               decorateRelationElement(sharedIndex, owner, relationEmphasisForItem(owner));
             } else decorateRelationElement(terminalIndex.node()!, rowOwner, null);

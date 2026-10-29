@@ -5,6 +5,8 @@
  * Checkers never assert; callers decide which violations are expected. */
 import * as d3 from 'd3';
 import { createBindingDrawing, indexLetterLabels } from '../../components/renderer/bindingDrawing.ts';
+import { acceptedRelationDrawingKey, relationLayerKey } from '../../components/renderer/relationOwnership.ts';
+import { createThetaDrawing } from '../../components/renderer/thetaDrawing.ts';
 import { labelBelongsToNode, shellLabelElement, terminalLabelElement } from '../../components/renderer/treeMeasurements.ts';
 import { planIndexLetters, primitiveIndexLetters } from '../../components/renderer/indexLetters.ts';
 import { applyVizIds, getNodeId } from '../../replay/displayIdentity.ts';
@@ -14,7 +16,7 @@ import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts
 import { planItemDependencyNodeIds, planItemOwnsRelationMoment, planItemRelationRefs, UNOWNED_RELATION_INDEX } from '../../replay/relations/renderPlan.ts';
 import { visiblePlanFrameItems } from '../../replay/relations/relationFrame.ts';
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
-import { extractDisplayedSubscriptIndex } from '../../replay/replaySurfaceNotation.ts';
+import { extractDisplayedSubscriptIndex, resolveLeafSurface } from '../../replay/replaySurfaceNotation.ts';
 import { identityLabelTarget, treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
 import { piedPipedPhrase, relationOwnsNonMovementTreeTransition, resolveFallbackTreeTransitionOwnership } from '../../replay/treeTransitions.ts';
 import { resolveSavedInputTokens } from '../../server/babelParser/surfaceTokens.js';
@@ -1037,6 +1039,7 @@ export function checkMarksAtOwningMoment(replay) {
 }
 
 const LETTER_KINDS = new Set(['quantifier-raising', 'operator-variable-binding', 'coindex', 'binding-domain']);
+const isThetaGrid = item => item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid' && item.familyId === 'theta.grid';
 
 /** Adds one shown index letter at a label to `shown` (label → Map(letter → count)). */
 export function showLetter(shown, label, letter) {
@@ -1058,12 +1061,15 @@ export function countLabelLetters(shown, asserted) {
   return out;
 }
 
-/** Paints each frame's index letters with the production binding painters in
- * the offline SVG DOM, over the frame's displayed labels. Each letter a drawn
- * mark asserts appears exactly once at the physical label it is placed at:
- * beside it, as an inline coindex, or as a subscript written into the label.
- * Placement restates the binding refinements' label lookups, independently of
- * the letter plan. `planLetters` is the renderer's own unless a control replaces it. */
+/** Paints each frame's index letters with the production binding painters, then
+ * its theta letters with the deferred theta painter, in the offline SVG DOM over
+ * the frame's displayed labels as the syntax painter stages them. Each letter a
+ * binding mark asserts appears exactly once at the physical label it is placed
+ * at: beside it, as an inline coindex, or as a subscript written into the label.
+ * No label shows any letter twice, counting theta indices and the chain index
+ * the step staged. Placement restates the binding painters' label lookups,
+ * independently of the letter plan. `planLetters` is the renderer's own unless
+ * a control replaces it. */
 export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
   const plan = replay.relationRenderPlan, out = [], played = new Map();
   if (!plan) return out;
@@ -1075,7 +1081,7 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
       const identity = step.replayKind === 'relation' ? step.replayRelationIdentity : null;
       if (identity?.stageIndex === stage) played.get(stage).add(identity.relationIndex);
       const items = visiblePlanFrameItems(plan, stage, played.get(stage), identity ? identity.relationIndex : null);
-      if (!items.some(item => LETTER_KINDS.has(item.kind))) return;
+      if (!items.some(item => LETTER_KINDS.has(item.kind) || isThetaGrid(item))) return;
       const structure = frameStructure(step), nodes = [...structure.nodes.values()];
       const all = indexHierarchyNodesByIdAndAliases(nodes);
       const shown = indexHierarchyNodesByIdAndAliases(nodes.filter(node => structure.displayed.has(getNodeId(node))));
@@ -1084,11 +1090,15 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
       const frame = { ...plan, frames: plan.frames.map((candidate, stageIndex) => stageIndex === stage ? { ...candidate, items } : candidate) };
       const primitives = bindRelationPlanFrame(frame, stage, id => all.has(String(id)) ? { x: 0, y: 0 } : null).primitives
         .filter(primitive => primitiveIndexLetters(primitive).length && planItemDependencyNodeIds(items[primitive.itemIndex]).every(resolve));
-      if (!primitives.length) return;
+      const grids = items.filter(item => isThetaGrid(item) && item.thetaRoles?.length && planItemDependencyNodeIds(item).every(resolve));
+      if (!primitives.length && !grids.length) return;
       const root = new Element('g'), g = select(root);
       for (const [id, runs] of treeLabelRunsForStep(replay, index, undefined, { includeRelationIndices: false })) for (const run of runs) {
+        // The syntax painter records a terminal's authored surface and staged text, from which theta resets it.
+        const node = structure.nodes.get(id);
         const label = new Element('text', { class: `${run.kind}-label`,
-          [run.kind === 'category' ? 'data-category-node-id' : 'data-node-id']: id }, structure.nodes.get(id));
+          [run.kind === 'category' ? 'data-category-node-id' : 'data-node-id']: id,
+          ...(run.kind === 'terminal' ? { 'data-default-label': resolveLeafSurface(node).trim(), 'data-staged-label': run.text } : {}) }, node);
         label.text = run.text;
         root.appendChild(label);
       }
@@ -1122,12 +1132,17 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
       const painters = { 'quantifier-raising': drawing.drawQuantifierRaising, 'operator-variable-binding': drawing.drawOperatorVariableBinding,
         'index-badge': drawing.drawIndexBadge, 'identity-lens': drawing.drawIdentityLens };
       for (const primitive of primitives) painters[primitive.type](primitive, items[primitive.itemIndex], g.append('g'), null);
+      const theta = createThetaDrawing({ relationLayerKey, acceptedRelationDrawingKey, scheduledAcceptedPfRelations: new Set(),
+        queueAcceptedRelationDraw: (_item, _emphasis, draw) => draw(), decorateRelationElement() {}, frameItems: items, g,
+        resolveOverlayAnchor: resolve, svg: select(new Element('svg')), identityTerminalOwners: new Map(),
+        replayPlaqueLayout: new Map(items.map((_item, itemIndex) => [itemIndex, { x: 0, y: 0 }])), relationEmphasisForItem: () => null });
+      for (const grid of grids) theta.scheduleAcceptedThetaGrid(grid, null);
       const shownLetters = new Map(), show = (label, letter) => showLetter(shownLetters, label, letter);
       for (const element of descendants(root)) {
         const attrs = element.attrs;
-        if (/^(category|terminal)-label$/.test(attrs.class || '')) {
+        if ((attrs.class || '').split(' ').some(name => name === 'category-label' || name === 'terminal-label')) {
           show(element, extractDisplayedSubscriptIndex(element.text));
-          for (const tspan of element.children) if ((tspan.attrs.class || '').includes('babel-identity-index')) show(element, tspan.textContent);
+          for (const tspan of element.children) if (/babel-(identity|theta-terminal)-index/.test(tspan.attrs.class || '')) show(element, tspan.textContent);
           continue;
         }
         if (element.tag !== 'text' || !(attrs.class || '').split(' ').includes('babel-relation-index')) continue;
@@ -1144,6 +1159,11 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
         const label = placed(letter.role, { nodeId: letter.nodeId, operatorNodeId: letter.nodeId, variableNodeId: primitive.variableNodeId,
           witnessNodeId: primitive.traceWitnessNodeId, family: items[letter.itemIndex].familyId });
         if (label) asserted.set(label, (asserted.get(label) ?? new Set()).add(letter.index));
+      }
+      // Any letter shown twice at one label repeats, asserted or not (a theta
+      // index beside an equal chain subscript); only asserted letters can be missing.
+      for (const [label, letters] of shownLetters) for (const [letter, count] of letters) {
+        if (count > 1 && !asserted.get(label)?.has(letter)) asserted.set(label, (asserted.get(label) ?? new Set()).add(letter));
       }
       for (const { label, letter, count } of countLabelLetters(shownLetters, asserted)) {
         const labelId = label.attrs['data-category-node-id'] ?? label.attrs['data-node-id'];

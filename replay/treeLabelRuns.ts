@@ -68,7 +68,10 @@ export function stagedTerminalText(node: HierNode, context: StagedTerminalContex
     : formatIndexedSurfaceForDisplayValue(formatted, resolveTraceIndexFromNodeContext(node, context.operatorIndices));
 }
 
-export const identityIndexAction = (contents: string, existingIndices: readonly string[], index: string) =>
+/** How an identity or theta index joins a label: reuse an equal identity
+ * index, reuse an equal subscript already written in the label text (a chain
+ * or operator index), or append its own run. A label shows each letter once. */
+export const labelIndexAction = (contents: string, existingIndices: readonly string[], index: string) =>
   existingIndices.includes(index) ? 'existing' : extractDisplayedSubscriptIndex(contents) === index ? 'inline' : 'append';
 /** The text a theta index follows: the label as identity found it, else as the
  * step staged it (with its chain or operator index), else its authored default. */
@@ -82,18 +85,19 @@ const textContent = (label: TreeLabelRuns) => label.text + label.indices.map(run
  * inline-index reuse and its saved base label exactly. */
 export function identityLabelState(label: TreeLabelState, index: string): TreeLabelState {
   const identityBaseText = label.identityBaseText || textContent(label);
-  const action = identityIndexAction(textContent(label), label.indices.filter(run => run.mode === 'identity').map(run => run.text), index);
+  const action = labelIndexAction(textContent(label), label.indices.filter(run => run.mode === 'identity').map(run => run.text), index);
   return { ...label, identityBaseText, indices: action !== 'append' ? label.indices
     : [...label.indices, { text: index, mode: 'identity' }]};
 }
 
 /** Theta retains identity runs, resets its base as the painter does, and reuses
- * an equal identity index rather than appending a second copy. */
+ * an equal identity index or staged subscript rather than appending a second copy. */
 export function thetaLabelState(label: TreeLabelState, index: string): TreeLabelState {
   const text = thetaLabelBase(label.identityBaseText, label.stagedText || label.defaultText, textContent(label));
   const identities = label.indices.filter(run => run.mode === 'identity');
   return { ...label, text, lines: undefined,
-    indices: identities.some(run => run.text === index) ? identities : [...identities,{ text: index, mode: 'theta' }]};
+    indices: labelIndexAction(text, identities.map(run => run.text), index) !== 'append' ? identities
+      : [...identities, { text: index, mode: 'theta' }]};
 }
 
 export function identityLabelTarget(anchor: HierNode | undefined, anchorId?: string): {node: HierNode;labelId:string;kind:'category'|'terminal';ambiguityCount?:number} | undefined {

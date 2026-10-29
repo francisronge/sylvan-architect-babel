@@ -248,8 +248,6 @@ export function updateSyntaxReveal({
         maybeCapitalizeLayoutSentenceInitialLeaf(d, morph.postText || fallback),
         operatorVariableIndex
       );
-    })
-    // Relation painters that rewrite the label (theta) restore this step's text.
-    .attr('data-staged-label', function () { return this.textContent || ''; });
+    });
 
 }

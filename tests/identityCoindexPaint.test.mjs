@@ -4,7 +4,9 @@ import test, { after } from 'node:test';
 import { createBindingDrawing } from '../components/renderer/bindingDrawing.ts';
 import { applyRelationEmphasis } from '../components/renderer/relationInteraction.ts';
 import { acceptedRelationDrawingKey, decorateRelationElement, relationLayerKey } from '../components/renderer/relationOwnership.ts';
+import { paintSyntaxTree } from '../components/renderer/syntaxDrawing.ts';
 import { createThetaDrawing } from '../components/renderer/thetaDrawing.ts';
+import { applyVizIds } from '../replay/displayIdentity.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { boundOverlayBounds } from '../replay/relations/geometryBounds.ts';
@@ -64,10 +66,24 @@ test('conflicting and empty authored identity indices remain neutral instead of 
 
 const { Element, restore } = createSvgDom();
 after(restore);
-function painter(workspace = forest, decorate = null) {
+/** Labels are hand-made, or with `stagedIndices` (node id → chain index) painted
+ * by the production syntax painter for a derivation step that stages them. */
+function painter(workspace = forest, decorate = null, { stagedIndices } = {}) {
   const root = new Element('g');
   const nodes = new Map(workspace.flatMap(tree => hierarchy(tree).descendants()).map(node => [node.data.id, node]));
-  for (const node of nodes.values()) {
+  if (stagedIndices) {
+    const [canvas] = workspace, tree = hierarchy(canvas);
+    applyVizIds(tree);
+    tree.descendants().forEach((node, index) => { node.x = index * 100; node.y = node.depth * 180; });
+    paintSyntaxTree({ treeData: tree, rootHierarchy: tree, clonedCanvasData: canvas, g: select(root),
+      playbackSteps: [], animated: false, activeStepIndex: 0, replayVisibleNodeIdSet: null,
+      traceDisplayIndexByNodeId: new Map(Object.entries(stagedIndices)), traceDisplayFrame: null,
+      traceDisplayRelationLinks: [], traceDisplayFrameIndex: 0, usesDerivationFrames: true,
+      activeDerivationArrowLinks: [], terminalMorphRef: { current: new Map() },
+      firstSentenceReplayToken: '', firstSentenceReplayDisplayToken: '', relationRenderPlan: null,
+      measureCategoryText: text => [...text].length * 25, currentReplayStep: { replayCanvasData: canvas },
+      pendingPhraseFrontingSourceNodeIds: new Set(), hasDerivationFrames: true });
+  } else for (const node of nodes.values()) {
     const word = Boolean(node.data.word);
     const label = new Element('text', { class: word ? 'terminal-label' : 'category-label', 'data-default-label': word ? node.data.word : node.data.label,
       [word ? 'data-node-id' : 'data-category-node-id']: node.data.id }, node);
@@ -251,15 +267,20 @@ test('the later production Theta callback preserves identity notation and shares
   }
 });
 
-test('the production Theta callback keeps the chain index the step staged on a label without identity', () => {
+test('the production Theta callback keeps the chain index the syntax painter staged, and shows an equal letter once', () => {
+  // n4-02-en-multiple-wh-embedded (sol-120-20261026): book₁ with θ index 1 read book₁¹.
   const item = identityItems(compileRelationRenderPlan([stage([relation()])]))[0];
-  const paint = painter();
-  const alpha = paint.root.children.find(label => label.attrs['data-node-id'] === 'alpha');
-  alpha.text = 'alpha₁';
-  alpha.attrs['data-staged-label'] = 'alpha₁';
-  paint.drawTheta('alpha', 'k', { ...item, familyId: 'theta.grid', relationRef: { ...item.relationRef, relationIndex: 2 } });
-  assert.equal(alpha.text, 'alpha₁');
-  assert.deepEqual(alpha.children.map(span => span.textContent), ['k']);
+  const thetaOwner = { ...item, familyId: 'theta.grid', relationRef: { ...item.relationRef, relationIndex: 2 } };
+  for (const [thetaIndex, spans] of [['k', ['k']], ['1', []]]) {
+    const paint = painter(forest, null, { stagedIndices: { alpha: '1' } });
+    const alpha = descendants(paint.root).find(label => label.attrs.class === 'terminal-label' && label.attrs['data-node-id'] === 'alpha');
+    assert.equal(alpha.attrs['data-staged-label'], 'alpha₁', 'the syntax painter records the staged text');
+    paint.drawTheta('alpha', thetaIndex, thetaOwner);
+    assert.equal(alpha.text, 'alpha₁', thetaIndex);
+    assert.deepEqual(alpha.children.map(span => span.textContent), spans, thetaIndex);
+    if (!spans.length) assert.deepEqual(planItemRelationRefs(paint.decorations.get(alpha)).map(ref => ref.relationIndex), [2],
+      'the staged subscript carries the theta row');
+  }
 });
 
 test('the production Theta scheduler defers its index until after inline identity in either authored order', () => {

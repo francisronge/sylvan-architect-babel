@@ -131,9 +131,9 @@ export function toFrameModel(snapshot, { frame, viewport, anchorsFor = () => [] 
 }
 
 /**
- * Index letters painted at each occurrence label, placed as the binding painters
- * place them: an inline coindex or written subscript in the label, or a letter
- * whose role and host attributes name its label. A letter with no placement
+ * Index letters painted at each occurrence label, placed as the binding and
+ * theta painters place them: an inline coindex, theta index or written subscript
+ * in the label, or a letter whose role and host attributes name its label. A letter with no placement
  * attributes is not counted (it cannot be attributed without guessing).
  */
 export function letterObservations(snapshot) {
@@ -159,7 +159,7 @@ export function letterObservations(snapshot) {
   };
   for (const label of labels) {
     observe(label, extractDisplayedSubscriptIndex(label.text) ?? null, label.box);
-    for (const run of (snapshot.texts || []).filter(text => text.host === label.uid && shown(text) && /babel-identity-index/.test(text.cls || ''))) {
+    for (const run of (snapshot.texts || []).filter(text => text.host === label.uid && shown(text) && /babel-(identity|theta-terminal)-index/.test(text.cls || ''))) {
       observe(label, normalize(run.text), run.box);
     }
   }

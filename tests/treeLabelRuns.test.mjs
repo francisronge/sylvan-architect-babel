@@ -51,6 +51,12 @@ test('theta keeps the chain or operator index the step staged on its terminal',(
  const staged={kind:'terminal',text:'PRO₂',stagedText:'PRO₂',defaultText:'PRO',indices:[]};
  assert.deepEqual(thetaLabelState(staged,'k'),{...staged,lines:undefined,indices:[{text:'k',mode:'theta'}]});
 });
+test('theta reuses a staged subscript equal to its index instead of repeating it',()=>{
+ // n4-02-en-multiple-wh-embedded (sol-120-20261026): book₁ with θ index 1 read book₁¹.
+ const staged={kind:'terminal',text:'book₁',stagedText:'book₁',defaultText:'book',indices:[]};
+ assert.deepEqual(thetaLabelState(staged,'1'),{...staged,lines:undefined,indices:[]});
+ assert.deepEqual(thetaLabelState(staged,'2').indices,[{text:'2',mode:'theta'}]);
+});
 test('a theta grid on a moved occurrence keeps its chain index beside the theta letter',()=>{
  // french-relative: Jean is a chain occurrence (Jean₂) that a theta grid also indexes.
  const {derivationStages,sentence,inputTokens}=JSON.parse(readFileSync(new URL('../fixtures/performance/french-relative.json',import.meta.url),'utf8'));

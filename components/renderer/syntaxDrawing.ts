@@ -569,6 +569,7 @@ export function paintSyntaxTree({
     .attr('style', `fill: ${fill} !important; font-family: 'Quicksand', sans-serif; font-style: italic; paint-order: stroke; stroke: #020806; stroke-width: ${TERMINAL_LABEL.strokeWidth}px;`)
     .style('fill', fill, 'important')
     .text(d => getReplayRenderedTerminalText(d))
+    // The deferred theta painter resets the label to this step's staged text.
     .attr('data-staged-label', function () { return this.textContent || ''; });
 
   // Pronounced leaves stay emerald; silent leaves stay muted.
