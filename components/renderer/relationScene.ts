@@ -1,8 +1,8 @@
 import * as d3 from 'd3';
-import { type PlanPositionProvider } from '../../replay/relations/boundGeometry.ts';
-import { bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
+import { type BindGeometryOptions, type PlanPositionProvider } from '../../replay/relations/boundGeometry.ts';
+import { bindAnchorSetBadges, bindRelationPlanFrame } from '../../replay/relations/geometryBinding.ts';
 import {
-  ANCHOR_SET_BADGE, anchorSetBadgeRadius, markerScaleAtZoom, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TRAJECTORY_ROUTES
+  markerScaleAtZoom, PLAQUE_FIT_MARGIN, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TRAJECTORY_ROUTES
 } from '../../replay/rendererMetrics.ts';
 import { boundOverlayBounds, type OverlayBounds } from '../../replay/relations/geometryBounds.ts';
 import {
@@ -236,30 +236,30 @@ export function paintRelationScene({
       ...measurePaintedTreeLabelCells(g, replayVisibleNodeIdSet, labelRuns ? nodeId => labelRuns.get(nodeId) : undefined),
       ...(fallbackMeasurements.visibleObstacles ?? []).map(drawnPlaque)
     ];
+    const bindOptions: BindGeometryOptions = {
+      ...RELATION_BINDING_METRICS,
+      markerScale,
+      hasExistingGapNotation,
+      fallbackMeasurements,
+      separateFallbackMoments: animated && usesDerivationFrames,
+      isItemRevealed: itemIndex => revealedItemIndices.has(itemIndex),
+      trajectoryCeilingY: measuredTreeTextTopY() - TRAJECTORY_ROUTES.ceilingAboveTextTop,
+      trajectoryFloorY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
+      // Frame-stable measured baselines: connector lanes just below the
+      // complete frame's terminal row; rails placed by the binder's one
+      // vertical allocation law beneath the deepest allocated lane.
+      connectorBaselineY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,
+      railBaseY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase,
+      direction: treeDirection,
+      ...(badgeObstacles ? { badgeObstacles } : {})
+    };
     const boundFrame = withPlaqueTextMeasure(svg, measurePlaqueText => bindRelationPlanFrame(
-      displayedRelationPlan,
-      activeDerivationFrameIndex,
-      framePositionFor,
-      {
-        ...RELATION_BINDING_METRICS,
-        markerScale,
-        hasExistingGapNotation,
-        plaqueTextLayout: { measureText: measurePlaqueText },
-        fallbackMeasurements,
-        separateFallbackMoments: animated && usesDerivationFrames,
-        isItemRevealed: itemIndex => revealedItemIndices.has(itemIndex),
-        trajectoryCeilingY: measuredTreeTextTopY() - TRAJECTORY_ROUTES.ceilingAboveTextTop,
-        trajectoryFloorY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
-        // Frame-stable measured baselines: connector lanes just below the
-        // complete frame's terminal row; rails placed by the binder's one
-        // vertical allocation law beneath the deepest allocated lane.
-        connectorBaselineY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,
-        railBaseY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase,
-        direction: treeDirection,
-        ...(badgeObstacles ? { badgeObstacles } : {})
-      }
+      displayedRelationPlan, activeDerivationFrameIndex, framePositionFor,
+      { ...bindOptions, plaqueTextLayout: { measureText: measurePlaqueText } }
     ));
-    const fallbackPlacement = createFallbackPlacement({ fallbackMeasurements, boundFrame, markerScale, badgeGap, frameMaxNodeY, animated, usesDerivationFrames, g, direction: treeDirection });
+    const fallbackPlacement = createFallbackPlacement({ fallbackMeasurements, boundFrame, markerScale, badgeGap, frameMaxNodeY, animated, usesDerivationFrames, g, direction: treeDirection,
+      placeAnchorSetBadges: fittedScale => bindAnchorSetBadges(displayedRelationPlan, activeDerivationFrameIndex, framePositionFor,
+        { ...bindOptions, markerScale: fittedScale }) });
     fitFallbackOverlays = fallbackPlacement.fit;
     finishFallbackPlacement = fallbackPlacement.finish;
     const primitiveWitnessesVisible = createPrimitiveVisibility(frameItems, resolveOverlayAnchor);
@@ -917,21 +917,7 @@ export function paintRelationScene({
         return;
       }
       if (primitive.type === 'anchor-set-badge') {
-        const compact = primitive.badgeSize === 'compact';
-        const marker = appendMarker(primitive.x, primitive.y);
-        marker.append('circle')
-          .attr('class', 'vr-anchor-set-badge')
-          .attr('r', anchorSetBadgeRadius(primitive.badgeSize))
-          .attr('fill', 'rgba(2,24,15,0.92)')
-          .attr('stroke', '#34d399')
-          .attr('stroke-width', ANCHOR_SET_BADGE.strokeWidth);
-        marker.append('text')
-          .attr('text-anchor', 'middle')
-          .attr('y', compact ? 3 : 4)
-          .attr('font-size', compact ? '8px' : '10px')
-          .attr('fill', '#a7f3d0')
-          .attr('font-family', "'IBM Plex Mono', monospace")
-          .text(String(primitive.numeral));
+        fallbackPlacement.drawBadge(primitive, host);
         return;
       }
       if (primitive.type === 'anchor-set-rail') {

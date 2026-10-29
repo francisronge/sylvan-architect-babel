@@ -1,5 +1,5 @@
 import { annotationGeometry } from './annotationGeometry.ts';
-import type { BindGeometryOptions, BoundFrame, PlanPositionProvider } from './boundGeometry.ts';
+import type { BindGeometryOptions, BoundAnchorSetBadge, BoundFrame, PlanPositionProvider } from './boundGeometry.ts';
 import { fallbackRailY, routeFallbackSegments } from './fallbackGeometry.ts';
 import { createGeometryContext, usesBoundBadgePosition, type GeometryBinders } from './geometryContext.ts';
 import { neutralGeometry } from './neutralGeometry.ts';
@@ -212,3 +212,26 @@ export const bindRelationPlanFrame = (
 };
 
 const primitiveBinders = { ...pathGeometry, ...regionGeometry, ...annotationGeometry, ...neutralGeometry } satisfies GeometryBinders;
+
+/**
+ * The anchor-set badges `bindRelationPlanFrame` places for the same frame and
+ * options, every one its binder computes (also those a neutral mark replaces).
+ * Badge placement depends only on its own item, so Fit re-places the drawn
+ * badges for the marker scale it settles (`options.markerScale`), which can
+ * differ from the scale the frame was bound at. A badge is identified by its
+ * `itemIndex`, `nodeId` and `stackIndex`.
+ */
+export const bindAnchorSetBadges = (
+  plan: RelationRenderPlan,
+  stageIndex: number,
+  positionFor: PlanPositionProvider,
+  options: BindGeometryOptions = {}
+): BoundAnchorSetBadge[] => {
+  const frame = plan.frames[stageIndex];
+  if (!frame) return [];
+  const context = createGeometryContext(frame, positionFor, options);
+  frame.items.forEach((item, itemIndex) => {
+    if (item.kind === 'anchor-set') context.bindTransaction(item.kind, () => neutralGeometry['anchor-set'](item, itemIndex, context));
+  });
+  return context.primitives.filter((primitive): primitive is BoundAnchorSetBadge => primitive.type === 'anchor-set-badge');
+};
