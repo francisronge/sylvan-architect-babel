@@ -2,14 +2,17 @@
 // saved qualification batches, and write one JSON report.
 //
 //   node scripts/auditReplayInvariants.mjs [--fixtures] [--archive DIR] [--batch DIR]...
-//     [--checkout DIR] [--out FILE] [--examples N] [--sample N]
+//     [--checkout DIR] [--out FILE] [--examples N] [--sample N] [--fail-on-findings]
 //
 // With no source option it sweeps the committed fixtures and every batch under
 // the default archive, ~/Library/Application Support/Babel/codex-qualification
 // (DIR/<batch>/runs/<run>/attempts/<attempt>/bundle.json). `--checkout` prepares
 // Replay with another checkout's compiler, such as a pre-fix tree, while the
 // checks stay this checkout's. Saved records are read only. The sweep is offline:
-// it starts no server, browser or provider request.
+// it starts no server, browser or provider request. A batch's records are named
+// `<archive>/<batch>/<run>[/<attempt>] a<n>`, and the sweep refuses sources that
+// give two analyses one id. It exits 0 after reporting findings, for discovery;
+// `--fail-on-findings` exits 1 when any analysis has a finding or an error.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -25,7 +28,8 @@ const { values } = parseArgs({ options: {
   checkout: { type: 'string' },
   out: { type: 'string' },
   examples: { type: 'string', default: '5' },
-  sample: { type: 'string', default: '0' }
+  sample: { type: 'string', default: '0' },
+  'fail-on-findings': { type: 'boolean', default: false }
 } });
 const fromModule = file => import(pathToFileURL(file).href);
 const checkout = path.resolve(values.checkout ?? repoRoot);
@@ -34,6 +38,7 @@ const invariants = await fromModule(path.join(repoRoot, 'tests/helpers/replayInv
 const stepInvariants = await fromModule(path.join(repoRoot, 'tests/helpers/replayStepInvariants.mjs'));
 const warnings = await fromModule(path.join(repoRoot, 'tests/helpers/replayContractWarnings.mjs'));
 const { loadFixtureAnalyses } = await fromModule(path.join(repoRoot, 'tests/helpers/replayInvariantCorpus.mjs'));
+const { assertUniqueRecordIds, batchSourceName } = await fromModule(path.join(repoRoot, 'scripts/buildCorpusArchiveManifest.mjs'));
 
 /* Every structural rule replayInvariants.mjs exports takes (replay, record);
  * input-unchanged compares the authored record before and after preparation, and
@@ -67,7 +72,7 @@ function batchRecords(batchDirectory) {
     for (const attempt of fs.readdirSync(attempts).sort()) {
       const file = path.join(attempts, attempt, 'bundle.json');
       if (!fs.existsSync(file)) continue;
-      const id = `${path.basename(batchDirectory)}/${run}${attempt === 'parse' ? '' : `/${attempt}`}`;
+      const id = `${batchSourceName(batchDirectory)}/${run}${attempt === 'parse' ? '' : `/${attempt}`}`;
       const { request, response } = readJson(file);
       if (!Array.isArray(response?.analyses)) { skipped.push({ id, reason: 'bundle has no analyses' }); continue; }
       const receipt = path.join(attempts, attempt, 'attempt-receipt.json');
@@ -90,6 +95,7 @@ if (values.fixtures || !sourceGiven) {
   skipped.push(...fixtures.excluded.map(entry => ({ id: `fixtures/${entry.id}`, reason: entry.reason })));
 }
 for (const batch of batches) { const found = batchRecords(path.resolve(batch)); records.push(...found.records); skipped.push(...found.skipped); }
+assertUniqueRecordIds(records);
 const sample = Number(values.sample);
 const chosen = sample > 0 ? records.filter((_record, index) => index % Math.ceil(records.length / sample) === 0) : records;
 
@@ -116,12 +122,16 @@ for (const { id, record, contract } of chosen) {
 }
 const report = {
   checkout, sources: { fixtures: Boolean(values.fixtures || !sourceGiven), batches: batches.map(batch => path.resolve(batch)) },
-  analyses: chosen.length, frames, durationMs: Date.now() - started, skipped, errors,
+  analyses: chosen.length, loaded: records.length, frames, durationMs: Date.now() - started, skipped, errors,
   rules: Object.fromEntries([...rules].sort(([left], [right]) => left.localeCompare(right)).map(([key, entry]) =>
     [key, { violations: entry.violations, analyses: entry.analyses.size, examples: entry.examples }])),
   records: results
 };
 if (values.out) fs.writeFileSync(values.out, `${JSON.stringify(report, null, 2)}\n`);
-console.log(`${report.analyses} analyses, ${frames} frames, ${errors.length} errors, ${skipped.length} skipped, ${report.durationMs} ms`);
+console.log(`${report.analyses} of ${records.length} loaded analyses, ${frames} frames, ${errors.length} errors, ${skipped.length} skipped, ${report.durationMs} ms`);
 for (const [key, entry] of Object.entries(report.rules)) console.log(`  ${key}: ${entry.violations} in ${entry.analyses} analyses`);
 if (values.out) console.log(`report: ${values.out}`);
+if (values['fail-on-findings'] && (results.length || errors.length)) {
+  console.log(`--fail-on-findings: ${results.length} analyses with findings, ${errors.length} errors`);
+  process.exitCode = 1;
+}

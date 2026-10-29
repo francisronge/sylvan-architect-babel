@@ -62,9 +62,29 @@ export function fixtureRecords(root = FIXTURE_ROOT) {
   return { records, skipped };
 }
 
-/** Every analysis in each run's attempts/<attempt>/bundle.json. */
+/** A saved batch's name in record ids: its archive folder and its own folder.
+ * Archives give batches the same names (codex-qualification/heldout-20261029 and
+ * anthropic-qualification/heldout-20261029), so the batch folder alone does not
+ * identify a batch. */
+export const batchSourceName = batchDirectory => {
+  const resolved = path.resolve(batchDirectory);
+  return `${path.basename(path.dirname(resolved))}/${path.basename(resolved)}`;
+};
+
+/** Throws, naming them, when records share an id. A loader that kept only one of
+ * them would silently audit fewer analyses than it was given. */
+export function assertUniqueRecordIds(records, what = 'analyses') {
+  const seen = new Set(), repeated = new Set();
+  for (const { id } of records) (seen.has(id) ? repeated : seen).add(id);
+  if (repeated.size) throw Error(`${repeated.size} of ${records.length} ${what} repeat another's id, such as `
+    + `${[...repeated].slice(0, 3).join(', ')}; give each source once, under distinct archive or batch folders`);
+  return records;
+}
+
+/** Every analysis in each run's attempts/<attempt>/bundle.json of the batch whose
+ * runs/ folder this is, named `run:<archive>/<batch>/<run>/<attempt>#<index>`. */
 export function runRecords(runsDirectory) {
-  const records = [];
+  const records = [], batch = batchSourceName(path.dirname(runsDirectory));
   for (const run of fs.readdirSync(runsDirectory).sort()) {
     const attempts = path.join(runsDirectory, run, 'attempts');
     if (!fs.existsSync(attempts)) continue;
@@ -73,7 +93,7 @@ export function runRecords(runsDirectory) {
       if (!fs.existsSync(file)) continue;
       const { response } = JSON.parse(fs.readFileSync(file, 'utf8'));
       (response?.analyses ?? []).forEach((_, index) => records.push({
-        id: `run:${path.basename(path.dirname(runsDirectory))}/${run}/${attempt}#${index}`,
+        id: `run:${batch}/${run}/${attempt}#${index}`,
         source: file, selector: `/response/analyses/${index}`
       }));
     }
@@ -89,7 +109,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     throw Error('Usage: node scripts/buildCorpusArchiveManifest.mjs --out /tmp/manifest.json [--fixtures] [--runs /path/to/run/runs ...]');
   }
   const fixtures = values.fixtures ? fixtureRecords() : { records: [], skipped: [] };
-  const records = [...fixtures.records, ...values.runs.flatMap(runsDirectory => runRecords(path.resolve(runsDirectory)))];
+  const records = assertUniqueRecordIds([...fixtures.records, ...values.runs.flatMap(runsDirectory => runRecords(path.resolve(runsDirectory)))]);
   if (!records.length) throw Error('No analyses found.');
   fs.writeFileSync(path.resolve(values.out), `${JSON.stringify({ schemaVersion: 1, records }, null, 2)}\n`);
   console.log(JSON.stringify({ records: records.length, fixtures: fixtures.records.length,
