@@ -574,7 +574,9 @@ Missing, competing, denied and provisional evidence stays unresolved.
 
 Agreement-qualified goals also bind the registered Agree signature. A finite
 head and subject with explicit feature values, or a head and specifier with an
-explicit agreement value, can establish a feature dependency. A finite head and
+explicit agreement value or a person, number or gender value, can establish a
+feature dependency. A generic features field beside a head and specifier may be
+prose and does not establish it. A finite head and
 subject do not establish a controller for explicitly default agreement rows; those
 literal rows remain authored evidence unless a dependency is independently
 anchored. An explicit probe/goal claim keeps its own authority. Governing heads

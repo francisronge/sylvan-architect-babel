@@ -927,8 +927,11 @@ export const relationRoleConcepts = (
       if (inflectionHead(spelling) || participialHost(spelling)) concepts.add('probe');
       if (spelling === 'controller') concepts.add('goal');
     }
+    // Generic head and specifier roles need agreement content: a field named
+    // for agreement or for one phi dimension. A generic features field may be prose.
     if (roles.has('head') && roles.has('specifier') && Object.keys(context.values ?? {}).some(key =>
-      ['agreement', 'agreement features', 'phi features'].includes(normalizeTier2Synonym(key)))) {
+      FEATURE_DIMENSION_KEYS.has(normalizeTier2Synonym(key))
+        || ['agreement', 'agreement features', 'phi features'].includes(normalizeTier2Synonym(key)))) {
       if (spelling === 'head') concepts.add('feature.source');
       if (spelling === 'specifier') concepts.add('feature.target');
     }

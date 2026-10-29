@@ -456,6 +456,27 @@ test('explicit subject/head agreement pairs preserve scalar feature dimensions a
   ]) assert(!dispatch(relation).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
 });
 
+test('head and specifier agreement reads phi dimension fields as agreement content', () => {
+  for (const values of [{ person: '3', number: 'singular' }, { number: 'plural', gender: 'feminine' }]) {
+    const relation = { relation: 'An unfamiliar name', anchors: { specifier: 'argument', head: 'source' }, values };
+    const original = structuredClone(relation);
+    const d = dispatch(relation);
+    assert(d.facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
+    assert.deepEqual(d.evidence.currentAnchors['feature.source'], ['source']);
+    assert.deepEqual(d.evidence.currentAnchors['feature.target'], ['argument']);
+    const paths = plan(relation).filter(item => item.kind === 'directed-path');
+    assert.equal(paths.length, Object.keys(values).length);
+    assert(paths.every(path => path.fromNodeId === 'source' && path.toNodeId === 'argument'));
+    assert.deepEqual(relation, original);
+  }
+  for (const relation of [
+    { relation: 'An unfamiliar name', anchors: { specifier: 'argument', head: 'source' }, values: { features: 'unrelated description' } },
+    { relation: 'An unfamiliar name', anchors: { specifier: 'argument', head: 'source' }, values: { effect: 'third person' } },
+    { relation: 'An unfamiliar name', anchors: { specifier: 'argument', head: 'argument' }, values: { person: '3' } },
+    { relation: 'An unfamiliar name', anchors: { specifier: 'argument', other: 'source' }, values: { person: '3' } }
+  ]) assert(!dispatch(relation).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
+});
+
 test('an anchored tense head and subject head recover finite features without treating a generic tense anchor as a head', () => {
   const currentForest = [{ id: 'tp', label: 'TP', children: [
     { id: 'subject', label: 'DP', children: [{ id: 'subjectN', label: 'N', word: 'children' }] },
