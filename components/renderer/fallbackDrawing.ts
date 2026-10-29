@@ -1,11 +1,12 @@
 import * as d3 from 'd3';
 import { categoryTextLayout } from '../../replay/categoryTextLayout.ts';
 import {
-  CATEGORY_LABEL, categoryLineBaselineY, markerScaleAtZoom, RELATION_BINDING_METRICS, RELATION_LANES_BELOW_DEEPEST_NODE, TERMINAL_LABEL
+  ANCHOR_SET_BADGE, anchorSetBadgeRadius, CATEGORY_LABEL, categoryLineBaselineY, markerScaleAtZoom, RELATION_BINDING_METRICS,
+  RELATION_LANES_BELOW_DEEPEST_NODE, TERMINAL_LABEL
 } from '../../replay/rendererMetrics.ts';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import type { BoundFallbackMark, BoundFrame, FallbackMeasurements } from '../../replay/relations/boundGeometry.ts';
-import { type BoundAnchorSetRail, type BoundPrimitive, type BoundSegment } from '../../replay/relations/boundGeometry.ts';
+import { type BoundAnchorSetBadge, type BoundAnchorSetRail, type BoundPrimitive, type BoundSegment } from '../../replay/relations/boundGeometry.ts';
 import { anchorSetRailPaths, FALLBACK_ROLE_STYLE, FALLBACK_STROKE_WIDTHS, fallbackMarkerScale, fitFallbackGeometry } from '../../replay/relations/fallbackGeometry.ts';
 import {
   type Rect
@@ -154,13 +155,39 @@ interface FallbackPlacementContext {
   usesDerivationFrames: boolean;
   g: DrawingLayer;
   direction: 'ltr' | 'rtl';
+  /** The frame's anchor-set badges bound again at another marker scale
+   * (`bindAnchorSetBadges` with the frame's options). */
+  placeAnchorSetBadges?: (markerScale: number) => readonly BoundAnchorSetBadge[];
 }
-export function createFallbackPlacement({ fallbackMeasurements, boundFrame, markerScale, badgeGap, frameMaxNodeY, animated, usesDerivationFrames, g, direction }: FallbackPlacementContext) {
+/**
+ * Neutral marks, anchor-set badges and rails, drawn at the binder's marker
+ * scale and placed again by `fit` for the automatic Fit. Like role labels,
+ * badges then keep that size and share the tree's scale during manual zoom, so
+ * the clearance Fit gives them from labels and plaques holds at every zoom.
+ */
+export function createFallbackPlacement({ fallbackMeasurements, boundFrame, markerScale, badgeGap, frameMaxNodeY, animated, usesDerivationFrames, g, direction, placeAnchorSetBadges }: FallbackPlacementContext) {
   const fallbackConnectorPaths = new Map<BoundSegment, DrawingLayer>();
   const fallbackMarkGroups = new Map<BoundPrimitive, DrawingLayer>();
   const fallbackRailGroups = new Map<BoundAnchorSetRail, DrawingLayer>();
+  const anchorSetBadgeGroups = new Map<BoundAnchorSetBadge, DrawingLayer>();
   let lastFallbackFit: { zoom: number; viewport: Rect } | undefined;
   let relationInkObstacles: Rect[] = [];
+  const badgeKey = (badge: BoundAnchorSetBadge) => `${badge.itemIndex} ${badge.stackIndex} ${badge.nodeId}`;
+  /** Every bound badge at `anchorScale`, placed by the binder at that scale. */
+  const fitAnchorSetBadges = (anchorScale: number) => {
+    const bound = boundFrame.primitives.filter((primitive): primitive is BoundAnchorSetBadge => primitive.type === 'anchor-set-badge');
+    const placed = bound.length && anchorScale !== markerScale && placeAnchorSetBadges
+      ? new Map(placeAnchorSetBadges(anchorScale).map(badge => [badgeKey(badge), badge])) : null;
+    const fitted = new Map(bound.map(badge => {
+      const at = placed?.get(badgeKey(badge)) ?? badge;
+      return [badge, { x: at.x, y: at.y }];
+    }));
+    anchorSetBadgeGroups.forEach((group, badge) => {
+      const at = fitted.get(badge) ?? badge;
+      group.attr('transform', `translate(${at.x},${at.y}) scale(${anchorScale})`);
+    });
+    return fitted;
+  };
   const fitFallbackOverlays = (fitZoom: number, fittedViewport: Rect) => {
     lastFallbackFit = { zoom: fitZoom, viewport: fittedViewport };
     const scale = fallbackMarkerScale(fitZoom, fallbackMeasurements.labels.map(rect => rect.height));
@@ -168,7 +195,7 @@ export function createFallbackPlacement({ fallbackMeasurements, boundFrame, mark
     fitFallbackGeometry(boundFrame, {
       markerScale, fittedMarkerScale: scale, fittedAnchorScale: anchorScale, badgeGap, laneGap: RELATION_BINDING_METRICS.laneGap, fallbackMeasurements,
       railBaseY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase, fittedViewport, relationInkObstacles,
-      separateFallbackMoments: animated && usesDerivationFrames, direction
+      separateFallbackMoments: animated && usesDerivationFrames, direction, fittedAnchorSetBadges: fitAnchorSetBadges(anchorScale)
     }).forEach((fitted, original) => {
       if (original.type === 'fallback-mark' && fitted.type === 'fallback-mark') {
         fallbackMarkGroups.get(original)?.attr('transform', `translate(${fitted.x},${fitted.y}) scale(${scale})`);
@@ -214,5 +241,25 @@ export function createFallbackPlacement({ fallbackMeasurements, boundFrame, mark
     group.append('path').attr('class', 'babel-anchor-set-stub').attr('d', paths.joins);
     fallbackRailGroups.set(primitive, group);
   };
-  return { drawSegment, drawMark, drawRail, fit: fitFallbackOverlays, finish: finishFallbackPlacement };
+  const drawBadge = (primitive: BoundAnchorSetBadge, host: DrawingLayer) => {
+    const compact = primitive.badgeSize === 'compact';
+    const marker = host.append('g').attr('class', 'vr-anchor-set-marker')
+      .attr('transform', `translate(${primitive.x},${primitive.y}) scale(${markerScale})`);
+    marker.append('circle')
+      .attr('class', 'vr-anchor-set-badge')
+      .attr('r', anchorSetBadgeRadius(primitive.badgeSize))
+      .attr('fill', 'rgba(2,24,15,0.92)')
+      .attr('stroke', '#34d399')
+      .attr('stroke-width', ANCHOR_SET_BADGE.strokeWidth);
+    marker.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('y', compact ? 3 : 4)
+      .attr('font-size', compact ? '8px' : '10px')
+      .attr('fill', '#a7f3d0')
+      .attr('font-family', "'IBM Plex Mono', monospace")
+      .text(String(primitive.numeral));
+    anchorSetBadgeGroups.set(primitive, marker);
+    return marker;
+  };
+  return { drawSegment, drawMark, drawRail, drawBadge, fit: fitFallbackOverlays, finish: finishFallbackPlacement };
 }

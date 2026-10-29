@@ -397,13 +397,53 @@ export type AnchorSetLayout = {
   failed: Array<{ setIndex: number; role: string; nodeId: string; reason: string }>;
 };
 
+/**
+ * The centre height for a badge of half-size `radius` in the column at `x`:
+ * `preferredY` when the badge clears every obstacle there, otherwise the
+ * nearest clear height between `minY` and `preferredY`, which keeps it closer
+ * to its own node than to anything below, and else the nearest clear height
+ * below. A badge only touching an obstacle clears it.
+ */
+export const clearAnchorBadgeY = (
+  x: number, preferredY: number, minY: number, radius: number, obstacles: readonly Rect[]
+): number => {
+  const blocked = obstacles.filter(rect => rect.x < x + radius && rect.x + rect.width > x - radius)
+    .map(rect => [rect.y - radius, rect.y + rect.height + radius] as const);
+  const clear = (y: number) => y >= minY && blocked.every(([top, bottom]) => y <= top || y >= bottom);
+  if (clear(preferredY)) return preferredY;
+  // The nearest clear point on either side is `minY` or an end of a blocked interval.
+  const candidates = [minY, ...blocked.flat()].filter(clear);
+  const above = candidates.filter(y => y < preferredY);
+  return above.length ? Math.max(...above) : Math.min(...candidates);
+};
+
+/**
+ * Badges sit below their node's nominal box at `badgeOffsetY` per earlier badge
+ * on that node. With `clearance`, a badge that would cover one of its
+ * `obstacles` (labels, plaques) moves along its own column to the nearest
+ * height (`clearAnchorBadgeY`) where it keeps `gap` from them and from the
+ * badges placed before it. `radiusFor` gives each badge's painted half-size, in
+ * the units of the rectangles; a badge that already clears the obstacles and
+ * those badges keeps its height, so a badge never covers an earlier one that moved.
+ */
 export const planAnchorSetLayout = (
   sets: AnchorSetLayoutInput,
   rectFor: (nodeId: string) => Rect | null,
-  config: { badgeOffsetY?: number; railGap?: number } = {}
+  config: {
+    badgeOffsetY?: number;
+    railGap?: number;
+    clearance?: { obstacles: readonly Rect[]; radiusFor: (role: string, arrayIndex: number) => number; gap: number };
+  } = {}
 ): AnchorSetLayout => {
   const badgeOffsetY = config.badgeOffsetY ?? 14;
   const railGap = config.railGap ?? 12;
+  const placedBoxes: Rect[] = [];
+  const badgeY = (x: number, preferredY: number, minY: number, radius: number): number => {
+    const { obstacles, gap } = config.clearance!;
+    const occupied = [...obstacles, ...placedBoxes];
+    if (clearAnchorBadgeY(x, preferredY, minY, radius, occupied) === preferredY) return preferredY;
+    return clearAnchorBadgeY(x, preferredY, minY + gap, radius + gap, occupied);
+  };
   const badges: AnchorSetBadge[] = [];
   const failed: AnchorSetLayout['failed'] = [];
   const stackCounts = new Map<string, number>();
@@ -435,14 +475,19 @@ export const planAnchorSetLayout = (
         }
         const stackIndex = stackCounts.get(anchor.nodeId) ?? 0;
         stackCounts.set(anchor.nodeId, stackIndex + 1);
+        const x = rect.x + rect.width / 2;
+        const nominalY = rect.y + rect.height + badgeOffsetY * (stackIndex + 1);
+        const radius = config.clearance?.radiusFor(roleGroup.role, anchor.arrayIndex) ?? 0;
+        const y = config.clearance ? badgeY(x, nominalY, rect.y + rect.height + radius, radius) : nominalY;
+        if (config.clearance) placedBoxes.push({ x: x - radius, y: y - radius, width: 2 * radius, height: 2 * radius });
         const badge: AnchorSetBadge = {
           setIndex,
           role: roleGroup.role,
           nodeId: anchor.nodeId,
           arrayIndex: anchor.arrayIndex,
           stackIndex,
-          x: rect.x + rect.width / 2,
-          y: rect.y + rect.height + badgeOffsetY * (stackIndex + 1)
+          x,
+          y
         };
         placed.push(badge);
         badges.push(badge);
