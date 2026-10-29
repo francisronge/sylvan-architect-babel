@@ -17,12 +17,41 @@ interface ScopeTimeline {
   colours: Array<Map<string, number>>;
   /** Each domain node's hull and lane rank, fixed for the whole Replay. */
   geometry: Map<string, { rank: number; count: number }>;
+  /** The domain an item's domain node belongs to. */
+  domainOf: (item: ScopeItem) => string;
 }
 
 const timelines = new WeakMap<readonly PlaybackStep[], ScopeTimeline>();
 
+/** A persisted domain carries the occurrence a later movement lands as its node,
+ * with the transfer (planPersistence.ts), while the screen shows the earlier
+ * occurrence until the movement's moment. Both occurrences are one domain, named
+ * by the occurrence it first appeared as. */
+function scopeDomainIdentity(plan: RelationRenderPlan): (item: ScopeItem) => string {
+  const earlier = new Map<string, string>();
+  for (const frame of plan.frames) for (const item of frame.items) {
+    if (!isScopeItem(item)) continue;
+    let nodeId = item.scopeDomainNodeId!;
+    for (const transfer of [...item.occurrenceTransfers ?? []].reverse()) {
+      if (transfer.toNodeId !== nodeId) continue;
+      earlier.set(nodeId, transfer.fromNodeId);
+      nodeId = transfer.fromNodeId;
+    }
+  }
+  return item => {
+    const seen = new Set<string>();
+    let nodeId = item.scopeDomainNodeId!;
+    while (earlier.has(nodeId) && !seen.has(nodeId)) {
+      seen.add(nodeId);
+      nodeId = earlier.get(nodeId)!;
+    }
+    return nodeId;
+  };
+}
+
 /**
- * Plays the scope domains through the Replay once, keyed by domain node, so two
+ * Plays the scope domains through the Replay once, keyed by domain (one node, or
+ * the occurrences one movement carries it through), so two
  * items on one domain count as one domain.
  *
  * Colour: a domain takes the lowest slot no domain on screen holds at the step it
@@ -41,6 +70,7 @@ function scopeTimeline(plan: RelationRenderPlan, steps: readonly PlaybackStep[])
   const cached = timelines.get(steps);
   if (cached?.plan === plan) return cached;
   const colours: Array<Map<string, number>> = [];
+  const domainOf = scopeDomainIdentity(plan);
   const size = new Map<string, number>(), firstShown: string[] = [];
   const group = new Map<string, string>();
   const groupOf = (domain: string): string => {
@@ -62,7 +92,7 @@ function scopeTimeline(plan: RelationRenderPlan, steps: readonly PlaybackStep[])
     const shown = new Set<string>();
     for (const item of plan.frames[stageIndex]?.items ?? []) {
       if (!isScopeItem(item) || !isPlanItemRevealed(item, stageIndex, played, identity?.relationIndex ?? null)) continue;
-      const domain = item.scopeDomainNodeId!;
+      const domain = domainOf(item);
       shown.add(domain);
       size.set(domain, Math.max(size.get(domain) ?? 0, item.scopeMemberNodeIds?.length || 0));
     }
@@ -92,7 +122,7 @@ function scopeTimeline(plan: RelationRenderPlan, steps: readonly PlaybackStep[])
     [...domains].sort((left, right) => size.get(right)! - size.get(left)! || firstShown.indexOf(left) - firstShown.indexOf(right))
       .forEach((domain, rank) => geometry.set(domain, { rank, count: domains.length }));
   }
-  const timeline = { plan, colours, geometry };
+  const timeline = { plan, colours, geometry, domainOf };
   timelines.set(steps, timeline);
   return timeline;
 }
@@ -100,12 +130,12 @@ function scopeTimeline(plan: RelationRenderPlan, steps: readonly PlaybackStep[])
 /** The paint of every scope item in the stage frame shown at `stepIndex`, by item index. */
 export function scopeDomainPaint(plan: RelationRenderPlan, stageIndex: number,
   steps: readonly PlaybackStep[], stepIndex: number): Map<number, ScopeDomainPaint> {
-  const { colours, geometry } = scopeTimeline(plan, steps);
+  const { colours, geometry, domainOf } = scopeTimeline(plan, steps);
   const colour = colours[Math.min(stepIndex, colours.length - 1)];
   const paint = new Map<number, ScopeDomainPaint>();
   (plan.frames[stageIndex]?.items ?? []).forEach((item, itemIndex) => {
     if (!isScopeItem(item)) return;
-    const domain = item.scopeDomainNodeId!;
+    const domain = domainOf(item);
     paint.set(itemIndex, { ...geometry.get(domain) ?? { rank: 0, count: 1 }, colourSlot: colour?.get(domain) ?? 0 });
   });
   return paint;
