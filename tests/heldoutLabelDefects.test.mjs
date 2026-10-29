@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
+import { normalizeParseBundle } from '../server/babelParser/parseNormalization.js';
+import { convertSpelloutPayload } from '../server/babelParser/spellout.js';
 import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
 import { checkOneLetterPerLabel } from './helpers/replayInvariants.mjs';
 
@@ -42,4 +44,36 @@ test('Sol h1-070: a theta letter and an equal binding letter on one trace show t
   // 56 the label read ropᵢᵢ. The binding letter now decorates the label that
   // already writes it, as it does for a written subscript.
   for (const key of ['sol-h1-070-a1', 'sol-h1-070-a2']) assert.deepEqual(checkOneLetterPerLabel(prepare(key)), [], key);
+});
+
+test('Opus h1-093: a word that spells its token across a space is associated from its own first stage, never at a relation', () => {
+  // Erg1's word inw spells the token "in w". The spelling conversion records
+  // that as a single-leaf group; it used to add it to the final stage only, so
+  // Replay reported REALIZATION_MISSING_OWNER and activated it at the stage's
+  // last relation, which says nothing about it.
+  const { sentence, authoredPayload } = records['opus-h1-093-a1'];
+  const [converted] = convertSpelloutPayload(structuredClone(authoredPayload), sentence);
+  assert.ok(converted.ok, JSON.stringify(converted.diagnostics));
+  const group = { nodeIds: ['Erg1'], tokenIndices: [1] };
+  assert.deepEqual(converted.spellingGroups, [group]);
+  const stages = converted.analysis.derivationStages;
+  const present = stages.map(stage => (stage.realizations ?? []).some(entry => JSON.stringify(entry) === JSON.stringify(group)));
+  // Erg1 first stands, pronounced inw, in stage 7.
+  assert.deepEqual(present, [false, false, false, false, false, false, true, true]);
+  const bundle = normalizeParseBundle(structuredClone(converted.analysis), 'minimalism', sentence, 'claude', true,
+    { inputTokens: converted.inputTokens });
+  for (const replay of [
+    prepareReplay({ sentence, inputTokens: converted.inputTokens, derivationStages: bundle.analyses[0].derivationStages, includePlayback: true }),
+    prepare('opus-h1-093-a1')
+  ]) {
+    const steps = replay.playbackSteps;
+    assert.deepEqual(steps.flatMap(step => step.replayRealizationDiagnostics ?? []), []);
+    // From the first step of each stage that holds it, never switched on at a moment.
+    steps.forEach((step, index) => {
+      const holds = (step.replayRealizations ?? []).some(entry => JSON.stringify(entry) === JSON.stringify(group));
+      const authored = (replay.replayDerivationFrames[step.replayFrameIndex].after?.realizations ?? [])
+        .some(entry => JSON.stringify(entry) === JSON.stringify(group));
+      assert.equal(holds, authored, `step ${index + 1}`);
+    });
+  }
 });

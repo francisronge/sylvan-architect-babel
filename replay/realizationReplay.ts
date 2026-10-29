@@ -78,7 +78,35 @@ export interface RealizationChange {
   relationIndex: number | null;
   candidateRelationIndices?: number[];
   diagnostic?: string;
+  /** Only spelling associations arrive (spellingAssociation) and no relation
+   * states them: they hold from the stage's first step and are no realization event. */
+  spelling?: true;
 }
+
+/**
+ * A group of one pronounced leaf whose word spells the group's input stretch,
+ * such as inw for the token "in w". It says nothing its word does not:
+ * Babel's spelling conversion records one wherever a word covers several
+ * tokens or writes its token with other marks (spellout.js). Unless a relation
+ * states it, no relation owns it and no moment shows it; it holds wherever its
+ * word stands.
+ */
+export const spellingAssociation = (group: SurfaceRealization, forest: readonly SyntaxNode[],
+  inputTokens?: readonly string[]): boolean => {
+  if (!inputTokens || group.nodeIds.length !== 1 || !group.tokenIndices.length
+    || group.tokenIndices.some(index => !Number.isInteger(index) || index < 0 || index >= inputTokens.length)) return false;
+  const found: Array<{ node: SyntaxNode; silent: boolean }> = [];
+  const visit = (node: SyntaxNode, silent: boolean) => {
+    const quiet = silent || node.silent === true;
+    if (node.id === group.nodeIds[0]) found.push({ node, silent: quiet });
+    node.children?.forEach(child => visit(child, quiet));
+  };
+  forest.forEach(root => visit(root, false));
+  if (found.length !== 1 || found[0].silent || found[0].node.children?.length || typeof found[0].node.word !== 'string') return false;
+  const word = caselessSpelling(found[0].node.word);
+  return Boolean(word) && word === caselessSpelling([...group.tokenIndices].sort((a, b) => a - b)
+    .map(index => inputTokens[index]).join(''));
+};
 
 /** A shared output is replaced atomically; shared source features may serve separate outputs. */
 const changedGroups = (
@@ -400,7 +428,19 @@ export const resolveRealizationChanges = (
       return pairs.every(pair => pair.length === 1) && new Set(pairs.flat()).size === group.nodeIds.length;
     });
   };
+  // A relation that states this input association, or gives its leaf an input
+  // sequence or input association of its own, keeps it an event at that
+  // relation's moment.
+  const statesAssociation = (index: number, change: Pick<RealizationChange, 'before' | 'after'>) =>
+    inputAssociationOwns(index, change.after) || exactInputSequence(index, change.after)
+    || (inputSequence(index).length > 0 || Object.keys(current.relations![index].values ?? {})
+      .some(key => normalizeTier2Synonym(key) === 'input association'))
+      && change.after.some(group => group.nodeIds.some(id => relations[index].current.has(id)));
   return changes.map(change => {
+    if (!change.before.length && change.after.every(group => spellingAssociation(group, current.workspaceForest, inputTokens))
+      && !relations.some((_, index) => statesAssociation(index, change))) {
+      return { ...change, relationIndex: null, spelling: true as const };
+    }
     let directCandidates = relations.flatMap((relation, index) => {
       const currentCovered = change.after.every(group => group.nodeIds.every(id =>
         exactNode(newNodes, id) && relation.current.has(id))) || inputAssociationOwns(index, change.after);
@@ -562,7 +602,8 @@ export type ScheduledRealizationChange = RealizationChange & {
 };
 
 /** Where Replay makes each realization change of a stage active. A change whose
- * syntax is not displayed at its moment waits for the stage's next moment. */
+ * syntax is not displayed at its moment waits for the stage's next moment; a
+ * spelling association holds from the stage's first step. */
 export const scheduleRealizationChanges = (
   steps: readonly PlaybackStep[],
   frames: readonly ReplayDerivationFrame[],
@@ -570,7 +611,9 @@ export const scheduleRealizationChanges = (
   inputTokens?: readonly string[]
 ): ScheduledRealizationChange[] => {
   const moments = stageMoments(steps, stageIndex), frame = frames[stageIndex];
+  const first = steps.findIndex(step => (step.replayFrameIndex ?? step.sourceFrameIndex) === stageIndex);
   return stageRealizationChanges(frames, inputTokens)(stageIndex).map(change => {
+    if (change.spelling) return { ...change, stepIndex: first >= 0 ? first : null, diagnostics: [] };
     const diagnostics = change.diagnostic ? [change.diagnostic] : [];
     if (change.relationIndex !== null && !moments.some(moment => moment.relationIndex === change.relationIndex)) {
       diagnostics.push(`REALIZATION_OWNER_MOMENT_UNAVAILABLE: Stage ${stageIndex + 1}, relation ${change.relationIndex + 1} has no available Replay moment. No realization moment was invented.`);
