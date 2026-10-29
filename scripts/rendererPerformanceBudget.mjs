@@ -7,8 +7,18 @@ export const rendererPerformancePolicy = Object.freeze({
   relativeTolerance: 0.10,
   absoluteToleranceMs: 100,
   maxSpreadRatio: 0.25,
+  unstableRemeasures: 1,
   referenceTargetMs: 2000
 });
+
+/**
+ * An unstable verdict means the runner was too noisy to judge, not that the
+ * candidate is slow, so the check measures one fresh set of rounds and judges
+ * that set alone. A regression or a pass is final: a slowdown never gets a
+ * second measurement.
+ */
+export const shouldRemeasure = (assessment, attempts, policy = rendererPerformancePolicy) =>
+  assessment.status === 'unstable' && attempts <= policy.unstableRemeasures;
 
 function summarizeTimes(values, expectedSamples, allowZero = false) {
   if (values.length !== expectedSamples || values.some(value => !Number.isFinite(value) || (allowZero ? value < 0 : value <= 0))) {

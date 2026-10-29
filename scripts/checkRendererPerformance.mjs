@@ -9,7 +9,7 @@ import { execFile } from 'node:child_process';
 import { parseArgs, promisify } from 'node:util';
 import { chromium } from 'playwright';
 import { buildQualificationReviewRuntime } from './buildContractQualificationReviewRuntime.mjs';
-import { assessRendererPerformance, describeRendererPreparation, rendererPerformancePolicy as policy } from './rendererPerformanceBudget.mjs';
+import { assessRendererPerformance, describeRendererPreparation, rendererPerformancePolicy as policy, shouldRemeasure } from './rendererPerformanceBudget.mjs';
 import { observeRendererOpening } from './rendererPerformanceObservation.mjs';
 import { verifyRuntimeFreshness } from './reviewRuntimeProvenance.mjs';
 
@@ -108,14 +108,20 @@ try {
   for (let round = 0; round < policy.warmupRounds; round++) {
     for (const name of round % 2 ? ['candidate', 'base'] : ['base', 'candidate']) await measure(name);
   }
-  for (let round = 0; round < policy.samples; round++) {
-    for (const name of round % 2 ? ['candidate', 'base'] : ['base', 'candidate']) {
-      const sample = await measure(name); report.samples[name].push(sample);
-      console.log(`${name} ${round + 1}/${policy.samples}: first paint ${Math.round(sample.readyMs)} ms; preparation ${Math.round(sample.completeMs)} ms`);
+  for (let attempt = 1; ; attempt++) {
+    report.samples = { base: [], candidate: [] };
+    for (let round = 0; round < policy.samples; round++) {
+      for (const name of round % 2 ? ['candidate', 'base'] : ['base', 'candidate']) {
+        const sample = await measure(name); report.samples[name].push(sample);
+        console.log(`${name} ${round + 1}/${policy.samples}: first paint ${Math.round(sample.readyMs)} ms; preparation ${Math.round(sample.completeMs)} ms`);
+      }
     }
+    report.assessment = assessRendererPerformance(report.samples.base.map(s => s.readyMs), report.samples.candidate.map(s => s.readyMs));
+    report.preparation = describeRendererPreparation(report.samples.base, report.samples.candidate);
+    if (!shouldRemeasure(report.assessment, attempt, policy)) break;
+    (report.unstableAttempts ??= []).push({ samples: report.samples, assessment: report.assessment });
+    console.log('Runner timing was unstable; measuring one fresh set of rounds and judging that set.');
   }
-  report.assessment = assessRendererPerformance(report.samples.base.map(s => s.readyMs), report.samples.candidate.map(s => s.readyMs));
-  report.preparation = describeRendererPreparation(report.samples.base, report.samples.candidate);
   report.inputFreshness = {};
   for (const [name, built] of builds) {
     const freshness = await verifyRuntimeFreshness(built.metadata, { root: built.source, entrySource: built.entry });
@@ -145,6 +151,6 @@ const preparation = report.preparation;
 const preparationSummary = preparation ? `Full preparation (reporting only): base median ${Math.round(preparation.complete.base.medianMs)} ms, range ${Math.round(preparation.complete.base.minMs)}–${Math.round(preparation.complete.base.maxMs)} ms; candidate median ${Math.round(preparation.complete.candidate.medianMs)} ms, range ${Math.round(preparation.complete.candidate.minMs)}–${Math.round(preparation.complete.candidate.maxMs)} ms. Remaining after first paint: base ${Math.round(preparation.remainingAfterFirstPaint.base.medianMs)} ms; candidate ${Math.round(preparation.remainingAfterFirstPaint.candidate.medianMs)} ms. Completion samples ${preparation.complete.stable ? 'stable' : 'unstable'}; no completion budget has been calibrated.` : '';
 console.log(summary + `\n${preparationSummary}\nReport: ${reportPath}`);
 if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY,
-  `### Renderer performance\n\n${summary}\n\n${preparationSummary}\n\nFixed German analysis, Chromium, 1600 × 1000. Five alternating fresh-context samples per revision; no retries. The local reference-device target is 2,000 ms. CI enforces the same-runner first-paint regression budget.\n`);
+  `### Renderer performance\n\n${summary}\n\n${preparationSummary}\n\nFixed German analysis, Chromium, 1600 × 1000. Seven alternating fresh-context samples per revision after two warm-up rounds; an unstable set is measured once more, a regression never is. The local reference-device target is 2,000 ms. CI enforces the same-runner first-paint regression budget.\n`);
 if (result?.status === 'regression') console.error('Reassess the PR and remove the slowdown. Do not relax the budget or replace the fixture to make it pass.');
 if (result?.status === 'unstable') console.error('Runner timing was unstable. No performance pass was established; inspect the samples before rerunning CI.');
