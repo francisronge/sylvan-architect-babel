@@ -1,77 +1,144 @@
 #!/usr/bin/env node
-// Jev's pass after generation: for each analysis, ask once how the words of its
-// neutral claims read in Babel's words, check the reply against the closed sets
-// and save the checked answers as the analysis's Jev record (jev.json).
+// Jev's pass after generation: for each analysis, ask TypeSafe's Jev how the words
+// of each neutral claim read in Babel's words, check every answer against the
+// options asked and save the checked readings as the analysis's Jev record (jev.json).
 //
-//   node scripts/runJev.mjs --cases cases.json --out DIR [--run] [--model ID] [--effort high] [--concurrency 2]
+//   node scripts/runJev.mjs --cases cases.json --out DIR (--dry-run | --run)
+//     [--key-file PATH | --keychain-item NAME] [--model jev-1.14.0] [--concurrency 2]
 //
-// cases.json lists { "source": "<bundle.json>", "analysis": 0 } entries. Without
-// --run, each request is saved and nothing is sent. With --run, requests go only
-// through the Codex subscription login (contractQualification/codexOAuth.js): one
-// request per analysis, no retries, at most two at a time. Every request, the
-// received bytes, the reply check and the record are kept, readable only by the owner.
+// cases.json lists { "source": "<bundle.json>", "analysis": 0 } entries. --dry-run
+// builds and saves every first request and sizes the second, with no key and no
+// network. --run reads the key into memory (contractQualification/jev.js) and sends
+// each request once, with no retries. Every request, the received bytes, the answer
+// check and the record are kept, readable only by the owner. The key is never saved.
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { readCodexCredentials, requestCodexQualification } from '../contractQualification/codexOAuth.js';
-import { JEV_PROMPT_VERSION, buildJevRequest, jevRecordFrom, readJevReply } from '../contractQualification/jev.js';
+import {
+  DEFAULT_JEV_MODEL, DEFAULT_TYPESAFE_KEYCHAIN_SERVICE, JEV_PROMPT_VERSION, TYPESAFE_SYSTEMONE_URL,
+  anchorIdsReachRequest, buildFamilyRequest, buildSlotRequest, estimateJevCost, jevClaimResult, jevRecordFrom,
+  readSystemOneResponse, readTypeSafeApiKey, requestJev
+} from '../contractQualification/jev.js';
 import { neutralJevClaims } from '../replay/jevClaims.ts';
+import { JEV_CONFIDENCE_THRESHOLD, JEV_NONE, jevFamilies } from '../replay/relations/jev.ts';
 
 const { values: args } = parseArgs({ options: {
   cases: { type: 'string' }, out: { type: 'string' }, run: { type: 'boolean', default: false },
-  model: { type: 'string' }, effort: { type: 'string', default: 'high' },
-  concurrency: { type: 'string', default: '2' }, 'auth-file': { type: 'string' }
+  'dry-run': { type: 'boolean', default: false }, model: { type: 'string', default: DEFAULT_JEV_MODEL },
+  concurrency: { type: 'string', default: '2' }, 'key-file': { type: 'string' },
+  'keychain-item': { type: 'string', default: DEFAULT_TYPESAFE_KEYCHAIN_SERVICE }
 } });
-if (!args.cases || !args.out) throw new Error('Use --cases FILE --out DIR.');
+if (!args.cases || !args.out) throw new Error('Use --cases FILE --out DIR with --dry-run or --run.');
+if (args.run === args['dry-run']) throw new Error('Use exactly one of --dry-run and --run.');
 const concurrency = Number(args.concurrency);
-if (!(concurrency >= 1 && concurrency <= 2)) throw new Error('Jev sends at most two requests at a time.');
+if (!(Number.isInteger(concurrency) && concurrency >= 1 && concurrency <= 8)) throw new Error('Use --concurrency 1 to 8.');
+if (fs.existsSync(args.out)) throw new Error(`${args.out} exists; each invocation needs a new output directory.`);
 
-const writePrivate = (file, data) => fs.writeFileSync(file, data, { mode: 0o600, flag: 'wx' });
+// Read before any directory is made, so a missing key fails before anything is written.
+const apiKey = args.run ? readTypeSafeApiKey({ keyFile: args['key-file'], service: args['keychain-item'] }) : undefined;
 fs.mkdirSync(args.out, { recursive: true, mode: 0o700 });
-const credentials = args.run ? readCodexCredentials(args['auth-file']
-  ?? path.join(process.env.CODEX_HOME ?? path.join(os.homedir(), '.codex'), 'auth.json')) : undefined;
+const writePrivate = (file, data) => fs.writeFileSync(file, typeof data === 'string' ? data : JSON.stringify(data, null, 1),
+  { mode: 0o600, flag: 'wx' });
+const sha256 = text => createHash('sha256').update(text).digest('hex');
+// No tokenizer is published. The quickstart request (https://docs.typesafe.ai/introduction/quickstart.md)
+// is 682 characters of JSON billed as 428 input tokens, so a dry run sizes requests at 1.5 characters a token.
+const CHARACTERS_PER_TOKEN = 1.5;
+const estimateTokens = text => Math.ceil(text.length / CHARACTERS_PER_TOKEN);
+
+
+const totals = { analyses: 0, claims: 0, withheld: 0, requests: { family: 0, slots: 0 }, failed: 0,
+  inputTokens: 0, outputTokens: 0, estimatedInputTokens: { family: 0, slotsUpperBound: 0 }, statuses: {} };
+const count = status => { totals.statuses[status] = (totals.statuses[status] ?? 0) + 1; };
+
+const send = async (dir, name, requestBody) => {
+  const text = JSON.stringify(requestBody);
+  writePrivate(path.join(dir, `${name}.request.json`), text);
+  totals.requests[name] += 1;
+  const started = Date.now();
+  const sent = await requestJev({ body: requestBody, apiKey });
+  writePrivate(path.join(dir, `${name}.response.json`), sent.text ?? '');
+  const receipt = { name, requestSha256: sha256(text), status: sent.status, httpStatus: sent.httpStatus,
+    error: sent.error, model: sent.json?.model ?? null, usage: sent.json?.usage ?? null, elapsedMs: Date.now() - started };
+  if (sent.status !== 'completed') totals.failed += 1;
+  totals.inputTokens += receipt.usage?.input_tokens ?? 0;
+  totals.outputTokens += receipt.usage?.output_tokens ?? 0;
+  return { sent, receipt };
+};
+
+const askClaim = async (dir, { relation }) => {
+  const family = buildFamilyRequest({ relation, model: args.model });
+  const familyText = JSON.stringify(family);
+  // An anchor id in a request would carry the tree to Jev; such a claim is withheld.
+  if (anchorIdsReachRequest(relation, candidate => buildFamilyRequest({ relation: candidate, model: args.model })))
+    return { result: { status: 'withheld' }, receipts: [] };
+  totals.estimatedInputTokens.family += estimateTokens(familyText);
+  // The second request asks one family's slots; size the largest so the dry run bounds it.
+  totals.estimatedInputTokens.slotsUpperBound += Math.max(...jevFamilies(relation).map(candidate =>
+    estimateTokens(JSON.stringify(buildSlotRequest({ relation, family: candidate.id, model: args.model }).body))));
+  if (args['dry-run']) {
+    writePrivate(path.join(dir, 'family.request.json'), familyText);
+    totals.requests.family += 1;
+    return { result: { status: 'not-sent' }, receipts: [] };
+  }
+  const first = await send(dir, 'family', family);
+  if (first.sent.status !== 'completed') return { result: { status: 'transport-failed' }, receipts: [first.receipt] };
+  const familyRead = readSystemOneResponse(first.sent.json, family.questions);
+  const chosen = familyRead.ok ? familyRead.answers.family.choice : JEV_NONE;
+  if (chosen === JEV_NONE) return { result: jevClaimResult(relation, familyRead), familyRead, receipts: [first.receipt] };
+  const slots = buildSlotRequest({ relation, family: chosen, model: args.model });
+  if (anchorIdsReachRequest(relation, candidate => buildSlotRequest({ relation: candidate, family: chosen, model: args.model }).body))
+    return { result: { status: 'withheld' }, receipts: [first.receipt] };
+  const second = await send(dir, 'slots', slots.body);
+  if (second.sent.status !== 'completed') return { result: { status: 'transport-failed' }, receipts: [first.receipt, second.receipt] };
+  const slotsRead = readSystemOneResponse(second.sent.json, slots.body.questions);
+  return { result: jevClaimResult(relation, familyRead, { read: slotsRead, keys: slots.keys }),
+    familyRead, slotsRead, receipts: [first.receipt, second.receipt] };
+};
 
 const cases = JSON.parse(fs.readFileSync(args.cases, 'utf8'));
-const runOne = async ({ source, analysis }, index) => {
+const runAnalysis = async ({ source, analysis }, index) => {
   const bundle = JSON.parse(fs.readFileSync(source, 'utf8')).response;
   const claims = neutralJevClaims(bundle.analyses[analysis].derivationStages);
   const dir = path.join(args.out, String(index).padStart(4, '0'));
   fs.mkdirSync(dir, { mode: 0o700 });
-  const request = buildJevRequest({ claims, ...(args.model ? { model: args.model } : {}), effort: args.effort });
-  const requestText = JSON.stringify(request.body, null, 1);
-  writePrivate(path.join(dir, 'request.json'), requestText);
-  const receipt = { source, analysis, claims: claims.length, promptVersion: JEV_PROMPT_VERSION,
-    model: request.selection.catalogId, effort: request.selection.nativeSettings['reasoning.effort'],
-    requestSha256: createHash('sha256').update(requestText).digest('hex') };
-  if (!claims.length || !args.run) {
-    writePrivate(path.join(dir, 'receipt.json'), JSON.stringify({ ...receipt, sent: false }, null, 1));
-    return;
+  totals.analyses += 1;
+  totals.claims += claims.length;
+  const started = new Date().toISOString();
+  const outcomes = [];
+  for (const claim of claims) {
+    const claimDir = path.join(dir, claim.id);
+    fs.mkdirSync(claimDir, { mode: 0o700 });
+    const outcome = await askClaim(claimDir, claim);
+    if (outcome.result.status === 'withheld') totals.withheld += 1;
+    count(outcome.result.status);
+    writePrivate(path.join(claimDir, 'claim-check.json'), { id: claim.id, ...outcome });
+    outcomes.push(outcome);
   }
-  const sse = fs.openSync(path.join(dir, 'response.sse'), 'wx', 0o600);
-  const started = Date.now();
-  const result = await requestCodexQualification({ body: request.body, credentials, onBytes: bytes => fs.writeSync(sse, bytes) });
-  fs.closeSync(sse);
-  const elapsedMs = Date.now() - started;
-  const reply = result.status === 'completed' ? readJevReply(result.text, claims) : undefined;
-  writePrivate(path.join(dir, 'output.txt'), result.text ?? '');
-  const provenance = { ...receipt, responseId: result.responseId, at: new Date(started).toISOString() };
-  if (reply) {
-    writePrivate(path.join(dir, 'reply-check.json'), JSON.stringify(reply, null, 1));
-    writePrivate(path.join(dir, 'jev.json'), JSON.stringify(jevRecordFrom({ claims, results: reply.results, provenance }), null, 1));
-  }
-  writePrivate(path.join(dir, 'receipt.json'), JSON.stringify({ ...receipt, sent: true, status: result.status,
-    error: result.error, httpStatus: result.httpStatus, responseId: result.responseId, elapsedMs,
-    usage: result.response?.usage ?? null }, null, 1));
-  console.log(`${index} ${result.status} ${claims.length} claims ${elapsedMs} ms`);
+  const models = [...new Set(outcomes.flatMap(outcome => outcome.receipts.map(receipt => receipt.model).filter(Boolean)))];
+  writePrivate(path.join(dir, 'receipt.json'), { source, analysis, claims: claims.length, promptVersion: JEV_PROMPT_VERSION,
+    endpoint: TYPESAFE_SYSTEMONE_URL, requestedModel: args.model, sent: args.run, models, at: started });
+  if (args.run) writePrivate(path.join(dir, 'jev.json'), jevRecordFrom({ claims, results: outcomes.map(outcome => outcome.result),
+    provenance: { service: 'typesafe', requestedModel: args.model, models, promptVersion: JEV_PROMPT_VERSION, at: started,
+      thresholdAtRun: JEV_CONFIDENCE_THRESHOLD } }));
+  console.log(`${index} ${claims.length} claims ${outcomes.map(outcome => outcome.result.status).join(' ')}`);
 };
 
 let next = 0;
 await Promise.all(Array.from({ length: concurrency }, async () => {
   while (next < cases.length) {
     const index = next++;
-    await runOne(cases[index], index).catch(error => console.error(`${index} local failure: ${error.message}`));
+    await runAnalysis(cases[index], index).catch(error => {
+      count('local-failure');
+      console.error(`${index} local failure: ${error.message}`);
+    });
   }
 }));
+
+const priced = estimateJevCost(args.model, { inputTokens: args.run ? totals.inputTokens
+  : totals.estimatedInputTokens.family + totals.estimatedInputTokens.slotsUpperBound });
+const summary = { mode: args.run ? 'run' : 'dry-run', model: args.model, promptVersion: JEV_PROMPT_VERSION, ...totals,
+  cost: { ...priced, basis: args.run ? 'reported input tokens' : `estimated tokens (${CHARACTERS_PER_TOKEN} characters each), every claim given its largest second request` } };
+writePrivate(path.join(args.out, 'summary.json'), summary);
+console.log(JSON.stringify(summary, null, 1));
