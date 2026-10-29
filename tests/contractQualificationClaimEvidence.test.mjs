@@ -103,3 +103,23 @@ test('qualification shares production assignment history when later claims resta
   assert.deepEqual(introducedClaims(evidence, 1, 0), claims);
   assert.deepEqual(input, original);
 });
+
+test('qualification claims match the render plan when a later line ends on a structure-only plaque', () => {
+  const forest = [{ id: 'vp', label: 'VP', children: [{ id: 'v', label: 'V', word: 'v' }, { id: 'obj', label: 'DP', word: 'obj' }] }];
+  const stages = [
+    stage(forest, [{ relation: 'An open note', anchors: { host: 'obj' }, values: { note: 'opaque' } }]),
+    stage(forest, [{ relation: 'CaseAssignment', anchors: { assigner: 'v', bearer: 'obj' }, values: { feature: 'Case', value: 'ACC' } }])
+  ];
+  const previous = process.env.BABEL_STRUCTURAL_RECOGNITION;
+  process.env.BABEL_STRUCTURAL_RECOGNITION = '1';
+  try {
+    const plaque = compileRelationRenderPlan(stages).frames[1].items.find(item => item.relationRef.stageIndex === 0);
+    assert.equal(plaque.kind, 'node-plaque');
+    const evidence = buildQualificationAnalysisEvidence(bundle(stages));
+    assert.deepEqual(relationClaims(evidence, 0, 0).map(claim => claim.tier), [plaque.claimTier]);
+    assert.equal(evidence.renderer.tierCounts.tier3, 0);
+  } finally {
+    if (previous === undefined) delete process.env.BABEL_STRUCTURAL_RECOGNITION;
+    else process.env.BABEL_STRUCTURAL_RECOGNITION = previous;
+  }
+});

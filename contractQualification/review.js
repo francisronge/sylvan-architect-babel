@@ -1,7 +1,7 @@
 import { buildReplayPlayback } from '../replay/replaySnapshot.ts';
-import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
+import { projectRelationStages } from '../replay/relationStages.ts';
+import { compileRelationRenderPlan, dispatchRelationStagesForPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { planItemRelationRefs } from '../replay/relations/renderPlan.ts';
-import { dispatchStageRelations } from '../replay/relations/tier2RelationDispatch.ts';
 
 const relationKey = ({ stageIndex, relationIndex }) => `${stageIndex}:${relationIndex}`;
 
@@ -84,8 +84,9 @@ export const buildQualificationAnalysisEvidence = (analysisBundle) => {
   const analysis = analysisBundle?.analyses?.[0];
   if (!analysis) throw new Error('Qualification evidence requires one analysis.');
   const stages = Array.isArray(analysis.derivationStages) ? analysis.derivationStages : [];
-  // Share realization and prior-assignment context with the production render plan.
-  const relationEntries = dispatchStageRelations(stages).flatMap((dispatches, stageIndex) => (
+  // Read claims as the production render plan dispatches them, including
+  // realization, prior-assignment and later plaque-host context.
+  const relationEntries = dispatchRelationStagesForPlan(projectRelationStages(stages)).dispatches.flatMap((dispatches, stageIndex) => (
     dispatches.map((dispatch) => ({
       stageIndex,
       relationIndex: dispatch.relationInstance.relationIndex,
