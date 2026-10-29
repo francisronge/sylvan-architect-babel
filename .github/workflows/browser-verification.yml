@@ -66,9 +66,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The shards of BROWSER_CI_SHARDS in scripts/browserSuites.mjs; the
-        # final job fails unless their receipts cover the full gate.
-        shard: [renderer, application]
+        # The shards of BROWSER_CI_SHARDS in scripts/browserSuites.mjs, split
+        # by measured spec durations; the final job fails unless their
+        # receipts cover the full gate.
+        shard: [1, 2, 3]
     steps:
       - name: Check out candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -168,7 +169,7 @@ jobs:
     needs: [changes, browser-shard]
     # Always reports, so this check is never left pending: it passes for a
     # Markdown-only pull request whose shards were skipped, and otherwise only
-    # when both shards passed and their receipts ran every required spec once.
+    # when every shard passed and their receipts ran every required spec once.
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
