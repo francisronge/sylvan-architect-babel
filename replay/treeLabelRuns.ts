@@ -70,10 +70,12 @@ export function stagedTerminalText(node: HierNode, context: StagedTerminalContex
 
 export const identityIndexAction = (contents: string, existingIndices: readonly string[], index: string) =>
   existingIndices.includes(index) ? 'existing' : extractDisplayedSubscriptIndex(contents) === index ? 'inline' : 'append';
-export const thetaLabelBase = (identityBase: string | undefined, defaultText: string | undefined, contents: string) =>
-  identityBase || defaultText || contents;
+/** The text a theta index follows: the label as identity found it, else as the
+ * step staged it (with its chain or operator index), else its authored default. */
+export const thetaLabelBase = (identityBase: string | undefined, stagedText: string | undefined, contents: string) =>
+  identityBase || stagedText || contents;
 
-export type TreeLabelState = TreeLabelRuns & { defaultText?: string; identityBaseText?: string };
+export type TreeLabelState = TreeLabelRuns & { defaultText?: string; stagedText?: string; identityBaseText?: string };
 const textContent = (label: TreeLabelRuns) => label.text + label.indices.map(run => run.text).join('');
 
 /** Identity indices run before deferred theta drawing. Preserve the painter's
@@ -88,7 +90,7 @@ export function identityLabelState(label: TreeLabelState, index: string): TreeLa
 /** Theta retains identity runs, resets its base as the painter does, and reuses
  * an equal identity index rather than appending a second copy. */
 export function thetaLabelState(label: TreeLabelState, index: string): TreeLabelState {
-  const text = thetaLabelBase(label.identityBaseText, label.defaultText, textContent(label));
+  const text = thetaLabelBase(label.identityBaseText, label.stagedText || label.defaultText, textContent(label));
   const identities = label.indices.filter(run => run.mode === 'identity');
   return { ...label, text, lines: undefined,
     indices: identities.some(run => run.text === index) ? identities : [...identities,{ text: index, mode: 'theta' }]};
@@ -146,7 +148,8 @@ export function treeLabelRunsForStep(
       labels.set(key(id, 'category'), {kind: 'category', text: lines.join(''), lines, indices: []});
     }
     if (!node.children?.length && !isWordlessCategoryLeaf(node.data)) {
-      labels.set(key(id, 'terminal'), {kind: 'terminal', text: stagedTerminalText(node, context),
+      const stagedText = stagedTerminalText(node, context);
+      labels.set(key(id, 'terminal'), {kind: 'terminal', text: stagedText, stagedText,
         defaultText: resolveLeafSurface(node).trim(), indices: []});
     }
   }
@@ -226,11 +229,11 @@ export function treeLabelRunsForStep(
   }
   for (const [idKey, label] of labels) {
     const [id] = JSON.parse(idKey), runs = result.get(id) || [];
-    const {defaultText: _, identityBaseText: __, ...display}=label;
+    const {defaultText: _, stagedText: _staged, identityBaseText: __, ...display}=label;
     runs.push(display);
     const prior = beforeTheta.get(idKey);
     if (prior) {
-      const {defaultText: _priorDefault, identityBaseText: _priorBase, ...beforeDisplay} = prior;
+      const {defaultText: _priorDefault, stagedText: _priorStaged, identityBaseText: _priorBase, ...beforeDisplay} = prior;
       if (treeLabelRunKey(beforeDisplay) !== treeLabelRunKey(display)) runs.push(beforeDisplay);
     }
     result.set(id, runs);

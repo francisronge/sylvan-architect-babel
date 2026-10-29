@@ -251,6 +251,17 @@ test('the later production Theta callback preserves identity notation and shares
   }
 });
 
+test('the production Theta callback keeps the chain index the step staged on a label without identity', () => {
+  const item = identityItems(compileRelationRenderPlan([stage([relation()])]))[0];
+  const paint = painter();
+  const alpha = paint.root.children.find(label => label.attrs['data-node-id'] === 'alpha');
+  alpha.text = 'alpha₁';
+  alpha.attrs['data-staged-label'] = 'alpha₁';
+  paint.drawTheta('alpha', 'k', { ...item, familyId: 'theta.grid', relationRef: { ...item.relationRef, relationIndex: 2 } });
+  assert.equal(alpha.text, 'alpha₁');
+  assert.deepEqual(alpha.children.map(span => span.textContent), ['k']);
+});
+
 test('the production Theta scheduler defers its index until after inline identity in either authored order', () => {
   const identity = identityItems(compileRelationRenderPlan([stage([relation()])]))[0];
   const theta = { ...identity, familyId: 'theta.grid', relationRef: { ...identity.relationRef, relationIndex: 2 } };

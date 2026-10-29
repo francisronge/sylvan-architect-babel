@@ -568,7 +568,8 @@ export function paintSyntaxTree({
     .attr('fill', fill)
     .attr('style', `fill: ${fill} !important; font-family: 'Quicksand', sans-serif; font-style: italic; paint-order: stroke; stroke: #020806; stroke-width: ${TERMINAL_LABEL.strokeWidth}px;`)
     .style('fill', fill, 'important')
-    .text(d => getReplayRenderedTerminalText(d));
+    .text(d => getReplayRenderedTerminalText(d))
+    .attr('data-staged-label', function () { return this.textContent || ''; });
 
   // Pronounced leaves stay emerald; silent leaves stay muted.
   appendTerminalText(overtTerminals, TARGET_EMERALD);

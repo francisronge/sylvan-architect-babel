@@ -199,7 +199,8 @@ export function createThetaDrawing({
           indexedLabel.each(function appendThetaIndex() {
             const label = d3.select(this);
             const identityIndices = label.selectAll<SVGTSpanElement, unknown>('.babel-identity-index').nodes();
-            const baseLabel = thetaLabelBase(label.attr('data-identity-base-label'), label.attr('data-default-label'), this.textContent || '');
+            const baseLabel = thetaLabelBase(label.attr('data-identity-base-label'),
+              label.attr('data-staged-label') || label.attr('data-default-label'), this.textContent || '');
             label.text(baseLabel)
               .classed('babel-theta-indexed-label', true)
               .attr('data-theta-base-label', baseLabel);
