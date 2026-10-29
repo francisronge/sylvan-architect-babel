@@ -68,7 +68,7 @@ function moves(a, b, ids, m) {
   if (!list.length) return null;
   const dx = median(list.map(move => move.dx)), dy = median(list.map(move => move.dy));
   return { dx, dy, length: median(list.map(move => Math.hypot(move.dx, move.dy))), list,
-    residuals: list.map(move => ({ id: move.id, px: Math.hypot(move.dx - dx, move.dy - dy) })) };
+    residuals: list.map(move => ({ id: move.id, rx: move.dx - dx, ry: move.dy - dy, px: Math.hypot(move.dx - dx, move.dy - dy) })) };
 }
 
 /** shown → not shown → shown runs for every key shown in some frame. */
@@ -145,7 +145,7 @@ export function judgeMotion(samples, { context = 'step', place = {}, label = '',
   }
   const steps = frames.slice(1).map((frame, index) => {
     const dt = Math.max(frame.t - frames[index].t, 1e-3);
-    return { frame, move: moves(frames[index], frame, anchored.length ? anchored : [...frame.nodes.keys()], m), scale: Math.min(1, 33.4 / dt) };
+    return { frame, dt, move: moves(frames[index], frame, anchored.length ? anchored : [...frame.nodes.keys()], m), scale: Math.min(1, 33.4 / dt) };
   });
   if (enabled.has('teleport')) {
     // A long frame legitimately covers more of a smooth camera move.
@@ -156,7 +156,20 @@ export function judgeMotion(samples, { context = 'step', place = {}, label = '',
     }
   }
   if (enabled.has('nodeJump')) {
-    const jumps = steps.flatMap(entry => (entry.move?.residuals || []).filter(node => node.px * entry.scale > m.nodeJumpPx)
+    // The duration scale lets a long frame carry more of a node's ongoing motion;
+    // it must not discount a snap, and a redraw that snaps syntax is itself a
+    // long frame. A move that neither holding still nor keeping the node's
+    // previous pace explains is a jump however long the frame took, so the
+    // verdict on a snap does not depend on how fast the browser painted it.
+    const unexplained = (node, entry, previous) => {
+      const before = previous?.move?.residuals.find(other => other.id === node.id);
+      if (!before) return 0;
+      const px = before.rx * entry.dt / previous.dt, py = before.ry * entry.dt / previous.dt, length = px * px + py * py;
+      const along = length > 1e-9 ? Math.min(1, Math.max(0, (node.rx * px + node.ry * py) / length)) : 0;
+      return Math.hypot(node.rx - along * px, node.ry - along * py);
+    };
+    const jumps = steps.flatMap((entry, index) => (entry.move?.residuals || [])
+      .filter(node => node.px * entry.scale > m.nodeJumpPx || unexplained(node, entry, steps[index - 1]) > m.nodeJumpPx)
       .map(node => ({ ...node, frame: entry.frame })));
     if (jumps.length) {
       const largest = jumps.reduce((best, jump) => jump.px > best.px ? jump : best);
