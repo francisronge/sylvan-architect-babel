@@ -7,8 +7,9 @@
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
-// Matches `npm test`, which CI runs with its compile cache; the CI workflow
-// fails if that script changes.
+// Files run at once in a shard. `npm test` runs six on a developer machine; a
+// CI runner has four vCPUs (about 2.5 cores of throughput), and the shard
+// weights below are balanced for two at a time.
 const CONCURRENCY = 2;
 
 // Approximate standalone seconds of the files that take two or more (measured
