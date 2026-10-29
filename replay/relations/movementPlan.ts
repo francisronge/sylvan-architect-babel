@@ -21,6 +21,7 @@ import {
 } from './renderFamilies.ts';
 import { pairedLiterals } from './tier2EvidenceQueries.ts';
 import { gapBadgeText, singleValue } from './tier2PlanValues.ts';
+import { claimDeniesOrWithholds } from './tier2Synonyms.ts';
 import { headTrajectoryAttachment } from './trajectoryAttachment.ts';
 
 
@@ -288,8 +289,13 @@ export const movementPlan = {
       pushDiagnostic('illegal-configuration', `controller and controllee are the same node ${controller}`);
       return;
     }
-    // An authored domain must resolve; without one only the connector and coindex draw.
+    // An authored domain must resolve; without one only the connector and coindex
+    // draw, and only for a claim stated positively.
     if (domain !== undefined && !requireResolved('domain', domain)) return;
+    if (domain === undefined && claimDeniesOrWithholds(context.claim.relation.relation, context.claim.relation.values)) {
+      pushDiagnostic('illegal-configuration', 'a Control claim without a domain denies or withholds its dependency');
+      return;
+    }
     const index = dependencyIndexFor(stableChainKey('control', nodes, [controller, controllee]), singleValue(context.claim.claimDispatch.evidence, 'index'));
     if (domain !== undefined) items.push({
       ...base,

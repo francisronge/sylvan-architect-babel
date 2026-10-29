@@ -10,6 +10,7 @@ import { TIER2_FACET_RECIPES } from './tier2FacetRecipes.ts';
 import type { Tier2AnchorSource, Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import {
   FEATURE_DIMENSION_KEYS,
+  claimDeniesOrWithholds,
   fieldNamingLiterals,
   isNotationFeatureLabel,
   namedThematicRole,
@@ -100,9 +101,15 @@ export const anchorIds = (
 export const valueLiterals = (evidence: Tier2FacetEvidence, valueName: string): string[] =>
   [...(evidence.values[valueName] ?? [])].map(String);
 
+/** A claim whose relation name or authored values deny or withhold what it
+ * states (`claimDeniesOrWithholds`); the readings added for structural misses leave it neutral. */
+export const deniedEvidence = (evidence: Partial<Pick<Tier2FacetEvidence, 'relationName' | 'authoredValues'>>): boolean =>
+  claimDeniesOrWithholds(evidence.relationName, (evidence.authoredValues ?? []).map(entry => entry.items));
+
 /** The one feature label in notation, such as `+wh`, when no feature rows or
  * Case are authored and no other label competes. The connector shows it. */
 export const notationFeatureLabel = (evidence: Tier2FacetEvidence): string | undefined => {
+  if (deniedEvidence(evidence)) return undefined;
   const labels = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('feature.label'));
   if (valueLiterals(evidence, 'feature.rows').length || valueLiterals(evidence, 'case.literal').length
     || labels.length !== 1 || labels[0].items.length !== 1 || !isNotationFeatureLabel(labels[0].items[0])) return undefined;
@@ -213,7 +220,7 @@ export const pairedLiterals = (
 };
 
 export const sameNameValueEntries = (
-  evidence: Pick<Tier2FacetEvidence, 'authoredValues'> & Partial<Pick<Tier2FacetEvidence, 'authoredCurrentAnchors'>>,
+  evidence: Pick<Tier2FacetEvidence, 'authoredValues'> & Partial<Pick<Tier2FacetEvidence, 'authoredCurrentAnchors' | 'relationName'>>,
   anchorEntry: Tier2AuthoredEvidenceEntry,
   role?: string
 ): (Tier2AuthoredEvidenceEntry & { anchorLength: number })[] => {
@@ -237,7 +244,7 @@ export const sameNameValueEntries = (
   // a list one item longer or shorter than the arguments is ambiguous.
   const argumentKeys = (evidence.authoredCurrentAnchors ?? []).filter(entry => entry.concepts.includes('theta.arguments'))
     .map(entry => entry.key);
-  const listed = (!role || role === 'theta.arguments')
+  const listed = (!role || role === 'theta.arguments') && !deniedEvidence(evidence)
     && anchorEntry.concepts.includes('theta.arguments') && anchorEntry.items.length === 1
     ? entries.flatMap(candidate => {
       const named = candidate.concepts.includes('role.label') && candidate.items.length > 1

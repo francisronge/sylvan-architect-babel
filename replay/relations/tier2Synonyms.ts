@@ -54,6 +54,24 @@ export const isNotationFeatureLabel = (value: unknown): boolean => typeof value 
  * `none` or `failed`. Neither a role name nor a feature value. */
 const DENIED_OR_UNSET = /^(?:no|not|none|absent|without|possible|potential|hypothetical|pending|unresolved|unestablished|failed|blocked|unsuccessful|rejected|unlicensed|unassigned)$/u;
 
+/** Whether any word of a claim's relation name or of any authored value is a
+ * denying or withholding word (`DENIED_OR_UNSET`), such as `no theta
+ * assignment` or `status: failed`. The readings added for structural misses
+ * (same-name and listed θ labels, θ-marking, the phi bundle, concord, a lone
+ * feature label, a governed Case recipient and Control without a domain)
+ * leave such a claim neutral: they draw only claims stated positively. */
+export const claimDeniesOrWithholds = (relation: unknown, values: unknown): boolean => {
+  const texts: string[] = [];
+  const collect = (value: unknown, depth: number): void => {
+    if (typeof value === 'string') texts.push(value);
+    else if (depth < 4 && Array.isArray(value)) value.forEach(item => collect(item, depth + 1));
+    else if (depth < 4 && value && typeof value === 'object') Object.values(value).forEach(item => collect(item, depth + 1));
+  };
+  collect(relation, 0);
+  collect(values, 0);
+  return texts.some(text => normalizeTier2Synonym(text).split(/[^\p{L}\p{N}]+/u).some(word => DENIED_OR_UNSET.test(word)));
+};
+
 /** One feature value, such as `3`, `sg` or `masculine`: one token of letters or
  * digits. Prose such as `default sg`, punctuation such as `n/a` or `-`, a
  * denying word such as `none` and a serialized JSON literal such as `null`
@@ -513,6 +531,7 @@ export const relationRoleConcepts = (
   // A whole-clause judgment may call its exact target "root" or "clause".
   // These broad names carry verdict meaning only in an authored judgment.
   const relationName = normalizeTier2Synonym(context.relation ?? '');
+  const deniedClaim = claimDeniesOrWithholds(context.relation, context.values);
   const soleJudgmentTarget = Object.values(context.anchors ?? {}).flatMap(value => Array.isArray(value) ? value : [value]);
   if (['root', 'clause', 'sentence', 'candidate', 'completed root', 'analysis root', 'completed structure', 'completed clause'].includes(spelling)
     && (isWholeClauseJudgmentRelation(relationName) || spelling !== 'candidate' && hasAuthoredJudgment(context)
@@ -645,7 +664,7 @@ export const relationRoleConcepts = (
   const typedThetaAssignment = hasLiteral('role.label') && thetaClauses.length > 0 && thetaClauses.every(clause => typedThetaClause(clause))
     && !roleLabelLiterals.some(isSameNameCaseLiteral)
     && (!thetaClauses.some(clause => typedThetaClause(clause) === 'marking')
-      || roleLabelLiterals.every(literal => typeof literal === 'string' && namedThematicRole(literal)));
+      || !deniedClaim && roleLabelLiterals.every(literal => typeof literal === 'string' && namedThematicRole(literal)));
   const typedThetaSource = (role: string) => {
     if (!typedThetaAssignment || !['governor', 'selector'].includes(normalizeTier2Synonym(role)) || !context.forest) return false;
     const id = Object.entries(context.anchors ?? {}).find(([key]) => normalizeTier2Synonym(key) === normalizeTier2Synonym(role))?.[1];
@@ -685,7 +704,7 @@ export const relationRoleConcepts = (
   const valueNamesThematicParticipant = (role: string) => explicitThematicPredicate
     && Object.entries(context.values ?? {}).some(([valueKey, literal]) => typeof literal === 'string'
       ? /(?:^| )role$/u.test(normalizeTier2Synonym(valueKey)) && normalizeTier2Synonym(literal) === normalizeTier2Synonym(role)
-      : Array.isArray(literal) && relationValueConcepts(index, valueKey, context).includes('role.label')
+      : !deniedClaim && Array.isArray(literal) && relationValueConcepts(index, valueKey, context).includes('role.label')
         && [...fieldNamingLiterals(Object.keys(context.anchors ?? {}).filter(field => !predicateField(field)), literal)?.keys() ?? []]
           .some(field => normalizeTier2Synonym(field) === normalizeTier2Synonym(role)));
   // A values entry with an argument field's own name and length lists that
@@ -694,7 +713,7 @@ export const relationRoleConcepts = (
   // predicate is named; it does not reassign a claim that names one. The same
   // entry can instead give the argument's Case, so the list must be role labels:
   // every item names a known thematic role and none is a Case value.
-  const sameNameArgumentLabels = !explicitThematicPredicate && currentEntries.some(([role, ids]) => {
+  const sameNameArgumentLabels = !deniedClaim && !explicitThematicPredicate && currentEntries.some(([role, ids]) => {
     const count = Array.isArray(ids) ? ids.length : typeof ids === 'string' ? 1 : 0;
     const literal = context.values?.[role];
     const items = Array.isArray(literal) ? literal : [literal];
@@ -888,11 +907,12 @@ export const relationRoleConcepts = (
     : roles.has('target') ? 'target'
     : contextualAgreementAsserted && !hasQualifiedHost && contextualAgreementHosts.length === 1 ? contextualAgreementHosts[0] : undefined;
   // A concord claim reads as agreement only when each feature row it states is
-  // one feature value; prose such as `default sg` leaves it neutral.
+  // one feature value; prose such as `default sg` leaves it neutral. Concord
+  // must head the name: in `concord mismatch` it only modifies what is claimed.
   const concordRowsAreValues = Object.entries(context.values ?? {}).filter(([key]) =>
     relationValueConcepts(index, key, context).includes('feature.rows'))
     .every(([, value]) => (Array.isArray(value) ? value : [value]).every(isFeatureValueToken));
-  const hasNamedAgreementTarget = (/\bagreement\b/u.test(relationName) || /\bconcord\b/u.test(relationName) && concordRowsAreValues)
+  const hasNamedAgreementTarget = (/\bagreement\b/u.test(relationName) || /\bconcord$/u.test(relationName) && concordRowsAreValues && !deniedClaim)
     && roles.has('controller') && namedAgreementHost !== undefined;
   const namedAgreementPair = hasNamedAgreementTarget
     && scalarRole('controller') && scalarRole(namedAgreementHost!) && !hasAgreementMediator
@@ -997,7 +1017,7 @@ export const relationRoleConcepts = (
     const phiBundle = Object.entries(context.values ?? {}).filter(([key]) => FEATURE_DIMENSION_KEYS.has(normalizeTier2Synonym(key)));
     if (roles.has('head') && roles.has('specifier') && (Object.keys(context.values ?? {}).some(key =>
       ['agreement', 'agreement features', 'phi features'].includes(normalizeTier2Synonym(key)))
-      || new Set(phiBundle.map(([key]) => normalizeTier2Synonym(key))).size >= 2
+      || !deniedClaim && new Set(phiBundle.map(([key]) => normalizeTier2Synonym(key))).size >= 2
         && phiBundle.every(([, value]) => isFeatureValueToken(value)))) applyHeadSpecifierPair();
   }
   // Without feature rows, one feature label in notation is the content of a
@@ -1007,7 +1027,7 @@ export const relationRoleConcepts = (
   const featureLabels = Object.entries(context.values ?? {}).filter(([valueKey]) =>
     relationValueConcepts(index, valueKey, context).includes('feature.label'));
   // A Case literal makes the claim a Case claim; the label is then not its whole content.
-  if (!hasLiteral('feature.rows') && !hasLiteral('case.literal') && featureLabels.length === 1 && isNotationFeatureLabel(featureLabels[0][1])
+  if (!hasLiteral('feature.rows') && !hasLiteral('case.literal') && featureLabels.length === 1 && isNotationFeatureLabel(featureLabels[0][1]) && !deniedClaim
     && (namedAgreementPair || roles.has('head') && roles.has('specifier'))) {
     if (namedAgreementPair) applyNamedAgreementPair();
     else applyHeadSpecifierPair();

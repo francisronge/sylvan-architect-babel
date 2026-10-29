@@ -181,15 +181,15 @@ test('a concord controller and target draw like an agreement controller and targ
   assert.equal(inspect(anchors, { gender: 'feminine' }, forest, 'concordance').has('feature.dependency'), false);
 });
 
-test('a failed concord or agreement claim draws its dependency as blocked', () => {
-  // The existing label-outcome reader treats concord as agreement, so neither draws as established.
+test('a failed agreement claim draws its dependency as blocked; a failed concord claim stays neutral', () => {
+  // Main reads a failed agreement claim as blocked. The concord reading this branch
+  // adds draws only claims stated positively, so a failed concord claim draws nothing.
   const forest = [node('np', 'NP', [leaf('possessor', 'D'), leaf('noun', 'N')])];
-  for (const name of ['failed concord', 'failed agreement']) {
-    const connectors = inspect({ controller: 'noun', target: 'possessor' }, { number: 'plural' }, forest, name).items
-      .filter(item => item.kind === 'directed-path');
-    assert(connectors.length > 0, name);
-    assert(connectors.every(item => item.outcome === 'blocked'), name);
-  }
+  const connectors = name => inspect({ controller: 'noun', target: 'possessor' }, { number: 'plural' }, forest, name).items
+    .filter(item => item.kind === 'directed-path');
+  assert(connectors('failed agreement').length > 0);
+  assert(connectors('failed agreement').every(item => item.outcome === 'blocked'));
+  assert.deepEqual(connectors('failed concord'), []);
 });
 
 test('qualified parasitic arguments need both actual gap occurrences', () => {

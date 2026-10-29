@@ -6,7 +6,7 @@ import { hasIndependentCaseEndpoints } from './featureEvidence.ts';
 import { establishesAssignment, relationAssertionFailure, relationLabelOutcome } from './outcomeResolver.ts';
 import { buildTier2FacetEvidence } from './relationEvidence.ts';
 import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
-import { isExplicitTier2Role, normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
+import { claimDeniesOrWithholds, isExplicitTier2Role, normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
 
 const conventionalCases = new Set(['nominative', 'accusative', 'genitive', 'dative', 'ergative',
   'absolutive', 'instrumental', 'locative', 'oblique', 'vocative']);
@@ -248,6 +248,7 @@ export function recoverContextualCaseAssignment(evidence: Tier2FacetEvidence, th
   // still be the recipient, but only as the nominal sister of the head that
   // assigns the Case. Structure decides it; the role's spelling does not.
   const governedTarget = !namedTargets.length;
+  if (governedTarget && claimDeniesOrWithholds(evidence.relationName, (evidence.authoredValues ?? []).map(entry => entry.items))) return [];
   const targets = governedTarget ? anchors.filter(entry => entry.concepts.length === 0 && !isSource(entry)) : namedTargets;
   if (targets.length !== 1 || !nominal(targets[0])) return [];
   const target = targets[0], targetNode = nodeFor(target)!;
