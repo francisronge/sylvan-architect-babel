@@ -173,11 +173,13 @@ export function replayMotionFaults({ frames }: { frames: readonly any[] }, { thr
 /** The step where a phrase moves away may close the gap it leaves (Francis,
  * 25 October 2026: "yes, the closing the gap is alright."). At a relation step
  * whose own trajectory takes material away (relocated or no longer painted),
- * the remaining syntax may close toward it while the far side stays: leaves
- * slide horizontally in blocks, each no farther than the departing extent and
- * one node unit and no farther than the block before it, or one whole side of
- * the departing extent slides as one. The lower occurrence may shift within
- * that room, and parents spanning the gap recentre over their daughters.
+ * the remaining syntax may close toward it while the far side stays: leaves on
+ * one side of the departing extent slide horizontally toward it in blocks, each
+ * no farther than the departing extent and one node unit and no farther than
+ * the block before it, or one whole side of the departing extent slides as one.
+ * Both sides together close no more than that room; motion away from the gap is
+ * never a closing. The lower occurrence may shift within that room, and parents
+ * spanning the gap recentre over their daughters.
  * Syntax joining a new parent at this step is judged as attachment instead.
  * Returns the ids so closing. */
 export function closingGroups({ kind, links, current, prior, motion, threshold = MOTION_FAULT_THRESHOLD, throughInsertions = false }: any): Set<string> {
@@ -255,7 +257,9 @@ export function closingGroups({ kind, links, current, prior, motion, threshold =
     // Leaves read from the moving end toward the end that stays.
     const order = side < 0 ? leaves.map((_, k) => k) : leaves.map((_, k) => leaves.length - 1 - k);
     const shifts = order.map(k => shiftOf[k]);
-    const toward = shifts.every(shift => still(shift) || Math.sign(shift.x) === -side);
+    // A leaf moves toward the gap only with vacated room ahead of it: one moving
+    // right stands left of the departing extent's right end, and the mirror.
+    const toward = order.every(k => still(shiftOf[k]) || Math.sign(shiftOf[k].x) === -side && (side < 0 ? leaves[k].x < hi : leaves[k].x > lo));
     if (toward && !still(shifts[0]) && flows(shifts)) { moving = new Map<string, any>(order.map(k => [leaves[k].id, shiftOf[k]] as [string, any]).filter(([, shift]) => !still(shift))); break; }
   }
   if (moving) {
@@ -296,6 +300,11 @@ export function closingGroups({ kind, links, current, prior, motion, threshold =
     if ((priorChildren.get(participant) ?? []).some(id => departing.has(id))) result.add(participant);
   }
   if (!result.size) return result;
+  // Every closing moves toward the gap, so syntax moving right closes it from the
+  // left and syntax moving left from the right: together they take no more than
+  // the room, the largest move each way adding up to at most its size.
+  const closes = (direction: number) => Math.max(0, ...[...result].map(id => direction * (motion(id)?.x ?? 0)));
+  if (closes(-1) + closes(1) > width + threshold) return new Set<string>();
   // Parents with daughters on both sides of the gap recentre over them: they
   // move only horizontally, toward the gap, and no farther than their daughters.
   const children = new Map();

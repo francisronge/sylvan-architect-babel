@@ -30,3 +30,43 @@ test('closing stays a fault away from a movement, away from the gap, unevenly or
   assert.ok(faults(after(-150, { rigid: false })).some(fault => fault.startsWith('v')), 'side not moving as one');
   assert.ok(faults(after(-900)).some(fault => fault.startsWith('v ')), 'beyond the room the phrase left');
 });
+
+// A phrase `s` leaves the leftmost daughter slot for a landing further left, so
+// the gap it leaves has syntax only on its right.
+const leftmost = (blockShift, block = 9, sideShift = 0) => {
+  const prior = [['top', 800, 0, null], ['vp', 800, 220, 'top'], ['s', 0, 440, 'vp'], ['rest', 1500, 440, 'vp'],
+    ['X', 900, 660, 'rest'], ['Y', 3450, 660, 'rest']];
+  const next = [['top', 800, 0, null], ['land', -400, 220, 'top'], ['s', -400, 440, 'land'], ['vp', 800, 220, 'top'],
+    ['copy', 0, 440, 'vp'], ['rest', 1500 + sideShift, 440, 'vp'], ['X', 900 + blockShift, 660, 'rest'], ['Y', 3450 + sideShift, 660, 'rest']];
+  for (let i = 0; i < block; i++) {
+    prior.push([`x${i}`, 400 + i * 250, 880, 'X']);
+    next.push([`x${i}`, 400 + i * 250 + blockShift, 880, 'X']);
+  }
+  for (let i = 0; i < 3; i++) {
+    prior.push([`y${i}`, 3200 + i * 250, 880, 'Y']);
+    next.push([`y${i}`, 3200 + i * 250 + sideShift, 880, 'Y']);
+  }
+  const points = list => list.map(([id, x, y, parent]) => ({ id, x, y, parent }));
+  return [frame(points(prior)), frame(points(next))];
+};
+const faultsOf = frames => replayMotionFaults({ frames }).map(fault => `${fault.node} ${fault.kind}`);
+
+test('a block that slides away from the gap its phrase leaves is not a closing', () => {
+  assert.ok(faultsOf(leftmost(300)).some(fault => fault.startsWith('X ')), 'a block of nine leaves moving away');
+  assert.ok(faultsOf(leftmost(150, 1)).some(fault => fault.startsWith('X ')), 'one leaf moving away');
+  assert.deepEqual(faultsOf(leftmost(-150, 9, -150)), [], 'the whole side closing toward the gap');
+});
+
+test('both sides of the gap together close no more than the room the phrase left', () => {
+  const both = d => frame([
+    { id: 'top', x: 500, y: 0, parent: null }, { id: 't', x: d, y: 220, parent: 'top' }, { id: 'tw', x: d, y: 440, parent: 't' },
+    { id: 'land', x: -400, y: 220, parent: 'top' }, { id: 's', x: -400, y: 440, parent: 'land' }, { id: 'w', x: -400, y: 660, parent: 's' },
+    { id: 'vp', x: 1000 - d, y: 220, parent: 'top' }, { id: 'copy', x: 600 - d, y: 440, parent: 'vp' },
+    { id: 'v', x: 1400 - d, y: 440, parent: 'vp' }, { id: 'vw', x: 1400 - d, y: 660, parent: 'v' }]);
+  const prior = frame([
+    { id: 'top', x: 500, y: 0, parent: null }, { id: 't', x: 0, y: 220, parent: 'top' }, { id: 'tw', x: 0, y: 440, parent: 't' },
+    { id: 'vp', x: 1000, y: 220, parent: 'top' }, { id: 's', x: 600, y: 440, parent: 'vp' }, { id: 'w', x: 600, y: 660, parent: 's' },
+    { id: 'v', x: 1400, y: 440, parent: 'vp' }, { id: 'vw', x: 1400, y: 660, parent: 'v' }]);
+  assert.ok(faultsOf([prior, both(370)]).length, 'each side closing 370 against a room of 375');
+  assert.deepEqual(faultsOf([prior, both(150)]), [], 'each side closing 150');
+});
