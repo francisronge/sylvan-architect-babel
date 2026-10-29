@@ -412,7 +412,8 @@ export function paintRelationScene({
       treeData,
       exactScreenDirectTreeLabelRectNow,
       uiBounds,
-      deferredTreeMatrix
+      deferredTreeMatrix,
+      badgeObstacles
     });
     const { scheduleAcceptedScopeInformationRelation, scheduleAcceptedFocusProminence } = createScopeDrawing({
       relationLayerKey,
