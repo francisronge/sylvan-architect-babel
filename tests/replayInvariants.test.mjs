@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { before, test } from 'node:test';
 import * as d3 from 'd3';
 import { prepareReplay } from '../replay/prepareReplay.ts';
@@ -303,6 +304,20 @@ test('control: one-letter-per-label reports a letter painted twice beside one la
   assert(reported(everyLetter, 'one-letter-per-label', 20, 'operatorTrace shows i 2 times'));
   const noLetter = checkOneLetterPerLabel(relative, () => () => ({ draw: 'none' }));
   assert(reported(noLetter, 'one-letter-per-label', 22, 'operatorHigh shows i 0 times'));
+});
+
+test('one-letter-per-label: a theta index equal to the chain index staged on its word is shown once', () => {
+  // n4-02-en-multiple-wh-embedded (sol-120-20261026) read book₁¹ for book₁ with θ index 1.
+  // Here Jean is staged Jean₂; its θ letter j becomes 2 like the chain index.
+  const { derivationStages, sentence, inputTokens } = JSON.parse(readFileSync(new URL('../fixtures/performance/french-relative.json', import.meta.url), 'utf8'));
+  const relative = prepare({ derivationStages, sentence, inputTokens });
+  assert.deepEqual(checkOneLetterPerLabel(relative), []);
+  let roles = 0;
+  for (const frame of relative.relationRenderPlan.frames) for (const item of frame.items) for (const role of item.thetaRoles ?? []) {
+    if (role.nodeId === 'jean') { role.index = '2'; roles += 1; }
+  }
+  assert(roles > 0, 'the fixture must give Jean a theta letter');
+  assert.deepEqual(checkOneLetterPerLabel(relative), []);
 });
 
 test('control: marks-at-owning-moment reports a mark before its moment and a mark whose moment never plays', () => {
