@@ -211,6 +211,16 @@ test('control: stable-construction reports retained syntax that disappears or mo
   const unparented = breakReplay(copy => { copy[nested].replayVisibleNodeIds = copy[nested].replayVisibleNodeIds.filter(item => item !== hidden); });
   assert.equal(frameStructure(unparented.playbackSteps[nested]).parent.get(child), null);
   assert(reported(checkStableConstruction(unparented), 'stable-construction', nested + 1, `${child} is detached from ${hidden}`));
+  // A step that adds a new root does not replace an unrelated root: both have no parent, which is no evidence.
+  const fresh = steps.findIndex((step, i) => i > 0 && step.replayKind === 'micro' && !frameStructure(steps[i - 1]).displayed.has(step.targetNodeId)
+    && frameStructure(step).parent.get(step.targetNodeId) === null && otherRoot(i));
+  function otherRoot(i) {
+    const before = frameStructure(steps[i - 1]), after = frameStructure(steps[i]);
+    return [...before.displayed].find(id => before.parent.get(id) === null && after.parent.get(id) === null && before.children.get(id)?.length);
+  }
+  const root = otherRoot(fresh);
+  const dropped = breakReplay(copy => { copy[fresh].replayVisibleNodeIds = copy[fresh].replayVisibleNodeIds.filter(item => item !== root); });
+  assert(reported(checkStableConstruction(dropped), 'stable-construction', fresh + 1, `${root} disappears`));
 });
 
 test('control: continued-occurrence reports a continued node that is rebuilt, loses a daughter or changes id at its stage', () => {
