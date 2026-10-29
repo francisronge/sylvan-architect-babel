@@ -71,7 +71,10 @@ async function harnessSources() {
     fileURLToPath(new URL('../tests/helpers/replayInvariants.mjs', import.meta.url)),
     // Both checkouts' text is measured from the bundled fonts.
     fileURLToPath(new URL('../tests/helpers/visualFontMetrics.mjs', import.meta.url)),
-    // The motion rule measures stage crossings through the renderer's camera carry.
+    // The motion rule, which replayMotionContinuity.mjs re-exports, and the
+    // camera carry it measures stage crossings through, as the renderer applies it.
+    fileURLToPath(new URL('../replay/motionRule.ts', import.meta.url)),
+    fileURLToPath(new URL('../replay/cameraCarry.ts', import.meta.url)),
     fileURLToPath(new URL('../components/treeViewport.ts', import.meta.url))
   ].map(async filename => ({ filename, sha256: sha256(await readFile(filename)) }))) };
 }

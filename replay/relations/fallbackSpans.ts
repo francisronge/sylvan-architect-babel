@@ -15,8 +15,9 @@ type Node = d3.HierarchyNode<SyntaxNode> & { x?: number; y?: number };
  * painted words before and after it in tree order, which `direction` puts
  * on its left and right.
  *
- * `category` is the anchor's category label without the features the tree
- * label already shows (`T[past]` is `T`), or null for a bare word.
+ * `category` is the anchor's painted category label without the features the
+ * tree label already shows (`T[past]` is `T`) but with its chain index
+ * (`CP₁`, `T[past]₁` is `T₁`), or null for a bare word.
  */
 export type FallbackWordSpan = {
   category: string | null;
@@ -34,7 +35,8 @@ const isWord = (node: Node): boolean => !node.children?.length && isDisplayTermi
   && !isNotationSurface(resolveLeafSurface(node));
 
 /** `wordRect` returns a word's painted text box, or null when the word is not painted in this frame. */
-export function coveredWordSpan(anchor: Node, wordRect: (node: Node) => Rect | null, direction: 'ltr' | 'rtl' = 'ltr'): FallbackWordSpan {
+export function coveredWordSpan(anchor: Node, wordRect: (node: Node) => Rect | null, direction: 'ltr' | 'rtl' = 'ltr',
+  paintedLabel = String(anchor.data.label || '')): FallbackWordSpan {
   const root = anchor.ancestors().at(-1)!;
   const leaves = root.leaves() as Node[];
   const words = leaves.flatMap(leaf => {
@@ -44,9 +46,11 @@ export function coveredWordSpan(anchor: Node, wordRect: (node: Node) => Rect | n
   const own = new Set(anchor.leaves());
   const first = leaves.findIndex(leaf => own.has(leaf));
   const range: [number, number] = [first, first + own.size - 1];
-  const label = String(anchor.data.label || '').trim();
+  // The painted label may end in the phrase's chain index (CP₁); the bracket keeps it.
+  const label = paintedLabel.trim(), index = /[₀-₉]+$/.exec(label)?.[0] ?? '';
+  const head = label.split(/\s*[[(]/)[0].trim();
   const category = anchor.children?.length || shouldExpandPreterminalLeaf(anchor.data) || isWordlessCategoryLeaf(anchor.data)
-    ? label.split(/\s*[[(]/)[0].trim() || label || null : null;
+    ? (head ? head.endsWith(index) ? head : head + index : label) || null : null;
   const ordered = [...words].sort((a, b) => (a.rect.x + a.rect.width / 2) - (b.rect.x + b.rect.width / 2));
   const runs: FallbackWordSpan['runs'] = [];
   let open = false;

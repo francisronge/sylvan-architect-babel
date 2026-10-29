@@ -73,7 +73,7 @@
       "source": "../replay-regressions/relative-clause-waiting-clearance.json",
       "mechanisms": ["multiple-roots", "ordinary-wrapper", "later-movement"],
       "expect": {"minWorkspaceRoots": 2, "minMerges": 1, "minMovementMoments": 1},
-      "allow": {"replay": true, "finalCoordinates": true, "reason": "The relative clause now attaches beside the old N' at one merge, without the one-branch N' frame that no authored stage contains; the accepted slide at that merge is listed in tests/helpers/motionExceptions.mjs."}
+      "allow": {"replay": true, "finalCoordinates": true, "completedWidthGrowth": true, "reason": "The relative clause now attaches beside the old N' at one merge, without the one-branch N' frame that no authored stage contains; the accepted slide at that merge is listed in tests/helpers/motionExceptions.mjs. Chain indices now stand on moved phrases' labels (NP[Op_i]₂, NP[t_j]₄), not on their words (mektubu, dün, Ayşe’nin): only label widths change, so completed widths grow by at most 0.66 tree units and final nodes shift by at most 9.2."}
     },
     {
       "id": "phase-edge-retained-sister-contour",
@@ -138,7 +138,8 @@
       "id": "showcase-22-zu-noun-class.r2",
       "source": "../showcase/agreement-and-case.json",
       "selector": "/cases/5",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"finalCoordinates": true, "completedWidthGrowth": true, "reason": "The moved subject's chain index now stands on its labels (NP₂, NP trace₂), not on its word Abafana: only label widths change, so completed widths grow by at most 0.44 tree units and final nodes shift by at most 0.44."}
     },
     {
       "id": "showcase-68-en-there-expletive",
@@ -240,7 +241,8 @@
       "id": "showcase-04-yue-sfp",
       "source": "../showcase/relatives-and-clitics.json",
       "selector": "/cases/4",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"finalCoordinates": true, "reason": "The moved subject's chain index now stands on its labels (NP₂, NP [A-trace]₂), not on its word 佢: only label widths change, so completed widths shrink by up to 4.3 tree units and final nodes shift by at most 10.8."}
     },
     {
       "id": "showcase-76-tr-relative",

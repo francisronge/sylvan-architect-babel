@@ -60,6 +60,7 @@ interface RelationSceneContext {
   g: DrawingLayer;
   measureGraphicsElementsInTreeSpace: (elements: SVGGraphicsElement[]) => { x: number; y: number; width: number; height: number; } | null;
   getReplayRenderedTerminalText: (d: HierNode) => string;
+  getReplayRenderedCategoryLines: (d: HierNode) => string[];
   measureCategoryText: (text: string) => number;
   replayPlaqueLayout: ReturnType<typeof projectPlaqueLayout>;
   replayVisibleNodeIdSet: Set<string> | null;
@@ -97,6 +98,7 @@ export function paintRelationScene({
   g,
   measureGraphicsElementsInTreeSpace,
   getReplayRenderedTerminalText,
+  getReplayRenderedCategoryLines,
   measureCategoryText,
   replayPlaqueLayout,
   replayVisibleNodeIdSet,
@@ -151,6 +153,7 @@ export function paintRelationScene({
       measuredShellTop,
       measuredTerminalBottom,
       measuredTreeTextTopY,
+      measuredTreeLabelRects,
       measuredTerminalSubtreeRectNow,
       measuredTreeLabelRectNow,
       exactScreenTreeLabelRectNow,
@@ -206,7 +209,7 @@ export function paintRelationScene({
       g,
       frameLayoutById,
       getReplayRenderedTerminalText,
-      measureCategoryText,
+      getReplayRenderedCategoryLines,
       replayPlaqueLayout,
       replayVisibleNodeIdSet,
       playedRelationIndices,
@@ -254,6 +257,7 @@ export function paintRelationScene({
       separateFallbackMoments: animated && usesDerivationFrames,
       isItemRevealed: itemIndex => revealedItemIndices.has(itemIndex),
       trajectoryCeilingY: measuredTreeTextTopY() - TRAJECTORY_ROUTES.ceilingAboveTextTop,
+      trajectoryLabelBoxes: measuredTreeLabelRects,
       trajectoryFloorY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.trajectoryFloor,
       // Frame-stable measured baselines: connector lanes just below the
       // complete frame's terminal row; rails placed by the binder's one

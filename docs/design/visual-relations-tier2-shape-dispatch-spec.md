@@ -89,7 +89,11 @@ path; denied, competing and unresolved references remain neutral.
   relation name or of any authored value that is in the existing denial list
   (`DENIED_OR_UNSET` in `tier2Synonyms.ts`), as in `no theta assignment`,
   `failed spec-head agreement` or `status: failed`, leaves the claim to the
-  reading main already has, which is usually neutral.
+  reading main already has, which is usually neutral. The owner approved on
+  29 Oct 2026 that `mismatch`, `violation`, `never`, `lack` and `unchecked`
+  (with `mismatches`, `mismatched`, `violations`, `violated`, `violates`,
+  `lacks` and `lacking`) are denial words too, as in `spec-head agreement
+  mismatch` or `lack of feature checking`.
   A uniquely named modifier or predicate can supply that feature host when no
   target or qualified agreement host is named. Competing hosts, a mediator,
   controllee, missing features or a nonasserted claim do not earn this recovery.
@@ -1927,6 +1931,19 @@ owner's group cannot be brightened; among equally prominent claims a binding
 index draws it, because its placement clears the binding path. Different letters
 at one occurrence stay separate, and a letter on an occurrence's word, such as a
 theta or identity index, does not remove a letter beside its phrase label.
+
+A movement chain's number stands where syntax texts write it. A moved phrase
+shows it once on the category label of each occurrence, [DP which book]₁ … DP₁,
+and the words inside it show none unless they belong to a chain of their own:
+[VP t₁ auf den Tisch gelegt]₂. An anchor inside an occurrence that already
+shows the number, such as a trace witness authored inside its lower copy, does
+not repeat it. A moved head shows it on its words, V₁ … t₁. An occurrence with
+no category label of its own, a bare word or trace, shows it in its text, where
+authored trace notation stays as written. A one-word phrase therefore reads DP₁
+over its word, and the word keeps its theta or identity letters.
+`buildResolvedLinkChainIndices` in `replay/movementIndices.ts` makes this
+placement once for the label runs the offline layout measures and for the
+painter.
 
 ## Required Verification
 

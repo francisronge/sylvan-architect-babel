@@ -2,6 +2,7 @@ import type { Point, Rect } from './overlayGeometry.ts';
 import type { PlaqueTextLayout, PlaqueTextLayoutOptions } from './plaqueTextLayout.ts';
 import type { PlanRelationRef } from './renderPlan.ts';
 import type { FallbackWordSpan } from './fallbackSpans.ts';
+import type { TrajectoryBowSide } from '../rendererMetrics.ts';
 
 export type BoundTrajectory = {
   type: 'trajectory-path';
@@ -22,6 +23,8 @@ export type BoundTrajectory = {
   /** Inset start/end points actually used by the path. */
   start: Point;
   end: Point;
+  /** Set when a steep quadratic bows: the side it bows to. */
+  bowSide?: TrajectoryBowSide;
   itemIndex: number;
 };
 
@@ -455,6 +458,9 @@ export type BindGeometryOptions = {
   trajectoryCeilingY?: number;
   /** Measured clear floor for drop-first orthogonal movement routes. */
   trajectoryFloorY?: number;
+  /** Tree label boxes (categories and words) a bowed movement route keeps clear
+   * of where it can; read only when a route bows. */
+  trajectoryLabelBoxes?: () => readonly Rect[];
   /** Writing direction. Neutral role labels try the reading-direction side of
    * their node first, so right-to-left placement reflects left-to-right. */
   direction?: 'ltr' | 'rtl';

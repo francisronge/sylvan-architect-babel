@@ -1,0 +1,1004 @@
+{
+ "description": "Saved Opus Quechua evidential analysis whose head-movement arrow from the lower t (tV) ends at the retained landing tI, a trace painted as the word t; the arrow ended at tI's bare node point above that word. Test input for tests/trajectoryWordLanding.test.mjs.",
+ "provenance": {
+  "model": "anthropic:claude-opus-5-5",
+  "effort": "high",
+  "harness": "qualification:anthropic",
+  "source": "opus-final/n3-24-qu-evidential/attempts/parse/bundle.json, analysis 0",
+  "extraction": "Exact saved derivationStages and inputTokens."
+ },
+ "sentence": "Paraqa chayamunsi.",
+ "inputTokens": [
+  "Para",
+  "qa",
+  "chaya",
+  "mu",
+  "n",
+  "si"
+ ],
+ "derivationStages": [
+  {
+   "statement": "The lexical items enter: the topic-marked nominal 'para-qa' (rain-TOP) and the complex verb 'chaya-mu' (arrive-CISLOCATIVE).",
+   "stageRecord": "Two separate objects are built from the lexicon. First, the noun 'para' (rain) projects through N-bar to NP. The topic enclitic '-qa' heads a particle phrase that takes this NP on its left, since Quechua is head-final. The '-qa' marking is carried by the phrase from the start and is licensed later in the topic position. Second, the verb root 'chaya' (arrive) combines with the cislocative suffix '-mu' (motion toward the deictic centre) to form a complex V head, so the verb means 'arrive hither'. Neither object has yet combined with the other, so both are active roots. No further relational claims are made at this point.",
+   "relations": [],
+   "workspaceForest": [
+    {
+     "id": "PrtP",
+     "label": "PrtP",
+     "lineageId": "lin-Subj",
+     "children": [
+      {
+       "id": "Prtbar",
+       "label": "Prt'",
+       "children": [
+        {
+         "id": "NP",
+         "label": "NP",
+         "children": [
+          {
+           "id": "Nbar",
+           "label": "N'",
+           "children": [
+            {
+             "id": "N_para",
+             "label": "N",
+             "word": "para",
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "Prt_qa",
+         "label": "Prt",
+         "word": "qa",
+         "children": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "Vcx",
+     "label": "V",
+     "lineageId": "lin-V",
+     "children": [
+      {
+       "id": "V_chaya",
+       "label": "V",
+       "word": "chaya",
+       "children": []
+      },
+      {
+       "id": "Dir_mu",
+       "label": "Dir",
+       "word": "mu",
+       "children": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The unaccusative verb projects VP, taking 'para-qa' as its internal argument.",
+   "stageRecord": "'Chaya-mu' (arrive) is unaccusative. Its single argument, the rain, is therefore merged as the complement of V at D-structure, to the left of the head given head-final order. V-bar and then VP are projected. With this merger the verb assigns the Theme theta-role to its complement phrase. This relation links the complex V head to the 'para-qa' phrase.",
+   "relations": [
+    {
+     "relation": "theta-assignment",
+     "anchors": {
+      "assigner": "Vcx",
+      "recipient": "PrtP"
+     },
+     "values": {
+      "role": "Theme"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "VP",
+     "label": "VP",
+     "children": [
+      {
+       "id": "Vbar",
+       "label": "V'",
+       "children": [
+        {
+         "id": "PrtP",
+         "label": "PrtP",
+         "lineageId": "lin-Subj",
+         "children": [
+          {
+           "id": "Prtbar",
+           "label": "Prt'",
+           "children": [
+            {
+             "id": "NP",
+             "label": "NP",
+             "children": [
+              {
+               "id": "Nbar",
+               "label": "N'",
+               "children": [
+                {
+                 "id": "N_para",
+                 "label": "N",
+                 "word": "para",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "Prt_qa",
+             "label": "Prt",
+             "word": "qa",
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "Vcx",
+         "label": "V",
+         "lineageId": "lin-V",
+         "children": [
+          {
+           "id": "V_chaya",
+           "label": "V",
+           "word": "chaya",
+           "children": []
+          },
+          {
+           "id": "Dir_mu",
+           "label": "Dir",
+           "word": "mu",
+           "children": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Inflection '-n' (3rd person, non-past/finite) merges and projects IP over VP.",
+   "stageRecord": "The finite inflectional suffix '-n', marking third-person subject agreement and tense, is merged as the I head. Following head-final order, it takes VP on its left. I-bar and IP are projected, and Spec-IP is still unfilled. The merger establishes that I selects VP as its complement. This relation connects the '-n' head to the VP.",
+   "relations": [
+    {
+     "relation": "c-selection",
+     "anchors": {
+      "selector": "I_n",
+      "complement": "VP"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "IP",
+     "label": "IP",
+     "children": [
+      {
+       "id": "Ibar",
+       "label": "I'",
+       "children": [
+        {
+         "id": "VP",
+         "label": "VP",
+         "children": [
+          {
+           "id": "Vbar",
+           "label": "V'",
+           "children": [
+            {
+             "id": "PrtP",
+             "label": "PrtP",
+             "lineageId": "lin-Subj",
+             "children": [
+              {
+               "id": "Prtbar",
+               "label": "Prt'",
+               "children": [
+                {
+                 "id": "NP",
+                 "label": "NP",
+                 "children": [
+                  {
+                   "id": "Nbar",
+                   "label": "N'",
+                   "children": [
+                    {
+                     "id": "N_para",
+                     "label": "N",
+                     "word": "para",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "id": "Prt_qa",
+                 "label": "Prt",
+                 "word": "qa",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "Vcx",
+             "label": "V",
+             "lineageId": "lin-V",
+             "children": [
+              {
+               "id": "V_chaya",
+               "label": "V",
+               "word": "chaya",
+               "children": []
+              },
+              {
+               "id": "Dir_mu",
+               "label": "Dir",
+               "word": "mu",
+               "children": []
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "I_n",
+         "label": "I",
+         "word": "n",
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "V-to-I movement: 'chaya-mu' adjoins to '-n', forming 'chaya-mu-n'.",
+   "stageRecord": "The bound inflection '-n' needs a verbal host, so the complex verb raises out of VP and left-adjoins to I. This yields the complex head 'chaya-mu-n', with the stem preceding the suffix. A coindexed trace is left in the V position. The head-movement relation connects the moved verb, its trace, and the I head that hosts it.",
+   "relations": [
+    {
+     "relation": "head-movement",
+     "anchors": {
+      "mover": "Vcx",
+      "trace": "tV",
+      "host": "I_n"
+     },
+     "values": {
+      "type": "V-to-I"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "IP",
+     "label": "IP",
+     "children": [
+      {
+       "id": "Ibar",
+       "label": "I'",
+       "children": [
+        {
+         "id": "VP",
+         "label": "VP",
+         "children": [
+          {
+           "id": "Vbar",
+           "label": "V'",
+           "children": [
+            {
+             "id": "PrtP",
+             "label": "PrtP",
+             "lineageId": "lin-Subj",
+             "children": [
+              {
+               "id": "Prtbar",
+               "label": "Prt'",
+               "children": [
+                {
+                 "id": "NP",
+                 "label": "NP",
+                 "children": [
+                  {
+                   "id": "Nbar",
+                   "label": "N'",
+                   "children": [
+                    {
+                     "id": "N_para",
+                     "label": "N",
+                     "word": "para",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "id": "Prt_qa",
+                 "label": "Prt",
+                 "word": "qa",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "tV",
+             "label": "t",
+             "silent": true,
+             "lineageId": "lin-V",
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "Icx",
+         "label": "I",
+         "lineageId": "lin-I",
+         "children": [
+          {
+           "id": "Vcx",
+           "label": "V",
+           "lineageId": "lin-V",
+           "children": [
+            {
+             "id": "V_chaya",
+             "label": "V",
+             "word": "chaya",
+             "children": []
+            },
+            {
+             "id": "Dir_mu",
+             "label": "Dir",
+             "word": "mu",
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "I_n",
+           "label": "I",
+           "word": "n",
+           "children": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "NP-movement: the internal argument 'para-qa' raises to Spec-IP for Case and agreement.",
+   "stageRecord": "An unaccusative verb cannot assign Case to its complement. The rain phrase therefore raises to the empty Spec-IP, leaving a trace in the object position. This NP-movement relation links the moved phrase to its trace. In Spec-IP the finite I complex assigns nominative Case to the phrase, linking the I complex to the raised phrase. In the same Spec-head configuration, the agreement suffix '-n' agrees in third person singular with 'para', linking the '-n' head to the phrase.",
+   "relations": [
+    {
+     "relation": "NP-movement",
+     "anchors": {
+      "mover": "PrtP",
+      "trace": "tP1"
+     }
+    },
+    {
+     "relation": "case-assignment",
+     "anchors": {
+      "assigner": "Icx",
+      "assignee": "PrtP"
+     },
+     "values": {
+      "case": "nominative"
+     }
+    },
+    {
+     "relation": "agreement",
+     "anchors": {
+      "probe": "I_n",
+      "controller": "PrtP"
+     },
+     "values": {
+      "person": "3",
+      "number": "singular"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "IP",
+     "label": "IP",
+     "children": [
+      {
+       "id": "PrtP",
+       "label": "PrtP",
+       "lineageId": "lin-Subj",
+       "children": [
+        {
+         "id": "Prtbar",
+         "label": "Prt'",
+         "children": [
+          {
+           "id": "NP",
+           "label": "NP",
+           "children": [
+            {
+             "id": "Nbar",
+             "label": "N'",
+             "children": [
+              {
+               "id": "N_para",
+               "label": "N",
+               "word": "para",
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "Prt_qa",
+           "label": "Prt",
+           "word": "qa",
+           "children": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "Ibar",
+       "label": "I'",
+       "children": [
+        {
+         "id": "VP",
+         "label": "VP",
+         "children": [
+          {
+           "id": "Vbar",
+           "label": "V'",
+           "children": [
+            {
+             "id": "tP1",
+             "label": "t",
+             "silent": true,
+             "lineageId": "lin-Subj",
+             "children": []
+            },
+            {
+             "id": "tV",
+             "label": "t",
+             "silent": true,
+             "lineageId": "lin-V",
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "Icx",
+         "label": "I",
+         "lineageId": "lin-I",
+         "children": [
+          {
+           "id": "Vcx",
+           "label": "V",
+           "lineageId": "lin-V",
+           "children": [
+            {
+             "id": "V_chaya",
+             "label": "V",
+             "word": "chaya",
+             "children": []
+            },
+            {
+             "id": "Dir_mu",
+             "label": "Dir",
+             "word": "mu",
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "I_n",
+           "label": "I",
+           "word": "n",
+           "children": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The reportative evidential '-si' merges as C and projects CP over IP.",
+   "stageRecord": "The reportative enclitic '-si' ('it is said, reportedly') marks the speaker's information source for the whole proposition. It is therefore merged as the clause-level C head, taking IP on its left, and projects C-bar and CP. The evidential relation records that '-si' contributes reportative evidentiality with scope over the IP proposition 'the rain arrives'. It connects the C head to the IP.",
+   "relations": [
+    {
+     "relation": "evidential-scope",
+     "anchors": {
+      "evidential": "C_si",
+      "scope": "IP"
+     },
+     "values": {
+      "evidentiality": "reportative"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "CP",
+     "label": "CP",
+     "children": [
+      {
+       "id": "Cbar",
+       "label": "C'",
+       "children": [
+        {
+         "id": "IP",
+         "label": "IP",
+         "children": [
+          {
+           "id": "PrtP",
+           "label": "PrtP",
+           "lineageId": "lin-Subj",
+           "children": [
+            {
+             "id": "Prtbar",
+             "label": "Prt'",
+             "children": [
+              {
+               "id": "NP",
+               "label": "NP",
+               "children": [
+                {
+                 "id": "Nbar",
+                 "label": "N'",
+                 "children": [
+                  {
+                   "id": "N_para",
+                   "label": "N",
+                   "word": "para",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "Prt_qa",
+               "label": "Prt",
+               "word": "qa",
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "Ibar",
+           "label": "I'",
+           "children": [
+            {
+             "id": "VP",
+             "label": "VP",
+             "children": [
+              {
+               "id": "Vbar",
+               "label": "V'",
+               "children": [
+                {
+                 "id": "tP1",
+                 "label": "t",
+                 "silent": true,
+                 "lineageId": "lin-Subj",
+                 "children": []
+                },
+                {
+                 "id": "tV",
+                 "label": "t",
+                 "silent": true,
+                 "lineageId": "lin-V",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "Icx",
+             "label": "I",
+             "lineageId": "lin-I",
+             "children": [
+              {
+               "id": "Vcx",
+               "label": "V",
+               "lineageId": "lin-V",
+               "children": [
+                {
+                 "id": "V_chaya",
+                 "label": "V",
+                 "word": "chaya",
+                 "children": []
+                },
+                {
+                 "id": "Dir_mu",
+                 "label": "Dir",
+                 "word": "mu",
+                 "children": []
+                }
+               ]
+              },
+              {
+               "id": "I_n",
+               "label": "I",
+               "word": "n",
+               "children": []
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "C_si",
+         "label": "C",
+         "word": "si",
+         "children": []
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "I-to-C movement: 'chaya-mu-n' adjoins to '-si', forming 'chaya-mu-n-si'.",
+   "stageRecord": "The enclitic '-si' needs a host, and it surfaces on the finite verb. The I complex 'chaya-mu-n' therefore raises and left-adjoins to C, leaving a trace in I. The result is the single complex head 'chaya-mu-n-si', in which the evidential follows the inflected verb. The head-movement relation connects the moved I complex, its trace, and the C host.",
+   "relations": [
+    {
+     "relation": "head-movement",
+     "anchors": {
+      "mover": "Icx",
+      "trace": "tI",
+      "host": "C_si"
+     },
+     "values": {
+      "type": "I-to-C"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "CP",
+     "label": "CP",
+     "children": [
+      {
+       "id": "Cbar",
+       "label": "C'",
+       "children": [
+        {
+         "id": "IP",
+         "label": "IP",
+         "children": [
+          {
+           "id": "PrtP",
+           "label": "PrtP",
+           "lineageId": "lin-Subj",
+           "children": [
+            {
+             "id": "Prtbar",
+             "label": "Prt'",
+             "children": [
+              {
+               "id": "NP",
+               "label": "NP",
+               "children": [
+                {
+                 "id": "Nbar",
+                 "label": "N'",
+                 "children": [
+                  {
+                   "id": "N_para",
+                   "label": "N",
+                   "word": "para",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "id": "Prt_qa",
+               "label": "Prt",
+               "word": "qa",
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "Ibar",
+           "label": "I'",
+           "children": [
+            {
+             "id": "VP",
+             "label": "VP",
+             "children": [
+              {
+               "id": "Vbar",
+               "label": "V'",
+               "children": [
+                {
+                 "id": "tP1",
+                 "label": "t",
+                 "silent": true,
+                 "lineageId": "lin-Subj",
+                 "children": []
+                },
+                {
+                 "id": "tV",
+                 "label": "t",
+                 "silent": true,
+                 "lineageId": "lin-V",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "tI",
+             "label": "t",
+             "silent": true,
+             "lineageId": "lin-I",
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "Ccx",
+         "label": "C",
+         "children": [
+          {
+           "id": "Icx",
+           "label": "I",
+           "lineageId": "lin-I",
+           "children": [
+            {
+             "id": "Vcx",
+             "label": "V",
+             "lineageId": "lin-V",
+             "children": [
+              {
+               "id": "V_chaya",
+               "label": "V",
+               "word": "chaya",
+               "children": []
+              },
+              {
+               "id": "Dir_mu",
+               "label": "Dir",
+               "word": "mu",
+               "children": []
+              }
+             ]
+            },
+            {
+             "id": "I_n",
+             "label": "I",
+             "word": "n",
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "C_si",
+           "label": "C",
+           "word": "si",
+           "children": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Topicalization: 'para-qa' moves to Spec-CP, yielding 'Paraqa chayamunsi' ('The rain is coming, reportedly').",
+   "stageRecord": "The '-qa'-marked phrase is the sentence topic. It moves from Spec-IP to Spec-CP, the clause-initial topic position, leaving a second trace in Spec-IP. This completes the chain from the object position through Spec-IP to Spec-CP. The topicalization relation links the moved phrase to the new trace. The topic-licensing relation records that the '-qa' particle's topic feature is satisfied in Spec-head configuration with the C complex. It connects the particle, the phrase, and the C complex. The pronounced terminals now read 'para qa chaya mu n si'.",
+   "relations": [
+    {
+     "relation": "topicalization",
+     "anchors": {
+      "mover": "PrtP",
+      "trace": "tP2"
+     }
+    },
+    {
+     "relation": "topic-licensing",
+     "anchors": {
+      "marker": "Prt_qa",
+      "topic": "PrtP",
+      "licenser": "Ccx"
+     },
+     "values": {
+      "feature": "topic"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "CP",
+     "label": "CP",
+     "children": [
+      {
+       "id": "PrtP",
+       "label": "PrtP",
+       "lineageId": "lin-Subj",
+       "children": [
+        {
+         "id": "Prtbar",
+         "label": "Prt'",
+         "children": [
+          {
+           "id": "NP",
+           "label": "NP",
+           "children": [
+            {
+             "id": "Nbar",
+             "label": "N'",
+             "children": [
+              {
+               "id": "N_para",
+               "label": "N",
+               "word": "para",
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "Prt_qa",
+           "label": "Prt",
+           "word": "qa",
+           "children": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "Cbar",
+       "label": "C'",
+       "children": [
+        {
+         "id": "IP",
+         "label": "IP",
+         "children": [
+          {
+           "id": "tP2",
+           "label": "t",
+           "silent": true,
+           "lineageId": "lin-Subj",
+           "children": []
+          },
+          {
+           "id": "Ibar",
+           "label": "I'",
+           "children": [
+            {
+             "id": "VP",
+             "label": "VP",
+             "children": [
+              {
+               "id": "Vbar",
+               "label": "V'",
+               "children": [
+                {
+                 "id": "tP1",
+                 "label": "t",
+                 "silent": true,
+                 "lineageId": "lin-Subj",
+                 "children": []
+                },
+                {
+                 "id": "tV",
+                 "label": "t",
+                 "silent": true,
+                 "lineageId": "lin-V",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "tI",
+             "label": "t",
+             "silent": true,
+             "lineageId": "lin-I",
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "Ccx",
+         "label": "C",
+         "children": [
+          {
+           "id": "Icx",
+           "label": "I",
+           "lineageId": "lin-I",
+           "children": [
+            {
+             "id": "Vcx",
+             "label": "V",
+             "lineageId": "lin-V",
+             "children": [
+              {
+               "id": "V_chaya",
+               "label": "V",
+               "word": "chaya",
+               "children": []
+              },
+              {
+               "id": "Dir_mu",
+               "label": "Dir",
+               "word": "mu",
+               "children": []
+              }
+             ]
+            },
+            {
+             "id": "I_n",
+             "label": "I",
+             "word": "n",
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "C_si",
+           "label": "C",
+           "word": "si",
+           "children": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

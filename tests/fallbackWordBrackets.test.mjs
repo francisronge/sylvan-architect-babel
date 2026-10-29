@@ -116,3 +116,11 @@ test('nested C and CP stack their brackets, the inner tick nearest the words, jo
   assert.deepEqual(texts, ['C · typer', 'CP · clause', 'clause typing']);
   for (const mark of marks) assert.ok(mark.y > cpLevel, `${mark.text} sits below the brackets`);
 });
+
+test('a bracket names its node as painted: features dropped, a chain index kept', () => {
+  const cp = byId.get('CP'), wordOf = node => isWordNode(node) ? rects.get(node.data.id) : null;
+  assert.equal(coveredWordSpan(cp, wordOf, 'ltr', 'CP₁').category, 'CP₁');
+  assert.equal(coveredWordSpan(cp, wordOf, 'ltr', 'T[past]₁').category, 'T₁');
+  assert.equal(coveredWordSpan(cp, wordOf, 'ltr', 'C [declarative]').category, 'C');
+  assert.equal(coveredWordSpan(cp, wordOf).category, 'CP');
+});

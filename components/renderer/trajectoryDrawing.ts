@@ -128,6 +128,7 @@ export function createTrajectoryDrawing({
       ].filter(Boolean).join(' '))
       .attr('data-trajectory-source-attachment', trajectoryPlanItem?.sourceAttachment || '')
       .attr('data-trajectory-target-attachment', trajectoryPlanItem?.targetAttachment || '')
+      .attr('data-trajectory-bow', primitive.bowSide ? String(primitive.bowSide) : null)
       .attr(
         'marker-end',
         trajectoryPlanItem?.outcome === 'blocked' ? null : `url(#${primitive.trajectoryKind === 'smuggling'

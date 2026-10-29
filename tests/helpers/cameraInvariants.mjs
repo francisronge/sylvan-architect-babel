@@ -11,7 +11,9 @@
  * - `frames[i]` (Replay frame i + 1): `stage`, `final` for the completed last
  *   Stage Record, `bounds` (the stage camera bounds a fit centres), `envelope`
  *   (bounds plus the shared margin and plaques the camera must contain) and
- *   `nodes`, a Map from display ID to tree-space `{ x, y, ancestors }`.
+ *   `nodes`, a Map from display ID to tree-space `{ x, y, ancestors }`, and
+ *   optionally `closing`, the IDs the step into this frame moves by closing the
+ *   gap its phrase leaves (`closingAt`).
  * - `direct[i]`: the settled pose when frame i + 1 is selected directly.
  * - `passes`: `{ name, steps }`, each step `{ from, to, before, first, settled }`
  *   with 0-based frame indices: the settled pose before the step, the first
@@ -157,8 +159,15 @@ export function checkSettledPathIndependence(trace, thresholds = CAMERA_THRESHOL
         const ids = unmoved.length ? unmoved : sharedIds(before, frame);
         if (!ids.length) reasons.push('no syntax is shared with the previous frame, so retention holds nothing still');
         else {
-          context.retainedTravelPx = round(median(syntaxTravel(step.before, before, step.settled, frame, ids)));
-          context.fittedTravelPx = round(median(syntaxTravel(step.before, before, direct, frame, ids)));
+          // As in first-paint continuity, syntax the step's own closing moves may
+          // count as moved (`frame.closing`), where that justifies the retention.
+          const travels = list => ({ retained: round(median(syntaxTravel(step.before, before, step.settled, frame, list))),
+            fitted: round(median(syntaxTravel(step.before, before, direct, frame, list))) });
+          const rest = ids.filter(id => !frame.closing?.has(id)), plain = travels(ids), granted = rest.length ? travels(rest) : plain;
+          const steadier = travel => travel.retained <= travel.fitted + thresholds.steadierPx;
+          const chosen = !steadier(plain) && steadier(granted) ? granted : plain;
+          context.retainedTravelPx = chosen.retained;
+          context.fittedTravelPx = chosen.fitted;
           if (context.retainedTravelPx > context.fittedTravelPx + thresholds.steadierPx)
             reasons.push(`${unmoved.length ? 'unmoved' : 'shared'} syntax travels ${context.retainedTravelPx} px under the retained view `
               + `but ${context.fittedTravelPx} px under the fit`);
@@ -233,7 +242,10 @@ export function checkFirstPaintContinuity(trace, thresholds = CAMERA_THRESHOLDS)
     const before = trace.frames[step.from], after = trace.frames[step.to];
     const shared = sharedIds(before, after);
     if (!shared.length) continue;
-    const unmoved = unmovedIds(before, after), still = new Set(unmoved);
+    // Syntax the step's own closing moves (frame `closing`, the movement step's
+    // closing of the gap its phrase leaves) moves with the step, in either direction.
+    const closing = Math.abs(step.to - step.from) === 1 ? trace.frames[Math.max(step.from, step.to)].closing : undefined;
+    const attached = unmovedIds(before, after), unmoved = attached.filter(id => !closing?.has(id)), still = new Set(unmoved);
     const place = { rule: 'first-paint-continuity', subject: stageOf(after), frame: transition(step) };
     const paints = `the first pose ${poseText(step.first)} after ${poseText(step.before)}`;
     const lost = shared.filter(id => !outside(screen(step.before, before.nodes.get(id)))
@@ -244,7 +256,9 @@ export function checkFirstPaintContinuity(trace, thresholds = CAMERA_THRESHOLDS)
         detail: `${paints} paints ${ids.length} of ${shared.length} shared ${kind} nodes beyond the canvas (${ids.slice(0, 4).join(', ')})` }, pass.name);
     }
     const reference = unmoved.length ? unmoved : shared;
-    const jump = median(syntaxTravel(step.before, before, step.first, after, reference));
+    // The closing only excuses motion: a median it shifts upward is read without it.
+    const jump = Math.min(median(syntaxTravel(step.before, before, step.first, after, reference)),
+      median(syntaxTravel(step.before, before, step.first, after, attached.length ? attached : shared)));
     if (jump <= thresholds.jumpPx) continue;
     const cause = poseDistance(step.before, step.first, after) > thresholds.samePosePx ? 'camera'
       : before.stage !== after.stage ? 'stage-coordinates' : 'relayout';

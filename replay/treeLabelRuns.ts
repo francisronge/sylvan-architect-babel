@@ -7,7 +7,7 @@ import type { PreparedReplay } from './prepareReplay.ts';
 import { resolveUniqueDisplayTerminal } from './relations/trajectoryAttachment.ts';
 import { visiblePlanFrameItems } from './relations/relationFrame.ts';
 import { planItemDependencyNodeIds, resolveDisplayedTrajectoryAttachments } from './relations/renderPlan.ts';
-import { buildResolvedLinkOperatorVariableIndexMap, buildResolvedLinkRawTraceAliasMap, buildResolvedLinkTraceIndexMap, resolveLexicalMovementTraceDisplayIndex, resolveTraceIndexFromNodeContext } from './movementIndices.ts';
+import { buildResolvedLinkChainIndices, buildResolvedLinkOperatorVariableIndexMap, buildResolvedLinkRawTraceAliasMap, phraseChainLabelIndex, resolveLexicalMovementTraceDisplayIndex, resolveTraceIndexFromNodeContext } from './movementIndices.ts';
 import { indexHierarchyNodesByIdAndAliases, isSyntheticWorkspaceRootNode } from './replayCanvas.ts';
 import {
   extractDisplayedSubscriptIndex,
@@ -52,6 +52,16 @@ export type StagedTerminalContext = {
   operatorIndices: Map<string, string>;
   rawTraceAliases: Map<string, string>;
 };
+
+/** A category label's painted lines: its wrapped label, then the chain index
+ * of a moved phrase or one of its copies after the last line. */
+export function categoryLabelLines(node: HierNode, phraseIndices: Map<string, string> | undefined,
+  measureCategoryText?: CategoryTextMeasure): string[] {
+  const lines = categoryTextLayout(node.data.label, measureCategoryText).lines;
+  const index = phraseChainLabelIndex(node, phraseIndices);
+  if (index && lines.length) lines[lines.length - 1] = formatIndexedSurfaceForDisplayValue(lines[lines.length - 1], index);
+  return lines;
+}
 
 /** Staged Replay already owns surface and casing. This only applies the same
  * additive index/trace notation used by both painter text paths. */
@@ -117,6 +127,14 @@ export function thetaLabelTarget(anchor: HierNode | undefined, anchorId?: string
     : {node:leaves.at(-1)!,labelId:getNodeId(leaves.at(-1)!),kind:'terminal'};
 }
 
+/** The chain indices a Replay step shows, as its painter receives them. */
+export function chainIndicesForStep(prepared: PreparedReplay, stepIndex: number) {
+  const step = prepared.playbackSteps[stepIndex], stage = step?.replayFrameIndex;
+  const frame = stage === undefined ? undefined : prepared.replayDerivationFrames[stage];
+  return frame && buildResolvedLinkChainIndices(frame.workspaceForest || [], step.replayRelationLinks || [], stage!,
+    prepared.movementChainIndexCatalogue);
+}
+
 /** Derive display-only runs from existing Replay and relation plans. Authored
  * syntax and relation classification remain owned by their existing compilers. */
 export function treeLabelRunsForStep(
@@ -138,8 +156,9 @@ export function treeLabelRunsForStep(
     return anchor?.descendants().some(node => visible.has(getNodeId(node))) ? anchor : undefined;
   })();
   const links = step.replayRelationLinks || [];
+  const chainIndices = chainIndicesForStep(prepared, stepIndex)!;
   const context: StagedTerminalContext = {
-    traceIndices: buildResolvedLinkTraceIndexMap(frame.workspaceForest || [], links, stage, prepared.movementChainIndexCatalogue),
+    traceIndices: chainIndices.terminals,
     operatorIndices: buildResolvedLinkOperatorVariableIndexMap(frame.workspaceForest || [], links, stage),
     rawTraceAliases: buildResolvedLinkRawTraceAliasMap(frame.workspaceForest || [], links, stage)
   };
@@ -148,7 +167,7 @@ export function treeLabelRunsForStep(
   for (const node of nodes) {
     const id = getNodeId(node);
     if (node.children?.length || shouldExpandPreterminalLeaf(node.data) || isWordlessCategoryLeaf(node.data)) {
-      const lines = categoryTextLayout(node.data.label, measureCategoryText).lines;
+      const lines = categoryLabelLines(node, chainIndices.phrases, measureCategoryText);
       labels.set(key(id, 'category'), {kind: 'category', text: lines.join(''), lines, indices: []});
     }
     if (!node.children?.length && !isWordlessCategoryLeaf(node.data)) {

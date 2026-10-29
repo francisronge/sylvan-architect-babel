@@ -42,7 +42,7 @@ import { resolveUniqueDisplayTerminal } from '../../replay/relations/trajectoryA
 import {
   isDisplayTerminalNode, isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf
 } from '../../replay/replaySurfaceNotation.ts';
-import { treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
+import { categoryLabelLines, chainIndicesForStep, treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
 import { buildMovementProtectedNodeIds, isUnderTriangulation } from '../../replay/triangulation.ts';
 import * as notation from '../../components/renderer/treeNotation.ts';
 import { fitTreeCamera } from '../../components/renderer/frameCamera.ts';
@@ -304,7 +304,7 @@ function layoutMeasuredScenesUncached(visual, { width, height }, metrics) {
 function layoutGroup(visual, viewports, only, Element) {
   const { prepared } = visual, steps = prepared.playbackSteps, plan = prepared.relationRenderPlan;
   const scene = layoutMeasuredScenes(visual, viewports[0]);
-  return scene.scenes.flatMap(({ step, tree, visible, nodes }, stepIndex) => {
+  return scene.scenes.flatMap(({ step, tree, visible, nodes, closing }, stepIndex) => {
     if (only && !only.includes(stepIndex + 1) || !step.replayCanvasData || !Number.isInteger(step.replayFrameIndex)) return [];
     const stage = step.replayFrameIndex, runs = visual.stepRuns(stepIndex);
     const shown = step.replayVisibleNodeIds?.length ? visible : null;
@@ -318,12 +318,12 @@ function layoutGroup(visual, viewports, only, Element) {
       harness.run(() => fitTreeCamera({ session: harness.session, layout: { relationRenderPlan: plan, activeDerivationFrameIndex: stage,
         uiBounds: viewportObstacles(viewport), stageCameraBounds: bounds, stagePlaqueContainmentBounds: containment,
         completedReplayStep: completedStep, g: harness.group, fitFallbackOverlays: (k, view) => { fitted = { k, view }; },
-        derivationFrameFitNodes: [...nodes.values()], overlayFitBounds: null, visibleNodes: [...nodes.values()] } }));
+        derivationFrameFitNodes: [...nodes.values()], overlayFitBounds: null, visibleNodes: [...nodes.values()], closesOnEntry: closing } }));
       const pockets = camera.replayPocketOccupants(scene.schedule, stepIndex);
       const marks = relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedule: scene.schedule, fitted, runs, pockets });
       const frame = { frame: stepIndex + 1, viewport: viewport.name, zoom: fitted.k, rowHeight: TREE_ROW_HEIGHT, stage, painted: paintedNodes(painted.nodes), texts: [...painted.texts, ...marks.texts],
         chrome: frameChrome(viewport, harness.session.cameraRuntime.deferred),
-        plaques: marks.plaques, lines: [...painted.lines, ...marks.lines], marks: marks.marks };
+        plaques: marks.plaques, lines: [...painted.lines, ...marks.lines], marks: marks.marks, ...(closing ? { closing } : {}) };
       // mark-motion alone reads them, for few frames; build them on first read.
       let reserves;
       return Object.defineProperty(frame, 'reserves', { enumerable: true, get: () => reserves ??= pockets?.occupants() ?? [] });
@@ -394,6 +394,8 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     stage, positionFor, { ...RELATION_BINDING_METRICS, markerScale, ...badgeObstacles,
       hasExistingGapNotation: runText, plaqueTextLayout: { measureText: measurePlaqueText }, isItemRevealed: index => revealed.has(index),
       trajectoryCeilingY: textTop - TRAJECTORY_ROUTES.ceilingAboveTextTop, trajectoryFloorY: maxY + lanes.trajectoryFloor,
+      // measuredTreeLabelRects: each painted category label and word.
+      trajectoryLabelBoxes: () => painted.texts.map(text => text.cell),
       connectorBaselineY: maxY + lanes.connectorBaseline, railBaseY: maxY + lanes.railBase, direction: visual.direction,
       relationNameFor: ref => ref.stageIndex === stage ? visual.prepared.replayDerivationFrames[stage]?.relations?.[ref.relationIndex]?.relation : undefined,
       ...extra });
@@ -411,8 +413,10 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     return { ...none, texts: badgeTexts(marks, items, markerScale), plaques, marks: markRecords(marks) };
   }
   // measureFallbackLabels: plain label cells for every laid-out node.
+  const phrases = chainIndicesForStep(visual.prepared, stepIndex)?.phrases;
   const labelRects = new Map(all.filter(node => !canvas.isSyntheticWorkspaceRootNode(node) && !isUnderTriangulation(node)).map(node => {
-    const run = isCategory(node) ? { kind: 'category', text: node.data.label || '', lines: categoryTextLayout(node.data.label || '', measureCategoryText).lines, indices: [] }
+    const lines = isCategory(node) && categoryLabelLines(node, phrases, measureCategoryText);
+    const run = lines ? { kind: 'category', text: lines.join(''), lines, indices: [] }
       : { kind: 'terminal', text: firstRun(runs.get(display.getNodeId(node)), 'terminal')?.text ?? resolveLeafSurface(node).trim(), indices: [] };
     return [display.getNodeId(node), labelGeometry(node, run).cell];
   }));
@@ -429,7 +433,7 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     spanFor: id => { const anchor = laidOut.get(id); return anchor ? coveredWordSpan(anchor, node => {
       const wordId = display.getNodeId(node);
       return visibleIds.has(wordId) ? labelRects.get(wordId) ?? null : null;
-    }, visual.direction) : null; },
+    }, visual.direction, (categoryLabelLines(anchor, phrases, measureCategoryText) || []).join(' ')) : null; },
     bottom: Math.max(0, ...[...labelRects.values()].map(value => value.y + value.height)) };
   const bound = bind({ fallbackMeasurements, separateFallbackMoments: true });
   const scale = fallbackMarkerScale(fitted.k, fallbackMeasurements.labels.map(value => value.height));
@@ -617,7 +621,8 @@ export function markMotionFindings(frames, thresholds = THRESHOLDS) {
     const before = byPlace.get(`${frame.viewport} ${frame.frame - 1}`);
     if (!early.has(frame.viewport)) early.set(frame.viewport, new Set());
     if (!before) early.get(frame.viewport).clear();
-    const shift = before && before.stage !== frame.stage && before.painted && frame.painted ? paintedShift(before.painted, frame.painted) : undefined;
+    const shift = before && before.stage !== frame.stage && before.painted && frame.painted
+      ? paintedShift(before.painted, frame.painted, { closing: Boolean(frame.closing) }) : undefined;
     const ahead = [];
     for (let next = byPlace.get(`${frame.viewport} ${frame.frame + 1}`); next && next.stage === frame.stage;
       next = byPlace.get(`${frame.viewport} ${next.frame + 1}`)) ahead.push(next);
