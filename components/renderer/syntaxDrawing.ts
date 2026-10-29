@@ -5,7 +5,6 @@ import {
 } from '../../replay/rendererMetrics.ts';
 import { getNodeId } from '../../replay/displayIdentity.ts';
 import {
-  buildResolvedLinkOperatorVariableIndexMap,
   buildResolvedLinkRawTraceAliasMap,
   resolveLexicalMovementTraceDisplayIndex,
   resolveTraceIndexFromNodeContext
@@ -125,16 +124,6 @@ export function paintSyntaxTree({
   const firstRevealNodeStepIndex = buildFirstRevealNodeStepIndex(timeline);
   const revealThreshold = animated ? activeStepIndex : Number.MAX_SAFE_INTEGER;
   const derivationTraceIndexByNodeId = traceDisplayIndexByNodeId;
-  const derivationOperatorVariableIndexByNodeId = traceDisplayFrame
-    ? (() => {
-      const workspaceForest = traceDisplayFrame.workspaceForest || [];
-      return buildResolvedLinkOperatorVariableIndexMap(
-        workspaceForest,
-        traceDisplayRelationLinks,
-        traceDisplayFrameIndex
-      );
-    })()
-    : new Map<string, string>();
   const operatorVariableWitnessNodeIds = new Set(
     (traceDisplayRelationLinks || [])
       .filter((link) => {
@@ -492,8 +481,7 @@ export function paintSyntaxTree({
 
   function getReplayRenderedTerminalText(d: HierNode): string {
     if (usesDerivationFrames && currentReplayStep?.replayCanvasData) return stagedTerminalText(d, {
-      traceIndices: derivationTraceIndexByNodeId, operatorIndices: derivationOperatorVariableIndexByNodeId,
-      rawTraceAliases: derivationRawTraceAliasByIndex
+      traceIndices: derivationTraceIndexByNodeId, rawTraceAliases: derivationRawTraceAliasByIndex
     });
     const nodeId = getNodeId(d);
     const movedFromCopyTraceIndex = getMovementCopyTraceIndex(d);
@@ -529,10 +517,7 @@ export function paintSyntaxTree({
     );
     return (isTraceLike(formatted) || isNullLike(formatted))
       ? formatted
-      : formatIndexedSurfaceForDisplayValue(
-        maybeCapitalizeSurfacedSentenceInitialLeaf(d, formatted),
-        resolveTraceIndexFromNodeContext(d, derivationOperatorVariableIndexByNodeId)
-      );
+      : maybeCapitalizeSurfacedSentenceInitialLeaf(d, formatted);
   }
 
   function isRenderedReplaySilentTerminalLeaf(d: HierNode): boolean {
@@ -580,17 +565,6 @@ export function paintSyntaxTree({
   // Pronounced leaves stay emerald; silent leaves stay muted.
   appendTerminalText(overtTerminals, TARGET_EMERALD);
   appendTerminalText(silentTerminals, SILENT_SAGE);
-  g.selectAll<SVGTextElement, HierNode>('.terminal-label')
-    .filter((candidate) => (
-      !isRenderedReplaySilentTerminalLeaf(candidate)
-      && Boolean(resolveTraceIndexFromNodeContext(
-        candidate,
-        derivationOperatorVariableIndexByNodeId
-      ))
-    ))
-    .classed('babel-renderer-authored-terminal', true)
-    .attr('fill', TARGET_EMERALD)
-    .style('fill', TARGET_EMERALD, 'important');
   g.selectAll<SVGTextElement, HierNode>('.terminal-label')
     .filter((candidate) => {
       const nodeId = getNodeId(candidate);

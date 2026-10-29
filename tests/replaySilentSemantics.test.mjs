@@ -7,7 +7,7 @@ import { hierarchy } from 'd3';
 import { buildAuthoredRelationLinksForFrames } from '../replay/frameRelations.ts';
 import { buildDerivationReplaySnapshot } from '../replay/replayCanvas.ts';
 import { buildReplaySupportLines } from '../replay/replayPanel.ts';
-import { buildResolvedLinkChainIndices, buildResolvedLinkOperatorVariableIndexMap } from '../replay/movementIndices.ts';
+import { buildResolvedLinkChainIndices } from '../replay/movementIndices.ts';
 
 // Every chain index shown, on a word (`terminals`) or a category label (`phrases`).
 const buildResolvedLinkTraceIndexMap = (...args) => {
@@ -622,38 +622,4 @@ test('authored relation display indices are derived without prescribing index sy
   assert.match(links[0].identityKey, /who-chain/);
   assert.match(links[1].identityKey, /what-chain/);
   assert.notEqual(links[0].identityKey, links[1].identityKey);
-});
-
-test('operator-variable shared indices cover the operator and authored trace witness', () => {
-  const forest = [{
-    id: 'cp',
-    label: 'CP',
-    children: [
-      {
-        id: 'operator_dp',
-        label: 'DP',
-        children: [{ id: 'operator_d', label: 'D', word: 'Who' }]
-      },
-      {
-        id: 'variable_dp',
-        label: 'DP',
-        silent: true,
-        children: [{ id: 'variable_trace', label: 't', silent: true }]
-      }
-    ]
-  }];
-  const indices = buildResolvedLinkOperatorVariableIndexMap(forest, [{
-    relationIndex: '1',
-    relation: 'OperatorVariableBinding',
-    sourceNodeId: 'variable_dp',
-    targetNodeId: 'operator_dp',
-    witnessNodeId: 'variable_trace',
-    renderFamily: 'operator-variable-binding',
-    stepIndex: 0
-  }], 0);
-
-  assert.equal(indices.get('operator_dp'), '1');
-  assert.equal(indices.get('operator_d'), '1');
-  assert.equal(indices.get('variable_trace'), '1');
-  assert.equal(indices.has('variable_dp'), false);
 });

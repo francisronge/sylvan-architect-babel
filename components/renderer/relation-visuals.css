@@ -324,8 +324,7 @@
 .babel-relation-index {
   fill: var(--emerald-terminal, #10b981) !important;
 }
-.babel-renderer-authored-index,
-.babel-renderer-authored-terminal {
+.babel-renderer-authored-index {
   fill: #34d399 !important;
 }
 .babel-feature-plaque-shell {

@@ -20,3 +20,17 @@ test('Opus h1-030: a leaf labelled I with the word i shows its category above it
   assert.deepEqual(runs.get('i1')?.map(run => [run.kind, run.text]), [['category', 'I']]);
   assert.deepEqual(runs.get('i1::__leaf')?.map(run => [run.kind, run.text]), [['terminal', 'i']]);
 });
+
+test('Opus h1-014: the words of a moved wh-phrase carry no operator-variable link number', () => {
+  // The binding painter letters the operator and its variable; the words of
+  // [DP Which cake]₂ used to show the link's position among the stage's links.
+  const replay = prepare('opus-h1-014-a1');
+  assert.equal(replay.playbackSteps.length, 114);
+  for (const step of [113, 114]) for (const includeRelationIndices of [true, false]) {
+    const runs = treeLabelRunsForStep(replay, step - 1, undefined, { includeRelationIndices });
+    assert.deepEqual([...new Set(runs.get('D_which::__leaf').map(run => run.text))], ['Which'], `step ${step}`);
+    assert.deepEqual([...new Set(runs.get('N_cake::__leaf').map(run => run.text))], ['cake'], `step ${step}`);
+    assert.deepEqual([...new Set(runs.get('DP_wh').map(run => run.text))], ['DP₂'], `step ${step}`);
+    assert.deepEqual([...new Set(runs.get('I1::__leaf').map(run => run.text))], ['did₃'], `step ${step}`);
+  }
+});
