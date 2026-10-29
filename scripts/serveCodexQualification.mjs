@@ -4,19 +4,22 @@ import { parseArgs } from 'node:util';
 import { createServer } from 'vite';
 import react from '@vitejs/plugin-react';
 import { createManualParseMiddleware } from '../contractQualification/manualServer.js';
+import { readTypeSafeApiKey } from '../contractQualification/jev.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const { values } = parseArgs({ options: {
-  port: { type: 'string', default: '8454' }, out: { type: 'string' }, help: { type: 'boolean' }
+  port: { type: 'string', default: '8454' }, out: { type: 'string' }, jev: { type: 'boolean' }, help: { type: 'boolean' }
 } });
 if (values.help) {
-  console.log('Babel app with manual Codex OAuth generation.\n  [--port 8454] [--out ARTIFACT_DIRECTORY]\nBinds only to 127.0.0.1. Default model: GPT-6.1 Sol / high.');
+  console.log('Babel app with manual Codex OAuth generation.\n  [--port 8454] [--out ARTIFACT_DIRECTORY] [--jev]\nBinds only to 127.0.0.1. Default model: GPT-6.1 Sol / high.\n--jev reads each completed analysis with Jev, as the hosted app does, using TYPESAFE_API_KEY or the Keychain item "Babel TypeSafe API".');
   process.exit(0);
 }
 const port = Number(values.port);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Use a valid local port.');
 const runsRoot = path.resolve(values.out || path.join(os.homedir(), 'Library/Application Support/Babel/codex-qualification'));
-const parse = createManualParseMiddleware({ runsRoot, port });
+// Read once, into memory, before the app starts; the key is never written or logged.
+const jev = values.jev ? { apiKey: String(process.env.TYPESAFE_API_KEY || '').trim() || readTypeSafeApiKey() } : undefined;
+const parse = createManualParseMiddleware({ runsRoot, port, ...(jev ? { jev } : {}) });
 const server = await createServer({
   configFile: false, root: repoRoot, envDir: false,
   server: { host: '127.0.0.1', port, strictPort: true, fs: { strict: true, allow: [repoRoot] } },
@@ -28,7 +31,7 @@ const server = await createServer({
   }]
 });
 await server.listen();
-console.log(`Babel: http://127.0.0.1:${port}/\nSaved qualification runs: ${runsRoot}`);
+console.log(`Babel: http://127.0.0.1:${port}/\nSaved qualification runs: ${runsRoot}${jev ? '\nJev reads each completed analysis.' : ''}`);
 const stop = async () => {
   parse.cancel();
   await server.close();

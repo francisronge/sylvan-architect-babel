@@ -102,6 +102,8 @@ export interface GenerationRecord {
     json: { durationMs: number; repairDiagnostics: PayloadRepairDiagnostic[]; diagnostic?: JsonDiagnostic };
     normalization?: { durationMs: number; failure?: ParseFailure };
   };
+  /** The Jev pass run after the response was valid; absent on older records. */
+  jev?: JevPassRecord;
   outcome?: {
     sentMaxOutputTokens: number;
     finishReason: string;
@@ -219,6 +221,73 @@ export interface ParseResult {
   finalForest?: SyntaxNode[];
   derivationStages?: DerivationStage[];
   provenance?: Provenance;
+  /** Jev's checked readings of this analysis's neutral claims, added by the server after
+   * the analysis is valid (docs/design/jev.md). Never model-authored; absent on older records. */
+  jevReadings?: JevRecord;
+}
+
+/** A claim's own words: everything Jev reads, and the identity its answer is saved under. */
+export interface JevTerms {
+  relation: string;
+  roles: string[];
+  values: Record<string, string[]>;
+}
+
+/** One family and the Babel slot each authored key reads as; keys read as no slot are omitted. */
+export interface JevAnswer {
+  family: string;
+  roles: Record<string, string>;
+  values: Record<string, string>;
+}
+
+export interface JevMapping {
+  stageIndex: number;
+  relationIndex: number;
+  terms: JevTerms;
+  answer: JevAnswer;
+  /** The least confidence of the Choice answers the reading is made of. */
+  confidence: number;
+}
+
+export interface JevRecord {
+  version: 2;
+  mappings: JevMapping[];
+  /** The service, model and prompt version that produced the answers. */
+  provenance?: {
+    service?: string;
+    requestedModel?: string;
+    models?: string[];
+    promptVersion?: string;
+    at?: string;
+    thresholdAtRun?: number;
+    [key: string]: unknown;
+  };
+}
+
+/** One claim Jev was or was not asked about, as the server's pass recorded it. */
+export interface JevClaimOutcome {
+  /** `s<stage>r<relation>`, one-based. */
+  claim: string;
+  status: string;
+  httpStatus?: number | null;
+  errors?: string[];
+}
+
+/** The server's Jev pass for one response: what was asked, of which model, and how each claim ended. */
+export interface JevPassRecord {
+  service: 'typesafe';
+  requestedModel: string;
+  promptVersion: string;
+  thresholdAtRun: number;
+  /** `completed`, `partial` (some claims failed or ran out of time), `not-configured`, `skipped` or `failed`. */
+  status: 'completed' | 'partial' | 'not-configured' | 'skipped' | 'failed';
+  reason?: string;
+  budgetMs: number;
+  startedAt?: string;
+  durationMs?: number;
+  models?: string[];
+  usage?: { inputTokens: number; outputTokens: number };
+  analyses?: Array<{ claims: number; outcomes: JevClaimOutcome[] }>;
 }
 
 export interface ParseBundle {

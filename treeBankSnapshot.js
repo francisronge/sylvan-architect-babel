@@ -23,7 +23,8 @@ const CURRENT_ANALYSIS_FIELDS = [
   'tree',
   'finalForest',
   'derivationStages',
-  'provenance'
+  'provenance',
+  'jevReadings'
 ];
 
 const CURRENT_BUNDLE_FIELDS = [

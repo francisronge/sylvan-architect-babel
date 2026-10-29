@@ -1,5 +1,6 @@
 import type { ParseBundle } from '../types.ts';
 import { canonicalJson, copyJsonData, freezeJsonData, requireExactFields, requirePlainRecord, requireNonemptyString, requireSha256 } from '../derivationalDatabase/jsonData.js';
+import { jevRecordIssues } from '../replay/relations/jev.ts';
 
 // Browser-local immutable carriers preserve the received bundle. W17 native export
 // requires additional evidence and a separate adapter; these are not W17 envelopes.
@@ -88,6 +89,11 @@ const analysis = (value: any) => {
     if (stage.realizations !== undefined && !Array.isArray(stage.realizations)) fail('Invalid realizations.');
   }
   if (value.provenance !== undefined) requirePlainRecord(value.provenance, 'provenance');
+  // Saved with the analysis so reopening draws it as it was drawn; records saved earlier have none.
+  if (value.jevReadings !== undefined) {
+    const [issue] = jevRecordIssues(value.jevReadings);
+    if (issue) fail(`Invalid Jev readings: ${issue}.`);
+  }
 };
 export async function validateTreeBankRecord(value: unknown): Promise<TreeBankRecord> {
   const record = copySnapshot(value) as TreeBankRecord;

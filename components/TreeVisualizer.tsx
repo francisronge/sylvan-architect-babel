@@ -25,7 +25,7 @@ import {
 import { buildMovementProtectedNodeIds } from '../replay/triangulation.ts';
 import type { PlaybackStep } from '../replay/types.ts';
 import { caseSurfaceInitial, resolveSavedInputTokens } from '../server/babelParser/surfaceTokens.js';
-import { type DerivationStage, type SyntaxNode } from '../types';
+import { type DerivationStage, type JevRecord, type SyntaxNode } from '../types';
 import { selectReplayCanvas } from './replayStepCanvas.ts';
 import { withPlaqueTextMeasure } from './renderer/plaqueText.ts';
 import { applyRelationEmphasis } from './renderer/relationInteraction.ts';
@@ -64,6 +64,8 @@ export interface TreeVisualizerProps {
   abstractionMode?: boolean;
   sentence?: string;
   inputTokens?: string[];
+  /** The analysis's saved Jev readings; Replay applies them and never calls Jev. */
+  jevReadings?: JevRecord;
 }
 
 type RelationMoment = {
@@ -82,6 +84,7 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   abstractionMode = false,
   sentence = '',
   inputTokens,
+  jevReadings,
   preparedReplay,
   manualCameraState
 }) => {
@@ -157,8 +160,9 @@ const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   // The Canopy lays out the last Replay frame, so both views prepare Replay's playback.
   const { replayDerivationFrames, derivationReplayPlan, relationRenderPlan, committedDerivationVisualLinks,
     movementChainIndexCatalogue, playbackSteps: layoutPlaybackSteps } = useMemo(
-      () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, includePlayback: true }),
-      [preparedReplay, derivationStages, sentence, inputTokens]
+      () => preparedReplay ?? prepareReplay({ derivationStages, sentence, inputTokens, includePlayback: true,
+        ...(jevReadings ? { jev: jevReadings } : {}) }),
+      [preparedReplay, derivationStages, sentence, inputTokens, jevReadings]
     );
   // Only Replay plays its steps; the Canopy paints the completed tree.
   const playbackSteps = animated ? layoutPlaybackSteps : NO_PLAYBACK_STEPS;

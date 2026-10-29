@@ -2,9 +2,10 @@
  * Jev: the part of recognition that reads the model's own terms.
  *
  * The frozen vocabulary in `tier2Synonyms.ts` reads the role and value names
- * Babel already knows. Jev, run once after generation, reads the names it
- * cannot: for one neutral claim it maps each authored role or value key to a
- * slot name of one Babel drawing family, or to nothing. Jev sees only the
+ * Babel already knows. Jev, asked once by the server after a valid generation
+ * (`server/babelParser/jevPass.js`), reads the names it cannot: for one
+ * neutral claim it maps each authored role or value key to a slot name of one
+ * Babel drawing family, or to nothing. Jev sees only the
  * claim's words (relation name, keys and value strings), never the tree, and
  * it chooses only from the closed sets this module builds for that claim.
  *
@@ -18,7 +19,7 @@
  * Exactly registered (Tier-1) names are never offered: re-reading the keys of
  * a malformed registered claim would repair it.
  */
-import type { DerivationStageRelation } from '../../types.ts';
+import type { DerivationStageRelation, JevAnswer, JevRecord, JevTerms } from '../../types.ts';
 import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
 import { findRelationRegistryEntry } from '../relationDispatch/relationRegistry.js';
 import type { RelationClaimDispatch } from './relationClaims.ts';
@@ -31,27 +32,10 @@ export const JEV_NONE = 'none';
 export const JEV_RECORD_VERSION = 2;
 
 /** The least confidence at which a saved reading applies. A reading's confidence is the
- * least confidence of the TypeSafe Choice answers it is made of (`contractQualification/jev.js`).
- * Provisional until calibrated on the live benchmark; see docs/design/jev.md. */
-export const JEV_CONFIDENCE_THRESHOLD = 0.9;
-
-/** The claim's own words: everything Jev reads, and the identity its answer is saved under. */
-export type JevTerms = {
-  relation: string;
-  roles: string[];
-  values: Record<string, string[]>;
-};
-
-export type JevAnswer = {
-  family: string;
-  roles: Record<string, string>;
-  values: Record<string, string>;
-};
-
-export type JevMapping = { stageIndex: number; relationIndex: number; terms: JevTerms; answer: JevAnswer; confidence: number };
-
-/** Saved beside an analysis. `provenance` records the request that produced the answers. */
-export type JevRecord = { version: typeof JEV_RECORD_VERSION; mappings: JevMapping[]; provenance?: Record<string, unknown> };
+ * least confidence of the TypeSafe Choice answers it is made of (`server/babelParser/jev.js`).
+ * Adopted by Francis on 29 Oct 2026 after a hand check of 73 live readings: of the 25 at or
+ * above 0.7, none was wrong (docs/design/jev.md). */
+export const JEV_CONFIDENCE_THRESHOLD = 0.7;
 
 /** One Tier-2 drawing family a claim may be read as. Slot names are the
  * recipe's own concept ids, which the synonym index reads as themselves. */
@@ -163,13 +147,48 @@ export const jevReadingGap = (relation: DerivationStageRelation, answer: JevAnsw
   return shared.length ? `keys share a one-participant slot: ${shared.join(', ')}` : undefined;
 };
 
+const isIndex = (value: unknown) => Number.isSafeInteger(value) && (value as number) >= 0;
+const isStringList = (value: unknown) => Array.isArray(value) && value.every(item => typeof item === 'string');
+const isStringRecord = (value: unknown, item: (entry: unknown) => boolean) =>
+  isRecord(value) && Object.values(value).every(item);
+const exactFields = (value: Record<string, unknown>, fields: string[], optional: string[] = []) =>
+  fields.every(field => Object.hasOwn(value, field))
+  && Object.keys(value).every(field => fields.includes(field) || optional.includes(field));
+
+/** Why a value is not a saved Jev record, or nothing when it is. It checks the shape only;
+ * whether a mapping applies to a claim is decided when it is read (`jevAnswerFor`). */
+export const jevRecordIssues = (value: unknown): string[] => {
+  if (!isRecord(value)) return ['the Jev record is not an object'];
+  const issues: string[] = [];
+  if (!exactFields(value, ['version', 'mappings'], ['provenance'])) issues.push('the Jev record has missing or unknown fields');
+  if (value.version !== JEV_RECORD_VERSION) issues.push(`the Jev record version is not ${JEV_RECORD_VERSION}`);
+  if (value.provenance !== undefined && !isRecord(value.provenance)) issues.push('the Jev provenance is not an object');
+  if (!Array.isArray(value.mappings)) return [...issues, 'the Jev mappings are not a list'];
+  value.mappings.forEach((mapping: unknown, index) => {
+    const at = `Jev mapping ${index}`;
+    if (!isRecord(mapping) || !exactFields(mapping, ['stageIndex', 'relationIndex', 'terms', 'answer', 'confidence'])) {
+      issues.push(`${at} has missing or unknown fields`);
+      return;
+    }
+    if (!isIndex(mapping.stageIndex) || !isIndex(mapping.relationIndex)) issues.push(`${at} has no claim position`);
+    const { terms, answer, confidence } = mapping;
+    if (!isRecord(terms) || !exactFields(terms, ['relation', 'roles', 'values']) || typeof terms.relation !== 'string'
+      || !isStringList(terms.roles) || !isStringRecord(terms.values, isStringList)) issues.push(`${at} has malformed terms`);
+    if (!isRecord(answer) || !exactFields(answer, ['family', 'roles', 'values']) || typeof answer.family !== 'string'
+      || !isStringRecord(answer.roles, item => typeof item === 'string')
+      || !isStringRecord(answer.values, item => typeof item === 'string')) issues.push(`${at} has a malformed answer`);
+    if (!(typeof confidence === 'number' && confidence >= 0 && confidence <= 1)) issues.push(`${at} has no confidence from 0 to 1`);
+  });
+  return issues;
+};
+
 /** The saved answer for this exact claim: same position and the same words Jev
  * read, confident enough, still inside the closed sets and reading every anchor key. */
 export const jevAnswerFor = (record: JevRecord | undefined, stageIndex: number, relationIndex: number,
   relation: DerivationStageRelation, threshold = JEV_CONFIDENCE_THRESHOLD): JevAnswer | undefined => {
-  if (record?.version !== JEV_RECORD_VERSION) return undefined;
+  if (record?.version !== JEV_RECORD_VERSION || !Array.isArray(record.mappings)) return undefined;
   const terms = JSON.stringify(jevTerms(relation));
-  const mapping = record.mappings.find(candidate => candidate.stageIndex === stageIndex
+  const mapping = record.mappings.find(candidate => candidate?.stageIndex === stageIndex
     && candidate.relationIndex === relationIndex && JSON.stringify(candidate.terms) === terms);
   if (!mapping) return undefined;
   const { confidence } = mapping;

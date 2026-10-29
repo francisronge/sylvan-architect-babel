@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { buildCodexQualificationRequest } from './codexOAuth.js';
 import { hashQualificationBytes } from './run.js';
 import { checkLocalRuntimeHost, readLocalHostPolicy } from '../server/localHostPolicy.js';
+import { attachJevReadings } from '../server/babelParser/jevPass.js';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const runnerPath = path.join(repoRoot, 'scripts/runCodexQualification.mjs');
@@ -13,7 +14,9 @@ const readJson = file => fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 
 
 // Run the existing CLI unchanged so manual and batch generations share requests and provenance.
 // The inline `--sentence=` form keeps a sentence that begins with "-" a literal value for parseArgs.
-export const runManualQualification = async ({ request, outputPath, signal, spawnImpl = spawn }) => {
+// With `jev` ({ apiKey, fetchImpl? }), a completed bundle is read by Jev as the app's server
+// reads it; the pass record is saved beside the run, which itself is left unchanged.
+export const runManualQualification = async ({ request, outputPath, signal, spawnImpl = spawn, jev }) => {
   const args = [runnerPath, `--sentence=${request.sentence}`, '--framework', request.framework,
     '--model', request.model, '--effort', request.effort, '--out', outputPath, '--working-tree', '--run'];
   const child = spawnImpl(process.execPath, args, { cwd: repoRoot, stdio: 'ignore' });
@@ -42,7 +45,14 @@ export const runManualQualification = async ({ request, outputPath, signal, spaw
   } } };
   const bundle = readJson(path.join(outputPath, 'attempts/parse/bundle.json'));
   if (receipt?.status === 'completed' && bundle?.response?.analyses?.length) {
-    return { status: 200, payload: { ...bundle.response, requestedModelId: request.model } };
+    const payload = { ...bundle.response, requestedModelId: request.model };
+    if (!jev) return { status: 200, payload };
+    const read = await attachJevReadings(payload.analyses, { apiKey: jev.apiKey, abortSignal: signal,
+      ...(jev.fetchImpl ? { fetchImpl: jev.fetchImpl } : {}) });
+    fs.writeFileSync(path.join(outputPath, 'jev-pass.json'), JSON.stringify({ pass: read.pass,
+      readings: read.analyses.map(analysis => analysis.jevReadings ?? null) }, null, 1), { mode: 0o600, flag: 'wx' });
+    return { status: 200, payload: { ...payload, analyses: read.analyses,
+      generationRecord: { ...payload.generationRecord, jev: read.pass } } };
   }
   // A response whose analyses all fail the spelling check has no parse attempt;
   // each failed analysis has its own attempt.
@@ -64,7 +74,7 @@ export const runManualQualification = async ({ request, outputPath, signal, spaw
 };
 
 /** Loopback-only app adapter. Browser input cannot select credentials, output paths or shell code. */
-export const createManualParseMiddleware = ({ runsRoot, port, run = runManualQualification }) => {
+export const createManualParseMiddleware = ({ runsRoot, port, run = runManualQualification, jev }) => {
   let active = null;
   const hostPolicy = readLocalHostPolicy({}, { port });
   const middleware = async (req, res, next) => {
@@ -109,7 +119,7 @@ export const createManualParseMiddleware = ({ runsRoot, port, run = runManualQua
       if (controller.signal.aborted) return;
       fs.mkdirSync(runsRoot, { recursive: true, mode: 0o700 });
       const outputPath = path.join(runsRoot, `${new Date().toISOString().replaceAll(':', '-')}-${randomUUID()}`);
-      const result = await run({ request, outputPath, signal: controller.signal });
+      const result = await run({ request, outputPath, signal: controller.signal, ...(jev ? { jev } : {}) });
       send(result.status, result.payload);
     } catch {
       send(500, { error: { code: 'HARNESS_ERROR', message: 'The local generation harness could not finish this request.' } });

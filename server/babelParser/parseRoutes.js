@@ -21,6 +21,7 @@ import {
   writeDebugModelPayload
 } from './modelRuntime.js';
 import { runProviderAttempt, withTimeout } from './providerTransport.js';
+import { JEV_TIME_BUDGET_MS, attachJevReadings, readJevApiKey } from './jevPass.js';
 import { assertGenerationComplete, buildGenerationOutcome, summarizeGeneration } from './generationOutcome.js';
 import {
   createRawOutputArtifact,
@@ -34,7 +35,9 @@ export const createParseRoutes = ({
   generateOpenAI = generateOpenAIStructuredContent,
   generateClaude = generateAnthropicStructuredContent,
   generateKimi = generateKimiStructuredContent,
-  generateGrok = generateGrokStructuredContent
+  generateGrok = generateGrokStructuredContent,
+  // Jev's key, transport and time budget (jevPass.js); tests replace them.
+  jev: { apiKey: readJevKey = () => readJevApiKey(process.env), fetchImpl: jevFetch, budgetMs: jevBudgetMs = JEV_TIME_BUDGET_MS } = {}
 }) => {
   const attachPrimaryParseProvenance = (analysis, generationMeta, extraProvenance = {}) => ({
     ...analysis,
@@ -407,9 +410,18 @@ export const createParseRoutes = ({
         model: selectedModel,
         primaryDebugPayloadPath
       });
+      // Only a complete, valid response is read by Jev. Its pass is bounded and cannot fail the parse.
+      const jev = await attachJevReadings(normalized.analyses, {
+        apiKey: readJevKey(),
+        budgetMs: Math.min(jevBudgetMs, getRemainingRequestBudgetMs(requestStartedAt) - 1200),
+        abortSignal,
+        ...(jevFetch ? { fetchImpl: jevFetch } : {})
+      });
+      generationRecord.jev = jev.pass;
 
       return {
         ...normalized,
+        analyses: jev.analyses,
         requestedModelRoute: modelRoute,
         requestedModelId: selection.catalogId,
         requestedReasoningEffort: reasoningEffort,

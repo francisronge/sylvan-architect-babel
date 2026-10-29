@@ -14,10 +14,11 @@ const PreparedTreeVisualizer: React.FC<AsyncTreeVisualizerProps> = (props) => {
     sentence: props.sentence ?? '',
     inputTokens: props.inputTokens,
     // The Canopy lays out the last Replay frame, so it needs the playback too.
-    includePlayback: true
+    includePlayback: true,
+    ...(props.jevReadings ? { jev: props.jevReadings } : {})
   // Each view still mounts its own tree from its own preparation.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- switching views prepares again.
-  }), [props.derivationStages, props.sentence, props.inputTokens, props.animated]);
+  }), [props.derivationStages, props.sentence, props.inputTokens, props.jevReadings, props.animated]);
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<{
     input: ReplayPreparationInput; attempt: number; result?: PreparedReplay; error?: Error;
@@ -40,7 +41,7 @@ const PreparedTreeVisualizer: React.FC<AsyncTreeVisualizerProps> = (props) => {
 
 const AsyncTreeVisualizer: React.FC<AsyncTreeVisualizerProps> = (props) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- each new input makes a new key, which resets the boundary.
-  const resetKey = useMemo(() => ({}), [props.data, props.derivationStages, props.sentence, props.inputTokens, props.animated]);
+  const resetKey = useMemo(() => ({}), [props.data, props.derivationStages, props.sentence, props.inputTokens, props.jevReadings, props.animated]);
   return <ViewErrorBoundary resetKey={resetKey}><PreparedTreeVisualizer {...props} /></ViewErrorBoundary>;
 };
 

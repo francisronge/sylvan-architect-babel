@@ -1,4 +1,4 @@
-import type { DerivationStageRelation, SurfaceRealization, SyntaxNode } from '../../types.ts';
+import type { DerivationStageRelation, JevRecord, SurfaceRealization, SyntaxNode } from '../../types.ts';
 import { readCategoryLabel } from '../categoryLabel.ts';
 import { sameRealizationMembers } from '../realizationGroups.ts';
 import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
@@ -46,7 +46,7 @@ import type {
   Tier2ResolvedFacet,
   Tier3RecoveredClaim
 } from './relationClaims.ts';
-import { jevAnswerFor, jevReadingDraws, jevSynonymIndex, type JevRecord } from './jev.ts';
+import { jevAnswerFor, jevReadingDraws, jevSynonymIndex } from './jev.ts';
 import { buildTier2FacetEvidence } from './relationEvidence.ts';
 import type { RecoveredMovement } from './movementEvidence.ts';
 import { indexMovementOccurrences, sameMovementSourceSlot } from './movementSourceEvidence.ts';

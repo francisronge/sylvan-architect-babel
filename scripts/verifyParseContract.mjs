@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { inspectDerivationWorkspaces } from '../server/babelParser/derivationCompiler.js';
+import { jevRecordIssues, jevTerms } from '../replay/relations/jev.ts';
 
 const DEFAULT_INPUTS = fs.globSync('fixtures/normalized/*.json').sort();
 const RETAINED_RELATION_RULES = new Set([
@@ -66,6 +67,16 @@ const validateFile = (filePath) => {
       }
       if (inspected.at(-1).workspaceForest?.length === 0) {
         errors.push(`${prefix}: final workspaceForest must be nonempty`);
+      }
+      // Jev's readings are server-derived; each must name a claim of this analysis by its own words.
+      if (analysis.jevReadings !== undefined) {
+        const issues = jevRecordIssues(analysis.jevReadings);
+        issues.forEach(issue => errors.push(`${prefix}: jevReadings: ${issue}`));
+        if (!issues.length) analysis.jevReadings.mappings.forEach(({ stageIndex, relationIndex, terms }, index) => {
+          const relation = stages[stageIndex]?.relations?.[relationIndex];
+          if (!relation || JSON.stringify(jevTerms(relation)) !== JSON.stringify(terms))
+            errors.push(`${prefix}: jevReadings mapping ${index} does not name a relation of this analysis by its words`);
+        });
       }
     });
   } catch (error) {

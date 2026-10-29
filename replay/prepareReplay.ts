@@ -1,6 +1,5 @@
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
-import type { DerivationStage } from '../types.ts';
-import type { JevRecord } from './relations/jev.ts';
+import type { DerivationStage, JevRecord } from '../types.ts';
 import { compileDispatchedRelationRenderPlan, dispatchRelationStagesForPlan } from './relations/renderPlanCompiler.ts';
 import { relationMomentOrders } from './relations/anchorRailBands.ts';
 import { adaptDerivationStagesForReplay } from './authoredFrames.ts';

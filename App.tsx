@@ -618,6 +618,7 @@ const App: React.FC<AppProps> = ({ modelIds = GENERATION_MODEL_IDS }) => {
               data={activeDisplayTree}
               animated={activeTab === 'derivation'}
               derivationStages={activeParse.derivationStages}
+              jevReadings={activeParse.jevReadings}
               abstractionMode={abstractionMode}
               sentence={parsedSentence}
               inputTokens={replayInputTokens}
