@@ -625,7 +625,16 @@ export const relationRoleConcepts = (
       /(?:^| )role$/u.test(normalizeTier2Synonym(valueKey))
       && typeof literal === 'string'
       && normalizeTier2Synonym(literal) === normalizeTier2Synonym(role));
-  const thetaDomain = typedThetaAssignment || namedInventory && explicitThematicPredicate || Object.keys(context.anchors ?? {}).some(role => namedThematicValue(role) ||
+  // A values entry with an argument field's own name and length lists that
+  // field's role labels: the recipe pairs it as role.label (sameNameEntryServes).
+  const sameNameArgumentLabels = currentEntries.some(([role, ids]) => {
+    const count = Array.isArray(ids) ? ids.length : typeof ids === 'string' ? 1 : 0;
+    const literal = context.values?.[role];
+    return count > 0 && lookupTier2SynonymCandidates(index, 'role', role).includes('theta.arguments')
+      && (Array.isArray(literal) ? literal.length : 1) === count && nonBlankLiteral(literal)
+      && (Array.isArray(literal) ? literal : [literal]).every(item => typeof item === 'string' && item.trim());
+  });
+  const thetaDomain = typedThetaAssignment || sameNameArgumentLabels || namedInventory && explicitThematicPredicate || Object.keys(context.anchors ?? {}).some(role => namedThematicValue(role) ||
     valueNamesThematicParticipant(role) ||
     qualifiedAssignmentConcepts(role).some(concept => concept === 'predicate' || concept === 'theta.arguments'))
     || Object.entries(context.values ?? {}).some(([key, value]) => /^(theta|thematic|θ) /.test(normalizeTier2Synonym(key))

@@ -621,6 +621,9 @@ Competing predicates, repeated participant IDs, missing endpoints, incompatible
 outcomes and partly supplied role-value lists prevent this recovery. Explicit
 role literals take precedence. The exact key-to-node associations participate in
 drawing identity, so swapping two roles cannot reuse the earlier grid.
+An argument field's same-name, same-length values list supplies its role labels,
+so it also establishes the thematic domain beside a directional assigner:
+`{assigner, argument: [a, b]}` with `argument: [Theme, Source]` is one grid.
 
 Matching Case-qualified source and recipient fields can identify an assignment
 without a separate values entry. A nominative assigner and nominative DP form
