@@ -55,7 +55,7 @@ test('run records name every analysis of each saved attempt and skip runs withou
   await mkdir(path.join(runs, 'transport-failure'), { recursive: true });
   const records = runRecords(runs);
   assert.deepEqual(records.map(record => [record.id, record.selector]), [
-    ['run:batch/a/1#0', '/response/analyses/0'], ['run:batch/a/1#1', '/response/analyses/1'], ['run:batch/b/1#0', '/response/analyses/0']]);
+    ...[['a/1#0', 0], ['a/1#1', 1], ['b/1#0', 0]].map(([id, index]) => [`run:${path.basename(scratch)}/batch/${id}`, `/response/analyses/${index}`])]);
   const manifestPath = path.join(scratch, 'manifest.json');
   await writeFile(manifestPath, JSON.stringify({ schemaVersion: 1, records }));
   assert.deepEqual((await loadCorpusManifest(manifestPath)).records.map(record => record.input.sentence), ['Mia', 'Mia', 'Mia']);

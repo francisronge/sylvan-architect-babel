@@ -14,6 +14,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { batchSourceName } from './buildCorpusArchiveManifest.mjs';
 import { paneHtml, resolveCase } from './buildReplayComparison.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -37,21 +38,43 @@ export function reviewNotes({ violations = [], visual = [], movementDiagnostics 
   return notes;
 }
 
-/** Each batch's audit results keyed by `<run> a<n>`. Audit record ids name a batch
- * by its directory's basename, which two batches can share, so every batch is
- * audited on its own and its results stay with it. `auditInvariants(batch, index)`
+/** Each batch's audit results keyed by `<run> a<n>`. Every batch is audited on its
+ * own, and an audit record that does not name that batch is refused, so one
+ * batch's results never land on another's trees. `auditInvariants(batch, index)`
  * returns an auditReplayInvariants report; `auditVisual(batch, index)` returns
  * auditReplayVisuals findings. */
 export function auditBatches(batches, { auditInvariants, auditVisual = null }) {
   return batches.map((batch, index) => {
-    const violations = new Map(auditInvariants(batch, index).records.map(r => [r.id.slice(r.id.indexOf('/') + 1), r.violations]));
+    const name = batchSourceName(batch.dir), own = (...prefixes) => id => {
+      const prefix = prefixes.find(start => id.startsWith(start));
+      if (prefix === undefined) throw Error(`The audit of ${batch.dir} returned ${id}, which names another batch`);
+      return id.slice(prefix.length);
+    };
+    // The visual audits run in --root, whose ids may still name the batch folder alone.
+    const invariantKey = own(`${name}/`), visualKey = own(`run:${name}/`, `run:${path.basename(batch.dir)}/`);
+    const violations = new Map(auditInvariants(batch, index).records.map(r => [invariantKey(r.id), r.violations]));
     const visual = new Map();
     for (const f of auditVisual?.(batch, index) ?? []) {
-      const [, run, ai] = /^run:[^/]+\/([^/]+)\/parse#(\d+)$/.exec(f.record) ?? [];
+      const [, run, ai] = /^([^/]+)\/parse#(\d+)$/.exec(visualKey(f.record)) ?? [];
       if (run) { const key = `${run} a${Number(ai) + 1}`; visual.set(key, [...(visual.get(key) ?? []), f]); }
     }
     return { violations, visual };
   });
+}
+
+/** `--batch DIR[=Label]` values. A label defaults to the batch's archive and folder
+ * names; two batches may not share a folder or a label, whose trees would merge
+ * into one group. */
+export function reviewBatches(specs) {
+  const batches = specs.map(spec => {
+    const [dir, label] = spec.split('=');
+    return { dir: path.resolve(dir), label: label ?? batchSourceName(dir) };
+  });
+  for (const key of ['dir', 'label']) {
+    const repeated = batches.map(batch => batch[key]).filter((value, index, all) => all.indexOf(value) !== index);
+    if (repeated.length) throw Error(`Two --batch values share the ${key === 'dir' ? 'folder' : 'label'} ${repeated[0]}`);
+  }
+  return batches;
 }
 
 /** The page: tree list, one Replay pane opening at step 1, keyboard on the pane. */
@@ -93,7 +116,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const root = path.resolve(values.root ?? repoRoot);
   const { prepareReplay } = await import(pathToFileURL(path.join(root, 'replay/prepareReplay.ts')).href);
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-review-'));
-  const batches = values.batch.map(spec => { const [dir, label] = spec.split('='); return { dir: path.resolve(dir), label: label ?? path.basename(dir) }; });
+  const batches = reviewBatches(values.batch);
   const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8'));
   const audits = auditBatches(batches, {
     auditInvariants: (b, index) => {
