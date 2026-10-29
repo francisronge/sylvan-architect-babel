@@ -29,6 +29,28 @@ test('a θ-grid leaves a pocket its stage will build syntax in as the stage begi
   assert.deepEqual(markMotionFindings(frames).map(found => `${found.frame} ${found.subject} ${found.measure}`), []);
 });
 
+// Francis, 27 October 2026, asked whether plaques that would jump take the farther
+// stretch-clear pocket: "Yes". That trades a jump for a farther pocket, so a plaque that
+// leaves its pocket where its stage begins keeps the one it takes through that stage
+// beside its still anchor. PR #285 review, 29 October 2026: the unfixed schedule moved
+// these early and then moved them again, the θ-grid of reviewed-construction returning
+// within reach at frame 19, the one of ordinary-receiving giving way at frame 38 to the
+// 2:2 feature plaque that arrives there.
+for (const [id, subject, steps] of [
+  ['replay-regressions/reviewed-construction.json#/cases/2', 'plaque(0:0 theta agent)@vRestored', [15, 21]],
+  ['replay-regressions/ordinary-receiving-width-control.json#', 'plaque(0:0/0:1/1:2 theta theme)@p_v', [32, 41]]
+]) test(`a plaque that leaves its pocket where its stage begins does not move again in that stage: ${id}`, () => {
+  const visual = prepareVisualRecord(corpus.records.find(entry => entry.id === id).record);
+  const frames = layoutVisualFrames(visual, [VIEWPORTS[0]], { steps: Array.from({ length: steps[1] - steps[0] + 1 }, (_, at) => steps[0] + at) });
+  const [last, ...stage] = frames.map(frame => ({ frame: frame.frame, stage: frame.stage, anchor: frame.plaques.find(plaque => plaque.id === subject)?.anchor,
+    offset: JSON.stringify(offset(frame.plaques.find(plaque => plaque.id === subject))) }));
+  assert(stage.every(entry => entry.stage === stage[0].stage) && last.stage < stage[0].stage, 'the frames after the first are one stage');
+  assert(stage.every(entry => Math.hypot(entry.anchor.x - stage[0].anchor.x, entry.anchor.y - stage[0].anchor.y) <= 1), 'its anchor stays still');
+  if (stage[0].offset !== last.offset) assert.equal(new Set(stage.map(entry => entry.offset)).size, 1,
+    `it keeps the pocket it took: ${stage.map(entry => `${entry.frame} ${entry.offset}`).join(', ')}`);
+  assert.deepEqual(markMotionFindings(frames).map(found => `${found.frame} ${found.subject} ${found.measure}`), []);
+});
+
 // A step's hold reads the later steps of its stage, so the schedule enters none of a
 // stage's steps while a phase of it can still change: one not yet allocated, or one a
 // remote run still open may move nearer (bringNear). Phases here belong to stages

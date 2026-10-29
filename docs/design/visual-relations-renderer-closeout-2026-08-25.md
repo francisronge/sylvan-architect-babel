@@ -311,19 +311,28 @@ a mark of its stage will newly take while it is still shown beside a still ancho
 Francis asked for this on 27 October 2026, after a θ-grid waited above a noun until
 N′ was projected there: "plaque fucking teleports because IT IS PUT IN THE WORST
 POSITION POSSIBLE, LITERALLY ABOVE SOMETHING THAT IS ABOUT TO BE PROJECTED". Such a
-plaque leaves at once, at the stage's first step or wherever it is first shown or
-its anchor moves. It takes the pocket its phase is scheduled, or, where that one is
+plaque leaves early only where it is free to move: at the stage's first step, where
+it is first shown, or where its anchor moves. Elsewhere in a stage it keeps its
+pocket as above. It takes the pocket its phase is scheduled, or, where that one is
 taken later in the stretch too, the first pocket scheduled later in the stretch that
 every allocation rule accepts now and that stays clear, or else the nearest pocket
-clear through the stretch. A pocket it chooses so stands at most a tenth beyond its
+clear through the stretch. Clear through the stretch means clear of the syntax and
+marks of the stretch's later steps and of the plaques those steps show where
+allocation places them. A pocket it chooses so stands at most a tenth beyond its
 nearby reach or no farther than its old pocket, and a scheduled pocket farther than
 that gives way to a nearer one clear through the stretch. When no pocket that near
 stays clear, it takes the nearest pocket clear through the stretch however far it
-stands: Francis chose a stable farther plaque over a later jump on 27 October 2026,
-and accepted the distances this leaves. Plaques and their own
-routes, placed step by step, do not count as known in advance. The offline audit
-reports a jump within a stage that only such syntax or a mark caused. One
-exception lets a plaque that shows its owner only by proximity, left beyond its nearby reach, return within it: it takes
+stands. On 27 October 2026 Francis was asked "Plaques that would jump take the
+farther stretch-clear pocket?" and answered "Yes": the trade is a farther pocket
+instead of a jump, so a plaque that leaves its pocket early keeps the pocket it
+took for the rest of its stage while its anchor stays still, and it does not
+return within reach in that stage. Should it still leave that pocket, the schedule
+enters the stage again with that plaque keeping its pocket until it must move, as
+it would without looking ahead. The offline audit reports a jump within a stage
+that only such syntax or a mark caused, accepts a plaque leaving early only where
+a stage begins, and reports a plaque that left early there and moves again beside
+its still anchor in that stage. One exception lets a plaque that shows its owner
+only by proximity, left beyond its nearby reach, return within it: it takes
 its nearer scheduled pocket at the step where what the previous step painted there
 has gone. A claim a later movement transfers to a lower occurrence keeps one plaque
 identity, its authored occurrence's, across that movement. The camera includes

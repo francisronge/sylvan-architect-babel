@@ -24,8 +24,11 @@ import { plaquesOverlap, translateObstacle } from './plaqueObstacleIndex.ts';
  *
  * Within one stage the schedule knows what every step paints. A plaque leaves a
  * pocket that syntax or a mark of its stage will newly take while it is still shown
- * beside a still anchor (foreseenPocketBlocker) as soon as it may move, and the
- * audit reports a jump within a stage that only such syntax or a mark caused. */
+ * beside a still anchor (foreseenPocketBlocker) where it is free to move: where the
+ * stage begins, where it is first shown or where its anchor moves. It then keeps the
+ * pocket it takes through the stage while its anchor stays still. The audit reports a
+ * jump within a stage that only such syntax or a mark caused, and a plaque that left
+ * early where its stage began and moves again in that stage. */
 
 /** Which of a plaque's own connectors an occupant belongs to: `key` names the Case
  * arrow or collector row and the row height it meets; `far` is the source node it
@@ -112,7 +115,7 @@ export type AheadStep = { occupants: readonly PocketOccupant[]; move: Move };
  * way of `pocket`, the plaque's earlier pocket carried by `move` to the later step.
  * Within one stage the schedule knows what every step paints, so a plaque does not
  * keep a pocket that such syntax or a mark will take while it is still shown beside a
- * still anchor; it moves at once rather than at the step that blocks it. `ahead` lists
+ * still anchor; it moves where it is free to rather than at the step that blocks it. `ahead` lists
  * the stage's later steps in order and stops where the plaque is hidden or its anchor
  * moves. Plaques and their own routes (occupants with an owner) are placed step by
  * step and do not count, nor does a mark that encloses the plaque `owner`. */

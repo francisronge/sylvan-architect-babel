@@ -18,6 +18,7 @@ import {
   claimIdentity,
   measuredCaseSourceRect,
   beyondNearbyReach,
+  blocksCarriedPocket,
   DETACHED_PLAQUE_GAP,
   ellipseOutlineObstacles,
   nearbyPlaqueReach,
@@ -42,7 +43,7 @@ import {
   type PlaqueRect,
   type PlaqueSpace
 } from './relations/plaquePlacement.ts';
-import { foreseenPocketBlocker, newPocketBlocker, ownRoutesChanged, returnsWithinReach, type AheadStep, type HeldPocket,
+import { foreseenPocketBlocker, newPocketBlocker, ownOccupant, ownRoutesChanged, returnsWithinReach, type AheadStep, type HeldPocket,
   type PocketOccupant } from './relations/pocketHold.ts';
 import { prepareCasePlaqueRows, type PlaqueTextMeasure } from './relations/plaqueTextLayout.ts';
 import { caseFeatureComposition, presentCaseRows } from './relations/featureComposition.ts';
@@ -767,6 +768,13 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
   let shownBefore: { stageIndex: number; byId: Map<string, d3.HierarchyPointNode<SyntaxNode>>; painted: () => PaintedNodes;
     placements: Map<string, PlaquePlacement>; shown: () => Set<string>; occupants: () => PocketOccupant[] } | undefined;
   let playedStage = -1, played = new Set<number>();
+  /** Within the stage being entered: the plaques that left their pocket where they were
+   * free to move because a later step of the stage takes it (foreseenPocketBlocker), by
+   * claimIdentity, with the offset from the anchor they took; those that then left that
+   * pocket beside a still anchor later in the stage (`jumped`); and those that may not
+   * leave early (`barred`), because they did so on an earlier pass over the stage. */
+  let foresight = new Map<string, string>(), jumped = new Set<string>(), barred = new Set<string>();
+  const offsetOf = (placement: PlaquePlacement) => `${Math.round(placement.x - placement.attachmentX)},${Math.round(placement.y - placement.attachmentY)}`;
   // A claim keeps its pocket across the movement that transfers it to a lower occurrence.
   const identityOf = claimIdentity;
   type Scene = (typeof phases)[number]['scenes'][number];
@@ -810,8 +818,9 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
   };
   const unblocked: PlaqueSpace = { obstacles: [], acceptsConnector: () => true };
   /** The pocket allocation chooses for the plaque `index` among everything this step
-   * paints and the syntax and marks of the later steps `ahead` (aheadOf), carried
-   * with its anchor, accepted where every allocation rule accepts it now. */
+   * paints and the syntax, marks and scheduled plaques of the later steps `ahead`
+   * (aheadOf, scheduledPlaquesAt), carried with its anchor, accepted where every
+   * allocation rule accepts it now. */
   const clearThrough = (phaseIndex: number, scene: Scene, stepIndex: number, index: number, anchor: d3.HierarchyPointNode<SyntaxNode>,
     occupants: readonly PocketOccupant[], rowVisible: RowVisible, revealed: number[],
     ahead: readonly { phaseIndex: number; scene: Scene; stepIndex: number; revealed: number[]; played: ReadonlySet<number>;
@@ -829,7 +838,8 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       const painted = later.scene.paintedSpace(input.steps[later.stepIndex].replayVisibleNodeIds, later.revealed);
       const visible = rowVisibleAt(stageIndex, later.played);
       scenes.push({ nodes: painted.nodes, obstacles: painted.obstacles, anchor: later.anchor, request: laterRequest, owner,
-        dx: anchor.x - later.anchor.x, dy: anchor.y - later.anchor.y, caseVisible: visible(caseOwners), rowVisible: visible, added: [] });
+        dx: anchor.x - later.anchor.x, dy: anchor.y - later.anchor.y, caseVisible: visible(caseOwners), rowVisible: visible,
+        added: scheduledPlaquesAt(later).filter(occupant => occupant.owner !== key) });
     }
     const space = lifetimeSpaceOf(scenes);
     const found = placeStagePlaques(items, nodes, obstacles, new Map(), input.measurePlaqueText,
@@ -901,13 +911,29 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     }
     return painted;
   };
+  /** The plaques step `stepIndex` shows where allocation places them, with their Case
+   * arrows and collectors (occupantsAt): what a plaque leaving its pocket early must
+   * also keep clear of through its stage. */
+  const scheduledPlaques = new Map<number, readonly PocketOccupant[]>();
+  const scheduledPlaquesAt = ({ phaseIndex, scene, stepIndex, revealed, played }: { phaseIndex: number; scene: Scene; stepIndex: number;
+    revealed: number[]; played: ReadonlySet<number> }) => {
+    let found = scheduledPlaques.get(stepIndex);
+    if (!found) {
+      const layout = layouts[phaseIndex], shown = new Set(revealed.filter(index => layout.has(index)));
+      const { obstacles } = scene.paintedSpace(input.steps[stepIndex].replayVisibleNodeIds, revealed);
+      scheduledPlaques.set(stepIndex, found = occupantsAt(phaseIndex, scene, stepIndex, layout, shown, revealed,
+        rowVisibleAt(phases[phaseIndex].stageIndex, played)).slice(obstacles.length));
+    }
+    return found;
+  };
   /** A plaque shown at consecutive steps keeps its pocket, carried with its anchor,
    * while that anchor stays still against the tree and the step paints nothing new in
    * its way (pocketHold.ts). The schedule may have moved it at a phase boundary because
    * the pocket is blocked later in the phase, or because a nearer one opened; it then
    * moves at the step that blocks its pocket, or when its anchor moves, unless syntax
    * or a mark of its stage will take that pocket while it is still shown beside a still
-   * anchor: then it leaves as soon as it may (foreseenPocketBlocker). */
+   * anchor: then it leaves where its stage begins (foreseenPocketBlocker), unless
+   * `barred`. A plaque that leaves early does not return within reach in that stage. */
   const holdPockets = (phaseIndex: number, stepIndex: number) => {
     const phase = phases[phaseIndex], scheduled = layouts[phaseIndex], items = phase.items;
     const scene = phase.scenes.find(candidate => candidate.stepIndices.includes(stepIndex))!, byId = sceneNodes(scene);
@@ -937,7 +963,8 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
     if (before && moved.length) {
       // One camera fit serves a stage; across a stage boundary the camera carries
       // the syntax the crossing leaves in place (carryCamera).
-      const shift = before.stageIndex === phase.stageIndex ? { x: 0, y: 0 } : paintedShift(before.painted(), painted());
+      const crossing = before.stageIndex !== phase.stageIndex;
+      const shift = !crossing ? { x: 0, y: 0 } : paintedShift(before.painted(), painted());
       const shownThen = before.shown(), candidates = new Map<number, { pocket: PlaquePlacement; move: { x: number; y: number } }>();
       left.clear();
       let later: PocketOccupant[] | undefined;
@@ -951,13 +978,14 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
         const pocket = { ...prior, x: prior.x - prior.attachmentX + anchor.x, y: prior.y - prior.attachmentY + anchor.y,
           attachmentX: anchor.x, attachmentY: anchor.y };
         // A proximity plaque left beyond its nearby reach comes back within it as soon
-        // as what the previous step painted in that nearer pocket has gone.
+        // as what the previous step painted in that nearer pocket has gone, unless it
+        // took that pocket early to stay clear of its stage.
         const point = plaqueAnchorPoint(anchor);
-        if (request && proximityOnly(request) && returnsWithinReach({ before: { pocket, anchor: point }, after: { pocket: placement, anchor: point },
+        if (!(foresight.has(key) && !crossing) && request && proximityOnly(request) && returnsWithinReach({ before: { pocket, anchor: point }, after: { pocket: placement, anchor: point },
           owner: key, move, thetaGrid: request.thetaGrid, realizedForm: request.realizedForm }, before.occupants(), occupants())) continue;
-        // Nor does it keep a pocket that syntax or a mark of this stage will take while
-        // it is still shown beside a still anchor.
-        if (foreseenPocketBlocker({ pocket, owner: key, move }, before.occupants(),
+        // Where a stage begins, it does not keep a pocket that syntax or a mark of the
+        // stage will take while it is still shown beside a still anchor.
+        if (crossing && !barred.has(key) && foreseenPocketBlocker({ pocket, owner: key, move }, before.occupants(),
           aheadOf(phase.stageIndex, stepIndex, index, placement.attachmentNodeId, anchor, old, playedNow))) { left.add(index); continue; }
         candidates.set(index, { pocket, move });
       }
@@ -985,14 +1013,20 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
         }
       }
     }
-    // Nor does a plaque take a pocket that syntax or a mark of this stage will take while
-    // it is still shown beside a still anchor: it takes the first pocket the schedule
-    // gives it later in that stretch that every allocation rule accepts now and that
-    // stays clear (pocketHold.ts, foreseenPocketBlocker).
+    // Nor does a plaque free to move take a pocket that syntax or a mark of this stage
+    // will take while it is still shown beside a still anchor: it takes the first pocket
+    // the schedule gives it later in that stretch that every allocation rule accepts now
+    // and that stays clear (pocketHold.ts, foreseenPocketBlocker). It is free to move
+    // where its stage begins, where it appears and where its anchor moves; elsewhere it
+    // keeps its pocket as the hold above decides.
     let current: PocketOccupant[] | undefined;
+    const crossing = !before || before.stageIndex !== phase.stageIndex, chosen = new Set<number>();
     for (const index of shown()) {
-      const placement = layout.get(index)!, anchor = byId.get(placement.attachmentNodeId);
-      if (!anchor) continue;
+      const placement = layout.get(index)!, anchor = byId.get(placement.attachmentNodeId), key = identityOf(items[index]);
+      if (!anchor || barred.has(key)) continue;
+      const prior = before?.placements.get(key), old = prior && before!.byId.get(placement.attachmentNodeId);
+      if (!crossing && before!.shown().has(key) && prior?.attachmentNodeId === placement.attachmentNodeId && old
+        && Math.hypot(anchor.x - old.x, anchor.y - old.y) <= 1) continue;
       const at = (box: PlaquePlacement): PlaquePlacement => ({ ...box, x: box.x - box.attachmentX + anchor.x, y: box.y - box.attachmentY + anchor.y,
         attachmentX: anchor.x, attachmentY: anchor.y });
       const ahead = aheadOf(phase.stageIndex, stepIndex, index, placement.attachmentNodeId, anchor, anchor, playedNow);
@@ -1002,14 +1036,19 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       const { obstacles: here } = scene.paintedSpace(step.replayVisibleNodeIds, revealed());
       const owner = identityOf(items[index]), still = { x: 0, y: 0 };
       const foreseen = (box: PlaquePlacement) => foreseenPocketBlocker({ pocket: at(box), owner, move: still }, here, ahead);
+      // The pocket it takes also stays clear of the plaques its stage shows later.
+      const clear = (box: PlaquePlacement) => !foreseen(box) && !ahead.some(entry => {
+        const carried = { ...at(box), x: at(box).x + entry.move.x, y: at(box).y + entry.move.y };
+        return scheduledPlaquesAt(entry).some(occupant => !ownOccupant(owner, occupant) && blocksCarriedPocket(carried, occupant, box.syntaxGap));
+      });
       const request = requestsByIndex(phaseIndex).get(index), size = allocatedSize(items[index]) ?? request;
       const nearby = request && size ? FORESEEN_REACH * nearbyPlaqueReach(reachOf(size, request)) : 0;
       if (!foreseen(placement)) {
         // One that left its pocket for this stretch need not stand farther than nearby.
-        if (!left.has(index) || anchorDistance(anchor, at(placement)) <= nearby + 1e-6) continue;
+        if (!left.has(index) || clear(placement) && anchorDistance(anchor, at(placement)) <= nearby + 1e-6) continue;
         const kept = clearThrough(phaseIndex, scene, stepIndex, index, anchor, now(), rowVisible, revealed(), ahead, nearby + 1e-6);
-        if (kept && anchorDistance(anchor, kept) <= nearby + 1e-6 && !foreseen(kept)) { layout.set(index, kept); held.add(index); current = undefined; }
-        continue;
+        if (kept && anchorDistance(anchor, kept) <= nearby + 1e-6 && clear(kept)) { layout.set(index, kept); held.add(index); chosen.add(index); current = undefined; continue; }
+        if (clear(placement)) continue;
       }
       const later = new Map<string, PlaquePlacement>();
       for (const { phaseIndex: future } of (stageSteps.get(phase.stageIndex) ?? []).filter(entry => entry.stepIndex > stepIndex).slice(0, ahead.length)) {
@@ -1021,20 +1060,32 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
       const reach = Math.max(nearby, anchorDistance(anchor, at(placement))) + 1e-6;
       const near = (box: PlaquePlacement | undefined) => box && anchorDistance(anchor, box) <= reach ? box : undefined;
       let kept: PlaquePlacement | undefined;
-      for (const box of later.values()) if (!foreseen(box) && (kept = near(clearAt(phaseIndex, scene, stepIndex, index, at(box), now(), rowVisible, revealed())))) break;
+      for (const box of later.values()) if (clear(box) && (kept = near(clearAt(phaseIndex, scene, stepIndex, index, at(box), now(), rowVisible, revealed())))) break;
       // Otherwise it looks for the nearest pocket clear at this step and through the stretch.
       kept ??= near(clearThrough(phaseIndex, scene, stepIndex, index, anchor, now(), rowVisible, revealed(), ahead, reach));
       // Failing those, it stands farther rather than jump later (Francis, 27 October
       // 2026): the nearest pocket clear through the stretch at any distance.
       if (!kept) {
-        const farther = [...[...later.values()].filter(box => !foreseen(box))
+        const farther = [...[...later.values()].filter(clear)
           .map(box => clearAt(phaseIndex, scene, stepIndex, index, at(box), now(), rowVisible, revealed())),
           clearThrough(phaseIndex, scene, stepIndex, index, anchor, now(), rowVisible, revealed(), ahead, Infinity)]
           .filter((box): box is PlaquePlacement => Boolean(box));
         kept = farther.sort((a, b) => anchorDistance(anchor, a) - anchorDistance(anchor, b))[0];
       }
-      if (kept && !foreseen(kept)) { layout.set(index, kept); held.add(index); current = undefined; }
+      if (kept && clear(kept)) { layout.set(index, kept); held.add(index); chosen.add(index); current = undefined; }
     }
+    // A plaque that left its pocket early keeps the one it took for the rest of the
+    // stage while its anchor stays still; one that leaves it is barred from leaving
+    // early on the next pass over the stage (release).
+    if (crossing) foresight.clear();
+    for (const [key, offset] of foresight) {
+      const index = items.findIndex(item => identityOf(item) === key), placement = layout.get(index);
+      const prior = before?.placements.get(key), anchor = placement && byId.get(placement.attachmentNodeId);
+      const old = prior && placement && prior.attachmentNodeId === placement.attachmentNodeId && before!.byId.get(placement.attachmentNodeId);
+      if (!placement || !shown().has(index) || !anchor || !old || Math.hypot(anchor.x - old.x, anchor.y - old.y) > 1) foresight.delete(key);
+      else if (offsetOf(placement) !== offset) { jumped.add(key); foresight.delete(key); }
+    }
+    for (const index of new Set([...left, ...chosen])) foresight.set(identityOf(items[index]), offsetOf(layout.get(index)!));
     // When rows leave a Case plaque, its shell fits the rows that remain at that step,
     // in its pocket; allocation still reserves the stage's largest shell.
     for (const [index, placement] of layout) {
@@ -1063,15 +1114,33 @@ export function buildReplayPlaqueSchedule(input: StageLayoutInput, coordinates?:
    * clear of what its stage paints later; the offline audit's mark-distance margin. */
   const FORESEEN_REACH = 1.1;
   const phaseStages = phases.map(phase => phase.stageIndex);
-  /** Enter allocated phases into the schedule as releasablePhase allows; publish each completed stage. */
+  /** Enter allocated phases into the schedule as releasablePhase allows, one whole stage
+   * at a time; publish each completed stage. A plaque that left its pocket early and
+   * then leaves the one it took beside a still anchor later in the stage would move
+   * twice, so the stage is entered again with that plaque keeping its pocket until it
+   * must move (holdPockets, `barred`). */
   const release = (allocated: number) => {
     const pending = releasablePhase(phaseStages, allocated, [...openRuns.values()].filter(run => run.remote).map(run => run.phases[0]));
-    for (; released <= pending; released++) {
-      const phase = phases[released], layout = layouts[released];
-      schedule.stages[phase.stageIndex] = layout;
-      phase.scenes.flatMap(scene => scene.stepIndices).sort((a, b) => a - b)
-        .forEach(index => schedule.steps.set(index, holdPockets(released, index)));
-      if (phases[released + 1]?.stageIndex !== phase.stageIndex) stageReady?.(schedule, phase.stageIndex);
+    while (released <= pending) {
+      const first = released, stageIndex = phases[first].stageIndex;
+      let last = first;
+      while (last < pending && phases[last + 1].stageIndex === stageIndex) last++;
+      const saved = { shownBefore, playedStage, played: new Set(played) };
+      barred = new Set();
+      for (;;) {
+        foresight = new Map(); jumped = new Set();
+        for (let phaseIndex = first; phaseIndex <= last; phaseIndex++) {
+          schedule.stages[stageIndex] = layouts[phaseIndex];
+          phases[phaseIndex].scenes.flatMap(scene => scene.stepIndices).sort((a, b) => a - b)
+            .forEach(index => schedule.steps.set(index, holdPockets(phaseIndex, index)));
+        }
+        if (!jumped.size) break;
+        jumped.forEach(key => barred.add(key));
+        ({ shownBefore, playedStage } = saved);
+        played = new Set(saved.played);
+      }
+      released = last + 1;
+      if (phases[released]?.stageIndex !== stageIndex) stageReady?.(schedule, stageIndex);
     }
   };
   phases.forEach((phase, phaseIndex) => {

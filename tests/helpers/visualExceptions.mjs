@@ -15,7 +15,7 @@ const PLAQUE_CROWDED = 'Accepted (catalog #3; ROADMAP Explicitly Not Active, Fra
 
 const STABLE_FARTHER = 'Accepted (Francis, 27 Oct): a plaque whose only pocket clear through its stretch of a stage stands beyond '
   + 'its nearby reach takes that pocket instead of jumping when the stage fills a nearer one.';
-const STABLE_FARTHER_NOTE = 'chat: plaques that would jump take the farther stretch-clear pocket instead (decision 1, "Yes")';
+const STABLE_FARTHER_NOTE = '27 Oct, in chat: asked "Plaques that would jump take the farther stretch-clear pocket?", Francis answered "Yes"';
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 export const EXCEPTIONS = [
@@ -57,15 +57,21 @@ export const EXCEPTIONS = [
     { by: 'Francis Ronge', on: '2026-10-23', note: 'Move first, then adjoin: the movement now plays before the phrase it lands in is merged into a larger one. Francis reviewed the click-through side-by-side of all seven changed fixtures on 23 Oct in the lead session (\'Looked at the replay page, looks good.\'): the relative clause\'s movements play before the matrix builds, so stage 3 is laid out differently and this plaque sits at 1.55 of its reach instead of 1.29.',
       accepts: { desktop: { '45-50': 1.55 }, 'desktop-large': { '45-50': 1.55 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/native-plaque-footprints.json#', 'mark-distance', 'plaque',
-    'plaque(1:2 theta Agent)@v', { desktop: { '24-29': 1.19 }, 'desktop-large': { '24-29': 1.19 } }),
+    'plaque(1:2 theta Agent)@v', { desktop: { '24-29': 1.19, '30-35': 1.29 }, 'desktop-large': { '24-29': 1.19, '30-35': 1.29 } },
+    { by: 'Francis Ronge', on: '2026-10-27', note: 'Frames 24-29 as listed before, for the reason given. Frames 30-35: '
+      + STABLE_FARTHER_NOTE + '. Its anchor moves where stage 3 begins at frame 30; main gives it a pocket there that syntax or a '
+      + 'mark of stage 3 takes at frame 31, where main moves it. It takes the nearest pocket clear through the stage instead and keeps it '
+      + 'until its anchor moves at frame 36.',
+      accepts: { desktop: { '24-29': 1.19, '30-35': 1.29 }, 'desktop-large': { '24-29': 1.19, '30-35': 1.29 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/ordinary-receiving-width-control.json#', 'mark-distance', 'plaque',
-    'plaque(0:0/0:1/1:2 theta theme)@p_v', { desktop: { '33': 1.13, '34-41': 1.14 }, 'desktop-large': { '33': 1.13, '34-41': 1.14 } },
+    'plaque(0:0/0:1/1:2 theta theme)@p_v', { desktop: { '33-41': 1.14 }, 'desktop-large': { '33-41': 1.14 } },
     { by: 'Francis Ronge', on: '2026-10-27', note: 'Accepted 21 Oct on the plaque-gap side-by-side review '
       + '("The plaque changes are fine."): a plaque brought near keeps the full gap from movement arrows, so this theme grid '
       + 'has no nearer pocket and returns to its spot from before #150. Move first, then adjoin (reviewed 23 Oct: '
-      + '"Looked at the replay page, looks good.") plays the raising two frames earlier, so the same state starts at frame 34. '
-      + 'Frame 33, 27 Oct: ' + STABLE_FARTHER_NOTE + '; the grid takes this pocket a step early instead of jumping at frame 34.',
-      accepts: { desktop: { '33': 1.13, '34-41': 1.14 }, 'desktop-large': { '33': 1.13, '34-41': 1.14 } } }),
+      + '"Looked at the replay page, looks good.") plays the raising two frames earlier, so the same state starts at frame 34.'
+      + ' Frame 33: ' + STABLE_FARTHER_NOTE + '. Stage 2 begins at frame 33 and paints syntax or a mark in the grid\'s earlier '
+      + 'pocket at frame 34, where main moves it to this pocket; it now takes this pocket at frame 33 and keeps it through the stage.',
+      accepts: { desktop: { '33-41': 1.14 }, 'desktop-large': { '33-41': 1.14 } } }),
   x(PLAQUE_CROWDED, 'replay-regressions/receiving-slot-width-control.json#', 'mark-distance', 'plaque',
     'plaque(3:1 clauseType: declarative personal infinitive)@infinitivalC', { desktop: { '33-48': 1.2 }, 'desktop-large': { '33-48': 1.2 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/review-workspace-boundaries.json#/cases/0', 'mark-distance', 'plaque',
@@ -115,6 +121,9 @@ export const EXCEPTIONS = [
   // Plaques that would wait in a pocket their stage fills later, where only a farther
   // pocket stays clear through the stretch, take that pocket rather than jump.
   x(STABLE_FARTHER, 'replay-regressions/reviewed-construction.json#/cases/2', 'mark-distance', 'plaque',
-    'plaque(0:0 theta agent)@vRestored', { desktop: { '16-18': 1.19 }, 'desktop-large': { '16-18': 1.19 } },
-    { by: 'Francis Ronge', on: '2026-10-27', note: STABLE_FARTHER_NOTE, accepts: { desktop: { '16-18': 1.19 }, 'desktop-large': { '16-18': 1.19 } } }),
+    'plaque(0:0 theta agent)@vRestored', { desktop: { '16-25': 1.19 }, 'desktop-large': { '16-25': 1.19 } },
+    { by: 'Francis Ronge', on: '2026-10-27', note: STABLE_FARTHER_NOTE + '. Stage 1 (frames 16-21) paints syntax or a mark in the '
+      + 'grid\'s earlier pocket at frame 19, where main moves it; it takes this pocket at frame 16 instead and keeps it until '
+      + 'stage 3 begins at frame 26.',
+      accepts: { desktop: { '16-25': 1.19 }, 'desktop-large': { '16-25': 1.19 } } }),
 ];
