@@ -36,7 +36,7 @@ const WEIGHTS = new Map([
   ['replayNamedAtlasRegressions.test.mjs', 6],
   ['stageCamera.test.mjs', 6],
   ['workspaceArabicContinuity.test.mjs', 5],
-  ['replayCorpusComparator.test.mjs', 5],
+  ['replayCorpusComparator.test.mjs', 13],
   ['movementReceivingSlots.test.mjs', 5],
   ['plaquePlacement.test.mjs', 4],
   ['workspaceHistoricalContinuity.test.mjs', 4],

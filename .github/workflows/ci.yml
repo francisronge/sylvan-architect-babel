@@ -215,10 +215,15 @@ jobs:
             --merge "$RUNNER_TEMP/replay-offline/replay-offline-1.json" \
             --merge "$RUNNER_TEMP/replay-offline/replay-offline-2.json"
 
-  corpus-motion:
-    name: Replay motion against the PR base
+  corpus-motion-shard:
+    name: Replay motion against the PR base (${{ matrix.shard }}/2)
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep this list, the job name and the merge below at two shards.
+        shard: [1, 2]
 
     steps:
       - name: Check out candidate
@@ -246,22 +251,86 @@ jobs:
           npm ci --prefix baseline
           npm ci --prefix candidate
 
-      # Every committed fixture analysis is laid out in both checkouts on the
-      # measured path the browser paints. A noticeable new motion fault or one
-      # that moves noticeably farther (scripts/replayMotionContinuity.mjs), not
-      # approved in tests/helpers/motionExceptions.mjs, or a movement the base
-      # shows as movement losing its moment, fails the job. Fixture Replay and
-      # layout changes are reviewed through the committed layout fingerprint.
-      # Four worker processes, shared by both checkouts, use the runner's four
-      # vCPUs; records are measured independently, so the report does not
-      # depend on the worker count.
+      # Each shard lays out its share of every committed fixture analysis in
+      # both checkouts on the measured path the browser paints and writes the
+      # measurements unjudged; the job below compares them all. Four worker
+      # processes, shared by both checkouts, use the runner's four vCPUs;
+      # records are measured independently, so the measurements do not depend
+      # on the shard or worker count.
+      - name: Measure this shard in both checkouts
+        working-directory: candidate
+        run: |
+          node scripts/buildCorpusArchiveManifest.mjs --fixtures --out "$RUNNER_TEMP/fixtures-manifest.json"
+          npm run -s verify:corpus -- --baseline-root ../baseline --candidate-root . \
+            --archive-manifest "$RUNNER_TEMP/fixtures-manifest.json" --timeout-ms 1200000 --jobs 4 \
+            --shard ${{ matrix.shard }}/2 --snapshots-out "$RUNNER_TEMP/corpus-motion-${{ matrix.shard }}.json"
+
+      - name: Retain the shard measurements for the comparison
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          # One name per shard: a re-run of a failed shard replaces its
+          # measurements, and the comparison reads the latest of each shard.
+          name: corpus-motion-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/corpus-motion-${{ matrix.shard }}.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+  corpus-motion:
+    name: Replay motion against the PR base
+    needs: corpus-motion-shard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: candidate
+          persist-credentials: false
+
+      # The comparison judges a fixture the base checkout lacks by motion only.
+      - name: Check out PR base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.event.before || 'main' }}
+          path: baseline
+          persist-credentials: false
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+          cache: npm
+          cache-dependency-path: candidate/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci --prefix candidate
+
+      - name: Download the shard measurements
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: corpus-motion-shard-*
+          path: ${{ runner.temp }}/corpus-motion
+          merge-multiple: true
+
+      # A noticeable new motion fault or one that moves noticeably farther
+      # (scripts/replayMotionContinuity.mjs), not approved in
+      # tests/helpers/motionExceptions.mjs, or a movement the base shows as
+      # movement losing its moment, fails the job. Fixture Replay and layout
+      # changes are reviewed through the committed layout fingerprint. The
+      # comparison selects the same records, and refuses unless the shards
+      # measured each exactly once in each checkout, with one harness and
+      # one source identity per checkout.
       - name: Compare Replay motion with the PR base
         working-directory: candidate
         run: |
           node scripts/buildCorpusArchiveManifest.mjs --fixtures --out "$RUNNER_TEMP/fixtures-manifest.json"
           npm run -s verify:corpus -- --baseline-root ../baseline --candidate-root . \
             --archive-manifest "$RUNNER_TEMP/fixtures-manifest.json" \
-            --output "$RUNNER_TEMP/corpus-motion.json" --timeout-ms 1200000 --jobs 4
+            --merge "$RUNNER_TEMP/corpus-motion/corpus-motion-1.json" \
+            --merge "$RUNNER_TEMP/corpus-motion/corpus-motion-2.json" \
+            --output "$RUNNER_TEMP/corpus-motion.json"
 
       - name: Retain the comparison report
         if: always()
@@ -274,7 +343,7 @@ jobs:
 
   verify:
     name: Provider-free verification
-    needs: [contract, offline-tests, replay-offline-shard, replay-offline, corpus-motion]
+    needs: [contract, offline-tests, replay-offline-shard, replay-offline, corpus-motion-shard, corpus-motion]
     # GitHub treats a skipped required check as passing, so this job always
     # runs and fails unless every needed job succeeded.
     if: always()
