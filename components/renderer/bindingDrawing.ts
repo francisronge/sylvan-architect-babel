@@ -14,7 +14,7 @@ import {
 } from '../../replay/relations/renderPlan.ts';
 import { extractDisplayedSubscriptIndex } from '../../replay/replaySurfaceNotation.ts';
 import {
-  identityIndexAction,
+  labelIndexAction,
   identityLabelTarget,
   treeLabelIndexAttributes
 } from '../../replay/treeLabelRuns.ts';
@@ -372,7 +372,7 @@ export function createBindingDrawing({ activeDerivationFrameIndex, overlay,
         if (!label.attr('data-identity-base-label')) label.attr('data-identity-base-label', this.textContent || '');
         const existing = label.selectAll<SVGTSpanElement, unknown>('.babel-identity-index')
           .filter(function sameOwnedIndex() { return this.textContent === primitive.index; });
-        const indexAction = identityIndexAction(this.textContent || '', existing.nodes().map(node => node.textContent || ''), primitive.index);
+        const indexAction = labelIndexAction(this.textContent || '', existing.nodes().map(node => node.textContent || ''), primitive.index);
         const indexElement = existing.node() || (indexAction === 'inline' ? this : label.append('tspan')
           .attr('class', 'babel-identity-index babel-relation-index')
           .attr('data-identity-anchor', nodeId)

@@ -3,10 +3,11 @@ import { dispatchRelationStages, projectRelationStages, type DispatchedRelationS
 import { productionRelationRegistry } from '../relationDispatch/productionRegistry.js';
 import { findRelationRegistryEntry } from '../relationDispatch/relationRegistry.js';
 import { isWordlessCategoryLeaf } from '../replaySurfaceNotation.ts';
+import { assignAnchorRailBands } from './anchorRailBands.ts';
 import { domainPlan } from './domainPlan.ts';
 import { fallbackDrawing } from './fallbackTopology.ts';
 import { featurePlan } from './featurePlan.ts';
-import { LARGE_ANCHOR_ARRAY_THRESHOLD, compileLargeAnchorSets } from './largeAnchorSets.ts';
+import { LARGE_ANCHOR_ARRAY_THRESHOLD, compileLargeAnchorSets, railEntrySequence } from './largeAnchorSets.ts';
 import { movementPlan } from './movementPlan.ts';
 import { pfPlan } from './pfPlan.ts';
 import { createPlanCoalescer } from './planCoalescence.ts';
@@ -63,6 +64,10 @@ export type CompilePlanOptions = {
   registry?: typeof productionRelationRegistry;
   families?: Record<string, ProductionRenderFamily>;
   activeLens?: boolean;
+  /** Each stage's relation indexes in the order Replay plays their moments
+   * (`relationMomentOrders`); a stage without an entry plays in authored order.
+   * Rails take their bands from this order (anchorRailBands.ts). */
+  relationMomentOrders?: ReadonlyMap<number, readonly number[]>;
 };
 
 const conventionalIndex = (ordinal: number): string => 'ijklmnopqrstuvwxyz'[ordinal] ?? `i${ordinal + 1}`;
@@ -607,6 +612,7 @@ export const compileDispatchedRelationRenderPlan = (
   // witness set and replacement timing. It is materialized alongside that
   // owner's output rather than choosing one parent for a mixed relation.
   const organizationCompanions = new Map<RelationPlanItem, AnchorSetPlanItem[]>();
+  const standaloneRails: AnchorSetPlanItem[] = [];
   const isFullArrayOwned = (relationName: string, role: string): boolean => {
     const ownedEntry = findRelationRegistryEntry(registry, relationName);
     if (!ownedEntry || !families[ownedEntry.id]) return false;
@@ -655,26 +661,52 @@ export const compileDispatchedRelationRenderPlan = (
         : claim.tier === 2 ? item.tier2ClaimIdentity === claim.facet.facetIdentity
           : item.kind === 'fallback' && item.canonicalClaimIdentity === claim.canonicalClaimIdentity));
       owners.forEach(owner => {
+        // The rail is Babel's own organization of a large array, designed as a
+        // persistent drawing. When its claim draws nothing but neutral marks,
+        // it keeps the recognized rail's lifetime (Francis, 27 Oct 2026). A
+        // neutral role beside a recognized one still lends no lifetime.
+        // Its identity, like a recognized claim's replacement thread, is the
+        // ordered sequence of entries it numbers (`railEntrySequence`),
+        // whatever the relation or role is called. A later rail with exactly
+        // that sequence replaces it at that moment; a subset, superset or
+        // reordering numbers differently, so it is another claim and stands
+        // beside it on its own band (planPersistence.ts, anchorRailBands.ts).
+        const ownLifetime = owner.kind === 'fallback' && relationItems.every(item => item.kind === 'fallback');
         const companion: AnchorSetPlanItem = {
           kind: 'anchor-set',
           relationRef: { ...parentRelation, stageIndex: set.stageIndex, relationIndex: set.relationIndex },
           appearsAtStage: owner.appearsAtStage,
-          persistence: owner.persistence,
+          persistence: ownLifetime ? 'replace-previous-instance' : owner.persistence,
+          ...(ownLifetime ? { replacementGroup: JSON.stringify({ organization: 'large-anchor-set',
+            entries: railEntrySequence(roles) }) } : {}),
           backward: owner.backward,
           priorWitnessNodeIds: owner.priorWitnessNodeIds,
           tier2WitnessNodeIds: planItemDependencyNodeIds(owner),
           claimTier: owner.claimTier ?? claim.tier,
           organizationOwners: [claim.canonicalClaimIdentity],
-          showBadges: owner.kind !== 'fallback',
+          // A persisting rail numbers its own entries from its moment on, as a
+          // recognized rail does, so it never changes when the neutral labels expire.
+          showBadges: owner.kind !== 'fallback' || ownLifetime,
+          ...(ownLifetime ? { ownNumerals: true } : {}),
           badgeSize: owner.familyId === 'pf.cyclic-linearization' ? 'compact' : 'standard',
           set: { ...set, roles }
         };
+        if (ownLifetime) {
+          // A restatement in the same stage shares the rail and adds its moment.
+          const restated = standaloneRails.find(rail => rail.appearsAtStage === companion.appearsAtStage
+            && rail.relationRef.relationIndex !== companion.relationRef.relationIndex
+            && rail.replacementGroup === companion.replacementGroup);
+          if (restated) restated.coalescedRefs = [...restated.coalescedRefs ?? [], companion.relationRef];
+          else standaloneRails.push(companion);
+          return;
+        }
         const companions = organizationCompanions.get(owner) ?? [];
         companions.push(companion);
         organizationCompanions.set(owner, companions);
       });
     });
   });
+  items.push(...standaloneRails);
 
   // Allocate notation across the derivation, never separately in each painter.
   // Reserve authored symbols before allocating, including later movement indices.
@@ -788,6 +820,7 @@ export const compileDispatchedRelationRenderPlan = (
   });
   const frames = materializePlanFrames(items, stageList, stageDispatches, stageNodeMaps, organizationCompanions, diagnostics);
   coalesceFrames(frames);
+  assignAnchorRailBands(frames, stageList, options.relationMomentOrders);
 
   return {
     planVersion: 1,

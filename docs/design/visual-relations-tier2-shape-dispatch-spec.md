@@ -860,7 +860,9 @@ passed lifecycle checks. A fallback remainder cannot shorten a recovered claim,
 and a recovered sibling cannot make unsupported entries persistent.
 Full-stage geometry reservation does not confer visibility. A rail may reuse a
 neutral numeral only while that numeral is drawn; otherwise its joins attach
-to its own persistent badges. Composing visible organization must preserve the
+to its own persistent badges. A rail that outlives every numeral it could
+reuse, the rail of a wholly neutral claim, joins its own badges from its
+moment, so its joins never move. Composing visible organization must preserve the
 item indices used by reserved plaques and other independent drawings.
 
 An explicitly selected participial form can be printed on its exact current
