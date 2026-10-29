@@ -45,6 +45,15 @@ test('control: step-semantics reports empty steps, wrong child counts, repaints,
   const retained = [...frameStructure(steps[select - 1]).displayed].find(id => !id.includes('::'));
   assert(reported(check(list => { d3.hierarchy(list[select].replayCanvasData).find(node => node.data.id === retained).data.label = 'XP'; }),
     'step-semantics', 'unowned-repaint', select + 1, `${retained} repaints from`));
+  // A selection that attaches existing syntax beneath its new head is a projection or merge.
+  const selected = String(steps[select].targetNodeId);
+  const attached = [...frameStructure(steps[select - 1]).displayed].find(id => !id.includes('::') && frameStructure(steps[select - 1]).parent.get(id)
+    && !d3.hierarchy(steps[select].replayCanvasData).find(node => node.data.id === selected).ancestors().some(node => node.data.id === id));
+  assert(reported(check(list => {
+    const tree = d3.hierarchy(list[select].replayCanvasData), node = tree.find(item => item.data.id === attached);
+    node.parent.data.children.splice(node.parent.data.children.indexOf(node.data), 1);
+    (tree.find(item => item.data.id === selected).data.children ??= []).push(node.data);
+  }), 'step-semantics', 'child-count', select + 1, `${selected} is selected over children [${attached}`));
   const later = steps.findIndex(step => step.replayFrameIndex === 2 && step.replayKind === 'micro');
   assert(reported(check(list => hide(list[later], ['hier', 'hier::__leaf'])), 'step-semantics', 'authored-removal', later + 1,
     'hier disappears although stage 3 authors it'));
@@ -273,4 +282,22 @@ test('historical: mark-persistence counts a relation-only mark coalescing two cl
   const second = momentOf(list, 0, 4);
   const repeated = checkMarkPersistence(edited(fixed, copy => { copy[second].replayRelationIdentity = { stageIndex: 0, relationIndex: 2 }; }), record);
   assert(reported(repeated, 'mark-persistence', 'paints-again', second + 1, `fallback 0:2 paints again after ending at frame ${second}`));
+  // The mark is relation 5's through its coalesced reference: unpainted at that moment, it never paints for relation 5.
+  const witness = [...frameStructure(list[second]).displayed].find(id => id.endsWith('::__leaf'));
+  const unpainted = checkMarkPersistence(edited(fixed, (copy, plan) => {
+    plan.frames[0].items.find(item => item.kind === 'fallback' && planItemRelationRefs(item).length === 2).tier2WitnessNodeIds = [witness];
+    hide(copy[second], [witness]);
+  }), record);
+  assert(reported(unpainted, 'mark-persistence', 'never-paints', second + 1, `fallback 0:4 never paints: ${witness} is not displayed`));
+});
+
+test('control: mark-persistence follows each claim of one relation, so a sibling plaque does not hide a lost one', () => {
+  const { record } = corpus.records.find(item => item.id === 'performance/portuguese-coordination.json#'), fixed = prepare(record);
+  const plaques = fixed.relationRenderPlan.frames[0].items.filter(item => item.kind === 'node-plaque' && item.relationRef.relationIndex === 6);
+  assert.equal(new Set(plaques.map(item => item.tier2ClaimIdentity)).size, 3, 'one relation draws a Case plaque per nominal');
+  assert.deepEqual(checkMarkPersistence(fixed, record), []);
+  const [anchor] = planItemDependencyNodeIds(plaques[0]), after = momentOf(fixed.playbackSteps, 0, 6) + 1;
+  const hidden = checkMarkPersistence(edited(fixed, list => hide(list[after], subtree(list[after], anchor))), record);
+  assert(reported(hidden, 'mark-persistence', 'hidden-anchor', after + 1,
+    `node-plaque feature-bundle.plaque 0:6 ends because ${anchor} is not displayed, although stage 1 authors it`));
 });
