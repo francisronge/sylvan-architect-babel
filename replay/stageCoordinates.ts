@@ -526,7 +526,6 @@ function closedStageCoordinates(steps: readonly PlaybackStep[], stageIndex: numb
   sizeForStage?: (stageIndex: number) => [number, number] | null,
   measureCategoryText?: CategoryTextMeasure, measureTreeInk?: TreeInkTextMeasure,
   treeLabelRuns?: PreparedTreeLabelRuns, measureTreeLabel?: TreeLabelMeasure): ReadonlyMap<SyntaxNode, TreeCoordinateReservation> | null {
-  if (process.env.BABEL_NO_GAP_CLOSING) return null;
   const own = sizeForStage && steps.some(step => step.replayFrameIndex === stageIndex) ? sizeForStage(stageIndex) : null;
   if (!own || own[0] !== size[0] || own[1] !== size[1]) return null;
   const sizes = new Map<number, [number, number]>();

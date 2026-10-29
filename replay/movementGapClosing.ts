@@ -4,7 +4,7 @@ import { carriedShift, paintedShift, type PaintedNodes } from './cameraCarry.ts'
 import type { CategoryTextMeasure } from './categoryTextLayout.ts';
 import { applyVizIds, getNodeId } from './displayIdentity.ts';
 import { motionFrame, replayMotionFaults } from './motionRule.ts';
-import { closingAt } from './workspaceShapeReflows.ts';
+import { closingAt, workspaceContinuityReflows } from './workspaceShapeReflows.ts';
 import { plaqueTreeObstacles } from './relations/plaquePlacement.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation } from './treeLayout.ts';
 import { TREE_ROW_HEIGHT, TREE_SIBLING_GAP } from './treeSpacing.ts';
@@ -12,11 +12,16 @@ import type { PlaybackStep } from './types.ts';
 
 type Node = d3.HierarchyPointNode<SyntaxNode>;
 type Reservations = ReadonlyMap<SyntaxNode, TreeCoordinateReservation>;
-type Scene = { step: PlaybackStep; canvas: SyntaxNode; size: [number, number]; visible: Set<string> };
+type Scene = { step: PlaybackStep; canvas: SyntaxNode; size: [number, number]; visible: Set<string>; width?: number };
 type Painted = Map<string, Node>;
+
+/** Development tracing for scripts (TEMPORARY: remove before review). */
+export const trace: { log?: (...parts: unknown[]) => void; off?: Set<string> } = {};
 
 /** Clearance kept between a closing side's label and word boxes and the syntax it closes toward. */
 const BOX_CLEARANCE = 0;
+/** How much wider than its stage plan painted it a frame may become. */
+const WIDTH_GROWTH = 0.02;
 /** A closing narrower than this is not worth a step's motion. */
 const MIN_CLOSING = 40;
 
@@ -81,7 +86,7 @@ function sameMotion(step: PlaybackStep, crossing: boolean, oldBefore: Painted, o
     // Other syntax may only move less, whoever owns it.
     if (!movers.has(id)) {
       if (length(own.now) <= length(own.was) + 1e-6) continue;
-      if (process.env.BABEL_GAP_DEBUG) console.error('   unowned change', step.targetNodeId, id, Math.round(length(own.was)), Math.round(length(own.now)));
+      trace.log?.('   unowned change', step.targetNodeId, id, Math.round(length(own.was)), Math.round(length(own.now)));
       return false;
     }
     // A carried phrase may travel differently, but no farther relative to a
@@ -90,10 +95,32 @@ function sameMotion(step: PlaybackStep, crossing: boolean, oldBefore: Painted, o
     if (!carrier || shownParent(before, before.get(id)!) !== parent || daughters(before, parent) !== daughters(after, parent)) continue;
     const relNow = length({ x: own.now.x - carrier.now.x, y: own.now.y - carrier.now.y }), relWas = length({ x: own.was.x - carrier.was.x, y: own.was.y - carrier.was.y });
     if (relNow <= Math.max(relWas, 1) + 1e-6) continue;
-    if (process.env.BABEL_GAP_DEBUG) console.error('   shape change', step.targetNodeId, id, Math.round(relWas), Math.round(relNow));
+    trace.log?.('   shape change', step.targetNodeId, id, Math.round(relWas), Math.round(relNow));
     return false;
   }
   return true;
+}
+
+const spanOf = (frame: Painted) => {
+  let low = Infinity, high = -Infinity;
+  for (const node of frame.values()) { low = Math.min(low, node.x); high = Math.max(high, node.x); }
+  return high > low ? high - low : 0;
+};
+/** Whether a frame stays within WIDTH_GROWTH of the width its stage plan gave it. */
+const narrowEnough = (scene: Scene, frame: Painted) => spanOf(frame) <= scene.width! * (1 + WIDTH_GROWTH) + 1;
+
+/** The corpus gate's continuity faults (workspaceContinuityReflows, with the
+ * closings it grants) at `step` after `previous`, over two painted frames. */
+function continuityFaults(previous: Scene, step: Scene, before: Painted, after: Painted) {
+  const window = [{ step: previous.step, canvas: previous.canvas, nodes: before }, { step: step.step, canvas: step.canvas, nodes: after }];
+  return workspaceContinuityReflows(window, new Map(), scene => [...scene.nodes.values()], { ownClosings: true })
+    .map(fault => `${fault.kind} ${fault.rootId}`);
+}
+
+/** The continuity faults the new frames add at one step over the old ones. */
+function newContinuityFaults(previous: Scene, step: Scene, oldBefore: Painted, oldAfter: Painted, before: Painted, after: Painted) {
+  const old = new Set(continuityFaults(previous, step, oldBefore, oldAfter));
+  return continuityFaults(previous, step, before, after).filter(fault => !old.has(fault));
 }
 
 /** Closes, at a movement, the room its phrase leaves behind.
@@ -143,9 +170,9 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
     return new Map(layoutSyntaxTree(root, scene.size, 'ltr', coordinates.get(scene.canvas)!, scene.visible).descendants()
       .filter(node => scene.visible.has(getNodeId(node)) && painted(node)).map(node => [getNodeId(node), node] as const));
   };
+  for (const scene of scenes) scene.width = spanOf(paint(scene));
   for (let m = 1; m < scenes.length; m++) {
     const participants = trajectoryParticipants(scenes[m].step);
-    if (process.env.BABEL_GAP_ONLY && !process.env.BABEL_GAP_ONLY.split(',').includes(String(m + 1))) continue;
     if (!participants.length || firstScene.get(scenes[m].canvas) !== m || lastScene.get(scenes[m - 1].canvas)! >= m) continue;
     const frames = scenes.slice(m - 1).map(paint);
     const prior = frames[0], current = frames[1];
@@ -211,7 +238,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
       return x;
     };
     const first = clear(before + 0.5, 1), last = clear(after - 0.5, -1);
-    const debug = (...parts: unknown[]) => { if (process.env.BABEL_GAP_DEBUG) console.error('GAP', m + 1, scenes[m].step.targetNodeId, ...parts); };
+    const debug = (...parts: unknown[]) => { trace.log?.('GAP', m + 1, scenes[m].step.targetNodeId, ...parts); };
     if (first > last) { debug('no room line', Math.round(before), Math.round(after), Math.round(first), Math.round(last)); continue; }
     // The two lines through every later frame, carried across stage crossings.
     const lines: [number, number][] = [[first, last]];
@@ -261,7 +288,6 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
       }
       for (const [id, point] of coordinates.get(scenes[m + k - 1].canvas)!) if (!partOf.has(id)) partOf.set(id, line(k, point.x));
       partsAt.push(partOf);
-      if (process.env.BABEL_GAP_TRACE) console.error("PART", m + k, process.env.BABEL_GAP_TRACE, partOf.get(process.env.BABEL_GAP_TRACE), frames[k].get(process.env.BABEL_GAP_TRACE)?.x, lines[k - 1]);
     }
     const ownedHere = ownedBy(scenes[m].step, prior, current);
     // Room syntax the step does not own keeps its place.
@@ -319,7 +345,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
         }
       }
     }
-    for (const side of ([-1, 1] as const).filter(side => !process.env.BABEL_GAP_SIDE || String(side) === process.env.BABEL_GAP_SIDE)) {
+    for (const side of [-1, 1] as const) {
       // side -1: the syntax before the extent closes rightwards (part 0 by w1,
       // the room by w2); 1: the syntax after it, leftwards (part 2 by w1).
       const closing = side < 0 ? 0 : 2;
@@ -341,7 +367,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
         const reach = most(candidate);
         if (reach > w1 + 1e-6) { w1 = reach; w2 = candidate; }
       }
-      if (process.env.BABEL_GAP_DEBUG) { const binding = pairs.filter(pair => -side * (shiftBy(pair.left, w1 + 1, w2) - shiftBy(pair.right, w1 + 1, w2)) > pair.room + 1e-6).slice(0, 3);
+      if (trace.log) { const binding = pairs.filter(pair => -side * (shiftBy(pair.left, w1 + 1, w2) - shiftBy(pair.right, w1 + 1, w2)) > pair.room + 1e-6).slice(0, 3);
         debug('binding', binding.map(pair => `${pair.at} ${pair.left.join('/')}>${pair.right.join('/')} ${Math.round(pair.room)}`).join('; ')); }
       debug(scenes[m - 1].step.replayFrameIndex !== scenes[m].step.replayFrameIndex ? 'crossing' : 'within', 'side', side, 'lines', lines[0].map(Math.round), 'w', Math.round(w1), Math.round(w2), 'bound', Math.round(bound));
       if (!(w1 >= MIN_CLOSING)) continue;
@@ -388,16 +414,20 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
         if (now > before + 1) { added.push({ kind: 'ungranted-motion', node: id, distance: now }); break; }
       }
       if (added.length) debug('rule faults', added.slice(0, 4).map(fault => `${fault.kind} ${fault.node} ${Math.round(fault.distance)}`).join('; '));
-      if (process.env.BABEL_GAP_FORCE === '2' || (!added.length || process.env.BABEL_GAP_FORCE) && closed.slice(1).every((frame, index) =>
+      // Nor any continuity fault the corpus gate would newly find.
+      const continuous = !added.length && closed.every((frame, index) => narrowEnough(scenes[m + index], frame)) && closed.every((frame, index) => !newContinuityFaults(scenes[m + index - 1], scenes[m + index],
+        frames[index], frames[index + 1], index ? closed[index - 1] : frames[0], frame).length);
+      if (!added.length && !continuous) debug('continuity');
+      if (continuous && closed.slice(1).every((frame, index) =>
         sameMotion(scenes[m + index + 1].step, scenes[m + index].step.replayFrameIndex !== scenes[m + index + 1].step.replayFrameIndex,
           frames[index + 1], frames[index + 2], closed[index], frame))) { debug('closed'); break; }
       debug('motion changed later');
       for (const [canvas, points] of moved) coordinates.set(canvas, points);
     }
   }
-  if (!process.env.BABEL_NO_SETTLE) settleWaitingPieces(scenes, coordinates, firstScene, lastScene, paint, measureCategoryText);
-  if (!process.env.BABEL_NO_HOLD) holdBack(scenes, coordinates, firstScene, lastScene, paint, measureCategoryText);
-  if (!process.env.BABEL_NO_ROOM) openSourceRoom(scenes, coordinates, firstScene, lastScene, paint, measureCategoryText);
+  if (!trace.off?.has('settle')) settleWaitingPieces(scenes, coordinates, firstScene, lastScene, paint, measureCategoryText);
+  if (!trace.off?.has('hold')) holdBack(scenes, coordinates, firstScene, lastScene, paint, measureCategoryText);
+  if (!trace.off?.has('room')) openSourceRoom(scenes, coordinates, firstScene, lastScene, paint, measureCategoryText);
   const byStage = new Map<number, Map<SyntaxNode, TreeCoordinateReservation>>();
   for (const scene of scenes) {
     const stage = scene.step.replayFrameIndex!;
@@ -429,7 +459,7 @@ function keepsClear(moved: ReadonlySet<string>, before: Painted, after: Painted,
       const ta = target?.get(getNodeId(a)), tb = target?.get(getNodeId(b));
       const there = ta && tb && Math.abs(ta.y - tb.y) < 1 ? Math.abs(ta.x - tb.x) : Infinity;
       const now = Math.abs(a.x - b.x), was = Math.abs(before.get(getNodeId(a))!.x - before.get(getNodeId(b))!.x);
-      if (now < Math.min(TREE_SIBLING_GAP, was, there) - 1e-6) { if (process.env.BABEL_GAP_DEBUG) console.error('   clear: row', getNodeId(a), getNodeId(b), Math.round(now)); return false; }
+      if (now < Math.min(TREE_SIBLING_GAP, was, there) - 1e-6) { trace.log?.('   clear: row', getNodeId(a), getNodeId(b), Math.round(now)); return false; }
     }
   }
   const boxes = (frame: Painted, inside: boolean) => [...frame.values()].filter(node => moved.has(getNodeId(node)) === inside)
@@ -441,7 +471,7 @@ function keepsClear(moved: ReadonlySet<string>, before: Painted, after: Painted,
   for (const { id, box } of boxes(after, true)) for (const other of others) {
     if (!meets(box, other.box)) continue;
     const old = earlier.get(id), oldOther = otherBefore.get(other.id);
-    if (!old || !oldOther || !meets(old, oldOther)) { if (process.env.BABEL_GAP_DEBUG) console.error('   clear: box', id, other.id); return false; }
+    if (!old || !oldOther || !meets(old, oldOther)) { trace.log?.('   clear: box', id, other.id); return false; }
   }
   return true;
 }
@@ -468,7 +498,7 @@ function settleWaitingPieces(scenes: readonly Scene[], coordinates: Map<SyntaxNo
   firstScene: ReadonlyMap<SyntaxNode, number>, lastScene: ReadonlyMap<SyntaxNode, number>, paint: (scene: Scene) => Painted,
   measureCategoryText?: CategoryTextMeasure) {
   const frames = scenes.map(paint);
-  const debug = (...parts: unknown[]) => { if (process.env.BABEL_GAP_DEBUG) console.error('SETTLE', ...parts); };
+  const debug = (...parts: unknown[]) => { trace.log?.('SETTLE', ...parts); };
   for (let k = 1; k < scenes.length; k++) {
     const before = frames[k - 1], after = frames[k], step = scenes[k].step;
     const crossing = scenes[k - 1].step.replayFrameIndex !== step.replayFrameIndex;
@@ -505,8 +535,10 @@ function settleWaitingPieces(scenes: readonly Scene[], coordinates: Map<SyntaxNo
       }
       const repainted = scenes.slice(start, k + 1).map(paint);
       const window = (index: number) => index < start ? frames[index] : repainted[index - start];
-      let ok = repainted.slice(0, -1).every((frame, index) => keepsClear(set, frames[start + index], frame, measureCategoryText));
-      for (let j = Math.max(1, start); ok && j <= k; j++) ok = !newFaults(scenes[j - 1].step, scenes[j].step, frames[j - 1], frames[j], window(j - 1), window(j)).length && sameMotion(scenes[j].step, scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex,
+      let ok = repainted.slice(0, -1).every((frame, index) => keepsClear(set, frames[start + index], frame, measureCategoryText)
+        && narrowEnough(scenes[start + index], frame));
+      for (let j = Math.max(1, start); ok && j <= k; j++) ok = !newFaults(scenes[j - 1].step, scenes[j].step, frames[j - 1], frames[j], window(j - 1), window(j)).length
+        && !newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], window(j - 1), window(j)).length && sameMotion(scenes[j].step, scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex,
         frames[j - 1], frames[j], window(j - 1), window(j));
       if (!ok) { for (const [canvas, points] of saved) coordinates.set(canvas, points); debug(k + 1, rootId, 'rejected', Math.round(delta.x)); continue; }
       debug(k + 1, rootId, 'settled', Math.round(delta.x), 'from', start + 1);
@@ -520,8 +552,8 @@ function ordered(frame: Painted) {
   for (const node of frame.values()) {
     const daughters = (node.children ?? []).filter(child => frame.has(getNodeId(child)));
     for (let index = 0; index < daughters.length; index++) {
-      if (daughters[index].y <= node.y + 1e-6) { if (process.env.BABEL_GAP_DEBUG) console.error('   order: above', getNodeId(node), getNodeId(daughters[index])); return false; }
-      if (index && daughters[index].x <= daughters[index - 1].x + 1e-6) { if (process.env.BABEL_GAP_DEBUG) console.error('   order: x', getNodeId(node), getNodeId(daughters[index - 1]), getNodeId(daughters[index])); return false; }
+      if (daughters[index].y <= node.y + 1e-6) { trace.log?.('   order: above', getNodeId(node), getNodeId(daughters[index])); return false; }
+      if (index && daughters[index].x <= daughters[index - 1].x + 1e-6) { trace.log?.('   order: x', getNodeId(node), getNodeId(daughters[index - 1]), getNodeId(daughters[index])); return false; }
     }
   }
   return true;
@@ -540,10 +572,8 @@ function holdBack(scenes: readonly Scene[], coordinates: Map<SyntaxNode, Map<str
   firstScene: ReadonlyMap<SyntaxNode, number>, lastScene: ReadonlyMap<SyntaxNode, number>, paint: (scene: Scene) => Painted,
   measureCategoryText?: CategoryTextMeasure) {
   const frames = scenes.map(paint);
-  const debug = (...parts: unknown[]) => { if (process.env.BABEL_GAP_DEBUG) console.error('HOLD', ...parts); };
-  const only = process.env.BABEL_HOLD_ONLY?.split(',');
+  const debug = (...parts: unknown[]) => { trace.log?.('HOLD', ...parts); };
   for (let k = scenes.length - 1; k >= 1; k--) {
-    if (only && !only.includes(String(k + 1))) continue;
     const step = scenes[k].step, before = frames[k - 1], after = frames[k];
     const crossing = scenes[k - 1].step.replayFrameIndex !== step.replayFrameIndex;
     const carry = crossing ? paintedShift(points(before), points(after)) : { x: 0, y: 0 };
@@ -633,12 +663,14 @@ function holdBack(scenes: readonly Scene[], coordinates: Map<SyntaxNode, Map<str
         const frame = repainted[j - start];
         const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
         if (!ordered(frame)) { ok = false; reason = `order at ${j + 1}`; }
+        else if (!narrowEnough(scenes[j], frame)) { ok = false; reason = `width at ${j + 1}`; }
         else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText, frames[k])) { ok = false; reason = `clearance at ${j + 1}`; }
       }
       for (let j = Math.max(1, start); ok && j <= k; j++) {
         const crossingJ = scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex;
         if (newFaults(scenes[j - 1].step, scenes[j].step, frames[j - 1], frames[j], view(j - 1), view(j)).length
           || !sameMotion(scenes[j].step, crossingJ, frames[j - 1], frames[j], view(j - 1), view(j))) { ok = false; reason = `motion at ${j + 1}`; }
+        else if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) { ok = false; reason = `continuity at ${j + 1}`; }
       }
       if (!ok) { for (const [canvas, points] of saved) coordinates.set(canvas, points); debug(k + 1, leaves.length, first, Math.round(delta.x), Math.round(delta.y), 'rejected', reason); continue; }
       debug(k + 1, leaves.length, first, Math.round(delta.x), Math.round(delta.y), 'held from', start + 1);
@@ -661,7 +693,7 @@ function openSourceRoom(scenes: readonly Scene[], coordinates: Map<SyntaxNode, M
   firstScene: ReadonlyMap<SyntaxNode, number>, lastScene: ReadonlyMap<SyntaxNode, number>, paint: (scene: Scene) => Painted,
   measureCategoryText?: CategoryTextMeasure) {
   const frames = scenes.map(paint);
-  const debug = (...parts: unknown[]) => { if (process.env.BABEL_GAP_DEBUG) console.error('ROOM', ...parts); };
+  const debug = (...parts: unknown[]) => { trace.log?.('ROOM', ...parts); };
   for (let k = scenes.length - 1; k >= 1; k--) {
     const step = scenes[k].step, participants = trajectoryParticipants(step);
     if (!participants.length) continue;
@@ -727,11 +759,13 @@ function openSourceRoom(scenes: readonly Scene[], coordinates: Map<SyntaxNode, M
           const frame = repainted[j - start];
           const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
           if (!ordered(frame)) { ok = false; reason = `order at ${j + 1}`; }
+        else if (!narrowEnough(scenes[j], frame)) { ok = false; reason = `width at ${j + 1}`; }
           else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText, frames[k])) { ok = false; reason = `clearance at ${j + 1}`; }
         }
         for (let j = Math.max(1, start); ok && j <= k; j++) {
           const crossingJ = scenes[j - 1].step.replayFrameIndex !== scenes[j].step.replayFrameIndex;
           if (newFaults(scenes[j - 1].step, scenes[j].step, frames[j - 1], frames[j], view(j - 1), view(j)).length) { ok = false; reason = `faults at ${j + 1}`; }
+          else if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) { ok = false; reason = `continuity at ${j + 1}`; }
           else if (j === k) {
             // At the movement only its closing and carried phrases move farther.
             const granted = closingAt(scenes[k - 1].step, step, view(k - 1), after, view(k - 1), after);
