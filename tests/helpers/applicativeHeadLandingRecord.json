@@ -1,0 +1,746 @@
+{
+ "description": "Saved Opus Xhosa applicative analysis (\"Umama uphekela abantwana ukutya.\") whose head movement of V phek into the Appl complex (stage 3) landed the V under the specifier NP abantwana: the two words overlapped on one row from Replay step 22 through 30. Test input for tests/headLandingTextClearance.test.mjs.",
+ "provenance": {
+  "model": "anthropic:claude-opus-5-5",
+  "effort": "high",
+  "harness": "qualification:anthropic",
+  "source": "heldout-20261029/h1-072-xh-applicative/attempts/parse/bundle.json, analysis 0",
+  "extraction": "Exact saved derivationStages and inputTokens."
+ },
+ "sentence": "Umama uphekela abantwana ukutya.",
+ "inputTokens": [
+  "Umama",
+  "uphekela",
+  "abantwana",
+  "ukutya"
+ ],
+ "derivationStages": [
+  {
+   "statement": "The verb root -phek- 'cook' merges with its theme object ukutya 'food', projecting VP.",
+   "stageRecord": "The lexical verb root phek- is merged with the noun phrase ukutya, built as a full projection N to N' to NP. The NP is the complement of V inside V', and V' projects to VP. Nothing occupies the specifier, because the agent is not generated here in this analysis. In this complement position V theta-marks ukutya as Theme. The theta relation links the verb head and the object NP.",
+   "relations": [
+    {
+     "relation": "theta-assignment",
+     "anchors": {
+      "assigner": "v",
+      "recipient": "np_food"
+     },
+     "values": {
+      "role": "Theme"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "vp",
+     "label": "VP",
+     "children": [
+      {
+       "id": "vbar",
+       "label": "V'",
+       "children": [
+        {
+         "id": "v",
+         "label": "V",
+         "word": "phek",
+         "lineageId": "lin_v",
+         "children": []
+        },
+        {
+         "id": "np_food",
+         "label": "NP",
+         "children": [
+          {
+           "id": "nbar_food",
+           "label": "N'",
+           "children": [
+            {
+             "id": "n_food",
+             "label": "N",
+             "word": "ukutya",
+             "children": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The applicative head -el- selects VP and introduces the benefactive abantwana 'children' in its specifier.",
+   "stageRecord": "The applicative suffix -el- heads its own projection above VP. This is a high applicative: the benefactive is related to the whole cooking event, not to the food. First the Appl head takes VP as its complement, forming Appl'. That establishes the c-selection relation between the applicative head and VP. Then the NP abantwana, built as N to N' to NP, merges as the specifier, completing ApplP. The applicative head theta-marks abantwana as Benefactive. This structural height puts the applied object above and before the theme, matching the surface order abantwana ukutya.",
+   "relations": [
+    {
+     "relation": "c-selection",
+     "anchors": {
+      "selector": "appl",
+      "complement": "vp"
+     }
+    },
+    {
+     "relation": "theta-assignment",
+     "anchors": {
+      "assigner": "appl",
+      "recipient": "np_children"
+     },
+     "values": {
+      "role": "Benefactive"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "applp",
+     "label": "ApplP",
+     "children": [
+      {
+       "id": "np_children",
+       "label": "NP",
+       "children": [
+        {
+         "id": "nbar_children",
+         "label": "N'",
+         "children": [
+          {
+           "id": "n_children",
+           "label": "N",
+           "word": "abantwana",
+           "children": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "applbar",
+       "label": "Appl'",
+       "children": [
+        {
+         "id": "appl",
+         "label": "Appl",
+         "word": "el",
+         "children": []
+        },
+        {
+         "id": "vp",
+         "label": "VP",
+         "children": [
+          {
+           "id": "vbar",
+           "label": "V'",
+           "children": [
+            {
+             "id": "v",
+             "label": "V",
+             "word": "phek",
+             "lineageId": "lin_v",
+             "children": []
+            },
+            {
+             "id": "np_food",
+             "label": "NP",
+             "children": [
+              {
+               "id": "nbar_food",
+               "label": "N'",
+               "children": [
+                {
+                 "id": "n_food",
+                 "label": "N",
+                 "word": "ukutya",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The verb root head-moves and adjoins to the applicative head, forming the complex stem phek-el; both objects are Case-marked.",
+   "stageRecord": "The applicative suffix is a bound affix, so the verb root raises to it and left-adjoins, giving the order root before suffix in phek-el. The root leaves a silent trace in the V position inside V'. The adjoined complex is a new Appl-level head containing the root and the suffix. First the head-movement chain is formed between the raised root and its trace; the trace is antecedent-governed by its local antecedent, satisfying the ECP. Next, the complex Appl head governs its specifier and assigns structural objective Case to the applied object abantwana. Finally, the verb chain, headed by the raised root with its foot in V, governs the theme ukutya in complement position and Case-marks it. Both postverbal objects thus satisfy the Case Filter without prepositions.",
+   "relations": [
+    {
+     "relation": "head-movement",
+     "anchors": {
+      "antecedent": "v",
+      "trace": "v_t"
+     },
+     "values": {
+      "type": "adjunction to Appl"
+     }
+    },
+    {
+     "relation": "case-assignment",
+     "anchors": {
+      "assigner": "appl_cx",
+      "assignee": "np_children"
+     },
+     "values": {
+      "case": "objective"
+     }
+    },
+    {
+     "relation": "case-assignment",
+     "anchors": {
+      "chainHead": "v",
+      "chainFoot": "v_t",
+      "assignee": "np_food"
+     },
+     "values": {
+      "case": "objective"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "applp",
+     "label": "ApplP",
+     "children": [
+      {
+       "id": "np_children",
+       "label": "NP",
+       "children": [
+        {
+         "id": "nbar_children",
+         "label": "N'",
+         "children": [
+          {
+           "id": "n_children",
+           "label": "N",
+           "word": "abantwana",
+           "children": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "applbar",
+       "label": "Appl'",
+       "children": [
+        {
+         "id": "appl_cx",
+         "label": "Appl",
+         "lineageId": "lin_applcx",
+         "children": [
+          {
+           "id": "v",
+           "label": "V",
+           "word": "phek",
+           "lineageId": "lin_v",
+           "children": []
+          },
+          {
+           "id": "appl",
+           "label": "Appl",
+           "word": "el",
+           "children": []
+          }
+         ]
+        },
+        {
+         "id": "vp",
+         "label": "VP",
+         "children": [
+          {
+           "id": "vbar",
+           "label": "V'",
+           "children": [
+            {
+             "id": "v_t",
+             "label": "V",
+             "silent": true,
+             "lineageId": "lin_v",
+             "children": []
+            },
+            {
+             "id": "np_food",
+             "label": "NP",
+             "children": [
+              {
+               "id": "nbar_food",
+               "label": "N'",
+               "children": [
+                {
+                 "id": "n_food",
+                 "label": "N",
+                 "word": "ukutya",
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "Inflection, bearing class-1 subject agreement u- and the final vowel -a, selects ApplP.",
+   "stageRecord": "The INFL head is merged with ApplP as its complement, forming I'. It carries the class-1 subject agreement prefix u- and the indicative final vowel -a. This establishes c-selection between INFL and the applicative projection. The subject position is still empty at this point.",
+   "relations": [
+    {
+     "relation": "c-selection",
+     "anchors": {
+      "selector": "i",
+      "complement": "applp"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "ibar",
+     "label": "I'",
+     "children": [
+      {
+       "id": "i",
+       "label": "I",
+       "word": "u- -a",
+       "children": []
+      },
+      {
+       "id": "applp",
+       "label": "ApplP",
+       "children": [
+        {
+         "id": "np_children",
+         "label": "NP",
+         "children": [
+          {
+           "id": "nbar_children",
+           "label": "N'",
+           "children": [
+            {
+             "id": "n_children",
+             "label": "N",
+             "word": "abantwana",
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "applbar",
+         "label": "Appl'",
+         "children": [
+          {
+           "id": "appl_cx",
+           "label": "Appl",
+           "lineageId": "lin_applcx",
+           "children": [
+            {
+             "id": "v",
+             "label": "V",
+             "word": "phek",
+             "lineageId": "lin_v",
+             "children": []
+            },
+            {
+             "id": "appl",
+             "label": "Appl",
+             "word": "el",
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "vp",
+           "label": "VP",
+           "children": [
+            {
+             "id": "vbar",
+             "label": "V'",
+             "children": [
+              {
+               "id": "v_t",
+               "label": "V",
+               "silent": true,
+               "lineageId": "lin_v",
+               "children": []
+              },
+              {
+               "id": "np_food",
+               "label": "NP",
+               "children": [
+                {
+                 "id": "nbar_food",
+                 "label": "N'",
+                 "children": [
+                  {
+                   "id": "n_food",
+                   "label": "N",
+                   "word": "ukutya",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The complex verb-applicative head raises to INFL, forming the inflected verb uphekela.",
+   "stageRecord": "The verb's inflection is affixal, so the complex Appl head phek-el raises and adjoins to INFL. It leaves a silent Appl trace as head of Appl', which is antecedent-governed by the raised complex. First the head-movement chain links the raised complex and its trace. Then the resulting complex INFL head, containing root, applicative suffix and inflection, is spelled out as the single word uphekela. The prefix u- precedes the stem and the final vowel -a follows it; the terminals' own entries do not show this ordering, which is why the realization is recorded.",
+   "relations": [
+    {
+     "relation": "head-movement",
+     "anchors": {
+      "antecedent": "appl_cx",
+      "trace": "appl_t"
+     },
+     "values": {
+      "type": "adjunction to I"
+     }
+    },
+    {
+     "relation": "morphological-realization",
+     "anchors": {
+      "complexHead": "i_cx"
+     },
+     "values": {
+      "form": "uphekela"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "ibar",
+     "label": "I'",
+     "children": [
+      {
+       "id": "i_cx",
+       "label": "I",
+       "children": [
+        {
+         "id": "appl_cx",
+         "label": "Appl",
+         "lineageId": "lin_applcx",
+         "children": [
+          {
+           "id": "v",
+           "label": "V",
+           "word": "phek",
+           "lineageId": "lin_v",
+           "children": []
+          },
+          {
+           "id": "appl",
+           "label": "Appl",
+           "word": "el",
+           "children": []
+          }
+         ]
+        },
+        {
+         "id": "i",
+         "label": "I",
+         "word": "u- -a",
+         "children": []
+        }
+       ]
+      },
+      {
+       "id": "applp",
+       "label": "ApplP",
+       "children": [
+        {
+         "id": "np_children",
+         "label": "NP",
+         "children": [
+          {
+           "id": "nbar_children",
+           "label": "N'",
+           "children": [
+            {
+             "id": "n_children",
+             "label": "N",
+             "word": "abantwana",
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "applbar",
+         "label": "Appl'",
+         "children": [
+          {
+           "id": "appl_t",
+           "label": "Appl",
+           "silent": true,
+           "lineageId": "lin_applcx",
+           "children": []
+          },
+          {
+           "id": "vp",
+           "label": "VP",
+           "children": [
+            {
+             "id": "vbar",
+             "label": "V'",
+             "children": [
+              {
+               "id": "v_t",
+               "label": "V",
+               "silent": true,
+               "lineageId": "lin_v",
+               "children": []
+              },
+              {
+               "id": "np_food",
+               "label": "NP",
+               "children": [
+                {
+                 "id": "nbar_food",
+                 "label": "N'",
+                 "children": [
+                  {
+                   "id": "n_food",
+                   "label": "N",
+                   "word": "ukutya",
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "realizations": [
+    {
+     "nodeIds": [
+      "i_cx"
+     ],
+     "tokenIndices": [
+      1
+     ]
+    }
+   ]
+  },
+  {
+   "statement": "The subject umama 'mother' merges in Spec-IP, receiving the Agent role, nominative Case and class-1 agreement, completing IP.",
+   "stageRecord": "The NP umama, built as N to N' to NP, merges as the specifier of I', completing IP. In this analysis the external argument is base-generated in Spec-IP. The predicate I' assigns it the Agent role compositionally, so the theta relation links I' and the subject NP. Next, spec-head agreement holds between the subject and the inflected head. The class-1 noun umama matches the class-1 subject marker u- on the verb. Finally, the finite inflected head governs its specifier and assigns nominative Case to umama. The spell-out of the complex head as uphekela still holds.",
+   "relations": [
+    {
+     "relation": "theta-assignment",
+     "anchors": {
+      "assigner": "ibar",
+      "recipient": "np_mama"
+     },
+     "values": {
+      "role": "Agent"
+     }
+    },
+    {
+     "relation": "spec-head-agreement",
+     "anchors": {
+      "specifier": "np_mama",
+      "head": "i_cx"
+     },
+     "values": {
+      "nounClass": "1",
+      "marker": "u-"
+     }
+    },
+    {
+     "relation": "case-assignment",
+     "anchors": {
+      "assigner": "i_cx",
+      "assignee": "np_mama"
+     },
+     "values": {
+      "case": "nominative"
+     }
+    }
+   ],
+   "workspaceForest": [
+    {
+     "id": "ip",
+     "label": "IP",
+     "children": [
+      {
+       "id": "np_mama",
+       "label": "NP",
+       "children": [
+        {
+         "id": "nbar_mama",
+         "label": "N'",
+         "children": [
+          {
+           "id": "n_mama",
+           "label": "N",
+           "word": "Umama",
+           "children": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "ibar",
+       "label": "I'",
+       "children": [
+        {
+         "id": "i_cx",
+         "label": "I",
+         "children": [
+          {
+           "id": "appl_cx",
+           "label": "Appl",
+           "lineageId": "lin_applcx",
+           "children": [
+            {
+             "id": "v",
+             "label": "V",
+             "word": "phek",
+             "lineageId": "lin_v",
+             "children": []
+            },
+            {
+             "id": "appl",
+             "label": "Appl",
+             "word": "el",
+             "children": []
+            }
+           ]
+          },
+          {
+           "id": "i",
+           "label": "I",
+           "word": "u- -a",
+           "children": []
+          }
+         ]
+        },
+        {
+         "id": "applp",
+         "label": "ApplP",
+         "children": [
+          {
+           "id": "np_children",
+           "label": "NP",
+           "children": [
+            {
+             "id": "nbar_children",
+             "label": "N'",
+             "children": [
+              {
+               "id": "n_children",
+               "label": "N",
+               "word": "abantwana",
+               "children": []
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "applbar",
+           "label": "Appl'",
+           "children": [
+            {
+             "id": "appl_t",
+             "label": "Appl",
+             "silent": true,
+             "lineageId": "lin_applcx",
+             "children": []
+            },
+            {
+             "id": "vp",
+             "label": "VP",
+             "children": [
+              {
+               "id": "vbar",
+               "label": "V'",
+               "children": [
+                {
+                 "id": "v_t",
+                 "label": "V",
+                 "silent": true,
+                 "lineageId": "lin_v",
+                 "children": []
+                },
+                {
+                 "id": "np_food",
+                 "label": "NP",
+                 "children": [
+                  {
+                   "id": "nbar_food",
+                   "label": "N'",
+                   "children": [
+                    {
+                     "id": "n_food",
+                     "label": "N",
+                     "word": "ukutya",
+                     "children": []
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "realizations": [
+    {
+     "nodeIds": [
+      "i_cx"
+     ],
+     "tokenIndices": [
+      1
+     ]
+    }
+   ]
+  }
+ ]
+}

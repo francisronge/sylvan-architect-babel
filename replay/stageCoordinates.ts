@@ -24,6 +24,7 @@ import { treeInkMetricKey } from './treeInkMetricKey.ts';
 import { treeLabelMetricKey } from './treeLabelMetricKey.ts';
 import type { PreparedTreeLabelRuns, TreeLabelMeasure } from './treeLabelRuns.ts';
 import { layoutSyntaxTree, type TreeCoordinateReservation, type TreeDirection } from './treeLayout.ts';
+import { paintedTextCollisions } from './treeTextCollision.ts';
 import { clearTreeText, paintedTreeText } from './treeTextClearance.ts';
 import type { PlaybackStep } from './types.ts';
 import { separateWorkspaceContours } from './workspaceContourClearance.ts';
@@ -46,6 +47,7 @@ const cache = new WeakMap<readonly PlaybackStep[], Map<string, StageReservation>
 export type ContourPlanStatus = 'established' | 'repaired' | 'unresolved';
 const contourPlans = new WeakMap<readonly PlaybackStep[], Map<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, ContourPlanStatus>>();
 const orderedPlans = new WeakMap<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, boolean>();
+const textCollisionPlans = new WeakMap<ReadonlyMap<SyntaxNode, TreeCoordinateReservation>, ReadonlySet<string>>();
 /** Which coordinate plan each layout of these steps used: the established one,
  * the plan repaired for ordered sister contours, or neither ordered. */
 export const getContourPlanStatuses = (steps: readonly PlaybackStep[]) => [...(contourPlans.get(steps)?.values() ?? [])];
@@ -703,7 +705,7 @@ function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number
   // `stage`: the established plan. `slotted`: the same stage frames with waiting
   // and newly selected pieces at their attachment slots within each stage.
   // `aligned`: stage frames aligned to one origin, with slots across stages.
-  const plan = (orderedContours: boolean, mode: 'stage' | 'slotted' | 'aligned' = 'stage') => {
+  const plan = (orderedContours: boolean, mode: 'stage' | 'slotted' | 'aligned' = 'stage', clearText = false) => {
     const alignStages = mode === 'aligned';
     const stageLocal = (stage: number, stageSize: [number, number]) => buildStageLocalCoordinates(steps, stage, stageSize, sizeForStage,
       measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, { orderedContours });
@@ -713,7 +715,7 @@ function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number
     if (!sizeForStage) return { frames: original, key: original, painted: (step: PlaybackStep): PaintedFrame =>
       step.replayFrameIndex === stageIndex ? [original.get(step.replayCanvasData!), size] as const : undefined };
     const planned = reserveWorkspaceAttachments({ steps, sizes, direction: 'ltr', minimumSiblingGap: TREE_SIBLING_GAP, coordinatesForStage: local,
-      measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, orderedContours, alignedStages: alignStages });
+      measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel, orderedContours, alignedStages: alignStages, clearText });
     const compact = compactCurrentRootForks(steps, sizes, planned, measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
     const retained = retainMovementSourceSlots(steps, sizes, compact, 'ltr', measureCategoryText, measureTreeInk, treeLabelRuns, measureTreeLabel);
     let slotted = slotPlans.get(retained);
@@ -743,13 +745,42 @@ function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number
     }));
     return result;
   };
+  // Every pair of nodes whose painted text overlaps, per step, under measured labels.
+  const collisions = ({ key, painted }: ReturnType<typeof plan>) => {
+    let result = textCollisionPlans.get(key);
+    if (result === undefined) textCollisionPlans.set(key, result = new Set(steps.flatMap((step, index) => {
+      const [coordinates, stageSize] = step.replayCanvasData && painted(step) || [];
+      const labels = treeLabelRuns?.get(step.replayCanvasData!);
+      if (!coordinates || !stageSize || !labels || !measureTreeLabel) return [];
+      const root = d3.hierarchy(step.replayCanvasData!); applyVizIds(root);
+      const visible = new Set<string>(step.replayVisibleNodeIds ?? root.descendants().map(node => getNodeId(node)));
+      const nodes = layoutSyntaxTree(root, stageSize, 'ltr', coordinates, visible).descendants().filter(node => visible.has(getNodeId(node))
+        && !node.data.replayLayoutOnly && node.data.replayOrigin?.kind !== 'workspace');
+      return [...paintedTextCollisions(nodes, labels, measureTreeLabel, measureCategoryText)].map(pair => `${index} ${pair}`);
+    })));
+    return result;
+  };
+  // A plan whose painted words or labels overlap is planned again with the
+  // coherent workspace solve also run where nothing reflows but text overlaps
+  // (reserveWorkspaceAttachments `clearText`). The new plan replaces it when its
+  // contours are ordered and it paints fewer overlaps, none of them new; the
+  // aligned and slotted forms below are then made from it.
+  const textClear = (chosen: ReturnType<typeof plan>, orderedContours: boolean) => {
+    const before = collisions(chosen);
+    if (!before.size) return { chosen, clearText: false };
+    const clear = plan(orderedContours, 'stage', true);
+    const after = ordered(clear) ? collisions(clear) : undefined;
+    return after && after.size < before.size && [...after].every(pair => before.has(pair))
+      ? { chosen: clear, clearText: true } : { chosen, clearText: false };
+  };
   // A plan with motion is replaced by the aligned plan when that removes motion
   // under `alignmentImprovesMotion`, otherwise by its slotted form when no painted
   // node moves farther in any frame. A replacement whose final tree is the
   // established one translated is moved back as a whole, every stage alike, so
   // the final tree keeps its coordinates and the camera sees no difference.
-  const settle = (chosen: ReturnType<typeof plan>, orderedContours: boolean) => {
-    if (!sizeForStage) return chosen.frames;
+  const settle = (established: ReturnType<typeof plan>, orderedContours: boolean) => {
+    if (!sizeForStage) return established.frames;
+    const { chosen, clearText } = textClear(established, orderedContours);
     let choice = alignedChoices.get(chosen.key);
     if (choice === undefined) {
       const before = planMotion(steps, chosen.painted);
@@ -761,12 +792,12 @@ function planStageCoordinates(steps: readonly PlaybackStep[], stageIndex: number
         choice = { mode, shift: { x: -shift.x, y: -shift.y } };
         return true;
       };
-      if (before.count && !accept('aligned', plan(orderedContours, 'aligned'), alignmentImprovesMotion))
-        accept('slotted', plan(orderedContours, 'slotted'), slotsReduceMotion);
+      if (before.count && !accept('aligned', plan(orderedContours, 'aligned', clearText), alignmentImprovesMotion))
+        accept('slotted', plan(orderedContours, 'slotted', clearText), slotsReduceMotion);
       alignedChoices.set(chosen.key, choice);
     }
     if (choice.mode === 'stage') return chosen.frames;
-    const frames = plan(orderedContours, choice.mode).frames, { x, y } = choice.shift, key = `${x},${y}`;
+    const frames = plan(orderedContours, choice.mode, clearText).frames, { x, y } = choice.shift, key = `${x},${y}`;
     if (Math.abs(x) <= 1e-9 && Math.abs(y) <= 1e-9) return frames;
     return new Map([...frames].map(([canvas, coordinates]) => {
       let shifted = shiftedReservations.get(coordinates);
