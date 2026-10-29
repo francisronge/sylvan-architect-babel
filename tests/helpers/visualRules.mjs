@@ -55,7 +55,7 @@ import { blocksCarriedPocket } from '../../replay/relations/plaquePlacement.ts';
  * layoutWidthFindings), and mark-motion, which compares adjacent frames
  * (checkMarkMotion, and checkStaleShell for its stale-shell subtype). */
 export const RULES = Object.freeze(['glyph-overlap', 'line-clearance', 'mark-distance', 'label-typography', 'clipped', 'branch-geometry',
-  'parent-centring', 'layout-width', 'mark-motion', 'region-overlap']);
+  'parent-centring', 'layout-width', 'mark-motion', 'region-overlap', 'duplicate-plaque']);
 
 /** CSS pixels at the frame's Fit unless noted. Glyph boxes may share a two-pixel
  * sliver of outline; a stroke must keep a pixel from a plaque shell and may not
@@ -581,9 +581,26 @@ export function checkRegionOverlap(frame, thresholds = THRESHOLDS) {
   return out;
 }
 
+/** duplicate-plaque: one node shows two plaques that paint the same content (its
+ * `face`: rows, and a theta grid's roles with their letters) for different claims
+ * at once. A restatement shares its earlier plaque instead. A Case or agreement
+ * path's plaque labels its own arrow and has no face. */
+export function checkDuplicatePlaques(frame) {
+  const out = [], seen = new Map();
+  for (const plaque of frame.plaques) {
+    if (!plaque.face) continue;
+    const anchor = plaque.anchorNodeId, key = JSON.stringify([anchor, plaque.face]), earlier = seen.get(key);
+    if (!earlier) { seen.set(key, plaque); continue; }
+    if (JSON.stringify([...earlier.claims].sort()) === JSON.stringify([...plaque.claims].sort())) continue;
+    out.push(finding('duplicate-plaque', null, frame, `${earlier.id} ${plaque.id}`,
+      `${describe(plaque)} stands twice on ${anchor}, for ${earlier.claims.join('/')} and ${plaque.claims.join('/')}`));
+  }
+  return out;
+}
+
 /** Every rule on one normalized frame. */
 export const checkFrame = (frame, thresholds = THRESHOLDS) => [
   ...checkGlyphOverlap(frame, thresholds), ...checkLineClearance(frame, thresholds), ...checkMarkDistance(frame, thresholds),
   ...checkLabelTypography(frame), ...checkClipped(frame, thresholds), ...checkBranchGeometry(frame, thresholds),
-  ...checkParentCentring(frame, thresholds), ...checkRegionOverlap(frame, thresholds)
+  ...checkParentCentring(frame, thresholds), ...checkRegionOverlap(frame, thresholds), ...checkDuplicatePlaques(frame)
 ];

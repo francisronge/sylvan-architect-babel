@@ -209,7 +209,7 @@
       ]
     },
     "movement/displayed-endpoints.json#/2": {
-      "frames": "uhYh8yJ6 qtxL4GxV m3ANpgxi Bcui4n3e peoEaGro 03vFkuSH pZqF5-uC gVruiUU0 7D2dbdFV DNHEsK3j UTH46teH oqhso1DI 1HqRZipF ie_uSQ5R BXuRq9i0 0NL2O_QN VaR_pF2a QNjKPqH3 -XYlePQP F3J5qWam DaTYmfEK C1O84tHT wGeFuFfT n9_MQukx wGXudnBf CKu1R9d4 D02YCdGy Dmo9rRbK p4Udlix5 4d03K3QR EB2WOlcJ 4GR96PUz vYEGqhBQ nnfIsjsM VQv-JdUQ p_l1LvTY VUY7PuId bEnXX5Go hDlJK_RC Yk9sBNi8 O0eh1rn7 buaG9RJN JGVd0ia_ TwzwIWPQ",
+      "frames": "uhYh8yJ6 qtxL4GxV m3ANpgxi Bcui4n3e peoEaGro 03vFkuSH pZqF5-uC gVruiUU0 7D2dbdFV DNHEsK3j UTH46teH oqhso1DI 1HqRZipF ie_uSQ5R BXuRq9i0 0NL2O_QN VaR_pF2a QNjKPqH3 -XYlePQP F3J5qWam DaTYmfEK C1O84tHT wGeFuFfT n9_MQukx g2XV7Qml juBhbhPF asQzocUu Vs9Mtcn7 W5w-Bw3n 4d03K3QR EB2WOlcJ 4GR96PUz vYEGqhBQ jd814ZYQ 9x-mCDjv IktPcCKY oithiR97 NZsj5gQa Vl9UgIuc DYb5oIWc at93tssM 0og_-7PJ 5pB7BRWf zGYTwU3t",
       "canopy": "wfpVAQXv",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -227,8 +227,6 @@
         "2:0 T2 trajectory tier2.movement-path movement.path",
         "2:0 T3 fallback",
         "2:1 T2 directed-path tier2.feature-dependency feature.dependency",
-        "2:1 T2 node-badges theta.grid theta-grid",
-        "2:1 T2 node-plaque theta.grid theta-grid",
         "3:0 T2 trajectory tier2.movement-path movement.path",
         "3:0 T3 fallback",
         "3:1 T2 trajectory tier2.movement-path movement.path",
@@ -337,7 +335,7 @@
       ]
     },
     "movement/independent-infl-context.json#": {
-      "frames": "THTjAl9Y Q8uAmgC0 A3BZ3JPt jMQjb2SV 5ofPAPAt wstBBmvT -LdatdxG yp6thiQX DfJju3lB rC8EYIF7 JEkvNJbJ A6018gj2 Sc0iBfJ1 N2DJrN5u GO22OpK6 IbFM3PIn EjjXifqI CQx1T6Wp 5IVy5m_W A_6WfhbW MvH_apcd wDA9SqRd L2vUUzDx NotplO6q Zesk1JhH Vu0yfIFU uduEYbM0 FY7PAzW- F8mqfAI0 XfNpwR0Y QGDUZagF vameYx3C",
+      "frames": "THTjAl9Y Q8uAmgC0 A3BZ3JPt jMQjb2SV 5ofPAPAt wstBBmvT -LdatdxG yp6thiQX DfJju3lB rC8EYIF7 JEkvNJbJ A6018gj2 Sc0iBfJ1 N2DJrN5u GO22OpK6 IbFM3PIn EjjXifqI CQx1T6Wp 5IVy5m_W A_6WfhbW MvH_apcd wDA9SqRd L2vUUzDx NotplO6q Zesk1JhH Fjln1i3z t2wGMQdm RLT5A361 Gibt-s-z MrL6Exfu h6BwUZ9a d9g6cuRY",
       "canopy": "PrKXcQBr",
       "tiers": [
         "0:0 T2 node-plaque feature-bundle.plaque plaque.structured",
@@ -352,8 +350,6 @@
         "1:2 T2 node-badges tier2.gap-notation gap.notation",
         "1:2 T2 trajectory tier2.movement-path movement.path",
         "1:2 T3 fallback",
-        "1:3 T2 node-badges theta.grid theta-grid",
-        "1:3 T2 node-plaque theta.grid theta-grid",
         "1:3 T3 fallback"
       ]
     },
@@ -3753,7 +3749,7 @@
       ]
     },
     "replay-regressions/visual-human-catalog.json#/cases/3/analyses/0": {
-      "frames": "uNI61fkT oRGAz1Ka WITJkDX6 e5Fkwm_b pDt5q_s- UB8IejgI lsqq-Sf5 9EWrtkud X6RRH1kP DBhosrbT C1jY3cht 68OfJW9m 8SDVmG1M exL1nIXu SHdWfd85 37Pyw_WF ZARQmNqt DoFA5ksR 1SP52RqX txLMcybi Ggb9-KOi n2tIm_KD snM6o1xQ 8ZWcb_8F vT5TnJHq ngleBCLw YpbuYGhY cjkb8BGO JsOsDWqN OAGCb7-0 cs6JGuUC dEwHyTtH IFVALCH9 UXP1DFbH R0Y6bzlu oB2qtAWW 2PFM6IYD 0PUoAYQ8 fvFBuVNo JT8DyhM9 1v2VkrCR vQUROu1r 0W7HQ8os WB1_K2If A40rwtCv f6HR1Vw6 -VYTCwIn ts_BR-yb Y2NCd3mn lnCnwTSm 3LlSU4tz ym90vMmL DMiTG6u0 iCpnGAyO gjs2tOpY X2qF2CqQ wVwlwB__ 0bfZLa9q jDHqkjN2 umxg4IJQ NUAmrQY7 4t9dhfG_ zLCKqyeH xJUJyC0E KsqcfU1b tD0y6rLd A4xDTuXX zeiq_EJc",
+      "frames": "uNI61fkT oRGAz1Ka WITJkDX6 e5Fkwm_b pDt5q_s- UB8IejgI lsqq-Sf5 9EWrtkud X6RRH1kP DBhosrbT C1jY3cht 68OfJW9m 8SDVmG1M exL1nIXu SHdWfd85 37Pyw_WF ZARQmNqt DoFA5ksR 1SP52RqX txLMcybi 6ipDfb48 goVPc2FH -iZlV9r7 U0uJjnyQ 7Shb3NPj 66mvgFt7 -qZQfbmv VhoYi9Hu VjvQNSfI b-onRG7J qYmqlmGs NTzqc5KR VjIg59w4 5JWw9BiJ 9WzymQ3g nAUqrfPQ ecrsB1X0 HS7LBY9r AyvahRcA AE0y8WCE hHcdIE3d m37lbL4o q5S6IBp2 GLSO4qjO 0forG0xn 1jMRZpZ1 ZcmL4MU_ Vd60kuxf vbBUMaFV -e4svDwm 8CdoDSfG PA5sFbeJ SLtq2CIo HFjtafsT Zqet_THz ac6b49ZL nMvzpV-O -q4cXMch RTC93_Sz LPo9wNjL ICpcTaBl oy1eZ-e9 nghKyLVu lnlsCsHv uukmneiS aVbkd9up WGRMCfac Auo4ur-f",
       "canopy": "dWWra1dw",
       "tiers": [
         "0:0 T3 fallback",
@@ -3767,8 +3763,6 @@
         "1:0 T2 trajectory tier2.movement-path movement.path",
         "1:0 T3 fallback",
         "1:1 T2 coindex identity.occurrences identity.occurrences",
-        "1:1 T2 node-badges theta.grid theta-grid",
-        "1:1 T2 node-plaque theta.grid theta-grid",
         "1:1 T3 fallback",
         "1:2 T2 node-plaque feature-bundle.plaque plaque.structured",
         "1:2 T3 fallback",
@@ -4135,7 +4129,7 @@
       ]
     },
     "replay-regressions/workspace-attachment-continuity.json#/cases/0": {
-      "frames": "ePFUjXFA AbSDc-oY 9NkzD6Bv o1dF5v7t PHkHfSdr e5FHdPjf Iloj8Vxb out1CJkm qyeXSB-6 kGMxoTqn 6YJKnDCD eWI4DN2t E3wRxKgn cX20dDEz _pvL8fjr Be-ldzrr xfJlQXVB uEB-ofdm tbmaQE76 CLh_cPA8 JV-vq30D 5yv_1INy 7gBoLw0p -vFZtSxz nLvS3buk k-xnb1Ue 7hLzrWlq hVEUoVLa AqVlBRCI zuSYYrCh jHvbpoSm 3KfZjaS6 aIF4F28o pjm5XVaM ErmbTm1s tU3_FqCq 8MdozOCj 6HcDbDYN 5Lefv23K zbpv_2xZ -3g_4r0n GVOaUK4x Ppt6bb81 TJHm0iCu WIa1uW9B jEayBNHm XQF77NJN XPfcJGWf QEWyvBkg KsNVUIcC 1eM16Lmy",
+      "frames": "ePFUjXFA AbSDc-oY 9NkzD6Bv o1dF5v7t PHkHfSdr e5FHdPjf Iloj8Vxb out1CJkm qyeXSB-6 kGMxoTqn 6YJKnDCD eWI4DN2t E3wRxKgn cX20dDEz _pvL8fjr Be-ldzrr xfJlQXVB uEB-ofdm tbmaQE76 CLh_cPA8 JV-vq30D 5yv_1INy 7gBoLw0p -vFZtSxz nLvS3buk k-xnb1Ue 7hLzrWlq hVEUoVLa AqVlBRCI zuSYYrCh jHvbpoSm 3KfZjaS6 aIF4F28o pjm5XVaM ErmbTm1s tU3_FqCq 8MdozOCj 6HcDbDYN 5Lefv23K zbpv_2xZ -3g_4r0n GVOaUK4x Ppt6bb81 TJHm0iCu WIa1uW9B MZ0Nf4Tc NAs8XVwa TC5x8kWE AQWuGSWp D61RYusJ jCmcbJcC",
       "canopy": "PJui_Qlz",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -4149,8 +4143,6 @@
         "4:1 T2 node-plaque feature-bundle.plaque feature.dependency",
         "4:1 T3 fallback",
         "4:2 T2 coindex identity.occurrences identity.occurrences",
-        "4:2 T2 node-badges theta.grid theta-grid",
-        "4:2 T2 node-plaque theta.grid theta-grid",
         "4:2 T3 fallback",
         "4:3 T2 undirected-link focus.association focus.association",
         "4:3 T3 fallback"
@@ -4672,7 +4664,7 @@
       ]
     },
     "replay-regressions/workspace-source-continuity.json#/cases/1": {
-      "frames": "myBFC3-B d_7jEeGC Tgm8_E1i _xP85bT8 LXAoqP7r ucIZyUNA x4MtrwCa I_OWpFTH 6r-yHK-n AAIbY1z2 s4ZRHEHe WxgL2iXP 3sWSxW2G DViHCh7S fJNCncFd WNqn-tpS 0qcYFDsj oyVUIT1B R7-IRMuL -g3oWXP_ K10v2Cw4 nW-WbddY 2Dlcnenn S4pw61ZG 2fCVJVAB iQoj9uFM u3U6Vjym -jExs4Uz ZsxdSIsz xhegPfyu kl28BCan BYNFOPeG 742TWR0G F4J6IUDG eHDyyNYM OJYEJn5P 07aX9XCT Mk5153wt bcn_ctM5 KrgCEtCa yXA7bsXC 2IohmCx_ NvX_YwhJ 0Bx1WOEN NFIzupT4 7KNqxVOT Mh1Gdieo yqnetBtE lHmzd2yF -eRx8vnW aXlrxkB1 fcUsKvf- X-dWGZ0y b_Bx5vFi Lg7N3gJc NoCzuF08 ghx52qD1",
+      "frames": "myBFC3-B d_7jEeGC Tgm8_E1i _xP85bT8 LXAoqP7r ucIZyUNA x4MtrwCa I_OWpFTH 6r-yHK-n AAIbY1z2 s4ZRHEHe WxgL2iXP 3sWSxW2G DViHCh7S fJNCncFd WNqn-tpS 0qcYFDsj oyVUIT1B R7-IRMuL -g3oWXP_ K10v2Cw4 nW-WbddY 2Dlcnenn S4pw61ZG 2fCVJVAB iQoj9uFM u3U6Vjym -jExs4Uz ZsxdSIsz xhegPfyu KyGcqhhy YjtS5snv b7CpTfZA ZcKTFvM9 qUE5tELy L8BsCgZ7 B8ejBk97 6pN1kVW6 I_9jhRsW K4zzF8dm xG2nqVd8 UnJDAsgm gF9bmFzJ WGI27GTQ yjQsUFRA 8iYgr8iU CzdSlI9f pjg5Np6S O7yz07h7 O7UwzrSU jGYFZsCB dxKCRPUZ 9aS5OgZz VSF2ADtl m5g_3RDd i6c0FGU7 FEb1v3Zp",
       "canopy": "bFYKvuiW",
       "tiers": [
         "1:0 T2 node-badges theta.grid theta-grid",
@@ -4683,8 +4675,6 @@
         "2:2 T3 fallback",
         "2:3 T2 trajectory tier2.movement-path movement.path",
         "2:3 T3 fallback",
-        "2:4 T2 node-badges theta.grid theta-grid",
-        "2:4 T2 node-plaque theta.grid theta-grid",
         "2:4 T3 fallback",
         "2:5 T2 directed-path tier2.feature-dependency feature.dependency",
         "2:6 T2 directed-path tier2.feature-dependency feature.dependency",
@@ -4756,7 +4746,7 @@
       ]
     },
     "replay-regressions/workspace-swedish-continuity.json#/record": {
-      "frames": "uhYh8yJ6 qtxL4GxV m3ANpgxi Bcui4n3e peoEaGro 03vFkuSH pZqF5-uC gVruiUU0 7D2dbdFV DNHEsK3j UTH46teH oqhso1DI 1HqRZipF ie_uSQ5R BXuRq9i0 0NL2O_QN VaR_pF2a QNjKPqH3 -XYlePQP F3J5qWam DaTYmfEK C1O84tHT wGeFuFfT n9_MQukx wGXudnBf CKu1R9d4 D02YCdGy Dmo9rRbK p4Udlix5 4d03K3QR EB2WOlcJ 4GR96PUz vYEGqhBQ nnfIsjsM VQv-JdUQ p_l1LvTY VUY7PuId bEnXX5Go hDlJK_RC Yk9sBNi8 O0eh1rn7 buaG9RJN JGVd0ia_ TwzwIWPQ",
+      "frames": "uhYh8yJ6 qtxL4GxV m3ANpgxi Bcui4n3e peoEaGro 03vFkuSH pZqF5-uC gVruiUU0 7D2dbdFV DNHEsK3j UTH46teH oqhso1DI 1HqRZipF ie_uSQ5R BXuRq9i0 0NL2O_QN VaR_pF2a QNjKPqH3 -XYlePQP F3J5qWam DaTYmfEK C1O84tHT wGeFuFfT n9_MQukx g2XV7Qml juBhbhPF asQzocUu Vs9Mtcn7 W5w-Bw3n 4d03K3QR EB2WOlcJ 4GR96PUz vYEGqhBQ jd814ZYQ 9x-mCDjv IktPcCKY oithiR97 NZsj5gQa Vl9UgIuc DYb5oIWc at93tssM 0og_-7PJ 5pB7BRWf zGYTwU3t",
       "canopy": "wfpVAQXv",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -4774,8 +4764,6 @@
         "2:0 T2 trajectory tier2.movement-path movement.path",
         "2:0 T3 fallback",
         "2:1 T2 directed-path tier2.feature-dependency feature.dependency",
-        "2:1 T2 node-badges theta.grid theta-grid",
-        "2:1 T2 node-plaque theta.grid theta-grid",
         "3:0 T2 trajectory tier2.movement-path movement.path",
         "3:0 T3 fallback",
         "3:1 T2 trajectory tier2.movement-path movement.path",
@@ -5820,7 +5808,7 @@
       ]
     },
     "showcase/scope-ellipsis-coordination.json#/cases/4": {
-      "frames": "eylkKJY1 -q9nx3kn Qftc8c4R qs54KbR7 s1OWMw79 Rr4v8DOU oAWTG2EO bERY4GJJ RprbNJv3 x6xHiO_A YaUnbQrW L2gQKqzn LoVc0vJC MVjZAdWy ND0s3Qfz 48g-Tj4p o4ja1T4u XDFD7kZN korfYPxz xPGCzdYA HNXzLdm5 rW8fBtUw 9cdTbgRK eYDtTVvM 6i72Q9tQ rEOM29pT i-tdIE-q N6s2LOSJ Y_jRwmxr 9d6ID4bG MDzU1_nP 5292J7xr jLn8lNYJ GlaZ2Gc9 t9I1ng9D hRfA6biK 4fsEsooS 29X4hd44 PqQ7Mz0S vnWjDY9r 58zDhONA gaphswVc Ys7q1mBf ezrsVjD- M6ZZTnha Ky8T54Bb rdqDfR1j 3Z6KV47s fHKHbvat OTBM4e68",
+      "frames": "eylkKJY1 -q9nx3kn Qftc8c4R qs54KbR7 s1OWMw79 Rr4v8DOU oAWTG2EO bERY4GJJ RprbNJv3 x6xHiO_A YaUnbQrW L2gQKqzn LoVc0vJC MVjZAdWy ND0s3Qfz 48g-Tj4p o4ja1T4u XDFD7kZN korfYPxz xPGCzdYA HNXzLdm5 mAuKrEFO lcGFOm9s t5X-7aIg uifUXylH 7_UK5Hia 01DYQ940 1DtsvGbq 9kuy631F XH7wYzaO SqvT8veI QGMhR2WV u-tFnpLP OyJyfF3S Fb3mx0XZ k7TpFhAI f2EVxGdm Dt5zw9Mo giYRGNYq MFsBDX6H 4wldHtr5 tcJB9FK2 nlefzEu2 1rD2Md2G 59nCOXV6 uT7wwSKs 2KRAhc1l 4bLVDiIw KkACUvLi CfdlONkp",
       "canopy": "7cKPNcHG",
       "tiers": [
         "0:0 T1 node-badges theta.grid",
@@ -5835,8 +5823,6 @@
         "1:0 T2 trajectory tier2.movement-path movement.path",
         "1:0 T3 fallback",
         "1:1 T2 coindex identity.occurrences identity.occurrences",
-        "1:1 T2 node-badges theta.grid theta-grid",
-        "1:1 T2 node-plaque theta.grid theta-grid",
         "1:1 T3 fallback",
         "1:2 T2 directed-path tier2.feature-dependency feature.dependency",
         "2:0 T3 fallback",
@@ -5852,7 +5838,7 @@
       ]
     },
     "visual-relations/case-collection-growth.json#": {
-      "frames": "hmMDmGEp b8xNtN1M NudR0GzI 2cyfNYNE 5FFBY5ul CjAH0v3Q 2wbELfGZ hI-sqc_J ZbG6tEEO UOtZ3OJ5 1qlyyh9u TRylhRCS V9tXhNbx DiHCMa-a 3DHc4kai _uV2vdVE vmOcNwdN RymRyqVt 1eoBhRjj _HtcnJRV TTSkK94Z cs84g3SS 8oLrC7bg boA7RmHf ysoLBqwG CfGdtf7w -aZ9YTcm vyjzWX-X txvvzX5l tXSSHpW6 CZoXRUNq iMEn-bw9",
+      "frames": "hmMDmGEp b8xNtN1M NudR0GzI 2cyfNYNE 5FFBY5ul CjAH0v3Q 2wbELfGZ hI-sqc_J ZbG6tEEO UOtZ3OJ5 1qlyyh9u TRylhRCS V9tXhNbx DiHCMa-a 3DHc4kai _uV2vdVE vmOcNwdN RymRyqVt 1eoBhRjj _HtcnJRV TTSkK94Z cs84g3SS 8oLrC7bg oGqzh7Hr 1UTJYHeP pbOWEnmR 2teKEWXc 6_GQZ6eW TCKSUXNi ZzYfNd14 _PhfQGHR RIbqSO6f",
       "canopy": "u5fbItHb",
       "tiers": [
         "0:0 T2 node-badges theta.grid theta-grid",
@@ -5871,8 +5857,6 @@
         "2:1 T3 fallback",
         "2:2 T2 node-plaque pf.realization pf.structured",
         "2:2 T3 fallback",
-        "2:3 T2 node-badges theta.grid theta-grid",
-        "2:3 T2 node-plaque theta.grid theta-grid",
         "2:4 T2 directed-path tier2.feature-dependency feature.dependency",
         "2:4 T3 fallback",
         "2:6 T2 directed-path tier2.feature-dependency feature.dependency",
@@ -5913,12 +5897,11 @@
       ]
     },
     "visual-relations/stable-complex-head-plaques.json#": {
-      "frames": "3tfbygQQ JFu9YvwP 74Soc0-p EdDskurH IYpZ7PFW qtufxuvL fUOAXip4 wsGgEB_U EiPc9UiK kJxv4JMJ ralacmRT uNpTdUpT 7RTWqI6x MmfJ83a7 P9fmI15d aa5Oi0vB kFcfwc8v LA2Sk4if PzKDRuup FdeQa_m_ C5xbWRE1 zmOR0Zrf DruxjV3t YJ6XwXIn crjfqc1z epv8gNIn ABlUn1xf fsFTjofu HZXfmLFq vhq8bbTN 4D3P4t2O XM7Azemd s4sY7TrM PTYkl8ut 79-OquMU xrN46G5X WGWjc2ag dUjsLAib Kymf4XCj qW1e0amW QOjbwMOr Yq4vUSUQ gFhHvEKO FXMRd86M PRUXjP9a po2OaPws N9nwecA7 Y7YN-Omt 8GFIyX2R Pm5lTXm7 xXQvHUcU BFwjVIPl QEYw-Cf- SuIohIUo ogFm7_7S fusk16XB v9u9f_z5 5c6jvDHU 5Jb1c0F_ TfD07eqo i6_VtiMC",
+      "frames": "3tfbygQQ JFu9YvwP 74Soc0-p EdDskurH IYpZ7PFW qtufxuvL fUOAXip4 wsGgEB_U EiPc9UiK kJxv4JMJ ralacmRT uNpTdUpT 7RTWqI6x MmfJ83a7 P9fmI15d aa5Oi0vB kFcfwc8v LA2Sk4if PzKDRuup FdeQa_m_ C5xbWRE1 zmOR0Zrf DruxjV3t YJ6XwXIn crjfqc1z bxZ9-zsw YLB4rqaU meQtbGRn MF-DITPb YK-Qz1WH V0J2xs8U BUkucbDg ROQhJQ-i 5Wpz9Itu kO9Mdml3 RREuwGyF yf5aZFIm l_06jksQ XCNxbSic Vr1r6Hgw IZ1u-1_v VlLE0i1L rwNGFd4y pHl2xI39 8kurdln1 juyzP3K1 nu0EQKcd MSjIt_vy oh1jEyGE Y7CUhpo- ePkgecbd RyNwBnYe Ksb7bw2V 4sggn1My t88Y1G96 918iVnrw hDWgxi2h Lc1qn9KZ u_gQzMIN HxsbXiVW yCXGAksl",
       "canopy": "UM2RrKd4",
       "tiers": [
         "0:0 T2 node-plaque pf.realization pf.structured",
         "0:0 T3 fallback",
-        "1:0 T2 node-plaque pf.realization pf.structured",
         "1:0 T3 fallback",
         "1:1 T2 node-badges theta.grid theta-grid",
         "1:1 T2 node-plaque theta.grid theta-grid",
@@ -5926,11 +5909,9 @@
         "1:2 T3 fallback",
         "1:3 T2 node-badges theta.grid theta-grid",
         "1:3 T2 node-plaque theta.grid theta-grid",
-        "2:0 T2 node-plaque pf.realization pf.structured",
         "2:0 T3 fallback",
         "2:2 T3 fallback",
         "2:4 T3 fallback",
-        "3:0 T2 node-plaque pf.realization pf.structured",
         "3:0 T3 fallback",
         "3:2 T3 fallback",
         "3:4 T2 trajectory tier2.movement-path movement.path",
@@ -5940,7 +5921,6 @@
         "3:6 T3 fallback",
         "3:7 T2 coindex identity.occurrences identity.occurrences",
         "3:7 T3 fallback",
-        "4:0 T2 node-plaque pf.realization pf.structured",
         "4:0 T3 fallback",
         "4:2 T3 fallback",
         "4:4 T3 fallback",

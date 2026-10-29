@@ -378,7 +378,8 @@
       "id": "showcase-58-en-it-cleft",
       "source": "../showcase/scope-ellipsis-coordination.json",
       "selector": "/cases/4",
-      "mechanisms": ["showcase"]
+      "mechanisms": ["showcase"],
+      "allow": {"plan": true, "reason": "The stage-2 claim restating the agent grid of eV paints no second identical grid: the stage-1 grid carries its moment, so its duplicate plaque and badge leave the plan."}
     }
   ]
 }

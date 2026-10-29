@@ -187,7 +187,11 @@ export function plaqueRecord(item, box, anchor) {
   const grid = item.kind === 'node-plaque' && item.plaqueStyle === 'theta-grid';
   const text = item.kind === 'node-plaque' ? (grid ? `theta ${(item.thetaRoles ?? []).map(role => role.role ?? role.label).join('/')}`
     : (item.rows ?? []).map(row => `${row.label}: ${row.value}`).join('; ')) : `${item.kind} ${item.pathStyle ?? ''}`.trim();
+  // What a node's plaque paints, for duplicate-plaque: its rows, and a grid's roles with their letters.
+  const face = item.kind === 'node-plaque' ? JSON.stringify([item.plaqueStyle, item.title ?? null, item.rows,
+    (item.thetaRoles ?? []).map(role => [role.label, role.index ?? null])]) : undefined;
   return { id: `plaque(${refsOf(item).join('/')} ${text.slice(0, 48)})@${box.attachmentNodeId}`, text, claims: refsOf(item),
+    anchorNodeId: box.attachmentNodeId, ...face ? { face } : {},
     rect: rect(box.x, box.y, box.drawnWidth ?? box.width, box.drawnHeight ?? box.height), radius: 14,
     size: { width: box.width, height: box.height }, grid,
     ...item.kind === 'node-plaque' && item.realization ? { realization: true } : {},
