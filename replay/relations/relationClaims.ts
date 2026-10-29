@@ -109,6 +109,8 @@ export type RelationClaimDispatch = ClaimDispatchBase & {
   structuralRules?: import('./structuralRecognition.ts').StructuralRuleId[];
   /** The structural movement a claim was upgraded with (see dispatchStageRelations and structuralMovement.ts). */
   structuralMovement?: RecoveredMovement;
+  /** The family a saved Jev reading of this claim's keys earned (see jev.ts). */
+  jev?: string;
   /** Movements this claim names that an earlier claim of its stage already draws; it draws no arrow for them. */
   restatedMovements?: RecoveredMovement[];
 };
