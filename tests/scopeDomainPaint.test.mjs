@@ -57,14 +57,16 @@ test('a shown domain keeps its colour while others appear; one domain alone is t
   assert.deepEqual(painted.map(step => step.get('rat')?.colourSlot), [undefined, undefined, undefined, undefined, undefined, undefined, 1, 1, 1]);
 });
 
-test('a retiring domain does not recolour the one that stays, and the freed colour is reused', () => {
+test('a domain left alone when another retires returns to the base colour at that step, and only then', () => {
   const a = scope('a', 0, 0, 10), b = scope('b', 1, 0, 20), c = scope('c', 2, 1, 5);
   const plan = planOf([[a], [a, b], [b, c]]);
   const steps = [moment(0, 0), moment(1, 0), micro(2), moment(2, 1)];
   const painted = paintedSteps(plan, steps);
-  assert.deepEqual(changes(painted, ['colourSlot', 'rank', 'count']), []);
+  assert.deepEqual(changes(painted, ['rank', 'count']), []);
+  // Francis: "it's only supposed to have a different colour if there are multiple".
   assert.deepEqual(painted.map(step => Object.fromEntries([...step].map(([domain, paint]) => [domain, paint.colourSlot]))),
-    [{ a: 0 }, { a: 0, b: 1 }, { b: 1 }, { b: 1, c: 0 }]);
+    [{ a: 0 }, { a: 0, b: 1 }, { b: 0 }, { b: 0, c: 1 }]);
+  assert.deepEqual(changes(painted, ['colourSlot']), ['1->2 b'], 'b recolours only at the step that retires a');
 });
 
 test('colour follows played order, not authored relation order', () => {

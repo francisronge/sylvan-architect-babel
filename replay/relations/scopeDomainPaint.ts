@@ -28,7 +28,9 @@ const timelines = new WeakMap<readonly PlaybackStep[], ScopeTimeline>();
  * Colour: a domain takes the lowest slot no domain on screen holds at the step it
  * first appears, in played order, and keeps it while it stays on screen. One
  * domain alone is the base colour; a second colour appears only beside another
- * domain; neither a later domain nor a retiring one recolours a domain shown.
+ * domain. A later domain never recolours a shown one; the step that retires a
+ * domain closes the others up to the lowest slots, so one left alone is the
+ * base colour again.
  *
  * Geometry: domains that ever share the screen are ranked together by size, the
  * larger outside (main's order), and each keeps that rank throughout, as space
@@ -64,7 +66,13 @@ function scopeTimeline(plan: RelationRenderPlan, steps: readonly PlaybackStep[])
       shown.add(domain);
       size.set(domain, Math.max(size.get(domain) ?? 0, item.scopeMemberNodeIds?.length || 0));
     }
-    const next = new Map([...held].filter(([domain]) => shown.has(domain)));
+    const staying = [...held].filter(([domain]) => shown.has(domain));
+    // The step that retires a domain owns the one recolouring: the domains that
+    // stay close up to the lowest slots, in their order, so one left alone is
+    // the base colour again.
+    const next = new Map(staying.length < held.size
+      ? [...staying].sort((left, right) => left[1] - right[1]).map(([domain], slot) => [domain, slot] as [string, number])
+      : staying);
     for (const domain of shown) {
       if (!group.has(domain)) { group.set(domain, domain); firstShown.push(domain); }
       if (next.has(domain)) continue;
