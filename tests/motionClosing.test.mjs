@@ -70,3 +70,16 @@ test('both sides of the gap together close no more than the room the phrase left
   assert.ok(faultsOf([prior, both(370)]).length, 'each side closing 370 against a room of 375');
   assert.deepEqual(faultsOf([prior, both(150)]), [], 'each side closing 150');
 });
+
+// A phrase `s` departs from x=600; the parent `p` of `a` (still) and `b` (closing
+// from 1400 to 1250) recentres from 1200 over its daughters, to 1125.
+test('a parent of a closing daughter is granted only the move that recentres it', () => {
+  const prior = frame([
+    { id: 'top', x: 900, y: 0, parent: null }, { id: 's', x: 600, y: 220, parent: 'top' },
+    { id: 'p', x: 1200, y: 220, parent: 'top' }, { id: 'a', x: 1000, y: 440, parent: 'p' }, { id: 'b', x: 1400, y: 440, parent: 'p' }]);
+  const next = parentX => frame([
+    { id: 'top', x: 900, y: 0, parent: null }, { id: 'land', x: 900, y: -220, parent: null }, { id: 's', x: 900, y: 0, parent: 'land' },
+    { id: 'p', x: parentX, y: 220, parent: 'top' }, { id: 'a', x: 1000, y: 440, parent: 'p' }, { id: 'b', x: 1250, y: 440, parent: 'p' }]);
+  assert.deepEqual(faultsOf([prior, next(1125)]), [], 'recentring over its daughters');
+  assert.deepEqual(faultsOf([prior, next(1350)]), ['p unowned-motion'], 'moving away from the gap and off its daughters');
+});
