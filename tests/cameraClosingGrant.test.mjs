@@ -40,12 +40,12 @@ test('a grant never raises the median the rule reads', () => {
   assert.deepEqual(jumps(trace(frame({ a: 100, b: 200, c: 400, d: 500 }), after)), []);
 });
 
-test('Swedish V2: the audit grants the movement step its closing and would report it without', () => {
-  const record = loadFixtureAnalyses().records.find(entry => entry.id === 'replay-regressions/workspace-swedish-continuity.json#/record').record;
+test('Arabic relative: the audit grants the movement step its closing and would report it without', () => {
+  const record = loadFixtureAnalyses().records.find(entry => entry.id === 'movement/holdout-transitions.json#/6').record;
   const real = traceCamera(prepareVisualRecord(record), CAMERA_VIEWPORTS.find(entry => entry.name === 'desktop'), { reversals: false });
   const forward = { ...real, passes: real.passes.filter(pass => pass.name === 'forward') };
-  assert(real.frames[37].closing.size > 0, 'finite I moving to C closes the gap it leaves');
-  assert.deepEqual(checkFirstPaintContinuity(forward).filter(finding => finding.frame === '37>38'), []);
+  assert(real.frames[14].closing.size > 0, 'the movement closes the gap it leaves');
+  assert.deepEqual(checkFirstPaintContinuity(forward).filter(finding => finding.frame === '14>15'), []);
   const ungranted = { ...forward, frames: forward.frames.map(entry => ({ ...entry, closing: undefined })) };
-  assert(checkFirstPaintContinuity(ungranted).some(finding => finding.frame === '37>38' && finding.subtype === 'jump:relayout'));
+  assert(checkFirstPaintContinuity(ungranted).some(finding => finding.frame === '14>15' && finding.subtype === 'jump:relayout'));
 });
