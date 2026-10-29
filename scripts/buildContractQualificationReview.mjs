@@ -92,8 +92,14 @@ const resolveRunArtifact = (file, owner) => {
     throw new Error(`${owner} paths must be relative to the run: ${file}`);
   }
   const absolute = path.resolve(runRoot, file);
-  const relative = path.relative(runRoot, absolute);
-  if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+  const inside = (root, target) => {
+    const relative = path.relative(root, target);
+    return Boolean(relative) && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+  };
+  // A symlink inside the run may point outside it; judge where it leads.
+  let real = null;
+  try { real = fs.realpathSync(absolute); } catch { /* a missing artifact fails where it is read */ }
+  if (!inside(runRoot, absolute) || real && !inside(fs.realpathSync(runRoot), real)) {
     throw new Error(`${owner} path leaves the run: ${file}`);
   }
   return absolute;
@@ -127,6 +133,10 @@ for (const entry of reviewManifest.entries) {
   for (const key of ['receipt', 'rawOutput']) resolveRunArtifact(entry[key], 'Review manifest');
   for (const key of ['bundle', 'inspection']) if (entry[key]) resolveRunArtifact(entry[key], 'Review manifest');
   for (const analysis of entry.analyses ?? []) {
+    // Analysis indexes also name capture directories under the review output.
+    if (!Number.isInteger(analysis.analysisIndex) || analysis.analysisIndex < 0) {
+      throw new Error(`Review manifest analysis index must be a nonnegative integer: ${JSON.stringify(analysis.analysisIndex)}`);
+    }
     for (const key of ['replay', 'evidence']) resolveRunArtifact(analysis[key], 'Review manifest');
   }
 }

@@ -60,3 +60,26 @@ test('the worktree digest changes with each uncommitted change, not only the fir
   assert.equal(digests.size, 3);
   for (const digest of digests) assert.match(digest, /^[0-9a-f]{64}$/);
 });
+
+test('staging a change leaves the worktree digest unchanged', t => {
+  const root = checkout(t);
+  git(root, 'init', '--quiet');
+  git(root, 'add', '.');
+  git(root, '-c', 'user.name=Build test', '-c', 'user.email=build@example.invalid',
+    '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Build version baseline');
+  fs.writeFileSync(path.join(root, 'package.json'), '{"version":"1.2.4"}\n');
+  const modified = readWorktreeDigest({ root });
+  git(root, 'add', 'package.json');
+  assert.equal(readWorktreeDigest({ root }), modified, 'a staged modification');
+  fs.writeFileSync(path.join(root, 'untracked.txt'), 'new file\n');
+  const added = readWorktreeDigest({ root });
+  assert.notEqual(added, modified);
+  git(root, 'add', 'untracked.txt');
+  assert.equal(readWorktreeDigest({ root }), added, 'a staged new file');
+  git(root, 'mv', 'package.json', 'renamed.json');
+  const renamed = readWorktreeDigest({ root });
+  git(root, 'reset', '--quiet');
+  assert.equal(readWorktreeDigest({ root }), renamed, 'an unstaged rename');
+  fs.writeFileSync(path.join(root, 'untracked.txt'), 'edited file\n');
+  assert.notEqual(readWorktreeDigest({ root }), renamed, 'an edit to an untracked file');
+});

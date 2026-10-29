@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -21,9 +22,15 @@ const freePort = () => new Promise((resolve, reject) => {
   });
 });
 
+// The server reads .env.local and .env from its working directory; an empty
+// one keeps a developer's own settings, such as BABEL_LISTEN_HOST, out of the test.
+const isolatedDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-listen-'));
+test.after(() => fs.rmSync(isolatedDirectory, { recursive: true, force: true }));
+
 const startServer = async (env) => {
   const port = await freePort();
   const child = spawn(process.execPath, [serverEntry], {
+    cwd: isolatedDirectory,
     env: { PATH: process.env.PATH, PORT: String(port), ...env },
     stdio: ['ignore', 'pipe', 'pipe']
   });

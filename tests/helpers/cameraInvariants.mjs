@@ -13,7 +13,9 @@
  *   (bounds plus the shared margin and plaques the camera must contain) and
  *   `nodes`, a Map from display ID to tree-space `{ x, y, ancestors }`, and
  *   optionally `closing`, the IDs the step into this frame moves by closing the
- *   gap its phrase leaves (`closingAt`).
+ *   gap its phrase leaves (`closingAt`), and `view`, the part of the view the
+ *   frame's tree is fitted into when a plate takes the rest (`treeFitViewport`);
+ *   without it the frame uses the trace's `view`.
  * - `direct[i]`: the settled pose when frame i + 1 is selected directly.
  * - `passes`: `{ name, steps }`, each step `{ from, to, before, first, settled }`
  *   with 0-based frame indices: the settled pose before the step, the first
@@ -153,7 +155,7 @@ export function checkSettledPathIndependence(trace, thresholds = CAMERA_THRESHOL
       else if (subtype === 'final') reasons.push('the completed last Stage Record must use its fit');
       else {
         if (step.settled.k > direct.k + 1e-6) reasons.push(`it zooms in past the stage fit (k ${step.settled.k.toFixed(4)} > ${direct.k.toFixed(4)})`);
-        const spill = worstOverflow(step.settled, frame, trace.view);
+        const spill = worstOverflow(step.settled, frame, frame.view ?? trace.view);
         if (spill > thresholds.clipPx) reasons.push(`its envelope overflows the view by ${round(spill)} px`);
         const before = trace.frames[step.from], unmoved = unmovedIds(before, frame);
         const ids = unmoved.length ? unmoved : sharedIds(before, frame);
@@ -194,9 +196,9 @@ export function checkSettledPathIndependence(trace, thresholds = CAMERA_THRESHOL
  * edge while a large share of the view stays empty opposite ('pinned').
  */
 export function checkContentPlacement(trace, thresholds = CAMERA_THRESHOLDS) {
-  const found = collect(), { view } = trace;
+  const found = collect();
   const settle = (index, pose, source) => {
-    const frame = trace.frames[index], place = { rule: 'content-placement', subject: stageOf(frame), frame: index + 1 };
+    const frame = trace.frames[index], view = frame.view ?? trace.view, place = { rule: 'content-placement', subject: stageOf(frame), frame: index + 1 };
     const clipped = [...frame.nodes].flatMap(([id, point]) => {
       const { x, y } = screen(pose, point);
       const beyond = Math.max(view.top - y, y - view.bottom, view.left - x, x - view.right);
@@ -280,7 +282,7 @@ export function checkWithinStageStability(trace, thresholds = CAMERA_THRESHOLDS)
     const before = trace.frames[step.from], after = trace.frames[step.to];
     if (before.stage !== after.stage || before.final || after.final) continue;
     const change = poseDistance(step.before, step.settled, after);
-    if (change <= thresholds.samePosePx || worstOverflow(step.before, after, trace.view) > thresholds.clipPx) continue;
+    if (change <= thresholds.samePosePx || worstOverflow(step.before, after, after.view ?? trace.view) > thresholds.clipPx) continue;
     const refit = step.to === step.from - 1 && poseDistance(step.settled, trace.direct[step.to], after) <= thresholds.samePosePx;
     found.add({ rule: 'within-stage-stability', subtype: refit ? 'prev-refit' : 'change', subject: stageOf(after), frame: transition(step),
       measure: round(change), detail: `the camera moves ${round(change)} px within the stage, from ${poseText(step.before)} to `

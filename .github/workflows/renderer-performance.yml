@@ -55,7 +55,14 @@ jobs:
             timeout --kill-after=30s 10m npx --no-install playwright install --with-deps chromium && exit 0
             echo "::warning::browser install attempt $attempt failed or stalled; retrying"
             # A killed attempt can leave apt holding its locks; clear them so the retry can run.
+            # pkill only sends the signal: wait until those processes have exited, so the repair
+            # cannot lock a new file while a dying process still holds the old one.
             sudo pkill -9 -f 'apt-get|dpkg' || true
+            for second in $(seq 60); do pgrep -f 'apt-get|dpkg' > /dev/null || break; sleep 1; done
+            if pgrep -f 'apt-get|dpkg' > /dev/null; then
+              echo "::warning::apt or dpkg is still running; leaving its locks in place"
+              continue
+            fi
             sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock /var/lib/apt/lists/lock
             sudo dpkg --configure -a || true
           done

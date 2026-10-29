@@ -70,10 +70,13 @@ export function resolveCase(spec, { root }) {
   const analyses = node?.response?.analyses ?? node?.analyses ?? (node?.derivationStages ? [node] : null);
   const analysis = analyses?.[spec.analysis ?? 0];
   if (!analysis?.derivationStages?.length) throw new Error(`Case "${spec.title}" names no analysis with derivationStages.`);
-  const sentence = [node?.request?.sentence, ...chain.map(item => item?.sentence)].find(value => typeof value === 'string' && value.trim());
+  // A selector may point below the objects holding the sentence and saved
+  // tokens (a bundle's /response/analyses/0): each comes from its nearest holder.
+  const nearest = read => [node, analysis, ...chain.slice(1)].map(read).find(value => value !== undefined);
+  const sentence = nearest(item => [item?.request?.sentence, item?.sentence].find(value => typeof value === 'string' && value.trim()));
   if (!sentence) throw new Error(`Case "${spec.title}" has no saved sentence.`);
   return { title: spec.title, watch: spec.watch, steps: spec.steps, sentence,
-    inputTokens: node?.response?.inputTokens ?? node?.inputTokens ?? analysis.inputTokens,
+    inputTokens: nearest(item => [item?.response?.inputTokens, item?.inputTokens].find(Array.isArray)),
     derivationStages: analysis.derivationStages };
 }
 
@@ -90,6 +93,10 @@ export async function paneHtml(root, records) {
   return `<!doctype html><html lang="en"><meta charset="utf-8"><title>Replay</title><style>${runtime.css.replace(/<\/style/gi, '<\\/style')}html,body,#root{height:100%;margin:0}body{background:#03100a}</style><div id="root"></div><script id="replay-records" type="application/json">${safeJson(records.map(({ sentence, inputTokens, derivationStages }) => ({ sentence, inputTokens, derivationStages })))}</script><script>${runtime.js.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--')}</script></html>`;
 }
 
+/** The review page. Its panes step together: shared navigation does nothing
+ * until both panes show their Replay controls (a pane still preparing would
+ * miss the step and stay one behind), and an arrow key pressed inside a pane
+ * steps both instead of only that pane's own Replay. */
 export function indexHtml({ title, baseline, candidate, records }) {
   const label = state => `${state.commit.slice(0, 9)}${state.dirty ? ' + uncommitted changes' : ''}`;
   const cases = records.map(({ title: caseTitle, watch, steps }) => ({ title: caseTitle, watch, steps }));
@@ -105,9 +112,11 @@ h2{margin:4px 6px;font-size:14px}h2.a{color:#f9a}h2.b{color:#8f8}iframe{width:10
 const go=step=>{for(const side of ['before','after'])$(side).src=side+'.html?case='+cur+'&step='+step};
 const load=i=>{cur=i;$('watch').textContent='Watch: '+C[i].watch;$('steps').replaceChildren(...C[i].steps.map(step=>{const b=document.createElement('button');b.textContent='step '+step;b.onclick=()=>go(step);return b}));go(C[i].steps[0])};
 C.forEach((c,i)=>$('case').append(new Option(c.title,i)));$('case').onchange=e=>load(+e.target.value);
-const press=name=>['before','after'].forEach(side=>{const d=$(side).contentDocument;[...(d?.querySelectorAll('button')??[])].find(b=>b.textContent.trim().toLowerCase()===name&&!b.disabled)?.click()});
-$('next').onclick=()=>press('next');$('prev').onclick=()=>press('prev');
-document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')press('next');if(e.key==='ArrowLeft')press('prev')});load(0);</script></html>`;
+const panes=['before','after'],control=(side,name)=>[...($(side).contentDocument?.querySelectorAll('button')??[])].find(b=>b.textContent.trim().toLowerCase()===name);
+const press=name=>{if(panes.some(side=>!control(side,'next')&&!control(side,'prev')))return;panes.forEach(side=>{const b=control(side,name);if(b&&!b.disabled)b.click()})};
+const key=e=>{const name={ArrowRight:'next',ArrowLeft:'prev'}[e.key];if(!name||e.altKey||e.ctrlKey||e.metaKey)return;e.preventDefault();e.stopImmediatePropagation();press(name)};
+panes.forEach(side=>$(side).addEventListener('load',()=>$(side).contentWindow.addEventListener('keydown',key,true)));
+$('next').onclick=()=>press('next');$('prev').onclick=()=>press('prev');document.addEventListener('keydown',key);load(0);</script></html>`;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
