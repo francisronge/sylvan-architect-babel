@@ -55,7 +55,7 @@ export function createSvgDom(measureText = (text, style) => ({
     get datum() { return this.__data__; }
     set datum(value) { this.__data__ = value; }
     get textContent() { return this.text + this.children.map(child => child.textContent).join(''); }
-    set textContent(value) { this.text = String(value); this.children = []; }
+    set textContent(value) { this.text = String(value); this.children.forEach(child => { child.parentNode = null; }); this.children = []; }
     get parentElement() { return this.parentNode; }
     get parent() { return this.parentNode; }
     get firstChild() { return this.children[0] ?? null; }
@@ -89,7 +89,7 @@ export function createSvgDom(measureText = (text, style) => ({
       this.children.splice(index < 0 ? this.children.length : index, 0, child);
       return child;
     }
-    removeChild(child) { this.children.splice(this.children.indexOf(child), 1); child.parentNode = null; }
+    removeChild(child) { const index = this.children.indexOf(child); if (index >= 0) this.children.splice(index, 1); child.parentNode = null; }
     cloneNode() { return new Element(this.tag, this.attrs, this.datum); }
     querySelectorAll(selector) { return descendants(this).filter(node => matches(node, selector)); }
     querySelector(selector) { return this.querySelectorAll(selector)[0] ?? null; }

@@ -283,6 +283,24 @@ test('the production Theta callback keeps the chain index the syntax painter sta
   }
 });
 
+test('the production Theta painter keeps an earlier grid\'s letter when a second grid indexes the same word', () => {
+  // workspace-component-lifetime: chapter is Theme i of revise and ends the Content clause k of said.
+  const item = identityItems(compileRelationRenderPlan([stage([relation()])]))[0];
+  const grid = relationIndex => ({ ...item, familyId: 'theta.grid', relationRef: { ...item.relationRef, relationIndex } });
+  const paint = painter(forest, null, { stagedIndices: { alpha: '1' } });
+  const alpha = descendants(paint.root).find(label => label.attrs.class === 'terminal-label' && label.attrs['data-node-id'] === 'alpha');
+  paint.draw(item);
+  paint.drawTheta('alpha', 'i', grid(2));
+  paint.drawTheta('alpha', 'm', grid(3));
+  paint.drawTheta('alpha', 'i', grid(4));
+  assert.equal(alpha.text, 'alpha₁', 'the staged chain index stays');
+  assert.deepEqual(alpha.children.map(span => span.textContent), ['k', 'i', 'm'], 'identity, then each grid\'s letter once, in grid order');
+  assert.deepEqual(alpha.children.map(span => span.attrs.dy), [undefined, '14', undefined], 'the second theta letter stays on the lowered line');
+  assert.deepEqual(planItemRelationRefs(paint.decorations.get(alpha.children[1])).map(ref => ref.relationIndex), [2, 4],
+    'a letter two grids share belongs to both');
+  assert.deepEqual(planItemRelationRefs(paint.decorations.get(alpha.children[2])).map(ref => ref.relationIndex), [3]);
+});
+
 test('the production Theta scheduler defers its index until after inline identity in either authored order', () => {
   const identity = identityItems(compileRelationRenderPlan([stage([relation()])]))[0];
   const theta = { ...identity, familyId: 'theta.grid', relationRef: { ...identity.relationRef, relationIndex: 2 } };

@@ -1327,6 +1327,10 @@ grids and stages. Authored index literals reserve their symbols; an unambiguous
 index on a proven movement identity may supply that argument's letter. Conflicting
 authored symbols remain unchanged and cannot select the generated notation.
 Neither similarly spelled words nor shared descendants establish identity.
+A grid writes each argument's letter after the argument's last word. When that
+word ends arguments of several grids, as a clause's last word ends its object
+too, it shows every letter once, in the order the grids are drawn, after its
+chain and identity indices; a later grid never replaces an earlier one's letter.
 
 Recovered control emits the same matching indices as curated Control, alongside
 its connector and any explicitly supplied domain. Control and QR use the shared

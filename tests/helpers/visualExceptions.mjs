@@ -14,6 +14,8 @@ const PLAQUE_CROWDED = 'Accepted (catalog #3; ROADMAP Explicitly Not Active, Fra
   + 'the nearest clear pocket beyond its nearby candidates. #74 and #84 relocate plaques whose anchor moves, not these.';
 
 const STABLE_FARTHER_NOTE = '27 Oct, in chat: asked "Plaques that would jump take the farther stretch-clear pocket?", Francis answered "Yes"';
+const WIDER_THETA_LABEL = 'Accepted trade-off (theta letters, 29 Oct): What is the Theme of bought and ends the embedded clause that say takes, so it correctly shows both grids\u2019 letters; the shared lifetime-contour layout amplifies that wider label into a different layout of this tree.';
+const WIDER_THETA_APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-10-29', note: 'Asked \u201c\u03b8 fix: accept that one tree\u2019s slightly bigger jump (shared-landing-source: the correctly wider \u201cWhat\u201d label shifts syntax 196 units at frame 41 and moves the say grid\u2019s plaque), so it can merge?\u201d: \u201c1. YES IDC, IF IT\u2019S NOT SIGNIFICANT DON\u2019T ASK ME.\u201d (lead session, 29 Oct)', accepts: at });
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 export const EXCEPTIONS = [
@@ -81,8 +83,9 @@ export const EXCEPTIONS = [
     'plaque(0:1 theta theme)@vRestored', { desktop: { '14-18': 1.12 }, 'desktop-large': { '14-18': 1.12 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/shared-landing-source.json#', 'mark-distance', 'plaque',
     'plaque(0:0 theta Agent/Theme)@buyV', { desktop: { '33-40': 1.22 }, 'desktop-large': { '33-40': 1.22 } }),
-  x(PLAQUE_CROWDED, 'replay-regressions/shared-landing-source.json#', 'mark-distance', 'plaque',
-    'plaque(0:3 theta Agent/propositional Content)@sayV', { desktop: { '36-40': 1.67 }, 'desktop-large': { '36-40': 1.67 } }),
+  x(PLAQUE_CROWDED + ' ' + WIDER_THETA_LABEL, 'replay-regressions/shared-landing-source.json#', 'mark-distance', 'plaque',
+    'plaque(0:3 theta Agent/propositional Content)@sayV', { desktop: { '36-40': 1.67, '41-53': 1.65 }, 'desktop-large': { '36-40': 1.67, '41-53': 1.65 } },
+    WIDER_THETA_APPROVAL({ desktop: { '36-40': 1.67, '41-53': 1.65 }, 'desktop-large': { '36-40': 1.67, '41-53': 1.65 } })),
   x(PLAQUE_CROWDED, 'replay-regressions/sol-spanish-qr.json#/analyses/0', 'mark-distance', 'plaque',
     'plaque(0:0 theta Agent/Theme)@v', { desktop: { '36-38': 1.19 }, 'desktop-large': { '36-38': 1.19 } }),
   x(PLAQUE_CROWDED, 'replay-regressions/workspace-reservation.json#/cases/2', 'mark-distance', 'plaque',

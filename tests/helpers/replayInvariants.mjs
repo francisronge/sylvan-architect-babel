@@ -17,7 +17,7 @@ import { planItemDependencyNodeIds, planItemOwnsRelationMoment, planItemRelation
 import { visiblePlanFrameItems } from '../../replay/relations/relationFrame.ts';
 import { indexHierarchyNodesByIdAndAliases } from '../../replay/replayCanvas.ts';
 import { extractDisplayedSubscriptIndex, resolveLeafSurface } from '../../replay/replaySurfaceNotation.ts';
-import { identityLabelTarget, treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
+import { identityLabelTarget, thetaLabelTarget, treeLabelRunsForStep } from '../../replay/treeLabelRuns.ts';
 import { piedPipedPhrase, relationOwnsNonMovementTreeTransition, resolveFallbackTreeTransitionOwnership } from '../../replay/treeTransitions.ts';
 import { resolveSavedInputTokens } from '../../server/babelParser/surfaceTokens.js';
 import { createSvgDom, descendants, select } from './svgDom.mjs';
@@ -1064,8 +1064,9 @@ export function countLabelLetters(shown, asserted) {
 /** Paints each frame's index letters with the production binding painters, then
  * its theta letters with the deferred theta painter, in the offline SVG DOM over
  * the frame's displayed labels as the syntax painter stages them. Each letter a
- * binding mark asserts appears exactly once at the physical label it is placed
- * at: beside it, as an inline coindex, or as a subscript written into the label.
+ * binding mark or theta grid asserts appears exactly once at the physical label it
+ * is placed at: beside it, as an inline coindex, or as a subscript written into the
+ * label. A word that is an argument of two grids shows both grids' letters.
  * No label shows any letter twice, counting theta indices and the chain index
  * the step staged. Placement restates the binding painters' label lookups,
  * independently of the letter plan. `planLetters` is the renderer's own unless
@@ -1159,6 +1160,16 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
         const label = placed(letter.role, { nodeId: letter.nodeId, operatorNodeId: letter.nodeId, variableNodeId: primitive.variableNodeId,
           witnessNodeId: primitive.traceWitnessNodeId, family: items[letter.itemIndex].familyId });
         if (label) asserted.set(label, (asserted.get(label) ?? new Set()).add(letter.index));
+      }
+      // Each grid asserts its argument letters at the label the theta painter
+      // indexes: the argument's last word, or its category when it is all traces.
+      for (const grid of grids) for (const role of grid.thetaRoles) {
+        const target = role.index && thetaLabelTarget(resolve(role.nodeId), role.nodeId);
+        if (!target) continue;
+        const labels = g.selectAll(`.${target.kind}-label`).filter(function exactThetaLabel() {
+          return this.getAttribute(target.kind === 'category' ? 'data-category-node-id' : 'data-node-id') === target.labelId;
+        });
+        if (labels.size() === 1) asserted.set(labels.node(), (asserted.get(labels.node()) ?? new Set()).add(role.index));
       }
       // Any letter shown twice at one label repeats, asserted or not (a theta
       // index beside an equal chain subscript); only asserted letters can be missing.

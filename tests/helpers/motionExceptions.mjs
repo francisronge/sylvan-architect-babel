@@ -17,6 +17,11 @@ const LOWERED_REASON = 'Existing jump on main (C 464, I and VP 66 at the CP-extr
 const LOWERED_APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-10-29', note: 'Asked to approve the jump growing to 574 so the index change can merge, with the 11-tree lowered-subtree jump as the next layout job: \u201cyes\u201d; for I and VP 66\u219292 at the same step: \u201cyeah yeah, I ALREADY SAID YES, GIVEN THAT YOU WILL DEAL WITH IT AFTERWARDS.\u201d (lead session, 29 Oct)', accepts: at });
 const lowered = (subtype, subject, at) => ({ reason: LOWERED_REASON, record: 'fixture:movement/clause-context.json#/cases/2', rule: 'motion', subtype, subject, at, approval: LOWERED_APPROVAL(at) });
 
+const WIDER_THETA_LABEL = 'Accepted trade-off (theta letters, 29 Oct): What is the Theme of bought and ends the embedded clause that say takes, so it correctly shows both grids\u2019 letters; the shared lifetime-contour layout amplifies that wider label into a different layout of this tree.';
+const WIDER_THETA_APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-10-29', note: 'Asked \u201c\u03b8 fix: accept that one tree\u2019s slightly bigger jump (shared-landing-source: the correctly wider \u201cWhat\u201d label shifts syntax 196 units at frame 41 and moves the say grid\u2019s plaque), so it can merge?\u201d: \u201c1. YES IDC, IF IT\u2019S NOT SIGNIFICANT DON\u2019T ASK ME.\u201d (lead session, 29 Oct)', accepts: at });
+const widerTheta = (subject, at) => ({ reason: WIDER_THETA_LABEL, record: 'fixture:replay-regressions/shared-landing-source.json#', rule: 'motion',
+  subtype: 'unowned-motion', subject, at, approval: WIDER_THETA_APPROVAL(at) });
+
 export const EXCEPTIONS = [
   x('relative-clause-waiting-clearance', 'attachment-site-motion', 'letterInnerNBar', { '-': { '58': 678.46 } }),
   x('relative-clause-waiting-clearance', 'attachment-site-motion', 'relativeCP', { '-': { '58': 428.6 } }),
@@ -30,4 +35,5 @@ export const EXCEPTIONS = [
   lowered('unowned-motion', 'matrixC', { '-': { '55': 573.67 } }),
   lowered('shape-motion', 'matrixI', { '-': { '55': 92.19 } }),
   lowered('shape-motion', 'matrixVP', { '-': { '55': 92.19 } }),
+  ...['buyV', 'embeddedI', 'maryNP', 'thatC'].map(subject => widerTheta(subject, { '-': { '41': 283.59 } })),
 ];

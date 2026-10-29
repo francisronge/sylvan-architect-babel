@@ -26,6 +26,8 @@ const LOWERED_SUBTREE = 'Accepted (camera, fixes A+B): at a stage crossing whose
 const CROSSING_CENTRE = 'Accepted (camera, fixes A+B): entering a new stage, an axis the camera has to pan is centred at the '
   + 'retained zoom, so the settled pose differs by a few pixels (or, with a lowered subtree, more) from a direct selection.';
 
+const WIDER_THETA_LABEL = 'Accepted trade-off (theta letters, 29 Oct): What is the Theme of bought and ends the embedded clause that say takes, so it correctly shows both grids\u2019 letters; the shared lifetime-contour layout amplifies that wider label into a different layout of this tree.';
+const WIDER_THETA_APPROVAL = at => ({ by: 'Francis Ronge', on: '2026-10-29', note: 'Asked \u201c\u03b8 fix: accept that one tree\u2019s slightly bigger jump (shared-landing-source: the correctly wider \u201cWhat\u201d label shifts syntax 196 units at frame 41 and moves the say grid\u2019s plaque), so it can merge?\u201d: \u201c1. YES IDC, IF IT\u2019S NOT SIGNIFICANT DON\u2019T ASK ME.\u201d (lead session, 29 Oct)', accepts: at });
 const x = (reason, record, rule, subtype, subject, at, approval) => ({ reason, record, rule, subtype, subject, at, ...(approval && { approval }) });
 
 export const EXCEPTIONS = [
@@ -79,10 +81,10 @@ export const EXCEPTIONS = [
     { desktop: { '59>58': 77.96 }, mobile: { '59>58': 28.52 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/diverse-recovery.json#/examples/3/analysis', 'first-paint-continuity', 'jump:camera', 'stage 6',
     { desktop: { '58>59': 68.81 }, mobile: { '58>59': 33.14 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/shared-landing-source.json#', 'first-paint-continuity', 'jump:camera', 'stage 1',
-    { desktop: { '41>40': 30.4 } }),
-  x(STAGE_RELAYOUT, 'replay-regressions/shared-landing-source.json#', 'first-paint-continuity', 'jump:camera', 'stage 2',
-    { desktop: { '40>41': 27.11 } }),
+  x(STAGE_RELAYOUT + ' ' + WIDER_THETA_LABEL, 'replay-regressions/shared-landing-source.json#', 'first-paint-continuity', 'jump:camera', 'stage 1',
+    { desktop: { '41>40': 38.62 } }, WIDER_THETA_APPROVAL({ desktop: { '41>40': 38.62 } })),
+  x(STAGE_RELAYOUT + ' ' + WIDER_THETA_LABEL, 'replay-regressions/shared-landing-source.json#', 'first-paint-continuity', 'jump:camera', 'stage 2',
+    { desktop: { '40>41': 34.44 }, mobile: { '40>41': 28.09 } }, WIDER_THETA_APPROVAL({ desktop: { '40>41': 34.44 }, mobile: { '40>41': 28.09 } })),
   x(STAGE_RELAYOUT, 'replay-regressions/sol-spanish-qr.json#/analyses/1', 'first-paint-continuity', 'off-canvas:unmoved', 'stage 3',
     { mobile: { '32>33': 27.4 } }),
   x(STAGE_RELAYOUT, 'replay-regressions/sol-spanish-qr.json#/analyses/1', 'first-paint-continuity', 'off-canvas:unmoved', 'stage 4',
