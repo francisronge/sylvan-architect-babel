@@ -183,6 +183,25 @@ function keepsStageSize(scenes: readonly Scene[], frames: readonly Painted[], ch
   return true;
 }
 
+/** Scenes `start` to `end` (exclusive) as `paint` paints them, or null when they
+ * fail keepsStageSize. Each stage is judged once its frames in the range are
+ * painted, so a refused change paints no further stage; the verdict is
+ * keepsStageSize's over the whole range. */
+function repaintWithinStageSize(scenes: readonly Scene[], frames: readonly Painted[], start: number, end: number,
+  paint: (scene: Scene) => Painted, growth = STAGE_GROWTH): Painted[] | null {
+  const repainted: Painted[] = [];
+  let first = start;
+  for (let j = start; j < end; j++) {
+    repainted.push(paint(scenes[j]));
+    if (j + 1 < end && scenes[j + 1].stage === scenes[j].stage) continue;
+    const stage = new Map<number, Painted>();
+    for (let index = first; index <= j; index++) stage.set(index, repainted[index - start]);
+    if (!keepsStageSize(scenes, frames, stage, growth)) return null;
+    first = j + 1;
+  }
+  return repainted;
+}
+
 /** The corpus gate's continuity faults (workspaceContinuityReflows, with the
  * closings it grants) at `step` after `previous`, over two painted frames. */
 const pairCache = <T>() => {
@@ -847,16 +866,16 @@ function holdBack(scenes: readonly Scene[], frames: Painted[], coordinates: Map<
           if (point) points.set(memberId, { x: point.x + shift.x, y: point.y + shift.y });
         });
       }
-      const repainted = scenes.slice(start, k).map(paint);
+      // The stage size first: it is cheap, and most holds that fail fail it.
+      const within = repaintWithinStageSize(scenes, frames, start, k, paint), repainted = within ?? [];
       const view = (index: number) => index >= start && index < k ? repainted[index - start] : frames[index];
-      let ok = true;
+      let ok = within !== null;
       for (let j = start; ok && j < k; j++) {
         const frame = repainted[j - start];
         const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
         if (!ordered(frame, frames[j])) ok = false;
         else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText, frames[k])) ok = false;
       }
-      if (ok && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [start + index, frame])))) ok = false;
       for (let j = Math.max(1, start); ok && j <= k; j++) {
         if (newFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length
           || !sameMotion(scenes, j, frames[j - 1], frames[j], view(j - 1), view(j))) ok = false;
@@ -949,16 +968,15 @@ function openSourceRoom(scenes: readonly Scene[], frames: Painted[], coordinates
         }
         if (later) for (const canvas of canvases) if (firstScene.get(canvas)! >= k)
           for (const [id, point] of coordinates.get(canvas)!) coordinates.get(canvas)!.set(id, { x: point.x + shift, y: point.y });
-        const repainted = scenes.slice(start, end).map(paint);
+        const fits = repaintWithinStageSize(scenes, frames, start, end, paint, later ? SEAT_GROWTH : STAGE_GROWTH), repainted = fits ?? [];
         const view = (index: number) => index >= start && index < end ? repainted[index - start] : frames[index];
-        let ok = true;
+        let ok = fits !== null;
         for (let j = start; ok && j < k; j++) {
           const frame = repainted[j - start];
           const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
           if (!ordered(frame, frames[j])) ok = false;
           else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText, view(k))) ok = false;
         }
-        if (ok && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [start + index, frame])), later ? SEAT_GROWTH : STAGE_GROWTH)) ok = false;
         for (let j = Math.max(1, start); ok && j <= k; j++) {
           if (newFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) ok = false;
           else if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) ok = false;
@@ -1021,16 +1039,15 @@ function tryShift(context: Context, k: number, members: readonly string[], amoun
   }
   if (later) for (const canvas of canvases) if (firstScene.get(canvas)! >= k)
     for (const [id, point] of coordinates.get(canvas)!) coordinates.get(canvas)!.set(id, { x: point.x + later, y: point.y });
-  const repainted = scenes.slice(start, end).map(paint);
+  const within = repaintWithinStageSize(scenes, frames, start, end, paint, growth), repainted = within ?? [];
   const view = (index: number) => index >= start && index < end ? repainted[index - start] : frames[index];
-  let reason = '';
+  let reason = within ? '' : 'stage size';
   for (let j = start; !reason && j < k; j++) {
     const frame = repainted[j - start];
     const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
     if (!ordered(frame, frames[j])) reason = `order at ${j + 1}`;
     else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText, view(k))) reason = `clearance at ${j + 1}`;
   }
-  if (!reason && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [start + index, frame])), growth)) reason = 'stage size';
   for (let j = Math.max(1, start); !reason && j <= k; j++) {
     if (newFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `faults at ${j + 1}`;
     else if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `continuity at ${j + 1}`;
@@ -1137,16 +1154,15 @@ function tryShiftForward(context: Context, k: number, shifts: ReadonlyMap<string
       });
     });
   }
-  const repainted = scenes.slice(k, end).map(paint);
+  const within = repaintWithinStageSize(scenes, frames, k, end, paint), repainted = within ?? [];
   const view = (index: number) => index >= k && index < end ? repainted[index - k] : frames[index];
-  let reason = '';
+  let reason = within ? '' : 'stage size';
   for (let j = k; !reason && j < end; j++) {
     const frame = repainted[j - k];
     const changed = new Set([...frame].filter(([id, node]) => { const old = frames[j].get(id); return !old || Math.hypot(old.x - node.x, old.y - node.y) > 1e-6; }).map(([id]) => id));
     if (!ordered(frame, frames[j])) reason = `order at ${j + 1}`;
     else if (changed.size && !keepsClear(changed, frames[j], frame, measureCategoryText)) reason = `clearance at ${j + 1}`;
   }
-  if (!reason && !keepsStageSize(scenes, frames, new Map(repainted.map((frame, index) => [k + index, frame])))) reason = 'stage size';
   for (let j = k; !reason && j <= Math.min(end, scenes.length - 1); j++) {
     if (newFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `faults at ${j + 1}`;
     else if (newContinuityFaults(scenes[j - 1], scenes[j], frames[j - 1], frames[j], view(j - 1), view(j)).length) reason = `continuity at ${j + 1}`;
