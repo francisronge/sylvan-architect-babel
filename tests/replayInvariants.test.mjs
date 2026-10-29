@@ -320,6 +320,14 @@ test('one-letter-per-label: a theta index equal to the chain index staged on its
   assert.deepEqual(checkOneLetterPerLabel(relative), []);
 });
 
+test('one-letter-per-label: a word that is an argument of two theta grids shows both letters', () => {
+  // chapter ends both the DP the chapter (Theme i of revise) and the clause
+  // that the reviewer would revise the chapter (Content k of said). The second
+  // grid's letter used to replace the first: chapterₖ instead of chapterᵢₖ.
+  const record = corpus.records.find(entry => entry.id === 'replay-regressions/workspace-component-lifetime.json#/cases/0').record;
+  assert.deepEqual(checkOneLetterPerLabel(prepare(record)), []);
+});
+
 test('control: marks-at-owning-moment reports a mark before its moment and a mark whose moment never plays', () => {
   assert.deepEqual(checkMarksAtOwningMoment(replay), []);
   const momentOf = (stage, relation) => steps.findIndex(step => step.replayKind === 'relation'

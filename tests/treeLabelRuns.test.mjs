@@ -6,6 +6,7 @@ import {
   identityLabelState,
   thetaLabelState,
   treeLabelRunKey,
+  treeLabelIndexAttributes,
   identityLabelTarget,
   thetaLabelTarget,
   treeLabelRunsForStep
@@ -45,7 +46,7 @@ test('theta retains identity runs, uses the existing saved base and avoids dupli
  const identity=identityLabelState(base,'i');
  assert.deepEqual(thetaLabelState(identity,'i').indices,[{text:'i',mode:'identity'}]);
  assert.equal(thetaLabelState(identity,'j').text,'Book₁₀');
- assert.deepEqual(thetaLabelState(thetaLabelState(identity,'j'),'k').indices,[{text:'i',mode:'identity'},{text:'k',mode:'theta'}]);
+ assert.deepEqual(thetaLabelState(thetaLabelState(identity,'j'),'k').indices,[{text:'i',mode:'identity'},{text:'j',mode:'theta'},{text:'k',mode:'theta'}]);
 });
 test('theta keeps the chain or operator index the step staged on its terminal',()=>{
  const staged={kind:'terminal',text:'PRO₂',stagedText:'PRO₂',defaultText:'PRO',indices:[]};
@@ -75,11 +76,35 @@ test('a theta grid on a moved one-word phrase keeps the chain index on its label
    && runs.get('jean::__leaf').some(run=>run.text==='Jean'&&run.indices.some(index=>index.mode==='theta'))),
    'D₂ stands over Jean once Jean is a chain occurrence, and its theta letter stays on the word');
 });
+test('a word that is an argument of two theta grids keeps both letters in grid order, each once',()=>{
+ const staged={kind:'terminal',text:'leave₁',stagedText:'leave₁',defaultText:'leave',indices:[]};
+ const both=thetaLabelState(thetaLabelState(identityLabelState(staged,'i'),'l'),'m');
+ assert.equal(both.text,'leave₁');
+ assert.deepEqual(both.indices,[{text:'i',mode:'identity'},{text:'l',mode:'theta'},{text:'m',mode:'theta'}]);
+ assert.deepEqual(thetaLabelState(both,'l').indices,both.indices,'a letter two grids share is shown once');
+ const category=thetaLabelState(thetaLabelState({kind:'category',text:'DP [silent]',lines:['DP ','[silent]'],indices:[]},'i'),'j');
+ assert.equal(category.text,'DP [silent]','the second grid keeps the base the first grid reset, not its letter');
+ assert.deepEqual(category.indices.map(index=>index.text),['i','j']);
+});
+test('a second theta letter sits on the lowered line the first one opened',()=>{
+ assert.equal(treeLabelIndexAttributes('terminal','theta').dy,'14');
+ assert.equal(treeLabelIndexAttributes('terminal','theta','identity').dy,'14');
+ assert.equal(treeLabelIndexAttributes('terminal','theta','theta').dy,undefined,'SVG dy accumulates');
+});
+test('the last word of a nominal and a clausal argument shows both grids\' letters',()=>{
+ // workspace-component-lifetime: chapter is Theme i of revise and ends the Content clause k of said.
+ const {cases}=JSON.parse(readFileSync(new URL('../fixtures/replay-regressions/workspace-component-lifetime.json',import.meta.url),'utf8'));
+ const replay=prepareReplay({...cases[0],includePlayback:true});
+ const letters=replay.playbackSteps.map((_step,index)=>treeLabelRunsForStep(replay,index).get('chapterN::__leaf')?.[0]?.indices.map(index=>index.text).join('')??'');
+ assert(letters.includes('ik'),JSON.stringify([...new Set(letters)]));
+ assert(!letters.includes('k'),'the second grid does not replace the first grid\'s letter');
+});
 test('theta category reset preserves current text content and loses wrapping exactly once',()=>{
  const base={kind:'category',text:'DP [silent]',lines:['DP ','[silent]'],indices:[]};
  const first=thetaLabelState(base,'i');
  assert.equal(first.lines,undefined);assert.equal(first.text,'DP [silent]');
- assert.equal(thetaLabelState(first,'j').text,'DP [silent]i');
+ assert.equal(thetaLabelState(first,'j').text,'DP [silent]');
+ assert.deepEqual(thetaLabelState(first,'j').indices.map(index=>index.text),['i','j']);
 });
 test('index targets use exact anchor material, ambiguity and all-trace category rule',()=>{
  const root=d3.hierarchy({id:'p',label:'DP',children:[{id:'a',label:'D',word:'the'},{id:'b',label:'N',word:'book'}]});applyVizIds(root);

@@ -199,31 +199,39 @@ export function createThetaDrawing({
               });
           indexedLabel.each(function appendThetaIndex() {
             const label = d3.select(this);
-            const identityIndices = label.selectAll<SVGTSpanElement, unknown>('.babel-identity-index').nodes();
-            const baseLabel = thetaLabelBase(label.attr('data-identity-base-label'),
+            // Identity indices and an earlier grid's theta letters stay, in the order they were painted.
+            const keptIndices = label.selectAll<SVGTSpanElement, unknown>('.babel-identity-index, .babel-theta-terminal-index').nodes();
+            const baseLabel = label.attr('data-theta-base-label') || thetaLabelBase(label.attr('data-identity-base-label'),
               label.attr('data-staged-label') || label.attr('data-default-label'), this.textContent || '');
             label.text(baseLabel)
               .classed('babel-theta-indexed-label', true)
               .attr('data-theta-base-label', baseLabel);
-            identityIndices.forEach(index => this.appendChild(index));
-            // An equal identity index or staged subscript already shows this letter; it takes theta's ownership too.
-            const indexAction = labelIndexAction(baseLabel, identityIndices.map(index => index.textContent || ''), role.index || '');
-            const sharedIndex = indexAction === 'existing' ? identityIndices.find(index => index.textContent === role.index)
+            keptIndices.forEach(index => this.appendChild(index));
+            // An equal kept index or staged subscript already shows this letter; it takes this grid's ownership too.
+            const indexAction = labelIndexAction(baseLabel, keptIndices.map(index => index.textContent || ''), role.index || '');
+            const sharedIndex = indexAction === 'existing' ? keptIndices.find(index => index.textContent === role.index)
               : indexAction === 'inline' ? this : undefined;
+            const lastKept = keptIndices.at(-1);
+            const after = !lastKept ? undefined : lastKept.classList.contains('babel-identity-index') ? 'identity' as const : 'theta' as const;
             const terminalIndex = sharedIndex ? d3.select(sharedIndex) : label.append('tspan')
               .attr('class', 'babel-theta-terminal-index babel-relation-index')
               .each(function applyThetaIndexStyle() {
-                for (const [name, value] of Object.entries(treeLabelIndexAttributes(roleIsEntirelyTraces ? 'category' : 'terminal', 'theta'))) this.setAttribute(name, value);
+                for (const [name, value] of Object.entries(treeLabelIndexAttributes(roleIsEntirelyTraces ? 'category' : 'terminal', 'theta', after))) this.setAttribute(name, value);
               })
               .text(role.index || '');
             if (sharedIndex) {
               const previous = identityTerminalOwners.get(sharedIndex);
               const refs = mergeIdentityOwners(previous ? planItemRelationRefs(previous) : [], planItemRelationRefs(rowOwner));
               const owner = { ...rowOwner, relationRef: refs[0], composedRefs: refs.slice(1), coalescedRefs: [] };
+              // An earlier grid's own letter keeps theta's unemphasised style; an identity or inline index keeps its emphasis.
+              const thetaOwn = indexAction === 'existing' && !sharedIndex.classList.contains('babel-identity-index');
               if (indexAction === 'existing') terminalIndex.classed('babel-theta-terminal-index', true);
               identityTerminalOwners.set(sharedIndex, owner);
-              decorateRelationElement(sharedIndex, owner, relationEmphasisForItem(owner));
-            } else decorateRelationElement(terminalIndex.node()!, rowOwner, null);
+              decorateRelationElement(sharedIndex, owner, thetaOwn ? null : relationEmphasisForItem(owner));
+            } else {
+              identityTerminalOwners.set(terminalIndex.node()!, rowOwner);
+              decorateRelationElement(terminalIndex.node()!, rowOwner, null);
+            }
           });
         });
       });

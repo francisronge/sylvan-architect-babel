@@ -310,9 +310,9 @@ export function measurePaintedTreeLabelCells(g: DrawingLayer, visibleNodeIds: Re
       label.appendChild(span);
     });
     else label.textContent = run.text;
-    run.indices.forEach((index) => {
+    run.indices.forEach((index, position) => {
       const span = document.createElementNS(namespace, 'tspan');
-      for (const [name, value] of Object.entries(treeLabelIndexAttributes(run.kind, index.mode))) span.setAttribute(name, value);
+      for (const [name, value] of Object.entries(treeLabelIndexAttributes(run.kind, index.mode, run.indices[position - 1]?.mode))) span.setAttribute(name, value);
       span.textContent = index.text;
       label.appendChild(span);
     });

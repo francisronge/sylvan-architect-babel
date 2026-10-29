@@ -36,9 +36,9 @@ export function createTreeLabelMeasure(doc: Document | undefined): TreeLabelMeas
           label.appendChild(span);
         });
       } else label.textContent = runs.text;
-      runs.indices.forEach(run => {
+      runs.indices.forEach((run, position) => {
         const span = doc.createElementNS(namespace, 'tspan');
-        for (const [name,value] of Object.entries(treeLabelIndexAttributes(runs.kind, run.mode))) span.setAttribute(name,value);
+        for (const [name,value] of Object.entries(treeLabelIndexAttributes(runs.kind, run.mode, runs.indices[position - 1]?.mode))) span.setAttribute(name,value);
         span.textContent = run.text;
         label.appendChild(span);
       });
