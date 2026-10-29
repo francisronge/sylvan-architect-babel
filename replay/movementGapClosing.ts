@@ -202,7 +202,9 @@ function newContinuityFaults(previous: Scene, step: Scene, oldBefore: Painted, o
  * side beyond one end, the room between them, and the side that stays. The amount
  * is the most every later frame allows while each row keeps a node unit between
  * centres and the label and word boxes stay clear. A closing is not made when a
- * later step would carry syntax it does not own from one part to another. */
+ * later step would carry syntax it does not own from one part to another, nor
+ * when it takes the room a proximity plaque stands in beside its anchor
+ * (keepsPlaqueRoom; `plaques` names them, from the relation plan). */
 export function closeMovementGaps({ steps, sizes, planned, measureCategoryText, plaques = { anchors: new Map() } }: {
   steps: readonly PlaybackStep[];
   sizes: ReadonlyMap<number, [number, number]>;
