@@ -70,7 +70,8 @@ const bandWidth = (items: readonly AnchorSetPlanItem[]): number => {
  * band 0 and paints as before, a later rail never moves an earlier one, and
  * different rails shown together never share a lane or a badge position.
  * A rail that replaces another with a different sequence appears at its own
- * moment and may take the band its predecessor leaves.
+ * moment and may take the band its predecessor leaves. Each rail also records
+ * its rank in that order of first appearance (`railAppearance`).
  */
 export const assignAnchorRailBands = (
   frames: RelationRenderPlan['frames'],
@@ -120,6 +121,7 @@ export const assignAnchorRailBands = (
         }));
     }
   });
+  [...order].forEach((key, rank) => itemsByRail.get(key)!.forEach(item => { item.railAppearance = rank; }));
   // Rails numbering one entry sequence hold one band, from the first of them
   // to appear, and never conflict with each other.
   const groupOf = new Map([...itemsByRail].map(([key, items]) => [key, railEntries(items)]));

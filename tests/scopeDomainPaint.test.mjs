@@ -82,3 +82,16 @@ test('two items on one domain node are one domain', () => {
   assert.deepEqual(painted.at(-1).get('e'), { rank: 0, count: 2, colourSlot: 1 });
   assert.deepEqual(painted.at(-1).get('d'), { rank: 1, count: 2, colourSlot: 0 });
 });
+
+test('a domain a later movement carries stays one domain, before and after its movement moment', () => {
+  // The relation plan carries a persisted domain as the occurrence the movement
+  // lands, with the transfer; the renderer shows the earlier occurrence until
+  // the movement's moment (renderPlan.ts, resolveDisplayedTrajectoryAttachments).
+  const moved = scope('d', 0, 0, 10), other = scope('e', 0, 1, 20);
+  const carried = { ...scope('d2', 0, 0, 10),
+    occurrenceTransfers: [{ fromNodeId: 'd', toNodeId: 'd2', stageIndex: 1, relationIndex: 1 }] };
+  const plan = planOf([[moved, other], [carried, other]]);
+  const steps = [moment(0, 0), moment(0, 1), micro(1), moment(1, 0), moment(1, 1)];
+  const painted = steps.map((step, stepIndex) => [...scopeDomainPaint(plan, step.replayFrameIndex, steps, stepIndex).values()]);
+  assert.deepEqual(painted.slice(1), Array(4).fill([{ rank: 1, count: 2, colourSlot: 0 }, { rank: 0, count: 2, colourSlot: 1 }]));
+});

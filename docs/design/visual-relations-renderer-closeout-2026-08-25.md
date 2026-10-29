@@ -538,7 +538,9 @@ the words it brackets. Below the lowest tree text and branches over them, on
 the same floor rule and lane, each participant gets a thin bracket spanning the painted
 words it dominates in the current frame, with short ticks rising at the ends
 of every run of words (a run breaks where a word it does not dominate lies
-between). A participant covering no painted word, such as a silent head or a
+between). A pronounced leaf is a word whatever it spells (`copy`, `t`), and
+under Constituent Glyphing a triangulated phrase's words are the word string
+painted on its triangle. A participant covering no painted word, such as a silent head or a
 trace, gets one tick at its own x kept a word-font size clear of the words
 before and after it in tree order; two such participants in one gap keep two
 ticks, in tree order. Brackets stand one short drop above the
@@ -665,7 +667,7 @@ Tree Bank previews capture the visible portion at its correct bounds, with all
 rows preserved in the saved analysis. A static thumbnail does not promise a full
 print layout for extreme content.
 
-The organizational Anchor rail includes its Orchard joining lines. A rail whose claim draws nothing but neutral marks keeps the recognized rail's lifetime instead of expiring with them (Francis, 27 Oct 2026). Like a recognized rail it numbers its own entries from its moment, so it does not change when the neutral role labels expire. Its identity is the ordered sequence of entries it numbers, since its numerals follow that order: a later rail with exactly the same sequence restates it and replaces it at that moment, a restatement in the same stage shares it, and a rail with another sequence, including a subset, superset or reordering of the same entries, is another claim and stands beside it on its own band. This holds for a malformed registered claim too: the rail organizes its authored array and asserts nothing about the claim, whose own ink stays neutral and expires. A neutral role beside a recognized one still lends that role no lifetime. A wholly neutral rail that loses an entry stops there and does not return with the entry. Bound geometry
+The organizational Anchor rail includes its Orchard joining lines. A rail whose claim draws nothing but neutral marks keeps the recognized rail's lifetime instead of expiring with them (Francis, 27 Oct 2026). Like a recognized rail it numbers its own entries from its moment, so it does not change when the neutral role labels expire. Its identity is the ordered sequence of entries it numbers, since its numerals follow that order: a later rail with exactly the same sequence restates it and replaces it at that moment, a restatement in the same stage shares it, and a rail with another sequence, including a subset, superset or reordering of the same entries, is another claim and stands beside it on its own band. This holds for a malformed registered claim too: the rail organizes its authored array and asserts nothing about the claim, whose own ink stays neutral and expires. A neutral role beside a recognized one still lends that role no lifetime. Only its entries hold it: losing another anchor of its claim ends that claim's neutral marks, not the rail. A wholly neutral rail that loses an entry stops there and does not return with the entry. Bound geometry
 retains the exact marks belonging to its authored relation, including existing
 neutral badges, and carries their joins through Fit and zoom. It does not select
 another claim's mark because the two claims share a node.

@@ -5,6 +5,7 @@ import { fitFallbackGeometry } from '../replay/relations/fallbackGeometry.ts';
 import { bindRelationPlanFrame } from '../replay/relations/geometryBinding.ts';
 import { compileRelationRenderPlan } from '../replay/relations/renderPlanCompiler.ts';
 import { pathPolylines } from './helpers/visualFrames.mjs';
+import { isUnderTriangulation } from '../replay/triangulation.ts';
 
 // Loaded lazily so this file also runs, and fails, against a checkout without the law.
 const { coveredWordSpan } = await import('../replay/relations/fallbackSpans.ts').catch(() => ({}));
@@ -148,4 +149,46 @@ test('Arabic determiner and noun: no connector point above the words it brackets
     checked++;
   }
   assert.ok(checked >= 2);
+});
+
+// Codex review on #301: pronunciation, not spelling, makes a leaf a word, and
+// Constituent Glyphing paints a triangulated phrase's words on its triangle.
+const spanTree = (data, xs) => {
+  const tree = d3.hierarchy(data);
+  tree.each(node => { node.x = xs[node.data.id]; node.y = 0; });
+  return tree;
+};
+const boxAt = node => ({ x: node.x - 40, y: 100, width: 80, height: 50 });
+
+test('a pronounced word spelled like trace notation is bracketed; a silent trace still ticks', () => {
+  for (const text of ['copy', 't', 'book']) {
+    const tree = spanTree({ id: 'VP', label: 'VP', children: [
+      { id: 'V', label: 'V', children: [{ id: 'w', label: text, word: text }] }, { id: 'it', label: 'it', word: 'it' }] },
+    { VP: 150, V: 0, w: 0, it: 300 });
+    const span = coveredWordSpan(tree.leaves()[0], boxAt);
+    assert.deepEqual(span.runs, [{ x1: -40, x2: 40 }], `pronounced "${text}" is a bracketed word`);
+    assert.equal(span.tick, null);
+  }
+  for (const trace of [{ id: 'w', label: 't' }, { id: 'w', label: 'copy', word: 'copy', silent: true }]) {
+    const tree = spanTree({ id: 'VP', label: 'VP', children: [trace, { id: 'it', label: 'it', word: 'it' }] }, { VP: 150, w: 0, it: 300 });
+    const span = coveredWordSpan(tree.leaves()[0], boxAt);
+    assert.deepEqual(span.runs, [], `unpronounced ${JSON.stringify(trace)} covers no word`);
+    assert.notEqual(span.tick, null);
+  }
+});
+
+test('a triangulated phrase is bracketed under the words painted on its triangle', async () => {
+  const { markTriangulatedNodes } = await import('../replay/triangulation.ts');
+  const tree = spanTree({ id: 'VP', label: 'VP', children: [
+    { id: 'V', label: 'V', children: [{ id: 'read', label: 'read', word: 'read' }] },
+    { id: 'DP', label: 'DP', children: [{ id: 'the', label: 'D', word: 'the' }, { id: 'book', label: 'N', word: 'book' }] }] },
+  { VP: 300, V: 100, read: 100, DP: 500, the: 420, book: 580 });
+  markTriangulatedNodes(tree, new Set());
+  const dp = tree.descendants().find(node => node.data.id === 'DP');
+  assert.ok(dp.isTriangulated, 'Constituent Glyphing collapses the DP');
+  const triangleWords = { x: 380, y: 130, width: 240, height: 50 };
+  // As the painter measures: no box under a triangle, the triangle's word string on it.
+  const painted = node => isUnderTriangulation(node) ? null : node.isTriangulated ? triangleWords : boxAt(node);
+  assert.deepEqual(coveredWordSpan(dp, painted).runs, [{ x1: 380, x2: 620 }]);
+  assert.deepEqual(coveredWordSpan(tree.descendants().find(node => node.data.id === 'V'), painted).runs, [{ x1: 60, x2: 140 }]);
 });

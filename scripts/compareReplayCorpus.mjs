@@ -32,7 +32,7 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
       const own = shardRecords(records, shard);
       const snapshots = await measureCheckouts([baselineRoot, candidateRoot], own, layout, { scratch, timeout, jobs });
       await writeFile(path.resolve(snapshotsOut), JSON.stringify({ schemaVersion: 1, shard: `${shard.index}/${shard.total}`,
-        ids: records.map(record => record.id), layout, harness, snapshots }));
+        ids: records.map(record => record.id), expects: records.map(record => record.expect), layout, harness, snapshots }));
       return { shard: `${shard.index}/${shard.total}`, analyses: own.length, of: records.length };
     }
     const snapshots = merge.length ? await mergeShards(merge, records, layout, harness)
@@ -106,7 +106,8 @@ export function shardRecords(records, { index, total }) {
 }
 
 /** Both checkouts' snapshots over `records`, from shard files. The shards must
- * be 1..N of one N, have selected the same records at the same layout with
+ * be 1..N of one N, have selected the same records with the same mechanism
+ * expectations (a shard judges them as it measures) at the same layout with
  * the same harness, report the same source identity for each checkout, and
  * together hold every record exactly once for each checkout. */
 async function mergeShards(files, records, layout, harness) {
@@ -115,10 +116,11 @@ async function mergeShards(files, records, layout, harness) {
   const expected = Array.from({ length: total }, (_, index) => `${index + 1}/${total}`);
   if (!total || JSON.stringify([...names].sort()) !== JSON.stringify(expected.sort()))
     throw Error(`--merge needs shards 1/N to N/N of one N, each once; got ${names.join(', ')}`);
-  const ids = JSON.stringify(records.map(record => record.id));
+  const ids = JSON.stringify(records.map(record => record.id)), expects = JSON.stringify(records.map(record => record.expect));
   for (const shard of shards) {
     if (shard.schemaVersion !== 1 || JSON.stringify(shard.ids) !== ids || JSON.stringify(shard.layout) !== JSON.stringify(layout))
       throw Error(`Shard ${shard.shard} measured other records or another layout than this run selects`);
+    if (JSON.stringify(shard.expects) !== expects) throw Error(`Shard ${shard.shard} judged other mechanism expectations than this run selects`);
     if (JSON.stringify(shard.harness) !== JSON.stringify(harness)) throw Error(`Shard ${shard.shard} ran another harness`);
   }
   return [0, 1].map(side => {

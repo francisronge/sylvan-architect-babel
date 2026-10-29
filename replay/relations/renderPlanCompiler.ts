@@ -681,7 +681,11 @@ export const compileDispatchedRelationRenderPlan = (
             entries: railEntrySequence(roles) }) } : {}),
           backward: owner.backward,
           priorWitnessNodeIds: owner.priorWitnessNodeIds,
-          tier2WitnessNodeIds: planItemDependencyNodeIds(owner),
+          // A wholly neutral rail outlives its owner and depends only on the
+          // resolved entries it numbers; the owner's other anchors end only the owner.
+          tier2WitnessNodeIds: ownLifetime
+            ? [...new Set(roles.flatMap(role => role.anchors.filter(anchor => anchor.resolved).map(anchor => anchor.nodeId)))]
+            : planItemDependencyNodeIds(owner),
           claimTier: owner.claimTier ?? claim.tier,
           organizationOwners: [claim.canonicalClaimIdentity],
           // A persisting rail numbers its own entries from its moment on, as a

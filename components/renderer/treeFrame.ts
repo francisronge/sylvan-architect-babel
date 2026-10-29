@@ -372,7 +372,8 @@ export function drawTreeFrame({ layout, replay, relations, camera, lifecycle }: 
     playedRelationIndices,
     svg,
     updateScreenStableText: scale => updateScreenStableText(g, scale),
-    deferredTreeMatrix: settledTreeMatrix
+    deferredTreeMatrix: settledTreeMatrix,
+    treeDirection
   });
   const identityLighting = createIdentityForestLight({
     container: containerRef.current, svg: svgRef.current, identityForestLightFamilies, reportViewError
