@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { prepareReplay } from '../replay/prepareReplay.ts';
 import { treeLabelRunsForStep } from '../replay/treeLabelRuns.ts';
+import { checkOneLetterPerLabel } from './helpers/replayInvariants.mjs';
 
 /* Defects of the 29 October 2026 held-out batch, each reproduced from its saved
  * analysis (tests/helpers/heldoutDefectRecords.json). */
@@ -33,4 +34,12 @@ test('Opus h1-014: the words of a moved wh-phrase carry no operator-variable lin
     assert.deepEqual([...new Set(runs.get('DP_wh').map(run => run.text))], ['DP₂'], `step ${step}`);
     assert.deepEqual([...new Set(runs.get('I1::__leaf').map(run => run.text))], ['did₃'], `step ${step}`);
   }
+});
+
+test('Sol h1-070: a theta letter and an equal binding letter on one trace show the letter once', () => {
+  // The allocator gives the argument rop the letter i of its relative chain, so
+  // its theta letter and the operator-variable letter are one index; from step
+  // 56 the label read ropᵢᵢ. The binding letter now decorates the label that
+  // already writes it, as it does for a written subscript.
+  for (const key of ['sol-h1-070-a1', 'sol-h1-070-a2']) assert.deepEqual(checkOneLetterPerLabel(prepare(key)), [], key);
 });

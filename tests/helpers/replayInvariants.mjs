@@ -1117,7 +1117,7 @@ export function checkOneLetterPerLabel(replay, planLetters = planIndexLetters) {
         if (role === 'variable') return (witnessNodeId && terminal(witnessNodeId)) || accepted(variableNodeId);
         return role === 'badge' && family !== 'parasitic-gap.composition' ? accepted(nodeId) : shell(nodeId);
       };
-      const letterLabels = indexLetterLabels(g, resolve);
+      const letterLabels = indexLetterLabels(g, resolve, grids);
       const letterPlan = planLetters(primitives, items, { ...letterLabels, emphasisRank: item => !identity ? 1
         : planItemOwnsRelationMoment(item, identity.stageIndex, identity.relationIndex) ? 2 : 0 });
       const layer = () => g.append('g');
