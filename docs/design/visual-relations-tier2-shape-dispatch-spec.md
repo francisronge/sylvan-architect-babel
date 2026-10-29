@@ -81,7 +81,15 @@ path; denied, competing and unresolved references remain neutral.
   named. The finite head remains context; a repeated or ambiguous endpoint
   does not redirect the connector. A concord claim is an agreement claim here
   (the owner approved this name on 27 Oct 2026) when each feature row is one
-  feature value token; prose such as `default sg` leaves it neutral.
+  feature value token and concord heads the name; prose such as `default sg`
+  and a name such as `concord mismatch` leave it neutral.
+- The readings added on 27 Oct 2026 (same-name and listed θ labels, θ-marking,
+  concord, the phi bundle, a lone feature label, a governed Case recipient and
+  Control without a domain) draw only claims stated positively. A word of the
+  relation name or of any authored value that is in the existing denial list
+  (`DENIED_OR_UNSET` in `tier2Synonyms.ts`), as in `no theta assignment`,
+  `failed spec-head agreement` or `status: failed`, leaves the claim to the
+  reading main already has, which is usually neutral.
   A uniquely named modifier or predicate can supply that feature host when no
   target or qualified agreement host is named. Competing hosts, a mediator,
   controllee, missing features or a nonasserted claim do not earn this recovery.
