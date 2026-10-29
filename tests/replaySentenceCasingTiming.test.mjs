@@ -148,3 +148,16 @@ test('a sentence-initial word preceded by pronounced material in a separate work
     workspace(pro, whPhrase, verb))]), sentence);
   assert.equal(find(first.replayCanvasData, 'which').word, 'Which', 'as the first pronounced word it keeps its authored form');
 });
+
+test('each separate workspace keeps the authored form of its own first word', () => {
+  const whPhrase = { id: 'dp-wh', label: 'D[wh]', children: [
+    { id: 'd-wh', label: 'D[wh]', children: [word('which', 'Which')] },
+    { id: 'n', label: 'N', children: [word('violin', 'violin')] }
+  ] };
+  const verb = { id: 'v', label: 'V', children: [word('bring', 'bring')] };
+  const workspace = (...children) => ({ id: 'workspace', label: 'Workspace', replayOrigin: { kind: 'workspace' }, children });
+  const visible = ['v', 'bring', 'dp-wh', 'd-wh', 'which', 'n', 'violin'];
+  const sentence = 'Which violin did Nora say that the musician had forgotten to bring?';
+  const [after] = applyPreFrontingSentenceInitialCasing(freeze([step('LexicalSelect', visible, workspace(verb, whPhrase))]), sentence);
+  assert.equal(find(after.replayCanvasData, 'which').word, 'Which', 'an unattached root is not preceded by another root');
+});

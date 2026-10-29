@@ -29,7 +29,9 @@ const BARE_D_SENTENCE_CASED_FORMS = new Set([
   'there', 'it', 'he', 'she', 'we', 'they', 'you', 'me', 'him', 'her', 'us', 'them',
   'this', 'that', 'these', 'those', 'who', 'whom', 'whose', 'what', 'which',
   'someone', 'somebody', 'something', 'everyone', 'everybody', 'everything',
-  'anyone', 'anybody', 'anything', 'no one', 'nobody', 'nothing', 'each', 'both', 'all', 'none'
+  'anyone', 'anybody', 'anything', 'no one', 'nobody', 'nothing', 'each', 'both', 'all', 'none',
+  'one', 'some', 'any', 'many', 'much', 'few', 'several', 'most', 'either', 'neither', 'another',
+  'mine', 'yours', 'his', 'hers', 'ours', 'theirs'
 ]);
 
 // Atomic D also represents names and pronouns; a nominal complement supplies
@@ -68,7 +70,8 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
     if (!clonedCanvas)
       return step;
     // Separate workspaces keep the authored form of their first word, but a
-    // word preceded by visible pronounced material is never sentence-initial.
+    // word preceded by visible pronounced material in its own workspace is
+    // never sentence-initial.
     const detachedForest = clonedCanvas.replayOrigin?.kind === 'workspace';
     let changed = false;
     // Keep first-preorder lookup semantics, including aliases, while collecting
@@ -80,10 +83,11 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
     }>();
     const nodesByName = new Map<string, SyntaxNode>();
     const leafIds: string[] = [];
+    const leafWorkspaces = new Map<string, SyntaxNode>();
     const visibleNodeIds = Array.isArray(step.replayVisibleNodeIds)
       ? getReplayVisibleNodeIdSet(step)
       : null;
-    const visit = (node: SyntaxNode, parent: SyntaxNode | null, silent: boolean, layout: boolean) => {
+    const visit = (node: SyntaxNode, parent: SyntaxNode | null, silent: boolean, layout: boolean, workspace: SyntaxNode) => {
       silent = replayEffectiveSilence(node, silent);
       // Invisible scaffolding may contain current visible syntax grafted beneath it.
       layout = (!visibleNodeIds && layout)
@@ -97,11 +101,15 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
           nodesByName.set(key, node);
       }
       const children = Array.isArray(node.children) ? node.children : [];
-      if (!children.length && id && isLexicalLeaf(node))
+      if (!children.length && id && isLexicalLeaf(node)) {
         leafIds.push(id);
-      children.forEach(child => visit(child, node, silent, layout));
+        if (!leafWorkspaces.has(id))
+          leafWorkspaces.set(id, workspace);
+      }
+      children.forEach(child => visit(child, node, silent, layout,
+        detachedForest && node === clonedCanvas ? child : workspace));
     };
-    visit(clonedCanvas, null, false, false);
+    visit(clonedCanvas, null, false, false, clonedCanvas);
     // In bare labels a phrase dominating a word directly (C over a raw 'Who')
     // names its projection, not the word's head; X-bar writes it as CP.
     const bare = readBareProjections([clonedCanvas]);
@@ -117,7 +125,12 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
         leaf: SyntaxNode;
         silent: boolean;
       } => Boolean(entry));
-    const firstPronouncedLeafId = String(currentLeaves.find((entry) => !entry.silent)?.leaf.id || '');
+    const firstPronouncedLeafIds = new Map<SyntaxNode, string>();
+    currentLeaves.forEach(({ leaf, silent }) => {
+      const workspace = leafWorkspaces.get(String(leaf.id || ''))!;
+      if (!silent && !firstPronouncedLeafIds.has(workspace))
+        firstPronouncedLeafIds.set(workspace, String(leaf.id || ''));
+    });
     const casingByLeafId = new Map<string, string>();
     currentLeaves.forEach(({ leaf }) => {
       const surface = String(leaf.word || leaf.label || '').trim();
@@ -138,7 +151,7 @@ export const normalizeReplaySentenceInitialCasing = (steps: PlaybackStep[], sent
         const landing = nodesByName.get(String(link.targetNodeId || ''));
         return landing && collectOvertLeafNodeIdsInOrder(landing).includes(leafId);
       });
-      const nextSurface = leafId && leafId === firstPronouncedLeafId
+      const nextSurface = leafId && leafId === firstPronouncedLeafIds.get(leafWorkspaces.get(leafId)!)
         ? (detachedForest ? surface : authoredLowercaseSource && !surfacedLanding ? authoredSurface : uppercaseInitial)
         : maybeLowercaseSentenceInitialFunctionSurface({
           surface,
