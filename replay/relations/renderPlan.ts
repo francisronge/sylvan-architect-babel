@@ -558,6 +558,10 @@ export type AnchorSetPlanItem = PlanItemBase & {
    * rails shown together over shared terminals never meet (anchorRailBands.ts).
    * Absent for band 0. */
   railBand?: number;
+  /** Rank of this rail's first appearance in Replay (anchorRailBands.ts).
+   * Badges clear the badges of rails shown before theirs, never those of a
+   * rail shown later, so a rail's badges hold when a later rail appears. */
+  railAppearance?: number;
   badgeSize: 'standard' | 'compact';
   /** Exact claims whose already-materialized entries this organization follows. */
   organizationOwners?: string[];

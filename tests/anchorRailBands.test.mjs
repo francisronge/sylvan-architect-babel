@@ -232,3 +232,19 @@ test('bands do not depend on whether playback is requested', () => {
   assert.deepEqual(bands(true), [[], [[0, 1], [1, 0]]]);
   assert.deepEqual(bands(false), bands(true));
 });
+
+test('a wholly neutral rail depends only on the entries it numbers, not on a scalar context anchor', () => {
+  // The rail organizes the authored array and asserts nothing about the claim,
+  // so losing the claim's other anchor ends only the neutral labels; losing an
+  // entry still ends the rail.
+  const list = span('a', 'e');
+  const withoutContext = ids.filter(id => id !== 'z');
+  const contextual = { relation: 'Open list', anchors: { members: list, context: 'z' } };
+  const stages = [stage([contextual], [...ids, 'z']), stage([], withoutContext), stage([], withoutContext.filter(id => id !== 'c'))];
+  const plan = compileRelationRenderPlan(stages);
+  const rails = index => view(plan, index, null).rails.map(rail => rail.rail);
+  assert.deepEqual(rails(0), ['0:0']);
+  assert.deepEqual(rails(1), ['0:0'], 'the rail stays when only the context anchor leaves');
+  assert.deepEqual(view(plan, 1, null).badges.map(badge => badge.numeral), [1, 2, 3, 4, 5]);
+  assert.deepEqual(rails(2), [], 'the rail stops when an entry leaves');
+});

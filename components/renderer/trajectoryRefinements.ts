@@ -4,9 +4,10 @@ import {
   phaseArcPath
 } from '../../replay/relations/markGeometry.ts';
 import {
-  quadraticTrajectoryControl, quadraticTrajectoryInsets, SHELL_ATTACHMENT_CLEARANCE, steepTrajectoryBowWeight,
-  TRAJECTORY_ROUTES, type TrajectoryBow
+  defaultTrajectoryBowSide, quadraticTrajectoryControl, quadraticTrajectoryInsets, SHELL_ATTACHMENT_CLEARANCE,
+  steepTrajectoryBowWeight, TRAJECTORY_ROUTES, type TrajectoryBow
 } from '../../replay/rendererMetrics.ts';
+import type { TreeDirection } from '../../replay/treeLayout.ts';
 import { type HierNode } from '../../replay/types.ts';
 import type { DrawingLayer, RelationMeasurements } from './drawingContext.ts';
 interface TrajectoryRefinementsContext extends Pick<RelationMeasurements,
@@ -21,6 +22,7 @@ interface TrajectoryRefinementsContext extends Pick<RelationMeasurements,
 > {
   g: DrawingLayer;
   laneTrajectoryPaths: () => SVGPathElement[];
+  direction?: TreeDirection;
 }
 export function createTrajectoryRefinements({
   measuredShellRect,
@@ -32,7 +34,8 @@ export function createTrajectoryRefinements({
   measureRenderedElementsInTreeSpace,
   measuredTrajectorySubtreeRect,
   unionRects,
-  laneTrajectoryPaths
+  laneTrajectoryPaths,
+  direction = 'ltr'
 }: TrajectoryRefinementsContext) {
   const measuredDepartureRect = (path: d3.Selection<SVGPathElement, unknown, null, undefined>) => {
     const terminal = path.attr('data-trajectory-source-attachment') === 'terminal';
@@ -42,14 +45,16 @@ export function createTrajectoryRefinements({
     return terminal ? measuredTrajectoryTerminalRect(id) : measuredTrajectoryShellRect(id);
   };
   /** Measured centres set how fully a route bows; the side is the binder's,
-   * which only it can read from the departure's parent, else left. */
+   * which only it can read from the departure's parent, else the default side. */
   const measuredBow = (
     path: d3.Selection<SVGPathElement, unknown, null, undefined>,
     sourceCenter: { x: number; y: number },
     targetCenter: { x: number; y: number }
   ): TrajectoryBow | null => {
     const weight = steepTrajectoryBowWeight(sourceCenter, targetCenter);
-    return weight > 0 ? { side: path.attr('data-trajectory-bow') === '1' ? 1 : -1, weight } : null;
+    const recorded = path.attr('data-trajectory-bow');
+    const side = recorded === '1' ? 1 : recorded === '-1' ? -1 : defaultTrajectoryBowSide(direction);
+    return weight > 0 ? { side, weight } : null;
   };
   const refineAcrossTheBoardPaths = () => {
     const atbPaths = g.selectAll<SVGPathElement, unknown>('.vr-trajectory-atb').nodes();

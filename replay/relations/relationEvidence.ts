@@ -203,11 +203,20 @@ export const buildTier2FacetEvidence = ({
   }
   const directedConcord = directedNominalConcordMembers({ relationName: relation.relation, currentForest,
     authoredCurrentAnchors: currentAnchors.authored, authoredValues: values.authored });
+  // The directed reading is exclusive: concepts the same roles gain only by
+  // also reading the concord as agreement are dropped with their items.
   for (const entry of directedConcord) {
     const concept = normalizeTier2Synonym(entry.key) === 'controller' ? 'feature.source' : 'feature.target';
+    const own = relationRoleConcepts(synonymIndex, entry.key, { ...relation, forest: currentForest, directedConcord: true });
+    for (const other of entry.concepts.filter(other => !own.includes(other))) {
+      const remaining = (currentAnchors.concepts[other] ?? []).filter(id => !entry.items.includes(id));
+      if (remaining.length) currentAnchors.concepts[other] = remaining;
+      else delete currentAnchors.concepts[other];
+    }
     currentAnchors.concepts[concept] = [...entry.items];
-    entry.concepts = [...new Set([...entry.concepts, concept])];
-    entry.conceptItemIndices = { ...entry.conceptItemIndices, [concept]: entry.items.map((_, index) => index) };
+    entry.concepts = [...new Set([...entry.concepts.filter(other => own.includes(other)), concept])];
+    entry.conceptItemIndices = { ...Object.fromEntries(Object.entries(entry.conceptItemIndices ?? {})
+      .filter(([other]) => own.includes(other))), [concept]: entry.items.map((_, index) => index) };
   }
   const declaredContributors = currentAnchors.authored.filter(entry => entry.concepts.includes('pf.contributors'));
   const contributors = declaredContributors.length ? declaredContributors : currentAnchors.authored;

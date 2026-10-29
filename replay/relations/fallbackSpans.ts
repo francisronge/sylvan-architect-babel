@@ -1,6 +1,7 @@
 import type * as d3 from 'd3';
 import type { SyntaxNode } from '../../types.ts';
-import { isDisplayTerminalNode, isNotationSurface, isWordlessCategoryLeaf, resolveLeafSurface, shouldExpandPreterminalLeaf } from '../replaySurfaceNotation.ts';
+import { isDisplayTerminalNode, isWordlessCategoryLeaf, shouldExpandPreterminalLeaf } from '../replaySurfaceNotation.ts';
+import { isNotationLeaf } from '../syntaxForest.ts';
 import type { Rect } from './overlayGeometry.ts';
 
 type Node = d3.HierarchyNode<SyntaxNode> & { x?: number; y?: number };
@@ -31,16 +32,29 @@ export type FallbackWordSpan = {
 /** Space a tick keeps from its neighbouring words, in tree units: one word-font size. */
 const TICK_GAP = 56;
 
+// Pronunciation decides, not spelling: a pronounced `copy` or `t` is a word.
 const isWord = (node: Node): boolean => !node.children?.length && isDisplayTerminalNode(node.data)
-  && !isNotationSurface(resolveLeafSurface(node));
+  && !isNotationLeaf(node.data);
 
-/** `wordRect` returns a word's painted text box, or null when the word is not painted in this frame. */
+/** The node whose painting shows a leaf's word: its outermost triangulated
+ * ancestor, which paints its words on the triangle, or the leaf itself. */
+const wordPainter = (leaf: Node): Node => {
+  let painter = leaf;
+  for (let node = leaf.parent; node; node = node.parent) {
+    if ((node as Node & { isTriangulated?: boolean }).isTriangulated) painter = node;
+  }
+  return painter;
+};
+
+/** `wordRect` returns the painted text box of a word, or of the word string a
+ * triangulated constituent paints on its triangle, or null when it is not
+ * painted in this frame. A triangle's words share its one box. */
 export function coveredWordSpan(anchor: Node, wordRect: (node: Node) => Rect | null, direction: 'ltr' | 'rtl' = 'ltr',
   paintedLabel = String(anchor.data.label || '')): FallbackWordSpan {
   const root = anchor.ancestors().at(-1)!;
   const leaves = root.leaves() as Node[];
   const words = leaves.flatMap(leaf => {
-    const rect = isWord(leaf) ? wordRect(leaf) : null;
+    const rect = isWord(leaf) ? wordRect(wordPainter(leaf)) : null;
     return rect ? [{ leaf, rect }] : [];
   });
   const own = new Set(anchor.leaves());
