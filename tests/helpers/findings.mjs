@@ -168,6 +168,7 @@ function approvalRewritten(previous, entry) {
   if (!after) return 'removed';
   if (growthOf({ at: before.accepts }, entry).length) return String(after.on) < String(before.on) ? 'dated earlier' : null;
   const changed = ['by', 'on', 'note'].filter(field => String(before[field] ?? '').trim() !== String(after[field] ?? '').trim());
+  if (growthOf({ at: before.accepts }, { at: after.accepts }).length) changed.push('accepts widened');
   return changed.length ? changed.join(', ') : null;
 }
 
