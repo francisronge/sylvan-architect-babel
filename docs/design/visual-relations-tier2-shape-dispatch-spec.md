@@ -80,7 +80,8 @@ path; denied, competing and unresolved references remain neutral.
   authored features identify one dependency even when a finite head is also
   named. The finite head remains context; a repeated or ambiguous endpoint
   does not redirect the connector. A concord claim is an agreement claim here
-  (the owner approved this name on 27 Oct 2026).
+  (the owner approved this name on 27 Oct 2026) when each feature row is one
+  feature value token; prose such as `default sg` leaves it neutral.
   A uniquely named modifier or predicate can supply that feature host when no
   target or qualified agreement host is named. Competing hosts, a mediator,
   controllee, missing features or a nonasserted claim do not earn this recovery.
@@ -561,7 +562,10 @@ domain for generic `assigner` and `recipient` roles. It still needs one exact
 source and recipient, with no competing Case or feature interpretation. The
 literal role is preserved; generic assignment language alone supplies no theta
 meaning. A theta-marking clause is a theta-assignment clause (the owner approved
-this name on 27 Oct 2026).
+this name on 27 Oct 2026) when every role literal is a named thematic role
+(agent, theme, patient, experiencer, beneficiary, instrument, location,
+recipient, goal). In any typed theta clause a Case name such as `accusative` or
+`NOM` in the role slot leaves the claim neutral.
 
 An explicit complement can receive a typed theta role when it is the named
 assigner's actual sister. A named predicate and one separately named lexical
@@ -578,14 +582,17 @@ Agreement-qualified goals also bind the registered Agree signature. A finite
 head and subject with explicit feature values, or a head and specifier with an
 explicit agreement value or a phi bundle, at least two of person, number and
 gender each written as one feature value token, can establish a feature
-dependency. One dimension alone, such as `{head, specifier}` with `number: sg`
+dependency. A value token is letters or digits only; `n/a`, `-`, `3≠1`, an empty
+value, a denying word such as `none` and a serialized JSON literal such as
+`null` state no value. One dimension alone, such as `{head, specifier}` with `number: sg`
 in an EPP claim, a dimension described in prose, or a generic features field
 does not establish it. Without feature rows or Case, one feature label written
-as notation, a signed feature such as `+wh`, `−hon` or `[+Q]`, is the whole
+as notation, a sign followed by letters such as `+wh`, `−hon` or `[+Q]`, is the whole
 content of a head-specifier or named agreement pair (the owner approved this on
 27 Oct 2026). Any dependency whose only content is such a label shows it on its
 connector instead of leaving it as a neutral mark. A bare word such as `yes`,
-`no` or `Rel` states no feature value and stays neutral; a Case literal beside
+`no` or `Rel`, digits such as `+3` and punctuation runs such as `+1-555-0100`
+state no feature value and stay neutral; a Case literal beside
 the label makes the claim a Case claim, which the label does not complete.
 Prose labels, competing labels and other directed pairs, such as a licensor and
 licensee, still need feature rows or explicit probe and goal roles. A finite head and
@@ -637,10 +644,11 @@ role literals take precedence. The exact key-to-node associations participate in
 drawing identity, so swapping two roles cannot reuse the earlier grid.
 An argument field's same-name, same-length values list supplies its role labels,
 so it also establishes the thematic domain beside a directional assigner:
-`{assigner, argument: [a, b]}` with `argument: [Theme, Source]` is one grid. The
+`{assigner, argument: [a, b]}` with `argument: [Theme, Location]` is one grid. The
 same entry can instead give the argument's Case, so it establishes the domain
-only when no item is a Case value the Case reader accepts and at least one item
-names a known thematic role; `argument: accusative` stays a Case path and
+only when every item names a known thematic role and none is a Case value the
+Case reader accepts; `argument: [Agent, objective]` and `[Theme, Source]` stay
+neutral, `argument: accusative` stays a Case path and
 `argument: partitive` stays neutral. A claim that names its predicate keeps its
 existing reading; the list does not move the grid onto an introducer or assigner.
 A role-label list beside an explicit predicate pairs by name, never by position,
@@ -649,7 +657,11 @@ when each literal names a different participant field of the claim:
 fields, in either list order, and a named field is a participant whatever its
 direction word, so `source` named by the list is not the grid's source. A
 literal that names no field or names a field twice pairs nothing, and without
-an explicit predicate the list establishes no participants. When the list and
+an explicit predicate the list establishes no participants. The list names
+arguments only: a literal naming the predicate (or, without a named predicate,
+the assigning or introducing field) pairs nothing, so `roles: [Agent, Content,
+Predicate]` stays neutral, and a list that leaves an argument field unnamed is
+ambiguous and stays neutral. When the list and
 the field's own entry label one field differently, as `roles: [Agent, Theme]`
 beside `theme: Patient`, neither label is chosen and the claim stays neutral.
 
@@ -1038,7 +1050,8 @@ including optional fields already present in those signatures, with one
 exception the owner approved on 27 Oct 2026: the exact Control signature's
 domain is optional. A Control claim with a controller and controllee but no
 domain draws the connector and coindex that the smaller recipe draws; an
-authored domain must still resolve and adds its rectangle.
+authored domain must still resolve and adds its rectangle. A controller and
+controllee that are the same node draw nothing, with or without a domain.
 
 An asserted Quantifier Raising clause, including one combined with variable
 binding, can establish the covert claim. Open participant names do not require

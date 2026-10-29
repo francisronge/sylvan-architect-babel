@@ -16,8 +16,9 @@ const rows = item => item?.thetaRoles?.map(({ nodeId, label }) => [nodeId, label
 
 test('an assigner with role labels listed under its argument field draws that grid', () => {
   // The same-name list pairs by the contract; it also makes the assigner the grid's predicate.
+  // Every label must be a named thematic role.
   assert.deepEqual(rows(grid({ relation: 'UnregisteredAnalysis', anchors: { assigner: 'v', argument: ['object', 'pp'] },
-    values: { argument: ['Theme', 'Source'] } })), [['object', 'Theme'], ['pp', 'Source']]);
+    values: { argument: ['Theme', 'Location'] } })), [['object', 'Theme'], ['pp', 'Location']]);
   // An unequal list pairs nothing and stays neutral.
   assert.equal(grid({ relation: 'UnregisteredAnalysis', anchors: { assigner: 'v', argument: ['object', 'pp'] },
     values: { argument: ['Theme'] } }), undefined);
@@ -90,4 +91,34 @@ test('a field the role list and its own entry label differently stays neutral', 
   // Two labels that agree are one label.
   assert.deepEqual(rows(grid({ ...relation, values: { roles: ['Agent', 'Theme'], theme: 'Theme' } })),
     [['subject', 'Agent'], ['object', 'Theme']]);
+});
+
+test('a role list never gives the predicate a role, and must name the arguments exactly', () => {
+  // On 50c09be a list naming the predicate drew a Tier-1 grid giving V the role "Predicate".
+  for (const [anchors, roles] of [
+    [{ predicate: 'v', agent: 'subject', content: 'object' }, ['Agent', 'Content', 'Predicate']],
+    [{ predicate: 'v', agent: 'subject', theme: 'object' }, ['Agent', 'Theme', 'Predicate']],
+    [{ assigner: 'v', agent: 'subject', theme: 'object' }, ['Agent', 'Theme', 'Assigner']],
+    [{ predicate: 'v', agent: 'subject', theme: 'object', location: 'pp' }, ['Agent', 'Theme']]
+  ]) {
+    assert(plan({ relation: 'theta assignment', anchors, values: { roles } }).every(item => item.kind === 'fallback'), roles.join());
+  }
+  assert.deepEqual(rows(grid({ relation: 'theta assignment', anchors: { predicate: 'v', agent: 'subject', theme: 'object' },
+    values: { roles: ['Agent', 'Theme'] } })), [['subject', 'Agent'], ['object', 'Theme']]);
+});
+
+test('a Case name, or any value that is not a named thematic role, in a theta slot stays neutral', () => {
+  // On 50c09be "objective" drew as a theta role beside Agent, and theta-marking drew the role "accusative".
+  const neutral = relation => plan(relation).every(item => item.kind === 'fallback');
+  assert(neutral({ relation: 'X', anchors: { assigner: 'v', arguments: ['subject', 'object'] }, values: { arguments: ['Agent', 'objective'] } }));
+  assert(neutral({ relation: 'UnregisteredAnalysis', anchors: { assigner: 'v', argument: ['object', 'pp'] }, values: { argument: ['Theme', 'Source'] } }));
+  for (const role of ['accusative', 'NOM', 'objective', 'Source']) {
+    assert(neutral({ relation: 'theta-marking', anchors: { assigner: 'v', recipient: 'object' }, values: { role } }), role);
+  }
+  // Main drew a Case name as the role of a typed Tier-2 theta claim; that is neutral too.
+  for (const relation of ['matrix theta assignment', 'theta licensing']) {
+    assert(neutral({ relation, anchors: { assigner: 'v', recipient: 'object' }, values: { role: 'accusative' } }), relation);
+  }
+  assert.deepEqual(rows(grid({ relation: 'theta-marking', anchors: { assigner: 'v', recipient: 'object' }, values: { role: 'Theme' } })),
+    [['object', 'Theme']]);
 });

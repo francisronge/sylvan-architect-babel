@@ -258,3 +258,14 @@ test('a growing recovered chain keeps the registered identity index', () => {
   assert(indices.length >= 2);
   assert.equal(new Set(indices).size, 1);
 });
+
+test('a concord claim draws only when each feature row is one feature value', () => {
+  // On 50c09be number: 'default sg' drew positive concord.
+  const forest = [node('np', 'NP', [leaf('possessor', 'D'), leaf('noun', 'N')])];
+  const anchors = { controller: 'noun', target: 'possessor' };
+  for (const values of [{ number: 'default sg' }, { number: 'none' }, { number: '-' }, { number: 'n/a' },
+    { number: 'plural', gender: 'masculine or neuter' }]) {
+    assert.equal(inspect(anchors, values, forest, 'concord').has('feature.dependency'), false, JSON.stringify(values));
+  }
+  assert(inspect(anchors, { number: 'plural', gender: 'masc' }, forest, 'concord').has('feature.dependency'));
+});

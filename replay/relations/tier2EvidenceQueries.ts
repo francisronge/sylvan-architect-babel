@@ -232,13 +232,17 @@ export const sameNameValueEntries = (
     ? entries.filter(candidate => candidate.items.length === 1
       && /(?:^| )role$/u.test(normalizeTier2Synonym(candidate.key))
       && [normalizeTier2Synonym(anchorEntry.key), namedThematicRole(anchorEntry.key)].includes(normalizeTier2Synonym(candidate.items[0]))) : [];
-  // A role-label list that names each argument field gives this field the literal naming it.
+  // A role-label list that names each argument field gives this field the literal
+  // naming it. It must name every argument field exactly once and nothing else:
+  // a list one item longer or shorter than the arguments is ambiguous.
+  const argumentKeys = (evidence.authoredCurrentAnchors ?? []).filter(entry => entry.concepts.includes('theta.arguments'))
+    .map(entry => entry.key);
   const listed = (!role || role === 'theta.arguments')
     && anchorEntry.concepts.includes('theta.arguments') && anchorEntry.items.length === 1
     ? entries.flatMap(candidate => {
-      const index = candidate.concepts.includes('role.label') && candidate.items.length > 1
-        ? fieldNamingLiterals((evidence.authoredCurrentAnchors ?? []).map(entry => entry.key), candidate.items)?.get(anchorEntry.key)
-        : undefined;
+      const named = candidate.concepts.includes('role.label') && candidate.items.length > 1
+        ? fieldNamingLiterals(argumentKeys, candidate.items) : undefined;
+      const index = named?.size === argumentKeys.length ? named.get(anchorEntry.key) : undefined;
       return index === undefined ? [] : [{ key: candidate.key, concepts: candidate.concepts, items: [candidate.items[index]] }];
     }) : [];
   const primary = matches.length ? matches : qualified.length ? qualified : named;

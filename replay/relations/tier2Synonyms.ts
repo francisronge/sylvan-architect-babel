@@ -43,14 +43,25 @@ const normalizeSynonymText = boundedStringTransform((value: string) => value
 export const normalizeTier2Synonym = (value: unknown): string => normalizeSynonymText(String(value ?? ''));
 
 /** One feature label written as notation, such as `+wh`, `−hon` or `[+Q]`: a
- * single valued feature, its sign before its name. A bare word such as `yes`,
- * `no` or `Rel`, or prose such as `operator binding (aL)`, states no value. */
+ * sign followed by the feature's name in letters, optionally in brackets. A
+ * bare word such as `yes`, `no` or `Rel`, prose such as `operator binding
+ * (aL)`, digits such as `+3` and punctuation runs such as `+1-555-0100` state
+ * no feature. */
 export const isNotationFeatureLabel = (value: unknown): boolean => typeof value === 'string'
-  && /^(?:\[[+\-−][\p{L}\p{N}][^\s[\]]*\]|[+\-−][\p{L}\p{N}]\S*)$/u.test(value.trim().normalize('NFKC'));
+  && /^(?:\[[+\-−]\p{L}+\]|[+\-−]\p{L}+)$/u.test(value.trim().normalize('NFKC'));
 
-/** One feature value, such as `3`, `sg` or `masculine`: a whitespace-free token, not prose. */
-const isFeatureValueToken = (value: unknown): boolean => typeof value === 'string'
-  && /^\S+$/u.test(value.trim()) && /[\p{L}\p{N}]/u.test(value);
+/** A word that denies, withholds or leaves open what it qualifies, such as
+ * `none` or `failed`. Neither a role name nor a feature value. */
+const DENIED_OR_UNSET = /^(?:no|not|none|absent|without|possible|potential|hypothetical|pending|unresolved|unestablished|failed|blocked|unsuccessful|rejected|unlicensed|unassigned)$/u;
+
+/** One feature value, such as `3`, `sg` or `masculine`: one token of letters or
+ * digits. Prose such as `default sg`, punctuation such as `n/a` or `-`, a
+ * denying word such as `none` and a serialized JSON literal such as `null`
+ * state no value. */
+const isFeatureValueToken = (value: unknown): boolean => {
+  if (typeof value !== 'string' || !/^[\p{L}\p{N}]+$/u.test(value.trim()) || DENIED_OR_UNSET.test(normalizeTier2Synonym(value))) return false;
+  try { return typeof JSON.parse(value.trim().toLowerCase()) === 'number'; } catch { return true; }
+};
 
 /** An explicitly default feature value does not identify its controller. */
 export const isDefaultAgreementLiteral = (value: unknown): boolean => typeof value === 'string'
@@ -70,7 +81,7 @@ export const thematicRoleLabel = (label: string | undefined):
   if (/^(?:(?:internal|external) )?(?:theta|thematic|θ) role(?: (?:assignment|introduction|licensing))?$/u.test(clauses[0]))
     return { status: 'none' };
   const match = /^([\p{L}\p{N}]+) (?:theta|thematic|θ) role(?: (?:assignment|introduction|licensing))?$/u.exec(clauses[0]);
-  if (!match || /^(?:no|not|none|absent|without|possible|potential|hypothetical|pending|unresolved|unestablished|failed|blocked|unsuccessful|rejected|unlicensed|unassigned)$/u.test(match[1]))
+  if (!match || DENIED_OR_UNSET.test(match[1]))
     return { status: 'unresolved' };
   return { status: 'literal', literal: match[1] };
 };
@@ -624,8 +635,17 @@ export const relationRoleConcepts = (
     && new Set(namedParticipants.map(([role]) => namedThematicRole(role))).size === namedParticipants.length
     && namedParticipants.every(([, value]) => typeof value === 'string' && value.trim().length > 0);
   const thetaClauses = relationLabelClauses(context.relation).filter(clause => /\b(?:theta|thematic|θ)\b/u.test(clause));
-  const typedThetaAssignment = hasLiteral('role.label') && thetaClauses.length > 0 && thetaClauses.every(clause =>
-    /^(?:(?:matrix|embedded|local|internal|external|subject|object|selected complement) )*(?:theta|thematic|θ)(?: role)? (?:assignment|licensing|introduction|marking)$/u.test(clause));
+  const typedThetaClause = (clause: string) =>
+    /^(?:(?:matrix|embedded|local|internal|external|subject|object|selected complement) )*(?:theta|thematic|θ)(?: role)? (assignment|licensing|introduction|marking)$/u.exec(clause)?.[1];
+  // A role label is a theta role: a Case name in its slot leaves the claim
+  // neutral. A marking clause, read only since this recipe, also needs every
+  // label to be a named thematic role.
+  const roleLabelLiterals = Object.entries(context.values ?? {}).filter(([key]) =>
+    relationValueConcepts(index, key, context).includes('role.label')).flatMap(([, value]) => Array.isArray(value) ? value : [value]);
+  const typedThetaAssignment = hasLiteral('role.label') && thetaClauses.length > 0 && thetaClauses.every(clause => typedThetaClause(clause))
+    && !roleLabelLiterals.some(isSameNameCaseLiteral)
+    && (!thetaClauses.some(clause => typedThetaClause(clause) === 'marking')
+      || roleLabelLiterals.every(literal => typeof literal === 'string' && namedThematicRole(literal)));
   const typedThetaSource = (role: string) => {
     if (!typedThetaAssignment || !['governor', 'selector'].includes(normalizeTier2Synonym(role)) || !context.forest) return false;
     const id = Object.entries(context.anchors ?? {}).find(([key]) => normalizeTier2Synonym(key) === normalizeTier2Synonym(role))?.[1];
@@ -651,26 +671,36 @@ export const relationRoleConcepts = (
   const namedThematicValue = (role: string) => Boolean(namedThematicRole(role)) && (thematicParticipant(role) || explicitThematicPredicate)
     && Object.entries(context.values ?? {}).some(([valueKey, literal]) =>
     normalizeTier2Synonym(valueKey) === normalizeTier2Synonym(role) && nonBlankLiteral(literal));
+  // A role list names arguments only: the predicate never takes a role from it,
+  // so a list that names it pairs nothing. Without a field named as the
+  // predicate, an assigning or introducing field is the predicate.
+  const namedPredicateField = (role: string) => typedThetaSource(role)
+    || lookupTier2SynonymCandidates(index, 'role', role).includes('predicate')
+    || qualifiedAssignmentConcepts(role).includes('predicate') || qualifiedPredicateRole(normalizeTier2Synonym(role));
+  const hasNamedPredicateField = Object.keys(context.anchors ?? {}).some(namedPredicateField);
+  const predicateField = (role: string) => {
+    const normalized = singularRole(normalizeTier2Synonym(role));
+    return namedPredicateField(role) || !hasNamedPredicateField && (thematicIntroducer(normalized) || assignmentDirection(normalized) === 'source');
+  };
   const valueNamesThematicParticipant = (role: string) => explicitThematicPredicate
     && Object.entries(context.values ?? {}).some(([valueKey, literal]) => typeof literal === 'string'
       ? /(?:^| )role$/u.test(normalizeTier2Synonym(valueKey)) && normalizeTier2Synonym(literal) === normalizeTier2Synonym(role)
       : Array.isArray(literal) && relationValueConcepts(index, valueKey, context).includes('role.label')
-        && [...fieldNamingLiterals(Object.keys(context.anchors ?? {}), literal)?.keys() ?? []]
+        && [...fieldNamingLiterals(Object.keys(context.anchors ?? {}).filter(field => !predicateField(field)), literal)?.keys() ?? []]
           .some(field => normalizeTier2Synonym(field) === normalizeTier2Synonym(role)));
   // A values entry with an argument field's own name and length lists that
   // field's role labels: the recipe pairs it as role.label (sameNameEntryServes).
   // It lets a directional assigner act as the predicate only when no explicit
   // predicate is named; it does not reassign a claim that names one. The same
   // entry can instead give the argument's Case, so the list must be role labels:
-  // no item is a Case value and at least one names a known thematic role.
+  // every item names a known thematic role and none is a Case value.
   const sameNameArgumentLabels = !explicitThematicPredicate && currentEntries.some(([role, ids]) => {
     const count = Array.isArray(ids) ? ids.length : typeof ids === 'string' ? 1 : 0;
     const literal = context.values?.[role];
     const items = Array.isArray(literal) ? literal : [literal];
     return count > 0 && lookupTier2SynonymCandidates(index, 'role', role).includes('theta.arguments')
       && items.length === count && nonBlankLiteral(literal)
-      && items.every(item => typeof item === 'string' && item.trim() && !isSameNameCaseLiteral(item))
-      && items.some(item => namedThematicRole(item));
+      && items.every(item => typeof item === 'string' && namedThematicRole(item) && !isSameNameCaseLiteral(item));
   });
   const thetaDomain = typedThetaAssignment || sameNameArgumentLabels || namedInventory && explicitThematicPredicate || Object.keys(context.anchors ?? {}).some(role => namedThematicValue(role) ||
     valueNamesThematicParticipant(role) ||
@@ -857,7 +887,12 @@ export const relationRoleConcepts = (
     : combinedProbeTarget.length === 1 ? combinedProbeTarget[0]
     : roles.has('target') ? 'target'
     : contextualAgreementAsserted && !hasQualifiedHost && contextualAgreementHosts.length === 1 ? contextualAgreementHosts[0] : undefined;
-  const hasNamedAgreementTarget = /\b(?:agreement|concord)\b/u.test(relationName)
+  // A concord claim reads as agreement only when each feature row it states is
+  // one feature value; prose such as `default sg` leaves it neutral.
+  const concordRowsAreValues = Object.entries(context.values ?? {}).filter(([key]) =>
+    relationValueConcepts(index, key, context).includes('feature.rows'))
+    .every(([, value]) => (Array.isArray(value) ? value : [value]).every(isFeatureValueToken));
+  const hasNamedAgreementTarget = (/\bagreement\b/u.test(relationName) || /\bconcord\b/u.test(relationName) && concordRowsAreValues)
     && roles.has('controller') && namedAgreementHost !== undefined;
   const namedAgreementPair = hasNamedAgreementTarget
     && scalarRole('controller') && scalarRole(namedAgreementHost!) && !hasAgreementMediator

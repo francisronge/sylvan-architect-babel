@@ -490,6 +490,18 @@ test('one phi dimension, or a dimension in prose, is not head and specifier agre
   }
 });
 
+test('a phi bundle of unset values is not head and specifier agreement', () => {
+  // On 50c09be person: 'none' and number: 'n/a' drew two agreement connectors.
+  for (const values of [{ person: 'none', number: 'n/a' }, { person: 'null', number: 'sg' }, { person: 'N/A', number: 'sg' },
+    { person: '3≠1', number: 'mismatch' }, { person: 'false', number: 'sg' }]) {
+    const relation = { relation: 'spec-head', anchors: { head: 'source', specifier: 'argument' }, values };
+    assert(!dispatch(relation).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(values));
+    assert(plan(relation).every(item => item.kind === 'fallback'), JSON.stringify(values));
+  }
+  assert(dispatch({ relation: 'spec-head', anchors: { head: 'source', specifier: 'argument' }, values: { person: '3', number: 'sg' } })
+    .facets.some(f => f.recipe.id === 'feature.dependency'));
+});
+
 test('an anchored tense head and subject head recover finite features without treating a generic tense anchor as a head', () => {
   const currentForest = [{ id: 'tp', label: 'TP', children: [
     { id: 'subject', label: 'DP', children: [{ id: 'subjectN', label: 'N', word: 'children' }] },

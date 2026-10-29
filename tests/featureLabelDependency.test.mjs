@@ -52,3 +52,14 @@ test('only a signed feature is a label; a bare word states no feature value', ()
   assert.deepEqual(probeGoal.filter(item => item.kind === 'directed-path').map(item => item.label ?? null), [null]);
   assert(probeGoal.some(item => item.kind === 'fallback'));
 });
+
+test('a signed label is a feature only when letters follow the sign', () => {
+  // On 50c09be '+1-555-0100' and '+3' drew as feature labels between a head and its specifier.
+  for (const feature of ['+1-555-0100', '+3', '+3sg', '+wh+', '+wh.', '+wh:3', '[+3]', '->']) {
+    assert(neutral({ relation: 'spec-head agreement', anchors: { specifier: 'who', head: 'c' }, values: { feature } }), feature);
+  }
+  for (const feature of ['+wh', '[+Q]', '-EPP', '+uwh']) {
+    assert.deepEqual(connectors({ relation: 'spec-head agreement', anchors: { specifier: 'who', head: 'c' }, values: { feature } }),
+      [['c', 'who', feature]], feature);
+  }
+});
