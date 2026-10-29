@@ -60,6 +60,11 @@ it first removes the camera carry (`carryCamera`), as the screen does. Where the
 stage plan's own closing moves syntax across that boundary, the plan records it
 and the carry keeps the block that holds still instead of a tied midpoint
 (`carriedMedian`); everywhere else the carry is the plain median.
+Where a boundary inserts a parent above an existing subtree, the carry holds the
+syntax it does not lower (`carryReference`). When three nodes or fewer are left,
+it holds them only if the lowered words keep their place beside them, which the
+stage plan arranges where earlier stages have room (`holdLoweredSubtrees`);
+otherwise the lowered syntax decides the carry.
 
 A new fault of at least 20 tree units (`NOTICEABLE_MOTION`), or an existing one
 moving farther by at least the larger of 20 units and 10% of its old distance
