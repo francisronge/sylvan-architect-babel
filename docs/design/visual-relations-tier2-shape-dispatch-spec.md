@@ -79,7 +79,8 @@ path; denied, competing and unresolved references remain neutral.
 - In an explicit agreement claim, a unique `controller` and `target` with
   authored features identify one dependency even when a finite head is also
   named. The finite head remains context; a repeated or ambiguous endpoint
-  does not redirect the connector.
+  does not redirect the connector. A concord claim is an agreement claim here
+  (the owner approved this name on 27 Oct 2026).
   A uniquely named modifier or predicate can supply that feature host when no
   target or qualified agreement host is named. Competing hosts, a mediator,
   controllee, missing features or a nonasserted claim do not earn this recovery.

@@ -837,7 +837,7 @@ export const relationRoleConcepts = (
     : combinedProbeTarget.length === 1 ? combinedProbeTarget[0]
     : roles.has('target') ? 'target'
     : contextualAgreementAsserted && !hasQualifiedHost && contextualAgreementHosts.length === 1 ? contextualAgreementHosts[0] : undefined;
-  const hasNamedAgreementTarget = /\bagreement\b/u.test(relationName)
+  const hasNamedAgreementTarget = /\b(?:agreement|concord)\b/u.test(relationName)
     && roles.has('controller') && namedAgreementHost !== undefined;
   const namedAgreementPair = hasNamedAgreementTarget
     && scalarRole('controller') && scalarRole(namedAgreementHost!) && !hasAgreementMediator

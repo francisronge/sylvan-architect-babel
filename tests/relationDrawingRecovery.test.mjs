@@ -166,6 +166,21 @@ test('an explicit agreement controller and target retain their direction beside 
   assert.equal(inspect({ ...anchors, target: 'subject' }, { features: 'third-person singular' }, forest, 'subject agreement').has('feature.dependency'), false);
 });
 
+// Francis approved on 27 Oct 2026 (relayed by the coordinating agent) that a concord
+// claim draws like an agreement claim; the relation name still decides nothing else.
+test('a concord controller and target draw like an agreement controller and target', () => {
+  const forest = [node('np', 'NP', [leaf('possessor', 'D'), leaf('noun', 'N')])];
+  const anchors = { controller: 'noun', target: 'possessor' };
+  for (const name of ['concord', 'genitive concord', 'noun_class_concord']) {
+    const result = inspect(anchors, { gender: 'feminine', number: 'singular' }, forest, name);
+    assert(result.has('feature.dependency'), name);
+    const connector = result.items.find(item => item.kind === 'directed-path');
+    assert.deepEqual([connector.fromNodeId, connector.toNodeId], ['possessor', 'noun'], name);
+  }
+  assert.equal(inspect(anchors, { gender: 'feminine' }, forest).has('feature.dependency'), false);
+  assert.equal(inspect(anchors, { gender: 'feminine' }, forest, 'concordance').has('feature.dependency'), false);
+});
+
 test('qualified parasitic arguments need both actual gap occurrences', () => {
   const forest = [node('root', 'CP', [leaf('filler', 'DP'), leaf('ordinary', 'DP', { silent: true }), leaf('parasitic', 'DP', { silent: true })])];
   const anchors = { whLicenser: 'filler', matrixObject: 'ordinary', parasiticObject: 'parasitic' };
