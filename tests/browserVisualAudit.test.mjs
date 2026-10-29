@@ -181,6 +181,23 @@ test('#7: one jumping root is caught though the median holds; a reattached const
   assert.deepEqual(judgeStepMotion([sample(0, base), sample(17, moved), sample(34, moved)]), [], 'the moved DP jumps to its landing');
 });
 
+test('a node that snaps in a slow redraw frame is a jump however long the frame took', () => {
+  const base = { ip: [700, 300], ibar: [760, 360, 'ip'], v: [720, 420, 'ibar'], vbar: [800, 420, 'ibar'], verb: [800, 480, 'vbar'],
+    waiting: [900, 300], dp: [860, 480, 'vbar'] };
+  const at = x => ({ ...base, waiting: [x, 300] });
+  // The stage-crossing redraw of catalogue #6 painted its 192px snap in a 31–40 ms
+  // frame on passing runs and a slower one on failing runs.
+  for (const ms of [36, 45, 80]) {
+    const snap = judgeStepMotion([sample(0, base), sample(17, base), sample(34, base), sample(34 + ms, at(1092)), sample(51 + ms, at(1092))]);
+    assert.deepEqual(rules(snap), ['step-motion/node-jump'], `${ms} ms redraw`);
+    assert.equal(snap[0].measure, 192);
+  }
+  const paced = [sample(0, at(900)), sample(17, at(968)), sample(34, at(1036)), sample(79, at(1216)), sample(96, at(1284))];
+  assert.deepEqual(judgeStepMotion(paced, { checks: ['nodeJump'] }), [], 'a node keeping its pace through a long frame');
+  const stopped = [sample(0, at(900)), sample(17, at(968)), sample(34, at(1036)), sample(94, at(1036)), sample(111, at(1036))];
+  assert.deepEqual(judgeStepMotion(stopped, { checks: ['nodeJump'] }), [], 'a node that stops in a long frame');
+});
+
 test('#10: a covered resize, a second settle after shrinking back, and anything that vanishes are flagged', () => {
   const settled = (t0, count, positions, extra) => Array.from({ length: count }, (_, index) => sample(t0 + 16.7 * index, positions, extra));
   const ghost = [...settled(0, 3, placed()), ...settled(50, 12, placed(), { cover: 0.9 }), ...settled(260, 10, placed(80, 40))];
