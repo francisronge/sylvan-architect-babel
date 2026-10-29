@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildJevRequest, readJevReply } from '../contractQualification/jev.js';
+import {
+  DEFAULT_JEV_MODEL, TYPESAFE_SYSTEMONE_URL, anchorIdsReachRequest, buildFamilyRequest, buildSlotRequest, choiceConfidence, jevClaimResult,
+  jevRecordFrom, readChoiceAnswer, readSystemOneResponse, readTypeSafeApiKey, requestJev
+} from '../contractQualification/jev.js';
 import { neutralJevClaims } from '../replay/jevClaims.ts';
 import { prepareReplay } from '../replay/prepareReplay.ts';
-import { JEV_FAMILIES, jevFamilies, jevReadingGap, jevTerms, validateJevAnswer } from '../replay/relations/jev.ts';
+import {
+  JEV_CONFIDENCE_THRESHOLD, JEV_FAMILIES, JEV_RECORD_VERSION, jevFamilies, jevReadingGap, jevTerms, validateJevAnswer
+} from '../replay/relations/jev.ts';
 import { loadFixtureAnalyses } from './helpers/replayInvariantCorpus.mjs';
 
 const { records } = loadFixtureAnalyses();
@@ -14,8 +19,8 @@ const THETA = { id: 'replay-regressions/plaque-hold-pockets.json#/cases/4', clai
 const THETA_READING = { family: 'theta-grid', roles: { selector: 'predicate', argument: 'theta.arguments' }, values: { thetaRole: 'role.label' } };
 
 const claimOf = ({ id, claim }) => neutralJevClaims(fixture(id).derivationStages).find(candidate => candidate.id === claim);
-const recordFor = (claim, answer) => ({ version: 1, mappings: [{
-  stageIndex: claim.stageIndex, relationIndex: claim.relationIndex, terms: jevTerms(claim.relation), answer }] });
+const recordFor = (claim, answer, confidence = 1) => ({ version: JEV_RECORD_VERSION, mappings: [{
+  stageIndex: claim.stageIndex, relationIndex: claim.relationIndex, terms: jevTerms(claim.relation), answer, confidence }] });
 const claimItems = (plan, claim) => plan.frames.flatMap(frame => frame?.items ?? []).filter(item =>
   item.relationRef?.stageIndex === claim.stageIndex && item.relationRef?.relationIndex === claim.relationIndex);
 const plan = (record, jev) => prepareReplay({ ...record, includePlayback: false, ...(jev ? { jev } : {}) }).relationRenderPlan;
@@ -68,29 +73,152 @@ test('a reading must read every anchor key, and one-participant slots take one k
     secondAntecedent: 'coreference.participants' }, values: {} }), /left unread: pronoun/);
 });
 
-test('a reply is read only into checked answers', () => {
-  const claim = claimOf(THETA);
-  const claims = [{ ...claim, id: 'c1' }, { ...claim, id: 'c2' }, { ...claim, id: 'c3' }];
-  const reply = JSON.stringify({ claims: [{ id: 'c1', ...THETA_READING },
-    { id: 'c2', ...THETA_READING, family: 'invented' }, { id: 'c9', ...THETA_READING }] });
-  const { results, unknownIds } = readJevReply(reply, claims);
-  assert.deepEqual(results.map(result => result.status), ['proposal', 'out-of-set', 'no-answer']);
-  assert.deepEqual(unknownIds, ['c9']);
-  assert.deepEqual(readJevReply('Here is the mapping: {}', claims).results.map(result => result.status),
-    ['unreadable-reply', 'unreadable-reply', 'unreadable-reply']);
+/** A Choice answer as TypeSafe returns it: probabilities over every option, confidence by the documented formula. */
+const choiceAnswer = (options, chosen, p = 1) => {
+  const rest = options.length > 1 ? (1 - p) / (options.length - 1) : 0;
+  const probabilities = Object.fromEntries(options.map(option => [option, option === chosen ? p : rest]));
+  return { type: 'choice', choice: chosen, confidence: choiceConfidence(probabilities), probabilities };
+};
+const answerAll = (questions, pick, p = 1) => ({ model: DEFAULT_JEV_MODEL, usage: { input_tokens: 100, output_tokens: 10 },
+  answers: Object.fromEntries(Object.entries(questions).map(([id, question]) =>
+    [id, choiceAnswer(Object.keys(question.criteria), pick(id, question), p)])) });
+
+test('a Choice answer is accepted only inside the options asked', () => {
+  const options = ['none', 'theta-grid', 'feature.dependency'];
+  const good = { type: 'choice', choice: 'theta-grid', confidence: 0.7, probabilities: { none: 0.15, 'theta-grid': 0.8, 'feature.dependency': 0.05 } };
+  assert.deepEqual(readChoiceAnswer(good, options), { ok: true, choice: 'theta-grid', confidence: 0.7, probabilities: good.probabilities });
+  // The documented examples (https://docs.typesafe.ai/primitives/choice.md) pass the confidence check.
+  assert.equal(readChoiceAnswer({ type: 'choice', choice: 'b', confidence: 0.42, probabilities: { a: 0.04, c: 0.35, b: 0.61 } }, ['a', 'b', 'c']).ok, true);
+  assert.equal(readChoiceAnswer({ type: 'choice', choice: 'r', confidence: 0.2, probabilities: { x: 0.34, r: 0.4, i: 0.02, e: 0.24 } }, ['x', 'r', 'i', 'e']).ok, true);
+  const bad = {
+    'a choice not offered': { ...good, choice: 'selection.arrow' },
+    'a node id as choice': { ...good, choice: 'n12' },
+    'a probability missing': { ...good, probabilities: { none: 0.2, 'theta-grid': 0.8 } },
+    'a probability for an option not offered': { ...good, probabilities: { ...good.probabilities, extra: 0 } },
+    'a probability above one': { ...good, probabilities: { none: -0.3, 'theta-grid': 1.3, 'feature.dependency': 0 } },
+    'a non-finite probability': { ...good, probabilities: { ...good.probabilities, none: Number.NaN } },
+    'probabilities not summing to one': { ...good, probabilities: { none: 0.5, 'theta-grid': 0.8, 'feature.dependency': 0.05 } },
+    'a choice that is not the most probable': { ...good, choice: 'none', confidence: 0.7 },
+    'a confidence that does not follow': { ...good, confidence: 0.95 },
+    'a confidence outside 0 to 1': { ...good, confidence: 1.5 },
+    'another answer type': { ...good, type: 'score' },
+    'not an object': 'theta-grid'
+  };
+  for (const [what, answer] of Object.entries(bad)) assert.equal(readChoiceAnswer(answer, options).ok, false, what);
+  const questions = { family: { type: 'choice', criteria: Object.fromEntries(options.map(option => [option, null])) } };
+  assert.equal(readSystemOneResponse({ answers: { family: good } }, questions).ok, true);
+  assert.equal(readSystemOneResponse({ answers: {} }, questions).ok, false, 'an unanswered question');
+  assert.equal(readSystemOneResponse({ answers: { family: good, other: good } }, questions).ok, false, 'an answer to a question not asked');
+  assert.equal(readSystemOneResponse('{}', questions).ok, false, 'no answers object');
 });
 
-test('the request carries the claim\'s words and Babel\'s closed sets, never the tree', () => {
+test('the requests are System One requests carrying only the claim\'s words', () => {
   const claim = claimOf(THETA);
-  const { body, question } = buildJevRequest({ claims: [claim] });
-  assert.deepEqual(buildJevRequest({ claims: [claim] }).body, body, 'deterministic');
-  const text = body.input[0].content[0].text;
-  for (const id of Object.values(claim.relation.anchors).flat()) assert.equal(text.includes(JSON.stringify(id)), false, id);
-  assert.deepEqual(question.claims, [{ id: 's2r1', relation: claim.relation.relation,
-    roleKeys: Object.keys(claim.relation.anchors), values: jevTerms(claim.relation).values }]);
-  assert.deepEqual(question.families.map(family => family.id), JEV_FAMILIES.map(family => family.id));
-  assert.equal(body.store, false);
-  assert.equal(body.text, undefined, 'no provider response schema');
+  const family = buildFamilyRequest({ relation: claim.relation });
+  assert.deepEqual(buildFamilyRequest({ relation: claim.relation }), family, 'deterministic');
+  // https://docs.typesafe.ai/api/system-one.md: model, state and named questions; a Choice has type, instructions and criteria.
+  assert.deepEqual(Object.keys(family), ['model', 'state', 'questions']);
+  assert.equal(family.model, 'jev-1.14.0', 'a versioned model, since the threshold is calibrated against one version');
+  assert.deepEqual(family.state, { claim: { relation: claim.relation.relation, roleKeys: Object.keys(claim.relation.anchors),
+    values: jevTerms(claim.relation).values } });
+  assert.deepEqual(Object.keys(family.questions), ['family']);
+  const { type, instructions, criteria } = family.questions.family;
+  assert.deepEqual(Object.keys(family.questions.family), ['type', 'instructions', 'criteria']);
+  assert.equal(type, 'choice');
+  assert.ok(instructions.question);
+  assert.deepEqual(Object.keys(criteria), ['none', ...JEV_FAMILIES.map(candidate => candidate.id)], 'none first, then every family');
+  assert.ok(Object.keys(criteria).length <= 255, 'the documented Choice option limit');
+  const slots = buildSlotRequest({ relation: claim.relation, family: 'theta-grid' });
+  const terms = jevTerms(claim.relation);
+  assert.deepEqual(slots.keys, {
+    ...Object.fromEntries(terms.roles.map((key, index) => [`role.${index}`, { block: 'roles', key }])),
+    ...Object.fromEntries(Object.keys(terms.values).map((key, index) => [`value.${index}`, { block: 'values', key }])) });
+  assert.ok(terms.roles.includes('selector') && Object.hasOwn(terms.values, 'thetaRole'));
+  assert.deepEqual(slots.body.state, family.state, 'both requests share one state');
+  const theta = JEV_FAMILIES.find(candidate => candidate.id === 'theta-grid');
+  assert.deepEqual(Object.keys(slots.body.questions['role.0'].criteria), ['none', ...theta.roles]);
+  assert.deepEqual(Object.keys(slots.body.questions['value.0'].criteria), ['none', ...theta.values]);
+  // A family without value slots asks nothing about value keys.
+  const noValues = buildSlotRequest({ relation: claim.relation, family: 'predication.dependency' });
+  assert.deepEqual(Object.keys(noValues.body.questions), terms.roles.map((_key, index) => `role.${index}`));
+  assert.throws(() => buildSlotRequest({ relation: claim.relation, family: 'invented' }));
+  // No anchor id leaves Babel, in either request.
+  for (const text of [JSON.stringify(family), JSON.stringify(slots.body), ...JEV_FAMILIES.map(candidate =>
+    JSON.stringify(buildSlotRequest({ relation: claim.relation, family: candidate.id }).body))])
+    for (const id of Object.values(claim.relation.anchors).flat()) assert.equal(text.includes(JSON.stringify(id)), false, id);
+  // The requests are built from the claim's words alone, even when an id is spelled like one of them.
+  const coincident = { relation: 'agent-identification', anchors: { voice: 'voice', agent: ['DP', 'washed'] }, values: { form: 'washed' } };
+  assert.equal(anchorIdsReachRequest(coincident, relation => buildFamilyRequest({ relation })), false);
+  for (const candidate of JEV_FAMILIES)
+    assert.equal(anchorIdsReachRequest(coincident, relation => buildSlotRequest({ relation, family: candidate.id }).body), false, candidate.id);
+  // The check itself catches a request that would carry an id.
+  assert.equal(anchorIdsReachRequest(coincident, relation => ({ ...buildFamilyRequest({ relation }), leak: relation.anchors })), true);
+  // An exactly registered name is never asked.
+  assert.deepEqual(Object.keys(buildFamilyRequest({ relation: { relation: 'Agree', anchors: { probe: 'T', target: 'DP' } } }).questions.family.criteria), ['none']);
+});
+
+test('one claim reads into a checked answer with the least confidence of its parts', () => {
+  const { relation } = claimOf(THETA);
+  const family = buildFamilyRequest({ relation });
+  const slots = buildSlotRequest({ relation, family: 'theta-grid' });
+  const familyRead = readSystemOneResponse(answerAll(family.questions, () => 'theta-grid', 0.97), family.questions);
+  const reading = { roles: THETA_READING.roles, values: THETA_READING.values };
+  const pick = id => reading[slots.keys[id].block][slots.keys[id].key] ?? 'none';
+  const slotsRead = readSystemOneResponse(answerAll(slots.body.questions, pick, 0.95), slots.body.questions);
+  const result = jevClaimResult(relation, familyRead, { read: slotsRead, keys: slots.keys });
+  assert.equal(result.status, 'proposal');
+  assert.deepEqual(result.answer, THETA_READING);
+  const parts = [familyRead.answers.family, ...Object.values(slotsRead.answers)].map(part => part.confidence);
+  assert.equal(result.confidence, Math.min(...parts), 'the least confident part');
+  assert.ok(result.confidence < familyRead.answers.family.confidence);
+  // None as family ends the claim after one request.
+  const none = readSystemOneResponse(answerAll(family.questions, () => 'none'), family.questions);
+  assert.deepEqual(jevClaimResult(relation, none), { status: 'no-drawing', answer: { family: 'none', roles: {}, values: {} }, confidence: 1 });
+  // An answer outside the options rejects the claim.
+  const outside = answerAll(family.questions, () => 'theta-grid');
+  outside.answers.family = { ...outside.answers.family, choice: 'theta.grid' };
+  assert.equal(jevClaimResult(relation, readSystemOneResponse(outside, family.questions)).status, 'out-of-set');
+  const record = jevRecordFrom({ claims: [{ stageIndex: 1, relationIndex: 0, relation }], results: [result] });
+  assert.deepEqual(record, { version: JEV_RECORD_VERSION, mappings: [{ stageIndex: 1, relationIndex: 0, terms: jevTerms(relation),
+    answer: THETA_READING, confidence: result.confidence }] });
+});
+
+test('the transport posts the saved body once with the bearer key, and the key loader fails closed', async () => {
+  const calls = [];
+  const ok = await requestJev({ body: { model: 'm', state: {}, questions: {} }, apiKey: 'key-1',
+    fetchImpl: async (url, init) => { calls.push({ url, init }); return new Response('{"answers":{}}', { status: 200 }); } });
+  assert.equal(ok.status, 'completed');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, TYPESAFE_SYSTEMONE_URL);
+  assert.equal(calls[0].url, 'https://api.typesafe.ai/v1/systemone');
+  assert.equal(calls[0].init.method, 'POST');
+  assert.equal(calls[0].init.headers.Authorization, 'Bearer key-1');
+  assert.equal(calls[0].init.headers['Content-Type'], 'application/json');
+  assert.equal(calls[0].init.body, JSON.stringify({ model: 'm', state: {}, questions: {} }));
+  const limited = await requestJev({ body: {}, apiKey: 'k', fetchImpl: async () => new Response('{"detail":"slow down"}', { status: 429 }) });
+  assert.deepEqual([limited.status, limited.httpStatus], ['failed', 429], 'no retry');
+  assert.equal(readTypeSafeApiKey({ keyFile: '/k', readFile: () => ' key-2\n' }), 'key-2');
+  assert.equal(readTypeSafeApiKey({ run: (_command, argv) => (argv.includes('Babel TypeSafe API') ? 'key-3\n' : '') }), 'key-3');
+  const missing = () => { throw new Error('not found'); };
+  assert.throws(() => readTypeSafeApiKey({ run: missing }), /--key-file PATH.*Babel TypeSafe API/u);
+  assert.throws(() => readTypeSafeApiKey({ keyFile: '/k', readFile: missing }), /--key-file PATH.*Keychain/u);
+  assert.throws(() => readTypeSafeApiKey({ keyFile: '/k', readFile: () => '\n' }), /empty/u);
+  assert.throws(() => readTypeSafeApiKey({ service: 'Other item', run: () => '' }), /"Other item"/u);
+});
+
+test('a saved reading applies only at or above the confidence threshold', () => {
+  const claim = claimOf(THETA);
+  const record = fixture(THETA.id);
+  const baseline = JSON.stringify(plan(record));
+  const drawn = jev => claimItems(plan(record, jev), claim).some(item => item.claimTier === 2);
+  assert.equal(drawn(recordFor(claim, THETA_READING, JEV_CONFIDENCE_THRESHOLD)), true);
+  assert.equal(drawn(recordFor(claim, THETA_READING, 1)), true);
+  for (const confidence of [JEV_CONFIDENCE_THRESHOLD - 0.01, 0, 1.01, Number.NaN, '0.99'])
+    assert.equal(JSON.stringify(plan(record, recordFor(claim, THETA_READING, confidence))), baseline, String(confidence));
+  // A mapping without confidence, in this version or the earlier one, never applies.
+  const { confidence: _dropped, ...unscored } = recordFor(claim, THETA_READING).mappings[0];
+  assert.equal(JSON.stringify(plan(record, { version: JEV_RECORD_VERSION, mappings: [unscored] })), baseline);
+  assert.equal(JSON.stringify(plan(record, { version: 1, mappings: [unscored] })), baseline);
 });
 
 test('a saved reading makes a neutral fixture claim draw through the ordinary checks', () => {
@@ -126,19 +254,19 @@ test('without an applicable saved reading every plan is byte-identical', () => {
   const claim = claimOf(THETA);
   const stale = recordFor({ ...claim, relation: { ...claim.relation, relation: 'theta-role assignment' } }, THETA_READING);
   const edited = recordFor(claim, { ...THETA_READING, family: 'invented' });
-  const moved = { version: 1, mappings: [{ ...recordFor(claim, THETA_READING).mappings[0], relationIndex: claim.relationIndex + 1 }] };
-  const otherVersion = { ...recordFor(claim, THETA_READING), version: 2 };
+  const moved = { version: JEV_RECORD_VERSION, mappings: [{ ...recordFor(claim, THETA_READING).mappings[0], relationIndex: claim.relationIndex + 1 }] };
+  const otherVersion = { ...recordFor(claim, THETA_READING), version: JEV_RECORD_VERSION + 1 };
   const record = fixture(THETA.id);
   const baseline = JSON.stringify(plan(record));
   for (const jev of [stale, edited, moved, otherVersion]) assert.equal(JSON.stringify(plan(record, jev)), baseline);
   // Across every committed fixture analysis: an empty record and an all-"none" record change nothing.
   for (const { id, record: analysis } of records) {
     let none;
-    try { none = { version: 1, mappings: neutralJevClaims(analysis.derivationStages).map(neutral => ({
+    try { none = { version: JEV_RECORD_VERSION, mappings: neutralJevClaims(analysis.derivationStages).map(neutral => ({
       stageIndex: neutral.stageIndex, relationIndex: neutral.relationIndex, terms: jevTerms(neutral.relation),
-      answer: { family: 'none', roles: {}, values: {} } })) }; } catch { continue; }
+      answer: { family: 'none', roles: {}, values: {} }, confidence: 1 })) }; } catch { continue; }
     const expected = JSON.stringify(plan(analysis));
-    assert.equal(JSON.stringify(plan(analysis, { version: 1, mappings: [] })), expected, id);
+    assert.equal(JSON.stringify(plan(analysis, { version: JEV_RECORD_VERSION, mappings: [] })), expected, id);
     assert.equal(JSON.stringify(plan(analysis, none)), expected, id);
   }
 });
