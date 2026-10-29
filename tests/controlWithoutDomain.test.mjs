@@ -22,3 +22,12 @@ test('a Control claim without a domain draws the same connector and coindex as o
     ['domain-mark', 'directed-path', 'coindex']);
   assert.deepEqual(items({ relation: 'control', anchors: { controllee: 'pro' } }).map(([kind]) => kind), ['fallback']);
 });
+
+test('a controller that is its own controllee draws nothing, with or without a domain', () => {
+  // On 50c09be `control [controller:mia, controllee:mia]` drew a Tier-1 path from Mia to itself;
+  // main drew the same self-path once a domain was named.
+  for (const anchors of [{ controller: 'mia', controllee: 'mia' }, { controller: 'mia', controllee: 'mia', domain: 'cp' },
+    { controller: ['mia'], controllee: ['mia'], domain: 'cp' }]) {
+    assert.deepEqual(items({ relation: 'control', anchors }).map(([kind]) => kind), ['fallback'], JSON.stringify(anchors));
+  }
+});
