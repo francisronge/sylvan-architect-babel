@@ -19,7 +19,8 @@ export function createPrimitiveVisibility(frameItems: readonly RelationPlanItem[
   const primitiveWitnessesVisible = (primitive: BoundPrimitive): boolean => {
     // Neutral participation is independent; a connector still needs both endpoints.
     if (frameItems[primitive.itemIndex]?.kind === 'fallback') {
-      if (primitive.type === 'fallback-mark') return Boolean(resolveOverlayAnchor(primitive.nodeId));
+      if (primitive.type === 'fallback-mark') return (primitive.connectorWitnesses ?? [primitive.nodeId])
+        .every(nodeId => Boolean(resolveOverlayAnchor(nodeId)));
       if (primitive.type === 'segment') {
         return primitive.witnessNodeIds.every(nodeId => Boolean(resolveOverlayAnchor(nodeId)));
       }

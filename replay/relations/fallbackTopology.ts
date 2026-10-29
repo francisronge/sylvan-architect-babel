@@ -16,8 +16,9 @@
  * the only shapes in which the authored data says which endpoints belong
  * together. Connectors are undirected and carry zero arrowheads. `values`
  * affect no fallback geometry. The canvas prints authored role names and array
- * positions; relation names, backend node IDs and values remain in the record
- * and Replay panel.
+ * positions, and under a bracketed connector the authored relation name, which
+ * the renderer reads from the stage; backend node IDs and values remain in the
+ * record and Replay panel.
  */
 
 export type FallbackAnchorBlock = Record<string, string | string[]> | undefined;

@@ -1,6 +1,7 @@
 import type { Point, Rect } from './overlayGeometry.ts';
 import type { PlaqueTextLayout, PlaqueTextLayoutOptions } from './plaqueTextLayout.ts';
 import type { PlanRelationRef } from './renderPlan.ts';
+import type { FallbackWordSpan } from './fallbackSpans.ts';
 import type { TrajectoryBowSide } from '../rendererMetrics.ts';
 
 export type BoundTrajectory = {
@@ -77,6 +78,11 @@ export type BoundFallbackMark = {
   textHeight?: number;
   /** Measured witness label including its local outline, when present. */
   labelRect: Rect;
+  /** A bracketed connector's text (fallbackGeometry.ts, placeConnectorLabel):
+   * `end` names one participant under its bracket, `relation` the relation
+   * under the joining run. Either shows only with the connector's two witnesses. */
+  connectorLabel?: 'end' | 'relation';
+  connectorWitnesses?: [string, string];
   allocationOrder: number;
   nodeId: string;
   x: number;
@@ -95,8 +101,9 @@ export type BoundFallbackMark = {
  * distinct shapes and the contract preserves that distinction so the
  * renderer cannot collapse them:
  * - `counter-lane` (row 2, two scalar witnesses): a quiet undirected
- *   connector running along its allocated lane below the terminal row, with
- *   short stems below the participating subtrees;
+ *   connector running along its allocated lane below the tree, where each
+ *   participant has a bracket under the words it covers (`brackets`) and a run
+ *   joins them; without measured words, short stems below each subtree;
  * - `direct` (row 3 fan spokes): a thin straight line from the hub's
  *   visible mark to the spoke's visible mark.
  * `d` is the ready-to-draw path; the
@@ -112,13 +119,32 @@ export type BoundSegment = {
   to: Point;
   /** Allocated lane for counter-lane connectors; null for direct spokes. */
   lane: number | null;
-  /** The lane's actual Y, for downstream vertical allocation (counter-lane only). */
+  /** The lane's actual Y, for downstream vertical allocation (counter-lane only):
+   * a bracketed connector's joining run. */
   laneY?: number;
+  /** A bracketed counter-lane connector's participants, in the order of `from`
+   * and `to`, and once routed the levels it draws them at. */
+  brackets?: FallbackBrackets;
   directed: false;
   itemIndex: number;
   /** Exact owned marks, including repeated occurrences under different roles. */
   fromMark?: number;
   toMark?: number;
+};
+
+/** One bracketed participant: the runs of words it covers, or for a participant
+ * covering no painted word, a tick at its place in word order
+ * (replay/relations/fallbackSpans.ts). */
+export type FallbackBracketEnd = { nodeId: string; runs: Array<{ x1: number; x2: number }>; tick: number | null };
+
+export type FallbackBrackets = {
+  ends: [FallbackBracketEnd, FallbackBracketEnd];
+  /** The end the other dominates, whose bracket stands nearer the words; null when neither does. */
+  inner: 0 | 1 | null;
+  /** Routed: each end's join x, its bracket level, and the joining level. */
+  joins?: [number, number];
+  levels?: [number, number];
+  runY?: number;
 };
 
 export type BoundAnchorSetBadge = {
@@ -403,6 +429,8 @@ export type BindGeometryOptions = {
   /** Actual SVG font measurement and available width, in marker-local units. */
   plaqueTextLayout?: PlaqueTextLayoutOptions;
   fallbackMeasurements?: FallbackMeasurements;
+  /** The authored name of a relation, printed under a bracketed neutral connector's run. */
+  relationNameFor?: (ref: PlanRelationRef) => string | undefined;
   /** Replay reveals neutral relations separately; static comparison plates may show them together. */
   separateFallbackMoments?: boolean;
   /** Full-frame allocation may include hidden owners; only revealed numerals can supply visible rail joins. */
@@ -470,6 +498,12 @@ export type FallbackMeasurements = {
   visibleObstacles?: Rect[];
   labelFor: (nodeId: string) => Rect | null;
   subtreeFor: (nodeId: string) => Rect | null;
+  /** The painted words a connector participant covers (fallbackSpans.ts);
+   * without it connectors keep their stems below each subtree. */
+  spanFor?: (nodeId: string) => FallbackWordSpan | null;
+  /** The boxes the stage's parent→child branches span, from the parent's
+   * point to the child's; brackets go below those over them, as below labels. */
+  branches?: Rect[];
   bottom: number;
 };
 

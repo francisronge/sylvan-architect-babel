@@ -83,6 +83,8 @@ interface RelationSceneContext {
   TARGET_EMERALD: string;
   /** Neutral role labels prefer the reading-direction side of their node. */
   treeDirection: TreeDirection;
+  /** The shown stage's authored relations, whose names label bracketed neutral connectors. */
+  stageRelations?: ReadonlyArray<{ relation?: string }>;
   /** This step's tree labels with their relation index letters
    * (`treeLabelRunsForStep`), read only when the frame places anchor-set badges. */
   stepLabelRuns?: () => ReadonlyMap<string, readonly TreeLabelRuns[]> | undefined;
@@ -114,6 +116,7 @@ export function paintRelationScene({
   containerRef,
   TARGET_EMERALD,
   treeDirection,
+  stageRelations,
   stepLabelRuns
 }: RelationSceneContext) {
   let overlayFitBounds: OverlayBounds | null = null;
@@ -211,7 +214,8 @@ export function paintRelationScene({
       replayVisibleNodeIdSet,
       playedRelationIndices,
       activeRelationMoment,
-      resolveOverlayAnchor
+      resolveOverlayAnchor,
+      direction: treeDirection
     });
     const frameItems = projectVisibleAnchorSetOrganization(
       (relationRenderPlan.frames[activeDerivationFrameIndex]?.items ?? []).map((item) =>
@@ -261,6 +265,7 @@ export function paintRelationScene({
       connectorBaselineY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.connectorBaseline,
       railBaseY: frameMaxNodeY + RELATION_LANES_BELOW_DEEPEST_NODE.railBase,
       direction: treeDirection,
+      relationNameFor: ref => ref.stageIndex === activeDerivationFrameIndex ? stageRelations?.[ref.relationIndex]?.relation : undefined,
       ...(badgeObstacles ? { badgeObstacles } : {})
     };
     const boundFrame = withPlaqueTextMeasure(svg, measurePlaqueText => bindRelationPlanFrame(
