@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { availableParallelism, tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { compareCorpusSnapshots, loadCorpusManifest, sha256 } from './replayCorpusInputs.mjs';
@@ -12,22 +12,17 @@ const run = promisify(execFile), worker = fileURLToPath(new URL('./replayCorpusS
 const defaultManifest = fileURLToPath(new URL('../fixtures/replay-corpus/manifest.json', import.meta.url));
 
 export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifest = defaultManifest,
-  archiveManifest, output, width = 1600, height = 948, direction = 'ltr', timeout = 180000 }) {
+  archiveManifest, output, width = 1600, height = 948, direction = 'ltr', timeout = 180000, jobs = defaultJobs() }) {
   const manifests = await Promise.all([manifest, ...(archiveManifest ? [archiveManifest] : [])].map(loadCorpusManifest));
   const records = manifests.flatMap(value => value.records), ids = new Set(records.map(record => record.id));
   if (ids.size !== records.length) throw Error('Record IDs must be unique across manifests');
   allowAddedFixtures(records, baselineRoot, candidateRoot);
   const layout = { width, height, direction }, scratch = await mkdtemp(path.join(tmpdir(), 'babel-corpus-'));
   try {
-    const snapshots = [];
     // Separate processes load each checkout's modules and dependency installation.
     // Inputs are selected once, so a baseline fixture cannot silently differ.
-    for (const [index, root] of [baselineRoot, candidateRoot].entries()) {
-      const request = path.join(scratch, `${index}-request.json`), snapshot = path.join(scratch, `${index}-snapshot.json`);
-      await writeFile(request, JSON.stringify({ root: path.resolve(root), records, layout }));
-      await run(process.execPath, [worker, request, snapshot], { cwd: path.resolve(root), timeout, maxBuffer: 1024 * 1024 });
-      snapshots.push(JSON.parse(await readFile(snapshot, 'utf8')));
-    }
+    const snapshots = await measureCheckouts([baselineRoot, candidateRoot], records, layout,
+      { scratch, timeout, jobs });
     const compared = compareCorpusSnapshots(snapshots[0], snapshots[1], records, { motionExceptions: MOTION_EXCEPTIONS });
     const failures = compared.filter(record => record.violations.length);
     const report = { schemaVersion: 1, ok: failures.length === 0, layout,
@@ -62,6 +57,45 @@ export async function compareReplayCorpus({ baselineRoot, candidateRoot, manifes
   } finally { await rm(scratch, { recursive: true, force: true }); }
 }
 
+/** Up to four workers: each measures records independently, so the count
+ * changes only the wall time, never a snapshot. */
+const defaultJobs = () => Math.min(4, availableParallelism());
+
+/** Each checkout's snapshot, as one process measuring every record in order
+ * would write it. The records are cut into chunks, and both checkouts' chunks
+ * share `jobs` worker processes. Records do not depend on one another, so the
+ * chunks' results, put back in record order, are the same snapshot. Every chunk
+ * must report the same source identity, so a checkout cannot change mid-run. */
+export async function measureCheckouts(roots, records, layout, { scratch, timeout, jobs }) {
+  // Records sharing an input stay in one chunk, which measures that input once.
+  const groups = new Map();
+  for (const record of records) groups.set(record.inputSha256, [...(groups.get(record.inputSha256) ?? []), record]);
+  const units = [...groups.values()], size = Math.max(1, Math.ceil(units.length / Math.max(1, jobs * 4)));
+  const chunks = [];
+  for (let start = 0; start < units.length || start === 0; start += size)
+    chunks.push(units.slice(start, start + size).flat());
+  const tasks = roots.flatMap((root, side) => chunks.map((chunk, index) => ({ root: path.resolve(root), side, index, chunk })));
+  const outputs = roots.map(() => new Array(chunks.length));
+  let next = 0, failed = false;
+  const work = async () => {
+    while (!failed && next < tasks.length) {
+      const { root, side, index, chunk } = tasks[next++];
+      const request = path.join(scratch, `${side}-${index}-request.json`), snapshot = path.join(scratch, `${side}-${index}-snapshot.json`);
+      await writeFile(request, JSON.stringify({ root, records: chunk, layout }));
+      try { await run(process.execPath, [worker, request, snapshot], { cwd: root, timeout, maxBuffer: 1024 * 1024 }); }
+      catch (error) { failed = true; throw error; }
+      outputs[side][index] = JSON.parse(await readFile(snapshot, 'utf8'));
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(Math.max(1, jobs), tasks.length) }, work));
+  return outputs.map((parts, side) => {
+    const identity = parts[0].identity;
+    if (parts.some(part => part.identity.sha256 !== identity.sha256)) throw Error(`Sources changed while measuring ${roots[side]}`);
+    const measured = new Map(parts.flatMap(part => part.records).map(record => [record.id, record]));
+    return { identity, records: records.map(record => measured.get(record.id)) };
+  });
+}
+
 /** A record read from a file inside the candidate checkout that the base
  * checkout lacks (a fixture the change adds) cannot regress its Replay, relation
  * plan, final layout or completed widths from the base, which never had it: the
@@ -91,16 +125,17 @@ function motionCounts(records, side) {
 function parseArgs(args) {
   const flags = { '--baseline-root': 'baselineRoot', '--candidate-root': 'candidateRoot', '--manifest': 'manifest',
     '--archive-manifest': 'archiveManifest', '--output': 'output', '--width': 'width', '--height': 'height',
-    '--direction': 'direction', '--timeout-ms': 'timeout' };
+    '--direction': 'direction', '--timeout-ms': 'timeout', '--jobs': 'jobs' };
   const options = {};
   for (let index = 0; index < args.length; index += 2) {
     const key = flags[args[index]], value = args[index + 1];
     if (!key || !value || value.startsWith('--')) throw Error(`Unknown or incomplete argument: ${args[index]}`);
     if (Object.hasOwn(options, key)) throw Error(`Duplicate argument: ${args[index]}`);
-    options[key] = ['width', 'height', 'timeout'].includes(key) ? Number(value) : value;
+    options[key] = ['width', 'height', 'timeout', 'jobs'].includes(key) ? Number(value) : value;
   }
   if (!options.baselineRoot || !options.candidateRoot || !options.output)
-    throw Error('Usage: node scripts/compareReplayCorpus.mjs --baseline-root /base --candidate-root /candidate --output /tmp/report.json [--manifest /manifest.json] [--archive-manifest /private-index.json]');
+    throw Error('Usage: node scripts/compareReplayCorpus.mjs --baseline-root /base --candidate-root /candidate --output /tmp/report.json [--manifest /manifest.json] [--archive-manifest /private-index.json] [--jobs N] [--timeout-ms MS]');
+  if (options.jobs !== undefined && !(Number.isInteger(options.jobs) && options.jobs > 0)) throw Error('jobs must be a positive integer');
   for (const key of ['width', 'height', 'timeout'])
     if (options[key] !== undefined && (!Number.isFinite(options[key]) || options[key] <= 0)) throw Error(`${key} must be positive`);
   if (options.direction !== undefined && !['ltr', 'rtl'].includes(options.direction)) throw Error('direction must be ltr or rtl');

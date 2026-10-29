@@ -197,13 +197,16 @@ jobs:
       # approved in tests/helpers/motionExceptions.mjs, or a movement the base
       # shows as movement losing its moment, fails the job. Fixture Replay and
       # layout changes are reviewed through the committed layout fingerprint.
+      # Four worker processes, shared by both checkouts, use the runner's four
+      # vCPUs; records are measured independently, so the report does not
+      # depend on the worker count.
       - name: Compare Replay motion with the PR base
         working-directory: candidate
         run: |
           node scripts/buildCorpusArchiveManifest.mjs --fixtures --out "$RUNNER_TEMP/fixtures-manifest.json"
           npm run -s verify:corpus -- --baseline-root ../baseline --candidate-root . \
             --archive-manifest "$RUNNER_TEMP/fixtures-manifest.json" \
-            --output "$RUNNER_TEMP/corpus-motion.json" --timeout-ms 1200000
+            --output "$RUNNER_TEMP/corpus-motion.json" --timeout-ms 1200000 --jobs 4
 
       - name: Retain the comparison report
         if: always()
