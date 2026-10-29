@@ -28,6 +28,7 @@ import {
   isAuthoredTraceOrGap,
   negativeClaimEvidence,
   nodeContainsAny,
+  notationFeatureLabelPair,
   pairedLiteralsDetail,
   prepareNativeFissionContent,
   projectionChain,
@@ -221,6 +222,7 @@ export const evaluateStructuralCheck = (
         return 'case-direction-requires-independent-participant-evidence';
       if (caseValues.length) return caseValues.length === ids('feature.target').length && caseValues.every(literal => literal.trim().length > 0);
       if (valueLiterals(evidence, 'feature.rows').length) return true;
+      if (notationFeatureLabelPair(evidence)) return true;
       const hasRole = (concept: string, specific: string, names: string[]) => (evidence.authoredCurrentAnchors ?? []).some(entry =>
         entry.concepts.includes(concept) && (entry.concepts.includes(specific) && (isExplicitTier2Role(specific, entry.key)
           || evidence.associatedAnchorKeys?.[specific]?.includes(entry.key))

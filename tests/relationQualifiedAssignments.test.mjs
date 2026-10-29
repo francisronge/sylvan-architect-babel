@@ -456,6 +456,52 @@ test('explicit subject/head agreement pairs preserve scalar feature dimensions a
   ]) assert(!dispatch(relation).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
 });
 
+test('head and specifier agreement reads phi dimension fields as agreement content', () => {
+  for (const values of [{ person: '3', number: 'singular' }, { number: 'plural', gender: 'feminine' }]) {
+    const relation = { relation: 'An unfamiliar name', anchors: { specifier: 'argument', head: 'source' }, values };
+    const original = structuredClone(relation);
+    const d = dispatch(relation);
+    assert(d.facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
+    assert.deepEqual(d.evidence.currentAnchors['feature.source'], ['source']);
+    assert.deepEqual(d.evidence.currentAnchors['feature.target'], ['argument']);
+    const paths = plan(relation).filter(item => item.kind === 'directed-path');
+    assert.equal(paths.length, Object.keys(values).length);
+    assert(paths.every(path => path.fromNodeId === 'source' && path.toNodeId === 'argument'));
+    assert.deepEqual(relation, original);
+  }
+  for (const relation of [
+    { relation: 'An unfamiliar name', anchors: { specifier: 'argument', head: 'source' }, values: { features: 'unrelated description' } },
+    { relation: 'An unfamiliar name', anchors: { specifier: 'argument', head: 'source' }, values: { effect: 'third person' } },
+    { relation: 'An unfamiliar name', anchors: { specifier: 'argument', head: 'argument' }, values: { person: '3' } },
+    { relation: 'An unfamiliar name', anchors: { specifier: 'argument', other: 'source' }, values: { person: '3' } }
+  ]) assert(!dispatch(relation).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
+});
+
+test('one phi dimension, or a dimension in prose, is not head and specifier agreement', () => {
+  // A specifier's number alone, as in an EPP claim, or a prose description, says nothing about matching.
+  for (const relation of [
+    { relation: 'EPP', anchors: { head: 'source', specifier: 'argument' }, values: { number: 'sg' } },
+    { relation: 'spec-head', anchors: { head: 'source', specifier: 'argument' }, values: { number: 'the subject is plural so the verb is too' } },
+    { relation: 'spec-head agreement', anchors: { head: 'source', specifier: 'argument' }, values: { person: '3', number: 'plural because the subject is' } },
+    { relation: 'Case assignment', anchors: { head: 'source', specifier: 'argument' }, values: { case: 'nominative', number: 'sg' } }
+  ]) {
+    assert(!dispatch(relation).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(relation));
+    assert(plan(relation).every(item => item.kind === 'fallback'), JSON.stringify(relation));
+  }
+});
+
+test('a phi bundle of unset values is not head and specifier agreement', () => {
+  // On 50c09be person: 'none' and number: 'n/a' drew two agreement connectors.
+  for (const values of [{ person: 'none', number: 'n/a' }, { person: 'null', number: 'sg' }, { person: 'N/A', number: 'sg' },
+    { person: '3≠1', number: 'mismatch' }, { person: 'false', number: 'sg' }]) {
+    const relation = { relation: 'spec-head', anchors: { head: 'source', specifier: 'argument' }, values };
+    assert(!dispatch(relation).facets.some(f => f.recipe.id === 'feature.dependency'), JSON.stringify(values));
+    assert(plan(relation).every(item => item.kind === 'fallback'), JSON.stringify(values));
+  }
+  assert(dispatch({ relation: 'spec-head', anchors: { head: 'source', specifier: 'argument' }, values: { person: '3', number: 'sg' } })
+    .facets.some(f => f.recipe.id === 'feature.dependency'));
+});
+
 test('an anchored tense head and subject head recover finite features without treating a generic tense anchor as a head', () => {
   const currentForest = [{ id: 'tp', label: 'TP', children: [
     { id: 'subject', label: 'DP', children: [{ id: 'subjectN', label: 'N', word: 'children' }] },
