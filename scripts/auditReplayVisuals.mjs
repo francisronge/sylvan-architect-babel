@@ -46,7 +46,9 @@ async function main() {
   if (!(values.fixtures || values.runs.length || values.batches.length || values['archive-manifest'].length))
     throw Error(USAGE);
   const every = Math.max(1, Number(values.every));
-  const records = (await loadRecords(values)).filter((record, index) => index % every === 0 && (!values.only || record.id.includes(values.only)));
+  const loaded = await loadRecords(values);
+  const records = loaded.filter((record, index) => index % every === 0 && (!values.only || record.id.includes(values.only)));
+  console.log(`Loaded ${loaded.length} analyses; auditing ${records.length} of them${records.length < loaded.length ? ' (--every, --only)' : ''}.`);
   const jobs = Math.max(1, Math.min(Number(values.jobs) || 1, availableParallelism()));
   const started = performance.now();
   const snapshotAudit = snapshotAuditOf(values, audits);
@@ -236,7 +238,7 @@ async function loadRecords(values) {
     const { loadFixtureAnalyses } = await import('../tests/helpers/replayInvariantCorpus.mjs');
     for (const { id, record } of loadFixtureAnalyses().records) records.push({ id, input: record });
   }
-  const { runRecords } = await import('./buildCorpusArchiveManifest.mjs');
+  const { assertUniqueRecordIds, runRecords } = await import('./buildCorpusArchiveManifest.mjs');
   const { loadCorpusManifest } = await import('./replayCorpusInputs.mjs');
   const runDirectories = [...values.runs, ...values.batches.flatMap(root => readdirSync(root).sort()
     .map(batch => path.join(root, batch, 'runs')).filter(existsSync))];
@@ -254,8 +256,7 @@ async function loadRecords(values) {
       records.push({ id: record.id, input: { sentence: record.input.sentence, inputTokens: record.input.inputTokens,
         derivationStages: record.input.derivationStages } });
   } finally { if (scratch) rmSync(scratch, { recursive: true, force: true }); }
-  const seen = new Set();
-  return records.filter(record => !seen.has(record.id) && seen.add(record.id));
+  return assertUniqueRecordIds(records);
 }
 
 function runWorkers(records, jobs, data) {
