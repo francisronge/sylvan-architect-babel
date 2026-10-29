@@ -33,8 +33,8 @@ Node 24.x, ESM. Tests import `.ts` modules through Node's type stripping.
 - Show a visual change as zoomed before/after images with one plain sentence per
   case. Add a click-through page for stepping:
   `node scripts/buildReplayComparison.mjs --baseline-root <main> --candidate-root <branch> --cases <cases.json> --out /tmp/<page>`
-  (it refuses a candidate that lacks the baseline commit; each case says what to
-  watch and which steps to open). Show saved batches with
+  (it refuses a candidate that lacks the baseline commit, more than 4 cases, more
+  than 3 steps per case, and a "watch" line over 120 characters). Show saved batches with
   `node scripts/buildReplayReview.mjs --batch DIR[=Label]... --out /tmp/<page> [--visual]`,
   which writes each tree's known faults itself; do not hand-write or trim them.
 - Only Francis accepts a fault as an exception. Record his approval on the entry
@@ -253,5 +253,8 @@ once its mistake can no longer happen.
 | Painted frames and motion stay clean. | `verify:browser-visual` before merge, on macOS |
 | A batch review page prints every known fault on its tree. | `scripts/buildReplayReview.mjs`; `tests/buildReplayReview.test.mjs` |
 | A review page compares the change with current main. | `scripts/buildReplayComparison.mjs` refuses otherwise |
+| A review page shows at most 4 cases, each with one short line. | `checkCaseList` in `scripts/buildReplayComparison.mjs`; `tests/replayComparisonPage.test.mjs` |
+| Before saying a PR's checks pass, read its CI result (`gh pr checks`); local gates do not cover CI's corpus records. | Judgment |
+| Before describing an outside tool or product Francis names (Jev is TypeSafe AI's model), look it up; never assume what it is. | Judgment |
 | Before calling a change clean, step through its changed frames in the real renderer; an improving metric can hide a regression. | Judgment |
 | Before listing open work, read ROADMAP's current work order and Explicitly Not Active; never relist what Francis settled. | Judgment |
