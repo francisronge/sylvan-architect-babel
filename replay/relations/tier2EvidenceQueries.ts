@@ -10,6 +10,9 @@ import { TIER2_FACET_RECIPES } from './tier2FacetRecipes.ts';
 import type { Tier2AnchorSource, Tier2AuthoredEvidenceEntry, Tier2FacetEvidence } from './tier2FacetTypes.ts';
 import {
   FEATURE_DIMENSION_KEYS,
+  claimDeniesOrWithholds,
+  fieldNamingLiterals,
+  isNotationFeatureLabel,
   namedThematicRole,
   normalizeTier2Synonym,
   thematicRoleLabel,
@@ -97,6 +100,27 @@ export const anchorIds = (
 
 export const valueLiterals = (evidence: Tier2FacetEvidence, valueName: string): string[] =>
   [...(evidence.values[valueName] ?? [])].map(String);
+
+/** A claim whose relation name or authored values deny or withhold what it
+ * states (`claimDeniesOrWithholds`); the readings added for structural misses leave it neutral. */
+export const deniedEvidence = (evidence: Partial<Pick<Tier2FacetEvidence, 'relationName' | 'authoredValues'>>): boolean =>
+  claimDeniesOrWithholds(evidence.relationName, (evidence.authoredValues ?? []).map(entry => entry.items));
+
+/** The one feature label in notation, such as `+wh`, when no feature rows or
+ * Case are authored and no other label competes. The connector shows it. */
+export const notationFeatureLabel = (evidence: Tier2FacetEvidence): string | undefined => {
+  if (deniedEvidence(evidence)) return undefined;
+  const labels = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('feature.label'));
+  if (valueLiterals(evidence, 'feature.rows').length || valueLiterals(evidence, 'case.literal').length
+    || labels.length !== 1 || labels[0].items.length !== 1 || !isNotationFeatureLabel(labels[0].items[0])) return undefined;
+  return labels[0].items[0].trim();
+};
+
+/** That label is a dependency's whole content only between a head-specifier or
+ * named agreement pair, whose participants the concept reader marks. */
+export const notationFeatureLabelPair = (evidence: Tier2FacetEvidence): boolean =>
+  notationFeatureLabel(evidence) !== undefined && ['feature.source', 'feature.target'].every(concept =>
+    (evidence.authoredCurrentAnchors ?? []).some(entry => entry.concepts.includes(concept) && entry.concepts.includes('feature.label-pair')));
 
 // Feature heads have known meanings; their values stay literal. Explanatory
 // prose is context, not evidence for or against a specialized assertion.
@@ -196,7 +220,7 @@ export const pairedLiterals = (
 };
 
 export const sameNameValueEntries = (
-  evidence: Pick<Tier2FacetEvidence, 'authoredValues'>,
+  evidence: Pick<Tier2FacetEvidence, 'authoredValues'> & Partial<Pick<Tier2FacetEvidence, 'authoredCurrentAnchors' | 'relationName'>>,
   anchorEntry: Tier2AuthoredEvidenceEntry,
   role?: string
 ): (Tier2AuthoredEvidenceEntry & { anchorLength: number })[] => {
@@ -215,7 +239,26 @@ export const sameNameValueEntries = (
     ? entries.filter(candidate => candidate.items.length === 1
       && /(?:^| )role$/u.test(normalizeTier2Synonym(candidate.key))
       && [normalizeTier2Synonym(anchorEntry.key), namedThematicRole(anchorEntry.key)].includes(normalizeTier2Synonym(candidate.items[0]))) : [];
-  return (matches.length ? matches : qualified.length ? qualified : named)
+  // A role-label list that names each argument field gives this field the literal
+  // naming it. It must name every argument field exactly once and nothing else:
+  // a list one item longer or shorter than the arguments is ambiguous.
+  const argumentKeys = (evidence.authoredCurrentAnchors ?? []).filter(entry => entry.concepts.includes('theta.arguments'))
+    .map(entry => entry.key);
+  const listed = (!role || role === 'theta.arguments') && !deniedEvidence(evidence)
+    && anchorEntry.concepts.includes('theta.arguments') && anchorEntry.items.length === 1
+    ? entries.flatMap(candidate => {
+      const named = candidate.concepts.includes('role.label') && candidate.items.length > 1
+        ? fieldNamingLiterals(argumentKeys, candidate.items) : undefined;
+      const index = named?.size === argumentKeys.length ? named.get(anchorEntry.key) : undefined;
+      return index === undefined ? [] : [{ key: candidate.key, concepts: candidate.concepts, items: [candidate.items[index]] }];
+    }) : [];
+  const primary = matches.length ? matches : qualified.length ? qualified : named;
+  // A field labelled both by the list and by another entry keeps both only when
+  // they disagree: the competing candidates leave the pairing ambiguous, so
+  // neither label is chosen silently.
+  const conflicting = primary.length > 0 && listed.length > 0 && primary.some(entry => entry.items.length !== 1
+    || listed.some(item => normalizeTier2Synonym(item.items[0]) !== normalizeTier2Synonym(entry.items[0])));
+  return (conflicting ? [...primary, ...listed] : primary.length ? primary : listed)
     .map(entry => ({ ...entry, anchorLength: anchorEntry.items.length }));
 };
 

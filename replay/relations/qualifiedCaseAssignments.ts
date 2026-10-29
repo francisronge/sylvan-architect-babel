@@ -6,7 +6,7 @@ import { hasIndependentCaseEndpoints } from './featureEvidence.ts';
 import { establishesAssignment, relationAssertionFailure, relationLabelOutcome } from './outcomeResolver.ts';
 import { buildTier2FacetEvidence } from './relationEvidence.ts';
 import type { Tier2FacetEvidence } from './tier2FacetTypes.ts';
-import { isExplicitTier2Role, normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
+import { claimDeniesOrWithholds, isExplicitTier2Role, normalizeTier2Synonym, relationLabelClauses } from './tier2Synonyms.ts';
 
 const conventionalCases = new Set(['nominative', 'accusative', 'genitive', 'dative', 'ergative',
   'absolutive', 'instrumental', 'locative', 'oblique', 'vocative']);
@@ -211,14 +211,12 @@ export function recoverContextualCaseAssignment(evidence: Tier2FacetEvidence, th
   const roleValues = (evidence.authoredValues ?? []).filter(entry => entry.concepts.includes('role.label'));
   const namedRole = roleValues.length === 1 && roleValues[0].items.length === 1
     ? normalizeTier2Synonym(roleValues[0].items[0]) : undefined;
-  const targets = explicitTargets.length ? explicitTargets : anchors.filter(entry =>
+  const namedTargets = explicitTargets.length ? explicitTargets : anchors.filter(entry =>
     /^(?:(?:licensed|internal|external) )?(?:subject|object|argument|nominal|recipient|dependent|case bearer)$/u.test(normalizeTier2Synonym(entry.key))
     || namedCase && normalizeTier2Synonym(entry.key) === 'nominal projection'
     || namedRole && normalizeTier2Synonym(entry.key) === namedRole
     || thematic?.origins.anchors[entry.key] && thematic.evidence.currentAnchors['theta.arguments']?.includes(entry.items[0]));
-  if (targets.length !== 1 || !nominal(targets[0])) return [];
-  const target = targets[0], targetNode = nodeFor(target)!;
-  const sources = anchors.filter(entry => {
+  const isSource = (entry: typeof anchors[number]) => {
     const role = normalizeTier2Synonym(entry.key), occurrence = nodeFor(entry);
     if (!occurrence) return false;
     if (explicitSources.length) return explicitSources.includes(entry);
@@ -245,7 +243,16 @@ export function recoverContextualCaseAssignment(evidence: Tier2FacetEvidence, th
     if (role === 'selector') return selected;
     return assignment && Boolean(thematic?.origins.anchors[entry.key]
       && thematic.evidence.currentAnchors.predicate?.includes(occurrence.node.id));
-  });
+  };
+  // With no recipient role, the one anchor whose role carries no meaning can
+  // still be the recipient, but only as the nominal sister of the head that
+  // assigns the Case. Structure decides it; the role's spelling does not.
+  const governedTarget = !namedTargets.length;
+  if (governedTarget && claimDeniesOrWithholds(evidence.relationName, (evidence.authoredValues ?? []).map(entry => entry.items))) return [];
+  const targets = governedTarget ? anchors.filter(entry => entry.concepts.length === 0 && !isSource(entry)) : namedTargets;
+  if (targets.length !== 1 || !nominal(targets[0])) return [];
+  const target = targets[0], targetNode = nodeFor(target)!;
+  const sources = anchors.filter(isSource);
   if (sources.length !== 1) return [];
   const source = sources[0], sourceNode = nodeFor(source)!;
   if (sourceNode.node.id === targetNode.node.id || sourceNode.root !== targetNode.root
@@ -255,6 +262,7 @@ export function recoverContextualCaseAssignment(evidence: Tier2FacetEvidence, th
   // elsewhere in the same clause.
   if (governedCase && (normalizeTier2Synonym(source.key) !== 'governing position'
     || sourceNode.ancestors.at(-1) !== targetNode.ancestors.at(-1))) return [];
+  if (governedTarget && (sourceNode.node.children?.length || sourceNode.ancestors.at(-1) !== targetNode.ancestors.at(-1))) return [];
   // Another contextual head could own the Case claim. A named chain head is
   // only context when its exact occurrence shares the governing slot's lineage.
   const competing = anchors.some(entry => {

@@ -13,7 +13,7 @@ import {
   type NodeBadgesPlanItem,
   type NodePlaquePlanItem
 } from './renderPlan.ts';
-import { literalThetaRoles, pairedLiterals } from './tier2EvidenceQueries.ts';
+import { literalThetaRoles, notationFeatureLabel, pairedLiterals } from './tier2EvidenceQueries.ts';
 import { featureDependencyRows, singleValue, valueItems } from './tier2PlanValues.ts';
 
 export const featurePlan = {
@@ -386,9 +386,11 @@ export const featureFacetPlan = {
         ...base(facet, ['Feature connectors'], 'tier2.feature-dependency', `target:${index}:row:${rowIndex}`),
         ...path, pathStyle: 'case-agree', featureRow: row
       }));
+      // A lone notation label (+wh) is the dependency's content, shown on its connector.
+      const label = !caseLabels.length && !featureRows.length ? notationFeatureLabel(evidence) : undefined;
       if (!caseLabels.length && !featureRows.length) push({
         ...base(facet, ['Feature connectors'], 'tier2.feature-dependency', `target:${index}`),
-        ...path, pathStyle: 'case-agree'
+        ...path, pathStyle: 'case-agree', ...(label ? { label } : {})
       });
     });
     return;
