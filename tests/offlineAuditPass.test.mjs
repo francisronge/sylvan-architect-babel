@@ -45,3 +45,31 @@ test('several audits pair their viewports and reports by order', async () => {
   await fails([...VISUAL, ...CAMERA, '--out', '/dev/null'], /Give --out once for each of the 2 audits/);
   await fails([...VISUAL, '--out', '/dev/null', '--audit', 'visual', '--viewports', 'mobile', '--out', '/dev/null'], /names each audit once/);
 });
+
+test('shards merged report exactly what one pass does, and only a complete set of shards merges', async t => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'babel-audit-shards-'));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  // Nine analyses with listed camera findings, split four and five.
+  const audit = (...args) => run(process.execPath, [script, '--fixtures', '--only', 'movement/clause-context.json#', '--jobs', '1', ...args]);
+  const out = name => path.join(directory, name);
+  const reports = name => [...VISUAL, '--out', out(`${name}-visual.json`), ...CAMERA, '--out', out(`${name}-camera.json`)];
+  await Promise.all([audit(...reports('one')),
+    ...[1, 2].map(shard => audit(...reports('unused'), '--shard', `${shard}/2`, '--results-out', out(`shard-${shard}.json`)))]);
+  const shards = [1, 2].map(shard => JSON.parse(readFileSync(out(`shard-${shard}.json`), 'utf8')));
+  assert.deepEqual(shards.map(shard => shard.results.length), [5, 4]);
+  await audit(...reports('merged'), '--merge', out('shard-1.json'), '--merge', out('shard-2.json'));
+  const read = name => {
+    const { durationMs, jobs, ...report } = JSON.parse(readFileSync(out(name), 'utf8'));
+    return report;
+  };
+  assert.ok(read('one-camera.json').findings.length > 0, 'the analyses have findings to compare');
+  for (const name of ['visual', 'camera']) assert.deepEqual(read(`merged-${name}.json`), read(`one-${name}.json`), name);
+  const refused = (args, pattern) => assert.rejects(audit(...reports('refused'), ...args), error => pattern.test(error.stderr));
+  const both = ['--merge', out('shard-1.json'), '--merge', out('shard-2.json')];
+  await refused(['--merge', out('shard-1.json')], /--merge needs shards 1\/N to N\/N of one N, each once; got 1\/2/);
+  await refused(['--merge', out('shard-1.json'), '--merge', out('shard-1.json')], /each once; got 1\/2, 1\/2/);
+  await refused(['--every', '2', ...both], /audited other analyses than this run selects/);
+  await refused(['--no-canopy', ...both], /ran other audits than this run names/);
+  await refused(['--shard', '1/2'], /--shard needs --results-out/);
+  await refused(['--shard', '3/2', '--results-out', out('x.json')], /Invalid --shard 3\/2/);
+});
