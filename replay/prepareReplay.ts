@@ -1,5 +1,6 @@
 import { buildDerivationReplayPlan } from '../derivationReplayPlan.js';
 import type { DerivationStage } from '../types.ts';
+import type { JevRecord } from './relations/jev.ts';
 import { compileDispatchedRelationRenderPlan, dispatchRelationStagesForPlan } from './relations/renderPlanCompiler.ts';
 import { relationMomentOrders } from './relations/anchorRailBands.ts';
 import { adaptDerivationStagesForReplay } from './authoredFrames.ts';
@@ -17,10 +18,12 @@ export interface ReplayPreparationInput {
   sentence: string;
   inputTokens?: string[];
   includePlayback: boolean;
+  /** The analysis's saved Jev readings (relations/jev.ts); absent, Replay is unchanged. */
+  jev?: JevRecord;
 }
 
 /** Shared by the app worker and standalone, synchronous review renderers. */
-export const prepareReplay = ({ derivationStages, sentence, inputTokens, includePlayback }: ReplayPreparationInput) => {
+export const prepareReplay = ({ derivationStages, sentence, inputTokens, includePlayback, jev }: ReplayPreparationInput) => {
   if (!String(sentence || '').trim() && derivationStages?.some(stage => stage.realizations?.length)) {
     throw new Error('Replay with realization groups requires the original input sentence.');
   }
@@ -29,7 +32,8 @@ export const prepareReplay = ({ derivationStages, sentence, inputTokens, include
   const derivationReplayPlan = hasStages
     ? buildDerivationReplayPlan({ derivationStages }) as DerivationReplayPlan : null;
   // The plan's drawings and Replay's relation moments share one dispatch of every claim.
-  const relationClaims = dispatchRelationStagesForPlan(relationStagesFromFrames(replayDerivationFrames, derivationReplayPlan));
+  const relationClaims = dispatchRelationStagesForPlan(relationStagesFromFrames(replayDerivationFrames, derivationReplayPlan),
+    jev ? { jev } : {});
   const finalIndex = replayDerivationFrames.length - 1;
   const finalFrame = replayDerivationFrames[finalIndex];
   const frameRelations = createFrameRelationResolver(replayDerivationFrames, derivationReplayPlan, relationClaims);
