@@ -239,7 +239,11 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
     }
     if (!departing.size) continue;
     const xs = [...departing].map(id => prior.get(id)!.x);
-    const lo = Math.min(...xs), hi = Math.max(...xs), bound = hi - lo + TREE_SIBLING_GAP;
+    // The room the phrase leaves: its former extent and one node unit, less the
+    // node unit a lower occurrence painted in that extent keeps.
+    const lo = Math.min(...xs), hi = Math.max(...xs);
+    const kept = [...current].some(([id, node]) => !prior.has(id) && node.x >= lo - 1 && node.x <= hi + 1);
+    const bound = hi - lo + (kept ? 0 : TREE_SIBLING_GAP);
     // At the movement the lines stand in the room the phrase leaves: past the
     // syntax wholly before and after its former extent, and through no phrase
     // that keeps its daughters except the parents the departure changes.
@@ -274,6 +278,22 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
       }
       if (old && !changed.has(id) && node.children?.some(child => current.has(getNodeId(child)))) blocked.push(span(node));
     }
+    // A gap lies between syntax that stood on both sides of the phrase in its
+    // workspace, in word order: one that left the edge leaves none, and new syntax
+    // beside it (the landing) is not a side that closes.
+    const between = (() => {
+      const start = participants.map(id => prior.get(id)).find(node => node && departing.has(getNodeId(node)));
+      if (!start) return false;
+      let top = start;
+      for (let id = shownParent(prior, top); id; id = shownParent(prior, top)) top = prior.get(id)!;
+      const leaves: boolean[] = [];
+      top.eachBefore(node => {
+        const id = getNodeId(node);
+        if (prior.has(id) && !(node.children ?? []).some(child => prior.has(getNodeId(child)))) leaves.push(departing.has(id));
+      });
+      const firstOut = leaves.indexOf(true), lastOut = leaves.lastIndexOf(true);
+      return leaves.slice(0, firstOut).includes(false) && leaves.slice(lastOut + 1).includes(false);
+    })();
     if (!Number.isFinite(before)) before = lo + entry - 1;
     if (!Number.isFinite(after)) after = hi + entry + 1;
     const clear = (x: number, direction: 1 | -1) => {
@@ -285,6 +305,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
     };
     const first = clear(before + 0.5, 1), last = clear(after - 0.5, -1);
     const debug = (...parts: unknown[]) => { trace.log?.('GAP', m + 1, scenes[m].step.targetNodeId, ...parts); };
+    if (!between) { debug('edge'); continue; }
     if (first > last) { debug('no room line', Math.round(before), Math.round(after), Math.round(first), Math.round(last)); continue; }
     // The two lines through every later frame, carried across stage crossings.
     const lines: [number, number][] = [[first, last]];
