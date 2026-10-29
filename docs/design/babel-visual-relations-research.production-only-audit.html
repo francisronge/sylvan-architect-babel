@@ -4,51 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Babel Relation Orchard</title>
+  <link rel="stylesheet" href="../research/relation-orchard/fonts.css?v=21102e7fa219">
   <link rel="stylesheet" href="../research/relation-orchard/relation-visuals.css">
   <link rel="stylesheet" href="../research/relation-orchard/source-citations.css?v=e6b00c2790bb">
   <style>
-    @font-face {
-      font-family: "Crimson Pro";
-      src: url("../../node_modules/@fontsource/crimson-pro/files/crimson-pro-latin-400-normal.woff2") format("woff2");
-      font-weight: 400;
-      font-style: normal;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: "Crimson Pro";
-      src: url("../../node_modules/@fontsource/crimson-pro/files/crimson-pro-latin-700-normal.woff2") format("woff2");
-      font-weight: 700;
-      font-style: normal;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: "Crimson Pro";
-      src: url("../../node_modules/@fontsource/crimson-pro/files/crimson-pro-latin-400-italic.woff2") format("woff2");
-      font-weight: 400;
-      font-style: italic;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: "Quicksand";
-      src: url("../../node_modules/@fontsource/quicksand/files/quicksand-latin-400-normal.woff2") format("woff2");
-      font-weight: 400;
-      font-style: normal;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: "Quicksand";
-      src: url("../../node_modules/@fontsource/quicksand/files/quicksand-latin-700-normal.woff2") format("woff2");
-      font-weight: 700;
-      font-style: normal;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: "JetBrains Mono";
-      src: url("../../node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2") format("woff2");
-      font-weight: 400;
-      font-style: normal;
-      font-display: swap;
-    }
     :root {
       color-scheme: dark;
       --forest-deep: #020806;
@@ -930,7 +889,9 @@
       opacity: 0.08;
       pointer-events: none;
     }
-    .babel-render-mount svg {
+    /* Only the tree canvas fills the card; a plaque's scrolling viewport is a
+       nested svg that keeps the size the renderer gives it. */
+    .babel-render-mount svg[data-babel-tree="true"] {
       width: 100%;
       height: 100%;
       display: block;
@@ -1593,6 +1554,6 @@
   </div>
 
   <script>window.__BABEL_LOGO_SRC__ = "../../public/babellogo.png";</script>
-    <script src="./visual-relations-current-lab.production-only-audit.r96.bundle.js?v=bdca67dc6675"></script>
+    <script src="./visual-relations-current-lab.production-only-audit.r96.bundle.js?v=b822c4655057"></script>
 </body>
 </html>
