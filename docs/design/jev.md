@@ -2,6 +2,13 @@
 
 Jev maps the model's words to Babel's words; Babel decides everything else.
 
+Accepted rule (Francis, 29 Oct 2026): Jev is part of the app's recognition. Its
+purpose is "for recognition, so that we wouldn't have to keep adding ad hoc
+fixes to it", and a second model helping decide which picture a relation gets
+was "kind of the point. not to do linguistics but for recognising what babel
+couldn't". The server asks Jev about the model's own terms once, after a valid
+parse; the readings are saved with the analysis; Replay never calls a model.
+
 ## What it is
 
 The model does the linguistics. Jev is part of Babel's recognition, like the
@@ -14,8 +21,10 @@ completes or extends the analysis.
 
 ## When it runs
 
-Once, after generation, for one analysis. It is asked only about claims that
-recognition leaves wholly neutral (`replay/jevClaims.ts`). A relation with a
+Once, on the server, after a response is complete and passes Babel's checks
+(`server/babelParser/jevPass.js`, called from `parseRoutes.js`), for each of its
+analyses. It is asked only about claims that recognition leaves wholly neutral
+(`replay/jevClaims.ts`). A relation with a
 contract failure is not asked about, and neither is a relation with an exactly
 registered (Tier-1) name: re-reading the keys of a malformed registered claim
 would repair it, and a malformed exact Tier-1 claim stays neutral.
@@ -27,7 +36,7 @@ generate text: it is sent a state and typed questions and returns, for each
 Choice question, the chosen option, a probability for every option and a
 confidence. Babel uses only Choice questions.
 
-The state (`jevState` in `contractQualification/jev.js`) is the claim's own
+The state (`jevState` in `server/babelParser/jev.js`) is the claim's own
 words: the relation name, the role keys and the value keys and strings. It
 carries no sentence, tree, node, label, word or id. Before each request the
 runner rebuilds it with every anchor id replaced and sends it only if the two
@@ -49,7 +58,7 @@ Each claim is asked in at most two requests over the same state:
 1. One Choice, `family`: `none` and every family that can read the whole
    claim (`askableFamilies`). Each family is described in plain words, with
    what it means, what Babel draws and what each slot holds
-   (`contractQualification/jevDescriptions.js`, written from what the recipe
+   (`server/babelParser/jevDescriptions.js`, written from what the recipe
    checks and draws).
 2. Only when the family is not `none`: one Choice, `reading`, whose options
    are the complete readings of the claim's anchor keys in that family
@@ -99,15 +108,14 @@ the family, the reading and the value reading. Replay applies a saved reading on
 confidence is at least `JEV_CONFIDENCE_THRESHOLD`. The record keeps every
 checked answer with its confidence, so a new threshold needs no new requests.
 
-The threshold is 0.9, provisional: TypeSafe's examples gate a reversible
-action at 0.6 and an irreversible one at 0.85, and a wrong drawing teaches a
-wrong analysis even when structure accepts it. It is calibrated on the live
-benchmark with `scripts/calibrateJev.mjs`, which reapplies every saved record
-at thresholds from 0.50 to 1.00 and counts, at each, the readings that reach
-it, those that stand, and those that disagree with reviewed reference
-readings. The adopted threshold is the lowest with no disagreement, after the
-standing readings without a reference have been reviewed. Pin the model
-version the threshold was calibrated on (`jev-1.14.0`); `jev-latest` moves.
+The threshold is 0.7, adopted by Francis on 29 Oct 2026 after a hand check of
+the 73 readings of the live benchmark (jev-1.14.0, prompt `jev-ts-2`): 25
+reached 0.7 and none of them was wrong. `scripts/calibrateJev.mjs` reapplies
+every saved record at thresholds from 0.50 to 1.00 and counts, at each, the
+readings that reach it, those that stand, and those that disagree with
+reviewed reference readings; a new threshold needs that sweep and Francis's
+decision. The model version the threshold was set on (`jev-1.14.0`) is pinned;
+`jev-latest` moves.
 
 ## How a reading is used
 
@@ -132,7 +140,7 @@ are never changed; drawn items keep the authored `relationRef`.
 
 ## Saved and offline
 
-The answers are saved as the analysis's Jev record:
+The server attaches each analysis's answers to it as `jevReadings` (`types.ts`):
 
 ```json
 { "version": 2, "mappings": [{ "stageIndex": 1, "relationIndex": 0,
@@ -140,27 +148,72 @@ The answers are saved as the analysis's Jev record:
   "answer": { "family": "theta-grid", "roles": { "assigner": "predicate", "assignee": "theta.arguments" },
     "values": { "role": "role.label" } }, "confidence": 0.94 }],
   "provenance": { "service": "typesafe", "requestedModel": "jev-1.14.0", "models": ["jev-1.14.0"],
-    "promptVersion": "jev-ts-2", "at": "…", "thresholdAtRun": 0.9 } }
+    "promptVersion": "jev-ts-2", "at": "…", "thresholdAtRun": 0.7 } }
 ```
+
+Every checked answer is kept, including `none` and answers below the
+threshold. An analysis none of whose claims was answered has no `jevReadings`;
+older responses and records have none and draw as before. The model cannot
+author the field: the response envelope admits only `derivationStages`.
 
 A mapping applies only to the claim at that position whose words equal its
 `terms`, and it is checked again against the threshold, the closed sets and
 the whole-claim rule when read. Version 1 records, which carry no confidence,
-never apply. Replay
-takes the record as `prepareReplay({ …, jev })` and never calls a model, so it
-stays offline and repeatable. With no record, or no applicable mapping, plans
-are byte-identical to today's.
+never apply. Replay takes the record as `prepareReplay({ …, jev })`; the app
+passes the active analysis's `jevReadings` (`App.tsx`, `TreeVisualizer.tsx`).
+Replay never calls a model, so it stays offline and repeatable. With no record,
+or no applicable mapping, plans are byte-identical to today's.
+
+The Personal Tree Bank stores `jevReadings` inside the analysis record, so a
+reopened analysis draws as it was drawn; `services/treeBankRecords.ts` refuses
+a malformed record (`jevRecordIssues`), and `scripts/verifyParseContract.mjs`
+also checks that each mapping names a relation of its analysis by its words.
 
 A reading that stands can inform later claims the way any drawn claim does,
 for example through assignment continuity.
 
-## Running it
+## The server's pass
+
+`runJevPass` (`server/babelParser/jevPass.js`) collects every analysis's
+neutral claims and asks them in parallel, four claims at a time, each claim's
+one or two requests in turn, inside one wall-clock budget of 8 seconds (capped
+by what remains of the request budget; below one second it does not start). On
+the live benchmark the slowest claim took 0.81 s and the slowest analysis 4.1 s
+with its 18 claims asked one after another, so 8 s covers that analysis twice
+over sequentially and several analyses in parallel, while adding at most a few
+seconds to a generation that takes tens of seconds or more. When the budget is
+spent, requests in flight are abandoned even if their transport ignores the
+signal, and claims not yet asked are not sent. A client disconnect stops the
+pass the same way.
+
+Each request is sent once with plain `fetch`; a 429 or 529 is not retried. A
+claim whose request fails or times out, or whose answer falls outside its
+options, gets no reading; the parse never fails or waits on Jev. Without
+`TYPESAFE_API_KEY` nothing is sent. The pass is recorded in the response's
+`generationRecord.jev`: the service, model, prompt version, threshold, budget,
+duration, usage, status (`completed`, `partial`, `not-configured`, `skipped`,
+`failed`) and, per analysis, each claim's outcome (`s2r1`: `proposal`,
+`no-drawing`, `no-reading`, `out-of-set`, `transport-failed` with its HTTP
+status, `timed-out`, `not-asked`, …). It keeps Babel's own error words, at
+most three per claim and quoting an offending choice, never a provider's error
+body. The key is read on the server only, from
+`TYPESAFE_API_KEY`; it is never sent to the browser, saved or logged.
+
+The local app, `npm run qualification:codex:app -- --jev`, reads each completed
+run the same way, with `TYPESAFE_API_KEY` or the Keychain item `Babel TypeSafe
+API`, and saves the pass beside the run as `jev-pass.json`; the run itself is
+unchanged. Without `--jev` it asks nothing.
+
+## Benchmark runs
+
+Saved analyses are asked with the same questions and checks as the server's
+pass (`askJevClaim`), and their records are reviewed and calibrated offline:
 
 ```sh
 node scripts/runJev.mjs --cases cases.json --out DIR --dry-run
 node scripts/runJev.mjs --cases cases.json --out DIR --run [--key-file PATH | --keychain-item NAME]
 node scripts/calibrateJev.mjs --cases cases.json --run DIR --reference readings.json
-node scripts/reviewJev.mjs --cases cases.json --run DIR --out sheet.md [--threshold 0.9]
+node scripts/reviewJev.mjs --cases cases.json --run DIR --out sheet.md [--threshold 0.7]
 ```
 
 The review sheet lists every reading that stands at the threshold with the
@@ -179,15 +232,3 @@ request and sizes the largest possible second one, with no key and no
 network. Every request, the received bytes, the answer check, per-analysis
 receipt and record and a summary with the cost at TypeSafe's published price
 (input tokens only; output is free) are kept, readable only by the owner.
-
-## Where the record lives
-
-Only in qualification runs, beside the run (`runs/<run>/…/jev.json` or the
-benchmark directory), passed to `prepareReplay` by the tools that read those
-runs. The app makes no Jev call, the parse response does not change and the
-Personal Tree Bank stores no Jev record.
-
-Open product question: whether Jev's record should reach the app, and if so
-whether it travels in the parse response or the Tree Bank record, and whether
-the app runs Jev after a parse. Each is a new provider call or a contract
-change, and needs Francis's decision.

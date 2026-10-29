@@ -68,7 +68,10 @@ Node 24.x, ESM. Tests import `.ts` modules through Node's type stripping.
   model-facing prompt. `routeConfig.js`, `modelRuntime.js` and `parseRoutes.js`
   own provider configuration and transport. `parseNormalization.js` and
   `derivationCompiler.js` own normalization and derived structures; `spellout.js`
-  owns the spelling check and the word list.
+  owns the spelling check and the word list. `jev.js` asks TypeSafe's Jev about
+  claims recognition leaves neutral and checks its answers; `jevPass.js` runs
+  that bounded pass after a valid parse and attaches `jevReadings`
+  (`docs/design/jev.md`). Replay applies saved readings and never calls Jev.
 - `replay/` owns React-free Replay construction. Its modules must import in Node
   and never import React or components. `replayCompiler.ts` orchestrates stages,
   construction and relation scheduling; `replay/relations/renderPlan.ts` owns

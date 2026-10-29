@@ -1539,10 +1539,16 @@ The vocabularies are separate:
   entries but not gain them; new claims are recognised from structure.
   `tests/recognitionVocabularyFrozen.test.mjs` enforces this against
   `tests/helpers/recognitionVocabulary.frozen.json`.
-- Replay never calls a model. A saved Jev reading (`docs/design/jev.md`) is
-  per-analysis data, not vocabulary: it aliases one neutral claim's own keys to
-  slot names from Babel's closed sets, and the claim then passes these same
-  checks or stays neutral. (Proposed; awaiting Francis's acceptance.)
+- Recognition of the model's own terms is also done by Jev
+  (`docs/design/jev.md`), accepted by Francis on 29 Oct 2026: a second model
+  helping decide which picture a relation gets was "kind of the point. not to
+  do linguistics but for recognising what babel couldn't". The server asks Jev
+  once, after a valid parse, about each claim this dispatch leaves wholly
+  neutral, and saves the checked readings with the analysis (`jevReadings`).
+  A reading is per-analysis data, not vocabulary: it aliases one neutral
+  claim's own keys to slot names from Babel's closed sets, applies only at
+  confidence 0.7 or more (`JEV_CONFIDENCE_THRESHOLD`), and the claim then
+  passes these same checks or stays neutral. Replay never calls a model.
 
 An exact primitive word or registered relation identity therefore cannot select
 a Tier-2 facet. Tier-2 recognition is earned by authored roles, values, anchors,
