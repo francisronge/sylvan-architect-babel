@@ -216,7 +216,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
     else stages.set(scene.step.replayFrameIndex!, { members: [index], box: boxOf(all[index]) });
     scene.stage = stages.get(scene.step.replayFrameIndex!);
   });
-  const again = new Set<number>();
+  const again = new Map<number, number>();
   for (let m = 1; m < scenes.length; m++) {
     const participants = trajectoryParticipants(scenes[m].step);
     if (!participants.length || firstScene.get(scenes[m].canvas) !== m || lastScene.get(scenes[m - 1].canvas)! >= m) continue;
@@ -481,7 +481,7 @@ export function closeMovementGaps({ steps, sizes, planned, measureCategoryText }
         closed.forEach((frame, index) => { all[m + index] = frame; });
         debug('closed');
         // The other side may then close what room is left.
-        if (!again.has(m)) { again.add(m); m--; }
+        if ((again.get(m) ?? 0) < 3) { again.set(m, (again.get(m) ?? 0) + 1); m--; }
         break;
       }
       debug('motion changed later');
