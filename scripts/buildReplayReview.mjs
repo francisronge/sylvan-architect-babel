@@ -19,8 +19,9 @@ import { paneHtml, resolveCase } from './buildReplayComparison.mjs';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const safeJson = value => JSON.stringify(value).replaceAll('<', '\\u003c');
 
-/** Plain-words notes for one tree, most important first: Replay rule violations
- * always, visual and camera findings above a small size. */
+/** Plain-words notes for one tree: movement diagnostics and Replay rule violations,
+ * then every distinct visual and camera finding above a small size, grouped by rule
+ * (their measures have different units) and largest first within a rule. */
 export function reviewNotes({ violations = [], visual = [], movementDiagnostics = [] }) {
   const notes = [...new Set(movementDiagnostics.map(({ step, detail }) => `Babel could not draw a movement at step ${step}: ${detail}`))];
   notes.push(...violations.map(v => `Replay check ${v.rule}${v.frame === null || v.frame === undefined ? '' : ` at step ${v.frame}`}: ${v.detail}`));
@@ -30,9 +31,27 @@ export function reviewNotes({ violations = [], visual = [], movementDiagnostics 
     const key = `${f.rule}|${f.subtype}|${f.subject ?? ''}`, seen = worst.get(key);
     if (!seen || f.measure > seen.measure) worst.set(key, f);
   }
-  notes.push(...[...worst.values()].sort((a, b) => b.measure - a.measure).slice(0, 3)
-    .map(f => `${f.rule}${f.subtype ? ` (${f.subtype})` : ''} ${Math.round(f.measure * 10) / 10} at ${f.viewport}, step ${String(f.frame).split('>')[0]}`));
+  const kind = f => `${f.rule}${f.subtype ? ` (${f.subtype})` : ''}`;
+  notes.push(...[...worst.values()].sort((a, b) => kind(a).localeCompare(kind(b)) || b.measure - a.measure)
+    .map(f => `${kind(f)} ${Math.round(f.measure * 10) / 10} at ${f.viewport}, step ${String(f.frame).split('>')[0]}`));
   return notes;
+}
+
+/** Each batch's audit results keyed by `<run> a<n>`. Audit record ids name a batch
+ * by its directory's basename, which two batches can share, so every batch is
+ * audited on its own and its results stay with it. `auditInvariants(batch, index)`
+ * returns an auditReplayInvariants report; `auditVisual(batch, index)` returns
+ * auditReplayVisuals findings. */
+export function auditBatches(batches, { auditInvariants, auditVisual = null }) {
+  return batches.map((batch, index) => {
+    const violations = new Map(auditInvariants(batch, index).records.map(r => [r.id.slice(r.id.indexOf('/') + 1), r.violations]));
+    const visual = new Map();
+    for (const f of auditVisual?.(batch, index) ?? []) {
+      const [, run, ai] = /^run:[^/]+\/([^/]+)\/parse#(\d+)$/.exec(f.record) ?? [];
+      if (run) { const key = `${run} a${Number(ai) + 1}`; visual.set(key, [...(visual.get(key) ?? []), f]); }
+    }
+    return { violations, visual };
+  });
 }
 
 /** The page: tree list, one Replay pane opening at step 1, keyboard on the pane. */
@@ -75,22 +94,23 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const { prepareReplay } = await import(pathToFileURL(path.join(root, 'replay/prepareReplay.ts')).href);
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'babel-review-'));
   const batches = values.batch.map(spec => { const [dir, label] = spec.split('='); return { dir: path.resolve(dir), label: label ?? path.basename(dir) }; });
-  const invariantsFile = path.join(scratch, 'invariants.json');
-  execFileSync(process.execPath, [path.join(repoRoot, 'scripts/auditReplayInvariants.mjs'), '--checkout', root, '--examples', '0',
-    ...batches.flatMap(b => ['--batch', b.dir]), '--out', invariantsFile], { stdio: 'inherit' });
-  const violations = new Map(JSON.parse(fs.readFileSync(invariantsFile, 'utf8')).records.map(r => [r.id, r.violations]));
-  const visual = new Map();
-  if (values.visual) for (const [index, b] of batches.entries()) {
-    const files = ['visual', 'camera'].map(kind => path.join(scratch, `${kind}-${index}.json`));
-    execFileSync(process.execPath, [path.join(root, 'scripts/auditReplayVisuals.mjs'), '--runs', path.join(b.dir, 'runs'),
-      '--audit', 'visual', '--audit', 'camera', '--out', files[0], '--out', files[1]], { stdio: 'inherit' });
-    for (const f of files.flatMap(file => JSON.parse(fs.readFileSync(file, 'utf8')).findings)) {
-      const [, run, ai] = /^run:[^/]+\/([^/]+)\/parse#(\d+)$/.exec(f.record) ?? [];
-      if (run) visual.set(`${path.basename(b.dir)}/${run} a${Number(ai) + 1}`, [...(visual.get(`${path.basename(b.dir)}/${run} a${Number(ai) + 1}`) ?? []), f]);
-    }
-  }
+  const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8'));
+  const audits = auditBatches(batches, {
+    auditInvariants: (b, index) => {
+      const file = path.join(scratch, `invariants-${index}.json`);
+      execFileSync(process.execPath, [path.join(repoRoot, 'scripts/auditReplayInvariants.mjs'), '--checkout', root, '--examples', '0',
+        '--batch', b.dir, '--out', file], { stdio: 'inherit' });
+      return readJson(file);
+    },
+    auditVisual: values.visual ? (b, index) => {
+      const files = ['visual', 'camera'].map(kind => path.join(scratch, `${kind}-${index}.json`));
+      execFileSync(process.execPath, [path.join(root, 'scripts/auditReplayVisuals.mjs'), '--runs', path.join(b.dir, 'runs'),
+        '--audit', 'visual', '--audit', 'camera', '--out', files[0], '--out', files[1]], { stdio: 'inherit' });
+      return files.flatMap(file => readJson(file).findings);
+    } : null
+  });
   const cases = [];
-  for (const b of batches) for (const run of fs.readdirSync(path.join(b.dir, 'runs')).sort()) {
+  for (const [index, b] of batches.entries()) for (const run of fs.readdirSync(path.join(b.dir, 'runs')).sort()) {
     const source = path.join(b.dir, 'runs', run, 'attempts', 'parse', 'bundle.json');
     if (!fs.existsSync(source)) continue;
     const { analyses } = JSON.parse(fs.readFileSync(source, 'utf8')).response;
@@ -105,7 +125,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         .filter(detail => /^(?:MOVEMENT_|RELATION_TIMING_CONFLICT)/.test(detail) || /drawing was not licensed/.test(detail) && !drawsPath(step))
         .map(detail => ({ step: i + 1, detail })));
       steps.forEach((step, i) => { const n = (step.replayVisibleNodeIds ?? []).length; if (step.replayKind === 'relation' && n > shown) moments.push(i + 1); shown = n; });
-      const id = `${path.basename(b.dir)}/${run} a${analysis + 1}`;
+      const id = `${run} a${analysis + 1}`, { violations, visual } = audits[index];
       cases.push({ ...record, group: b.label, title: `${run}${analyses.length > 1 ? ` · reading ${analysis + 1}` : ''}`, total: steps.length,
         notes: reviewNotes({ violations: violations.get(id), visual: visual.get(id), movementDiagnostics }),
         steps: [...new Set([...moments.filter((_, i) => i % Math.max(1, Math.ceil(moments.length / 6)) === 0), steps.length])] });
