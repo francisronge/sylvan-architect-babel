@@ -501,8 +501,9 @@ export type FallbackMeasurements = {
   /** The painted words a connector participant covers (fallbackSpans.ts);
    * without it connectors keep their stems below each subtree. */
   spanFor?: (nodeId: string) => FallbackWordSpan | null;
-  /** The boxes the stage's parent→child branches span, from the parent's
-   * point to the child's; brackets go below those over them, as below labels. */
+  /** The boxes the frame's painted parent→child branches span, from the
+   * parent's point to the child's; brackets go below those over them, as
+   * below the visible labels. */
   branches?: Rect[];
   bottom: number;
 };

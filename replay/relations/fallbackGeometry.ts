@@ -302,10 +302,13 @@ export const routeFallbackSegments = (
     const [start, end] = extent(segment);
     return { start, end };
   }), laneGap);
-  // Brackets go below all syntax over them, labels and branches, so they never cross it.
+  // Brackets go below all painted syntax over them, labels and branches, so
+  // they never cross it. Syntax a later step of the stage adds is not on screen
+  // with them: a connector shows only at its own relation moment.
   const overBrackets = counterSegments.filter(segment => segment.brackets).flatMap(segment => {
     const [x1, x2] = extent(segment);
-    return [...options.fallbackMeasurements?.labels ?? [], ...options.fallbackMeasurements?.branches ?? []]
+    const measured = options.fallbackMeasurements;
+    return [...measured?.visibleLabels ?? measured?.labels ?? [], ...measured?.branches ?? []]
       .filter(box => box.x < x2 && box.x + box.width > x1).map(box => box.y + box.height);
   });
   const participantBottom = counterSegments.length > 0

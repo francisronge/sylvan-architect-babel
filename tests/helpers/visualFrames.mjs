@@ -429,7 +429,7 @@ function relationGeometry({ visual, step, stepIndex, tree, painted, plan, schedu
     visibleLabels: [...labelRects].filter(([id]) => visibleIds.has(id)).map(([, value]) => value),
     visibleObstacles: visiblePlacements.map(([, box]) => box), labelFor: id => rectFor(id, false), subtreeFor: id => rectFor(id, true),
     branches: all.flatMap(node => node.parent && !canvas.isSyntheticWorkspaceRootNode(node.parent) && !isUnderTriangulation(node)
-      ? [fallbackBranchBox(node.parent, node)] : []),
+      && visibleIds.has(display.getNodeId(node)) && visibleIds.has(display.getNodeId(node.parent)) ? [fallbackBranchBox(node.parent, node)] : []),
     spanFor: id => { const anchor = laidOut.get(id); return anchor ? coveredWordSpan(anchor, node => {
       const wordId = display.getNodeId(node);
       return visibleIds.has(wordId) ? labelRects.get(wordId) ?? null : null;
