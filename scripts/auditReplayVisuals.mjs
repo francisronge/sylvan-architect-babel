@@ -54,7 +54,7 @@ async function main() {
     ({ audit, viewports, canopy, snapshot: index === snapshotAudit })) };
   const shard = shardOf(values);
   if (shard) {
-    const own = records.flatMap((record, index) => index % shard.total === shard.index - 1 ? [{ record, index }] : []);
+    const own = shardRecords(records, shard);
     const results = await runWorkers(own.map(({ record }) => record), jobs, plan);
     writeFileSync(path.resolve(values['results-out']), `${JSON.stringify({ schemaVersion: 1, shard: values.shard, plan, jobs,
       ids: records.map(record => record.id), durationMs: Math.round(performance.now() - started),
@@ -97,6 +97,29 @@ async function main() {
     checkSnapshot(values, results.map(({ id, error, audits: each }) => error ? { id, error } : { id, ...each[snapshotAudit] }),
       every === 1 && !values.only);
   }
+}
+
+/** An analysis's audit cost estimate: its syntax nodes over every stage, which
+ * tracks its laid-out frames. It orders and balances work, never what is audited. */
+function auditCost(record) {
+  let nodes = 0;
+  const visit = node => { nodes++; (node.children ?? []).forEach(visit); };
+  for (const stage of record.input.derivationStages ?? []) (stage.workspaceForest ?? []).forEach(visit);
+  return nodes;
+}
+
+/** Shard `index` of `total`: each analysis, heaviest first, goes to the shard
+ * with the least estimated cost so far (ties to the lower shard), so the shards
+ * partition the analyses deterministically. */
+function shardRecords(records, { index, total }) {
+  const costs = records.map(auditCost), load = new Array(total).fill(0), own = [];
+  const order = records.map((_, position) => position).sort((a, b) => costs[b] - costs[a] || a - b);
+  for (const position of order) {
+    const lightest = load.indexOf(Math.min(...load));
+    load[lightest] += costs[position];
+    if (lightest === index - 1) own.push({ record: records[position], index: position });
+  }
+  return own.sort((a, b) => a.index - b.index);
 }
 
 /** `--shard I/N`, which needs `--results-out` and excludes --merge and --update-snapshot, or null. */
@@ -238,12 +261,14 @@ async function loadRecords(values) {
 function runWorkers(records, jobs, data) {
   return new Promise((resolve, reject) => {
     const results = new Array(records.length);
+    // The heaviest analyses start first, so none is left running alone at the end.
+    const costs = records.map(auditCost), order = records.map((_, index) => index).sort((a, b) => costs[b] - costs[a] || a - b);
     let next = 0, done = 0;
     if (!records.length) { resolve([]); return; }
     const workers = Array.from({ length: Math.min(jobs, records.length) }, () => new Worker(fileURLToPath(import.meta.url), { workerData: data }));
     const feed = worker => {
       if (next >= records.length) return;
-      const index = next++;
+      const index = order[next++];
       worker.postMessage({ index, id: records[index].id, input: records[index].input });
     };
     for (const worker of workers) {
