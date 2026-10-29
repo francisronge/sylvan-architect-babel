@@ -419,7 +419,7 @@ export const buildStructuralDerivationPlaybackSteps = ({
       ? preserveConstructionAttachments(forest, previousConstructionForest, pendingAttachmentNodeIds, snapshotVisibleNodeIds)
       : forest;
     const constructionForest = restoreReplacedChildren(
-      restoreRegroupedConstituents(attachedForest, previousConstructionForest, pendingRegroupings),
+      restoreRegroupedConstituents(attachedForest, previousConstructionForest, pendingRegroupings, snapshotVisibleNodeIds),
       previousConstructionForest, pendingReplacements);
     // A held attachment keeps its new child a separate root until the parent's
     // merge. Stage reservations keep its slot; the scaffold cannot attach it early.
